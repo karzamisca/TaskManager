@@ -9,6 +9,7 @@ public class ApplicationDbContext : IdentityDbContext
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
     public DbSet<Article> Articles { get; set; }
+    public DbSet<CodeWord> CodeWords { get; set; }
 
-}
+    }
 }
