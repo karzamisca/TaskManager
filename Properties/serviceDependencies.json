@@ -10,7 +10,7 @@
     },
     "mssql3": {
       "type": "mssql",
-      "connectionId": "ConnectionStrings"
+      "connectionId": "connectionString"
     }
   }
 }
