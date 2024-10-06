@@ -19,7 +19,6 @@
     "express": "^4.21.0",
     "express-session": "^1.18.0",
     "kylongdataentry": "file:",
-    "loginpage": "file:",
     "mocha": "^10.7.3",
     "mongoose": "^8.7.0"
   }
