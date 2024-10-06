@@ -52,5 +52,5 @@ jobs:
         with:
           app-name: 'kylongdataentry'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_88177609BCD246D3BD2E49E5A80555C8 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_D0524E6765CB4DA294E36678E5E0A7DA }}
           package: .
