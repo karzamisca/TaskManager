@@ -5,7 +5,7 @@ const authController = require("../controllers/authController"); // Ensure the p
 const authMiddleware = require("../middlewares/authMiddleware");
 
 // Login route
-router.get("/", (req, res) => {
+router.get("/login", (req, res) => {
   res.sendFile("login.html", { root: "./views" });
 });
 
