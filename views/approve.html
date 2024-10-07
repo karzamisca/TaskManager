@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Approve Documents</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h2>Pending Documents for Approval</h2>
+      <ul id="document-list">
+        <li>Loading documents...</li>
+      </ul>
+      <a href="/main">Back to Main</a>
+    </div>
+    <script>
+      // Fetch and display pending documents (you'll need to implement the API route)
+      async function fetchPendingDocuments() {
+        const response = await fetch("/api/pending-documents");
+        const documents = await response.json();
+        const list = document.getElementById("document-list");
+        list.innerHTML = ""; // Clear loading message
+
+        if (documents.length === 0) {
+          list.innerHTML = "<li>No pending documents.</li>";
+          return;
+        }
+
+        documents.forEach((doc) => {
+          const listItem = document.createElement("li");
+          listItem.innerHTML = `
+                    <strong>${doc.title}</strong> by ${doc.submittedBy.username}
+                    <form action="/approve/${doc._id}" method="POST" style="display:inline;">
+                        <button type="submit">Approve</button>
+                    </form>
+                `;
+          list.appendChild(listItem);
+        });
+      }
+
+      fetchPendingDocuments();
+    </script>
+  </body>
+</html>

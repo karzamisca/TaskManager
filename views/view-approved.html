@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Approved Documents</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h2>Approved Documents</h2>
+      <ul id="approved-document-list">
+        <li>Loading documents...</li>
+      </ul>
+      <a href="/main">Back to Main</a>
+    </div>
+    <script>
+      // Fetch and display approved documents (you'll need to implement the API route)
+      async function fetchApprovedDocuments() {
+        const response = await fetch("/api/approved-documents");
+        const documents = await response.json();
+        const list = document.getElementById("approved-document-list");
+        list.innerHTML = ""; // Clear loading message
+
+        if (documents.length === 0) {
+          list.innerHTML = "<li>No approved documents.</li>";
+          return;
+        }
+
+        documents.forEach((doc) => {
+          const listItem = document.createElement("li");
+          listItem.innerHTML = `<strong>${doc.title}</strong> by ${doc.submittedBy.username}`;
+          list.appendChild(listItem);
+        });
+      }
+
+      fetchApprovedDocuments();
+    </script>
+  </body>
+</html>
