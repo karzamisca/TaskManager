@@ -1,4 +1,3 @@
-<!-- views/approve.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -16,7 +15,7 @@
       <a href="/main">Back to Main</a>
     </div>
     <script>
-      // Fetch and display pending documents (you'll need to implement the API route)
+      // Fetch and display pending documents with full details
       async function fetchPendingDocuments() {
         const response = await fetch("/api/pending-documents");
         const documents = await response.json();
@@ -31,11 +30,13 @@
         documents.forEach((doc) => {
           const listItem = document.createElement("li");
           listItem.innerHTML = `
-                    <strong>${doc.title}</strong> by ${doc.submittedBy.username}
-                    <form action="/approve/${doc._id}" method="POST" style="display:inline;">
-                        <button type="submit">Approve</button>
-                    </form>
-                `;
+            <strong>Title:</strong> ${doc.title}<br>
+            <strong>Content:</strong> ${doc.content}<br>
+            <strong>Submitted By:</strong> ${doc.submittedBy.username}<br>
+            <form action="/approve/${doc._id}" method="POST" style="display:inline;">
+              <button type="submit">Approve</button>
+            </form>
+          `;
           list.appendChild(listItem);
         });
       }

@@ -1,4 +1,3 @@
-<!-- views/view-approved.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -16,7 +15,7 @@
       <a href="/main">Back to Main</a>
     </div>
     <script>
-      // Fetch and display approved documents (you'll need to implement the API route)
+      // Fetch and display approved documents with full details
       async function fetchApprovedDocuments() {
         const response = await fetch("/api/approved-documents");
         const documents = await response.json();
@@ -30,7 +29,11 @@
 
         documents.forEach((doc) => {
           const listItem = document.createElement("li");
-          listItem.innerHTML = `<strong>${doc.title}</strong> by ${doc.submittedBy.username}`;
+          listItem.innerHTML = `
+            <strong>Title:</strong> ${doc.title}<br>
+            <strong>Content:</strong> ${doc.content}<br>
+            <strong>Submitted By:</strong> ${doc.submittedBy.username}
+          `;
           list.appendChild(listItem);
         });
       }
