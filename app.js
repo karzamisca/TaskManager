@@ -4,7 +4,8 @@ const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const bodyParser = require("body-parser");
 const connectDB = require("./config/db");
-const authRoutes = require("./routes/authRoutes"); // Ensure the path is correct
+const authRoutes = require("./routes/authRoutes");
+const documentRoutes = require("./routes/documentRoutes"); 
 require("dotenv").config();
 
 const app = express();
@@ -29,6 +30,7 @@ app.use(
 
 // Routes
 app.use("/", authRoutes);
+app.use("/", documentRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
