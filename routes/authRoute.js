@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/authController");
+const authMiddleware = require("../middlewares/authMiddleware");
 
 // Login route
 router.get("/login", (req, res) => {
@@ -15,11 +16,11 @@ router.post("/login", authController.login);
 router.get("/logout", authController.logout);
 
 // Main page route
-router.get("/main", (req, res) => {
+router.get("/main", authMiddleware, (req, res) => {
   res.sendFile("main.html", { root: "./views" }); // Serve the main page
 });
 
-router.get("/template", (req, res) => {
+router.get("/template", authMiddleware, (req, res) => {
   res.sendFile("template.html", { root: "./views" }); // Serve the template page
 });
 
