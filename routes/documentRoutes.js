@@ -5,11 +5,11 @@ const documentController = require("../controllers/documentController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 // Submit document route
-router.get("/submit", authMiddleware, (req, res) => {
+router.get("/submitDocument", authMiddleware, (req, res) => {
   res.sendFile("submit.html", { root: "./views" }); // Serve the submit document page
 });
 
-router.post("/submit", authMiddleware, documentController.submitDocument);
+router.post("/submitDocument", authMiddleware, documentController.submitDocument);
 
 // Approve document route
 router.get("/approve", authMiddleware, documentController.getPendingDocuments);
