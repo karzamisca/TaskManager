@@ -3,27 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Approved Documents</title>
+    <title>Approve Documents</title>
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body>
     <div class="container">
-      <h2>Approved Documents</h2>
-      <ul id="approved-document-list">
+      <h2>Pending Generic Documents for Approval</h2>
+      <ul id="document-list">
         <li>Loading documents...</li>
       </ul>
-      <a href="/main">Back to Main</a>
+      <a href="/mainDocument">Back</a>
     </div>
     <script>
-      // Fetch and display approved documents with full details
-      async function fetchApprovedDocuments() {
-        const response = await fetch("/api/approved-documents");
+      // Fetch and display pending documents with full details
+      async function fetchPendingDocuments() {
+        const response = await fetch("/api/pendingDocument");
         const documents = await response.json();
-        const list = document.getElementById("approved-document-list");
+        const list = document.getElementById("document-list");
         list.innerHTML = ""; // Clear loading message
 
         if (documents.length === 0) {
-          list.innerHTML = "<li>No approved documents.</li>";
+          list.innerHTML = "<li>No pending document.</li>";
           return;
         }
 
@@ -32,13 +32,16 @@
           listItem.innerHTML = `
             <strong>Title:</strong> ${doc.title}<br>
             <strong>Content:</strong> ${doc.content}<br>
-            <strong>Submitted By:</strong> ${doc.submittedBy.username}
+            <strong>Submitted By:</strong> ${doc.submittedBy.username}<br>
+            <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
+              <button type="submit">Approve</button>
+            </form>
           `;
           list.appendChild(listItem);
         });
       }
 
-      fetchApprovedDocuments();
+      fetchPendingDocuments();
     </script>
   </body>
 </html>

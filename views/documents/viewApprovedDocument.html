@@ -3,27 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Approve Documents</title>
+    <title>Approved Documents</title>
     <link rel="stylesheet" href="/css/styles.css" />
   </head>
   <body>
     <div class="container">
-      <h2>Pending Documents for Approval</h2>
-      <ul id="document-list">
+      <h2>Approved Generic Documents</h2>
+      <ul id="approved-document-list">
         <li>Loading documents...</li>
       </ul>
-      <a href="/main">Back to Main</a>
+      <a href="/mainDocument">Back</a>
     </div>
     <script>
-      // Fetch and display pending documents with full details
-      async function fetchPendingDocuments() {
-        const response = await fetch("/api/pending-documents");
+      // Fetch and display approved documents with full details
+      async function fetchApprovedDocuments() {
+        const response = await fetch("/api/approvedDocument");
         const documents = await response.json();
-        const list = document.getElementById("document-list");
+        const list = document.getElementById("approved-document-list");
         list.innerHTML = ""; // Clear loading message
 
         if (documents.length === 0) {
-          list.innerHTML = "<li>No pending documents.</li>";
+          list.innerHTML = "<li>No approved document.</li>";
           return;
         }
 
@@ -32,16 +32,13 @@
           listItem.innerHTML = `
             <strong>Title:</strong> ${doc.title}<br>
             <strong>Content:</strong> ${doc.content}<br>
-            <strong>Submitted By:</strong> ${doc.submittedBy.username}<br>
-            <form action="/approve/${doc._id}" method="POST" style="display:inline;">
-              <button type="submit">Approve</button>
-            </form>
+            <strong>Submitted By:</strong> ${doc.submittedBy.username}
           `;
           list.appendChild(listItem);
         });
       }
 
-      fetchPendingDocuments();
+      fetchApprovedDocuments();
     </script>
   </body>
 </html>

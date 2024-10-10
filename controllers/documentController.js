@@ -11,20 +11,20 @@ exports.submitDocument = async (req, res) => {
       submittedBy: req.session.user, // Link the document to the user who submitted it
     });
     await newDocument.save();
-    res.redirect("/main"); // Redirect to main page after submission
+    res.redirect("/mainDocument"); // Redirect to main page after submission
   } catch (err) {
     console.error(err);
     res.status(500).send("Error submitting document");
   }
 };
 
-exports.getPendingDocuments = async (req, res) => {
+exports.getPendingDocument = async (req, res) => {
   try {
-    const pendingDocuments = await Document.find({ approved: false }).populate(
+    const pendingDocument = await Document.find({ approved: false }).populate(
       "submittedBy"
     );
     // Send the approve.html file and include the documents in a variable
-    res.sendFile("approve.html", { root: "./views" }); // Serve the approve document page
+    res.sendFile("approveDocument.html", { root: "./views/documents" }); // Serve the approve document page
   } catch (err) {
     console.error(err);
     res.status(500).send("Error fetching documents");
@@ -36,44 +36,44 @@ exports.approveDocument = async (req, res) => {
 
   try {
     await Document.findByIdAndUpdate(id, { approved: true });
-    res.redirect("/approve"); // Redirect to the approve page after approval
+    res.redirect("/approveDocument"); // Redirect to the approve page after approval
   } catch (err) {
     console.error(err);
-    res.status(500).send("Error approving document");
+    res.status(500).send("Error approving documents");
   }
 };
 
-exports.getApprovedDocuments = async (req, res) => {
+exports.getApprovedDocument = async (req, res) => {
   try {
-    const approvedDocuments = await Document.find({ approved: true }).populate(
+    const approvedDocument = await Document.find({ approved: true }).populate(
       "submittedBy"
     );
     // Send the view-approved.html file and include the documents in a variable
-    res.sendFile("view-approved.html", { root: "./views" }); // Serve the view approved documents page
+    res.sendFile("viewApprovedDocument.html", { root: "./views/documents" }); // Serve the view approved documents page
   } catch (err) {
     console.error(err);
     res.status(500).send("Error fetching approved documents");
   }
 };
 
-exports.getPendingDocumentsApi = async (req, res) => {
+exports.getPendingDocumentApi = async (req, res) => {
   try {
-    const pendingDocuments = await Document.find({ approved: false }).populate(
+    const pendingDocument = await Document.find({ approved: false }).populate(
       "submittedBy"
     );
-    res.json(pendingDocuments);
+    res.json(pendingDocument);
   } catch (err) {
     console.error(err);
     res.status(500).send("Error fetching pending documents");
   }
 };
 
-exports.getApprovedDocumentsApi = async (req, res) => {
+exports.getApprovedDocumentApi = async (req, res) => {
   try {
-    const approvedDocuments = await Document.find({ approved: true }).populate(
+    const approvedDocument = await Document.find({ approved: true }).populate(
       "submittedBy"
     );
-    res.json(approvedDocuments);
+    res.json(approvedDocument);
   } catch (err) {
     console.error(err);
     res.status(500).send("Error fetching approved documents");

@@ -9,7 +9,7 @@
   </head>
   <body>
     <div class="container">
-      <h2>Submit New Document</h2>
+      <h2>Submit New Generic Document</h2>
       <form action="/submitDocument" method="POST">
         <label for="title">Title</label>
         <input type="text" name="title" required />
@@ -17,7 +17,8 @@
         <label for="content">Content</label>
         <textarea name="content" rows="5" required></textarea>
 
-        <button type="submit">Submit Document</button>
+        <button type="submit">Submit Document</button><br />
+        <a href="/mainDocument">Back</a><br />
       </form>
     </div>
   </body>

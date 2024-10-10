@@ -5,7 +5,7 @@ const authController = require("../controllers/authController");
 
 // Login route
 router.get("/login", (req, res) => {
-  res.sendFile("login.html", { root: "./views" });
+  res.sendFile("login.html", { root: "./views" }); // Serve the login page
 });
 
 // Post request for login
@@ -17,6 +17,10 @@ router.get("/logout", authController.logout);
 // Main page route
 router.get("/main", (req, res) => {
   res.sendFile("main.html", { root: "./views" }); // Serve the main page
+});
+
+router.get("/template", (req, res) => {
+  res.sendFile("template.html", { root: "./views" }); // Serve the template page
 });
 
 module.exports = router;
