@@ -1,4 +1,4 @@
-// controllers/authController.js
+const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 exports.login = async (req, res) => {
@@ -10,7 +10,21 @@ exports.login = async (req, res) => {
       return res.status(401).send("Invalid username or password");
     }
 
-    req.session.user = user._id; // Store user session
+    // Generate a JWT token
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    // Set the token in a secure cookie
+    res.cookie("token", token, {
+      httpOnly: true,   // Prevents JavaScript from accessing the cookie
+      secure: process.env.NODE_ENV === "production", // Set to true in production to enforce HTTPS
+      sameSite: "strict", // Prevents CSRF attacks
+      maxAge: 60 * 60 * 1000, // 1 hour
+    });
+
     res.redirect("/main");
   } catch (err) {
     console.error(err);
@@ -19,10 +33,6 @@ exports.login = async (req, res) => {
 };
 
 exports.logout = (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).send("Error logging out");
-    }
-    res.redirect("/login");
-  });
+  res.clearCookie("token");  // Clear the JWT cookie on logout
+  res.redirect("/login");
 };

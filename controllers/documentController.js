@@ -8,7 +8,7 @@ exports.submitDocument = async (req, res) => {
     const newDocument = new Document({
       title,
       content,
-      submittedBy: req.session.user, // Link the document to the user who submitted it
+      submittedBy: req.user.id, // Use req.user.id from the token payload
     });
     await newDocument.save();
     res.redirect("/mainDocument"); // Redirect to main page after submission
@@ -35,6 +35,10 @@ exports.approveDocument = async (req, res) => {
   const { id } = req.params;
 
   try {
+    if (req.user.role !== "approver") {
+      return res.status(403).send("Access denied. Only approvers can approve documents.");
+    }
+
     await Document.findByIdAndUpdate(id, { approved: true });
     res.redirect("/approveDocument"); // Redirect to the approve page after approval
   } catch (err) {

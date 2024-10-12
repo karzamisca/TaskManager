@@ -1,11 +1,10 @@
-// app.js
 const express = require("express");
-const session = require("express-session");
-const MongoStore = require("connect-mongo");
 const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 const authRoute = require("./routes/authRoute");
-const documentRoute = require("./routes/documentRoute"); 
+const documentRoute = require("./routes/documentRoute");
+const authMiddleware = require("./middlewares/authMiddleware");  // JWT middleware
 require("dotenv").config();
 
 const app = express();
@@ -16,21 +15,13 @@ connectDB();
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
+app.use(cookieParser());  // Use cookie-parser to parse cookies
 
-// Session setup
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: true,
-    store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
-    cookie: { maxAge: 1000 * 60 * 60 * 24 }, // 1 day
-  })
-);
+// Remove session middleware (since it's no longer needed)
 
 // Routes
 app.use("/", authRoute);
-app.use("/", documentRoute);
+app.use("/", authMiddleware, documentRoute);  // Apply JWT middleware to document routes
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
