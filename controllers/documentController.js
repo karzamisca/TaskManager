@@ -1,4 +1,4 @@
-// controllers/authController.js
+// controllers/documentController.js
 const Document = require("../models/Document");
 
 exports.submitDocument = async (req, res) => {
