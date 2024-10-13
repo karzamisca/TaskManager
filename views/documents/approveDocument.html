@@ -31,18 +31,23 @@
       }
 
       documents.forEach((doc) => {
-        const listItem = document.createElement("li");
-        listItem.innerHTML = `
+  const listItem = document.createElement("li");
+  const approvers = doc.approvers.map(approver => `
+    <strong>Approver:</strong> ${approver.username} (${approver.subRole})<br>
+  `).join("");
+
+  listItem.innerHTML = `
     <strong>Title:</strong> ${doc.title}<br>
     <strong>Content:</strong> ${doc.content}<br>
+    <strong>Approvers:</strong><br> ${approvers}
     <strong>Submitted By:</strong> ${doc.submittedBy.username}<br>
-    <strong>Approvals:</strong> ${doc.approvals.length} / ${doc.approvers.length}<br>
     <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
       <button type="submit">Approve</button>
     </form>
   `;
-        list.appendChild(listItem);
-      });
+  list.appendChild(listItem);
+});
+
 
     }
 

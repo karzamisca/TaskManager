@@ -7,15 +7,23 @@ exports.submitDocument = async (req, res) => {
   const { title, content, approvers } = req.body;
 
   try {
-    const approverIds = Array.isArray(approvers) ? approvers : approvers.split(",");
+    // Fetch the approvers' details, including their usernames
+    const approverDetails = await Promise.all(approvers.map(async (approverId) => {
+      const approver = await User.findById(approverId);
+      return {
+        approver: approverId,
+        username: approver.username, // Get the username
+        subRole: req.body[`subRole_${approverId}`], // Get the sub-role for each approver
+      };
+    }));
 
     const newDocument = new Document({
       title,
       content,
       submittedBy: req.user.id,
-      approvers: approverIds,  // Store approvers here
-      approvals: [],            // Initialize empty approvals array
+      approvers: approverDetails, // Save approver details including username and sub-role
     });
+    
     await newDocument.save();
     res.redirect("/mainDocument");
   } catch (err) {
@@ -23,6 +31,7 @@ exports.submitDocument = async (req, res) => {
     res.status(500).send("Error submitting document");
   }
 };
+
 
 exports.getPendingDocument = async (req, res) => {
   try {
@@ -41,40 +50,36 @@ exports.approveDocument = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Check if user has the role of approver
     if (req.user.role !== "approver") {
       return res.status(403).send("Access denied. Only approvers can approve documents.");
     }
 
-    // Find the document by ID
     const document = await Document.findById(id);
-    
     if (!document) {
       return res.status(404).send("Document not found");
     }
 
-    // Check if the user is an approver
-    if (!document.approvers.includes(req.user.id)) {
-      return res.status(403).send("You are not authorized to approve this document.");
+    // Check if the current approver has already approved
+    if (document.approvedBy.includes(req.user.id)) {
+      return res.status(400).send("You have already approved this document.");
     }
 
-    // Add the approver's ID to the approvals array
-    if (!document.approvals.includes(req.user.id)) {
-      document.approvals.push(req.user.id);
-    }
+    // Add current approver to the list of approvers who approved
+    document.approvedBy.push(req.user.id);
 
-    // Check if all approvers have approved the document
-    if (document.approvals.length === document.approvers.length) {
-      document.approved = true;  // Mark document as approved if all approvers have approved
+    // If all approvers have approved, mark the document as approved
+    if (document.approvedBy.length === document.approvers.length) {
+      document.approved = true;
     }
 
     await document.save();
     res.redirect("/approveDocument");
   } catch (err) {
     console.error(err);
-    res.status(500).send("Error approving documents");
+    res.status(500).send("Error approving document");
   }
 };
+
 
 exports.getApprovedDocument = async (req, res) => {
   try {

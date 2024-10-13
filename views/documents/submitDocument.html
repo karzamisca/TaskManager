@@ -18,9 +18,9 @@
         <textarea name="content" rows="5" required></textarea>
 
         <label for="approvers">Select Approvers</label>
-        <select name="approvers" id="approvers" multiple required>
-          <!-- Approvers will be populated here -->
-        </select>
+        <div id="approver-selection">
+          <!-- This will be populated dynamically with approver options and sub-role fields -->
+        </div>
 
         <button type="submit">Submit Document</button><br />
         <a href="/mainDocument">Back</a><br />
@@ -28,20 +28,37 @@
     </div>
 
     <script>
-      async function fetchApprovers() {
-        const response = await fetch("/approvers");
-        const approvers = await response.json();
-        const approverSelect = document.getElementById("approvers");
+async function fetchApprovers() {
+  const response = await fetch("/approvers");
+  const approvers = await response.json();
+  const approverSelect = document.getElementById("approver-selection");
 
-        approvers.forEach((approver) => {
-          const option = document.createElement("option");
-          option.value = approver._id;  // Assuming _id is the unique identifier
-          option.textContent = approver.username;  // Display the username
-          approverSelect.appendChild(option);
-        });
-      }
+  approvers.forEach((approver) => {
+    const approverDiv = document.createElement("div");
 
-      fetchApprovers();
+    // Approver selection
+    const label = document.createElement("label");
+    label.textContent = approver.username;
+    approverDiv.appendChild(label);
+
+    const approverInput = document.createElement("input");
+    approverInput.type = "checkbox";
+    approverInput.name = "approvers";
+    approverInput.value = approver._id;
+    approverDiv.appendChild(approverInput);
+
+    // Sub-role input
+    const subRoleInput = document.createElement("input");
+    subRoleInput.type = "text";
+    subRoleInput.name = `subRole_${approver._id}`;  // Dynamic name for sub-role field
+    subRoleInput.placeholder = "Enter Sub-Role";
+    approverDiv.appendChild(subRoleInput);
+
+    approverSelect.appendChild(approverDiv);
+  });
+}
+
+fetchApprovers();
     </script>
   </body>
 </html>
