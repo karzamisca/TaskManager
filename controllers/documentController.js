@@ -102,9 +102,9 @@ exports.approveDocument = async (req, res) => {
 
 exports.getApprovedDocument = async (req, res) => {
   try {
-    const approvedDocument = await Document.find({ approved: true }).populate(
-      "submittedBy"
-    );
+    const approvedDocuments = await Document.find({ approved: true })
+      .populate('submittedBy', 'username') // Populate submitter's username
+      .populate('approvers.approver', 'username'); // Populate approvers' usernames
     // Send the view-approved.html file and include the documents in a variable
     res.sendFile("viewApprovedDocument.html", { root: "./views/documents" }); // Serve the view approved documents page
   } catch (err) {

@@ -1,4 +1,3 @@
-<!-- views/documents/viewApprovedDocument.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -22,7 +21,7 @@
       async function fetchApprovedDocuments() {
         const response = await fetch("/api/approvedDocument", {
           headers: {
-            Authorization: `Bearer ${token}`,  // Include JWT token in the Authorization header
+            Authorization: `Bearer ${token}`, // Include JWT token in the Authorization header
           },
         });
 
@@ -37,10 +36,18 @@
 
         documents.forEach((doc) => {
           const listItem = document.createElement("li");
+
+          let approversHTML = ""; // Create a list for the approvers
+          doc.approvers.forEach((approver) => {
+            approversHTML += `
+              <strong></strong> ${approver.username} (${approver.subRole})<br>
+            `;
+          });
           listItem.innerHTML = `
             <strong>Title:</strong> ${doc.title}<br>
             <strong>Content:</strong> ${doc.content}<br>
-            <strong>Submitted By:</strong> ${doc.submittedBy.username}
+            <strong>Approved by:</strong><br>${approversHTML}
+            <strong>Submitted By:</strong><br>${doc.submittedBy.username}
           `;
           list.appendChild(listItem);
         });
