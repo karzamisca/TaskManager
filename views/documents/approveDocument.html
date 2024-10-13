@@ -33,22 +33,22 @@
       documents.forEach((doc) => {
   const listItem = document.createElement("li");
   const approvers = doc.approvers.map(approver => `
-    <strong>Approver:</strong> ${approver.username} (${approver.subRole})<br>
+    <strong></strong> ${approver.username} (${approver.subRole})<br>
   `).join("");
 
   const approvedBy = doc.approvedBy.map(approver => `
-    <strong>Approved By:</strong> ${approver.username} <br>
+    <strong></strong> ${approver.username} <br>
   `).join("");
 
-  listItem.innerHTML = `
-    <strong>Title:</strong> ${doc.title}<br>
-    <strong>Content:</strong> ${doc.content}<br>
-    <strong>------------------------------------</strong><br> ${approvers}
-    <strong>------------------------------------</strong><br> ${approvedBy}
-    <strong>Submitted By:</strong> ${doc.submittedBy.username}<br>
-    <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
-      <button type="submit">Approve</button>
-    </form>
+    listItem.innerHTML = `
+      <strong>Title:</strong> ${doc.title}<br>
+      <strong>Content:</strong> ${doc.content}<br>
+      <strong>Approver:</strong><br> ${approvers}
+      <strong>Approved By:</strong><br> ${approvedBy}
+      <strong>Submitted By:</strong><br> ${doc.submittedBy.username}
+      <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
+        <button type="submit">Approve</button>
+      </form>
   `;
   list.appendChild(listItem);
 });
