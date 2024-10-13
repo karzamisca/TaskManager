@@ -59,13 +59,25 @@ exports.approveDocument = async (req, res) => {
       return res.status(404).send("Document not found");
     }
 
+    const user = await User.findById(req.user.id); // Get the user who is approving
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
     // Check if the current approver has already approved
-    if (document.approvedBy.includes(req.user.id)) {
+    const hasApproved = document.approvedBy.some(
+      (approver) => approver.user.toString() === req.user.id
+    );
+    if (hasApproved) {
       return res.status(400).send("You have already approved this document.");
     }
 
-    // Add current approver to the list of approvers who approved
-    document.approvedBy.push(req.user.id);
+    // Add current approver to the list of approvers who approved with username and role
+    document.approvedBy.push({
+      user: user._id, // User ID
+      username: user.username, // Username of the approver
+      role: user.role, // Role of the approver
+    });
 
     // If all approvers have approved, mark the document as approved
     if (document.approvedBy.length === document.approvers.length) {

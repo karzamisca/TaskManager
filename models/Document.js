@@ -13,8 +13,15 @@ const documentSchema = new mongoose.Schema({
     }
   ],
   approved: { type: Boolean, default: false },
-  approvedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // Store the users who approved
+  approvedBy: [
+    {
+      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // User ID of the approver
+      username: { type: String, required: true }, // Username of the approver
+      role: { type: String, required: true }, // Role of the approver
+    }
+  ],
 });
 
 module.exports = mongoose.model("Document", documentSchema);
+
 
