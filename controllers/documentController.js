@@ -64,7 +64,15 @@ exports.approveDocument = async (req, res) => {
       return res.status(404).send("User not found");
     }
 
-    // Check if the current approver has already approved
+    // Check if the current user is a chosen approver for this document
+    const isChosenApprover = document.approvers.some(
+      (approver) => approver.approver.toString() === req.user.id
+    );
+    if (!isChosenApprover) {
+      return res.status(403).send("You are not an assigned approver for this document.");
+    }
+
+    // Check if the current approver has already approved the document
     const hasApproved = document.approvedBy.some(
       (approver) => approver.user.toString() === req.user.id
     );
@@ -72,14 +80,14 @@ exports.approveDocument = async (req, res) => {
       return res.status(400).send("You have already approved this document.");
     }
 
-    // Add current approver to the list of approvers who approved with username and role
+    // Add the current approver to the list of approvedBy with their username and role
     document.approvedBy.push({
-      user: user._id, // User ID
-      username: user.username, // Username of the approver
-      role: user.role, // Role of the approver
+      user: user.id, // User ID
+      username: user.username, // Username
+      role: user.role, // Role
     });
 
-    // If all approvers have approved, mark the document as approved
+    // If all chosen approvers have approved, mark the document as fully approved
     if (document.approvedBy.length === document.approvers.length) {
       document.approved = true;
     }
@@ -91,7 +99,6 @@ exports.approveDocument = async (req, res) => {
     res.status(500).send("Error approving document");
   }
 };
-
 
 exports.getApprovedDocument = async (req, res) => {
   try {
