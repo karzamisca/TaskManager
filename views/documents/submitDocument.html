@@ -10,16 +10,38 @@
   <body>
     <div class="container">
       <h2>Submit New Generic Document</h2>
-      <form action="/submitDocument" method="POST">
+      <form id="submit-form" action="/submitDocument" method="POST">
         <label for="title">Title</label>
         <input type="text" name="title" required />
 
         <label for="content">Content</label>
         <textarea name="content" rows="5" required></textarea>
 
+        <label for="approvers">Select Approvers</label>
+        <select name="approvers" id="approvers" multiple required>
+          <!-- Approvers will be populated here -->
+        </select>
+
         <button type="submit">Submit Document</button><br />
         <a href="/mainDocument">Back</a><br />
       </form>
     </div>
+
+    <script>
+      async function fetchApprovers() {
+        const response = await fetch("/approvers");
+        const approvers = await response.json();
+        const approverSelect = document.getElementById("approvers");
+
+        approvers.forEach((approver) => {
+          const option = document.createElement("option");
+          option.value = approver._id;  // Assuming _id is the unique identifier
+          option.textContent = approver.username;  // Display the username
+          approverSelect.appendChild(option);
+        });
+      }
+
+      fetchApprovers();
+    </script>
   </body>
 </html>

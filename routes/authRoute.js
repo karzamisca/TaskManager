@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/authController");
 const authMiddleware = require("../middlewares/authMiddleware");
+const User = require("../models/User");
 
 // Login route
 router.get("/login", (req, res) => {
@@ -22,6 +23,16 @@ router.get("/main", authMiddleware, (req, res) => {
 
 router.get("/template", authMiddleware, (req, res) => {
   res.sendFile("template.html", { root: "./views" }); // Serve the template page
+});
+
+router.get("/approvers", async (req, res) => {
+  try {
+    const approvers = await User.find({ role: "approver" });
+    res.json(approvers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error fetching approvers");
+  }
 });
 
 module.exports = router;
