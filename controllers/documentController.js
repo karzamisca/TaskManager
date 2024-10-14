@@ -35,8 +35,6 @@ exports.submitDocument = async (req, res) => {
   }
 };
 
-
-
 exports.getPendingDocument = async (req, res) => {
   try {
     const pendingDocument = await Document.find({ approved: false }).populate(
