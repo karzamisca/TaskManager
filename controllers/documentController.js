@@ -7,8 +7,11 @@ exports.submitDocument = async (req, res) => {
   const { title, content, approvers } = req.body;
 
   try {
+    // Ensure approvers is always an array, even if only one approver is selected
+    const approversArray = Array.isArray(approvers) ? approvers : [approvers];
+
     // Fetch the approvers' details, including their usernames
-    const approverDetails = await Promise.all(approvers.map(async (approverId) => {
+    const approverDetails = await Promise.all(approversArray.map(async (approverId) => {
       const approver = await User.findById(approverId);
       return {
         approver: approverId,
@@ -31,6 +34,7 @@ exports.submitDocument = async (req, res) => {
     res.status(500).send("Error submitting document");
   }
 };
+
 
 
 exports.getPendingDocument = async (req, res) => {
