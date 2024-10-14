@@ -37,7 +37,7 @@
   `).join("");
 
   const approvedBy = doc.approvedBy.map(approver => `
-    <strong></strong> ${approver.username} <br>
+    <strong></strong> ${approver.username} (${approver.approvalDate}) <br>
   `).join("");
 
     listItem.innerHTML = `
@@ -45,7 +45,7 @@
       <strong>Content:</strong> ${doc.content}<br>
       <strong>Approver:</strong><br> ${approvers}
       <strong>Approved By:</strong><br> ${approvedBy}
-      <strong>Submitted By:</strong><br> ${doc.submittedBy.username}
+      <strong>Submitted By:</strong><br> ${doc.submittedBy.username} (${doc.submissionDate})
       <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
         <button type="submit">Approve</button>
       </form>

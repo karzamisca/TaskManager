@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const documentSchema = new mongoose.Schema({
   title: { type: String, required: true },
   content: { type: String, required: true },
+  submissionDate: { type: String, required: true},
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   approvers: [
     {
@@ -18,6 +19,7 @@ const documentSchema = new mongoose.Schema({
       user: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // User ID of the approver
       username: { type: String, required: true }, // Username of the approver
       role: { type: String, required: true }, // Role of the approver
+      approvalDate: { type: String, required: true} // Will be updated once the approver approves
     }
   ],
 });

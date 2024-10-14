@@ -2,6 +2,7 @@
 const Document = require("../models/Document");
 const User = require("../models/User");
 const mongoose = require("mongoose");
+const moment = require('moment-timezone');
 
 exports.submitDocument = async (req, res) => {
   const { title, content, approvers } = req.body;
@@ -25,6 +26,7 @@ exports.submitDocument = async (req, res) => {
       content,
       submittedBy: req.user.id,
       approvers: approverDetails, // Save approver details including username and sub-role
+      submissionDate: moment().tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm:ss'),
     });
     
     await newDocument.save();
@@ -87,6 +89,7 @@ exports.approveDocument = async (req, res) => {
       user: user.id, // User ID
       username: user.username, // Username
       role: user.role, // Role
+      approvalDate: moment().tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm:ss'), 
     });
 
     // If all chosen approvers have approved, mark the document as fully approved

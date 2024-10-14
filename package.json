@@ -23,6 +23,7 @@
     "jsonwebtoken": "^9.0.2",
     "kylongdataentry": "file:",
     "mocha": "^10.7.3",
+    "moment-timezone": "^0.5.46",
     "mongoose": "^8.7.0"
   }
 }
