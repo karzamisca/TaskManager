@@ -26,4 +26,6 @@ router.get("/viewApprovedDocument", authMiddleware, documentController.getApprov
 router.get("/api/pendingDocument", authMiddleware, documentController.getPendingDocumentApi);
 router.get("/api/approvedDocument", authMiddleware, documentController.getApprovedDocumentApi);
 
+router.post("/deleteDocument/:id", authMiddleware, documentController.deleteDocument);
+
 module.exports = router;

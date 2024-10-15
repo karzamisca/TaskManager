@@ -141,3 +141,22 @@ exports.getApprovedDocumentApi = async (req, res) => {
     res.status(500).send("Error fetching approved documents");
   }
 };
+
+exports.deleteDocument = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const document = await Document.findById(id);
+    if (!document) {
+      return res.status(404).send("Document not found");
+    }
+
+    // Optionally, check if the user is authorized to delete this document
+
+    await Document.findByIdAndDelete(id); // Delete the document
+    res.redirect("/approveDocument"); // Redirect after deletion
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error deleting document");
+  }
+};
