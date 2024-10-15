@@ -28,37 +28,37 @@
     </div>
 
     <script>
-async function fetchApprovers() {
-  const response = await fetch("/approvers");
-  const approvers = await response.json();
-  const approverSelect = document.getElementById("approver-selection");
+      async function fetchApprovers() {
+        const response = await fetch("/approvers");
+        const approvers = await response.json();
+        const approverSelect = document.getElementById("approver-selection");
 
-  approvers.forEach((approver) => {
-    const approverDiv = document.createElement("div");
+        approvers.forEach((approver) => {
+          const approverDiv = document.createElement("div");
 
-    // Approver selection
-    const label = document.createElement("label");
-    label.textContent = approver.username;
-    approverDiv.appendChild(label);
+          // Approver selection
+          const label = document.createElement("label");
+          label.textContent = approver.username;
+          approverDiv.appendChild(label);
 
-    const approverInput = document.createElement("input");
-    approverInput.type = "checkbox";
-    approverInput.name = "approvers";
-    approverInput.value = approver._id;
-    approverDiv.appendChild(approverInput);
+          const approverInput = document.createElement("input");
+          approverInput.type = "checkbox";
+          approverInput.name = "approvers";
+          approverInput.value = approver._id;
+          approverDiv.appendChild(approverInput);
 
-    // Sub-role input
-    const subRoleInput = document.createElement("input");
-    subRoleInput.type = "text";
-    subRoleInput.name = `subRole_${approver._id}`;  // Dynamic name for sub-role field
-    subRoleInput.placeholder = "Enter Sub-Role";
-    approverDiv.appendChild(subRoleInput);
+          // Sub-role input
+          const subRoleInput = document.createElement("input");
+          subRoleInput.type = "text";
+          subRoleInput.name = `subRole_${approver._id}`; // Dynamic name for sub-role field
+          subRoleInput.placeholder = "Enter Sub-Role";
+          approverDiv.appendChild(subRoleInput);
 
-    approverSelect.appendChild(approverDiv);
-  });
-}
+          approverSelect.appendChild(approverDiv);
+        });
+      }
 
-fetchApprovers();
+      fetchApprovers();
     </script>
   </body>
 </html>

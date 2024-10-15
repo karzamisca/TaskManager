@@ -1,77 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Approve Documents</title>
-  <link rel="stylesheet" href="/css/styles.css" />
-  <style>
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background-color: #f2f2f2;
-    }
-    tr:hover {
-      background-color: #f5f5f5;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="container">
-    <h2>Pending Generic Documents for Approval</h2>
-    <table id="document-table">
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Content</th>
-          <th>Approver(s)</th>
-          <th>Approved By</th>
-          <th>Submitted By</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td colspan="6">Loading documents...</td>
-        </tr>
-      </tbody>
-    </table>
-    <a href="/mainDocument">Back</a>
-  </div>
-  <script>
-    // Fetch and display pending documents with full details
-    async function fetchPendingDocuments() {
-      const response = await fetch("/api/pendingDocument");
-      const documents = await response.json();
-      const tableBody = document.getElementById("document-table").getElementsByTagName("tbody")[0];
-      tableBody.innerHTML = ""; // Clear loading message
-
-      if (documents.length === 0) {
-        tableBody.innerHTML = "<tr><td colspan='6'>No pending document.</td></tr>";
-        return;
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Approve Documents</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
       }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+      tr:hover {
+        background-color: #f5f5f5;
+      }
+    </style>
+  </head>
 
-      documents.forEach((doc) => {
-        const approvers = doc.approvers.map(approver => `
+  <body>
+    <div class="container">
+      <h2>Pending Generic Documents for Approval</h2>
+      <table id="document-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Content</th>
+            <th>Approver(s)</th>
+            <th>Approved By</th>
+            <th>Submitted By</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="6">Loading documents...</td>
+          </tr>
+        </tbody>
+      </table>
+      <a href="/mainDocument">Back</a>
+    </div>
+    <script>
+      // Fetch and display pending documents with full details
+      async function fetchPendingDocuments() {
+        const response = await fetch("/api/pendingDocument");
+        const documents = await response.json();
+        const tableBody = document
+          .getElementById("document-table")
+          .getElementsByTagName("tbody")[0];
+        tableBody.innerHTML = ""; // Clear loading message
+
+        if (documents.length === 0) {
+          tableBody.innerHTML =
+            "<tr><td colspan='6'>No pending document.</td></tr>";
+          return;
+        }
+
+        documents.forEach((doc) => {
+          const approvers = doc.approvers
+            .map(
+              (approver) => `
           ${approver.username} (${approver.subRole})<br>
-        `).join("");
+        `
+            )
+            .join("");
 
-        const approvedBy = doc.approvedBy.map(approver => `
+          const approvedBy = doc.approvedBy
+            .map(
+              (approver) => `
           ${approver.username} (${approver.approvalDate}) <br>
-        `).join("");
+        `
+            )
+            .join("");
 
-        const row = tableBody.insertRow();
-        row.innerHTML = `
+          const row = tableBody.insertRow();
+          row.innerHTML = `
           <td>${doc.title}</td>
           <td>${doc.content}</td>
           <td>${approvers}</td>
@@ -86,11 +97,10 @@
             </form>
           </td>
         `;
-      });
-    }
+        });
+      }
 
-    fetchPendingDocuments();
-  </script>
-</body>
-
+      fetchPendingDocuments();
+    </script>
+  </body>
 </html>

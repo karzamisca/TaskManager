@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Entry</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+
+      h1,
+      h2 {
+        color: #333;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      table,
+      th,
+      td {
+        border: 1px solid black;
+      }
+
+      th,
+      td {
+        padding: 8px;
+        text-align: left;
+      }
+
+      form {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+
+      .form-group {
+        margin-bottom: 10px;
+        width: 15%;
+      }
+
+      form input,
+      form button {
+        padding: 5px;
+        margin-left: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Entries Table</h1>
+
+    <!-- Table for displaying entries -->
+    <table id="entriesTable">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Unit</th>
+          <th>Amount</th>
+          <th>Unit Price</th>
+          <th>Total Price</th>
+          <th>VAT</th>
+          <th>Delivery Date</th>
+          <th>Entry Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Rows will be inserted dynamically by JavaScript -->
+      </tbody>
+    </table>
+    <br />
+
+    <h2>New Entry</h2>
+    <br />
+
+    <!-- Horizontal form for adding a new entry -->
+    <form id="entryForm" action="/entries/new" method="POST">
+      <div class="form-group">
+        <label for="description">Description:</label>
+        <input type="text" id="description" name="description" required />
+      </div>
+
+      <div class="form-group">
+        <label for="unit">Unit:</label>
+        <input type="text" id="unit" name="unit" required />
+      </div>
+
+      <div class="form-group">
+        <label for="amount">Amount:</label>
+        <input type="number" id="amount" name="amount" required />
+      </div>
+
+      <div class="form-group">
+        <label for="unitPrice">Unit Price:</label>
+        <input
+          type="number"
+          step="0.01"
+          id="unitPrice"
+          name="unitPrice"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="vat">VAT (%):</label>
+        <input type="number" step="0.01" id="vat" name="vat" required />
+      </div>
+
+      <div class="form-group">
+        <label for="deliveryDate">Delivery Date:</label>
+        <input type="date" id="deliveryDate" name="deliveryDate" required />
+      </div>
+
+      <button type="submit">Submit</button>
+    </form>
+    <br />
+
+    <script>
+      window.onload = async function () {
+        const tableBody = document.querySelector("#entriesTable tbody");
+
+        // Fetch entries from the backend
+        const response = await fetch("/entries/all");
+        const entries = await response.json();
+
+        // Dynamically add each entry as a row in the table
+        entries.forEach((entry) => {
+          const row = document.createElement("tr");
+
+          row.innerHTML = `
+      <td>${entry.description}</td>
+      <td>${entry.unit}</td>
+      <td>${entry.amount}</td>
+      <td>${entry.unitPrice}</td>
+      <td>${entry.totalPrice}</td>
+      <td>${entry.vat}</td>
+      <td>${new Date(entry.deliveryDate).toDateString()}</td>
+      <td>${new Date(entry.entryDate).toDateString()}</td>
+    `;
+
+          tableBody.appendChild(row);
+        });
+      };
+    </script>
+  </body>
+</html>
