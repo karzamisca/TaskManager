@@ -43,7 +43,7 @@ exports.getPendingDocument = async (req, res) => {
       "submittedBy"
     );
     // Send the approve.html file and include the documents in a variable
-    res.sendFile("approveDocument.html", { root: "./views/documents" }); // Serve the approve document page
+    res.sendFile("approveDocument.html", { root: "./views/approvals/documents" }); // Serve the approve document page
   } catch (err) {
     console.error(err);
     res.status(500).send("Error fetching documents");
@@ -111,7 +111,7 @@ exports.getApprovedDocument = async (req, res) => {
       .populate('submittedBy', 'username') // Populate submitter's username
       .populate('approvers.approver', 'username'); // Populate approvers' usernames
     // Send the view-approved.html file and include the documents in a variable
-    res.sendFile("viewApprovedDocument.html", { root: "./views/documents" }); // Serve the view approved documents page
+    res.sendFile("viewApprovedDocument.html", { root: "./views/approvals/documents" }); // Serve the view approved documents page
   } catch (err) {
     console.error(err);
     res.status(500).send("Error fetching approved documents");

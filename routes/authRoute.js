@@ -22,7 +22,7 @@ router.get("/main", authMiddleware, (req, res) => {
 });
 
 router.get("/template", authMiddleware, (req, res) => {
-  res.sendFile("template.html", { root: "./views" }); // Serve the template page
+  res.sendFile("template.html", { root: "./views/approvals" }); // Serve the template page
 });
 
 router.get("/approvers", async (req, res) => {

@@ -6,11 +6,11 @@ const authMiddleware = require("../middlewares/authMiddleware");
 
 // Main page route
 router.get("/mainDocument", authMiddleware, (req, res) => {
-  res.sendFile("mainDocument.html", { root: "./views/documents" }); // Serve the submit document page
+  res.sendFile("mainDocument.html", { root: "./views/approvals/documents" }); // Serve the submit document page
 });
 // Submit document route
 router.get("/submitDocument", authMiddleware, (req, res) => {
-  res.sendFile("submitDocument.html", { root: "./views/documents" }); // Serve the submit document page
+  res.sendFile("submitDocument.html", { root: "./views/approvals/documents" }); // Serve the submit document page
 });
 
 router.post("/submitDocument", authMiddleware, documentController.submitDocument);
