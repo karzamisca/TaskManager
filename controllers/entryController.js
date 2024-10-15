@@ -1,4 +1,5 @@
 const Entry = require("../models/Entry");
+const moment = require("moment-timezone");
 
 // Serve the index.html file for the root route
 exports.getFormAndEntries = (req, res) => {
@@ -30,11 +31,23 @@ exports.createEntry = async (req, res) => {
       totalPrice,
       vat,
       deliveryDate,
+      entryDate: moment().tz("Asia/Bangkok").format("YYYY-MM-DD HH:mm:ss"),
     });
 
     await entry.save();
     res.redirect("/entries"); // Redirect back to the main page after creating the entry
   } catch (err) {
     res.status(500).send("Error creating entry: " + err.message);
+  }
+};
+
+// Delete an entry by ID
+exports.deleteEntry = async (req, res) => {
+  try {
+    const entryId = req.params.id;
+    await Entry.findByIdAndDelete(entryId);
+    res.json({ message: "Entry deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Error deleting entry: " + err.message });
   }
 };

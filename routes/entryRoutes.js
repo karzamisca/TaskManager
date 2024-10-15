@@ -6,5 +6,6 @@ const router = express.Router();
 router.get("/", authMiddleware, entryController.getFormAndEntries); // Serve HTML form and table
 router.get("/all", authMiddleware, entryController.getAllEntries); // Serve all entries as JSON
 router.post("/new", authMiddleware, entryController.createEntry); // Submit new entry
+router.delete("/delete/:id", entryController.deleteEntry); // Delete entry by ID
 
 module.exports = router;
