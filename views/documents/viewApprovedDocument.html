@@ -38,19 +38,27 @@
         documents.forEach((doc) => {
           const listItem = document.createElement("li");
 
-          let approversHTML = ""; // Create a list for the approvers
+          let approversHTML = ""; 
+
           doc.approvers.forEach((approver) => {
+          // Find the matching approver in the approvedBy array based on the user ID
+            const approvalInfo = doc.approvedBy.find(approved => approved.user.toString() === approver.approver.toString());
+
+            const approvalDate = approvalInfo ? approvalInfo.approvalDate : "N/A"; // Get approvalDate if exists, otherwise "N/A"
+
             approversHTML += `
-              <strong></strong> ${approver.username} (${approver.subRole})<br>
+            <strong></strong>${approver.username} (${approver.subRole}) (${approvalDate})<br>
             `;
-          });
-          listItem.innerHTML = `
-            <strong>Title:</strong> ${doc.title}<br>
-            <strong>Content:</strong> ${doc.content}<br>
-            <strong>Approved by:</strong><br>${approversHTML}
-            <strong>Submitted By:</strong><br>${doc.submittedBy.username}
-          `;
-          list.appendChild(listItem);
+            });
+
+            listItem.innerHTML = `
+              <strong>Title:</strong> ${doc.title}<br>
+              <strong>Content:</strong> ${doc.content}<br>
+              <strong>Approved by:</strong><br>${approversHTML}
+              <strong>Submitted By:</strong><br> ${doc.submittedBy.username} (${doc.submissionDate})
+            `;
+  
+            list.appendChild(listItem);
         });
       }
 
