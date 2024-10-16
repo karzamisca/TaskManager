@@ -35,7 +35,7 @@ exports.createEntry = async (req, res) => {
     });
 
     await entry.save();
-    res.redirect("/entries"); // Redirect back to the main page after creating the entry
+    res.redirect("/entry"); // Redirect back to the main page after creating the entry
   } catch (err) {
     res.status(500).send("Error creating entry: " + err.message);
   }

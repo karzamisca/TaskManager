@@ -24,7 +24,7 @@ app.use(cookieParser()); // Use cookie-parser to parse cookies
 // Routes
 app.use("/", authRoute);
 app.use("/", authMiddleware, documentRoute); // Apply JWT middleware to document routes
-app.use("/entries", authMiddleware, entryRoutes);
+app.use("/", authMiddleware, entryRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

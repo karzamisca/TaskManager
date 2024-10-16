@@ -8,7 +8,7 @@ const entrySchema = new mongoose.Schema({
   totalPrice: Number,
   vat: Number,
   deliveryDate: Date,
-  entryDate: Date,
+  entryDate: String,
 });
 
 module.exports = mongoose.model("Entry", entrySchema);
