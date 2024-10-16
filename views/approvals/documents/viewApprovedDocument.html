@@ -1,4 +1,3 @@
-<!-- views/approvals/documents/viewApprovedDocument.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -6,13 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Approved Documents</title>
     <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      table,
+      th,
+      td {
+        border: 1px solid #333; /* Dark border for contrast */
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+      }
+      th {
+        background-color: #555; /* Darker background for headers */
+        color: white; /* White text for better contrast */
+      }
+      tr:nth-child(even) {
+        background-color: #f2f2f2; /* Light gray background for alternating rows */
+      }
+      tr:hover {
+        background-color: #ddd; /* Highlight row on hover */
+      }
+    </style>
   </head>
   <body>
     <div class="container">
       <h2>Approved Generic Documents</h2>
-      <ul id="approved-document-list">
-        <li>Loading documents...</li>
-      </ul>
+      <table id="approved-document-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Content</th>
+            <th>Approved By</th>
+            <th>Submitted By</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="4">Loading documents...</td>
+          </tr>
+        </tbody>
+      </table>
       <a href="/mainDocument">Back</a>
     </div>
 
@@ -27,43 +65,40 @@
         });
 
         const documents = await response.json();
-        const list = document.getElementById("approved-document-list");
-        list.innerHTML = ""; // Clear loading message
+        const tableBody = document.querySelector(
+          "#approved-document-table tbody"
+        );
+        tableBody.innerHTML = ""; // Clear loading message
 
         if (documents.length === 0) {
-          list.innerHTML = "<li>No approved document.</li>";
+          tableBody.innerHTML =
+            "<tr><td colspan='4'>No approved documents.</td></tr>";
           return;
         }
 
         documents.forEach((doc) => {
-          const listItem = document.createElement("li");
+          const approversHTML = doc.approvers
+            .map((approver) => {
+              const approvalInfo = doc.approvedBy.find(
+                (approved) =>
+                  approved.user.toString() === approver.approver.toString()
+              );
+              const approvalDate = approvalInfo
+                ? approvalInfo.approvalDate
+                : "N/A";
+              return `${approver.username} (${approver.subRole}) (${approvalDate})<br>`;
+            })
+            .join("");
 
-          let approversHTML = "";
-
-          doc.approvers.forEach((approver) => {
-            // Find the matching approver in the approvedBy array based on the user ID
-            const approvalInfo = doc.approvedBy.find(
-              (approved) =>
-                approved.user.toString() === approver.approver.toString()
-            );
-
-            const approvalDate = approvalInfo
-              ? approvalInfo.approvalDate
-              : "N/A"; // Get approvalDate if exists, otherwise "N/A"
-
-            approversHTML += `
-            <strong></strong>${approver.username} (${approver.subRole}) (${approvalDate})<br>
-            `;
-          });
-
-          listItem.innerHTML = `
-              <strong>Title:</strong> ${doc.title}<br>
-              <strong>Content:</strong> ${doc.content}<br>
-              <strong>Approved by:</strong><br>${approversHTML}
-              <strong>Submitted By:</strong><br> ${doc.submittedBy.username} (${doc.submissionDate})
-            `;
-
-          list.appendChild(listItem);
+          const row = `
+            <tr>
+              <td>${doc.title}</td>
+              <td>${doc.content}</td>
+              <td>${approversHTML}</td>
+              <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+            </tr>
+          `;
+          tableBody.insertAdjacentHTML("beforeend", row);
         });
       }
 
