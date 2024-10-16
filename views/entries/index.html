@@ -128,6 +128,9 @@
   <body>
     <h1>Entries Table</h1>
 
+    <!-- Export Button -->
+    <button id="exportButton">Export to Excel</button>
+
     <!-- Table for displaying entries -->
     <table id="entriesTable">
       <thead>
@@ -191,60 +194,78 @@
 
       <button type="submit">Submit</button>
     </form>
+
+      <h2>Import Entries from Excel</h2>
+
+      <!-- Form for importing Excel files -->
+      <form
+        id="importForm"
+        action="/entryImport"
+        method="POST"
+        enctype="multipart/form-data"
+      >
+        <input type="file" name="excelFile" accept=".xlsx, .xls" required />
+        <button type="submit">Import from Excel</button>
+      </form>
+    </form>
     <a href="/main">Back to Main</a><br />
     <a href="/logout">Logout</a><br />
 
     <script>
-      window.onload = async function () {
-        const tableBody = document.querySelector("#entriesTable tbody");
+window.onload = async function() {
+  const tableBody = document.querySelector('#entriesTable tbody');
+  const exportButton = document.getElementById('exportButton');
 
-        // Fetch entries from the backend
-        const response = await fetch("/entryAll");
-        const entries = await response.json();
+  // Fetch entries from the backend
+  const response = await fetch('/entryAll');
+  const entries = await response.json();
 
-        // Dynamically add each entry as a row in the table
-        entries.forEach((entry) => {
-          const row = document.createElement("tr");
+  // Dynamically add each entry as a row in the table
+  entries.forEach(entry => {
+    const row = document.createElement('tr');
 
-          row.innerHTML = `
+    row.innerHTML = `
       <td>${entry.description}</td>
       <td>${entry.unit}</td>
       <td>${entry.amount}</td>
       <td>${entry.unitPrice}</td>
       <td>${entry.totalPrice}</td>
       <td>${entry.vat}</td>
-      <td>${new Date(entry.deliveryDate).toDateString()}</td>
-      <td>${entry.entryDate}</td>
-      <td><button class="delete-button" data-id="${
-        entry._id
-      }">Delete</button></td> <!-- Added Delete Button -->
+      <td>${new Date(entry.deliveryDate).toDateString()}</td> <!-- Format delivery date -->
+      <td>${entry.entryDate}</td> <!-- Entry date will be formatted in the backend -->
+      <td><button class="delete-button" data-id="${entry._id}">Delete</button></td> <!-- Delete Button -->
     `;
 
-          tableBody.appendChild(row);
+    tableBody.appendChild(row);
+  });
+
+  // Add event listeners for delete buttons
+  document.querySelectorAll('.delete-button').forEach(button => {
+    button.addEventListener('click', async (event) => {
+      const entryId = event.target.getAttribute('data-id');
+      if (confirm('Are you sure you want to delete this entry?')) {
+        const deleteResponse = await fetch(`/entryDelete/${entryId}`, {
+          method: 'DELETE'
         });
 
-        // Add event listeners for delete buttons
-        document.querySelectorAll(".delete-button").forEach((button) => {
-          button.addEventListener("click", async (event) => {
-            const entryId = event.target.getAttribute("data-id");
-            if (confirm("Are you sure you want to delete this entry?")) {
-              const deleteResponse = await fetch(`/entryDelete/${entryId}`, {
-                method: "DELETE",
-              });
+        if (deleteResponse.ok) {
+          // Remove the row from the table
+          event.target.closest('tr').remove();
+          alert('Entry deleted successfully!');
+        } else {
+          const errorData = await deleteResponse.json();
+          alert('Error deleting entry: ' + errorData.error);
+        }
+      }
+    });
+  });
 
-              if (deleteResponse.ok) {
-                // Remove the row from the table
-                event.target.closest("tr").remove();
-                alert("Entry deleted successfully!");
-              } else {
-                alert(
-                  "Error deleting entry: " + (await deleteResponse.json()).error
-                );
-              }
-            }
-          });
-        });
-      };
+  // Handle Export Button Click
+  exportButton.addEventListener('click', () => {
+    window.location.href = '/entryExport';
+  });
+};
+
     </script>
   </body>
 </html>
