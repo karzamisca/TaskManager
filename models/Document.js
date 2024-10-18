@@ -3,27 +3,30 @@ const mongoose = require("mongoose");
 
 const documentSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  content: { type: String, required: true },
-  submissionDate: { type: String, required: true},
+  content: [
+    {
+      name: { type: String, required: true }, // Name for the content
+      text: { type: String, required: true }, // Actual content
+    },
+  ],
+  submissionDate: { type: String, required: true },
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   approvers: [
     {
-      approver: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // User ID of the approver
-      username: { type: String, required: true }, // Username of the approver
-      subRole: { type: String, required: true }, // Sub-role of the approver
-    }
+      approver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      username: { type: String, required: true },
+      subRole: { type: String, required: true },
+    },
   ],
   approved: { type: Boolean, default: false },
   approvedBy: [
     {
-      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // User ID of the approver
-      username: { type: String, required: true }, // Username of the approver
-      role: { type: String, required: true }, // Role of the approver
-      approvalDate: { type: String, required: true} // Will be updated once the approver approves
-    }
+      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      username: { type: String, required: true },
+      role: { type: String, required: true },
+      approvalDate: { type: String, required: true },
+    },
   ],
 });
 
 module.exports = mongoose.model("Document", documentSchema);
-
-

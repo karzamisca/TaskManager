@@ -1,39 +1,46 @@
-<!-- views/approvals/documents/submitDocument.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Approved Documents</title>
-    <link rel="stylesheet" href="/css/styles.css" />
     <style>
       table {
         width: 100%;
         border-collapse: collapse;
         margin-top: 20px;
       }
-      table,
       th,
       td {
-        border: 1px solid #333; /* Dark border for contrast */
-      }
-      th,
-      td {
-        padding: 10px;
+        border: 1px solid #ddd;
+        padding: 8px;
         text-align: left;
       }
       th {
-        background-color: #555; /* Darker background for headers */
-        color: white; /* White text for better contrast */
-      }
-      tr:nth-child(even) {
-        background-color: #f2f2f2; /* Light gray background for alternating rows */
+        background-color: #333; /* Darker background for headers */
+        color: white; /* Lighter text for better contrast */
       }
       tr:hover {
-        background-color: #ddd; /* Highlight row on hover */
+        background-color: #f5f5f5;
+      }
+      .nested-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0; /* No margin to merge borders */
+        background-color: transparent; /* Transparent background */
+      }
+      .nested-table th,
+      .nested-table td {
+        border: none; /* Remove borders of nested table */
+        padding: 5px;
+      }
+      .nested-table th {
+        background-color: #555; /* Darker background for nested table headers */
+        color: white; /* Lighter text for better contrast */
       }
     </style>
   </head>
+
   <body>
     <div class="container">
       <h2>Approved Generic Documents</h2>
@@ -91,10 +98,36 @@
             })
             .join("");
 
+          // Create a nested table for content
+          const contentTableRows = doc.content
+            .map(
+              (item) => `
+              <tr>
+                <td>${item.name}</td>
+                <td>${item.text}</td>
+              </tr>
+            `
+            )
+            .join("");
+
+          const contentTable = `
+            <table class="nested-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Text</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${contentTableRows}
+              </tbody>
+            </table>
+          `;
+
           const row = `
             <tr>
               <td>${doc.title}</td>
-              <td>${doc.content}</td>
+              <td>${contentTable}</td>
               <td>${approversHTML}</td>
               <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
             </tr>

@@ -5,7 +5,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Approve Documents</title>
-    <link rel="stylesheet" href="/css/styles.css" />
     <style>
       table {
         width: 100%;
@@ -19,10 +18,26 @@
         text-align: left;
       }
       th {
-        background-color: #f2f2f2;
+        background-color: #333; /* Darker background for headers */
+        color: white; /* Lighter text for better contrast */
       }
       tr:hover {
         background-color: #f5f5f5;
+      }
+      .nested-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0; /* No margin to merge borders */
+        background-color: transparent; /* Transparent background */
+      }
+      .nested-table th,
+      .nested-table td {
+        border: none; /* Remove borders of nested table */
+        padding: 5px;
+      }
+      .nested-table th {
+        background-color: #555; /* Darker background for nested table headers */
+        color: white; /* Lighter text for better contrast */
       }
     </style>
   </head>
@@ -69,35 +84,61 @@
           const approvers = doc.approvers
             .map(
               (approver) => `
-          ${approver.username} (${approver.subRole})<br>
-        `
+              ${approver.username} (${approver.subRole})<br>
+            `
             )
             .join("");
 
           const approvedBy = doc.approvedBy
             .map(
               (approver) => `
-          ${approver.username} (${approver.approvalDate}) <br>
-        `
+              ${approver.username} (${approver.approvalDate}) <br>
+            `
             )
             .join("");
 
+          // Create a nested table for content
+          const contentTableRows = doc.content
+            .map(
+              (item) => `
+              <tr>
+                <td>${item.name}</td>
+                <td>${item.text}</td>
+              </tr>
+            `
+            )
+            .join("");
+
+          const contentTable = `
+            <table class="nested-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Text</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${contentTableRows}
+              </tbody>
+            </table>
+          `;
+
           const row = tableBody.insertRow();
           row.innerHTML = `
-          <td>${doc.title}</td>
-          <td>${doc.content}</td>
-          <td>${approvers}</td>
-          <td>${approvedBy}</td>
-          <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
-          <td>
-            <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
-              <button type="submit">Approve</button>
-            </form>
-            <form action="/deleteDocument/${doc._id}" method="POST" style="display:inline;">
-              <button type="submit">Delete</button>
-            </form>
-          </td>
-        `;
+            <td>${doc.title}</td>
+            <td>${contentTable}</td>
+            <td>${approvers}</td>
+            <td>${approvedBy}</td>
+            <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+            <td>
+              <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
+                <button type="submit">Approve</button>
+              </form>
+              <form action="/deleteDocument/${doc._id}" method="POST" style="display:inline;">
+                <button type="submit">Delete</button>
+              </form>
+            </td>
+          `;
         });
       }
 

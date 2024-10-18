@@ -1,4 +1,3 @@
-<!-- views/approvals/documents/submitDocument.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -6,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Submit Document</title>
     <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+      .content-field {
+        margin-bottom: 10px;
+      }
+    </style>
   </head>
   <body>
     <div class="container">
@@ -14,13 +18,19 @@
         <label for="title">Title</label>
         <input type="text" name="title" required />
 
-        <label for="content">Content</label>
-        <textarea name="content" rows="5" required></textarea>
+        <div id="content-fields">
+          <label for="contentName">Content Name</label>
+          <input type="text" name="contentName" required />
+
+          <label for="contentText">Content Text</label>
+          <textarea name="contentText" rows="5" required></textarea>
+        </div>
+
+        <button type="button" id="add-content-btn">Add More Content</button
+        ><br />
 
         <label for="approvers">Select Approvers</label>
-        <div id="approver-selection">
-          <!-- This will be populated dynamically with approver options and sub-role fields -->
-        </div>
+        <div id="approver-selection"></div>
 
         <button type="submit">Submit Document</button><br />
         <a href="/mainDocument">Back</a><br />
@@ -59,6 +69,33 @@
       }
 
       fetchApprovers();
+
+      // Adding more content fields
+      document
+        .getElementById("add-content-btn")
+        .addEventListener("click", function () {
+          const contentFields = document.getElementById("content-fields");
+
+          // Create content name input
+          const nameLabel = document.createElement("label");
+          nameLabel.innerText = "Content Name";
+          const nameInput = document.createElement("input");
+          nameInput.type = "text";
+          nameInput.name = "contentName";
+
+          // Create content text textarea
+          const textLabel = document.createElement("label");
+          textLabel.innerText = "Content Text";
+          const textArea = document.createElement("textarea");
+          textArea.name = "contentText";
+          textArea.rows = 5;
+
+          // Append new fields to the form
+          contentFields.appendChild(nameLabel);
+          contentFields.appendChild(nameInput);
+          contentFields.appendChild(textLabel);
+          contentFields.appendChild(textArea);
+        });
     </script>
   </body>
 </html>

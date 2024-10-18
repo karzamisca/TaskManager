@@ -2,33 +2,45 @@
 const Document = require("../models/Document");
 const User = require("../models/User");
 const mongoose = require("mongoose");
-const moment = require('moment-timezone');
+const moment = require("moment-timezone");
 
 exports.submitDocument = async (req, res) => {
-  const { title, content, approvers } = req.body;
+  const { title, contentName, contentText, approvers } = req.body;
 
   try {
-    // Ensure approvers is always an array, even if only one approver is selected
+    // Ensure approvers is always an array
     const approversArray = Array.isArray(approvers) ? approvers : [approvers];
 
-    // Fetch the approvers' details, including their usernames
-    const approverDetails = await Promise.all(approversArray.map(async (approverId) => {
-      const approver = await User.findById(approverId);
-      return {
-        approver: approverId,
-        username: approver.username, // Get the username
-        subRole: req.body[`subRole_${approverId}`], // Get the sub-role for each approver
-      };
-    }));
+    // Fetch approver details
+    const approverDetails = await Promise.all(
+      approversArray.map(async (approverId) => {
+        const approver = await User.findById(approverId);
+        return {
+          approver: approverId,
+          username: approver.username,
+          subRole: req.body[`subRole_${approverId}`],
+        };
+      })
+    );
+
+    // Build content array with both name and text
+    const contentArray = [];
+    if (Array.isArray(contentName) && Array.isArray(contentText)) {
+      contentName.forEach((name, index) => {
+        contentArray.push({ name, text: contentText[index] });
+      });
+    } else {
+      contentArray.push({ name: contentName, text: contentText });
+    }
 
     const newDocument = new Document({
       title,
-      content,
+      content: contentArray,
       submittedBy: req.user.id,
-      approvers: approverDetails, // Save approver details including username and sub-role
-      submissionDate: moment().tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm:ss'),
+      approvers: approverDetails,
+      submissionDate: moment().tz("Asia/Bangkok").format("YYYY-MM-DD HH:mm:ss"),
     });
-    
+
     await newDocument.save();
     res.redirect("/mainDocument");
   } catch (err) {
@@ -43,7 +55,9 @@ exports.getPendingDocument = async (req, res) => {
       "submittedBy"
     );
     // Send the approve.html file and include the documents in a variable
-    res.sendFile("approveDocument.html", { root: "./views/approvals/documents" }); // Serve the approve document page
+    res.sendFile("approveDocument.html", {
+      root: "./views/approvals/documents",
+    }); // Serve the approve document page
   } catch (err) {
     console.error(err);
     res.status(500).send("Error fetching documents");
@@ -55,7 +69,9 @@ exports.approveDocument = async (req, res) => {
 
   try {
     if (req.user.role !== "approver") {
-      return res.status(403).send("Access denied. Only approvers can approve documents.");
+      return res
+        .status(403)
+        .send("Access denied. Only approvers can approve documents.");
     }
 
     const document = await Document.findById(id);
@@ -73,7 +89,9 @@ exports.approveDocument = async (req, res) => {
       (approver) => approver.approver.toString() === req.user.id
     );
     if (!isChosenApprover) {
-      return res.status(403).send("You are not an assigned approver for this document.");
+      return res
+        .status(403)
+        .send("You are not an assigned approver for this document.");
     }
 
     // Check if the current approver has already approved the document
@@ -89,7 +107,7 @@ exports.approveDocument = async (req, res) => {
       user: user.id, // User ID
       username: user.username, // Username
       role: user.role, // Role
-      approvalDate: moment().tz('Asia/Bangkok').format('YYYY-MM-DD HH:mm:ss'), 
+      approvalDate: moment().tz("Asia/Bangkok").format("YYYY-MM-DD HH:mm:ss"),
     });
 
     // If all chosen approvers have approved, mark the document as fully approved
@@ -108,10 +126,12 @@ exports.approveDocument = async (req, res) => {
 exports.getApprovedDocument = async (req, res) => {
   try {
     const approvedDocuments = await Document.find({ approved: true })
-      .populate('submittedBy', 'username') // Populate submitter's username
-      .populate('approvers.approver', 'username'); // Populate approvers' usernames
+      .populate("submittedBy", "username") // Populate submitter's username
+      .populate("approvers.approver", "username"); // Populate approvers' usernames
     // Send the view-approved.html file and include the documents in a variable
-    res.sendFile("viewApprovedDocument.html", { root: "./views/approvals/documents" }); // Serve the view approved documents page
+    res.sendFile("viewApprovedDocument.html", {
+      root: "./views/approvals/documents",
+    }); // Serve the view approved documents page
   } catch (err) {
     console.error(err);
     res.status(500).send("Error fetching approved documents");
