@@ -152,6 +152,19 @@
       }
 
       fetchApprovers();
+      // Form submission validation
+      document
+        .getElementById("submit-form")
+        .addEventListener("submit", function (event) {
+          const approvers = document.querySelectorAll(
+            'input[name="approvers"]:checked'
+          );
+
+          if (approvers.length === 0) {
+            event.preventDefault(); // Prevent form submission
+            alert("Please select at least one approver.");
+          }
+        });
 
       // Adding more content fields
       document
