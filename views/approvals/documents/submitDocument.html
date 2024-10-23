@@ -133,7 +133,19 @@
           subRoleInput.type = "text";
           subRoleInput.name = `subRole_${approver._id}`; // Dynamic name for sub-role field
           subRoleInput.placeholder = "Enter Sub-Role";
+          subRoleInput.disabled = true; // Disable initially
           approverDiv.appendChild(subRoleInput);
+
+          // Add event listener to the checkbox to toggle the 'required' attribute
+          approverInput.addEventListener("change", function () {
+            if (approverInput.checked) {
+              subRoleInput.disabled = false; // Enable sub-role input
+              subRoleInput.required = true; // Set required when checkbox is checked
+            } else {
+              subRoleInput.disabled = true; // Disable sub-role input
+              subRoleInput.required = false; // Remove required when checkbox is unchecked
+            }
+          });
 
           approverSelect.appendChild(approverDiv);
         });
