@@ -5,7 +5,8 @@ const mongoose = require("mongoose");
 const moment = require("moment-timezone");
 
 exports.submitDocument = async (req, res) => {
-  const { title, contentName, contentText, approvers } = req.body;
+  const { title, contentName, contentText, approvers, approvedDocuments } =
+    req.body;
 
   try {
     // Ensure approvers is always an array
@@ -33,6 +34,16 @@ exports.submitDocument = async (req, res) => {
       contentArray.push({ name: contentName, text: contentText });
     }
 
+    // Append content from selected approved documents
+    if (approvedDocuments && approvedDocuments.length > 0) {
+      const approvedDocs = await Document.find({
+        _id: { $in: approvedDocuments },
+      });
+      approvedDocs.forEach((doc) => {
+        contentArray.push(...doc.content); // Append each content item from approved docs
+      });
+    }
+
     const newDocument = new Document({
       title,
       content: contentArray,
@@ -44,7 +55,7 @@ exports.submitDocument = async (req, res) => {
     await newDocument.save();
     res.redirect("/mainDocument");
   } catch (err) {
-    console.error(err);
+    console.error("Error submitting document:", err);
     res.status(500).send("Error submitting document");
   }
 };

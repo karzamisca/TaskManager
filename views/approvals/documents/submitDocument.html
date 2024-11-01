@@ -104,6 +104,9 @@
         <label for="approvers">Select Approvers</label>
         <div id="approver-selection"></div>
 
+        <label for="approvedDocuments">Append Approved Documents</label>
+        <div id="approved-documents-list"></div>
+
         <button type="submit">Submit Document</button><br />
         <a href="/mainDocument">Back</a><br />
       </form>
@@ -151,6 +154,31 @@
           approverSelect.appendChild(approverDiv);
         });
       }
+
+      // Fetch and list approved documents
+      async function fetchApprovedDocuments() {
+        const response = await fetch("/api/approvedDocument");
+        const approvedDocs = await response.json();
+        const approvedDocsList = document.getElementById(
+          "approved-documents-list"
+        );
+
+        approvedDocs.forEach((doc) => {
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.name = "approvedDocuments";
+          checkbox.value = doc._id;
+
+          const label = document.createElement("label");
+          label.textContent = doc.title;
+
+          approvedDocsList.appendChild(checkbox);
+          approvedDocsList.appendChild(label);
+          approvedDocsList.appendChild(document.createElement("br"));
+        });
+      }
+
+      fetchApprovedDocuments();
 
       fetchApprovers();
       // Form submission validation
