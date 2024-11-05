@@ -3,6 +3,8 @@ const Document = require("../models/Document");
 const User = require("../models/User");
 const mongoose = require("mongoose");
 const moment = require("moment-timezone");
+const ProposalDocument = require("../models/ProposalDocument");
+const path = require("path");
 
 exports.submitDocument = async (req, res) => {
   const { title, contentName, contentText, approvers, approvedDocuments } =
@@ -24,33 +26,56 @@ exports.submitDocument = async (req, res) => {
       })
     );
 
-    // Build content array with both name and text
-    const contentArray = [];
-    if (Array.isArray(contentName) && Array.isArray(contentText)) {
-      contentName.forEach((name, index) => {
-        contentArray.push({ name, text: contentText[index] });
+    // Check the document type and build accordingly
+    let newDocument;
+    if (title === "Proposal Document") {
+      // Creating a Proposal Document with specific fields
+      newDocument = new ProposalDocument({
+        title,
+        maintenance: req.body.maintenance,
+        costCenter: req.body.costCenter,
+        dateOfError: req.body.dateOfError,
+        errorDescription: req.body.errorDescription,
+        direction: req.body.direction,
+        submittedBy: req.user.id,
+        approvers: approverDetails,
+        submissionDate: moment()
+          .tz("Asia/Bangkok")
+          .format("YYYY-MM-DD HH:mm:ss"),
       });
     } else {
-      contentArray.push({ name: contentName, text: contentText });
-    }
+      // Creating a Generic Document with existing fields
+      const contentArray = [];
 
-    // Append content from selected approved documents
-    if (approvedDocuments && approvedDocuments.length > 0) {
-      const approvedDocs = await Document.find({
-        _id: { $in: approvedDocuments },
-      });
-      approvedDocs.forEach((doc) => {
-        contentArray.push(...doc.content); // Append each content item from approved docs
+      // Build content array with both name and text
+      if (Array.isArray(contentName) && Array.isArray(contentText)) {
+        contentName.forEach((name, index) => {
+          contentArray.push({ name, text: contentText[index] });
+        });
+      } else {
+        contentArray.push({ name: contentName, text: contentText });
+      }
+
+      // Append content from selected approved documents
+      if (approvedDocuments && approvedDocuments.length > 0) {
+        const approvedDocs = await Document.find({
+          _id: { $in: approvedDocuments },
+        });
+        approvedDocs.forEach((doc) => {
+          contentArray.push(...doc.content); // Append each content item from approved docs
+        });
+      }
+
+      newDocument = new Document({
+        title,
+        content: contentArray,
+        submittedBy: req.user.id,
+        approvers: approverDetails,
+        submissionDate: moment()
+          .tz("Asia/Bangkok")
+          .format("YYYY-MM-DD HH:mm:ss"),
       });
     }
-
-    const newDocument = new Document({
-      title,
-      content: contentArray,
-      submittedBy: req.user.id,
-      approvers: approverDetails,
-      submissionDate: moment().tz("Asia/Bangkok").format("YYYY-MM-DD HH:mm:ss"),
-    });
 
     await newDocument.save();
     res.redirect("/mainDocument");
@@ -62,16 +87,24 @@ exports.submitDocument = async (req, res) => {
 
 exports.getPendingDocument = async (req, res) => {
   try {
-    const pendingDocument = await Document.find({ approved: false }).populate(
-      "submittedBy"
+    const pendingProposalDocs = await ProposalDocument.find({
+      approved: false,
+    }).populate("submittedBy", "username");
+    const pendingGenericDocs = await Document.find({
+      approved: false,
+    }).populate("submittedBy", "username");
+
+    // Serve the static HTML file and pass documents as JSON
+    res.sendFile(
+      path.join(__dirname, "../views/approvals/documents/approveDocument.html"),
+      {
+        pendingGenericDocs: JSON.stringify(pendingGenericDocs),
+        pendingProposalDocs: JSON.stringify(pendingProposalDocs),
+      }
     );
-    // Send the approve.html file and include the documents in a variable
-    res.sendFile("approveDocument.html", {
-      root: "./views/approvals/documents",
-    }); // Serve the approve document page
   } catch (err) {
-    console.error(err);
-    res.status(500).send("Error fetching documents");
+    console.error("Error fetching pending documents:", err);
+    res.status(500).send("Error fetching pending documents");
   }
 };
 
@@ -85,7 +118,15 @@ exports.approveDocument = async (req, res) => {
         .send("Access denied. Only approvers can approve documents.");
     }
 
-    const document = await Document.findById(id);
+    // Attempt to find the document in both collections
+    let document = await Document.findById(id);
+    let isProposalDocument = false;
+
+    if (!document) {
+      document = await ProposalDocument.findById(id);
+      isProposalDocument = true;
+    }
+
     if (!document) {
       return res.status(404).send("Document not found");
     }
@@ -126,49 +167,88 @@ exports.approveDocument = async (req, res) => {
       document.approved = true;
     }
 
-    await document.save();
+    // Save the document in the appropriate collection
+    if (isProposalDocument) {
+      await ProposalDocument.findByIdAndUpdate(id, document);
+    } else {
+      await Document.findByIdAndUpdate(id, document);
+    }
+
     res.redirect("/approveDocument");
   } catch (err) {
-    console.error(err);
+    console.error("Error approving document:", err);
     res.status(500).send("Error approving document");
   }
 };
 
 exports.getApprovedDocument = async (req, res) => {
   try {
-    const approvedDocuments = await Document.find({ approved: true })
-      .populate("submittedBy", "username") // Populate submitter's username
-      .populate("approvers.approver", "username"); // Populate approvers' usernames
-    // Send the view-approved.html file and include the documents in a variable
-    res.sendFile("viewApprovedDocument.html", {
-      root: "./views/approvals/documents",
-    }); // Serve the view approved documents page
+    const approvedGenericDocs = await Document.find({
+      approved: true,
+    }).populate("submittedBy", "username");
+    const approvedProposalDocs = await ProposalDocument.find({
+      approved: true,
+    }).populate("submittedBy", "username");
+
+    // Serve the static HTML file and pass documents as JSON
+    res.sendFile(
+      path.join(
+        __dirname,
+        "../views/approvals/documents/viewApprovedDocument.html"
+      ),
+      {
+        approvedGenericDocs: JSON.stringify(approvedGenericDocs),
+        approvedProposalDocs: JSON.stringify(approvedProposalDocs),
+      }
+    );
   } catch (err) {
-    console.error(err);
+    console.error("Error fetching approved documents:", err);
     res.status(500).send("Error fetching approved documents");
   }
 };
 
 exports.getPendingDocumentApi = async (req, res) => {
   try {
-    const pendingDocument = await Document.find({ approved: false }).populate(
-      "submittedBy"
-    );
-    res.json(pendingDocument);
+    // Fetch pending generic documents
+    const pendingGenericDocs = await Document.find({
+      approved: false,
+    }).populate("submittedBy", "username");
+
+    // Fetch pending proposal documents
+    const pendingProposalDocs = await ProposalDocument.find({
+      approved: false,
+    }).populate("submittedBy", "username");
+
+    // Combine both document types into a single array
+    const pendingDocuments = [...pendingGenericDocs, ...pendingProposalDocs];
+
+    // Return combined pending documents as JSON
+    res.json(pendingDocuments);
   } catch (err) {
-    console.error(err);
+    console.error("Error fetching pending documents:", err);
     res.status(500).send("Error fetching pending documents");
   }
 };
 
 exports.getApprovedDocumentApi = async (req, res) => {
   try {
-    const approvedDocument = await Document.find({ approved: true }).populate(
-      "submittedBy"
-    );
-    res.json(approvedDocument);
+    // Fetch approved generic documents
+    const approvedGenericDocs = await Document.find({
+      approved: true,
+    }).populate("submittedBy", "username");
+
+    // Fetch approved proposal documents
+    const approvedProposalDocs = await ProposalDocument.find({
+      approved: true,
+    }).populate("submittedBy", "username");
+
+    // Combine both document types into a single array
+    const approvedDocuments = [...approvedGenericDocs, ...approvedProposalDocs];
+
+    // Return combined approved documents as JSON
+    res.json(approvedDocuments);
   } catch (err) {
-    console.error(err);
+    console.error("Error fetching approved documents:", err);
     res.status(500).send("Error fetching approved documents");
   }
 };
@@ -177,17 +257,29 @@ exports.deleteDocument = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const document = await Document.findById(id);
+    // Attempt to find the document in both collections
+    let document = await Document.findById(id);
+    let isProposalDocument = false;
+
+    if (!document) {
+      document = await ProposalDocument.findById(id);
+      isProposalDocument = true;
+    }
+
     if (!document) {
       return res.status(404).send("Document not found");
     }
 
-    // Optionally, check if the user is authorized to delete this document
+    // Delete the document based on its type
+    if (isProposalDocument) {
+      await ProposalDocument.findByIdAndDelete(id);
+    } else {
+      await Document.findByIdAndDelete(id);
+    }
 
-    await Document.findByIdAndDelete(id); // Delete the document
     res.redirect("/approveDocument"); // Redirect after deletion
   } catch (err) {
-    console.error(err);
+    console.error("Error deleting document:", err);
     res.status(500).send("Error deleting document");
   }
 };

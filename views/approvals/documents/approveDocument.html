@@ -1,4 +1,3 @@
-<!-- views/approvals/documents/approveDocument.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -45,7 +44,7 @@
   <body>
     <div class="container">
       <h2>Pending Generic Documents for Approval</h2>
-      <table id="document-table">
+      <table id="generic-document-table">
         <thead>
           <tr>
             <th>Title</th>
@@ -62,84 +61,132 @@
           </tr>
         </tbody>
       </table>
+
+      <h2>Pending Proposal Documents for Approval</h2>
+      <table id="proposal-document-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Maintenance</th>
+            <th>Cost Center</th>
+            <th>Date of Error</th>
+            <th>Error Description</th>
+            <th>Direction</th>
+            <th>Approver(s)</th>
+            <th>Approved By</th>
+            <th>Submitted By</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="10">Loading documents...</td>
+          </tr>
+        </tbody>
+      </table>
+
       <a href="/mainDocument">Back</a>
     </div>
 
     <script>
-      // Fetch and display pending documents with full details
+      // Fetch and display pending documents with full details for both Generic and Proposal documents
       async function fetchPendingDocuments() {
         const response = await fetch("/api/pendingDocument");
         const documents = await response.json();
-        const tableBody = document
-          .getElementById("document-table")
+
+        const genericTableBody = document
+          .getElementById("generic-document-table")
           .getElementsByTagName("tbody")[0];
-        tableBody.innerHTML = ""; // Clear loading message
+        const proposalTableBody = document
+          .getElementById("proposal-document-table")
+          .getElementsByTagName("tbody")[0];
+
+        genericTableBody.innerHTML = "";
+        proposalTableBody.innerHTML = "";
 
         if (documents.length === 0) {
-          tableBody.innerHTML =
-            "<tr><td colspan='6'>No pending document.</td></tr>";
+          genericTableBody.innerHTML =
+            "<tr><td colspan='6'>No pending documents.</td></tr>";
+          proposalTableBody.innerHTML =
+            "<tr><td colspan='10'>No pending documents.</td></tr>";
           return;
         }
 
         documents.forEach((doc) => {
           const approvers = doc.approvers
-            .map(
-              (approver) => `
-              ${approver.username} (${approver.subRole})<br>
-            `
-            )
+            .map((approver) => `${approver.username} (${approver.subRole})<br>`)
             .join("");
-
           const approvedBy = doc.approvedBy
             .map(
-              (approver) => `
-              ${approver.username} (${approver.approvalDate}) <br>
-            `
+              (approver) =>
+                `${approver.username} (${approver.approvalDate}) <br>`
             )
             .join("");
 
-          // Create a nested table for content
-          const contentTableRows = doc.content
-            .map(
-              (item) => `
-              <tr>
-                <td>${item.name}</td>
-                <td>${item.text}</td>
-              </tr>
-            `
-            )
-            .join("");
+          if (doc.title === "Generic Document") {
+            // Create a nested table for content in Generic Document
+            const contentTableRows = doc.content
+              .map(
+                (item) => `<tr><td>${item.name}</td><td>${item.text}</td></tr>`
+              )
+              .join("");
 
-          const contentTable = `
-            <table class="nested-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Text</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${contentTableRows}
-              </tbody>
-            </table>
-          `;
+            const contentTable = `
+                        <table class="nested-table">
+                            <thead>
+                                <tr><th>Name</th><th>Text</th></tr>
+                            </thead>
+                            <tbody>${contentTableRows}</tbody>
+                        </table>
+                    `;
 
-          const row = tableBody.insertRow();
-          row.innerHTML = `
-            <td>${doc.title}</td>
-            <td>${contentTable}</td>
-            <td>${approvers}</td>
-            <td>${approvedBy}</td>
-            <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
-            <td>
-              <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
-                <button type="submit">Approve</button>
-              </form>
-              <form action="/deleteDocument/${doc._id}" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
-                <button type="submit">Delete</button>
-              </form>
-            </td>
-          `;
+            const row = genericTableBody.insertRow();
+            row.innerHTML = `
+                        <td>${doc.title}</td>
+                        <td>${contentTable}</td>
+                        <td>${approvers}</td>
+                        <td>${approvedBy}</td>
+                        <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+                        <td>
+                            <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
+                                <button type="submit">Approve</button>
+                            </form>
+                            <form action="/deleteDocument/${doc._id}" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
+                                <button type="submit">Delete</button>
+                            </form>
+                        </td>
+                    `;
+          } else if (doc.title === "Proposal Document") {
+            // Add Proposal Document-specific fields
+            const row = proposalTableBody.insertRow();
+            row.innerHTML = `
+                        <td>${doc.title}</td>
+                        <td>${doc.maintenance}</td>
+                        <td>${doc.costCenter}</td>
+                        <td>${new Date(
+                          doc.dateOfError
+                        ).toLocaleDateString()}</td>
+                        <td>${doc.errorDescription}</td>
+                        <td>${doc.direction}</td>
+                        <td>${approvers}</td>
+                        <td>${approvedBy}</td>
+                        <td>${doc.submittedBy.username} (${
+              doc.submissionDate
+            })</td>
+                        <td>
+                            <form action="/approveDocument/${
+                              doc._id
+                            }" method="POST" style="display:inline;">
+                                <button type="submit">Approve</button>
+                            </form>
+                            <form action="/deleteDocument/${
+                              doc._id
+                            }" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
+                                <button type="submit">Delete</button>
+                            </form>
+                        </td>
+                    `;
+          }
         });
       }
 

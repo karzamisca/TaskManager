@@ -88,7 +88,12 @@
       <h2>Submit New Generic Document</h2>
       <form id="submit-form" action="/submitDocument" method="POST">
         <label for="title">Title</label>
-        <input type="text" name="title" required />
+        <select name="title" id="title-dropdown" required>
+          <option value="Generic Document">Generic Document</option>
+          <option value="Proposal Document">Proposal Document</option>
+          <option value="Placeholder 1">Placeholder 1</option>
+          <option value="Placeholder 2">Placeholder 2</option>
+        </select>
 
         <div id="content-fields">
           <label for="contentName">Content Name</label>
@@ -113,6 +118,98 @@
     </div>
 
     <script>
+      document
+        .getElementById("title-dropdown")
+        .addEventListener("change", function () {
+          const selectedTitle = this.value;
+          const contentFields = document.getElementById("content-fields");
+          contentFields.innerHTML = ""; // Clear existing fields
+
+          if (selectedTitle === "Proposal Document") {
+            contentFields.innerHTML = `
+                <label for="maintenance">Maintenance</label>
+                <input type="text" name="maintenance" required />
+
+                <label for="costCenter">Cost Center</label>
+                <select name="costCenter" id="costCenter" required>
+                  <option value="">Select a cost center</option>
+                  <option value="Tiến Đạt">Tiến Đạt</option>
+                  <option value="Núi Sò">Núi Sò</option>
+                  <option value="Bình An 1">Bình An 1</option>
+                  <option value="Trần Quang">Trần Quang</option>
+                  <option value="Phú Mỹ 3">Phú Mỹ 3</option>
+                  <option value="GTSG">GTSG</option>
+                  <option value="Ngọc Minh">Ngọc Minh</option>
+                  <option value="Châu Pha">Châu Pha</option>
+                  <option value="Rich">Rich</option>
+                  <option value="Tài Đức Phát">Tài Đức Phát</option>
+                  <option value="Tetra Pak">Tetra Pak</option>
+                  <option value="Thuận Phú">Thuận Phú</option>
+                  <option value="Sentai">Sentai</option>
+                  <option value="Tây Nam">Tây Nam</option>
+                  <option value="60R-037.84 Kỳ Long">60R-037.84 Kỳ Long</option>
+                  <option value="60R-036.90 Kỳ Long">60R-036.90 Kỳ Long</option>
+                  <option value="60R-037.93 Kỳ Long">60R-037.93 Kỳ Long</option>
+                  <option value="60R-037.53 Kỳ Long">60R-037.53 Kỳ Long</option>
+                  <option value="50RM-016.52 Gas.S">50RM-016.52 Gas.S</option>
+                  <option value="60R-021.33 Kỳ Long">60R-021.33 Kỳ Long</option>
+                  <option value="50RM-017.31 Gas.S">50RM-017.31 Gas.S</option>
+                  <option value="60R-028.93 Kỳ Long">60R-028.93 Kỳ Long</option>
+                  <option value="60R-027.02 Kỳ Long">60R-027.02 Kỳ Long</option>
+                  <option value="50RM-017.07 Gas.S">50RM-017.07 Gas.S</option>
+                  <option value="50RM-014.69 Gas.S">50RM-014.69 Gas.S</option>
+                  <option value="60R-013.83 Kỳ Long">60R-013.83 Kỳ Long</option>
+                  <option value="60R-012.66 Kỳ Long">60R-012.66 Kỳ Long</option>
+                  <option value="60R-022.10 Kỳ Long">60R-022.10 Kỳ Long</option>
+                  <option value="60R-020.53 Kỳ Long">60R-020.53 Kỳ Long</option>
+                  <option value="50RM-015.45 Gas.S">50RM-015.45 Gas.S</option>
+                  <option value="50RM-013.89 Gas.S">50RM-013.89 Gas.S</option>
+                  <option value="60R-020.12 Kỳ Long">60R-020.12 Kỳ Long</option>
+                  <option value="60R-028.13 CNG">60R-028.13 CNG</option>
+                  <option value="60R-012.40 CNG">60R-012.40 CNG</option>
+                  <option value="60R-028.85 CNG">60R-028.85 CNG</option>
+                  <option value="60R-021.40 CNG">60R-021.40 CNG</option>
+                  <option value="60R-027.11 CNG">60R-027.11 CNG</option>
+                  <option value="60R-028.11 CNG">60R-028.11 CNG</option>
+                  <option value="60R-015.08 Gas.S">60R-015.08 Gas.S</option>
+                  <option value="60R-015.35 Gas.S">60R-015.35 Gas.S</option>
+                  <option value="60R-015.51 Gas.S">60R-015.51 Gas.S</option>
+                  <option value="60R-015.42 Gas.S">60R-015.42 Gas.S</option>
+                  <option value="60R-016.06 Gas.S">60R-016.06 Gas.S</option>
+                  <option value="60R-019.56 Gas.S">60R-019.56 Gas.S</option>
+                  <option value="60R-028.34 Kỳ Long">60R-028.34 Kỳ Long</option>
+                  <option value="60R-026.64 Kỳ Long">60R-026.64 Kỳ Long</option>
+                  <option value="60R-028.36 Kỳ Long">60R-028.36 Kỳ Long</option>
+                  <option value="60R-025.36 Kỳ Long">60R-025.36 Kỳ Long</option>
+                  <option value="60R-025.48 Kỳ Long">60R-025.48 Kỳ Long</option>
+                  <option value="60R-028.64 Kỳ Long">60R-028.64 Kỳ Long</option>
+                  <option value="60R-063.85 Data">60R-063.85 Data</option>
+                  <option value="60R-063.62 Kỳ Long">60R-063.62 Kỳ Long</option>
+                  <option value="60R-063.27 Kỳ Long">60R-063.27 Kỳ Long</option>
+                  <option value="60R-026.98 Kỳ Long">60R-026.98 Kỳ Long</option>
+                </select>
+
+                <label for="dateOfError">Date of Error</label>
+                <input type="date" name="dateOfError" required />
+
+                <label for="errorDescription">Error Description</label>
+                <textarea name="errorDescription" rows="3" required></textarea>
+
+                <label for="direction">Direction</label>
+                <input type="text" name="direction" required />
+            `;
+          } else {
+            // Other fields for "Generic Document" or other placeholder titles
+            contentFields.innerHTML = `
+                <label for="contentName">Content Name</label>
+                <input type="text" name="contentName" required />
+                
+                <label for="contentText">Content Text</label>
+                <textarea name="contentText" rows="5" required></textarea>
+            `;
+          }
+        });
+
       async function fetchApprovers() {
         const response = await fetch("/approvers");
         const approvers = await response.json();
