@@ -123,6 +123,7 @@
         .addEventListener("change", function () {
           const selectedTitle = this.value;
           const contentFields = document.getElementById("content-fields");
+          const addContentButton = document.getElementById("add-content-btn");
           contentFields.innerHTML = ""; // Clear existing fields
 
           if (selectedTitle === "Proposal Document") {
@@ -198,7 +199,8 @@
                 <label for="direction">Direction</label>
                 <input type="text" name="direction" required />
             `;
-          } else {
+            addContentButton.style.display = "none";
+          } else if (selectedTitle === "Generic Document") {
             // Other fields for "Generic Document" or other placeholder titles
             contentFields.innerHTML = `
                 <label for="contentName">Content Name</label>
@@ -207,6 +209,7 @@
                 <label for="contentText">Content Text</label>
                 <textarea name="contentText" rows="5" required></textarea>
             `;
+            addContentButton.style.display = "inline-block";
           }
         });
 
