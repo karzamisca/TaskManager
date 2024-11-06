@@ -85,6 +85,26 @@
         </tbody>
       </table>
 
+      <h2>Pending Processing Documents for Approval</h2>
+      <table id="processing-document-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Product Entries</th>
+            <th>Grand Total Cost</th>
+            <th>Approvers</th>
+            <th>Approved By</th>
+            <th>Submitted By</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="7">Loading processing documents...</td>
+          </tr>
+        </tbody>
+      </table>
+
       <a href="/mainDocument">Back</a>
     </div>
 
@@ -100,14 +120,21 @@
         const proposalTableBody = document
           .getElementById("proposal-document-table")
           .getElementsByTagName("tbody")[0];
+        const processingTableBody = document
+          .getElementById("processing-document-table")
+          .getElementsByTagName("tbody")[0];
 
         genericTableBody.innerHTML = "";
         proposalTableBody.innerHTML = "";
+        processingTableBody.innerHTML = "";
 
         if (documents.length === 0) {
           genericTableBody.innerHTML =
             "<tr><td colspan='6'>No pending documents.</td></tr>";
           proposalTableBody.innerHTML =
+            "<tr><td colspan='10'>No pending documents.</td></tr>";
+          return;
+          processingTableBody.innerHTML =
             "<tr><td colspan='10'>No pending documents.</td></tr>";
           return;
         }
@@ -186,6 +213,60 @@
                             </form>
                         </td>
                     `;
+          } else if (doc.title === "Processing Document") {
+            const approvers = doc.approvers
+              .map((a) => `${a.username} (${a.subRole})`)
+              .join("<br>");
+            const approvedBy = doc.approvedBy
+              .map((a) => `${a.username} (${a.approvalDate})`)
+              .join("<br>");
+            const submittedBy = `${doc.submittedBy.username} (${doc.submissionDate})`;
+
+            let productRows = doc.products
+              .map(
+                (p) => `
+          <tr>
+            <td>${p.productName}</td>
+            <td>${p.costPerUnit}</td>
+            <td>${p.amount}</td>
+            <td>${p.totalCost}</td>
+          </tr>
+        `
+              )
+              .join("");
+
+            const productTable = `
+          <table>
+            <tr>
+              <th>Product Name</th>
+              <th>Cost per Unit</th>
+              <th>Amount</th>
+              <th>Total Cost</th>
+            </tr>
+            ${productRows}
+          </table>
+        `;
+
+            const row = `
+          <tr>
+            <td>${doc.title}</td>
+            <td>${productTable}</td>
+            <td>${doc.grandTotalCost}</td>
+            <td>${approvers}</td>
+            <td>${approvedBy}</td>
+            <td>${submittedBy}</td>
+            <td>
+              <form action="/approveDocument/${doc._id}" method="POST">
+                <button type="submit">Approve</button>
+              </form>
+              <form action="/deleteDocument/${doc._id}" method="POST" onsubmit="return confirm('Are you sure?')">
+                <button type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+        `;
+
+            processingTableBody.insertAdjacentHTML("beforeend", row);
           }
         });
       }

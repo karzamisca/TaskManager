@@ -81,6 +81,24 @@
         </tbody>
       </table>
 
+      <h2>Approved Processing Documents</h2>
+      <table id="approved-processing-documents">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Product Entries</th>
+            <th>Grand Total Cost</th>
+            <th>Approved By</th>
+            <th>Submitted By</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="5">Loading documents...</td>
+          </tr>
+        </tbody>
+      </table>
+
       <a href="/mainDocument">Back</a>
     </div>
 
@@ -89,27 +107,31 @@
 
       async function fetchApprovedDocuments() {
         const response = await fetch("/api/approvedDocument", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
-
         const documents = await response.json();
+
         const genericTableBody = document.querySelector(
           "#approved-generic-documents tbody"
         );
         const proposalTableBody = document.querySelector(
           "#approved-proposal-documents tbody"
         );
+        const processingTableBody = document.querySelector(
+          "#approved-processing-documents tbody"
+        );
 
         genericTableBody.innerHTML = "";
         proposalTableBody.innerHTML = "";
+        processingTableBody.innerHTML = "";
 
         if (documents.length === 0) {
           genericTableBody.innerHTML =
             "<tr><td colspan='4'>No approved generic documents.</td></tr>";
           proposalTableBody.innerHTML =
             "<tr><td colspan='8'>No approved proposal documents.</td></tr>";
+          processingTableBody.innerHTML =
+            "<tr><td colspan='5'>No approved processing documents.</td></tr>";
           return;
         }
 
@@ -128,48 +150,65 @@
             .join("");
 
           if (doc.title === "Generic Document") {
-            // Generic Document content display
             const contentTableRows = doc.content
               .map(
                 (item) => `<tr><td>${item.name}</td><td>${item.text}</td></tr>`
               )
               .join("");
-
             const contentTable = `
-                        <table class="nested-table">
-                            <thead><tr><th>Name</th><th>Text</th></tr></thead>
-                            <tbody>${contentTableRows}</tbody>
-                        </table>
-                    `;
-
+              <table class="nested-table">
+                <thead><tr><th>Name</th><th>Text</th></tr></thead>
+                <tbody>${contentTableRows}</tbody>
+              </table>`;
             const row = `
-                        <tr>
-                            <td>${doc.title}</td>
-                            <td>${contentTable}</td>
-                            <td>${approversHTML}</td>
-                            <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
-                        </tr>
-                    `;
+              <tr>
+                <td>${doc.title}</td>
+                <td>${contentTable}</td>
+                <td>${approversHTML}</td>
+                <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+              </tr>`;
             genericTableBody.insertAdjacentHTML("beforeend", row);
           } else if (doc.title === "Proposal Document") {
-            // Proposal Document fields display
             const row = `
-                        <tr>
-                            <td>${doc.title}</td>
-                            <td>${doc.maintenance}</td>
-                            <td>${doc.costCenter}</td>
-                            <td>${new Date(
-                              doc.dateOfError
-                            ).toLocaleDateString()}</td>
-                            <td>${doc.errorDescription}</td>
-                            <td>${doc.direction}</td>
-                            <td>${approversHTML}</td>
-                            <td>${doc.submittedBy.username} (${
-              doc.submissionDate
-            })</td>
-                        </tr>
-                    `;
+              <tr>
+                <td>${doc.title}</td>
+                <td>${doc.maintenance}</td>
+                <td>${doc.costCenter}</td>
+                <td>${new Date(doc.dateOfError).toLocaleDateString()}</td>
+                <td>${doc.errorDescription}</td>
+                <td>${doc.direction}</td>
+                <td>${approversHTML}</td>
+                <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+              </tr>`;
             proposalTableBody.insertAdjacentHTML("beforeend", row);
+          } else if (doc.title === "Processing Document") {
+            const productTableRows = doc.products
+              .map(
+                (product) => `
+              <tr>
+                <td>${product.productName}</td>
+                <td>${product.costPerUnit}</td>
+                <td>${product.amount}</td>
+                <td>${product.totalCost}</td>
+              </tr>`
+              )
+              .join("");
+
+            const productTable = `
+              <table class="nested-table">
+                <thead><tr><th>Product Name</th><th>Cost per Unit</th><th>Amount</th><th>Total Cost</th></tr></thead>
+                <tbody>${productTableRows}</tbody>
+              </table>`;
+
+            const row = `
+              <tr>
+                <td>${doc.title}</td>
+                <td>${productTable}</td>
+                <td>${doc.grandTotalCost}</td>
+                <td>${approversHTML}</td>
+                <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+              </tr>`;
+            processingTableBody.insertAdjacentHTML("beforeend", row);
           }
         });
       }

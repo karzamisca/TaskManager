@@ -91,7 +91,7 @@
         <select name="title" id="title-dropdown" required>
           <option value="Generic Document">Generic Document</option>
           <option value="Proposal Document">Proposal Document</option>
-          <option value="Placeholder 1">Placeholder 1</option>
+          <option value="Processing Document">Processing Document</option>
           <option value="Placeholder 2">Placeholder 2</option>
         </select>
 
@@ -200,6 +200,16 @@
                 <input type="text" name="direction" required />
             `;
             addContentButton.style.display = "none";
+          } else if (selectedTitle === "Processing Document") {
+            contentFields.innerHTML = `
+              <div id="product-entries">
+                <label>Product Name</label><input type="text" name="products[0][productName]" required />
+                <label>Cost per Unit</label><input type="number" name="products[0][costPerUnit]" required />
+                <label>Amount</label><input type="number" name="products[0][amount]" required />
+              </div>
+              <button type="button" onclick="addProductEntry()">Add More Products</button>
+            `;
+            addContentButton.style.display = "none";
           } else if (selectedTitle === "Generic Document") {
             // Other fields for "Generic Document" or other placeholder titles
             contentFields.innerHTML = `
@@ -212,6 +222,18 @@
             addContentButton.style.display = "inline-block";
           }
         });
+
+      function addProductEntry() {
+        const productEntries = document.getElementById("product-entries");
+        const productCount = productEntries.children.length / 3;
+
+        const newEntry = `
+          <label>Product Name</label><input type="text" name="products[${productCount}][productName]" required />
+          <label>Cost per Unit</label><input type="number" name="products[${productCount}][costPerUnit]" required />
+          <label>Amount</label><input type="number" name="products[${productCount}][amount]" required />
+      `;
+        productEntries.insertAdjacentHTML("beforeend", newEntry);
+      }
 
       async function fetchApprovers() {
         const response = await fetch("/approvers");
