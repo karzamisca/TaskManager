@@ -257,6 +257,11 @@ exports.deleteDocument = async (req, res) => {
   const { id } = req.params;
 
   try {
+    if (req.user.role !== "approver") {
+      return res
+        .status(403)
+        .send("Access denied. Only approvers can delete documents.");
+    }
     // Attempt to find the document in both collections
     let document = await Document.findById(id);
     let isProposalDocument = false;
