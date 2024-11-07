@@ -1,3 +1,4 @@
+// models/ProposalDocument.js
 const mongoose = require("mongoose");
 
 const proposalDocumentSchema = new mongoose.Schema({
