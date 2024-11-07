@@ -1,4 +1,3 @@
-<!-- views/approvals/documents/viewApprovedDocument.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -48,7 +47,7 @@
       <table id="approved-generic-documents">
         <thead>
           <tr>
-            <th>Title</th>
+            <th>ID</th>
             <th>Content</th>
             <th>Approved By</th>
             <th>Submitted By</th>
@@ -65,7 +64,7 @@
       <table id="approved-proposal-documents">
         <thead>
           <tr>
-            <th>Title</th>
+            <th>ID</th>
             <th>Maintenance</th>
             <th>Cost Center</th>
             <th>Date of Error</th>
@@ -86,16 +85,17 @@
       <table id="approved-processing-documents">
         <thead>
           <tr>
-            <th>Title</th>
+            <th>ID</th>
             <th>Product Entries</th>
             <th>Grand Total Cost</th>
+            <th>Appended Proposal Content</th>
             <th>Approved By</th>
             <th>Submitted By</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td colspan="5">Loading documents...</td>
+            <td colspan="6">Loading documents...</td>
           </tr>
         </tbody>
       </table>
@@ -132,25 +132,20 @@
           proposalTableBody.innerHTML =
             "<tr><td colspan='8'>No approved proposal documents.</td></tr>";
           processingTableBody.innerHTML =
-            "<tr><td colspan='5'>No approved processing documents.</td></tr>";
+            "<tr><td colspan='6'>No approved processing documents.</td></tr>";
           return;
         }
 
         documents.forEach((doc) => {
-          const approversHTML = doc.approvers
-            .map((approver) => {
-              const approvalInfo = doc.approvedBy.find(
-                (approved) =>
-                  approved.user.toString() === approver.approver.toString()
-              );
-              const approvalDate = approvalInfo
-                ? approvalInfo.approvalDate
-                : "N/A";
-              return `${approver.username} (${approver.subRole}) (${approvalDate})<br>`;
-            })
+          const approversHTML = doc.approvedBy
+            .map(
+              (approver) =>
+                `${approver.username} (${approver.role}) (${approver.approvalDate})<br>`
+            )
             .join("");
 
           if (doc.title === "Generic Document") {
+            // Display content for Generic Document
             const contentTableRows = doc.content
               .map(
                 (item) => `<tr><td>${item.name}</td><td>${item.text}</td></tr>`
@@ -163,19 +158,20 @@
               </table>`;
             const row = `
               <tr>
-                <td>${doc.title}</td>
+                <td>${doc._id}</td>
                 <td>${contentTable}</td>
                 <td>${approversHTML}</td>
                 <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
               </tr>`;
             genericTableBody.insertAdjacentHTML("beforeend", row);
           } else if (doc.title === "Proposal Document") {
+            // Display specific fields for Proposal Document
             const row = `
               <tr>
-                <td>${doc.title}</td>
+                <td>${doc._id}</td>
                 <td>${doc.maintenance}</td>
                 <td>${doc.costCenter}</td>
-                <td>${new Date(doc.dateOfError).toLocaleDateString()}</td>
+                <td>${doc.dateOfError}</td>
                 <td>${doc.errorDescription}</td>
                 <td>${doc.direction}</td>
                 <td>${approversHTML}</td>
@@ -183,7 +179,8 @@
               </tr>`;
             proposalTableBody.insertAdjacentHTML("beforeend", row);
           } else if (doc.title === "Processing Document") {
-            const productTableRows = doc.products
+            // Display product entries and appended proposal content for Processing Document
+            const productRows = doc.products
               .map(
                 (product) => `
               <tr>
@@ -198,14 +195,29 @@
             const productTable = `
               <table class="nested-table">
                 <thead><tr><th>Product Name</th><th>Cost per Unit</th><th>Amount</th><th>Total Cost</th></tr></thead>
-                <tbody>${productTableRows}</tbody>
+                <tbody>${productRows}</tbody>
               </table>`;
+
+            const appendedContent = doc.appendedContent
+              .map(
+                (content) => `
+                <div>
+                  <p><strong>ID:</strong> ${content._id}</p>
+                  <p><strong>Maintenance:</strong> ${content.maintenance}</p>
+                  <p><strong>Cost Center:</strong> ${content.costCenter}</p>
+                  <p><strong>Date of Error:</strong> ${content.dateOfError}</p>
+                  <p><strong>Error Description:</strong> ${content.errorDescription}</p>
+                  <p><strong>Direction:</strong> ${content.direction}</p>
+                </div>`
+              )
+              .join("");
 
             const row = `
               <tr>
-                <td>${doc.title}</td>
+                <td>${doc._id}</td>
                 <td>${productTable}</td>
                 <td>${doc.grandTotalCost}</td>
+                <td>${appendedContent || "N/A"}</td>
                 <td>${approversHTML}</td>
                 <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
               </tr>`;

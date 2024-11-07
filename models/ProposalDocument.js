@@ -23,7 +23,7 @@ const proposalDocumentSchema = new mongoose.Schema({
       user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
       username: { type: String, required: true },
       role: { type: String, required: true },
-      approvalDate: { type: Date, required: true },
+      approvalDate: { type: String, required: true },
     },
   ],
 });

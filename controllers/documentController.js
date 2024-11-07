@@ -15,6 +15,7 @@ exports.submitDocument = async (req, res) => {
     products,
     approvers,
     approvedDocuments,
+    approvedProposal,
   } = req.body;
 
   try {
@@ -33,10 +34,10 @@ exports.submitDocument = async (req, res) => {
       })
     );
 
-    // Check the document type and build accordingly
     let newDocument;
+
+    // Handle Proposal Document creation
     if (title === "Proposal Document") {
-      // Creating a Proposal Document with specific fields
       newDocument = new ProposalDocument({
         title,
         maintenance: req.body.maintenance,
@@ -48,40 +49,59 @@ exports.submitDocument = async (req, res) => {
         approvers: approverDetails,
         submissionDate: moment()
           .tz("Asia/Bangkok")
-          .format("YYYY-MM-DD HH:mm:ss"),
+          .format("DD-MM-YYYY HH:mm:ss"),
       });
-    } else {
-      // Creating a Generic Document with existing fields
+    }
+    // Handle Processing Document creation
+    else if (title === "Processing Document") {
+      const productEntries = products.map((product) => ({
+        ...product,
+        totalCost: product.costPerUnit * product.amount,
+      }));
+      const grandTotalCost = productEntries.reduce(
+        (acc, product) => acc + product.totalCost,
+        0
+      );
+
+      // If an approved proposal is selected, fetch its details
+      let appendedContent = [];
+      if (approvedProposal) {
+        const proposal = await ProposalDocument.findById(approvedProposal);
+        if (proposal) {
+          appendedContent.push({
+            maintenance: proposal.maintenance,
+            costCenter: proposal.costCenter,
+            dateOfError: proposal.dateOfError,
+            errorDescription: proposal.errorDescription,
+            direction: proposal.direction,
+          });
+        }
+      }
+
+      newDocument = new ProcessingDocument({
+        title,
+        products: productEntries,
+        grandTotalCost,
+        appendedContent, // Store appended content from approved proposal
+        submissionDate: moment()
+          .tz("Asia/Bangkok")
+          .format("DD-MM-YYYY HH:mm:ss"),
+        submittedBy: req.user.id,
+        approvers: approverDetails,
+      });
+
+      await newDocument.save();
+      return res.redirect("/mainDocument");
+    }
+    // Handle Generic Document creation
+    else {
       const contentArray = [];
 
-      // Build content array with both name and text
+      // Populate content array for generic document
       if (Array.isArray(contentName) && Array.isArray(contentText)) {
         contentName.forEach((name, index) => {
           contentArray.push({ name, text: contentText[index] });
         });
-      } else if (title === "Processing Document") {
-        const productEntries = products.map((product) => ({
-          ...product,
-          totalCost: product.costPerUnit * product.amount,
-        }));
-        const grandTotalCost = productEntries.reduce(
-          (acc, product) => acc + product.totalCost,
-          0
-        );
-
-        const newProcessingDocument = new ProcessingDocument({
-          title,
-          products: productEntries,
-          grandTotalCost,
-          submissionDate: moment()
-            .tz("Asia/Bangkok")
-            .format("YYYY-MM-DD HH:mm:ss"),
-          submittedBy: req.user.id,
-          approvers: approverDetails,
-        });
-
-        await newProcessingDocument.save();
-        return res.redirect("/mainDocument");
       } else {
         contentArray.push({ name: contentName, text: contentText });
       }
@@ -103,7 +123,7 @@ exports.submitDocument = async (req, res) => {
         approvers: approverDetails,
         submissionDate: moment()
           .tz("Asia/Bangkok")
-          .format("YYYY-MM-DD HH:mm:ss"),
+          .format("DD-MM-YYYY HH:mm:ss"),
       });
     }
 
@@ -186,7 +206,7 @@ exports.approveDocument = async (req, res) => {
       user: user.id,
       username: user.username,
       role: user.role,
-      approvalDate: new Date().toISOString(),
+      approvalDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
     });
 
     // If all approvers have approved, mark it as fully approved
@@ -313,13 +333,19 @@ exports.deleteDocument = async (req, res) => {
         .status(403)
         .send("Access denied. Only approvers can delete documents.");
     }
-    // Attempt to find the document in both collections
+
+    // Try to find the document in each collection
     let document = await Document.findById(id);
-    let isProposalDocument = false;
+    let documentType = "Generic";
 
     if (!document) {
       document = await ProposalDocument.findById(id);
-      isProposalDocument = true;
+      if (document) documentType = "Proposal";
+    }
+
+    if (!document && documentType === "Generic") {
+      document = await ProcessingDocument.findById(id);
+      if (document) documentType = "Processing";
     }
 
     if (!document) {
@@ -327,8 +353,10 @@ exports.deleteDocument = async (req, res) => {
     }
 
     // Delete the document based on its type
-    if (isProposalDocument) {
+    if (documentType === "Proposal") {
       await ProposalDocument.findByIdAndDelete(id);
+    } else if (documentType === "Processing") {
+      await ProcessingDocument.findByIdAndDelete(id);
     } else {
       await Document.findByIdAndDelete(id);
     }
@@ -337,5 +365,26 @@ exports.deleteDocument = async (req, res) => {
   } catch (err) {
     console.error("Error deleting document:", err);
     res.status(500).send("Error deleting document");
+  }
+};
+
+exports.getApprovedProposalDocuments = async (req, res) => {
+  try {
+    const approvedProposals = await ProposalDocument.find({ approved: true });
+    res.json(approvedProposals);
+  } catch (err) {
+    console.error("Error fetching approved proposals:", err);
+    res.status(500).send("Error fetching approved proposals");
+  }
+};
+
+exports.getProposalDocumentById = async (req, res) => {
+  try {
+    const proposal = await ProposalDocument.findById(req.params.id);
+    if (!proposal) return res.status(404).send("Proposal document not found");
+    res.json(proposal);
+  } catch (err) {
+    console.error("Error fetching proposal document:", err);
+    res.status(500).send("Error fetching proposal document");
   }
 };

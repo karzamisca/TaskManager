@@ -1,4 +1,3 @@
-<!-- views/approvals/documents/submitDocument.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -8,6 +7,10 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <title>Submit Document</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
+    />
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -20,7 +23,6 @@
         padding: 20px;
         box-sizing: border-box;
       }
-
       .container {
         background: #fff;
         padding: 20px;
@@ -29,20 +31,18 @@
         max-width: 600px;
         width: 100%;
       }
-
       h2 {
         margin-bottom: 20px;
         font-size: 1.5em;
       }
-
       label {
         display: block;
         margin-bottom: 5px;
         font-size: 1em;
       }
-
       input,
-      textarea {
+      textarea,
+      select {
         width: 100%;
         padding: 10px;
         margin-bottom: 20px;
@@ -50,7 +50,6 @@
         border-radius: 5px;
         font-size: 1em;
       }
-
       button {
         width: 100%;
         padding: 10px;
@@ -61,15 +60,12 @@
         cursor: pointer;
         font-size: 1em;
       }
-
       button:hover {
         background: #0056b3;
       }
-
       .content-field {
         margin-bottom: 10px;
       }
-
       a {
         display: block;
         margin-top: 10px;
@@ -77,7 +73,6 @@
         text-decoration: none;
         color: #007bff;
       }
-
       a:hover {
         text-decoration: underline;
       }
@@ -85,7 +80,7 @@
   </head>
   <body>
     <div class="container">
-      <h2>Submit New Generic Document</h2>
+      <h2>Submit New Document</h2>
       <form id="submit-form" action="/submitDocument" method="POST">
         <label for="title">Title</label>
         <select name="title" id="title-dropdown" required>
@@ -95,6 +90,7 @@
           <option value="Placeholder 2">Placeholder 2</option>
         </select>
 
+        <!-- Content fields for Generic Document -->
         <div id="content-fields">
           <label for="contentName">Content Name</label>
           <input type="text" name="contentName" required />
@@ -106,9 +102,26 @@
         <button type="button" id="add-content-btn">Add More Content</button
         ><br />
 
+        <!-- Fields for selecting and previewing approved proposal document -->
+        <div id="approved-proposal-section" style="display: none">
+          <label for="approvedProposal"
+            >Select Approved Proposal Document</label
+          >
+          <select
+            id="approvedProposalDropdown"
+            name="approvedProposal"
+            onchange="previewProposalContent(this.value)"
+          >
+            <option value="">Select a proposal</option>
+          </select>
+          <div id="proposalPreview"></div>
+        </div>
+
+        <!-- Approvers selection -->
         <label for="approvers">Select Approvers</label>
         <div id="approver-selection"></div>
 
+        <!-- Append approved documents for Generic Document -->
         <label for="approvedDocuments">Append Approved Documents</label>
         <div id="approved-documents-list"></div>
 
@@ -116,109 +129,127 @@
         <a href="/mainDocument">Back</a><br />
       </form>
     </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
+      // Initialize flatpickr for the custom date picker
+      flatpickr("#dateOfError", {
+        dateFormat: "d-m-Y", // Custom date format: dd-mm-yyyy
+        defaultDate: "today", // Optional: Set default date to today
+      });
+
       document
         .getElementById("title-dropdown")
         .addEventListener("change", function () {
           const selectedTitle = this.value;
           const contentFields = document.getElementById("content-fields");
           const addContentButton = document.getElementById("add-content-btn");
-          contentFields.innerHTML = ""; // Clear existing fields
+          const approvedProposalSection = document.getElementById(
+            "approved-proposal-section"
+          );
+
+          // Clear existing fields
+          contentFields.innerHTML = "";
+          addContentButton.style.display = "none";
+          approvedProposalSection.style.display = "none";
 
           if (selectedTitle === "Proposal Document") {
             contentFields.innerHTML = `
-                <label for="maintenance">Maintenance</label>
-                <input type="text" name="maintenance" required />
+            <label for="maintenance">Maintenance</label>
+            <input type="text" name="maintenance" required />
 
-                <label for="costCenter">Cost Center</label>
-                <select name="costCenter" id="costCenter" required>
-                  <option value="">Select a cost center</option>
-                  <option value="Tiến Đạt">Tiến Đạt</option>
-                  <option value="Núi Sò">Núi Sò</option>
-                  <option value="Bình An 1">Bình An 1</option>
-                  <option value="Trần Quang">Trần Quang</option>
-                  <option value="Phú Mỹ 3">Phú Mỹ 3</option>
-                  <option value="GTSG">GTSG</option>
-                  <option value="Ngọc Minh">Ngọc Minh</option>
-                  <option value="Châu Pha">Châu Pha</option>
-                  <option value="Rich">Rich</option>
-                  <option value="Tài Đức Phát">Tài Đức Phát</option>
-                  <option value="Tetra Pak">Tetra Pak</option>
-                  <option value="Thuận Phú">Thuận Phú</option>
-                  <option value="Sentai">Sentai</option>
-                  <option value="Tây Nam">Tây Nam</option>
-                  <option value="60R-037.84 Kỳ Long">60R-037.84 Kỳ Long</option>
-                  <option value="60R-036.90 Kỳ Long">60R-036.90 Kỳ Long</option>
-                  <option value="60R-037.93 Kỳ Long">60R-037.93 Kỳ Long</option>
-                  <option value="60R-037.53 Kỳ Long">60R-037.53 Kỳ Long</option>
-                  <option value="50RM-016.52 Gas.S">50RM-016.52 Gas.S</option>
-                  <option value="60R-021.33 Kỳ Long">60R-021.33 Kỳ Long</option>
-                  <option value="50RM-017.31 Gas.S">50RM-017.31 Gas.S</option>
-                  <option value="60R-028.93 Kỳ Long">60R-028.93 Kỳ Long</option>
-                  <option value="60R-027.02 Kỳ Long">60R-027.02 Kỳ Long</option>
-                  <option value="50RM-017.07 Gas.S">50RM-017.07 Gas.S</option>
-                  <option value="50RM-014.69 Gas.S">50RM-014.69 Gas.S</option>
-                  <option value="60R-013.83 Kỳ Long">60R-013.83 Kỳ Long</option>
-                  <option value="60R-012.66 Kỳ Long">60R-012.66 Kỳ Long</option>
-                  <option value="60R-022.10 Kỳ Long">60R-022.10 Kỳ Long</option>
-                  <option value="60R-020.53 Kỳ Long">60R-020.53 Kỳ Long</option>
-                  <option value="50RM-015.45 Gas.S">50RM-015.45 Gas.S</option>
-                  <option value="50RM-013.89 Gas.S">50RM-013.89 Gas.S</option>
-                  <option value="60R-020.12 Kỳ Long">60R-020.12 Kỳ Long</option>
-                  <option value="60R-028.13 CNG">60R-028.13 CNG</option>
-                  <option value="60R-012.40 CNG">60R-012.40 CNG</option>
-                  <option value="60R-028.85 CNG">60R-028.85 CNG</option>
-                  <option value="60R-021.40 CNG">60R-021.40 CNG</option>
-                  <option value="60R-027.11 CNG">60R-027.11 CNG</option>
-                  <option value="60R-028.11 CNG">60R-028.11 CNG</option>
-                  <option value="60R-015.08 Gas.S">60R-015.08 Gas.S</option>
-                  <option value="60R-015.35 Gas.S">60R-015.35 Gas.S</option>
-                  <option value="60R-015.51 Gas.S">60R-015.51 Gas.S</option>
-                  <option value="60R-015.42 Gas.S">60R-015.42 Gas.S</option>
-                  <option value="60R-016.06 Gas.S">60R-016.06 Gas.S</option>
-                  <option value="60R-019.56 Gas.S">60R-019.56 Gas.S</option>
-                  <option value="60R-028.34 Kỳ Long">60R-028.34 Kỳ Long</option>
-                  <option value="60R-026.64 Kỳ Long">60R-026.64 Kỳ Long</option>
-                  <option value="60R-028.36 Kỳ Long">60R-028.36 Kỳ Long</option>
-                  <option value="60R-025.36 Kỳ Long">60R-025.36 Kỳ Long</option>
-                  <option value="60R-025.48 Kỳ Long">60R-025.48 Kỳ Long</option>
-                  <option value="60R-028.64 Kỳ Long">60R-028.64 Kỳ Long</option>
-                  <option value="60R-063.85 Data">60R-063.85 Data</option>
-                  <option value="60R-063.62 Kỳ Long">60R-063.62 Kỳ Long</option>
-                  <option value="60R-063.27 Kỳ Long">60R-063.27 Kỳ Long</option>
-                  <option value="60R-026.98 Kỳ Long">60R-026.98 Kỳ Long</option>
-                </select>
+            <label for="costCenter">Cost Center</label>
+            <select name="costCenter" id="costCenter" required>
+              <option value="">Select a cost center</option>
+              <option value="Tiến Đạt">Tiến Đạt</option>
+              <option value="Núi Sò">Núi Sò</option>
+              <option value="Bình An 1">Bình An 1</option>
+              <option value="Trần Quang">Trần Quang</option>
+              <option value="Phú Mỹ 3">Phú Mỹ 3</option>
+              <option value="GTSG">GTSG</option>
+              <option value="Ngọc Minh">Ngọc Minh</option>
+              <option value="Châu Pha">Châu Pha</option>
+              <option value="Rich">Rich</option>
+              <option value="Tài Đức Phát">Tài Đức Phát</option>
+              <option value="Tetra Pak">Tetra Pak</option>
+              <option value="Thuận Phú">Thuận Phú</option>
+              <option value="Sentai">Sentai</option>
+              <option value="Tây Nam">Tây Nam</option>
+              <option value="60R-037.84 Kỳ Long">60R-037.84 Kỳ Long</option>
+              <option value="60R-036.90 Kỳ Long">60R-036.90 Kỳ Long</option>
+              <option value="60R-037.93 Kỳ Long">60R-037.93 Kỳ Long</option>
+              <option value="60R-037.53 Kỳ Long">60R-037.53 Kỳ Long</option>
+              <option value="50RM-016.52 Gas.S">50RM-016.52 Gas.S</option>
+              <option value="60R-021.33 Kỳ Long">60R-021.33 Kỳ Long</option>
+              <option value="50RM-017.31 Gas.S">50RM-017.31 Gas.S</option>
+              <option value="60R-028.93 Kỳ Long">60R-028.93 Kỳ Long</option>
+              <option value="60R-027.02 Kỳ Long">60R-027.02 Kỳ Long</option>
+              <option value="50RM-017.07 Gas.S">50RM-017.07 Gas.S</option>
+              <option value="50RM-014.69 Gas.S">50RM-014.69 Gas.S</option>
+              <option value="60R-013.83 Kỳ Long">60R-013.83 Kỳ Long</option>
+              <option value="60R-012.66 Kỳ Long">60R-012.66 Kỳ Long</option>
+              <option value="60R-022.10 Kỳ Long">60R-022.10 Kỳ Long</option>
+              <option value="60R-020.53 Kỳ Long">60R-020.53 Kỳ Long</option>
+              <option value="50RM-015.45 Gas.S">50RM-015.45 Gas.S</option>
+              <option value="50RM-013.89 Gas.S">50RM-013.89 Gas.S</option>
+              <option value="60R-020.12 Kỳ Long">60R-020.12 Kỳ Long</option>
+              <option value="60R-028.13 CNG">60R-028.13 CNG</option>
+              <option value="60R-012.40 CNG">60R-012.40 CNG</option>
+              <option value="60R-028.85 CNG">60R-028.85 CNG</option>
+              <option value="60R-021.40 CNG">60R-021.40 CNG</option>
+              <option value="60R-027.11 CNG">60R-027.11 CNG</option>
+              <option value="60R-028.11 CNG">60R-028.11 CNG</option>
+              <option value="60R-015.08 Gas.S">60R-015.08 Gas.S</option>
+              <option value="60R-015.35 Gas.S">60R-015.35 Gas.S</option>
+              <option value="60R-015.51 Gas.S">60R-015.51 Gas.S</option>
+              <option value="60R-015.42 Gas.S">60R-015.42 Gas.S</option>
+              <option value="60R-016.06 Gas.S">60R-016.06 Gas.S</option>
+              <option value="60R-019.56 Gas.S">60R-019.56 Gas.S</option>
+              <option value="60R-028.34 Kỳ Long">60R-028.34 Kỳ Long</option>
+              <option value="60R-026.64 Kỳ Long">60R-026.64 Kỳ Long</option>
+              <option value="60R-028.36 Kỳ Long">60R-028.36 Kỳ Long</option>
+              <option value="60R-025.36 Kỳ Long">60R-025.36 Kỳ Long</option>
+              <option value="60R-025.48 Kỳ Long">60R-025.48 Kỳ Long</option>
+              <option value="60R-028.64 Kỳ Long">60R-028.64 Kỳ Long</option>
+              <option value="60R-063.85 Data">60R-063.85 Data</option>
+              <option value="60R-063.62 Kỳ Long">60R-063.62 Kỳ Long</option>
+              <option value="60R-063.27 Kỳ Long">60R-063.27 Kỳ Long</option>
+              <option value="60R-026.98 Kỳ Long">60R-026.98 Kỳ Long</option>
+              <!-- Include other cost centers here -->
+            </select>
 
-                <label for="dateOfError">Date of Error</label>
-                <input type="date" name="dateOfError" required />
+            <label for="dateOfError">Date of Error</label>
+            <input type="text" name="dateOfError" id="dateOfError" required />
 
-                <label for="errorDescription">Error Description</label>
-                <textarea name="errorDescription" rows="3" required></textarea>
+            <label for="errorDescription">Error Description</label>
+            <textarea name="errorDescription" rows="3" required></textarea>
 
-                <label for="direction">Direction</label>
-                <input type="text" name="direction" required />
-            `;
+            <label for="direction">Direction</label>
+            <input type="text" name="direction" required />
+          `;
+            flatpickr("#dateOfError", {
+              dateFormat: "d-m-Y", // Custom date format: dd-mm-yyyy
+              defaultDate: "today", // Optional: Set default date to today
+            });
             addContentButton.style.display = "none";
           } else if (selectedTitle === "Processing Document") {
             contentFields.innerHTML = `
-              <div id="product-entries">
-                <label>Product Name</label><input type="text" name="products[0][productName]" required />
-                <label>Cost per Unit</label><input type="number" name="products[0][costPerUnit]" required />
-                <label>Amount</label><input type="number" name="products[0][amount]" required />
-              </div>
-              <button type="button" onclick="addProductEntry()">Add More Products</button>
-            `;
+            <div id="product-entries">
+              <label>Product Name</label><input type="text" name="products[0][productName]" required />
+              <label>Cost per Unit</label><input type="number" name="products[0][costPerUnit]" required />
+              <label>Amount</label><input type="number" name="products[0][amount]" required />
+            </div>
+            <button type="button" onclick="addProductEntry()">Add More Products</button>
+          `;
             addContentButton.style.display = "none";
-          } else if (selectedTitle === "Generic Document") {
-            // Other fields for "Generic Document" or other placeholder titles
+            approvedProposalSection.style.display = "block";
+          } else {
+            // For Generic Document and Placeholder
             contentFields.innerHTML = `
-                <label for="contentName">Content Name</label>
-                <input type="text" name="contentName" required />
-                
-                <label for="contentText">Content Text</label>
-                <textarea name="contentText" rows="5" required></textarea>
-            `;
+            <label for="contentName">Content Name</label>
+            <input type="text" name="contentName" required />
+            <label for="contentText">Content Text</label>
+            <textarea name="contentText" rows="5" required></textarea>
+          `;
             addContentButton.style.display = "inline-block";
           }
         });
@@ -231,7 +262,7 @@
           <label>Product Name</label><input type="text" name="products[${productCount}][productName]" required />
           <label>Cost per Unit</label><input type="number" name="products[${productCount}][costPerUnit]" required />
           <label>Amount</label><input type="number" name="products[${productCount}][amount]" required />
-      `;
+        `;
         productEntries.insertAdjacentHTML("beforeend", newEntry);
       }
 
@@ -242,8 +273,6 @@
 
         approvers.forEach((approver) => {
           const approverDiv = document.createElement("div");
-
-          // Approver selection
           const label = document.createElement("label");
           label.textContent = approver.username;
           approverDiv.appendChild(label);
@@ -254,30 +283,22 @@
           approverInput.value = approver._id;
           approverDiv.appendChild(approverInput);
 
-          // Sub-role input
           const subRoleInput = document.createElement("input");
           subRoleInput.type = "text";
-          subRoleInput.name = `subRole_${approver._id}`; // Dynamic name for sub-role field
+          subRoleInput.name = `subRole_${approver._id}`;
           subRoleInput.placeholder = "Enter Sub-Role";
-          subRoleInput.disabled = true; // Disable initially
+          subRoleInput.disabled = true;
           approverDiv.appendChild(subRoleInput);
 
-          // Add event listener to the checkbox to toggle the 'required' attribute
           approverInput.addEventListener("change", function () {
-            if (approverInput.checked) {
-              subRoleInput.disabled = false; // Enable sub-role input
-              subRoleInput.required = true; // Set required when checkbox is checked
-            } else {
-              subRoleInput.disabled = true; // Disable sub-role input
-              subRoleInput.required = false; // Remove required when checkbox is unchecked
-            }
+            subRoleInput.disabled = !approverInput.checked;
+            subRoleInput.required = approverInput.checked;
           });
 
           approverSelect.appendChild(approverDiv);
         });
       }
 
-      // Fetch and list approved documents
       async function fetchApprovedDocuments() {
         const response = await fetch("/api/approvedDocument");
         const approvedDocs = await response.json();
@@ -300,43 +321,74 @@
         });
       }
 
-      fetchApprovedDocuments();
+      async function fetchApprovedProposals() {
+        const response = await fetch("/api/approvedProposalDocuments");
+        const approvedProposals = await response.json();
+        const dropdown = document.getElementById("approvedProposalDropdown");
 
+        approvedProposals.forEach((doc) => {
+          const option = document.createElement("option");
+          option.value = doc._id;
+          option.textContent = doc._id;
+          dropdown.appendChild(option);
+        });
+      }
+
+      async function previewProposalContent(documentId) {
+        if (!documentId) {
+          document.getElementById("proposalPreview").innerHTML = "";
+          return;
+        }
+
+        const response = await fetch(`/api/proposalDocument/${documentId}`);
+        const proposal = await response.json();
+
+        const previewDiv = document.getElementById("proposalPreview");
+        previewDiv.innerHTML = `
+          <p><strong>Maintenance:</strong> ${proposal.maintenance}</p>
+          <p><strong>Cost Center:</strong> ${proposal.costCenter}</p>
+          <p><strong>Date of Error:</strong> ${new Date(
+            proposal.dateOfError
+          ).toLocaleDateString()}</p>
+          <p><strong>Error Description:</strong> ${
+            proposal.errorDescription
+          }</p>
+          <p><strong>Direction:</strong> ${proposal.direction}</p>
+        `;
+      }
+
+      fetchApprovedDocuments();
       fetchApprovers();
-      // Form submission validation
+      fetchApprovedProposals();
+
       document
         .getElementById("submit-form")
         .addEventListener("submit", function (event) {
           const approvers = document.querySelectorAll(
             'input[name="approvers"]:checked'
           );
-
           if (approvers.length === 0) {
-            event.preventDefault(); // Prevent form submission
+            event.preventDefault();
             alert("Please select at least one approver.");
           }
         });
-
       // Adding more content fields
       document
         .getElementById("add-content-btn")
         .addEventListener("click", function () {
           const contentFields = document.getElementById("content-fields");
-
           // Create content name input
           const nameLabel = document.createElement("label");
           nameLabel.innerText = "Content Name";
           const nameInput = document.createElement("input");
           nameInput.type = "text";
           nameInput.name = "contentName";
-
           // Create content text textarea
           const textLabel = document.createElement("label");
           textLabel.innerText = "Content Text";
           const textArea = document.createElement("textarea");
           textArea.name = "contentText";
           textArea.rows = 5;
-
           // Append new fields to the form
           contentFields.appendChild(nameLabel);
           contentFields.appendChild(nameInput);

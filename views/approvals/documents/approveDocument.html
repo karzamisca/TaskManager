@@ -1,4 +1,3 @@
-<!-- views/approvals/documents/approveDocument.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -48,7 +47,7 @@
       <table id="generic-document-table">
         <thead>
           <tr>
-            <th>Title</th>
+            <th>ID</th>
             <th>Content</th>
             <th>Approver(s)</th>
             <th>Approved By</th>
@@ -67,7 +66,7 @@
       <table id="proposal-document-table">
         <thead>
           <tr>
-            <th>Title</th>
+            <th>ID</th>
             <th>Maintenance</th>
             <th>Cost Center</th>
             <th>Date of Error</th>
@@ -90,18 +89,19 @@
       <table id="processing-document-table">
         <thead>
           <tr>
-            <th>Title</th>
+            <th>ID</th>
             <th>Product Entries</th>
             <th>Grand Total Cost</th>
             <th>Approvers</th>
             <th>Approved By</th>
             <th>Submitted By</th>
+            <th>Appended Proposal Content</th>
             <th>Action</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td colspan="7">Loading processing documents...</td>
+            <td colspan="8">Loading processing documents...</td>
           </tr>
         </tbody>
       </table>
@@ -110,7 +110,7 @@
     </div>
 
     <script>
-      // Fetch and display pending documents with full details for both Generic and Proposal documents
+      // Fetch and display pending documents with full details for Generic, Proposal, and Processing documents
       async function fetchPendingDocuments() {
         const response = await fetch("/api/pendingDocument");
         const documents = await response.json();
@@ -134,9 +134,8 @@
             "<tr><td colspan='6'>No pending documents.</td></tr>";
           proposalTableBody.innerHTML =
             "<tr><td colspan='10'>No pending documents.</td></tr>";
-          return;
           processingTableBody.innerHTML =
-            "<tr><td colspan='10'>No pending documents.</td></tr>";
+            "<tr><td colspan='8'>No pending documents.</td></tr>";
           return;
         }
 
@@ -152,7 +151,7 @@
             .join("");
 
           if (doc.title === "Generic Document") {
-            // Create a nested table for content in Generic Document
+            // Display content for Generic Document
             const contentTableRows = doc.content
               .map(
                 (item) => `<tr><td>${item.name}</td><td>${item.text}</td></tr>`
@@ -160,114 +159,107 @@
               .join("");
 
             const contentTable = `
-                        <table class="nested-table">
-                            <thead>
-                                <tr><th>Name</th><th>Text</th></tr>
-                            </thead>
-                            <tbody>${contentTableRows}</tbody>
-                        </table>
-                    `;
+              <table class="nested-table">
+                <thead>
+                  <tr><th>Name</th><th>Text</th></tr>
+                </thead>
+                <tbody>${contentTableRows}</tbody>
+              </table>`;
 
             const row = genericTableBody.insertRow();
             row.innerHTML = `
-                        <td>${doc.title}</td>
-                        <td>${contentTable}</td>
-                        <td>${approvers}</td>
-                        <td>${approvedBy}</td>
-                        <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
-                        <td>
-                            <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
-                                <button type="submit">Approve</button>
-                            </form>
-                            <form action="/deleteDocument/${doc._id}" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
-                                <button type="submit">Delete</button>
-                            </form>
-                        </td>
-                    `;
+              <td>${doc._id}</td>
+              <td>${contentTable}</td>
+              <td>${approvers}</td>
+              <td>${approvedBy}</td>
+              <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+              <td>
+                <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
+                  <button type="submit">Approve</button>
+                </form>
+                <form action="/deleteDocument/${doc._id}" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
+                  <button type="submit">Delete</button>
+                </form>
+              </td>`;
           } else if (doc.title === "Proposal Document") {
-            // Add Proposal Document-specific fields
+            // Display specific fields for Proposal Document
             const row = proposalTableBody.insertRow();
             row.innerHTML = `
-                        <td>${doc.title}</td>
-                        <td>${doc.maintenance}</td>
-                        <td>${doc.costCenter}</td>
-                        <td>${new Date(
-                          doc.dateOfError
-                        ).toLocaleDateString()}</td>
-                        <td>${doc.errorDescription}</td>
-                        <td>${doc.direction}</td>
-                        <td>${approvers}</td>
-                        <td>${approvedBy}</td>
-                        <td>${doc.submittedBy.username} (${
-              doc.submissionDate
-            })</td>
-                        <td>
-                            <form action="/approveDocument/${
-                              doc._id
-                            }" method="POST" style="display:inline;">
-                                <button type="submit">Approve</button>
-                            </form>
-                            <form action="/deleteDocument/${
-                              doc._id
-                            }" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
-                                <button type="submit">Delete</button>
-                            </form>
-                        </td>
-                    `;
+              <td>${doc._id}</td>
+              <td>${doc.maintenance}</td>
+              <td>${doc.costCenter}</td>
+              <td>${doc.dateOfError}</td>
+              <td>${doc.errorDescription}</td>
+              <td>${doc.direction}</td>
+              <td>${approvers}</td>
+              <td>${approvedBy}</td>
+              <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+              <td>
+                <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
+                  <button type="submit">Approve</button>
+                </form>
+                <form action="/deleteDocument/${doc._id}" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
+                  <button type="submit">Delete</button>
+                </form>
+              </td>`;
           } else if (doc.title === "Processing Document") {
-            const approvers = doc.approvers
-              .map((a) => `${a.username} (${a.subRole})`)
-              .join("<br>");
-            const approvedBy = doc.approvedBy
-              .map((a) => `${a.username} (${a.approvalDate})`)
-              .join("<br>");
-            const submittedBy = `${doc.submittedBy.username} (${doc.submissionDate})`;
-
-            let productRows = doc.products
+            // Display product entries for Processing Document
+            const productRows = doc.products
               .map(
                 (p) => `
-          <tr>
-            <td>${p.productName}</td>
-            <td>${p.costPerUnit}</td>
-            <td>${p.amount}</td>
-            <td>${p.totalCost}</td>
-          </tr>
-        `
+                <tr>
+                  <td>${p.productName}</td>
+                  <td>${p.costPerUnit}</td>
+                  <td>${p.amount}</td>
+                  <td>${p.totalCost}</td>
+                </tr>`
               )
               .join("");
 
             const productTable = `
-          <table>
-            <tr>
-              <th>Product Name</th>
-              <th>Cost per Unit</th>
-              <th>Amount</th>
-              <th>Total Cost</th>
-            </tr>
-            ${productRows}
-          </table>
-        `;
+              <table class="nested-table">
+                <tr>
+                  <th>Product Name</th>
+                  <th>Cost per Unit</th>
+                  <th>Amount</th>
+                  <th>Total Cost</th>
+                </tr>
+                ${productRows}
+              </table>`;
 
-            const row = `
-          <tr>
-            <td>${doc.title}</td>
-            <td>${productTable}</td>
-            <td>${doc.grandTotalCost}</td>
-            <td>${approvers}</td>
-            <td>${approvedBy}</td>
-            <td>${submittedBy}</td>
-            <td>
-              <form action="/approveDocument/${doc._id}" method="POST">
-                <button type="submit">Approve</button>
-              </form>
-              <form action="/deleteDocument/${doc._id}" method="POST" onsubmit="return confirm('Are you sure?')">
-                <button type="submit">Delete</button>
-              </form>
-            </td>
-          </tr>
-        `;
+            const appendedContent = doc.appendedContent
+              .map(
+                (content) => `
+                <div>
+                  <p><strong>Maintenance:</strong> ${content._id}</p>
+                  <p><strong>Maintenance:</strong> ${content.maintenance}</p>
+                  <p><strong>Cost Center:</strong> ${content.costCenter}</p>
+                  <p><strong>Date of Error:</strong> ${content.dateOfError}</p>
+                  <p><strong>Error Description:</strong> ${content.errorDescription}</p>
+                  <p><strong>Direction:</strong> ${content.direction}</p>
+                </div>`
+              )
+              .join("");
 
-            processingTableBody.insertAdjacentHTML("beforeend", row);
+            const row = processingTableBody.insertRow();
+            row.innerHTML = `
+              <td>${doc._id}</td>
+              <td>${productTable}</td>
+              <td>${doc.grandTotalCost}</td>
+              <td>${approvers}</td>
+              <td>${approvedBy}</td>
+              <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+              <td>${appendedContent || "N/A"}</td>
+              <td>
+                <form action="/approveDocument/${doc._id}" method="POST">
+                  <button type="submit">Approve</button>
+                </form>
+                <form action="/deleteDocument/${
+                  doc._id
+                }" method="POST" onsubmit="return confirm('Are you sure?')">
+                  <button type="submit">Delete</button>
+                </form>
+              </td>`;
           }
         });
       }

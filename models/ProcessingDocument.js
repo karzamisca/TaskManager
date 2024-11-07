@@ -12,6 +12,15 @@ const processingDocumentSchema = new mongoose.Schema({
       totalCost: { type: Number, required: true }, // Cost per unit x amount
     },
   ],
+  appendedContent: [
+    {
+      maintenance: String,
+      costCenter: String,
+      dateOfError: String,
+      errorDescription: String,
+      direction: String,
+    },
+  ],
   submissionDate: { type: String, required: true },
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   approvers: [
