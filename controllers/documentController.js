@@ -17,6 +17,7 @@ exports.submitDocument = async (req, res) => {
     approvers,
     approvedDocuments,
     approvedProposal,
+    approvedProcessingDocument,
   } = req.body;
 
   try {
@@ -64,7 +65,7 @@ exports.submitDocument = async (req, res) => {
         0
       );
 
-      // If an approved proposal is selected, fetch its details
+      // Fetch details if an approved proposal is selected
       let appendedContent = [];
       if (approvedProposal) {
         const proposal = await ProposalDocument.findById(approvedProposal);
@@ -83,7 +84,7 @@ exports.submitDocument = async (req, res) => {
         title,
         products: productEntries,
         grandTotalCost,
-        appendedContent, // Store appended content from approved proposal
+        appendedContent,
         submissionDate: moment()
           .tz("Asia/Bangkok")
           .format("DD-MM-YYYY HH:mm:ss"),
@@ -92,8 +93,10 @@ exports.submitDocument = async (req, res) => {
       });
 
       await newDocument.save();
-      return res.redirect("/mainDocument");
-    } else if (title === "Report Document") {
+      return res.redirect("/mainDocument"); // Prevent multiple responses
+    }
+    // Handle Report Document creation
+    else if (title === "Report Document") {
       const tags = `${req.user.id}-${req.user.department}-${moment()
         .tz("Asia/Bangkok")
         .format("DD-MM-YYYY HH:mm:ss")}`;
@@ -102,12 +105,22 @@ exports.submitDocument = async (req, res) => {
         title,
         tags,
         postProcessingReport: req.body.postProcessingReport,
+        submittedBy: req.user.id,
+        approvers: approverDetails,
         submissionDate: moment()
           .tz("Asia/Bangkok")
           .format("DD-MM-YYYY HH:mm:ss"),
-        submittedBy: req.user.id,
-        approvers: approverDetails,
       });
+
+      // Append the full Processing Document if selected
+      if (approvedProcessingDocument) {
+        const processingDoc = await ProcessingDocument.findById(
+          approvedProcessingDocument
+        );
+        if (processingDoc) {
+          newDocument.appendedProcessingDocument = processingDoc;
+        }
+      }
     }
     // Handle Generic Document creation
     else {
@@ -127,9 +140,7 @@ exports.submitDocument = async (req, res) => {
         const approvedDocs = await Document.find({
           _id: { $in: approvedDocuments },
         });
-        approvedDocs.forEach((doc) => {
-          contentArray.push(...doc.content); // Append each content item from approved docs
-        });
+        approvedDocs.forEach((doc) => contentArray.push(...doc.content));
       }
 
       newDocument = new Document({
@@ -144,10 +155,12 @@ exports.submitDocument = async (req, res) => {
     }
 
     await newDocument.save();
-    res.redirect("/mainDocument");
+    res.redirect("/mainDocument"); // Final redirect after successful save
   } catch (err) {
     console.error("Error submitting document:", err);
-    res.status(500).send("Error submitting document");
+    if (!res.headersSent) {
+      res.status(500).send("Error submitting document");
+    }
   }
 };
 
@@ -429,5 +442,29 @@ exports.getProposalDocumentById = async (req, res) => {
   } catch (err) {
     console.error("Error fetching proposal document:", err);
     res.status(500).send("Error fetching proposal document");
+  }
+};
+
+exports.getApprovedProcessingDocuments = async (req, res) => {
+  try {
+    const approvedProcessingDocs = await ProcessingDocument.find({
+      approved: true,
+    });
+    res.json(approvedProcessingDocs);
+  } catch (err) {
+    console.error("Error fetching approved processing documents:", err);
+    res.status(500).send("Error fetching approved processing documents");
+  }
+};
+
+exports.getProcessingDocumentById = async (req, res) => {
+  try {
+    const processingDoc = await ProcessingDocument.findById(req.params.id);
+    if (!processingDoc)
+      return res.status(404).send("Processing document not found");
+    res.json(processingDoc);
+  } catch (err) {
+    console.error("Error fetching processing document:", err);
+    res.status(500).send("Error fetching processing document");
   }
 };

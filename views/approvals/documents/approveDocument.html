@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Approve Documents</title>
+    <title>Phê duyệt phiếu/Approve Documents</title>
     <style>
       table {
         width: 100%;
@@ -44,16 +44,16 @@
 
   <body>
     <div class="container">
-      <h2>Pending Generic Documents for Approval</h2>
+      <h2>Phê duyệt phiếu chung/Pending Generic Documents for Approval</h2>
       <table id="generic-document-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Content</th>
-            <th>Approver(s)</th>
-            <th>Approved By</th>
-            <th>Submitted By</th>
-            <th>Action</th>
+            <th>Mã/ID</th>
+            <th>Nội dung/Content</th>
+            <th>Người cần phê duyệt/Approver(s)</th>
+            <th>Người đã phê duyệt/Approved By</th>
+            <th>Người nộp/Submitted By</th>
+            <th>Hành động/Action</th>
           </tr>
         </thead>
         <tbody>
@@ -63,20 +63,20 @@
         </tbody>
       </table>
 
-      <h2>Pending Proposal Documents for Approval</h2>
+      <h2>Phê duyệt phiếu đề xuất/Pending Proposal Documents for Approval</h2>
       <table id="proposal-document-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Maintenance</th>
-            <th>Cost Center</th>
-            <th>Date of Error</th>
-            <th>Error Description</th>
-            <th>Direction</th>
-            <th>Approver(s)</th>
-            <th>Approved By</th>
-            <th>Submitted By</th>
-            <th>Action</th>
+            <th>Mã/ID</th>
+            <th>Bảo trì/Maintenance</th>
+            <th>Trạm/Center</th>
+            <th>Ngày xảy ra lỗi/Date of Error</th>
+            <th>Mô tả lỗi/Error Description</th>
+            <th>Hướng xử lý/Direction</th>
+            <th>Người cần phê duyệt/Approver(s)</th>
+            <th>Người đã phê duyệt/Approved By</th>
+            <th>Người nộp/Submitted By</th>
+            <th>Hành động/Action</th>
           </tr>
         </thead>
         <tbody>
@@ -86,18 +86,18 @@
         </tbody>
       </table>
 
-      <h2>Pending Processing Documents for Approval</h2>
+      <h2>Phê duyệt phiếu xử lý/Pending Processing Documents for Approval</h2>
       <table id="processing-document-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Product Entries</th>
-            <th>Grand Total Cost</th>
-            <th>Approvers</th>
-            <th>Approved By</th>
-            <th>Submitted By</th>
-            <th>Appended Proposal Content</th>
-            <th>Action</th>
+            <th>Mã/ID</th>
+            <th>Hàng hóa/Product Entries</th>
+            <th>Chi phí/Grand Total Cost</th>
+            <th>Người cần phê duyệt/Approver(s)</th>
+            <th>Người đã phê duyệt/Approved By</th>
+            <th>Người nộp/Submitted By</th>
+            <th>Phiếu đề xuất đi kèm/Appended Proposal Content</th>
+            <th>Hành động/Action</th>
           </tr>
         </thead>
         <tbody>
@@ -107,17 +107,18 @@
         </tbody>
       </table>
 
-      <h2>Pending Report Documents for Approval</h2>
+      <h2>Phê duyệt phiếu báo cáo/Pending Report Documents for Approval</h2>
       <table id="report-document-table">
         <thead>
           <tr>
-            <th>ID</th>
+            <th>Mã/ID</th>
             <th>Tags</th>
-            <th>Post-Processing Report</th>
-            <th>Approver(s)</th>
-            <th>Approved By</th>
-            <th>Submitted By</th>
-            <th>Action</th>
+            <th>Báo cáo tình trạng sau xử lý/Post-Processing Report</th>
+            <th>Phiếu xử lý đi kèm/Appended Processing Document</th>
+            <th>Người cần phê duyệt/Approver(s)</th>
+            <th>Người đã phê duyệt/Approved By</th>
+            <th>Người nộp/Submitted By</th>
+            <th>Hành động/Action</th>
           </tr>
         </thead>
         <tbody>
@@ -198,7 +199,7 @@
             const contentTable = `
               <table class="nested-table">
                 <thead>
-                  <tr><th>Name</th><th>Text</th></tr>
+                  <tr><th>Tên/Name</th><th>Text</th></tr>
                 </thead>
                 <tbody>${contentTableRows}</tbody>
               </table>`;
@@ -212,10 +213,10 @@
               <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
               <td>
                 <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
-                  <button type="submit">Approve</button>
+                  <button type="submit">Phê duyệt/Approve</button>
                 </form>
                 <form action="/deleteDocument/${doc._id}" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
-                  <button type="submit">Delete</button>
+                  <button type="submit">Xóa/Delete</button>
                 </form>
               </td>`;
           } else if (doc.title === "Proposal Document") {
@@ -233,10 +234,10 @@
               <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
               <td>
                 <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
-                  <button type="submit">Approve</button>
+                  <button type="submit">Phê duyệt/Approve</button>
                 </form>
                 <form action="/deleteDocument/${doc._id}" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
-                  <button type="submit">Delete</button>
+                  <button type="submit">Xóa/Delete</button>
                 </form>
               </td>`;
           } else if (doc.title === "Processing Document") {
@@ -256,10 +257,10 @@
             const productTable = `
               <table class="nested-table">
                 <tr>
-                  <th>Product Name</th>
-                  <th>Cost per Unit</th>
-                  <th>Amount</th>
-                  <th>Total Cost</th>
+                  <th>Tên sản phẩm/Product Name</th>
+                  <th>Đơn giá/Cost per Unit</th>
+                  <th>Số lượng/Amount</th>
+                  <th>Tổng tiền/Total Cost</th>
                 </tr>
                 ${productRows}
               </table>`;
@@ -268,12 +269,12 @@
               .map(
                 (content) => `
                 <div>
-                  <p><strong>ID:</strong> ${content._id}</p>
-                  <p><strong>Maintenance:</strong> ${content.maintenance}</p>
-                  <p><strong>Cost Center:</strong> ${content.costCenter}</p>
-                  <p><strong>Date of Error:</strong> ${content.dateOfError}</p>
-                  <p><strong>Error Description:</strong> ${content.errorDescription}</p>
-                  <p><strong>Direction:</strong> ${content.direction}</p>
+                  <p><strong>Mã/ID:</strong> ${content._id}</p>
+                  <p><strong>Bảo dưỡng/Maintenance:</strong> ${content.maintenance}</p>
+                  <p><strong>/Trạm/Center:</strong> ${content.costCenter}</p>
+                  <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${content.dateOfError}</p>
+                  <p><strong>Mô tả lỗi/Error Description:</strong> ${content.errorDescription}</p>
+                  <p><strong>Hướng xử lý/Direction:</strong> ${content.direction}</p>
                 </div>`
               )
               .join("");
@@ -289,32 +290,62 @@
               <td>${appendedContent || "N/A"}</td>
               <td>
                 <form action="/approveDocument/${doc._id}" method="POST">
-                  <button type="submit">Approve</button>
+                  <button type="submit">Phê duyệt/Approve</button>
                 </form>
                 <form action="/deleteDocument/${
                   doc._id
                 }" method="POST" onsubmit="return confirm('Are you sure?')">
-                  <button type="submit">Delete</button>
+                  <button type="submit">Xóa/Delete</button>
                 </form>
               </td>`;
           } else if (doc.title === "Report Document") {
-            // Display report details for Report Document
+            let appendedProcessingDoc = "N/A";
+            if (doc.appendedProcessingDocument) {
+              const products = doc.appendedProcessingDocument.products
+                .map(
+                  (product) =>
+                    `<p>${product.productName}: ${product.amount} units at ${product.costPerUnit} each (Total: ${product.totalCost})</p>`
+                )
+                .join("");
+              appendedProcessingDoc = `
+            <div>
+              <p><strong>Ngày nộp/Submission Date:</strong> ${
+                doc.appendedProcessingDocument.submissionDate
+              }</p>
+              <p><strong>Chi phí/Grand Total Cost:</strong> ${
+                doc.appendedProcessingDocument.grandTotalCost
+              }</p>
+              <p><strong>Sản phẩm/Products:</strong><br>${products}</p>
+              <p><strong>Phiếu đi kèm/Appended Content:</strong></p>
+              ${doc.appendedProcessingDocument.appendedContent
+                .map(
+                  (content) =>
+                    `<p><strong>Maintenance:</strong> ${content.maintenance}</p>
+                 <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
+                 <p><strong>Mô tả lỗi/Error Description:</strong> ${content.errorDescription}</p>`
+                )
+                .join("")}
+            </div>
+          `;
+            }
+
             const row = reportTableBody.insertRow();
             row.innerHTML = `
-              <td>${doc._id}</td>
-              <td>${doc.tags}</td>
-              <td>${doc.postProcessingReport}</td>
-              <td>${approvers}</td>
-              <td>${approvedBy}</td>
-              <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
-              <td>
-                <form action="/approveDocument/${doc._id}" method="POST">
-                  <button type="submit">Approve</button>
-                </form>
-                <form action="/deleteDocument/${doc._id}" method="POST" onsubmit="return confirm('Are you sure?')">
-                  <button type="submit">Delete</button>
-                </form>
-              </td>`;
+          <td>${doc._id}</td>
+          <td>${doc.tags}</td>
+          <td>${doc.postProcessingReport}</td>
+          <td>${appendedProcessingDoc}</td>
+          <td>${approvers}</td>
+          <td>${approvedBy}</td>
+          <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+          <td>
+            <form action="/approveDocument/${doc._id}" method="POST">
+              <button type="submit">Phê duyệt/Approve</button>
+            </form>
+            <form action="/deleteDocument/${doc._id}" method="POST" onsubmit="return confirm('Are you sure?')">
+              <button type="submit">Xóa/Delete</button>
+            </form>
+          </td>`;
           }
         });
       }

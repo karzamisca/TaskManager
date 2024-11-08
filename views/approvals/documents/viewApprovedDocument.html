@@ -108,6 +108,7 @@
             <th>ID</th>
             <th>Tags</th>
             <th>Post-Processing Report</th>
+            <th>Appended Processing Document</th>
             <th>Approved By</th>
             <th>Submitted By</th>
           </tr>
@@ -258,16 +259,48 @@
               </tr>`;
             processingTableBody.insertAdjacentHTML("beforeend", row);
           } else if (doc.title === "Report Document") {
-            // Display report details for Report Document
-            const row = `
-            <tr>
-              <td>${doc._id}</td>
-              <td>${doc.tags}</td>
-              <td>${doc.postProcessingReport}</td>
-              <td>${approversHTML}</td>
-              <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
-            </tr>`;
-            reportTableBody.insertAdjacentHTML("beforeend", row);
+            const approvedBy = doc.approvedBy
+              .map((approver) => `${approver.username} (${approver.role})<br>`)
+              .join("");
+
+            let appendedProcessingDoc = "N/A";
+            if (doc.appendedProcessingDocument) {
+              const products = doc.appendedProcessingDocument.products
+                .map(
+                  (product) =>
+                    `<p>${product.productName}: ${product.amount} units at ${product.costPerUnit} each (Total: ${product.totalCost})</p>`
+                )
+                .join("");
+              appendedProcessingDoc = `
+            <div>
+              <p><strong>Submission Date:</strong> ${
+                doc.appendedProcessingDocument.submissionDate
+              }</p>
+              <p><strong>Grand Total Cost:</strong> ${
+                doc.appendedProcessingDocument.grandTotalCost
+              }</p>
+              <p><strong>Products:</strong><br>${products}</p>
+              <p><strong>Appended Content:</strong></p>
+              ${doc.appendedProcessingDocument.appendedContent
+                .map(
+                  (content) =>
+                    `<p><strong>Maintenance:</strong> ${content.maintenance}</p>
+                 <p><strong>Cost Center:</strong> ${content.costCenter}</p>
+                 <p><strong>Error Description:</strong> ${content.errorDescription}</p>`
+                )
+                .join("")}
+            </div>
+          `;
+            }
+
+            const row = reportTableBody.insertRow();
+            row.innerHTML = `
+          <td>${doc._id}</td>
+          <td>${doc.tags}</td>
+          <td>${doc.postProcessingReport}</td>
+          <td>${appendedProcessingDoc}</td>
+          <td>${approversHTML}</td>
+          <td>${doc.submittedBy.username} (${doc.submissionDate})</td>`;
           }
         });
       }

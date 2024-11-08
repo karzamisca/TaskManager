@@ -115,6 +115,27 @@
           <div id="proposalPreview"></div>
         </div>
 
+        <!-- Dropdown for selecting Processing Document to append -->
+        <div id="append-processing-documents-section" style="display: none">
+          <label for="processingDocumentsDropdown"
+            >Select Processing Document to Append</label
+          >
+          <select
+            id="processingDocumentsDropdown"
+            name="approvedProcessingDocument"
+          >
+            <option value="">Select a processing document</option>
+          </select>
+        </div>
+
+        <!-- Preview of the selected Processing Document -->
+        <div id="processingDocumentPreview" style="display: none">
+          <h3>Preview of Processing Document</h3>
+          <p><strong>Product Details:</strong></p>
+          <div id="productDetails"></div>
+          <div id="appendedContentDetails"></div>
+        </div>
+
         <!-- Approvers selection -->
         <label for="approvers">Select Approvers</label>
         <div id="approver-selection"></div>
@@ -143,11 +164,19 @@
           const appendApprovedDocumentsSection = document.getElementById(
             "append-approved-documents-section"
           );
+          const appendProcessingSection = document.getElementById(
+            "append-processing-documents-section"
+          );
+          const processingDocumentPreview = document.getElementById(
+            "processingDocumentPreview"
+          );
 
           contentFields.innerHTML = "";
           addContentButton.style.display = "none";
           approvedProposalSection.style.display = "none";
           appendApprovedDocumentsSection.style.display = "none";
+          appendProcessingSection.style.display = "none";
+          processingDocumentPreview.style.display = "none";
 
           if (selectedTitle === "Proposal Document") {
             contentFields.innerHTML = `
@@ -236,6 +265,8 @@
           `;
             approvedProposalSection.style.display = "block";
           } else if (selectedTitle === "Report Document") {
+            appendProcessingSection.style.display = "block"; // Show dropdown for Processing Document
+            fetchProcessingDocuments(); // Fetch available Processing Documents
             // Add fields for Report Document
             contentFields.innerHTML = `
             <label for="postProcessingReport">Post-Processing Report</label>
@@ -343,6 +374,64 @@
           <p><strong>Error Description:</strong> ${proposal.errorDescription}</p>
           <p><strong>Direction:</strong> ${proposal.direction}</p>
         `;
+      }
+      async function fetchProcessingDocuments() {
+        const response = await fetch("/api/approvedProcessingDocuments");
+        const processingDocs = await response.json();
+        const dropdown = document.getElementById("processingDocumentsDropdown");
+
+        processingDocs.forEach((doc) => {
+          const option = document.createElement("option");
+          option.value = doc._id;
+          option.textContent = doc._id;
+          dropdown.appendChild(option);
+        });
+      }
+
+      document
+        .getElementById("processingDocumentsDropdown")
+        .addEventListener("change", function () {
+          const selectedDocId = this.value;
+          if (selectedDocId) {
+            previewProcessingDocument(selectedDocId);
+          } else {
+            document.getElementById("processingDocumentPreview").style.display =
+              "none";
+          }
+        });
+
+      async function previewProcessingDocument(docId) {
+        const response = await fetch(`/api/processingDocument/${docId}`);
+        const doc = await response.json();
+
+        const productDetails = document.getElementById("productDetails");
+        const appendedContentDetails = document.getElementById(
+          "appendedContentDetails"
+        );
+
+        productDetails.innerHTML = doc.products
+          .map(
+            (product) =>
+              `<p>${product.productName}: ${product.amount} units at ${product.costPerUnit} each, Total: ${product.totalCost}</p>`
+          )
+          .join("");
+
+        appendedContentDetails.innerHTML = `
+          <p><strong>Submission Date:</strong> ${doc.submissionDate}</p>
+          <p><strong>Grand Total Cost:</strong> ${doc.grandTotalCost}</p>
+          <p><strong>Appended Content:</strong></p>
+        ${doc.appendedContent
+          .map(
+            (content) =>
+              `<p><strong>Maintenance:</strong> ${content.maintenance}</p>
+          <p><strong>Cost Center:</strong> ${content.costCenter}</p>
+          <p><strong>Error Description:</strong> ${content.errorDescription}</p>`
+          )
+          .join("")}
+      `;
+
+        document.getElementById("processingDocumentPreview").style.display =
+          "block";
       }
 
       fetchApprovedDocuments();

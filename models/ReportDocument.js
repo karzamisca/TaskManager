@@ -3,19 +3,9 @@ const mongoose = require("mongoose");
 
 const reportDocumentSchema = new mongoose.Schema({
   title: { type: String, default: "Report Document", required: true },
-  tags: {
-    type: String,
-    required: true,
-  },
-  postProcessingReport: {
-    type: String,
-    required: true,
-  },
-  submissionDate: {
-    type: String,
-    required: true,
-    default: () => moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
-  },
+  tags: { type: String, required: true },
+  postProcessingReport: { type: String, required: true },
+  submissionDate: { type: String, required: true },
   submittedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -28,6 +18,7 @@ const reportDocumentSchema = new mongoose.Schema({
       subRole: { type: String, required: true },
     },
   ],
+  appendedProcessingDocument: { type: mongoose.Schema.Types.Mixed }, // This will store the full Processing Document
   approvedBy: [
     {
       user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
