@@ -1,3 +1,4 @@
+// models/ReportDocument.js
 const mongoose = require("mongoose");
 
 const reportDocumentSchema = new mongoose.Schema({
