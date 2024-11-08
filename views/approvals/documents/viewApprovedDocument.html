@@ -101,6 +101,24 @@
         </tbody>
       </table>
 
+      <h2>Approved Report Documents</h2>
+      <table id="approved-report-documents">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tags</th>
+            <th>Post-Processing Report</th>
+            <th>Approved By</th>
+            <th>Submitted By</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="9">Loading documents...</td>
+          </tr>
+        </tbody>
+      </table>
+
       <a href="/mainDocument">Back</a>
     </div>
 
@@ -122,10 +140,14 @@
         const processingTableBody = document.querySelector(
           "#approved-processing-documents tbody"
         );
+        const reportTableBody = document.querySelector(
+          "#approved-report-documents tbody"
+        );
 
         genericTableBody.innerHTML = "";
         proposalTableBody.innerHTML = "";
         processingTableBody.innerHTML = "";
+        reportTableBody.innerHTML = "";
 
         if (documents.length === 0) {
           genericTableBody.innerHTML =
@@ -134,15 +156,27 @@
             "<tr><td colspan='8'>No approved proposal documents.</td></tr>";
           processingTableBody.innerHTML =
             "<tr><td colspan='6'>No approved processing documents.</td></tr>";
+          reportTableBody.innerHTML =
+            "<tr><td colspan='9'>No approved processing documents.</td></tr>";
           return;
         }
 
         documents.forEach((doc) => {
-          const approversHTML = doc.approvedBy
-            .map(
-              (approver) =>
-                `${approver.username} (${approver.role}) (${approver.approvalDate})<br>`
-            )
+          // Creating a combined HTML block for both approvers
+          const approversHTML = doc.approvers
+            .map((approver) => {
+              // Find the corresponding approvedBy entry based on a unique identifier
+              const approvedInfo = doc.approvedBy.find(
+                (approved) => approved.username === approver.username
+              );
+
+              // Only display if the approver has an approvalDate
+              if (approvedInfo && approvedInfo.approvalDate) {
+                return `${approvedInfo.username} (${approver.subRole}) (${approvedInfo.approvalDate})<br>`;
+              }
+              return ""; // Skip if not approved
+            })
+            .filter((html) => html !== "") // Remove empty strings for non-approved entries
             .join("");
 
           if (doc.title === "Generic Document") {
@@ -223,6 +257,17 @@
                 <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
               </tr>`;
             processingTableBody.insertAdjacentHTML("beforeend", row);
+          } else if (doc.title === "Report Document") {
+            // Display report details for Report Document
+            const row = `
+            <tr>
+              <td>${doc._id}</td>
+              <td>${doc.tags}</td>
+              <td>${doc.postProcessingReport}</td>
+              <td>${approversHTML}</td>
+              <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+            </tr>`;
+            reportTableBody.insertAdjacentHTML("beforeend", row);
           }
         });
       }

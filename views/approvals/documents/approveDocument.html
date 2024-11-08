@@ -107,6 +107,26 @@
         </tbody>
       </table>
 
+      <h2>Pending Report Documents for Approval</h2>
+      <table id="report-document-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tags</th>
+            <th>Post-Processing Report</th>
+            <th>Approver(s)</th>
+            <th>Approved By</th>
+            <th>Submitted By</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="7">Loading documents...</td>
+          </tr>
+        </tbody>
+      </table>
+
       <a href="/mainDocument">Back</a>
     </div>
 
@@ -125,10 +145,14 @@
         const processingTableBody = document
           .getElementById("processing-document-table")
           .getElementsByTagName("tbody")[0];
+        const reportTableBody = document
+          .getElementById("report-document-table")
+          .getElementsByTagName("tbody")[0];
 
         genericTableBody.innerHTML = "";
         proposalTableBody.innerHTML = "";
         processingTableBody.innerHTML = "";
+        reportTableBody.innerHTML = "";
 
         if (documents.length === 0) {
           genericTableBody.innerHTML =
@@ -137,6 +161,8 @@
             "<tr><td colspan='10'>No pending documents.</td></tr>";
           processingTableBody.innerHTML =
             "<tr><td colspan='8'>No pending documents.</td></tr>";
+          reportTableBody.innerHTML =
+            "<tr><td colspan='7'>No pending documents.</td></tr>";
           return;
         }
 
@@ -144,11 +170,21 @@
           const approvers = doc.approvers
             .map((approver) => `${approver.username} (${approver.subRole})<br>`)
             .join("");
-          const approvedBy = doc.approvedBy
-            .map(
-              (approver) =>
-                `${approver.username} (${approver.approvalDate}) <br>`
-            )
+
+          const approvedBy = doc.approvers
+            .map((approver) => {
+              // Find the corresponding approvedBy entry based on a unique identifier
+              const approvedInfo = doc.approvedBy.find(
+                (approved) => approved.username === approver.username
+              );
+
+              // Only display if the approver has an approvalDate
+              if (approvedInfo && approvedInfo.approvalDate) {
+                return `${approvedInfo.username} (${approver.subRole}) (${approvedInfo.approvalDate})<br>`;
+              }
+              return ""; // Skip if not approved
+            })
+            .filter((html) => html !== "") // Remove empty strings for non-approved entries
             .join("");
 
           if (doc.title === "Generic Document") {
@@ -258,6 +294,24 @@
                 <form action="/deleteDocument/${
                   doc._id
                 }" method="POST" onsubmit="return confirm('Are you sure?')">
+                  <button type="submit">Delete</button>
+                </form>
+              </td>`;
+          } else if (doc.title === "Report Document") {
+            // Display report details for Report Document
+            const row = reportTableBody.insertRow();
+            row.innerHTML = `
+              <td>${doc._id}</td>
+              <td>${doc.tags}</td>
+              <td>${doc.postProcessingReport}</td>
+              <td>${approvers}</td>
+              <td>${approvedBy}</td>
+              <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+              <td>
+                <form action="/approveDocument/${doc._id}" method="POST">
+                  <button type="submit">Approve</button>
+                </form>
+                <form action="/deleteDocument/${doc._id}" method="POST" onsubmit="return confirm('Are you sure?')">
                   <button type="submit">Delete</button>
                 </form>
               </td>`;

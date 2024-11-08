@@ -13,14 +13,14 @@ exports.login = async (req, res) => {
 
     // Generate a JWT token
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user._id, role: user.role, department: user.department },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
     // Set the token in a secure cookie
     res.cookie("token", token, {
-      httpOnly: true,   // Prevents JavaScript from accessing the cookie
+      httpOnly: true, // Prevents JavaScript from accessing the cookie
       secure: process.env.NODE_ENV === "production", // Set to true in production to enforce HTTPS
       sameSite: "strict", // Prevents CSRF attacks
       maxAge: 60 * 60 * 1000, // 1 hour
@@ -34,6 +34,6 @@ exports.login = async (req, res) => {
 };
 
 exports.logout = (req, res) => {
-  res.clearCookie("token");  // Clear the JWT cookie on logout
+  res.clearCookie("token"); // Clear the JWT cookie on logout
   res.redirect("/login");
 };

@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const moment = require("moment-timezone");
 const ProposalDocument = require("../models/ProposalDocument");
 const ProcessingDocument = require("../models/ProcessingDocument");
+const ReportDocument = require("../models/ReportDocument");
 const path = require("path");
 
 exports.submitDocument = async (req, res) => {
@@ -92,6 +93,21 @@ exports.submitDocument = async (req, res) => {
 
       await newDocument.save();
       return res.redirect("/mainDocument");
+    } else if (title === "Report Document") {
+      const tags = `${req.user.id}-${req.user.department}-${moment()
+        .tz("Asia/Bangkok")
+        .format("DD-MM-YYYY HH:mm:ss")}`;
+
+      newDocument = new ReportDocument({
+        title,
+        tags,
+        postProcessingReport: req.body.postProcessingReport,
+        submissionDate: moment()
+          .tz("Asia/Bangkok")
+          .format("DD-MM-YYYY HH:mm:ss"),
+        submittedBy: req.user.id,
+        approvers: approverDetails,
+      });
     }
     // Handle Generic Document creation
     else {
@@ -137,10 +153,16 @@ exports.submitDocument = async (req, res) => {
 
 exports.getPendingDocument = async (req, res) => {
   try {
+    const pendingProcessingDocs = await ProcessingDocument.find({
+      approved: false,
+    }).populate("submittedBy", "username");
     const pendingProposalDocs = await ProposalDocument.find({
       approved: false,
     }).populate("submittedBy", "username");
     const pendingGenericDocs = await Document.find({
+      approved: false,
+    }).populate("submittedBy", "username");
+    const pendingReportDocs = await Document.find({
       approved: false,
     }).populate("submittedBy", "username");
 
@@ -150,6 +172,8 @@ exports.getPendingDocument = async (req, res) => {
       {
         pendingGenericDocs: JSON.stringify(pendingGenericDocs),
         pendingProposalDocs: JSON.stringify(pendingProposalDocs),
+        pendingProcessingDocs: JSON.stringify(pendingProcessingDocs),
+        pendingReportDocs: JSON.stringify(pendingReportDocs),
       }
     );
   } catch (err) {
@@ -172,7 +196,8 @@ exports.approveDocument = async (req, res) => {
     let document =
       (await Document.findById(id)) ||
       (await ProposalDocument.findById(id)) ||
-      (await ProcessingDocument.findById(id));
+      (await ProcessingDocument.findById(id)) ||
+      (await ReportDocument.findById(id));
 
     if (!document) {
       return res.status(404).send("Document not found");
@@ -219,6 +244,8 @@ exports.approveDocument = async (req, res) => {
       await ProcessingDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof ProposalDocument) {
       await ProposalDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof ReportDocument) {
+      await ReportDocument.findByIdAndUpdate(id, document);
     } else {
       await Document.findByIdAndUpdate(id, document);
     }
@@ -241,6 +268,9 @@ exports.getApprovedDocument = async (req, res) => {
     const approvedProcessingDocs = await ProcessingDocument.find({
       approved: true,
     }).populate("submittedBy", "username");
+    const approvedReportDocs = await ReportDocument.find({
+      approved: true,
+    }).populate("submittedBy", "username");
 
     // Serve the static HTML file and pass documents as JSON
     res.sendFile(
@@ -252,6 +282,7 @@ exports.getApprovedDocument = async (req, res) => {
         approvedGenericDocs: JSON.stringify(approvedGenericDocs),
         approvedProposalDocs: JSON.stringify(approvedProposalDocs),
         approvedProcessingDocs: JSON.stringify(approvedProcessingDocs),
+        approvedReportDocs: JSON.stringify(approvedReportDocs),
       }
     );
   } catch (err) {
@@ -277,11 +308,17 @@ exports.getPendingDocumentApi = async (req, res) => {
       approved: false,
     }).populate("submittedBy", "username");
 
+    // Fetch pending report documents
+    const pendingReportDocs = await ReportDocument.find({
+      approved: false,
+    }).populate("submittedBy", "username");
+
     // Combine both document types into a single array
     const pendingDocuments = [
       ...pendingGenericDocs,
       ...pendingProposalDocs,
       ...pendingProcessingDocs,
+      ...pendingReportDocs,
     ];
 
     // Return combined pending documents as JSON
@@ -309,11 +346,17 @@ exports.getApprovedDocumentApi = async (req, res) => {
       approved: true,
     }).populate("submittedBy", "username");
 
+    // Fetch approved report documents
+    const approvedReportDocs = await ReportDocument.find({
+      approved: true,
+    }).populate("submittedBy", "username");
+
     // Combine both document types into a single array
     const approvedDocuments = [
       ...approvedGenericDocs,
       ...approvedProposalDocs,
       ...approvedProcessingDocs,
+      ...approvedReportDocs,
     ];
 
     // Return combined approved documents as JSON
