@@ -112,7 +112,7 @@
         <thead>
           <tr>
             <th>Mã/ID</th>
-            <th>Tags</th>
+            <th>Tem/Tags</th>
             <th>Báo cáo tình trạng sau xử lý/Post-Processing Report</th>
             <th>Phiếu xử lý đi kèm/Appended Processing Document</th>
             <th>Người cần phê duyệt/Approver(s)</th>
@@ -157,13 +157,13 @@
 
         if (documents.length === 0) {
           genericTableBody.innerHTML =
-            "<tr><td colspan='6'>No pending documents.</td></tr>";
+            "<tr><td colspan='6'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
           proposalTableBody.innerHTML =
-            "<tr><td colspan='10'>No pending documents.</td></tr>";
+            "<tr><td colspan='10'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
           processingTableBody.innerHTML =
-            "<tr><td colspan='8'>No pending documents.</td></tr>";
+            "<tr><td colspan='8'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
           reportTableBody.innerHTML =
-            "<tr><td colspan='7'>No pending documents.</td></tr>";
+            "<tr><td colspan='7'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
           return;
         }
 
@@ -271,7 +271,7 @@
                 <div>
                   <p><strong>Mã/ID:</strong> ${content._id}</p>
                   <p><strong>Bảo dưỡng/Maintenance:</strong> ${content.maintenance}</p>
-                  <p><strong>/Trạm/Center:</strong> ${content.costCenter}</p>
+                  <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
                   <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${content.dateOfError}</p>
                   <p><strong>Mô tả lỗi/Error Description:</strong> ${content.errorDescription}</p>
                   <p><strong>Hướng xử lý/Direction:</strong> ${content.direction}</p>
@@ -304,7 +304,7 @@
               const products = doc.appendedProcessingDocument.products
                 .map(
                   (product) =>
-                    `<p>${product.productName}: ${product.amount} units at ${product.costPerUnit} each (Total: ${product.totalCost})</p>`
+                    `<p>${product.productName}: ${product.amount} đơn vị với đơn giá là ${product.costPerUnit} (Tổng tiền: ${product.totalCost})</p>`
                 )
                 .join("");
               appendedProcessingDoc = `
@@ -316,7 +316,6 @@
                 doc.appendedProcessingDocument.grandTotalCost
               }</p>
               <p><strong>Sản phẩm/Products:</strong><br>${products}</p>
-              <p><strong>Phiếu đi kèm/Appended Content:</strong></p>
               ${doc.appendedProcessingDocument.appendedContent
                 .map(
                   (content) =>

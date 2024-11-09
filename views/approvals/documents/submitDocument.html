@@ -7,7 +7,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Submit Document</title>
+    <title>Nộp phiếu/Submit Document</title>
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
@@ -68,49 +68,57 @@
   </head>
   <body>
     <div class="container">
-      <h2>Submit New Document</h2>
+      <h2>Nộp phiếu mới/Submit New Document</h2>
       <form id="submit-form" action="/submitDocument" method="POST">
         <label for="title">Title</label>
         <select name="title" id="title-dropdown" required>
-          <option value="">Select a title</option>
-          <option value="Generic Document">Generic Document</option>
-          <option value="Proposal Document">Proposal Document</option>
-          <option value="Processing Document">Processing Document</option>
-          <option value="Report Document">Report Document</option>
+          <option value="">Chọn mẫu phiếu/Select a title</option>
+          <option value="Generic Document">Phiếu chung/Generic Document</option>
+          <option value="Proposal Document">
+            Phiếu đề xuất/Proposal Document
+          </option>
+          <option value="Processing Document">
+            Phiếu xử lý/Processing Document
+          </option>
+          <option value="Report Document">Phiếu báo cáo/Report Document</option>
         </select>
 
         <!-- Content fields for Generic Document -->
         <div id="content-fields">
-          <label for="contentName">Content Name</label>
+          <label for="contentName">Tên nội dung/Content Name</label>
           <input type="text" name="contentName" required />
-          <label for="contentText">Content Text</label>
+          <label for="contentText">Nội dung/Content Text</label>
           <textarea name="contentText" rows="5" required></textarea>
         </div>
 
-        <button type="button" id="add-content-btn">Add More Content</button
+        <button type="button" id="add-content-btn">
+          Thêm nội dung/Add More Content</button
         ><br />
 
         <!-- Dropdown for appending approved documents, only visible for Generic Document -->
         <div id="append-approved-documents-section" style="display: none">
           <label for="approvedDocumentsDropdown"
-            >Append Approved Document</label
+            >Kèm phiếu đã duyệt/Append Approved Document</label
           >
           <select id="approvedDocumentsDropdown" name="approvedDocuments">
-            <option value="">Select an approved document</option>
+            <option value="">
+              Chọn một phiếu đã duyệt/Select an approved document
+            </option>
           </select>
         </div>
 
         <!-- Fields for selecting and previewing approved proposal document -->
         <div id="approved-proposal-section" style="display: none">
           <label for="approvedProposal"
-            >Select Approved Proposal Document</label
+            >Chọn một phiếu đề xuất đã duyệt/Select Approved Proposal
+            Document</label
           >
           <select
             id="approvedProposalDropdown"
             name="approvedProposal"
             onchange="previewProposalContent(this.value)"
           >
-            <option value="">Select a proposal</option>
+            <option value="">Chọn phiếu đề xuất/Select a proposal</option>
           </select>
           <div id="proposalPreview"></div>
         </div>
@@ -118,29 +126,32 @@
         <!-- Dropdown for selecting Processing Document to append -->
         <div id="append-processing-documents-section" style="display: none">
           <label for="processingDocumentsDropdown"
-            >Select Processing Document to Append</label
+            >Chọn một phiếu xử lý đã duyệt/Select Processing Document to
+            Append</label
           >
           <select
             id="processingDocumentsDropdown"
             name="approvedProcessingDocument"
           >
-            <option value="">Select a processing document</option>
+            <option value="">
+              Chọn một phiếu xử lý/Select a processing document
+            </option>
           </select>
         </div>
 
         <!-- Preview of the selected Processing Document -->
         <div id="processingDocumentPreview" style="display: none">
-          <h3>Preview of Processing Document</h3>
-          <p><strong>Product Details:</strong></p>
+          <h3>Xem trước phiếu xử lý đi kèm/Preview of Processing Document</h3>
+          <p><strong>Thông tin sản phẩm/Product Details:</strong></p>
           <div id="productDetails"></div>
           <div id="appendedContentDetails"></div>
         </div>
 
         <!-- Approvers selection -->
-        <label for="approvers">Select Approvers</label>
+        <label for="approvers">Chọn người phê duyệt/Select Approvers</label>
         <div id="approver-selection"></div>
 
-        <button type="submit">Submit Document</button><br />
+        <button type="submit">Nộp phiếu/Submit Document</button><br />
         <a href="/mainDocument">Back</a><br />
       </form>
     </div>
@@ -180,12 +191,12 @@
 
           if (selectedTitle === "Proposal Document") {
             contentFields.innerHTML = `
-            <label for="maintenance">Maintenance</label>
+            <label for="maintenance">Bảo trì/Maintenance</label>
             <input type="text" name="maintenance" required />
-            <label for="costCenter">Cost Center</label>
+            <label for="costCenter">Trạm/Center</label>
             <select name="costCenter" id="costCenter" required>
               <!-- List of cost centers here -->
-              <option value="">Select a cost center</option>
+              <option value="">Chọn một trạm/Select a center</option>
               <option value="Tiến Đạt">Tiến Đạt</option>
               <option value="Núi Sò">Núi Sò</option>
               <option value="Bình An 1">Bình An 1</option>
@@ -242,11 +253,11 @@
               <option value="60R-026.98 Kỳ Long">60R-026.98 Kỳ Long</option>
               <!-- Include other cost centers here -->
             </select>
-            <label for="dateOfError">Date of Error</label>
+            <label for="dateOfError">Ngày xảy ra lỗi/Date of Error</label>
             <input type="text" name="dateOfError" id="dateOfError" required />
-            <label for="errorDescription">Error Description</label>
+            <label for="errorDescription">Mô tả lỗi/Error Description</label>
             <textarea name="errorDescription" rows="3" required></textarea>
-            <label for="direction">Direction</label>
+            <label for="direction">Hướng xử lý/Direction</label>
             <input type="text" name="direction" required />
           `;
             flatpickr("#dateOfError", {
@@ -257,11 +268,11 @@
           } else if (selectedTitle === "Processing Document") {
             contentFields.innerHTML = `
             <div id="product-entries">
-              <label>Product Name</label><input type="text" name="products[0][productName]" required />
-              <label>Cost per Unit</label><input type="number" name="products[0][costPerUnit]" required />
-              <label>Amount</label><input type="number" name="products[0][amount]" required />
+              <label>Tên sản phẩm/Product Name</label><input type="text" name="products[0][productName]" required />
+              <label>Đơn giá/Cost per Unit</label><input type="number" name="products[0][costPerUnit]" required />
+              <label>Số lượng/Amount</label><input type="number" name="products[0][amount]" required />
             </div>
-            <button type="button" onclick="addProductEntry()">Add More Products</button>
+            <button type="button" onclick="addProductEntry()">Thêm sản phẩm/Add More Products</button>
           `;
             approvedProposalSection.style.display = "block";
           } else if (selectedTitle === "Report Document") {
@@ -269,18 +280,18 @@
             fetchProcessingDocuments(); // Fetch available Processing Documents
             // Add fields for Report Document
             contentFields.innerHTML = `
-            <label for="postProcessingReport">Post-Processing Report</label>
+            <label for="postProcessingReport">Báo cáo sau xử lý/Post-Processing Report</label>
             <textarea name="postProcessingReport" rows="5" required></textarea>
           `;
           } else if (selectedTitle === "Generic Document") {
             contentFields.innerHTML = `
-            <label for="contentName">Content Name</label>
+            <label for="contentName">Tên nội dung/Content Name</label>
             <input type="text" name="contentName" required />
-            <label for="contentText">Content Text</label>
+            <label for="contentText">Nội dung/Content Text</label>
             <textarea name="contentText" rows="5" required></textarea>
           `;
             addContentButton.style.display = "inline-block";
-            appendApprovedDocumentsSection.style.display = "block";
+            appendApprovedDocumentsSection.style.display = "none";
           }
         });
 
@@ -289,9 +300,9 @@
         const productCount = productEntries.children.length / 3;
 
         const newEntry = `
-          <label>Product Name</label><input type="text" name="products[${productCount}][productName]" required />
-          <label>Cost per Unit</label><input type="number" name="products[${productCount}][costPerUnit]" required />
-          <label>Amount</label><input type="number" name="products[${productCount}][amount]" required />
+          <label>Tên sản phẩm/Product Name</label><input type="text" name="products[${productCount}][productName]" required />
+          <label>Đơn giá/Cost per Unit</label><input type="number" name="products[${productCount}][costPerUnit]" required />
+          <label>Số lượng/Amount</label><input type="number" name="products[${productCount}][amount]" required />
         `;
         productEntries.insertAdjacentHTML("beforeend", newEntry);
       }
@@ -316,7 +327,7 @@
           const subRoleInput = document.createElement("input");
           subRoleInput.type = "text";
           subRoleInput.name = `subRole_${approver._id}`;
-          subRoleInput.placeholder = "Enter Sub-Role";
+          subRoleInput.placeholder = "Nhập vai trò/Enter Sub-Role";
           subRoleInput.disabled = true;
           approverDiv.appendChild(subRoleInput);
 
@@ -368,11 +379,11 @@
 
         const previewDiv = document.getElementById("proposalPreview");
         previewDiv.innerHTML = `
-          <p><strong>Maintenance:</strong> ${proposal.maintenance}</p>
-          <p><strong>Cost Center:</strong> ${proposal.costCenter}</p>
-          <p><strong>Date of Error:</strong> ${proposal.dateOfError}</p>
-          <p><strong>Error Description:</strong> ${proposal.errorDescription}</p>
-          <p><strong>Direction:</strong> ${proposal.direction}</p>
+          <p><strong>Bảo dưỡng/Maintenance:</strong> ${proposal.maintenance}</p>
+          <p><strong>Trạm/Center:</strong> ${proposal.costCenter}</p>
+          <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${proposal.dateOfError}</p>
+          <p><strong>Mô tả lỗi/Error Description:</strong> ${proposal.errorDescription}</p>
+          <p><strong>Hướng xử lý/Direction:</strong> ${proposal.direction}</p>
         `;
       }
       async function fetchProcessingDocuments() {
@@ -412,20 +423,23 @@
         productDetails.innerHTML = doc.products
           .map(
             (product) =>
-              `<p>${product.productName}: ${product.amount} units at ${product.costPerUnit} each, Total: ${product.totalCost}</p>`
+              `<p>${product.productName}: ${product.amount} đơn vị với đơn giá là ${product.costPerUnit} (Tổng tiền: ${product.totalCost})</p>`
           )
           .join("");
 
         appendedContentDetails.innerHTML = `
-          <p><strong>Submission Date:</strong> ${doc.submissionDate}</p>
-          <p><strong>Grand Total Cost:</strong> ${doc.grandTotalCost}</p>
-          <p><strong>Appended Content:</strong></p>
+          <p><strong>Ngày nộp/Submission Date:</strong> ${
+            doc.submissionDate
+          }</p>
+          <p><strong>Chi phí/Grand Total Cost:</strong> ${
+            doc.grandTotalCost
+          }</p>
         ${doc.appendedContent
           .map(
             (content) =>
-              `<p><strong>Maintenance:</strong> ${content.maintenance}</p>
-          <p><strong>Cost Center:</strong> ${content.costCenter}</p>
-          <p><strong>Error Description:</strong> ${content.errorDescription}</p>`
+              `<p><strong>Bảo trì/Maintenance:</strong> ${content.maintenance}</p>
+               <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
+               <p><strong>Mô tả lỗi/Error Description:</strong> ${content.errorDescription}</p>`
           )
           .join("")}
       `;
@@ -446,7 +460,9 @@
           );
           if (approvers.length === 0) {
             event.preventDefault();
-            alert("Please select at least one approver.");
+            alert(
+              "Xin hãy chọn ít nhất một người phê duyệt/Please select at least one approver."
+            );
           }
         });
 

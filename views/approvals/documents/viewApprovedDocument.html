@@ -44,14 +44,14 @@
 
   <body>
     <div class="container">
-      <h2>Approved Generic Documents</h2>
+      <h2>Phiếu chung đã phê duyệt/Approved Generic Documents</h2>
       <table id="approved-generic-documents">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Content</th>
-            <th>Approved By</th>
-            <th>Submitted By</th>
+            <th>Mã/ID</th>
+            <th>Nội dung/Content</th>
+            <th>Được phê duyệt bởi/Approved By</th>
+            <th>Nộp bởi/Submitted By</th>
           </tr>
         </thead>
         <tbody>
@@ -61,18 +61,18 @@
         </tbody>
       </table>
 
-      <h2>Approved Proposal Documents</h2>
+      <h2>Phiếu đề xuất đã phê duyệt/Approved Proposal Documents</h2>
       <table id="approved-proposal-documents">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Maintenance</th>
-            <th>Cost Center</th>
-            <th>Date of Error</th>
-            <th>Error Description</th>
-            <th>Direction</th>
-            <th>Approved By</th>
-            <th>Submitted By</th>
+            <th>Mã/ID</th>
+            <th>Bảo trì/Maintenance</th>
+            <th>Trạm/Center</th>
+            <th>Ngày xảy ra lỗi/Date of Error</th>
+            <th>Mô tả lỗi/Error Description</th>
+            <th>Hướng xử lý/Direction</th>
+            <th>Được phê duyệt bởi/Approved By</th>
+            <th>Nộp bởi/Submitted By</th>
           </tr>
         </thead>
         <tbody>
@@ -82,16 +82,16 @@
         </tbody>
       </table>
 
-      <h2>Approved Processing Documents</h2>
+      <h2>Phiếu xử lý đã phê duyệt/Approved Processing Documents</h2>
       <table id="approved-processing-documents">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Product Entries</th>
-            <th>Grand Total Cost</th>
-            <th>Appended Proposal Content</th>
-            <th>Approved By</th>
-            <th>Submitted By</th>
+            <th>Mã/ID</th>
+            <th>Danh sách sản phẩm/Product Entries</th>
+            <th>Chi phí/Grand Total Cost</th>
+            <th>Phiếu đề xuất kèm theo/Appended Proposal Content</th>
+            <th>Được phê duyệt bởi/Approved By</th>
+            <th>Nộp bởi/Submitted By</th>
           </tr>
         </thead>
         <tbody>
@@ -101,16 +101,16 @@
         </tbody>
       </table>
 
-      <h2>Approved Report Documents</h2>
+      <h2>Phiếu báo cáo đã phê duyệt/Approved Report Documents</h2>
       <table id="approved-report-documents">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Tags</th>
-            <th>Post-Processing Report</th>
-            <th>Appended Processing Document</th>
-            <th>Approved By</th>
-            <th>Submitted By</th>
+            <th>Mã/ID</th>
+            <th>Tem/Tags</th>
+            <th>Báo cáo sau xử lý/Post-Processing Report</th>
+            <th>Phiếu xử lý kèm theo/Appended Processing Document</th>
+            <th>Được phê duyệt bởi/Approved By</th>
+            <th>Nộp bởi/Submitted By</th>
           </tr>
         </thead>
         <tbody>
@@ -120,7 +120,7 @@
         </tbody>
       </table>
 
-      <a href="/mainDocument">Back</a>
+      <a href="/mainDocument">Trở về/Back</a>
     </div>
 
     <script>
@@ -152,13 +152,13 @@
 
         if (documents.length === 0) {
           genericTableBody.innerHTML =
-            "<tr><td colspan='4'>No approved generic documents.</td></tr>";
+            "<tr><td colspan='4'>Chưa có phiếu chung đã duyệt/No approved generic documents.</td></tr>";
           proposalTableBody.innerHTML =
-            "<tr><td colspan='8'>No approved proposal documents.</td></tr>";
+            "<tr><td colspan='8'>Chưa có phiếu đề xuất đã duyệt/No approved proposal documents.</td></tr>";
           processingTableBody.innerHTML =
-            "<tr><td colspan='6'>No approved processing documents.</td></tr>";
+            "<tr><td colspan='6'>Chưa có phiếu xử lý đã duyệt/No approved processing documents.</td></tr>";
           reportTableBody.innerHTML =
-            "<tr><td colspan='9'>No approved processing documents.</td></tr>";
+            "<tr><td colspan='9'>Chưa có phiếu báo cáo đã duyệt/No approved report documents.</td></tr>";
           return;
         }
 
@@ -189,7 +189,7 @@
               .join("");
             const contentTable = `
               <table class="nested-table">
-                <thead><tr><th>Name</th><th>Text</th></tr></thead>
+                <thead><tr><th>Tên/Name</th><th>Nội dung/Text</th></tr></thead>
                 <tbody>${contentTableRows}</tbody>
               </table>`;
             const row = `
@@ -230,7 +230,7 @@
 
             const productTable = `
               <table class="nested-table">
-                <thead><tr><th>Product Name</th><th>Cost per Unit</th><th>Amount</th><th>Total Cost</th></tr></thead>
+                <thead><tr><th>Tên sản phẩm/Product Name</th><th>Đơn giá/Cost per Unit</th><th>Số lượng/Amount</th><th>Tổng tiền/Total Cost</th></tr></thead>
                 <tbody>${productRows}</tbody>
               </table>`;
 
@@ -238,12 +238,12 @@
               .map(
                 (content) => `
                 <div>
-                  <p><strong>ID:</strong> ${content._id}</p>
-                  <p><strong>Maintenance:</strong> ${content.maintenance}</p>
-                  <p><strong>Cost Center:</strong> ${content.costCenter}</p>
-                  <p><strong>Date of Error:</strong> ${content.dateOfError}</p>
-                  <p><strong>Error Description:</strong> ${content.errorDescription}</p>
-                  <p><strong>Direction:</strong> ${content.direction}</p>
+                  <p><strong>Mã/ID:</strong> ${content._id}</p>
+                  <p><strong>Bảo trì/Maintenance:</strong> ${content.maintenance}</p>
+                  <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
+                  <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${content.dateOfError}</p>
+                  <p><strong>Mô tả lỗi/Error Description:</strong> ${content.errorDescription}</p>
+                  <p><strong>Hướng xử lý/Direction:</strong> ${content.direction}</p>
                 </div>`
               )
               .join("");
@@ -268,25 +268,24 @@
               const products = doc.appendedProcessingDocument.products
                 .map(
                   (product) =>
-                    `<p>${product.productName}: ${product.amount} units at ${product.costPerUnit} each (Total: ${product.totalCost})</p>`
+                    `<p>${product.productName}: ${product.amount} đơn vị với đơn giá là ${product.costPerUnit} (Tổng tiền: ${product.totalCost})</p>`
                 )
                 .join("");
               appendedProcessingDoc = `
             <div>
-              <p><strong>Submission Date:</strong> ${
+              <p><strong>Ngày nộp/Submission Date:</strong> ${
                 doc.appendedProcessingDocument.submissionDate
               }</p>
-              <p><strong>Grand Total Cost:</strong> ${
+              <p><strong>Chi phí/Grand Total Cost:</strong> ${
                 doc.appendedProcessingDocument.grandTotalCost
               }</p>
-              <p><strong>Products:</strong><br>${products}</p>
-              <p><strong>Appended Content:</strong></p>
+              <p><strong>Sản phẩm/Products:</strong><br>${products}</p>
               ${doc.appendedProcessingDocument.appendedContent
                 .map(
                   (content) =>
-                    `<p><strong>Maintenance:</strong> ${content.maintenance}</p>
-                 <p><strong>Cost Center:</strong> ${content.costCenter}</p>
-                 <p><strong>Error Description:</strong> ${content.errorDescription}</p>`
+                    `<p><strong>Bảo trì/Maintenance:</strong> ${content.maintenance}</p>
+                 <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
+                 <p><strong>Mô tả lỗi/Error Description:</strong> ${content.errorDescription}</p>`
                 )
                 .join("")}
             </div>
