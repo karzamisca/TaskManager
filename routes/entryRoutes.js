@@ -1,3 +1,4 @@
+// routes/entryRoutes.js
 const express = require("express");
 const entryController = require("../controllers/entryController");
 const authMiddleware = require("../middlewares/authMiddleware");
