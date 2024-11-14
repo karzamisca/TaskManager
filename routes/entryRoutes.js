@@ -37,6 +37,7 @@ const upload = multer({ storage: storage, fileFilter: fileFilter });
 
 router.get("/entry", authMiddleware, entryController.getFormAndEntries); // Serve HTML form and table
 router.get("/entryAll", authMiddleware, entryController.getAllEntries); // Serve all entries as JSON
+router.post("/entryApprove/:id", authMiddleware, entryController.approveEntry); // Approve entry by ID
 router.post("/entryNew", authMiddleware, entryController.createEntry); // Submit new entry
 router.delete("/entryDelete/:id", authMiddleware, entryController.deleteEntry); // Delete entry by ID
 

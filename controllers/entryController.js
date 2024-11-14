@@ -13,7 +13,9 @@ exports.getFormAndEntries = (req, res) => {
 // Serve all entries as JSON
 exports.getAllEntries = async (req, res) => {
   try {
-    const entries = await Entry.find();
+    const entries = await Entry.find()
+      .populate("submittedBy", "username department") // Populate name and department from the User model
+      .exec();
     res.json(entries);
   } catch (err) {
     res.status(500).json({ error: "Error fetching entries: " + err.message });
@@ -23,25 +25,55 @@ exports.getAllEntries = async (req, res) => {
 // Create a new entry
 exports.createEntry = async (req, res) => {
   try {
-    const { description, unit, amount, unitPrice, vat, deliveryDate } =
+    const { name, description, unit, amount, unitPrice, vat, deliveryDate } =
       req.body;
     const totalPrice = amount * unitPrice;
+    const totalPriceAfterVat = totalPrice - totalPrice * (vat / 100);
+    const submittedBy = req.user.id; // Use the current user's ID as the submitter
 
     const entry = new Entry({
+      name,
       description,
       unit,
       amount,
       unitPrice,
       totalPrice,
       vat,
+      totalPriceAfterVat,
       deliveryDate,
       entryDate: moment().tz("Asia/Bangkok").format("YYYY-MM-DD HH:mm:ss"),
+      submittedBy, // Store the submitter's ID
     });
 
     await entry.save();
     res.redirect("/entry"); // Redirect back to the main page after creating the entry
   } catch (err) {
     res.status(500).send("Error creating entry: " + err.message);
+  }
+};
+
+exports.approveEntry = async (req, res) => {
+  try {
+    const entryId = req.params.id;
+
+    // Check if the user has the approver role
+    if (req.user.role !== "approver") {
+      return res
+        .status(403)
+        .json({ error: "You do not have permission to approve entries" });
+    }
+
+    const entry = await Entry.findById(entryId);
+    if (!entry) {
+      return res.status(404).json({ error: "Entry not found" });
+    }
+
+    entry.approval = true; // Set the approval to true
+    await entry.save();
+
+    res.json({ message: "Entry approved successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Error approving entry: " + err.message });
   }
 };
 

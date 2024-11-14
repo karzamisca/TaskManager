@@ -1,4 +1,3 @@
-<!-- views/entries/index.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -136,16 +135,21 @@
     <table id="entriesTable">
       <thead>
         <tr>
+          <th>Name</th>
           <th>Description</th>
           <th>Unit</th>
           <th>Amount</th>
           <th>Unit Price</th>
           <th>Total Price</th>
           <th>VAT</th>
+          <th>Total Price After VAT</th>
           <th>Delivery Date</th>
           <th>Entry Date</th>
+          <th>Submitter</th>
+          <!-- New column for submitter info -->
+          <th>Approval</th>
+          <!-- Added approval column -->
           <th>Actions</th>
-          <!-- Added Actions Column -->
         </tr>
       </thead>
       <tbody>
@@ -157,6 +161,11 @@
 
     <!-- Horizontal form for adding a new entry -->
     <form id="entryForm" action="/entryNew" method="POST">
+      <div class="form-group">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required />
+      </div>
+
       <div class="form-group">
         <label for="description">Description:</label>
         <input type="text" id="description" name="description" required />
@@ -225,21 +234,34 @@
           const row = document.createElement("tr");
 
           row.innerHTML = `
+      <td>${entry.name}</td>
       <td>${entry.description}</td>
       <td>${entry.unit}</td>
       <td>${entry.amount}</td>
       <td>${entry.unitPrice}</td>
       <td>${entry.totalPrice}</td>
       <td>${entry.vat}</td>
+      <td>${entry.totalPriceAfterVat}</td>
       <td>${new Date(
         entry.deliveryDate
       ).toDateString()}</td> <!-- Format delivery date -->
       <td>${
         entry.entryDate
       }</td> <!-- Entry date will be formatted in the backend -->
-      <td><button class="delete-button" data-id="${
-        entry._id
-      }">Delete</button></td> <!-- Delete Button -->
+      <td>${entry.submittedBy.username} (${
+            entry.submittedBy.department
+          })</td> <!-- Display submitter's name and department -->
+      <td>${
+        entry.approval ? "Approved" : "Pending"
+      }</td> <!-- Display approval status -->
+    <td>
+      ${
+        entry.approval
+          ? ""
+          : `<button class="approve-button" data-id="${entry._id}">Approve</button>`
+      }
+      <button class="delete-button" data-id="${entry._id}">Delete</button>
+    </td>
     `;
 
           tableBody.appendChild(row);
@@ -262,6 +284,27 @@
                 const errorData = await deleteResponse.json();
                 alert("Error deleting entry: " + errorData.error);
               }
+            }
+          });
+        });
+
+        // Add event listener for the Approve button
+        document.querySelectorAll(".approve-button").forEach((button) => {
+          button.addEventListener("click", async (event) => {
+            const entryId = event.target.getAttribute("data-id");
+            const approveResponse = await fetch(`/entryApprove/${entryId}`, {
+              method: "POST",
+            });
+
+            if (approveResponse.ok) {
+              event.target
+                .closest("tr")
+                .querySelector("td:nth-last-child(2)").innerText = "Approved";
+              event.target.remove();
+              alert("Entry approved successfully!");
+            } else {
+              const errorData = await approveResponse.json();
+              alert("Error approving entry: " + errorData.error);
             }
           });
         });
