@@ -13,12 +13,12 @@ const entrySchema = new mongoose.Schema({
   deliveryDate: String,
   entryDate: String,
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Reference to User model
-  approval: { type: Boolean, default: false }, // Approval status (false by default)
-  approvedBy: {
+  approvalPayment: { type: Boolean, default: false },
+  approvedPaymentBy: {
     username: String,
     department: String,
   },
-  approvalDate: String,
+  approvalPaymentDate: String,
 });
 
 module.exports = mongoose.model("Entry", entrySchema);

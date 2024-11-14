@@ -271,14 +271,14 @@
       <td>${entry.submittedBy.username} (${entry.submittedBy.department})</td>
       <td>
           ${
-            entry.approval
-              ? `Approved by ${entry.approvedBy.username} (${entry.approvedBy.department}) on ${entry.approvalDate}`
+            entry.approvalPayment
+              ? `Approved by ${entry.approvedPaymentBy.username} (${entry.approvedPaymentBy.department}) on ${entry.approvalPaymentDate}`
               : "Pending"
           }
       </td>
       <td>
         ${
-          entry.approval
+          entry.approvalPayment
             ? ""
             : `<button class="approve-button" data-id="${entry._id}">Approve</button>`
         }
@@ -320,9 +320,12 @@
         document.querySelectorAll(".approve-button").forEach((button) => {
           button.addEventListener("click", async (event) => {
             const entryId = event.target.getAttribute("data-id");
-            const approveResponse = await fetch(`/entryApprove/${entryId}`, {
-              method: "POST",
-            });
+            const approveResponse = await fetch(
+              `/entryPaymentApprove/${entryId}`,
+              {
+                method: "POST",
+              }
+            );
 
             if (approveResponse.ok) {
               alert("Entry approved successfully!");

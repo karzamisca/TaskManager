@@ -53,7 +53,7 @@ exports.createEntry = async (req, res) => {
   }
 };
 
-exports.approveEntry = async (req, res) => {
+exports.approvePaymentEntry = async (req, res) => {
   try {
     const entryId = req.params.id;
 
@@ -74,12 +74,12 @@ exports.approveEntry = async (req, res) => {
       return res.status(404).json({ error: "Approver not found" });
     }
 
-    entry.approval = true;
-    entry.approvedBy = {
+    entry.approvalPayment = true;
+    entry.approvedPaymentBy = {
       username: approver.username,
       department: approver.department,
     };
-    entry.approvalDate = moment()
+    entry.approvalPaymentDate = moment()
       .tz("Asia/Bangkok")
       .format("DD-MM-YYYY HH:mm:ss");
 
