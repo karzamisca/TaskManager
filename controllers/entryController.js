@@ -28,7 +28,7 @@ exports.createEntry = async (req, res) => {
     const { name, description, unit, amount, unitPrice, vat, deliveryDate } =
       req.body;
     const totalPrice = amount * unitPrice;
-    const totalPriceAfterVat = totalPrice - totalPrice * (vat / 100);
+    const totalPriceAfterVat = totalPrice + totalPrice * (vat / 100);
     const submittedBy = req.user.id; // Use the current user's ID as the submitter
 
     const entry = new Entry({
@@ -41,7 +41,7 @@ exports.createEntry = async (req, res) => {
       vat,
       totalPriceAfterVat,
       deliveryDate,
-      entryDate: moment().tz("Asia/Bangkok").format("YYYY-MM-DD HH:mm:ss"),
+      entryDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
       submittedBy, // Store the submitter's ID
     });
 

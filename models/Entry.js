@@ -9,7 +9,7 @@ const entrySchema = new mongoose.Schema({
   totalPrice: Number,
   vat: Number,
   totalPriceAfterVat: Number,
-  deliveryDate: Date,
+  deliveryDate: String,
   entryDate: String,
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Reference to User model
   approval: { type: Boolean, default: false }, // Approval status (false by default)

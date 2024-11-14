@@ -124,6 +124,10 @@
         }
       }
     </style>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
+    />
   </head>
   <body>
     <h1>Entries Table</h1>
@@ -217,19 +221,40 @@
       <input type="file" name="excelFile" accept=".xlsx, .xls" required />
       <button type="submit">Import from Excel</button>
     </form>
+
+    <h2>Trackers</h2>
+    <div>
+      <p><strong>Debt:</strong> <span id="debtTracker">0</span></p>
+      <p><strong>Paid:</strong> <span id="paidTracker">0</span></p>
+    </div>
+
     <a href="/main">Back to Main</a><br />
     <a href="/logout">Logout</a><br />
 
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
     <script>
+      // Load Flatpickr for the Delivery Date input
+      document.addEventListener("DOMContentLoaded", () => {
+        flatpickr("#deliveryDate", {
+          dateFormat: "d-m-Y",
+          defaultDate: "today",
+        });
+      });
+
       window.onload = async function () {
         const tableBody = document.querySelector("#entriesTable tbody");
         const exportButton = document.getElementById("exportButton");
+        const debtTracker = document.getElementById("debtTracker");
+        const paidTracker = document.getElementById("paidTracker");
 
         // Fetch entries from the backend
         const response = await fetch("/entryAll");
         const entries = await response.json();
 
-        // Dynamically add each entry as a row in the table
+        let totalDebt = 0;
+        let totalPaid = 0;
+
         entries.forEach((entry) => {
           const row = document.createElement("tr");
 
@@ -242,32 +267,32 @@
       <td>${entry.totalPrice}</td>
       <td>${entry.vat}</td>
       <td>${entry.totalPriceAfterVat}</td>
-      <td>${new Date(
-        entry.deliveryDate
-      ).toDateString()}</td> <!-- Format delivery date -->
-      <td>${
-        entry.entryDate
-      }</td> <!-- Entry date will be formatted in the backend -->
-      <td>${entry.submittedBy.username} (${
-            entry.submittedBy.department
-          })</td> <!-- Display submitter's name and department -->
-      <td>${
-        entry.approval ? "Approved" : "Pending"
-      }</td> <!-- Display approval status -->
-    <td>
-      ${
-        entry.approval
-          ? ""
-          : `<button class="approve-button" data-id="${entry._id}">Approve</button>`
-      }
-      <button class="delete-button" data-id="${entry._id}">Delete</button>
-    </td>
+      <td>${entry.deliveryDate}</td>
+      <td>${entry.entryDate}</td>
+      <td>${entry.submittedBy.username} (${entry.submittedBy.department})</td>
+      <td>${entry.approval ? "Approved" : "Pending"}</td>
+      <td>
+        ${
+          entry.approval
+            ? ""
+            : `<button class="approve-button" data-id="${entry._id}">Approve</button>`
+        }
+        <button class="delete-button" data-id="${entry._id}">Delete</button>
+      </td>
     `;
 
           tableBody.appendChild(row);
+
+          if (!entry.approval) {
+            totalDebt += entry.totalPriceAfterVat;
+          } else {
+            totalPaid += entry.totalPriceAfterVat;
+          }
         });
 
-        // Add event listeners for delete buttons
+        debtTracker.textContent = totalDebt.toFixed(2);
+        paidTracker.textContent = totalPaid.toFixed(2);
+
         document.querySelectorAll(".delete-button").forEach((button) => {
           button.addEventListener("click", async (event) => {
             const entryId = event.target.getAttribute("data-id");
@@ -277,9 +302,8 @@
               });
 
               if (deleteResponse.ok) {
-                // Remove the row from the table
-                event.target.closest("tr").remove();
                 alert("Entry deleted successfully!");
+                location.reload(); // Reload the page after deletion
               } else {
                 const errorData = await deleteResponse.json();
                 alert("Error deleting entry: " + errorData.error);
@@ -288,7 +312,6 @@
           });
         });
 
-        // Add event listener for the Approve button
         document.querySelectorAll(".approve-button").forEach((button) => {
           button.addEventListener("click", async (event) => {
             const entryId = event.target.getAttribute("data-id");
@@ -297,11 +320,8 @@
             });
 
             if (approveResponse.ok) {
-              event.target
-                .closest("tr")
-                .querySelector("td:nth-last-child(2)").innerText = "Approved";
-              event.target.remove();
               alert("Entry approved successfully!");
+              location.reload(); // Reload the page after approval
             } else {
               const errorData = await approveResponse.json();
               alert("Error approving entry: " + errorData.error);
@@ -309,7 +329,6 @@
           });
         });
 
-        // Handle Export Button Click
         exportButton.addEventListener("click", () => {
           window.location.href = "/entryExport";
         });
