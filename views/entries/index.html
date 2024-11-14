@@ -22,10 +22,10 @@
       }
 
       table {
-        width: 100%; /* Responsive width */
+        width: 100%;
         border-collapse: collapse;
         margin-bottom: 20px;
-        font-size: 1rem; /* Responsive font size */
+        font-size: 1rem;
       }
 
       table,
@@ -131,28 +131,88 @@
     />
   </head>
   <body>
-    <h1>Entries Table</h1>
+    <h1>Expenses Tracking System</h1>
 
     <!-- Export Button -->
     <button id="exportButton">Export to Excel</button>
 
+    <!-- Search fields for each column -->
+    <h2>Filter</h2>
+    <div>
+      <label for="searchName">Name:</label>
+      <input type="text" id="searchName" placeholder="Search by name" />
+
+      <label for="searchDescription">Description:</label>
+      <input
+        type="text"
+        id="searchDescription"
+        placeholder="Search by description"
+      />
+
+      <label for="searchUnit">Unit:</label>
+      <input type="text" id="searchUnit" placeholder="Search by unit" />
+
+      <label for="searchAmount">Amount:</label>
+      <input type="number" id="searchAmount" placeholder="Search by amount" />
+
+      <label for="searchUnitPrice">Unit Price:</label>
+      <input
+        type="number"
+        id="searchUnitPrice"
+        placeholder="Search by unit price"
+      />
+
+      <label for="searchTotalPrice">Total Price:</label>
+      <input
+        type="number"
+        id="searchTotalPrice"
+        placeholder="Search by total price"
+      />
+
+      <label for="searchVAT">VAT (%):</label>
+      <input type="number" id="searchVAT" placeholder="Search by VAT" />
+
+      <label for="searchTotalPriceAfterVAT">Total Price After VAT:</label>
+      <input
+        type="number"
+        id="searchTotalPriceAfterVAT"
+        placeholder="Search by total after VAT"
+      />
+
+      <label for="searchDeliveryDate">Delivery Date:</label>
+      <input type="date" id="searchDeliveryDate" />
+
+      <label for="searchEntryDate">Entry Date:</label>
+      <input type="date" id="searchEntryDate" />
+
+      <label for="searchSubmitter">Submitter:</label>
+      <input type="text" id="searchSubmitter" />
+
+      <label for="searchApprovedPayment">Approved Payment:</label>
+      <input type="text" id="searchApprovedPayment" />
+
+      <label for="searchConfirmedReceived">Confirmed Received:</label>
+      <input type="text" id="searchConfirmedReceived" />
+    </div>
+
+    <h2>Entries Table</h2>
     <!-- Table for displaying entries -->
     <table id="entriesTable">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Description</th>
-          <th>Unit</th>
-          <th>Amount</th>
-          <th>Unit Price</th>
-          <th>Total Price</th>
-          <th>VAT</th>
-          <th>Total Price After VAT</th>
-          <th>Delivery Date</th>
-          <th>Entry Date</th>
-          <th>Submitter</th>
-          <th>Approved Payment</th>
-          <th>Confirmed Received</th>
+          <th onclick="sortTable(0)">Name</th>
+          <th onclick="sortTable(1)">Description</th>
+          <th onclick="sortTable(2)">Unit</th>
+          <th onclick="sortTable(3)">Amount</th>
+          <th onclick="sortTable(4)">Unit Price</th>
+          <th onclick="sortTable(5)">Total Price</th>
+          <th onclick="sortTable(6)">VAT (%)</th>
+          <th onclick="sortTable(7)">Total Price After VAT</th>
+          <th onclick="sortTable(8)">Delivery Date</th>
+          <th onclick="sortTable(9)">Entry Date</th>
+          <th onclick="sortTable(10)">Submitter</th>
+          <th onclick="sortTable(11)">Approved Payment</th>
+          <th onclick="sortTable(12)">Confirmed Received</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -162,8 +222,7 @@
     </table>
 
     <h2>New Entry</h2>
-
-    <!-- Horizontal form for adding a new entry -->
+    <!-- Form for adding a new entry -->
     <form id="entryForm" action="/entryNew" method="POST">
       <div class="form-group">
         <label for="name">Name:</label>
@@ -241,6 +300,154 @@
         });
       });
 
+      // Load Flatpickr for the Delivery Date and Entry Date inputs
+      document.addEventListener("DOMContentLoaded", () => {
+        flatpickr("#searchDeliveryDate", { dateFormat: "d-m-Y" });
+        flatpickr("#searchEntryDate", { dateFormat: "d-m-Y" });
+      });
+
+      // Sort table function
+      function sortTable(columnIndex) {
+        const table = document.getElementById("entriesTable");
+        let rows,
+          switching,
+          i,
+          x,
+          y,
+          shouldSwitch,
+          dir,
+          switchCount = 0;
+        switching = true;
+        dir = "asc"; // Set the sorting direction to ascending
+
+        while (switching) {
+          switching = false;
+          rows = table.rows;
+          for (i = 1; i < rows.length - 1; i++) {
+            shouldSwitch = false;
+            x = rows[i].getElementsByTagName("TD")[columnIndex];
+            y = rows[i + 1].getElementsByTagName("TD")[columnIndex];
+
+            if (dir === "asc") {
+              if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+                shouldSwitch = true;
+                break;
+              }
+            } else if (dir === "desc") {
+              if (x.innerHTML.toLowerCase() < y.innerHTML.toLowerCase()) {
+                shouldSwitch = true;
+                break;
+              }
+            }
+          }
+          if (shouldSwitch) {
+            rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+            switching = true;
+            switchCount++;
+          } else {
+            if (switchCount === 0 && dir === "asc") {
+              dir = "desc";
+              switching = true;
+            }
+          }
+        }
+      }
+
+      // Search function for each field
+      function filterTable() {
+        const filterName = document
+          .getElementById("searchName")
+          .value.toLowerCase();
+        const filterDescription = document
+          .getElementById("searchDescription")
+          .value.toLowerCase();
+        const filterUnit = document
+          .getElementById("searchUnit")
+          .value.toLowerCase();
+        const filterAmount = document.getElementById("searchAmount").value;
+        const filterUnitPrice =
+          document.getElementById("searchUnitPrice").value;
+        const filterTotalPrice =
+          document.getElementById("searchTotalPrice").value;
+        const filterVAT = document.getElementById("searchVAT").value;
+        const filterTotalPriceAfterVAT = document.getElementById(
+          "searchTotalPriceAfterVAT"
+        ).value;
+        const filterDeliveryDate =
+          document.getElementById("searchDeliveryDate").value;
+        const filterEntryDate =
+          document.getElementById("searchEntryDate").value;
+        const filterSubmitter =
+          document.getElementById("searchSubmitter").value;
+        const filterApprovedPayment = document.getElementById(
+          "searchApprovedPayment"
+        ).value;
+        const filterConfirmedReceived = document.getElementById(
+          "searchConfirmedReceived"
+        ).value;
+
+        const rows = document.querySelectorAll("#entriesTable tbody tr");
+
+        rows.forEach((row) => {
+          const name = row.cells[0].textContent.toLowerCase();
+          const description = row.cells[1].textContent.toLowerCase();
+          const unit = row.cells[2].textContent.toLowerCase();
+          const amount = row.cells[3].textContent;
+          const unitPrice = row.cells[4].textContent;
+          const totalPrice = row.cells[5].textContent;
+          const vat = row.cells[6].textContent;
+          const totalPriceAfterVAT = row.cells[7].textContent;
+          const deliveryDate = row.cells[8].textContent;
+          const entryDate = row.cells[9].textContent;
+          const submitter = row.cells[10].textContent;
+          const approvedPayment = row.cells[11].textContent;
+          const confirmedReceived = row.cells[12].textContent;
+
+          const matchesName = !filterName || name.includes(filterName);
+          const matchesDescription =
+            !filterDescription || description.includes(filterDescription);
+          const matchesUnit = !filterUnit || unit.includes(filterUnit);
+          const matchesAmount = !filterAmount || amount == filterAmount;
+          const matchesUnitPrice =
+            !filterUnitPrice || unitPrice == filterUnitPrice;
+          const matchesTotalPrice =
+            !filterTotalPrice || totalPrice == filterTotalPrice;
+          const matchesVAT = !filterVAT || vat == filterVAT;
+          const matchesTotalPriceAfterVAT =
+            !filterTotalPriceAfterVAT ||
+            totalPriceAfterVAT == filterTotalPriceAfterVAT;
+          const matchesDeliveryDate =
+            !filterDeliveryDate || deliveryDate == filterDeliveryDate;
+          const matchesEntryDate =
+            !filterEntryDate || entryDate.includes(filterEntryDate);
+          const matchesSubmitter =
+            !filterSubmitter || submitter.includes(filterSubmitter);
+          const matchesApprovedPayment =
+            !filterApprovedPayment ||
+            approvedPayment.includes(filterApprovedPayment);
+          const matchesConfirmedReceived =
+            !filterConfirmedReceived ||
+            confirmedReceived.includes(filterConfirmedReceived);
+
+          row.style.display =
+            matchesName &&
+            matchesDescription &&
+            matchesUnit &&
+            matchesAmount &&
+            matchesUnitPrice &&
+            matchesTotalPrice &&
+            matchesVAT &&
+            matchesTotalPriceAfterVAT &&
+            matchesDeliveryDate &&
+            matchesEntryDate &&
+            matchesSubmitter &&
+            matchesApprovedPayment &&
+            matchesConfirmedReceived
+              ? ""
+              : "none";
+        });
+      }
+
       window.onload = async function () {
         const tableBody = document.querySelector("#entriesTable tbody");
         const exportButton = document.getElementById("exportButton");
@@ -258,45 +465,45 @@
           const row = document.createElement("tr");
 
           row.innerHTML = `
-      <td>${entry.name}</td>
-      <td>${entry.description}</td>
-      <td>${entry.unit}</td>
-      <td>${entry.amount}</td>
-      <td>${entry.unitPrice}</td>
-      <td>${entry.totalPrice}</td>
-      <td>${entry.vat}</td>
-      <td>${entry.totalPriceAfterVat}</td>
-      <td>${entry.deliveryDate}</td>
-      <td>${entry.entryDate}</td>
-      <td>${entry.submittedBy.username} (${entry.submittedBy.department})</td>
-      <td>
+        <td>${entry.name}</td>
+        <td>${entry.description}</td>
+        <td>${entry.unit}</td>
+        <td>${entry.amount}</td>
+        <td>${entry.unitPrice}</td>
+        <td>${entry.totalPrice}</td>
+        <td>${entry.vat}</td>
+        <td>${entry.totalPriceAfterVat}</td>
+        <td>${entry.deliveryDate}</td>
+        <td>${entry.entryDate}</td>
+        <td>${entry.submittedBy.username} (${entry.submittedBy.department})</td>
+        <td>
+            ${
+              entry.approvalPayment
+                ? `Approved by ${entry.approvedPaymentBy.username} (${entry.approvedPaymentBy.department}) on ${entry.approvalPaymentDate}`
+                : "Pending"
+            }
+        </td>
+        <td>
+            ${
+              entry.approvalReceive
+                ? `Confirmed by ${entry.approvedReceiveBy.username} (${entry.approvedReceiveBy.department}) on ${entry.approvalReceiveDate}`
+                : "Pending"
+            }
+        </td>
+        <td>
           ${
             entry.approvalPayment
-              ? `Approved by ${entry.approvedPaymentBy.username} (${entry.approvedPaymentBy.department}) on ${entry.approvalPaymentDate}`
-              : "Pending"
+              ? ""
+              : `<button class="approve-payment-button" data-id="${entry._id}">Paid</button>`
           }
-      </td>
-      <td>
           ${
             entry.approvalReceive
-              ? `Confirmed by ${entry.approvedReceiveBy.username} (${entry.approvedReceiveBy.department}) on ${entry.approvalReceiveDate}`
-              : "Pending"
+              ? ""
+              : `<button class="approve-receive-button" data-id="${entry._id}">Received</button>`
           }
-      </td>
-      <td>
-        ${
-          entry.approvalPayment
-            ? ""
-            : `<button class="approve-payment-button" data-id="${entry._id}">Paid</button>`
-        }
-        ${
-          entry.approvalReceive
-            ? ""
-            : `<button class="approve-receive-button" data-id="${entry._id}">Received</button>`
-        }
-        <button class="delete-button" data-id="${entry._id}">Delete</button>
-      </td>
-    `;
+          <button class="delete-button" data-id="${entry._id}">Delete</button>
+        </td>
+      `;
 
           tableBody.appendChild(row);
 
@@ -372,6 +579,13 @@
               }
             });
           });
+
+        // Add event listeners to each search field
+        document
+          .querySelectorAll(
+            "#searchName, #searchDescription, #searchUnit, #searchAmount, #searchUnitPrice, #searchTotalPrice, #searchVAT, #searchTotalPriceAfterVAT, #searchDeliveryDate, #searchEntryDate, #searchSubmitter, #searchApprovedPayment, #searchConfirmedReceived"
+          )
+          .forEach((input) => input.addEventListener("input", filterTable));
 
         exportButton.addEventListener("click", () => {
           window.location.href = "/entryExport";
