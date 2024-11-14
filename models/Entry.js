@@ -19,6 +19,12 @@ const entrySchema = new mongoose.Schema({
     department: String,
   },
   approvalPaymentDate: String,
+  approvalReceive: { type: Boolean, default: false },
+  approvedReceiveBy: {
+    username: String,
+    department: String,
+  },
+  approvalReceiveDate: String,
 });
 
 module.exports = mongoose.model("Entry", entrySchema);

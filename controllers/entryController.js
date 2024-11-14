@@ -90,6 +90,43 @@ exports.approvePaymentEntry = async (req, res) => {
   }
 };
 
+exports.approveReceiveEntry = async (req, res) => {
+  try {
+    const entryId = req.params.id;
+
+    if (req.user.role !== "approver") {
+      return res
+        .status(403)
+        .json({ error: "You do not have permission to approve entries" });
+    }
+
+    const entry = await Entry.findById(entryId);
+    if (!entry) {
+      return res.status(404).json({ error: "Entry not found" });
+    }
+
+    // Fetch the full user data to ensure username and department are accessible
+    const approver = await User.findById(req.user.id);
+    if (!approver) {
+      return res.status(404).json({ error: "Approver not found" });
+    }
+
+    entry.approvalReceive = true;
+    entry.approvedReceiveBy = {
+      username: approver.username,
+      department: approver.department,
+    };
+    entry.approvalReceiveDate = moment()
+      .tz("Asia/Bangkok")
+      .format("DD-MM-YYYY HH:mm:ss");
+
+    await entry.save();
+    res.json({ message: "Entry approved successfully" });
+  } catch (err) {
+    res.status(500).json({ error: "Error approving entry: " + err.message });
+  }
+};
+
 // Delete an entry by ID
 exports.deleteEntry = async (req, res) => {
   try {

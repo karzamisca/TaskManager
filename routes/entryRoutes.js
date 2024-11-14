@@ -41,7 +41,12 @@ router.post(
   "/entryPaymentApprove/:id",
   authMiddleware,
   entryController.approvePaymentEntry
-); // Approve entry by ID
+);
+router.post(
+  "/entryReceiveApprove/:id",
+  authMiddleware,
+  entryController.approveReceiveEntry
+);
 router.post("/entryNew", authMiddleware, entryController.createEntry); // Submit new entry
 router.delete("/entryDelete/:id", authMiddleware, entryController.deleteEntry); // Delete entry by ID
 
