@@ -1,3 +1,4 @@
+// controllers/Entry.js
 const mongoose = require("mongoose");
 
 const entrySchema = new mongoose.Schema({
