@@ -4,6 +4,7 @@ const moment = require("moment-timezone");
 const ExcelJS = require("exceljs");
 const fs = require("fs");
 const path = require("path");
+const User = require("../models/User");
 
 // Serve the index.html file for the root route
 exports.getFormAndEntries = (req, res) => {
@@ -56,7 +57,6 @@ exports.approveEntry = async (req, res) => {
   try {
     const entryId = req.params.id;
 
-    // Check if the user has the approver role
     if (req.user.role !== "approver") {
       return res
         .status(403)
@@ -68,9 +68,22 @@ exports.approveEntry = async (req, res) => {
       return res.status(404).json({ error: "Entry not found" });
     }
 
-    entry.approval = true; // Set the approval to true
-    await entry.save();
+    // Fetch the full user data to ensure username and department are accessible
+    const approver = await User.findById(req.user.id);
+    if (!approver) {
+      return res.status(404).json({ error: "Approver not found" });
+    }
 
+    entry.approval = true;
+    entry.approvedBy = {
+      username: approver.username,
+      department: approver.department,
+    };
+    entry.approvalDate = moment()
+      .tz("Asia/Bangkok")
+      .format("DD-MM-YYYY HH:mm:ss");
+
+    await entry.save();
     res.json({ message: "Entry approved successfully" });
   } catch (err) {
     res.status(500).json({ error: "Error approving entry: " + err.message });

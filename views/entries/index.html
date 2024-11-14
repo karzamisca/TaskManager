@@ -151,9 +151,9 @@
           <th>Delivery Date</th>
           <th>Entry Date</th>
           <th>Submitter</th>
-          <!-- New column for submitter info -->
           <th>Approval</th>
-          <!-- Added approval column -->
+          <th>Approved By</th>
+          <th>Approval Date</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -272,6 +272,12 @@
       <td>${entry.entryDate}</td>
       <td>${entry.submittedBy.username} (${entry.submittedBy.department})</td>
       <td>${entry.approval ? "Approved" : "Pending"}</td>
+      <td>${
+        entry.approvedBy
+          ? `${entry.approvedBy.username} (${entry.approvedBy.department})`
+          : "N/A"
+      }</td>
+      <td>${entry.approvalDate || "N/A"}</td>
       <td>
         ${
           entry.approval

@@ -14,6 +14,11 @@ const entrySchema = new mongoose.Schema({
   entryDate: String,
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Reference to User model
   approval: { type: Boolean, default: false }, // Approval status (false by default)
+  approvedBy: {
+    username: String,
+    department: String,
+  },
+  approvalDate: String,
 });
 
 module.exports = mongoose.model("Entry", entrySchema);
