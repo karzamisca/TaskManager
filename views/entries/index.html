@@ -187,6 +187,9 @@
       <label for="searchDeliveryDate">Ngày giao hàng/Delivery Date:</label>
       <input type="date" id="searchDeliveryDate" />
 
+      <label for="searchNote">Ghi chú/Note:</label>
+      <input type="text" id="searchNote" />
+
       <label for="searchEntryDate">Ngày nhập liệu/Entry Date:</label>
       <input type="date" id="searchEntryDate" />
 
@@ -221,12 +224,13 @@
             Tổng tiền sau VAT/Total Price After VAT
           </th>
           <th onclick="sortTable(9)">Ngày giao hàng/Delivery Date</th>
-          <th onclick="sortTable(10)">Ngày nhập liệu/Entry Date</th>
-          <th onclick="sortTable(11)">Người nhập liệu/Submitter</th>
-          <th onclick="sortTable(12)">
+          <th onclick="sortTable(10)">Ghi chú/Note</th>
+          <th onclick="sortTable(11)">Ngày nhập liệu/Entry Date</th>
+          <th onclick="sortTable(12)">Người nhập liệu/Submitter</th>
+          <th onclick="sortTable(13)">
             Xác nhận đã thanh toán/Approved Payment
           </th>
-          <th onclick="sortTable(13)">
+          <th onclick="sortTable(14)">
             Xác nhận đã nhận hàng/Confirmed Received
           </th>
           <th>Hành động/Actions</th>
@@ -281,6 +285,11 @@
         <input type="date" id="deliveryDate" name="deliveryDate" required />
       </div>
 
+      <div class="form-group">
+        <label for="note">Ghi chú/Note:</label>
+        <input type="text" id="note" name="note" required />
+      </div>
+
       <button type="submit">Nộp/Submit</button>
     </form>
 
@@ -308,18 +317,14 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <script>
-      // Load Flatpickr for the Delivery Date input
-      document.addEventListener("DOMContentLoaded", () => {
-        flatpickr("#deliveryDate", {
-          dateFormat: "d-m-Y",
-          defaultDate: "today",
-        });
-      });
-
       // Load Flatpickr for the Delivery Date and Entry Date inputs
       document.addEventListener("DOMContentLoaded", () => {
         flatpickr("#searchDeliveryDate", { dateFormat: "d-m-Y" });
         flatpickr("#searchEntryDate", { dateFormat: "d-m-Y" });
+        flatpickr("#deliveryDate", {
+          dateFormat: "d-m-Y",
+          defaultDate: "today",
+        });
       });
 
       // Sort table function
@@ -394,6 +399,7 @@
         ).value;
         const filterDeliveryDate =
           document.getElementById("searchDeliveryDate").value;
+        const filterNote = document.getElementById("searchNote").value;
         const filterEntryDate =
           document.getElementById("searchEntryDate").value;
         const filterSubmitter =
@@ -418,10 +424,11 @@
           const vat = row.cells[7].textContent;
           const totalPriceAfterVAT = row.cells[8].textContent;
           const deliveryDate = row.cells[9].textContent;
-          const entryDate = row.cells[10].textContent;
-          const submitter = row.cells[11].textContent;
-          const approvedPayment = row.cells[12].textContent;
-          const confirmedReceived = row.cells[13].textContent;
+          const note = row.cells[10].textContent;
+          const entryDate = row.cells[11].textContent;
+          const submitter = row.cells[12].textContent;
+          const approvedPayment = row.cells[13].textContent;
+          const confirmedReceived = row.cells[14].textContent;
 
           const matchesTag = !filterTag || tag.includes(filterTag);
           const matchesName = !filterName || name.includes(filterName);
@@ -439,6 +446,7 @@
             totalPriceAfterVAT == filterTotalPriceAfterVAT;
           const matchesDeliveryDate =
             !filterDeliveryDate || deliveryDate == filterDeliveryDate;
+          const matchesNote = !filterNote || note.includes(filterNote);
           const matchesEntryDate =
             !filterEntryDate || entryDate.includes(filterEntryDate);
           const matchesSubmitter =
@@ -461,6 +469,7 @@
             matchesVAT &&
             matchesTotalPriceAfterVAT &&
             matchesDeliveryDate &&
+            matchesNote &&
             matchesEntryDate &&
             matchesSubmitter &&
             matchesApprovedPayment &&
@@ -497,6 +506,7 @@
             <td>${entry.vat}</td>
             <td>${entry.totalPriceAfterVat}</td>
             <td>${entry.deliveryDate}</td>
+            <td>${entry.note}</td>
             <td>${entry.entryDate}</td>
             <td>${entry.submittedBy.username} (${
             entry.submittedBy.department
@@ -547,13 +557,17 @@
         document.querySelectorAll(".delete-button").forEach((button) => {
           button.addEventListener("click", async (event) => {
             const entryId = event.target.getAttribute("data-id");
-            if (confirm("Are you sure you want to delete this entry?")) {
+            if (
+              confirm(
+                "Bạn có chắc chắn muốn xóa dữ liệu này không?/Are you sure you want to delete this entry?"
+              )
+            ) {
               const deleteResponse = await fetch(`/entryDelete/${entryId}`, {
                 method: "DELETE",
               });
 
               if (deleteResponse.ok) {
-                alert("Entry deleted successfully!");
+                alert("Xóa dữ liệu thành công/Entry deleted successfully!");
                 location.reload(); // Reload the page after deletion
               } else {
                 const errorData = await deleteResponse.json();
@@ -610,7 +624,7 @@
         // Add event listeners to each search field
         document
           .querySelectorAll(
-            "#searchTag, #searchName, #searchDescription, #searchUnit, #searchAmount, #searchUnitPrice, #searchTotalPrice, #searchVAT, #searchTotalPriceAfterVAT, #searchDeliveryDate, #searchEntryDate, #searchSubmitter, #searchApprovedPayment, #searchConfirmedReceived"
+            "#searchTag, #searchName, #searchDescription, #searchUnit, #searchAmount, #searchUnitPrice, #searchTotalPrice, #searchVAT, #searchTotalPriceAfterVAT, #searchDeliveryDate, #searchNote, #searchEntryDate, #searchSubmitter, #searchApprovedPayment, #searchConfirmedReceived"
           )
           .forEach((input) => input.addEventListener("input", filterTable));
 

@@ -26,8 +26,16 @@ exports.getAllEntries = async (req, res) => {
 // Create a new entry
 exports.createEntry = async (req, res) => {
   try {
-    const { name, description, unit, amount, unitPrice, vat, deliveryDate } =
-      req.body;
+    const {
+      name,
+      description,
+      unit,
+      amount,
+      unitPrice,
+      vat,
+      deliveryDate,
+      note,
+    } = req.body;
     const totalPrice = amount * unitPrice;
     const totalPriceAfterVat = totalPrice + totalPrice * (vat / 100);
     const submittedBy = req.user.id; // Use the current user's ID as the submitter
@@ -46,6 +54,7 @@ exports.createEntry = async (req, res) => {
       vat,
       totalPriceAfterVat,
       deliveryDate,
+      note,
       entryDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
       submittedBy, // Store the submitter's ID
     });
@@ -186,6 +195,7 @@ exports.exportToExcel = async (req, res) => {
       { header: "VAT (%)", key: "vat", width: 10 },
       { header: "Total Price After VAT", key: "totalPriceAfterVat", width: 20 },
       { header: "Delivery Date", key: "deliveryDate", width: 15 },
+      { header: "Note", key: "note", width: 30 },
       { header: "Entry Date", key: "entryDate", width: 20 },
       { header: "Submitted By", key: "submittedBy", width: 30 },
       { header: "Approval Payment", key: "approvalPayment", width: 15 },
@@ -217,6 +227,7 @@ exports.exportToExcel = async (req, res) => {
         vat: entry.vat,
         totalPriceAfterVat: entry.totalPriceAfterVat,
         deliveryDate: entry.deliveryDate,
+        note: entry.note,
         entryDate: entry.entryDate,
         submittedBy: `${entry.submittedBy.username} (${entry.submittedBy.department})`,
         approvalPayment: entry.approvalPayment ? "Yes" : "No",
@@ -281,6 +292,7 @@ exports.importFromExcel = async (req, res) => {
         vat: row.getCell(8).value,
         totalPriceAfterVat: row.getCell(9).value,
         deliveryDate: row.getCell(10).value,
+        note: row.getCell(11).value,
         entryDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
 
         // Automatically set to the importing user

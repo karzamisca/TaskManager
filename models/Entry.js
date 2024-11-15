@@ -12,6 +12,7 @@ const entrySchema = new mongoose.Schema({
   vat: Number,
   totalPriceAfterVat: Number,
   deliveryDate: String,
+  note: String,
   entryDate: String,
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Reference to User model
   approvalPayment: { type: Boolean, default: false },
