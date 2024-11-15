@@ -131,67 +131,73 @@
     />
   </head>
   <body>
-    <h1>Expenses Tracking System</h1>
+    <h1>Hệ thống theo dõi chi phí / Expenses Tracking System</h1>
 
     <!-- Export Button -->
-    <button id="exportButton">Export to Excel</button>
+    <button id="exportButton">Xuất ra Excel / Export to Excel</button>
 
     <!-- Search fields for each column -->
-    <h2>Filter</h2>
+    <h2>Lọc/Filter</h2>
     <div>
-      <label for="searchName">Name:</label>
+      <label for="searchName">Tên/Name:</label>
       <input type="text" id="searchName" placeholder="Search by name" />
 
-      <label for="searchDescription">Description:</label>
+      <label for="searchDescription">Mô tả/Description:</label>
       <input
         type="text"
         id="searchDescription"
         placeholder="Search by description"
       />
 
-      <label for="searchUnit">Unit:</label>
+      <label for="searchUnit">Đơn vị/Unit:</label>
       <input type="text" id="searchUnit" placeholder="Search by unit" />
 
-      <label for="searchAmount">Amount:</label>
+      <label for="searchAmount">Số lượng/Amount:</label>
       <input type="number" id="searchAmount" placeholder="Search by amount" />
 
-      <label for="searchUnitPrice">Unit Price:</label>
+      <label for="searchUnitPrice">Đơn giá/Unit Price:</label>
       <input
         type="number"
         id="searchUnitPrice"
         placeholder="Search by unit price"
       />
 
-      <label for="searchTotalPrice">Total Price:</label>
+      <label for="searchTotalPrice">Tổng tiền/Total Price:</label>
       <input
         type="number"
         id="searchTotalPrice"
         placeholder="Search by total price"
       />
 
-      <label for="searchVAT">VAT (%):</label>
+      <label for="searchVAT">Thuế giá trị gia tăng/VAT (%):</label>
       <input type="number" id="searchVAT" placeholder="Search by VAT" />
 
-      <label for="searchTotalPriceAfterVAT">Total Price After VAT:</label>
+      <label for="searchTotalPriceAfterVAT"
+        >Tổng tiền sau VAT/Total Price After VAT:</label
+      >
       <input
         type="number"
         id="searchTotalPriceAfterVAT"
         placeholder="Search by total after VAT"
       />
 
-      <label for="searchDeliveryDate">Delivery Date:</label>
+      <label for="searchDeliveryDate">Ngày giao hàng/Delivery Date:</label>
       <input type="date" id="searchDeliveryDate" />
 
-      <label for="searchEntryDate">Entry Date:</label>
+      <label for="searchEntryDate">Ngày nhập liệu/Entry Date:</label>
       <input type="date" id="searchEntryDate" />
 
-      <label for="searchSubmitter">Submitter:</label>
+      <label for="searchSubmitter">Người nhập/Submitter:</label>
       <input type="text" id="searchSubmitter" />
 
-      <label for="searchApprovedPayment">Approved Payment:</label>
+      <label for="searchApprovedPayment"
+        >Xác nhận đã thanh toán/Approved Payment:</label
+      >
       <input type="text" id="searchApprovedPayment" />
 
-      <label for="searchConfirmedReceived">Confirmed Received:</label>
+      <label for="searchConfirmedReceived"
+        >Xác nhận đã nhận hàng/Confirmed Received:</label
+      >
       <input type="text" id="searchConfirmedReceived" />
     </div>
 
@@ -200,20 +206,26 @@
     <table id="entriesTable">
       <thead>
         <tr>
-          <th onclick="sortTable(0)">Name</th>
-          <th onclick="sortTable(1)">Description</th>
-          <th onclick="sortTable(2)">Unit</th>
-          <th onclick="sortTable(3)">Amount</th>
-          <th onclick="sortTable(4)">Unit Price</th>
-          <th onclick="sortTable(5)">Total Price</th>
-          <th onclick="sortTable(6)">VAT (%)</th>
-          <th onclick="sortTable(7)">Total Price After VAT</th>
-          <th onclick="sortTable(8)">Delivery Date</th>
-          <th onclick="sortTable(9)">Entry Date</th>
-          <th onclick="sortTable(10)">Submitter</th>
-          <th onclick="sortTable(11)">Approved Payment</th>
-          <th onclick="sortTable(12)">Confirmed Received</th>
-          <th>Actions</th>
+          <th onclick="sortTable(0)">Tên/Name</th>
+          <th onclick="sortTable(1)">Mô tả/Description</th>
+          <th onclick="sortTable(2)">Đơn vị/Unit</th>
+          <th onclick="sortTable(3)">Số lượng/Amount</th>
+          <th onclick="sortTable(4)">Đơn giá/Unit Price</th>
+          <th onclick="sortTable(5)">Tổng tiền/Total Price</th>
+          <th onclick="sortTable(6)">Thuế giá trị gia tăng/VAT (%)</th>
+          <th onclick="sortTable(7)">
+            Tổng tiền sau VAT/Total Price After VAT
+          </th>
+          <th onclick="sortTable(8)">Ngày giao hàng/Delivery Date</th>
+          <th onclick="sortTable(9)">Ngày nhập liệu/Entry Date</th>
+          <th onclick="sortTable(10)">Người nhập liệu/Submitter</th>
+          <th onclick="sortTable(11)">
+            Xác nhận đã thanh toán/Approved Payment
+          </th>
+          <th onclick="sortTable(12)">
+            Xác nhận đã nhận hàng/Confirmed Received
+          </th>
+          <th>Hành động/Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -221,31 +233,31 @@
       </tbody>
     </table>
 
-    <h2>New Entry</h2>
+    <h2>Nhập liệu mới/New Entry</h2>
     <!-- Form for adding a new entry -->
     <form id="entryForm" action="/entryNew" method="POST">
       <div class="form-group">
-        <label for="name">Name:</label>
+        <label for="name">Tên/Name:</label>
         <input type="text" id="name" name="name" required />
       </div>
 
       <div class="form-group">
-        <label for="description">Description:</label>
+        <label for="description">Mô tả/Description:</label>
         <input type="text" id="description" name="description" required />
       </div>
 
       <div class="form-group">
-        <label for="unit">Unit:</label>
+        <label for="unit">Đơn vị/Unit:</label>
         <input type="text" id="unit" name="unit" required />
       </div>
 
       <div class="form-group">
-        <label for="amount">Amount:</label>
+        <label for="amount">Số lượng/Amount:</label>
         <input type="number" id="amount" name="amount" required />
       </div>
 
       <div class="form-group">
-        <label for="unitPrice">Unit Price:</label>
+        <label for="unitPrice">Đơn giá/Unit Price:</label>
         <input
           type="number"
           step="0.01"
@@ -256,25 +268,25 @@
       </div>
 
       <div class="form-group">
-        <label for="vat">VAT (%):</label>
+        <label for="vat">Thuế giá trị gia tăng/VAT (%):</label>
         <input type="number" step="0.01" id="vat" name="vat" required />
       </div>
 
       <div class="form-group">
-        <label for="deliveryDate">Delivery Date:</label>
+        <label for="deliveryDate">Ngày giao hàng/Delivery Date:</label>
         <input type="date" id="deliveryDate" name="deliveryDate" required />
       </div>
 
-      <button type="submit">Submit</button>
+      <button type="submit">Nộp/Submit</button>
     </form>
 
     <h2>Trackers</h2>
     <div>
-      <p><strong>Debt:</strong> <span id="debtTracker">0</span></p>
-      <p><strong>Paid:</strong> <span id="paidTracker">0</span></p>
+      <p><strong>Nợ/Debt:</strong> <span id="debtTracker">0</span></p>
+      <p><strong>Đã trả/Paid:</strong> <span id="paidTracker">0</span></p>
     </div>
 
-    <h2>Import Entries from Excel</h2>
+    <h2>Nhập liệu từ Excel/Import Entries from Excel</h2>
     <!-- Form for importing Excel files -->
     <form
       id="importForm"
@@ -283,11 +295,11 @@
       enctype="multipart/form-data"
     >
       <input type="file" name="excelFile" accept=".xlsx, .xls" required />
-      <button type="submit">Import from Excel</button>
+      <button type="submit">Nhập vào từ Excel/Import from Excel</button>
     </form>
 
-    <a href="/main">Back to Main</a><br />
-    <a href="/logout">Logout</a><br />
+    <a href="/main">Trở về trang chủ/Back to Main</a><br />
+    <a href="/logout">Đăng xuất/Logout</a><br />
 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
@@ -389,9 +401,9 @@
         const rows = document.querySelectorAll("#entriesTable tbody tr");
 
         rows.forEach((row) => {
-          const name = row.cells[0].textContent.toLowerCase();
-          const description = row.cells[1].textContent.toLowerCase();
-          const unit = row.cells[2].textContent.toLowerCase();
+          const name = row.cells[0].textContent;
+          const description = row.cells[1].textContent;
+          const unit = row.cells[2].textContent;
           const amount = row.cells[3].textContent;
           const unitPrice = row.cells[4].textContent;
           const totalPrice = row.cells[5].textContent;
@@ -479,29 +491,31 @@
         <td>
             ${
               entry.approvalPayment
-                ? `Approved by ${entry.approvedPaymentBy.username} (${entry.approvedPaymentBy.department}) on ${entry.approvalPaymentDate}`
-                : "Pending"
+                ? `${entry.approvedPaymentBy.username} (${entry.approvedPaymentBy.department}) vào ${entry.approvalPaymentDate}`
+                : "Chưa xác nhận"
             }
         </td>
         <td>
             ${
               entry.approvalReceive
-                ? `Confirmed by ${entry.approvedReceiveBy.username} (${entry.approvedReceiveBy.department}) on ${entry.approvalReceiveDate}`
-                : "Pending"
+                ? `${entry.approvedReceiveBy.username} (${entry.approvedReceiveBy.department}) vào ${entry.approvalReceiveDate}`
+                : "Chưa xác nhận"
             }
         </td>
         <td>
           ${
             entry.approvalPayment
               ? ""
-              : `<button class="approve-payment-button" data-id="${entry._id}">Paid</button>`
+              : `<button class="approve-payment-button" data-id="${entry._id}">Xác nhận trả tiền/Approve Payment</button>`
           }
           ${
             entry.approvalReceive
               ? ""
-              : `<button class="approve-receive-button" data-id="${entry._id}">Received</button>`
+              : `<button class="approve-receive-button" data-id="${entry._id}">Xác nhận đã nhận hàng/Confirm Receipt</button>`
           }
-          <button class="delete-button" data-id="${entry._id}">Delete</button>
+          <button class="delete-button" data-id="${
+            entry._id
+          }">Xóa/Delete</button>
         </td>
       `;
 

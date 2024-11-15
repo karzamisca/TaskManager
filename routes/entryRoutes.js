@@ -29,7 +29,12 @@ const fileFilter = (req, file, cb) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Invalid file type. Only Excel files are allowed."), false);
+    cb(
+      new Error(
+        "Tập tin không hợp lệ. Chỉ cho phép các tệp Excel./Invalid file type. Only Excel files are allowed."
+      ),
+      false
+    );
   }
 };
 
