@@ -271,6 +271,7 @@
               <label>Tên sản phẩm/Product Name</label><input type="text" name="products[0][productName]" required />
               <label>Đơn giá/Cost per Unit</label><input type="number" name="products[0][costPerUnit]" required />
               <label>Số lượng/Amount</label><input type="number" name="products[0][amount]" required />
+              <label>Ghi chú/Note</label><input type="text" name="products[0][note]" required />
             </div>
             <button type="button" onclick="addProductEntry()">Thêm sản phẩm/Add More Products</button>
           `;
@@ -297,12 +298,13 @@
 
       function addProductEntry() {
         const productEntries = document.getElementById("product-entries");
-        const productCount = productEntries.children.length / 3;
+        const productCount = productEntries.children.length / 4;
 
         const newEntry = `
           <label>Tên sản phẩm/Product Name</label><input type="text" name="products[${productCount}][productName]" required />
           <label>Đơn giá/Cost per Unit</label><input type="number" name="products[${productCount}][costPerUnit]" required />
           <label>Số lượng/Amount</label><input type="number" name="products[${productCount}][amount]" required />
+          <label>Ghi chú/Note</label><input type="text" name="products[${productCount}][note]" required />
         `;
         productEntries.insertAdjacentHTML("beforeend", newEntry);
       }
@@ -423,7 +425,7 @@
         productDetails.innerHTML = doc.products
           .map(
             (product) =>
-              `<p>${product.productName}: ${product.amount} đơn vị với đơn giá là ${product.costPerUnit} (Tổng tiền: ${product.totalCost})</p>`
+              `<p>${product.productName}: ${product.amount} đơn vị với đơn giá là ${product.costPerUnit} (Tổng tiền: ${product.totalCost}) (Ghi chú:${product.note})</p>`
           )
           .join("");
 

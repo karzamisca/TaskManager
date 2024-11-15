@@ -58,6 +58,7 @@ exports.submitDocument = async (req, res) => {
     else if (title === "Processing Document") {
       const productEntries = products.map((product) => ({
         ...product,
+        note: product.note || "",
         totalCost: product.costPerUnit * product.amount,
       }));
       const grandTotalCost = productEntries.reduce(

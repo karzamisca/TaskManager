@@ -249,6 +249,7 @@
                   <td>${p.productName}</td>
                   <td>${p.costPerUnit}</td>
                   <td>${p.amount}</td>
+                  <td>${p.note}</td>
                   <td>${p.totalCost}</td>
                 </tr>`
               )
@@ -260,6 +261,7 @@
                   <th>Tên sản phẩm/Product Name</th>
                   <th>Đơn giá/Cost per Unit</th>
                   <th>Số lượng/Amount</th>
+                  <th>Ghi chú/Note</th>
                   <th>Tổng tiền/Total Cost</th>
                 </tr>
                 ${productRows}
@@ -304,7 +306,7 @@
               const products = doc.appendedProcessingDocument.products
                 .map(
                   (product) =>
-                    `<p>${product.productName}: ${product.amount} đơn vị với đơn giá là ${product.costPerUnit} (Tổng tiền: ${product.totalCost})</p>`
+                    `<p>${product.productName}: ${product.amount} đơn vị với đơn giá là ${product.costPerUnit} (Tổng tiền: ${product.totalCost}) (Ghi chú: ${product.note})</p>`
                 )
                 .join("");
               appendedProcessingDoc = `
