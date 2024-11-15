@@ -139,6 +139,9 @@
     <!-- Search fields for each column -->
     <h2>Lọc/Filter</h2>
     <div>
+      <label for="searchTag">Mã/Tag:</label>
+      <input type="text" id="searchTag" placeholder="Search by tag" />
+
       <label for="searchName">Tên/Name:</label>
       <input type="text" id="searchName" placeholder="Search by name" />
 
@@ -201,28 +204,29 @@
       <input type="text" id="searchConfirmedReceived" />
     </div>
 
-    <h2>Entries Table</h2>
+    <h2>Bảng dữ liệu/Entries Table</h2>
     <!-- Table for displaying entries -->
     <table id="entriesTable">
       <thead>
         <tr>
-          <th onclick="sortTable(0)">Tên/Name</th>
-          <th onclick="sortTable(1)">Mô tả/Description</th>
-          <th onclick="sortTable(2)">Đơn vị/Unit</th>
-          <th onclick="sortTable(3)">Số lượng/Amount</th>
-          <th onclick="sortTable(4)">Đơn giá/Unit Price</th>
-          <th onclick="sortTable(5)">Tổng tiền/Total Price</th>
-          <th onclick="sortTable(6)">Thuế giá trị gia tăng/VAT (%)</th>
-          <th onclick="sortTable(7)">
+          <th onclick="sortTable(0)">Mã/Tag</th>
+          <th onclick="sortTable(1)">Tên/Name</th>
+          <th onclick="sortTable(2)">Mô tả/Description</th>
+          <th onclick="sortTable(3)">Đơn vị/Unit</th>
+          <th onclick="sortTable(4)">Số lượng/Amount</th>
+          <th onclick="sortTable(5)">Đơn giá/Unit Price</th>
+          <th onclick="sortTable(6)">Tổng tiền/Total Price</th>
+          <th onclick="sortTable(7)">Thuế giá trị gia tăng/VAT (%)</th>
+          <th onclick="sortTable(8)">
             Tổng tiền sau VAT/Total Price After VAT
           </th>
-          <th onclick="sortTable(8)">Ngày giao hàng/Delivery Date</th>
-          <th onclick="sortTable(9)">Ngày nhập liệu/Entry Date</th>
-          <th onclick="sortTable(10)">Người nhập liệu/Submitter</th>
-          <th onclick="sortTable(11)">
+          <th onclick="sortTable(9)">Ngày giao hàng/Delivery Date</th>
+          <th onclick="sortTable(10)">Ngày nhập liệu/Entry Date</th>
+          <th onclick="sortTable(11)">Người nhập liệu/Submitter</th>
+          <th onclick="sortTable(12)">
             Xác nhận đã thanh toán/Approved Payment
           </th>
-          <th onclick="sortTable(12)">
+          <th onclick="sortTable(13)">
             Xác nhận đã nhận hàng/Confirmed Received
           </th>
           <th>Hành động/Actions</th>
@@ -367,6 +371,9 @@
 
       // Search function for each field
       function filterTable() {
+        const filterTag = document
+          .getElementById("searchTag")
+          .value.toLowerCase();
         const filterName = document
           .getElementById("searchName")
           .value.toLowerCase();
@@ -401,20 +408,22 @@
         const rows = document.querySelectorAll("#entriesTable tbody tr");
 
         rows.forEach((row) => {
-          const name = row.cells[0].textContent;
-          const description = row.cells[1].textContent;
-          const unit = row.cells[2].textContent;
-          const amount = row.cells[3].textContent;
-          const unitPrice = row.cells[4].textContent;
-          const totalPrice = row.cells[5].textContent;
-          const vat = row.cells[6].textContent;
-          const totalPriceAfterVAT = row.cells[7].textContent;
-          const deliveryDate = row.cells[8].textContent;
-          const entryDate = row.cells[9].textContent;
-          const submitter = row.cells[10].textContent;
-          const approvedPayment = row.cells[11].textContent;
-          const confirmedReceived = row.cells[12].textContent;
+          const tag = row.cells[0].textContent;
+          const name = row.cells[1].textContent;
+          const description = row.cells[2].textContent;
+          const unit = row.cells[3].textContent;
+          const amount = row.cells[4].textContent;
+          const unitPrice = row.cells[5].textContent;
+          const totalPrice = row.cells[6].textContent;
+          const vat = row.cells[7].textContent;
+          const totalPriceAfterVAT = row.cells[8].textContent;
+          const deliveryDate = row.cells[9].textContent;
+          const entryDate = row.cells[10].textContent;
+          const submitter = row.cells[11].textContent;
+          const approvedPayment = row.cells[12].textContent;
+          const confirmedReceived = row.cells[13].textContent;
 
+          const matchesTag = !filterTag || tag.includes(filterTag);
           const matchesName = !filterName || name.includes(filterName);
           const matchesDescription =
             !filterDescription || description.includes(filterDescription);
@@ -442,6 +451,7 @@
             confirmedReceived.includes(filterConfirmedReceived);
 
           row.style.display =
+            matchesTag &&
             matchesName &&
             matchesDescription &&
             matchesUnit &&
@@ -477,46 +487,49 @@
           const row = document.createElement("tr");
 
           row.innerHTML = `
-        <td>${entry.name}</td>
-        <td>${entry.description}</td>
-        <td>${entry.unit}</td>
-        <td>${entry.amount}</td>
-        <td>${entry.unitPrice}</td>
-        <td>${entry.totalPrice}</td>
-        <td>${entry.vat}</td>
-        <td>${entry.totalPriceAfterVat}</td>
-        <td>${entry.deliveryDate}</td>
-        <td>${entry.entryDate}</td>
-        <td>${entry.submittedBy.username} (${entry.submittedBy.department})</td>
-        <td>
+            <td>${entry.tag}</td>
+            <td>${entry.name}</td>
+            <td>${entry.description}</td>
+            <td>${entry.unit}</td>
+            <td>${entry.amount}</td>
+            <td>${entry.unitPrice}</td>
+            <td>${entry.totalPrice}</td>
+            <td>${entry.vat}</td>
+            <td>${entry.totalPriceAfterVat}</td>
+            <td>${entry.deliveryDate}</td>
+            <td>${entry.entryDate}</td>
+            <td>${entry.submittedBy.username} (${
+            entry.submittedBy.department
+          })</td>
+            <td>
             ${
               entry.approvalPayment
                 ? `${entry.approvedPaymentBy.username} (${entry.approvedPaymentBy.department}) vào ${entry.approvalPaymentDate}`
                 : "Chưa xác nhận"
             }
-        </td>
-        <td>
+            </td>
+            <td>
             ${
               entry.approvalReceive
                 ? `${entry.approvedReceiveBy.username} (${entry.approvedReceiveBy.department}) vào ${entry.approvalReceiveDate}`
                 : "Chưa xác nhận"
             }
-        </td>
-        <td>
-          ${
-            entry.approvalPayment
-              ? ""
-              : `<button class="approve-payment-button" data-id="${entry._id}">Xác nhận trả tiền/Approve Payment</button>`
-          }
-          ${
-            entry.approvalReceive
-              ? ""
-              : `<button class="approve-receive-button" data-id="${entry._id}">Xác nhận đã nhận hàng/Confirm Receipt</button>`
-          }
-          <button class="delete-button" data-id="${
-            entry._id
-          }">Xóa/Delete</button>
-        </td>
+            </td>
+            <td>
+            ${
+              entry.approvalPayment
+                ? ""
+                : `<button class="approve-payment-button" data-id="${entry._id}">Xác nhận trả tiền/Approve Payment</button>`
+            }
+            ${
+              entry.approvalReceive
+                ? ""
+                : `<button class="approve-receive-button" data-id="${entry._id}">Xác nhận đã nhận hàng/Confirm Receipt</button>`
+            }
+            <button class="delete-button" data-id="${
+              entry._id
+            }">Xóa/Delete</button>
+            </td>
       `;
 
           tableBody.appendChild(row);
@@ -597,7 +610,7 @@
         // Add event listeners to each search field
         document
           .querySelectorAll(
-            "#searchName, #searchDescription, #searchUnit, #searchAmount, #searchUnitPrice, #searchTotalPrice, #searchVAT, #searchTotalPriceAfterVAT, #searchDeliveryDate, #searchEntryDate, #searchSubmitter, #searchApprovedPayment, #searchConfirmedReceived"
+            "#searchTag, #searchName, #searchDescription, #searchUnit, #searchAmount, #searchUnitPrice, #searchTotalPrice, #searchVAT, #searchTotalPriceAfterVAT, #searchDeliveryDate, #searchEntryDate, #searchSubmitter, #searchApprovedPayment, #searchConfirmedReceived"
           )
           .forEach((input) => input.addEventListener("input", filterTable));
 

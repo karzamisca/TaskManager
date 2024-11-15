@@ -2,6 +2,7 @@
 const mongoose = require("mongoose");
 
 const entrySchema = new mongoose.Schema({
+  tag: String,
   name: String,
   description: String,
   unit: String,

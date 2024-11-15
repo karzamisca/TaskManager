@@ -31,8 +31,12 @@ exports.createEntry = async (req, res) => {
     const totalPrice = amount * unitPrice;
     const totalPriceAfterVat = totalPrice + totalPrice * (vat / 100);
     const submittedBy = req.user.id; // Use the current user's ID as the submitter
+    const tag = `${req.user.id}-${req.user.department}-${moment()
+      .tz("Asia/Bangkok")
+      .format("DD-MM-YYYY HH:mm:ss")}`;
 
     const entry = new Entry({
+      tag,
       name,
       description,
       unit,
@@ -172,6 +176,7 @@ exports.exportToExcel = async (req, res) => {
 
     // Define all columns
     worksheet.columns = [
+      { header: "Tag", key: "tag", width: 20 },
       { header: "Name", key: "name", width: 20 },
       { header: "Description", key: "description", width: 30 },
       { header: "Unit", key: "unit", width: 15 },
@@ -202,6 +207,7 @@ exports.exportToExcel = async (req, res) => {
     // Add rows
     entries.forEach((entry) => {
       worksheet.addRow({
+        tag: entry.tag,
         name: entry.name,
         description: entry.description,
         unit: entry.unit,
@@ -263,15 +269,18 @@ exports.importFromExcel = async (req, res) => {
       const row = worksheet.getRow(rowNumber);
 
       const entry = {
-        name: row.getCell(1).value,
-        description: row.getCell(2).value,
-        unit: row.getCell(3).value,
-        amount: row.getCell(4).value,
-        unitPrice: row.getCell(5).value,
-        totalPrice: row.getCell(6).value,
-        vat: row.getCell(7).value,
-        totalPriceAfterVat: row.getCell(8).value,
-        deliveryDate: row.getCell(9).value,
+        tag: `${req.user.id}-${req.user.department}-${moment()
+          .tz("Asia/Bangkok")
+          .format("DD-MM-YYYY HH:mm:ss")}`,
+        name: row.getCell(2).value,
+        description: row.getCell(3).value,
+        unit: row.getCell(4).value,
+        amount: row.getCell(5).value,
+        unitPrice: row.getCell(6).value,
+        totalPrice: row.getCell(7).value,
+        vat: row.getCell(8).value,
+        totalPriceAfterVat: row.getCell(9).value,
+        deliveryDate: row.getCell(10).value,
         entryDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
 
         // Automatically set to the importing user
