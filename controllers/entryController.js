@@ -262,19 +262,6 @@ exports.importFromExcel = async (req, res) => {
       // Start from row 2 to skip headers
       const row = worksheet.getRow(rowNumber);
 
-      // Parse username from submittedBy cell value
-      const submittedByUsername = row.getCell(11).value?.split(" (")[0];
-      const submittedByUser = await User.findOne({
-        username: submittedByUsername,
-      });
-
-      if (!submittedByUser) {
-        console.warn(
-          `User ${submittedByUsername} not found, skipping row ${rowNumber}`
-        );
-        continue; // Skip this row if user not found
-      }
-
       const entry = {
         name: row.getCell(1).value,
         description: row.getCell(2).value,
@@ -285,22 +272,18 @@ exports.importFromExcel = async (req, res) => {
         vat: row.getCell(7).value,
         totalPriceAfterVat: row.getCell(8).value,
         deliveryDate: row.getCell(9).value,
-        entryDate: row.getCell(10).value,
-        submittedBy: submittedByUser._id, // Store ObjectId
+        entryDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
 
-        // For approval fields, add similar user lookups if needed
-        approvalPayment: row.getCell(12).value === "Yes",
-        approvedPaymentBy: {
-          username: row.getCell(13).value?.split(" (")[0] || "",
-          department: row.getCell(13).value?.split(" (")[1]?.slice(0, -1) || "",
-        },
-        approvalPaymentDate: row.getCell(14).value,
-        approvalReceive: row.getCell(15).value === "Yes",
-        approvedReceiveBy: {
-          username: row.getCell(16).value?.split(" (")[0] || "",
-          department: row.getCell(16).value?.split(" (")[1]?.slice(0, -1) || "",
-        },
-        approvalReceiveDate: row.getCell(17).value,
+        // Automatically set to the importing user
+        submittedBy: req.user.id,
+
+        // Set approval fields to default
+        approvalPayment: false,
+        approvedPaymentBy: { username: "", department: "" },
+        approvalPaymentDate: null,
+        approvalReceive: false,
+        approvedReceiveBy: { username: "", department: "" },
+        approvalReceiveDate: null,
       };
 
       rows.push(entry);
