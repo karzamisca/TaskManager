@@ -9,6 +9,7 @@ const authMiddleware = require("./middlewares/authMiddleware"); // JWT middlewar
 const entryRoutes = require("./routes/entryRoutes");
 const path = require("path");
 const fs = require("fs");
+const multer = require("multer");
 require("dotenv").config();
 
 const app = express();

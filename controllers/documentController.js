@@ -202,7 +202,9 @@ exports.approveDocument = async (req, res) => {
     if (req.user.role !== "approver") {
       return res
         .status(403)
-        .send("Access denied. Only approvers can approve documents.");
+        .send(
+          "Truy cập bị từ chối. Bạn không có quyền phê duyệt tài liệu./Access denied. You don't have permission to approve document."
+        );
     }
 
     // Check if the document is a Generic, Proposal, or Processing Document
@@ -228,7 +230,9 @@ exports.approveDocument = async (req, res) => {
     if (!isChosenApprover) {
       return res
         .status(403)
-        .send("You are not an assigned approver for this document.");
+        .send(
+          "Truy cập bị từ chối. Bạn không có quyền phê duyệt tài liệu này./Access denied. You don't have permission to approve this document."
+        );
     }
 
     const hasApproved = document.approvedBy.some(
@@ -236,7 +240,11 @@ exports.approveDocument = async (req, res) => {
     );
 
     if (hasApproved) {
-      return res.status(400).send("You have already approved this document.");
+      return res
+        .status(400)
+        .send(
+          "Bạn đã phê duyệt tài liệu rồi./You have already approved this document."
+        );
     }
 
     // Add the current approver to the list of `approvedBy`
@@ -387,7 +395,9 @@ exports.deleteDocument = async (req, res) => {
     if (req.user.role !== "approver") {
       return res
         .status(403)
-        .send("Access denied. Only approvers can delete documents.");
+        .send(
+          "Truy cập bị từ chối. Bạn không có quyền xóa tài liệu./Access denied. You don't have permission to delete document."
+        );
     }
 
     // Try to find the document in each collection

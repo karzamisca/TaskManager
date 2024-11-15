@@ -8,7 +8,11 @@ exports.login = async (req, res) => {
   try {
     const user = await User.findOne({ username });
     if (!user || user.password !== password) {
-      return res.status(401).send("Invalid username or password");
+      return res
+        .status(401)
+        .send(
+          "Tên đăng nhập hoặc mật khẩu không hợp lệ/Invalid username or password"
+        );
     }
 
     // Generate a JWT token
