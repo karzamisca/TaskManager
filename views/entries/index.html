@@ -141,7 +141,7 @@
     <!-- Search fields for each column -->
     <h2>Lọc/Filter</h2>
     <div>
-      <label for="searchTag">Mã/Tag:</label>
+      <label for="searchTag">Tem/Tag:</label>
       <input type="text" id="searchTag" placeholder="Search by tag" />
 
       <label for="searchName">Tên dự án/Project Name:</label>
@@ -221,7 +221,7 @@
     <table id="entriesTable">
       <thead>
         <tr>
-          <th onclick="sortTable(0)">Mã/Tag</th>
+          <th onclick="sortTable(0)">Tem/Tag</th>
           <th onclick="sortTable(1)">Tên dự án/Project name</th>
           <th onclick="sortTable(2)">Mô tả/Description</th>
           <th onclick="sortTable(3)">Đơn vị/Unit</th>
@@ -317,7 +317,7 @@
     <h2>Chỉnh sửa dữ liệu/Update Entry</h2>
     <form id="updateForm" action="/entryUpdate" method="POST">
       <div class="form-group">
-        <label for="tag">Tag (Required for Update):</label>
+        <label for="tag">Chọn tem/Choose tag:</label>
         <select id="tag" name="tag" required>
           <option value="" disabled selected>Select a tag</option>
         </select>
