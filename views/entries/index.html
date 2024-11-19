@@ -314,6 +314,29 @@
       </p>
     </div>
 
+    <h2>Chỉnh sửa dữ liệu/Update Entry</h2>
+    <form id="updateForm" action="/entryUpdate" method="POST">
+      <div class="form-group">
+        <label for="tag">Tag (Required for Update):</label>
+        <select id="tag" name="tag" required>
+          <option value="" disabled selected>Select a tag</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="name">Tên dự án/Project Name:</label>
+        <input type="text" id="name" name="name" />
+      </div>
+
+      <div class="form-group">
+        <label for="description">Mô tả/Description:</label>
+        <input type="text" id="description" name="description" />
+      </div>
+
+      <!-- Add other fields as needed -->
+      <button type="submit">Update</button>
+    </form>
+
     <h2>Nhập liệu từ Excel/Import Entries from Excel</h2>
     <!-- Form for importing Excel files -->
     <form
@@ -340,6 +363,26 @@
           dateFormat: "d-m-Y",
           defaultDate: "today",
         });
+      });
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        const tagDropdown = document.getElementById("tag");
+
+        try {
+          // Fetch tags from the server
+          const response = await fetch("/entryTags");
+          const tags = await response.json();
+
+          // Populate the dropdown
+          tags.forEach((tag) => {
+            const option = document.createElement("option");
+            option.value = tag.tag;
+            option.textContent = tag.tag;
+            tagDropdown.appendChild(option);
+          });
+        } catch (err) {
+          console.error("Error fetching tags:", err);
+        }
       });
 
       // Sort table function

@@ -75,6 +75,50 @@ exports.createEntry = async (req, res) => {
   }
 };
 
+//For updating entry
+exports.getTags = async (req, res) => {
+  try {
+    const tags = await Entry.find({}, "tag").exec(); // Retrieve only the 'tag' field
+    res.json(tags);
+  } catch (err) {
+    res.status(500).json({ error: "Error fetching tags: " + err.message });
+  }
+};
+exports.updateEntry = async (req, res) => {
+  try {
+    const { tag, ...updatedFields } = req.body;
+
+    if (!tag) {
+      return res
+        .status(400)
+        .json({ error: "Tag is required for updating the entry." });
+    }
+
+    const entry = await Entry.findOne({ tag });
+
+    if (!entry) {
+      return res.status(404).json({ error: "Entry not found." });
+    }
+
+    // Overwrite only the provided fields that are not empty or undefined
+    Object.keys(updatedFields).forEach((key) => {
+      if (
+        updatedFields[key] !== undefined &&
+        updatedFields[key] !== null &&
+        updatedFields[key] !== ""
+      ) {
+        entry[key] = updatedFields[key];
+      }
+    });
+
+    await entry.save();
+
+    res.redirect("/entry"); // Redirect back to the main entry page
+  } catch (err) {
+    res.status(500).json({ error: "Error updating entry: " + err.message });
+  }
+};
+
 exports.approvePaymentEntry = async (req, res) => {
   try {
     const entryId = req.params.id;

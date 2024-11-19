@@ -55,6 +55,10 @@ router.post(
 router.post("/entryNew", authMiddleware, entryController.createEntry); // Submit new entry
 router.delete("/entryDelete/:id", authMiddleware, entryController.deleteEntry); // Delete entry by ID
 
+//For updating entry
+router.post("/entryUpdate", authMiddleware, entryController.updateEntry);
+router.get("/entryTags", authMiddleware, entryController.getTags);
+
 // Export and Import routes
 router.get("/entryExport", authMiddleware, entryController.exportToExcel); // Export entries to Excel
 router.post(
