@@ -10,6 +10,7 @@ const entrySchema = new mongoose.Schema({
   unitPrice: Number,
   totalPrice: Number,
   vat: Number,
+  vatValue: Number,
   totalPriceAfterVat: Number,
   deliveryDate: String,
   note: String,

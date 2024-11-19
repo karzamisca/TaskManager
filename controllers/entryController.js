@@ -37,6 +37,7 @@ exports.createEntry = async (req, res) => {
       note,
     } = req.body;
     const totalPrice = amount * unitPrice;
+    const vatValue = totalPrice * (vat / 100);
     const totalPriceAfterVat = totalPrice + totalPrice * (vat / 100);
     const submittedBy = req.user.id; // Use the current user's ID as the submitter
     const tag = `${req.user.id}-${req.user.department}-${moment()
@@ -52,6 +53,7 @@ exports.createEntry = async (req, res) => {
       unitPrice,
       totalPrice,
       vat,
+      vatValue,
       totalPriceAfterVat,
       deliveryDate,
       note,
@@ -193,6 +195,7 @@ exports.exportToExcel = async (req, res) => {
       { header: "Unit Price", key: "unitPrice", width: 15 },
       { header: "Total Price", key: "totalPrice", width: 15 },
       { header: "VAT (%)", key: "vat", width: 10 },
+      { header: "VAT Value", key: "vatValue", width: 10 },
       { header: "Total Price After VAT", key: "totalPriceAfterVat", width: 20 },
       { header: "Delivery Date", key: "deliveryDate", width: 15 },
       { header: "Note", key: "note", width: 30 },
@@ -225,6 +228,7 @@ exports.exportToExcel = async (req, res) => {
         unitPrice: entry.unitPrice,
         totalPrice: entry.totalPrice,
         vat: entry.vat,
+        vatValue: entry.vatValue,
         totalPriceAfterVat: entry.totalPriceAfterVat,
         deliveryDate: entry.deliveryDate,
         note: entry.note,
@@ -290,9 +294,10 @@ exports.importFromExcel = async (req, res) => {
         unitPrice: row.getCell(6).value,
         totalPrice: row.getCell(7).value,
         vat: row.getCell(8).value,
-        totalPriceAfterVat: row.getCell(9).value,
-        deliveryDate: row.getCell(10).value,
-        note: row.getCell(11).value,
+        vatValue: row.getCell(9).value,
+        totalPriceAfterVat: row.getCell(10).value,
+        deliveryDate: row.getCell(11).value,
+        note: row.getCell(12).value,
         entryDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
 
         // Automatically set to the importing user

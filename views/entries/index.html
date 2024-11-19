@@ -165,7 +165,7 @@
         placeholder="Search by unit price"
       />
 
-      <label for="searchTotalPrice">Tổng tiền/Total Price:</label>
+      <label for="searchTotalPrice">Thành tiền /Total Price:</label>
       <input
         type="number"
         id="searchTotalPrice"
@@ -174,6 +174,13 @@
 
       <label for="searchVAT">Thuế giá trị gia tăng/VAT (%):</label>
       <input type="number" id="searchVAT" placeholder="Search by VAT" />
+
+      <label for="searchVATValue">Giá trị VAT/VAT Value:</label>
+      <input
+        type="number"
+        id="searchVATValue"
+        placeholder="Search by VAT Value"
+      />
 
       <label for="searchTotalPriceAfterVAT"
         >Tổng tiền sau VAT/Total Price After VAT:</label
@@ -218,19 +225,20 @@
           <th onclick="sortTable(3)">Đơn vị/Unit</th>
           <th onclick="sortTable(4)">Số lượng/Amount</th>
           <th onclick="sortTable(5)">Đơn giá/Unit Price</th>
-          <th onclick="sortTable(6)">Tổng tiền/Total Price</th>
+          <th onclick="sortTable(6)">Thành tiền /Total Price</th>
           <th onclick="sortTable(7)">Thuế giá trị gia tăng/VAT (%)</th>
-          <th onclick="sortTable(8)">
-            Tổng tiền sau VAT/Total Price After VAT
+          <th onclick="sortTable(8)">Giá trị VAT/VAT Value</th>
+          <th onclick="sortTable(9)">
+            Thành tiền sau VAT/Total Price After VAT
           </th>
-          <th onclick="sortTable(9)">Ngày giao hàng/Delivery Date</th>
-          <th onclick="sortTable(10)">Ghi chú/Note</th>
-          <th onclick="sortTable(11)">Ngày nhập liệu/Entry Date</th>
-          <th onclick="sortTable(12)">Người nhập liệu/Submitter</th>
-          <th onclick="sortTable(13)">
+          <th onclick="sortTable(10)">Ngày giao hàng/Delivery Date</th>
+          <th onclick="sortTable(11)">Ghi chú/Note</th>
+          <th onclick="sortTable(12)">Ngày nhập liệu/Entry Date</th>
+          <th onclick="sortTable(13)">Người nhập liệu/Submitter</th>
+          <th onclick="sortTable(14)">
             Xác nhận đã thanh toán/Approved Payment
           </th>
-          <th onclick="sortTable(14)">
+          <th onclick="sortTable(15)">
             Xác nhận đã nhận hàng/Confirmed Received
           </th>
           <th>Hành động/Actions</th>
@@ -394,6 +402,7 @@
         const filterTotalPrice =
           document.getElementById("searchTotalPrice").value;
         const filterVAT = document.getElementById("searchVAT").value;
+        const filterVATValue = document.getElementById("searchVATValue").value;
         const filterTotalPriceAfterVAT = document.getElementById(
           "searchTotalPriceAfterVAT"
         ).value;
@@ -422,13 +431,14 @@
           const unitPrice = row.cells[5].textContent;
           const totalPrice = row.cells[6].textContent;
           const vat = row.cells[7].textContent;
-          const totalPriceAfterVAT = row.cells[8].textContent;
-          const deliveryDate = row.cells[9].textContent;
-          const note = row.cells[10].textContent;
-          const entryDate = row.cells[11].textContent;
-          const submitter = row.cells[12].textContent;
-          const approvedPayment = row.cells[13].textContent;
-          const confirmedReceived = row.cells[14].textContent;
+          const vatValue = row.cells[8].textContent;
+          const totalPriceAfterVAT = row.cells[9].textContent;
+          const deliveryDate = row.cells[10].textContent;
+          const note = row.cells[11].textContent;
+          const entryDate = row.cells[12].textContent;
+          const submitter = row.cells[13].textContent;
+          const approvedPayment = row.cells[14].textContent;
+          const confirmedReceived = row.cells[15].textContent;
 
           const matchesTag = !filterTag || tag.includes(filterTag);
           const matchesName = !filterName || name.includes(filterName);
@@ -441,6 +451,7 @@
           const matchesTotalPrice =
             !filterTotalPrice || totalPrice == filterTotalPrice;
           const matchesVAT = !filterVAT || vat == filterVAT;
+          const matchesVATValue = !filterVATValue || vatValue == filterVATValue;
           const matchesTotalPriceAfterVAT =
             !filterTotalPriceAfterVAT ||
             totalPriceAfterVAT == filterTotalPriceAfterVAT;
@@ -467,6 +478,7 @@
             matchesUnitPrice &&
             matchesTotalPrice &&
             matchesVAT &&
+            matchesVATValue &&
             matchesTotalPriceAfterVAT &&
             matchesDeliveryDate &&
             matchesNote &&
@@ -504,6 +516,7 @@
             <td>${entry.unitPrice}</td>
             <td>${entry.totalPrice}</td>
             <td>${entry.vat}</td>
+            <td>${entry.vatValue}</td>
             <td>${entry.totalPriceAfterVat}</td>
             <td>${entry.deliveryDate}</td>
             <td>${entry.note}</td>
@@ -624,7 +637,7 @@
         // Add event listeners to each search field
         document
           .querySelectorAll(
-            "#searchTag, #searchName, #searchDescription, #searchUnit, #searchAmount, #searchUnitPrice, #searchTotalPrice, #searchVAT, #searchTotalPriceAfterVAT, #searchDeliveryDate, #searchNote, #searchEntryDate, #searchSubmitter, #searchApprovedPayment, #searchConfirmedReceived"
+            "#searchTag, #searchName, #searchDescription, #searchUnit, #searchAmount, #searchUnitPrice, #searchTotalPrice, #searchVAT, #searchVATValue, #searchTotalPriceAfterVAT, #searchDeliveryDate, #searchNote, #searchEntryDate, #searchSubmitter, #searchApprovedPayment, #searchConfirmedReceived"
           )
           .forEach((input) => input.addEventListener("input", filterTable));
 
