@@ -4,7 +4,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Data Entry</title>
+    <title>
+      Hệ thống Theo Dõi Chi Phí Dự Án / Project Expenses Tracking System
+    </title>
     <style>
       /* Base styles for all screen sizes */
       body {
@@ -131,7 +133,7 @@
     />
   </head>
   <body>
-    <h1>Hệ thống theo dõi chi phí / Expenses Tracking System</h1>
+    <h1>Hệ thống Theo Dõi Chi Phí Dự Án / Project Expenses Tracking System</h1>
 
     <!-- Export Button -->
     <button id="exportButton">Xuất ra Excel / Export to Excel</button>
@@ -142,7 +144,7 @@
       <label for="searchTag">Mã/Tag:</label>
       <input type="text" id="searchTag" placeholder="Search by tag" />
 
-      <label for="searchName">Tên/Name:</label>
+      <label for="searchName">Tên dự án/Project Name:</label>
       <input type="text" id="searchName" placeholder="Search by name" />
 
       <label for="searchDescription">Mô tả/Description:</label>
@@ -220,7 +222,7 @@
       <thead>
         <tr>
           <th onclick="sortTable(0)">Mã/Tag</th>
-          <th onclick="sortTable(1)">Tên/Name</th>
+          <th onclick="sortTable(1)">Tên dự án/Project name</th>
           <th onclick="sortTable(2)">Mô tả/Description</th>
           <th onclick="sortTable(3)">Đơn vị/Unit</th>
           <th onclick="sortTable(4)">Số lượng/Amount</th>
@@ -303,8 +305,13 @@
 
     <h2>Theo dõi/Trackers</h2>
     <div>
-      <p><strong>Nợ/Debt:</strong> <span id="debtTracker">0</span></p>
-      <p><strong>Đã trả/Paid:</strong> <span id="paidTracker">0</span></p>
+      <p>
+        <strong>Chưa thanh toán/Unpaid:</strong>
+        <span id="unpaidTracker">0</span>
+      </p>
+      <p>
+        <strong>Đã thanh toán/Paid:</strong> <span id="paidTracker">0</span>
+      </p>
     </div>
 
     <h2>Nhập liệu từ Excel/Import Entries from Excel</h2>
@@ -494,14 +501,14 @@
       window.onload = async function () {
         const tableBody = document.querySelector("#entriesTable tbody");
         const exportButton = document.getElementById("exportButton");
-        const debtTracker = document.getElementById("debtTracker");
+        const unpaidTracker = document.getElementById("unpaidTracker");
         const paidTracker = document.getElementById("paidTracker");
 
         // Fetch entries from the backend
         const response = await fetch("/entryAll");
         const entries = await response.json();
 
-        let totalDebt = 0;
+        let totalUnpaid = 0;
         let totalPaid = 0;
 
         entries.forEach((entry) => {
@@ -558,13 +565,13 @@
           tableBody.appendChild(row);
 
           if (!entry.approvalPayment) {
-            totalDebt += entry.totalPriceAfterVat;
+            totalUnpaid += entry.totalPriceAfterVat;
           } else {
             totalPaid += entry.totalPriceAfterVat;
           }
         });
 
-        debtTracker.textContent = totalDebt.toFixed(2);
+        unpaidTracker.textContent = totalUnpaid.toFixed(2);
         paidTracker.textContent = totalPaid.toFixed(2);
 
         document.querySelectorAll(".delete-button").forEach((button) => {
