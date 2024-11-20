@@ -23,6 +23,7 @@
         color: #333;
       }
 
+      /* Table styling */
       table {
         width: 100%;
         border-collapse: collapse;
@@ -42,23 +43,31 @@
         text-align: left;
       }
 
+      /* Form styling */
       form {
         display: flex;
-        justify-content: space-between;
         flex-wrap: wrap;
+        gap: 10px; /* Add gap for spacing between elements */
         width: 100%;
       }
 
       .form-group {
         margin-bottom: 10px;
-        width: 15%; /* Use relative width */
+        flex: 1 1 calc(25% - 10px); /* Default: 4 items per row, with space */
+        min-width: 200px; /* Minimum size for small screens */
+      }
+
+      .full-width {
+        flex: 1 1 100%; /* Occupies the full width of the row */
+        margin-bottom: 20px; /* Add extra space after */
       }
 
       form input,
+      form select,
       form button {
-        padding: 5px;
-        margin-left: 5px;
-        width: 100%; /* Full width for inputs */
+        padding: 10px;
+        width: 100%;
+        font-size: 1rem;
       }
 
       /* Media queries for responsiveness */
@@ -70,60 +79,68 @@
           font-size: 1.2rem;
         }
 
-        table {
-          font-size: 0.8rem; /* Smaller font size for small screens */
+        .form-group {
+          flex: 1 1 100%; /* Stack all elements in a single column */
         }
 
-        .form-group {
-          width: 48%; /* Stack the inputs side by side on smaller screens */
+        .full-width {
+          flex: 1 1 100%; /* Occupies the full width of the row */
+          margin-bottom: 20px; /* Add extra space after */
         }
 
         form input,
+        form select,
         form button {
-          padding: 10px;
-          margin-left: 0;
+          font-size: 0.9rem; /* Adjust input font size */
+          padding: 8px;
         }
       }
 
       /* Medium devices (tablets) */
-      @media only screen and (min-width: 600px) and (max-width: 1024px) {
+      @media only screen and (min-width: 601px) and (max-width: 1024px) {
         h1,
         h2 {
           font-size: 1.5rem;
         }
 
-        table {
-          font-size: 0.9rem;
+        .form-group {
+          flex: 1 1 calc(50% - 10px); /* Two items per row */
         }
 
-        .form-group {
-          width: 30%;
+        .full-width {
+          flex: 1 1 100%; /* Occupies the full width of the row */
+          margin-bottom: 20px; /* Add extra space after */
         }
 
         form input,
+        form select,
         form button {
-          padding: 8px;
+          font-size: 1rem;
+          padding: 10px;
         }
       }
 
       /* Large devices (desktops) */
-      @media only screen and (min-width: 1024px) {
+      @media only screen and (min-width: 1025px) {
         h1,
         h2 {
           font-size: 2rem;
         }
 
-        table {
-          font-size: 1rem;
+        .form-group {
+          flex: 1 1 calc(25% - 10px); /* Four items per row */
         }
 
-        .form-group {
-          width: 15%;
+        .full-width {
+          flex: 1 1 100%; /* Occupies the full width of the row */
+          margin-bottom: 20px; /* Add extra space after */
         }
 
         form input,
+        form select,
         form button {
-          padding: 5px;
+          font-size: 1.1rem;
+          padding: 12px;
         }
       }
     </style>
@@ -316,10 +333,12 @@
 
     <h2>Chỉnh sửa dữ liệu/Update Entry</h2>
     <form id="updateForm" action="/entryUpdate" method="POST">
-      <div class="form-group">
+      <div class="form-group full-width">
         <label for="tag">Chọn tem/Choose tag:</label>
         <select id="tag" name="tag" required>
-          <option value="" disabled selected>Select a tag</option>
+          <option value="" disabled selected>
+            Hãy chọn một tem/Select a tag
+          </option>
         </select>
       </div>
 
@@ -368,7 +387,6 @@
         <input type="text" id="note" name="note" />
       </div>
 
-      <!-- Add other fields as needed -->
       <button type="submit">Update</button>
     </form>
 
