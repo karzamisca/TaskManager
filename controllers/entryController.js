@@ -293,8 +293,9 @@ exports.importFromExcel = async (req, res) => {
         vat: row.getCell(8).value,
         vatValue: row.getCell(9).value,
         totalPriceAfterVat: row.getCell(10).value,
-        deliveryDate: row.getCell(11).value,
-        note: row.getCell(12).value,
+        paid: row.getCell(11).value,
+        deliveryDate: row.getCell(12).value,
+        note: row.getCell(13).value,
         entryDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
 
         // Automatically set to the importing user
