@@ -40,12 +40,10 @@ exports.createEntry = async (req, res) => {
       amount,
       unitPrice,
       vat,
+      paid,
       deliveryDate,
       note,
     } = req.body;
-    const totalPrice = amount * unitPrice;
-    const vatValue = totalPrice * (vat / 100);
-    const totalPriceAfterVat = totalPrice + totalPrice * (vat / 100);
     const submittedBy = req.user.id; // Use the current user's ID as the submitter
     const tag = `${req.user.id}-${req.user.department}-${moment()
       .tz("Asia/Bangkok")
@@ -58,10 +56,8 @@ exports.createEntry = async (req, res) => {
       unit,
       amount,
       unitPrice,
-      totalPrice,
       vat,
-      vatValue,
-      totalPriceAfterVat,
+      paid,
       deliveryDate,
       note,
       entryDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
@@ -116,48 +112,6 @@ exports.updateEntry = async (req, res) => {
     res.redirect("/entry"); // Redirect back to the main entry page
   } catch (err) {
     res.status(500).json({ error: "Error updating entry: " + err.message });
-  }
-};
-
-exports.approvePaymentEntry = async (req, res) => {
-  try {
-    const entryId = req.params.id;
-
-    if (req.user.role !== "approver") {
-      return res.status(403).json({
-        error:
-          "Truy cập bị từ chối. Bạn không có quyền xác nhận đã thanh toán./Access denied.You do not have permission to approve payment.",
-      });
-    }
-
-    const entry = await Entry.findById(entryId);
-    if (!entry) {
-      return res.status(404).json({ error: "Entry not found" });
-    }
-
-    // Fetch the full user data to ensure username and department are accessible
-    const approver = await User.findById(req.user.id);
-    if (!approver) {
-      return res.status(404).json({ error: "Approver not found" });
-    }
-
-    entry.approvalPayment = true;
-    entry.approvedPaymentBy = {
-      username: approver.username,
-      department: approver.department,
-    };
-    entry.approvalPaymentDate = moment()
-      .tz("Asia/Bangkok")
-      .format("DD-MM-YYYY HH:mm:ss");
-
-    await entry.save();
-    res.json({
-      message: "Xác nhận thanh toán thành công/Payment approved successfully",
-    });
-  } catch (err) {
-    res.status(500).json({
-      error: "Lỗi xác nhận dữ liệu/Error approving entry: " + err.message,
-    });
   }
 };
 
@@ -248,17 +202,11 @@ exports.exportToExcel = async (req, res) => {
       { header: "VAT (%)", key: "vat", width: 10 },
       { header: "VAT Value", key: "vatValue", width: 10 },
       { header: "Total Price After VAT", key: "totalPriceAfterVat", width: 20 },
+      { header: "Paid", key: "paid", width: 10 },
       { header: "Delivery Date", key: "deliveryDate", width: 15 },
       { header: "Note", key: "note", width: 30 },
       { header: "Entry Date", key: "entryDate", width: 20 },
       { header: "Submitted By", key: "submittedBy", width: 30 },
-      { header: "Approval Payment", key: "approvalPayment", width: 15 },
-      { header: "Approved Payment By", key: "approvedPaymentBy", width: 30 },
-      {
-        header: "Approval Payment Date",
-        key: "approvalPaymentDate",
-        width: 20,
-      },
       { header: "Approval Receive", key: "approvalReceive", width: 15 },
       { header: "Approved Receive By", key: "approvedReceiveBy", width: 30 },
       {
@@ -277,19 +225,17 @@ exports.exportToExcel = async (req, res) => {
         unit: entry.unit,
         amount: entry.amount,
         unitPrice: entry.unitPrice,
-        totalPrice: entry.totalPrice,
+        totalPrice: entry.amount * entry.unitPrice,
         vat: entry.vat,
-        vatValue: entry.vatValue,
-        totalPriceAfterVat: entry.totalPriceAfterVat,
+        vatValue: entry.amount * entry.unitPrice * (entry.vat / 100),
+        totalPriceAfterVat:
+          entry.amount * entry.unitPrice +
+          entry.amount * entry.unitPrice * (entry.vat / 100),
+        paid: entry.paid,
         deliveryDate: entry.deliveryDate,
         note: entry.note,
         entryDate: entry.entryDate,
         submittedBy: `${entry.submittedBy.username} (${entry.submittedBy.department})`,
-        approvalPayment: entry.approvalPayment ? "Yes" : "No",
-        approvedPaymentBy: entry.approvedPaymentBy
-          ? `${entry.approvedPaymentBy.username} (${entry.approvedPaymentBy.department})`
-          : "",
-        approvalPaymentDate: entry.approvalPaymentDate || "",
         approvalReceive: entry.approvalReceive ? "Yes" : "No",
         approvedReceiveBy: entry.approvedReceiveBy
           ? `${entry.approvedReceiveBy.username} (${entry.approvedReceiveBy.department})`
@@ -355,9 +301,6 @@ exports.importFromExcel = async (req, res) => {
         submittedBy: req.user.id,
 
         // Set approval fields to default
-        approvalPayment: false,
-        approvedPaymentBy: { username: "", department: "" },
-        approvalPaymentDate: null,
         approvalReceive: false,
         approvedReceiveBy: { username: "", department: "" },
         approvalReceiveDate: null,

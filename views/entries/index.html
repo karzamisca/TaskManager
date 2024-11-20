@@ -192,6 +192,8 @@
         id="searchTotalPriceAfterVAT"
         placeholder="Search by total after VAT"
       />
+      <label for="searchPaid">Đã trả/Paid:</label>
+      <input type="number" id="searchPaid" />
 
       <label for="searchDeliveryDate">Ngày giao hàng/Delivery Date:</label>
       <input type="date" id="searchDeliveryDate" />
@@ -204,11 +206,6 @@
 
       <label for="searchSubmitter">Người nhập/Submitter:</label>
       <input type="text" id="searchSubmitter" />
-
-      <label for="searchApprovedPayment"
-        >Xác nhận đã thanh toán/Approved Payment:</label
-      >
-      <input type="text" id="searchApprovedPayment" />
 
       <label for="searchConfirmedReceived"
         >Xác nhận đã nhận hàng/Confirmed Received:</label
@@ -233,13 +230,11 @@
           <th onclick="sortTable(9)">
             Thành tiền sau VAT/Total Price After VAT
           </th>
-          <th onclick="sortTable(10)">Ngày giao hàng/Delivery Date</th>
-          <th onclick="sortTable(11)">Ghi chú/Note</th>
-          <th onclick="sortTable(12)">Ngày nhập liệu/Entry Date</th>
-          <th onclick="sortTable(13)">Người nhập liệu/Submitter</th>
-          <th onclick="sortTable(14)">
-            Xác nhận đã thanh toán/Approved Payment
-          </th>
+          <th onclick="sortTable(10)">Đã trả/Paid</th>
+          <th onclick="sortTable(11)">Ngày giao hàng/Delivery Date</th>
+          <th onclick="sortTable(12)">Ghi chú/Note</th>
+          <th onclick="sortTable(13)">Ngày nhập liệu/Entry Date</th>
+          <th onclick="sortTable(14)">Người nhập liệu/Submitter</th>
           <th onclick="sortTable(15)">
             Xác nhận đã nhận hàng/Confirmed Received
           </th>
@@ -291,6 +286,11 @@
       </div>
 
       <div class="form-group">
+        <label for="paid">Đã trả/Paid:</label>
+        <input type="number" step="0.1" id="paid" name="paid" required />
+      </div>
+
+      <div class="form-group">
         <label for="deliveryDate">Ngày giao hàng/Delivery Date:</label>
         <input type="date" id="deliveryDate" name="deliveryDate" required />
       </div>
@@ -333,6 +333,41 @@
         <input type="text" id="description" name="description" />
       </div>
 
+      <div class="form-group">
+        <label for="unit">Đơn vị/Unit:</label>
+        <input type="text" id="unit" name="unit" />
+      </div>
+
+      <div class="form-group">
+        <label for="amount">Số lượng/Amount:</label>
+        <input type="number" id="amount" name="amount" />
+      </div>
+
+      <div class="form-group">
+        <label for="unitPrice">Đơn giá/Unit Price:</label>
+        <input type="number" step="0.1" id="unitPrice" name="unitPrice" />
+      </div>
+
+      <div class="form-group">
+        <label for="vat">Thuế giá trị gia tăng/VAT (%):</label>
+        <input type="number" step="0.1" id="vat" name="vat" />
+      </div>
+
+      <div class="form-group">
+        <label for="paid">Đã trả/Paid:</label>
+        <input type="number" step="0.1" id="paid" name="paid" />
+      </div>
+
+      <div class="form-group">
+        <label for="deliveryDate">Ngày giao hàng/Delivery Date:</label>
+        <input type="date" id="deliveryDate" name="deliveryDate" />
+      </div>
+
+      <div class="form-group">
+        <label for="note">Ghi chú/Note:</label>
+        <input type="text" id="note" name="note" />
+      </div>
+
       <!-- Add other fields as needed -->
       <button type="submit">Update</button>
     </form>
@@ -361,7 +396,6 @@
         flatpickr("#searchEntryDate", { dateFormat: "d-m-Y" });
         flatpickr("#deliveryDate", {
           dateFormat: "d-m-Y",
-          defaultDate: "today",
         });
       });
 
@@ -434,110 +468,76 @@
 
       // Search function for each field
       function filterTable() {
-        const filterTag = document
-          .getElementById("searchTag")
-          .value.toLowerCase();
-        const filterName = document
-          .getElementById("searchName")
-          .value.toLowerCase();
-        const filterDescription = document
-          .getElementById("searchDescription")
-          .value.toLowerCase();
-        const filterUnit = document
-          .getElementById("searchUnit")
-          .value.toLowerCase();
-        const filterAmount = document.getElementById("searchAmount").value;
-        const filterUnitPrice =
-          document.getElementById("searchUnitPrice").value;
-        const filterTotalPrice =
-          document.getElementById("searchTotalPrice").value;
-        const filterVAT = document.getElementById("searchVAT").value;
-        const filterVATValue = document.getElementById("searchVATValue").value;
-        const filterTotalPriceAfterVAT = document.getElementById(
-          "searchTotalPriceAfterVAT"
-        ).value;
-        const filterDeliveryDate =
-          document.getElementById("searchDeliveryDate").value;
-        const filterNote = document.getElementById("searchNote").value;
-        const filterEntryDate =
-          document.getElementById("searchEntryDate").value;
-        const filterSubmitter =
-          document.getElementById("searchSubmitter").value;
-        const filterApprovedPayment = document.getElementById(
-          "searchApprovedPayment"
-        ).value;
-        const filterConfirmedReceived = document.getElementById(
-          "searchConfirmedReceived"
-        ).value;
+        const filters = {
+          tag: document.getElementById("searchTag").value.toLowerCase(),
+          name: document.getElementById("searchName").value.toLowerCase(),
+          description: document
+            .getElementById("searchDescription")
+            .value.toLowerCase(),
+          unit: document.getElementById("searchUnit").value.toLowerCase(),
+          amount: document.getElementById("searchAmount").value,
+          unitPrice: document.getElementById("searchUnitPrice").value,
+          totalPrice: document.getElementById("searchTotalPrice").value,
+          vat: document.getElementById("searchVAT").value,
+          vatValue: document.getElementById("searchVATValue").value,
+          totalPriceAfterVAT: document.getElementById(
+            "searchTotalPriceAfterVAT"
+          ).value,
+          paid: document.getElementById("searchPaid").value,
+          deliveryDate: document.getElementById("searchDeliveryDate").value,
+          note: document.getElementById("searchNote").value.toLowerCase(),
+          entryDate: document.getElementById("searchEntryDate").value,
+          submitter: document
+            .getElementById("searchSubmitter")
+            .value.toLowerCase(),
+          confirmedReceived: document
+            .getElementById("searchConfirmedReceived")
+            .value.toLowerCase(),
+        };
 
         const rows = document.querySelectorAll("#entriesTable tbody tr");
 
         rows.forEach((row) => {
-          const tag = row.cells[0].textContent;
-          const name = row.cells[1].textContent;
-          const description = row.cells[2].textContent;
-          const unit = row.cells[3].textContent;
-          const amount = row.cells[4].textContent;
-          const unitPrice = row.cells[5].textContent;
-          const totalPrice = row.cells[6].textContent;
-          const vat = row.cells[7].textContent;
-          const vatValue = row.cells[8].textContent;
-          const totalPriceAfterVAT = row.cells[9].textContent;
-          const deliveryDate = row.cells[10].textContent;
-          const note = row.cells[11].textContent;
-          const entryDate = row.cells[12].textContent;
-          const submitter = row.cells[13].textContent;
-          const approvedPayment = row.cells[14].textContent;
-          const confirmedReceived = row.cells[15].textContent;
+          const cells = Array.from(row.cells);
 
-          const matchesTag = !filterTag || tag.includes(filterTag);
-          const matchesName = !filterName || name.includes(filterName);
-          const matchesDescription =
-            !filterDescription || description.includes(filterDescription);
-          const matchesUnit = !filterUnit || unit.includes(filterUnit);
-          const matchesAmount = !filterAmount || amount == filterAmount;
-          const matchesUnitPrice =
-            !filterUnitPrice || unitPrice == filterUnitPrice;
-          const matchesTotalPrice =
-            !filterTotalPrice || totalPrice == filterTotalPrice;
-          const matchesVAT = !filterVAT || vat == filterVAT;
-          const matchesVATValue = !filterVATValue || vatValue == filterVATValue;
-          const matchesTotalPriceAfterVAT =
-            !filterTotalPriceAfterVAT ||
-            totalPriceAfterVAT == filterTotalPriceAfterVAT;
-          const matchesDeliveryDate =
-            !filterDeliveryDate || deliveryDate == filterDeliveryDate;
-          const matchesNote = !filterNote || note.includes(filterNote);
-          const matchesEntryDate =
-            !filterEntryDate || entryDate.includes(filterEntryDate);
-          const matchesSubmitter =
-            !filterSubmitter || submitter.includes(filterSubmitter);
-          const matchesApprovedPayment =
-            !filterApprovedPayment ||
-            approvedPayment.includes(filterApprovedPayment);
-          const matchesConfirmedReceived =
-            !filterConfirmedReceived ||
-            confirmedReceived.includes(filterConfirmedReceived);
+          // Map column indices to their corresponding filters
+          const columnData = {
+            tag: cells[0]?.textContent.toLowerCase(),
+            name: cells[1]?.textContent.toLowerCase(),
+            description: cells[2]?.textContent.toLowerCase(),
+            unit: cells[3]?.textContent.toLowerCase(),
+            amount: cells[4]?.textContent,
+            unitPrice: cells[5]?.textContent,
+            totalPrice: cells[6]?.textContent,
+            vat: cells[7]?.textContent,
+            vatValue: cells[8]?.textContent,
+            totalPriceAfterVAT: cells[9]?.textContent,
+            paid: cells[10]?.textContent,
+            deliveryDate: cells[11]?.textContent,
+            note: cells[12]?.textContent.toLowerCase(),
+            entryDate: cells[13]?.textContent,
+            submitter: cells[14]?.textContent.toLowerCase(),
+            confirmedReceived: cells[15]?.textContent.toLowerCase(),
+          };
 
-          row.style.display =
-            matchesTag &&
-            matchesName &&
-            matchesDescription &&
-            matchesUnit &&
-            matchesAmount &&
-            matchesUnitPrice &&
-            matchesTotalPrice &&
-            matchesVAT &&
-            matchesVATValue &&
-            matchesTotalPriceAfterVAT &&
-            matchesDeliveryDate &&
-            matchesNote &&
-            matchesEntryDate &&
-            matchesSubmitter &&
-            matchesApprovedPayment &&
-            matchesConfirmedReceived
-              ? ""
-              : "none";
+          // Check if the row matches all filters
+          const isVisible = Object.keys(filters).every((key) => {
+            const filterValue = filters[key];
+            const cellValue = columnData[key];
+
+            // Skip if the filter is empty
+            if (!filterValue) return true;
+
+            // Perform exact match for numeric filters and partial match for strings
+            if (!isNaN(filterValue)) {
+              return parseFloat(cellValue) === parseFloat(filterValue);
+            } else {
+              return cellValue.includes(filterValue);
+            }
+          });
+
+          // Show or hide the row based on filter matching
+          row.style.display = isVisible ? "" : "none";
         });
       }
 
@@ -564,10 +564,14 @@
             <td>${entry.unit}</td>
             <td>${entry.amount}</td>
             <td>${entry.unitPrice}</td>
-            <td>${entry.totalPrice}</td>
+            <td>${entry.amount * entry.unitPrice}</td>
             <td>${entry.vat}</td>
-            <td>${entry.vatValue}</td>
-            <td>${entry.totalPriceAfterVat}</td>
+            <td>${entry.amount * entry.unitPrice * (entry.vat / 100)}</td>
+            <td>${
+              entry.amount * entry.unitPrice +
+              entry.amount * entry.unitPrice * (entry.vat / 100)
+            }</td>
+            <td>${entry.paid}</td>
             <td>${entry.deliveryDate}</td>
             <td>${entry.note}</td>
             <td>${entry.entryDate}</td>
@@ -576,24 +580,12 @@
           })</td>
             <td>
             ${
-              entry.approvalPayment
-                ? `${entry.approvedPaymentBy.username} (${entry.approvedPaymentBy.department}) vào ${entry.approvalPaymentDate}`
-                : "Chưa xác nhận"
-            }
-            </td>
-            <td>
-            ${
               entry.approvalReceive
                 ? `${entry.approvedReceiveBy.username} (${entry.approvedReceiveBy.department}) vào ${entry.approvalReceiveDate}`
                 : "Chưa xác nhận"
             }
             </td>
             <td>
-            ${
-              entry.approvalPayment
-                ? ""
-                : `<button class="approve-payment-button" data-id="${entry._id}">Xác nhận trả tiền/Approve Payment</button>`
-            }
             ${
               entry.approvalReceive
                 ? ""
@@ -607,11 +599,11 @@
 
           tableBody.appendChild(row);
 
-          if (!entry.approvalPayment) {
-            totalUnpaid += entry.totalPriceAfterVat;
-          } else {
-            totalPaid += entry.totalPriceAfterVat;
-          }
+          totalPaid += entry.paid;
+          totalUnpaid +=
+            entry.amount * entry.unitPrice +
+            entry.amount * entry.unitPrice * (entry.vat / 100) -
+            entry.paid;
         });
 
         unpaidTracker.textContent = totalUnpaid.toFixed(2);
@@ -641,28 +633,6 @@
         });
 
         document
-          .querySelectorAll(".approve-payment-button")
-          .forEach((button) => {
-            button.addEventListener("click", async (event) => {
-              const entryId = event.target.getAttribute("data-id");
-              const approveResponse = await fetch(
-                `/entryPaymentApprove/${entryId}`,
-                {
-                  method: "POST",
-                }
-              );
-
-              if (approveResponse.ok) {
-                alert("Entry approved successfully!");
-                location.reload(); // Reload the page after approval
-              } else {
-                const errorData = await approveResponse.json();
-                alert("Error approving entry: " + errorData.error);
-              }
-            });
-          });
-
-        document
           .querySelectorAll(".approve-receive-button")
           .forEach((button) => {
             button.addEventListener("click", async (event) => {
@@ -687,7 +657,7 @@
         // Add event listeners to each search field
         document
           .querySelectorAll(
-            "#searchTag, #searchName, #searchDescription, #searchUnit, #searchAmount, #searchUnitPrice, #searchTotalPrice, #searchVAT, #searchVATValue, #searchTotalPriceAfterVAT, #searchDeliveryDate, #searchNote, #searchEntryDate, #searchSubmitter, #searchApprovedPayment, #searchConfirmedReceived"
+            "#searchTag, #searchName, #searchDescription, #searchUnit, #searchAmount, #searchUnitPrice, #searchTotalPrice, #searchVAT, #searchVATValue, #searchTotalPriceAfterVAT, #searchPaid, #searchDeliveryDate, #searchNote, #searchEntryDate, #searchSubmitter, #searchConfirmedReceived"
           )
           .forEach((input) => input.addEventListener("input", filterTable));
 

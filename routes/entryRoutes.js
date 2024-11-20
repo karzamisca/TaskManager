@@ -42,11 +42,7 @@ const upload = multer({ storage: storage, fileFilter: fileFilter });
 
 router.get("/entry", authMiddleware, entryController.getFormAndEntries); // Serve HTML form and table
 router.get("/entryAll", authMiddleware, entryController.getAllEntries); // Serve all entries as JSON
-router.post(
-  "/entryPaymentApprove/:id",
-  authMiddleware,
-  entryController.approvePaymentEntry
-);
+
 router.post(
   "/entryReceiveApprove/:id",
   authMiddleware,
