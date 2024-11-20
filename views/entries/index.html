@@ -514,6 +514,8 @@
         };
 
         const rows = document.querySelectorAll("#entriesTable tbody tr");
+        let filteredTotalPaid = 0;
+        let filteredTotalUnpaid = 0;
 
         rows.forEach((row) => {
           const cells = Array.from(row.cells);
@@ -556,7 +558,27 @@
 
           // Show or hide the row based on filter matching
           row.style.display = isVisible ? "" : "none";
+
+          // Update trackers only for visible rows
+          if (isVisible) {
+            const amount = parseFloat(cells[4].textContent) || 0;
+            const unitPrice = parseFloat(cells[5].textContent) || 0;
+            const vat = parseFloat(cells[7].textContent) || 0;
+            const paid = parseFloat(cells[10].textContent) || 0;
+
+            const totalWithVat =
+              amount * unitPrice + amount * unitPrice * (vat / 100);
+            filteredTotalPaid += paid;
+            filteredTotalUnpaid += totalWithVat - paid;
+          }
         });
+
+        // Update the tracker display with the filtered totals
+        const unpaidTracker = document.getElementById("unpaidTracker");
+        const paidTracker = document.getElementById("paidTracker");
+
+        unpaidTracker.textContent = filteredTotalUnpaid.toFixed(2);
+        paidTracker.textContent = filteredTotalPaid.toFixed(2);
       }
 
       window.onload = async function () {
