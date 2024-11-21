@@ -10,7 +10,7 @@ const processingDocumentSchema = new mongoose.Schema({
       costPerUnit: { type: Number, required: true },
       amount: { type: Number, required: true },
       totalCost: { type: Number, required: true }, // Cost per unit x amount
-      note: { type: String, required: true },
+      note: { type: String },
     },
   ],
   appendedContent: [

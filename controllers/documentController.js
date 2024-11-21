@@ -59,11 +59,10 @@ exports.submitDocument = async (req, res) => {
       const productEntries = products.map((product) => ({
         ...product,
         note: product.note || "",
-        totalCost: product.costPerUnit * product.amount,
+        totalCost: parseFloat(product.costPerUnit * product.amount),
       }));
-      const grandTotalCost = productEntries.reduce(
-        (acc, product) => acc + product.totalCost,
-        0
+      const grandTotalCost = parseFloat(
+        productEntries.reduce((acc, product) => acc + product.totalCost, 0)
       );
 
       // Fetch details if an approved proposal is selected
