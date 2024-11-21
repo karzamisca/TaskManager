@@ -262,7 +262,6 @@ exports.exportToExcel = async (req, res) => {
   }
 };
 
-// Import entries from Excel
 exports.importFromExcel = async (req, res) => {
   try {
     if (!req.file) {
@@ -271,53 +270,61 @@ exports.importFromExcel = async (req, res) => {
 
     const filePath = path.join(__dirname, "..", req.file.path);
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(filePath);
-    const worksheet = workbook.getWorksheet("Entries");
 
+    // Use streaming to handle large files
+    await workbook.xlsx.readFile(filePath);
+
+    const worksheet = workbook.getWorksheet("Entries");
     const rows = [];
 
-    for (let rowNumber = 2; rowNumber <= worksheet.rowCount; rowNumber++) {
-      // Start from row 2 to skip headers
-      const row = worksheet.getRow(rowNumber);
+    // Process rows one at a time
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      if (rowNumber >= 2) {
+        // Skip the header row
+        const entry = {
+          tag: `${req.user.id}-${req.user.department}-${moment()
+            .tz("Asia/Bangkok")
+            .format("DD-MM-YYYY HH:mm:ss")}`,
+          name: row.getCell(2).value,
+          description: row.getCell(3).value,
+          unit: row.getCell(4).value,
+          amount: row.getCell(5).value,
+          unitPrice: row.getCell(6).value,
+          totalPrice: row.getCell(7).value,
+          vat: row.getCell(8).value,
+          vatValue: row.getCell(9).value,
+          totalPriceAfterVat: row.getCell(10).value,
+          paid: row.getCell(11).value,
+          deliveryDate: row.getCell(12).value,
+          note: row.getCell(13).value,
+          entryDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
 
-      const entry = {
-        tag: `${req.user.id}-${req.user.department}-${moment()
-          .tz("Asia/Bangkok")
-          .format("DD-MM-YYYY HH:mm:ss")}`,
-        name: row.getCell(2).value,
-        description: row.getCell(3).value,
-        unit: row.getCell(4).value,
-        amount: row.getCell(5).value,
-        unitPrice: row.getCell(6).value,
-        totalPrice: row.getCell(7).value,
-        vat: row.getCell(8).value,
-        vatValue: row.getCell(9).value,
-        totalPriceAfterVat: row.getCell(10).value,
-        paid: row.getCell(11).value,
-        deliveryDate: row.getCell(12).value,
-        note: row.getCell(13).value,
-        entryDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+          // Automatically set to the importing user
+          submittedBy: req.user.id,
 
-        // Automatically set to the importing user
-        submittedBy: req.user.id,
+          // Set approval fields to default
+          approvalReceive: false,
+          approvedReceiveBy: { username: "", department: "" },
+          approvalReceiveDate: null,
+        };
 
-        // Set approval fields to default
-        approvalReceive: false,
-        approvedReceiveBy: { username: "", department: "" },
-        approvalReceiveDate: null,
-      };
+        rows.push(entry);
+      }
+    });
 
-      rows.push(entry);
+    // Batch insert in chunks to reduce memory consumption
+    const batchSize = 500; // Adjust the batch size as needed
+    for (let i = 0; i < rows.length; i += batchSize) {
+      const batch = rows.slice(i, i + batchSize);
+      await Entry.insertMany(batch);
     }
-
-    // Insert entries into the database
-    await Entry.insertMany(rows);
 
     // Delete the uploaded file after processing
     fs.unlinkSync(filePath);
 
     res.redirect("/entry"); // Redirect back to the main page after importing
   } catch (err) {
+    console.error(err); // Log the error for debugging
     res.status(500).send("Error importing from Excel: " + err.message);
   }
 };
