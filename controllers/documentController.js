@@ -240,9 +240,9 @@ exports.approveDocument = async (req, res) => {
     );
 
     if (hasApproved) {
-      res.statusMessage =
-        "Bạn đã phê duyệt tài liệu rồi./You have already approved this document.";
-      return res.status(400).end();
+      return res.send(
+        "Bạn đã phê duyệt tài liệu rồi./You have already approved this document."
+      );
     }
 
     // Add the current approver to the list of `approvedBy`
