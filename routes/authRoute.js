@@ -31,7 +31,7 @@ router.get("/approvers", async (req, res) => {
     res.json(approvers);
   } catch (err) {
     console.error(err);
-    res.status(500).send("Error fetching approvers");
+    res.send("Error fetching approvers");
   }
 });
 

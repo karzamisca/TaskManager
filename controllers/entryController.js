@@ -26,7 +26,7 @@ exports.getAllEntries = async (req, res) => {
       .exec();
     res.json(entries);
   } catch (err) {
-    res.status(500).json({ error: "Error fetching entries: " + err.message });
+    res.send("Error fetching entries: " + err.message);
   }
 };
 
@@ -67,7 +67,7 @@ exports.createEntry = async (req, res) => {
     await entry.save();
     res.redirect("/entry"); // Redirect back to the main page after creating the entry
   } catch (err) {
-    res.status(500).send("Error creating entry: " + err.message);
+    res.send("Error creating entry: " + err.message);
   }
 };
 
@@ -77,7 +77,7 @@ exports.getTags = async (req, res) => {
     const tags = await Entry.find({}, "tag").exec(); // Retrieve only the 'tag' field
     res.json(tags);
   } catch (err) {
-    res.status(500).json({ error: "Error fetching tags: " + err.message });
+    res.json({ error: "Error fetching tags: " + err.message });
   }
 };
 exports.updateEntry = async (req, res) => {
@@ -93,7 +93,7 @@ exports.updateEntry = async (req, res) => {
     const entry = await Entry.findOne({ tag });
 
     if (!entry) {
-      return res.status(404).json({ error: "Entry not found." });
+      return res.json({ error: "Entry not found." });
     }
 
     // Overwrite only the provided fields that are not empty or undefined
@@ -111,7 +111,7 @@ exports.updateEntry = async (req, res) => {
 
     res.redirect("/entry"); // Redirect back to the main entry page
   } catch (err) {
-    res.status(500).json({ error: "Error updating entry: " + err.message });
+    res.send("Error updating entry: " + err.message);
   }
 };
 
@@ -120,21 +120,20 @@ exports.approveReceiveEntry = async (req, res) => {
     const entryId = req.params.id;
 
     if (req.user.role !== "approver") {
-      return res.status(403).json({
-        error:
-          "Truy cập bị từ chối. Bạn không có quyền xác nhận đã nhận hàng./Access denied.You do not have permission to confirm received",
-      });
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền xác nhận đã nhận hàng./Access denied.You do not have permission to confirm received"
+      );
     }
 
     const entry = await Entry.findById(entryId);
     if (!entry) {
-      return res.status(404).json({ error: "Entry not found" });
+      return res.json({ error: "Entry not found" });
     }
 
     // Fetch the full user data to ensure username and department are accessible
     const approver = await User.findById(req.user.id);
     if (!approver) {
-      return res.status(404).json({ error: "Approver not found" });
+      return res.send("Approver not found");
     }
 
     entry.approvalReceive = true;
@@ -147,14 +146,11 @@ exports.approveReceiveEntry = async (req, res) => {
       .format("DD-MM-YYYY HH:mm:ss");
 
     await entry.save();
-    res.json({
-      message:
-        "Xác nhận đã nhận hàng thành công/Confirmed received successfully",
-    });
+    res.send(
+      "Xác nhận đã nhận hàng thành công/Confirmed received successfully"
+    );
   } catch (err) {
-    res.status(500).json({
-      error: "Lỗi xác nhận dữ liệu/Error approving entry: " + err.message,
-    });
+    res.send("Lỗi xác nhận dữ liệu/Error approving entry: " + err.message);
   }
 };
 
@@ -169,13 +165,9 @@ exports.deleteEntry = async (req, res) => {
     }
     const entryId = req.params.id;
     await Entry.findByIdAndDelete(entryId);
-    res.json({
-      message: "Dữ liệu đã xóa thành công/Entry deleted successfully",
-    });
+    res.send("Dữ liệu đã xóa thành công/Entry deleted successfully");
   } catch (err) {
-    res
-      .status(500)
-      .json({ error: "Lỗi xóa dữ liệu/Error deleting entry: " + err.message });
+    res.send("Lỗi xóa dữ liệu/Error deleting entry: " + err.message);
   }
 };
 
@@ -258,7 +250,7 @@ exports.exportToExcel = async (req, res) => {
     await workbook.xlsx.write(res);
     res.end();
   } catch (err) {
-    res.status(500).send("Error exporting to Excel: " + err.message);
+    res.send("Error exporting to Excel: " + err.message);
   }
 };
 
@@ -327,6 +319,6 @@ exports.importFromExcel = async (req, res) => {
     res.redirect("/entry"); // Redirect back to the main page after importing
   } catch (err) {
     console.error(err); // Log the error for debugging
-    res.status(500).send("Error importing from Excel: " + err.message);
+    res.send("Error importing from Excel: " + err.message);
   }
 };

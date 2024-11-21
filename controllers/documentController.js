@@ -159,7 +159,7 @@ exports.submitDocument = async (req, res) => {
   } catch (err) {
     console.error("Error submitting document:", err);
     if (!res.headersSent) {
-      res.status(500).send("Error submitting document");
+      res.send("Lỗi nộp tài liệu/Error submitting document");
     }
   }
 };
@@ -191,7 +191,7 @@ exports.getPendingDocument = async (req, res) => {
     );
   } catch (err) {
     console.error("Error fetching pending documents:", err);
-    res.status(500).send("Error fetching pending documents");
+    res.send("Lỗi lấy tài liệu/Error fetching pending documents");
   }
 };
 
@@ -200,11 +200,9 @@ exports.approveDocument = async (req, res) => {
 
   try {
     if (req.user.role !== "approver") {
-      return res
-        .status(403)
-        .send(
-          "Truy cập bị từ chối. Bạn không có quyền phê duyệt tài liệu./Access denied. You don't have permission to approve document."
-        );
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền phê duyệt tài liệu./Access denied. You don't have permission to approve document."
+      );
     }
 
     // Check if the document is a Generic, Proposal, or Processing Document
@@ -215,12 +213,12 @@ exports.approveDocument = async (req, res) => {
       (await ReportDocument.findById(id));
 
     if (!document) {
-      return res.status(404).send("Document not found");
+      return res.send("Không tìm thấy tài liệu/Document not found");
     }
 
     const user = await User.findById(req.user.id);
     if (!user) {
-      return res.status(404).send("User not found");
+      return res.send("Không tìm thấy người dùng/User not found");
     }
 
     const isChosenApprover = document.approvers.some(
@@ -228,11 +226,9 @@ exports.approveDocument = async (req, res) => {
     );
 
     if (!isChosenApprover) {
-      return res
-        .status(403)
-        .send(
-          "Truy cập bị từ chối. Bạn không có quyền phê duyệt tài liệu này./Access denied. You don't have permission to approve this document."
-        );
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền phê duyệt tài liệu này./Access denied. You don't have permission to approve this document."
+      );
     }
 
     const hasApproved = document.approvedBy.some(
@@ -272,7 +268,7 @@ exports.approveDocument = async (req, res) => {
     res.redirect("/approveDocument");
   } catch (err) {
     console.error("Error approving document:", err);
-    res.status(500).send("Error approving document");
+    res.send("Lỗi phê duyệt tài liệu/Error approving document");
   }
 };
 
@@ -306,7 +302,7 @@ exports.getApprovedDocument = async (req, res) => {
     );
   } catch (err) {
     console.error("Error fetching approved documents:", err);
-    res.status(500).send("Error fetching approved documents");
+    res.send("Lỗi lấy tài liệu đã phê duyệt/Error fetching approved documents");
   }
 };
 
@@ -344,7 +340,9 @@ exports.getPendingDocumentApi = async (req, res) => {
     res.json(pendingDocuments);
   } catch (err) {
     console.error("Error fetching pending documents:", err);
-    res.status(500).send("Error fetching pending documents");
+    res.send(
+      "Lỗi lấy tài liệu đang chờ phê duyệt/Error fetching pending documents"
+    );
   }
 };
 
@@ -382,7 +380,7 @@ exports.getApprovedDocumentApi = async (req, res) => {
     res.json(approvedDocuments);
   } catch (err) {
     console.error("Error fetching approved documents:", err);
-    res.status(500).send("Error fetching approved documents");
+    res.send("Lỗi lấy tài liệu đang chờ/Error fetching approved documents");
   }
 };
 
@@ -391,11 +389,9 @@ exports.deleteDocument = async (req, res) => {
 
   try {
     if (req.user.role !== "approver") {
-      return res
-        .status(403)
-        .send(
-          "Truy cập bị từ chối. Bạn không có quyền xóa tài liệu./Access denied. You don't have permission to delete document."
-        );
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền xóa tài liệu./Access denied. You don't have permission to delete document."
+      );
     }
 
     // Try to find the document in each collection
@@ -435,7 +431,7 @@ exports.deleteDocument = async (req, res) => {
     res.redirect("/approveDocument"); // Redirect after deletion
   } catch (err) {
     console.error("Error deleting document:", err);
-    res.status(500).send("Error deleting document");
+    res.send("Lỗi xóa tài liệu/Error deleting document");
   }
 };
 
@@ -445,7 +441,9 @@ exports.getApprovedProposalDocuments = async (req, res) => {
     res.json(approvedProposals);
   } catch (err) {
     console.error("Error fetching approved proposals:", err);
-    res.status(500).send("Error fetching approved proposals");
+    res.send(
+      "Lỗi lấy tài liệu đề xuất đã phê duyệt/Error fetching approved proposals"
+    );
   }
 };
 
@@ -456,7 +454,7 @@ exports.getProposalDocumentById = async (req, res) => {
     res.json(proposal);
   } catch (err) {
     console.error("Error fetching proposal document:", err);
-    res.status(500).send("Error fetching proposal document");
+    res.send("Lỗi lấy tài liệu đề xuất/Error fetching proposal document");
   }
 };
 
@@ -468,7 +466,9 @@ exports.getApprovedProcessingDocuments = async (req, res) => {
     res.json(approvedProcessingDocs);
   } catch (err) {
     console.error("Error fetching approved processing documents:", err);
-    res.status(500).send("Error fetching approved processing documents");
+    res.send(
+      "Lỗi lấy tài liệu xử lý đã phê duyệt/Error fetching approved processing documents"
+    );
   }
 };
 
@@ -476,10 +476,12 @@ exports.getProcessingDocumentById = async (req, res) => {
   try {
     const processingDoc = await ProcessingDocument.findById(req.params.id);
     if (!processingDoc)
-      return res.status(404).send("Processing document not found");
+      return res.send(
+        "Không tìm thấy tài liệu xử lý/Processing document not found"
+      );
     res.json(processingDoc);
   } catch (err) {
     console.error("Error fetching processing document:", err);
-    res.status(500).send("Error fetching processing document");
+    res.send("Lỗi lấy tài liệu xử lý/Error fetching processing document");
   }
 };
