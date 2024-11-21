@@ -155,6 +155,17 @@
     <!-- Export Button -->
     <button id="exportButton">Xuất ra Excel / Export to Excel</button>
 
+    <h2>Theo dõi/Trackers</h2>
+    <div>
+      <p>
+        <strong>Chưa thanh toán/Unpaid:</strong>
+        <span id="unpaidTracker">0</span>
+      </p>
+      <p>
+        <strong>Đã thanh toán/Paid:</strong> <span id="paidTracker">0</span>
+      </p>
+    </div>
+
     <!-- Search fields for each column -->
     <h2>Lọc/Filter</h2>
     <div>
@@ -319,17 +330,6 @@
 
       <button type="submit">Nộp/Submit</button>
     </form>
-
-    <h2>Theo dõi/Trackers</h2>
-    <div>
-      <p>
-        <strong>Chưa thanh toán/Unpaid:</strong>
-        <span id="unpaidTracker">0</span>
-      </p>
-      <p>
-        <strong>Đã thanh toán/Paid:</strong> <span id="paidTracker">0</span>
-      </p>
-    </div>
 
     <h2>Chỉnh sửa dữ liệu/Update Entry</h2>
     <form id="updateForm" action="/entryUpdate" method="POST">
@@ -602,16 +602,20 @@
             <td>${entry.name}</td>
             <td>${entry.description}</td>
             <td>${entry.unit}</td>
-            <td>${entry.amount}</td>
-            <td>${entry.unitPrice}</td>
-            <td>${entry.amount * entry.unitPrice}</td>
-            <td>${entry.vat}</td>
-            <td>${entry.amount * entry.unitPrice * (entry.vat / 100)}</td>
-            <td>${
+            <td>${entry.amount.toLocaleString()}</td>
+            <td>${entry.unitPrice.toLocaleString()}</td>
+            <td>${(entry.amount * entry.unitPrice).toLocaleString()}</td>
+            <td>${entry.vat.toLocaleString()}</td>
+            <td>${(
+              entry.amount *
+              entry.unitPrice *
+              (entry.vat / 100)
+            ).toLocaleString()}</td>
+            <td>${(
               entry.amount * entry.unitPrice +
               entry.amount * entry.unitPrice * (entry.vat / 100)
-            }</td>
-            <td>${entry.paid}</td>
+            ).toLocaleString()}</td>
+            <td>${entry.paid.toLocaleString()}</td>
             <td>${entry.deliveryDate}</td>
             <td>${entry.note}</td>
             <td>${entry.entryDate}</td>
@@ -646,8 +650,8 @@
             entry.paid;
         });
 
-        unpaidTracker.textContent = totalUnpaid.toFixed(2);
-        paidTracker.textContent = totalPaid.toFixed(2);
+        unpaidTracker.textContent = totalUnpaid.toLocaleString();
+        paidTracker.textContent = totalPaid.toLocaleString();
 
         document.querySelectorAll(".delete-button").forEach((button) => {
           button.addEventListener("click", async (event) => {

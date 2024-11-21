@@ -425,7 +425,11 @@
         productDetails.innerHTML = doc.products
           .map(
             (product) =>
-              `<p>${product.productName}: ${product.amount} đơn vị với đơn giá là ${product.costPerUnit} (Tổng tiền: ${product.totalCost}) (Ghi chú:${product.note})</p>`
+              `<p>${
+                product.productName
+              }: ${product.amount.toLocaleString()} đơn vị với đơn giá là ${product.costPerUnit.toLocaleString()} (Tổng tiền: ${product.totalCost.toLocaleString()}) (Ghi chú:${
+                product.note
+              })</p>`
           )
           .join("");
 
@@ -433,9 +437,7 @@
           <p><strong>Ngày nộp/Submission Date:</strong> ${
             doc.submissionDate
           }</p>
-          <p><strong>Chi phí/Grand Total Cost:</strong> ${
-            doc.grandTotalCost
-          }</p>
+          <p><strong>Chi phí/Grand Total Cost:</strong> ${doc.grandTotalCost.toLocaleString()}</p>
         ${doc.appendedContent
           .map(
             (content) =>

@@ -285,18 +285,20 @@ exports.importFromExcel = async (req, res) => {
           tag: `${req.user.id}-${req.user.department}-${moment()
             .tz("Asia/Bangkok")
             .format("DD-MM-YYYY HH:mm:ss")}`,
-          name: row.getCell(2).value,
-          description: row.getCell(3).value,
-          unit: row.getCell(4).value,
-          amount: row.getCell(5).value,
-          unitPrice: row.getCell(6).value,
-          totalPrice: row.getCell(7).value,
-          vat: row.getCell(8).value,
-          vatValue: row.getCell(9).value,
-          totalPriceAfterVat: row.getCell(10).value,
-          paid: row.getCell(11).value,
-          deliveryDate: row.getCell(12).value,
-          note: row.getCell(13).value,
+          name: row.getCell(2).value ?? "",
+          description: row.getCell(3).value ?? "",
+          unit: row.getCell(4).value ?? "",
+          amount: row.getCell(5).value ?? 0,
+          unitPrice: row.getCell(6).value ?? 0,
+          totalPrice: 0,
+          vat: row.getCell(8).value ?? 0,
+          vatValue: 0,
+          totalPriceAfterVat: 0,
+          paid: row.getCell(11).value ?? 0,
+          deliveryDate:
+            row.getCell(12).value ??
+            moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+          note: row.getCell(13).value ?? "",
           entryDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
 
           // Automatically set to the importing user

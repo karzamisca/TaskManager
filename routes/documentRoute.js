@@ -71,12 +71,14 @@ router.get(
 // Route to fetch all approved Processing Documents
 router.get(
   "/api/approvedProcessingDocuments",
+  authMiddleware,
   documentController.getApprovedProcessingDocuments
 );
 
 // Route to fetch a specific Processing Document by ID
 router.get(
   "/api/processingDocument/:id",
+  authMiddleware,
   documentController.getProcessingDocumentById
 );
 

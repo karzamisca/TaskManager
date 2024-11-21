@@ -247,10 +247,10 @@
                 (p) => `
                 <tr>
                   <td>${p.productName}</td>
-                  <td>${p.costPerUnit}</td>
-                  <td>${p.amount}</td>
+                  <td>${p.costPerUnit.toLocaleString()}</td>
+                  <td>${p.amount.toLocaleString()}</td>
                   <td>${p.note}</td>
-                  <td>${p.totalCost}</td>
+                  <td>${p.totalCost.toLocaleString()}</td>
                 </tr>`
               )
               .join("");
@@ -285,7 +285,7 @@
             row.innerHTML = `
               <td>${doc._id}</td>
               <td>${productTable}</td>
-              <td>${doc.grandTotalCost}</td>
+              <td>${doc.grandTotalCost.toLocaleString()}</td>
               <td>${approvers}</td>
               <td>${approvedBy}</td>
               <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
@@ -306,7 +306,11 @@
               const products = doc.appendedProcessingDocument.products
                 .map(
                   (product) =>
-                    `<p>${product.productName}: ${product.amount} đơn vị với đơn giá là ${product.costPerUnit} (Tổng tiền: ${product.totalCost}) (Ghi chú: ${product.note})</p>`
+                    `<p>${
+                      product.productName
+                    }: ${product.amount.toLocaleString()} đơn vị với đơn giá là ${product.costPerUnit.toLocaleString()} (Tổng tiền: ${product.totalCost.toLocaleString()}) (Ghi chú: ${
+                      product.note
+                    })</p>`
                 )
                 .join("");
               appendedProcessingDoc = `
@@ -314,9 +318,7 @@
               <p><strong>Ngày nộp/Submission Date:</strong> ${
                 doc.appendedProcessingDocument.submissionDate
               }</p>
-              <p><strong>Chi phí/Grand Total Cost:</strong> ${
-                doc.appendedProcessingDocument.grandTotalCost
-              }</p>
+              <p><strong>Chi phí/Grand Total Cost:</strong> ${doc.appendedProcessingDocument.grandTotalCost.toLocaleString()}</p>
               <p><strong>Sản phẩm/Products:</strong><br>${products}</p>
               ${doc.appendedProcessingDocument.appendedContent
                 .map(

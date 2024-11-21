@@ -240,11 +240,9 @@ exports.approveDocument = async (req, res) => {
     );
 
     if (hasApproved) {
-      return res.status(400).json({
-        message:
-          "Bạn đã phê duyệt tài liệu rồi./You have already approved this document.",
-        type: "warning",
-      });
+      res.statusMessage =
+        "Bạn đã phê duyệt tài liệu rồi./You have already approved this document.";
+      return res.status(400).end();
     }
 
     // Add the current approver to the list of `approvedBy`
@@ -414,6 +412,11 @@ exports.deleteDocument = async (req, res) => {
       if (document) documentType = "Processing";
     }
 
+    if (!document && documentType === "Generic") {
+      document = await ReportDocument.findById(id);
+      if (document) documentType = "Report";
+    }
+
     if (!document) {
       return res.status(404).send("Document not found");
     }
@@ -423,6 +426,8 @@ exports.deleteDocument = async (req, res) => {
       await ProposalDocument.findByIdAndDelete(id);
     } else if (documentType === "Processing") {
       await ProcessingDocument.findByIdAndDelete(id);
+    } else if (documentType === "Report") {
+      await ReportDocument.findByIdAndDelete(id);
     } else {
       await Document.findByIdAndDelete(id);
     }
