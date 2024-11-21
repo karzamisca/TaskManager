@@ -242,6 +242,7 @@ exports.approveDocument = async (req, res) => {
     if (hasApproved) {
       return res
         .status(400)
+        .set("Content-Type", "text/plain")
         .send(
           "Bạn đã phê duyệt tài liệu rồi./You have already approved this document."
         );
