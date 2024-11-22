@@ -14,12 +14,6 @@ const entrySchema = new mongoose.Schema({
   note: String,
   entryDate: String,
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // Reference to User model
-  approvalPayment: { type: Boolean, default: false },
-  approvedPaymentBy: {
-    username: String,
-    department: String,
-  },
-  approvalPaymentDate: String,
   approvalReceive: { type: Boolean, default: false },
   approvedReceiveBy: {
     username: String,
