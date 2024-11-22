@@ -82,4 +82,10 @@ router.get(
   documentController.getProcessingDocumentById
 );
 
+router.get(
+  "/exportDocumentToDocx/:id",
+  authMiddleware,
+  documentController.exportDocumentToDocx
+);
+
 module.exports = router;

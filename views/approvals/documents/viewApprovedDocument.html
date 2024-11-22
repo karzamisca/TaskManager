@@ -52,6 +52,7 @@
             <th>Nội dung/Content</th>
             <th>Được phê duyệt bởi/Approved By</th>
             <th>Nộp bởi/Submitted By</th>
+            <th>Hành động/Action</th>
           </tr>
         </thead>
         <tbody>
@@ -73,6 +74,7 @@
             <th>Hướng xử lý/Direction</th>
             <th>Được phê duyệt bởi/Approved By</th>
             <th>Nộp bởi/Submitted By</th>
+            <th>Hành động/Action</th>
           </tr>
         </thead>
         <tbody>
@@ -92,6 +94,7 @@
             <th>Phiếu đề xuất kèm theo/Appended Proposal Content</th>
             <th>Được phê duyệt bởi/Approved By</th>
             <th>Nộp bởi/Submitted By</th>
+            <th>Hành động/Action</th>
           </tr>
         </thead>
         <tbody>
@@ -111,6 +114,7 @@
             <th>Phiếu xử lý kèm theo/Appended Processing Document</th>
             <th>Được phê duyệt bởi/Approved By</th>
             <th>Nộp bởi/Submitted By</th>
+            <th>Hành động/Action</th>
           </tr>
         </thead>
         <tbody>
@@ -125,6 +129,26 @@
 
     <script>
       const token = localStorage.getItem("token");
+
+      async function exportToDocx(docId) {
+        const token = localStorage.getItem("token"); // If using auth
+        const response = await fetch(`/exportDocumentToDocx/${docId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.style.display = "none";
+          a.href = url;
+          a.download = "document.docx";
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+        } else {
+          alert("Failed to export document!");
+        }
+      }
 
       async function fetchApprovedDocuments() {
         const response = await fetch("/api/approvedDocument", {
@@ -198,6 +222,11 @@
                 <td>${contentTable}</td>
                 <td>${approversHTML}</td>
                 <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+                <td>
+                  <form action="/exportDocumentToDocx/${doc._id}" method="GET" style="display:inline;" onsubmit="return confirmExport()">
+                    <button type="submit">Export to DOCX</button>
+                  </form>
+                </td>
               </tr>`;
             genericTableBody.insertAdjacentHTML("beforeend", row);
           } else if (doc.title === "Proposal Document") {
@@ -212,6 +241,11 @@
                 <td>${doc.direction}</td>
                 <td>${approversHTML}</td>
                 <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+                <td>
+                  <form action="/exportDocumentToDocx/${doc._id}" method="GET" style="display:inline;" onsubmit="return confirmExport()">
+                    <button type="submit">Export to DOCX</button>
+                  </form>
+                </td>
               </tr>`;
             proposalTableBody.insertAdjacentHTML("beforeend", row);
           } else if (doc.title === "Processing Document") {
@@ -257,6 +291,13 @@
                 <td>${appendedContent || "N/A"}</td>
                 <td>${approversHTML}</td>
                 <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+                <td>
+                  <form action="/exportDocumentToDocx/${
+                    doc._id
+                  }" method="GET" style="display:inline;" onsubmit="return confirmExport()">
+                    <button type="submit">Export to DOCX</button>
+                  </form>
+                </td>
               </tr>`;
             processingTableBody.insertAdjacentHTML("beforeend", row);
           } else if (doc.title === "Report Document") {
@@ -302,7 +343,12 @@
           <td>${doc.postProcessingReport}</td>
           <td>${appendedProcessingDoc}</td>
           <td>${approversHTML}</td>
-          <td>${doc.submittedBy.username} (${doc.submissionDate})</td>`;
+          <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+          <td>
+            <form action="/exportDocumentToDocx/${doc._id}" method="GET" style="display:inline;" onsubmit="return confirmExport()">
+              <button type="submit">Export to DOCX</button>
+            </form>
+          </td>`;
           }
         });
       }

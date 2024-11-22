@@ -6,7 +6,57 @@ const moment = require("moment-timezone");
 const ProposalDocument = require("../models/ProposalDocument");
 const ProcessingDocument = require("../models/ProcessingDocument");
 const ReportDocument = require("../models/ReportDocument");
+const fs = require("fs");
 const path = require("path");
+const {
+  createGenericDocTemplate,
+  createProposalDocTemplate,
+  createProcessingDocTemplate,
+  createReportDocTemplate,
+} = require("../utils/docxTemplates");
+
+exports.exportDocumentToDocx = async (req, res) => {
+  const { id } = req.params;
+  try {
+    let doc =
+      (await Document.findById(id)) ||
+      (await ProposalDocument.findById(id)) ||
+      (await ProcessingDocument.findById(id)) ||
+      (await ReportDocument.findById(id));
+
+    if (!doc) {
+      return res.status(404).send("Document not found");
+    }
+
+    let buffer;
+    switch (doc.title) {
+      case "Generic Document":
+        buffer = await createGenericDocTemplate(doc);
+        break;
+      case "Proposal Document":
+        buffer = await createProposalDocTemplate(doc);
+        break;
+      case "Processing Document":
+        buffer = await createProcessingDocTemplate(doc);
+        break;
+      case "Report Document":
+        buffer = await createReportDocTemplate(doc);
+        break;
+      default:
+        return res.status(400).send("Unsupported document type");
+    }
+
+    res.set({
+      "Content-Type":
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "Content-Disposition": `attachment; filename="${doc.title}.docx"`,
+    });
+    res.send(buffer);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error exporting document");
+  }
+};
 
 exports.submitDocument = async (req, res) => {
   const {
