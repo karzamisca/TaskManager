@@ -230,7 +230,7 @@ exports.exportToExcel = async (req, res) => {
         submittedBy: `${entry.submittedBy.username} (${entry.submittedBy.department})`,
         approvalReceive: entry.approvalReceive ? "Yes" : "No",
         approvedReceiveBy: entry.approvedReceiveBy
-          ? `${entry.approvedReceiveBy.username} (${entry.approvedReceiveBy.department})`
+          ? `${entry.approvedReceiveBy.username} ${entry.approvedReceiveBy.department}`
           : "",
         approvalReceiveDate: entry.approvalReceiveDate || "",
       });
