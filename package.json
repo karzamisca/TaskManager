@@ -16,6 +16,7 @@
     "connect-mongo": "^5.1.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "docx": "^9.0.3",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
     "exceljs": "^4.4.0",

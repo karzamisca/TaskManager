@@ -25,7 +25,7 @@ exports.exportDocumentToDocx = async (req, res) => {
       (await ReportDocument.findById(id));
 
     if (!doc) {
-      return res.status(404).send("Document not found");
+      return res.send("Không tìm thấy tài liệu/Document not found");
     }
 
     let buffer;
@@ -43,7 +43,7 @@ exports.exportDocumentToDocx = async (req, res) => {
         buffer = await createReportDocTemplate(doc);
         break;
       default:
-        return res.status(400).send("Unsupported document type");
+        return res.send("Tài liệu chưa được hỗ trợ/Unsupported document type");
     }
 
     res.set({
@@ -54,7 +54,7 @@ exports.exportDocumentToDocx = async (req, res) => {
     res.send(buffer);
   } catch (err) {
     console.error(err);
-    res.status(500).send("Error exporting document");
+    res.send("Lỗi xuất tài liệu/Error exporting document");
   }
 };
 

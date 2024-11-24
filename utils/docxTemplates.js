@@ -15,11 +15,17 @@ const createGenericDocTemplate = (doc) => {
         children: [
           new Paragraph({
             children: [
-              new TextRun({ text: "Generic Document", bold: true, size: 32 }),
+              new TextRun({
+                text: "Phiếu chung/Generic Document",
+                bold: true,
+                size: 32,
+              }),
             ],
           }),
-          new Paragraph({ text: `Document ID: ${doc._id}` }),
-          new Paragraph({ text: `Submitted By: ${doc.submittedBy}` }),
+          new Paragraph({ text: `Mã phiếu/Document ID: ${doc._id}` }),
+          new Paragraph({
+            text: `Được nộp bởi/Submitted By: ${doc.submittedBy}`,
+          }),
         ],
       },
     ],
@@ -53,24 +59,34 @@ const createProposalDocTemplate = async (doc) => {
         children: [
           new Paragraph({
             children: [
-              new TextRun({ text: "Proposal Document", bold: true, size: 32 }),
+              new TextRun({
+                text: "Phiếu đề nghị/Proposal Document",
+                bold: true,
+                size: 32,
+              }),
             ],
           }),
-          new Paragraph({ text: `Document ID: ${doc._id}` }),
-          new Paragraph({ text: `Maintenance: ${doc.maintenance}` }),
-          new Paragraph({ text: `Cost Center: ${doc.costCenter}` }),
-          new Paragraph({ text: `Date of Error: ${doc.dateOfError}` }),
-          new Paragraph({ text: `Error Description: ${doc.errorDescription}` }),
-          new Paragraph({ text: `Direction: ${doc.direction}` }),
+          new Paragraph({ text: `Mã phiếu/Document ID: ${doc._id}` }),
+          new Paragraph({ text: `Bảo trì/Maintenance: ${doc.maintenance}` }),
+          new Paragraph({ text: `Trạm/Center: ${doc.costCenter}` }),
+          new Paragraph({
+            text: `Ngày xảy ra lỗi/Date of Error: ${doc.dateOfError}`,
+          }),
+          new Paragraph({
+            text: `Mô tả lỗi/Error Description: ${doc.errorDescription}`,
+          }),
+          new Paragraph({ text: `Hướng xử lý/Direction: ${doc.direction}` }),
           // Display the username of the person who submitted the document
-          new Paragraph({ text: `Submitted By: ${doc.submittedBy.username}` }),
+          new Paragraph({
+            text: `Được nộp bởi/Submitted By: ${doc.submittedBy.username}`,
+          }),
 
           // Merged approval information
           ...mergedApprovals.map((approval) => {
             return new Paragraph({
               children: [
                 new TextRun({
-                  text: `Approver: ${approval.username} (Role: ${approval.subRole}) - Approved on: ${approval.approvalDate}`,
+                  text: `Người phê duyệt/Approver: ${approval.username} (Vai trò/Role: ${approval.subRole}) - Phê duyệt vào/Approved on: ${approval.approvalDate}`,
                 }),
               ],
             });
@@ -102,46 +118,46 @@ const createProcessingDocTemplate = async (doc) => {
           new Paragraph({
             children: [
               new TextRun({
-                text: "Processing Document",
+                text: "Phiếu xử lý/Processing Document",
                 bold: true,
                 size: 32,
               }),
             ],
           }),
           new Paragraph({
-            text: `Document ID: ${doc._id}`,
+            text: `Mã phiếu/Document ID: ${doc._id}`,
             spacing: { after: 200 },
           }),
           new Paragraph({
-            text: `Submitted By: ${doc.submittedBy.username}`,
+            text: `Được nộp bởi/Submitted By: ${doc.submittedBy.username}`,
             spacing: { after: 200 },
           }),
 
           // Products Table with explicitly set table and cell widths
-          new Paragraph({ text: "Products:", bold: true }),
+          new Paragraph({ text: "Sản phẩm/Products:", bold: true }),
           new Table({
             width: { size: 100, type: "pct" }, // Set table width to 100% of the page width
             rows: [
               new TableRow({
                 children: [
                   new TableCell({
-                    children: [new Paragraph("Product Name")],
+                    children: [new Paragraph("Tên sản phẩm/Product Name")],
                     width: { size: 25, type: "pct" },
                   }),
                   new TableCell({
-                    children: [new Paragraph("Cost Per Unit")],
+                    children: [new Paragraph("Đơn giá/Cost Per Unit")],
                     width: { size: 20, type: "pct" },
                   }),
                   new TableCell({
-                    children: [new Paragraph("Amount")],
+                    children: [new Paragraph("Số lượng/Amount")],
                     width: { size: 15, type: "pct" },
                   }),
                   new TableCell({
-                    children: [new Paragraph("Total Cost")],
+                    children: [new Paragraph("Tổng tiền/Total Cost")],
                     width: { size: 20, type: "pct" },
                   }),
                   new TableCell({
-                    children: [new Paragraph("Note")],
+                    children: [new Paragraph("Ghi chú/Note")],
                     width: { size: 20, type: "pct" },
                   }),
                 ],
@@ -184,12 +200,15 @@ const createProcessingDocTemplate = async (doc) => {
 
           // Grand Total Cost
           new Paragraph({
-            text: `Grand Total Cost: ${doc.grandTotalCost.toLocaleString()}`,
+            text: `Chi phí/Grand Total Cost: ${doc.grandTotalCost.toLocaleString()}`,
             spacing: { before: 200 },
           }),
 
           // Merge Approvers and ApprovedBy
-          new Paragraph({ text: "Approvers and Approvals:", bold: true }),
+          new Paragraph({
+            text: "Phê duyệt/Approvals:",
+            bold: true,
+          }),
           ...doc.approvers.map((approver) => {
             const approvalRecord = doc.approvedBy.find(
               (approval) =>
@@ -198,11 +217,11 @@ const createProcessingDocTemplate = async (doc) => {
             return new Paragraph({
               children: [
                 new TextRun({
-                  text: `Approver: ${approver.username} (Role: ${approver.subRole})`,
+                  text: `Người phê duyệt/Approver: ${approver.username} (Vai trò/Role: ${approver.subRole})`,
                 }),
                 new TextRun({
                   text: approvalRecord
-                    ? ` - Approved on ${approvalRecord.approvalDate}`
+                    ? ` - Vào lúc/Approved on ${approvalRecord.approvalDate}`
                     : "",
                   italic: true,
                 }),
@@ -211,7 +230,10 @@ const createProcessingDocTemplate = async (doc) => {
           }),
 
           // Appended Content
-          new Paragraph({ text: "Appended Content:", bold: true }),
+          new Paragraph({
+            text: "Phiếu kèm theo/Appended Content:",
+            bold: true,
+          }),
           ...doc.appendedContent.map((content, index) => {
             return new Paragraph({
               children: [
@@ -220,7 +242,7 @@ const createProcessingDocTemplate = async (doc) => {
                   bold: true,
                 }),
                 new TextRun({
-                  text: `\nMaintenance: ${content.maintenance}\nCost Center: ${content.costCenter}\nDate of Error: ${content.dateOfError}\nError Description: ${content.errorDescription}\nDirection: ${content.direction}`,
+                  text: `\nBảo trì/Maintenance: ${content.maintenance}\nTrạm/Center: ${content.costCenter}\nNgày xảy ra lỗi/Date of Error: ${content.dateOfError}\nMô tả lỗi/Error Description: ${content.errorDescription}\nHướng xử lý/Direction: ${content.direction}`,
                 }),
               ],
             });
@@ -253,25 +275,29 @@ const createReportDocTemplate = async (doc) => {
           // Document Title
           new Paragraph({
             children: [
-              new TextRun({ text: "Report Document", bold: true, size: 32 }),
+              new TextRun({
+                text: "Phiếu báo cáo/Report Document",
+                bold: true,
+                size: 32,
+              }),
             ],
           }),
 
           // Document Metadata
           new Paragraph({
-            text: `Document ID: ${doc._id}`,
+            text: `Mã phiếu/Document ID: ${doc._id}`,
             spacing: { after: 200 },
           }),
           new Paragraph({
-            text: `Submitted By: ${doc.submittedBy.username}`,
+            text: `Được nộp bởi/Submitted By: ${doc.submittedBy.username}`,
             spacing: { after: 200 },
           }),
 
           // Tags and Post-Processing Report
-          new Paragraph({ text: "Details:", bold: true }),
-          new Paragraph({ text: `Tags: ${doc.tags}` }),
+          new Paragraph({ text: "Chi tiết/Details:", bold: true }),
+          new Paragraph({ text: `Tem/Tags: ${doc.tags}` }),
           new Paragraph({
-            text: `Post-Processing Report: ${doc.postProcessingReport}`,
+            text: `Báo cáo sau xử lý/Post-Processing Report: ${doc.postProcessingReport}`,
             spacing: { after: 200 },
           }),
 
@@ -279,7 +305,7 @@ const createReportDocTemplate = async (doc) => {
           ...(doc.appendedProcessingDocument
             ? [
                 new Paragraph({
-                  text: "Appended Processing Document:",
+                  text: "Phiếu xử lý kèm theo/Appended Processing Document:",
                   bold: true,
                 }),
 
@@ -290,23 +316,25 @@ const createReportDocTemplate = async (doc) => {
                     new TableRow({
                       children: [
                         new TableCell({
-                          children: [new Paragraph("Product Name")],
+                          children: [
+                            new Paragraph("Tên sản phẩm/Product Name"),
+                          ],
                           width: { size: 25, type: "pct" },
                         }),
                         new TableCell({
-                          children: [new Paragraph("Cost Per Unit")],
+                          children: [new Paragraph("Đơn giá/Cost Per Unit")],
                           width: { size: 20, type: "pct" },
                         }),
                         new TableCell({
-                          children: [new Paragraph("Amount")],
+                          children: [new Paragraph("Số lượng/Amount")],
                           width: { size: 15, type: "pct" },
                         }),
                         new TableCell({
-                          children: [new Paragraph("Total Cost")],
+                          children: [new Paragraph("Thành tiền/Total Cost")],
                           width: { size: 20, type: "pct" },
                         }),
                         new TableCell({
-                          children: [new Paragraph("Note")],
+                          children: [new Paragraph("Ghi chú/Note")],
                           width: { size: 20, type: "pct" },
                         }),
                       ],
@@ -355,33 +383,47 @@ const createReportDocTemplate = async (doc) => {
                 ...(doc.appendedProcessingDocument.appendedContent.length
                   ? [
                       new Paragraph({
-                        text: "Appended Content:",
+                        text: "Phiếu đề xuất kèm theo/Appended Proposal Document:",
                         bold: true,
                         spacing: { before: 200 },
                       }),
-                      ...doc.appendedProcessingDocument.appendedContent.map(
-                        (content) =>
+                      ...doc.appendedProcessingDocument.appendedContent.flatMap(
+                        (content) => [
                           new Paragraph({
-                            text: `- Maintenance: ${content.maintenance}, Cost Center: ${content.costCenter}, Date of Error: ${content.dateOfError}, Description: ${content.errorDescription}, Direction: ${content.direction}`,
-                          })
+                            text: `Bảo trì/Maintenance: ${content.maintenance}`,
+                          }),
+                          new Paragraph({
+                            text: `Trạm/Center: ${content.costCenter}`,
+                          }),
+                          new Paragraph({
+                            text: `Ngày xảy ra lỗi/Date of Error: ${content.dateOfError}`,
+                          }),
+                          new Paragraph({
+                            text: `Mô tả/Description: ${content.errorDescription}`,
+                          }),
+                          new Paragraph({
+                            text: `Hướng xử lý/Direction: ${content.direction}`,
+                          }),
+                          new Paragraph({ text: "" }), // Empty line to separate entries
+                        ]
                       ),
                     ]
                   : [
                       new Paragraph({
-                        text: "No appended content.",
+                        text: "Không có phiếu đề xuất kèm theo/No Appended Proposal Document.",
                         italics: true,
                       }),
                     ]),
               ]
             : [
                 new Paragraph({
-                  text: "No appended processing document.",
+                  text: "Không có phiếu xử lý kèm theo/No appended processing document.",
                   italics: true,
                 }),
               ]),
 
           // Approvers and ApprovedBy
-          new Paragraph({ text: "Approvers and Approvals:", bold: true }),
+          new Paragraph({ text: "Phê duyệt/Approvals:", bold: true }),
           ...doc.approvers.map((approver) => {
             const approvalRecord = doc.approvedBy.find(
               (approval) =>
@@ -390,12 +432,12 @@ const createReportDocTemplate = async (doc) => {
             return new Paragraph({
               children: [
                 new TextRun({
-                  text: `Approver: ${approver.username} (Role: ${approver.subRole})`,
+                  text: `Người phê duyệt/Approver: ${approver.username} (Vai trò/Role: ${approver.subRole})`,
                 }),
                 new TextRun({
                   text: approvalRecord
-                    ? ` - Approved on ${approvalRecord.approvalDate} by ${approvalRecord.username}`
-                    : " - Pending Approval",
+                    ? ` - Phê duyệt vào/Approved on ${approvalRecord.approvalDate} bởi/by ${approvalRecord.username}`
+                    : " - Chưa phê duyệt/Pending Approval",
                   italic: true,
                 }),
               ],
