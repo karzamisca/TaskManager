@@ -6,6 +6,16 @@ const fs = require("fs");
 const path = require("path");
 const User = require("../models/User");
 
+function generateRandomString(length) {
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+}
+
 // Serve the index.html file for the root route
 exports.getFormAndEntries = (req, res) => {
   if (req.user.role !== "approver") {
@@ -45,9 +55,10 @@ exports.createEntry = async (req, res) => {
       note,
     } = req.body;
     const submittedBy = req.user.id; // Use the current user's ID as the submitter
-    const tag = `${req.user.id}-${req.user.department}-${moment()
-      .tz("Asia/Bangkok")
-      .format("DD-MM-YYYY HH:mm:ss")}`;
+    const randomString = generateRandomString(24);
+    const tag = `${randomString}- ${req.user.id}- ${
+      req.user.department
+    }- ${moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss")}`;
 
     const entry = new Entry({
       tag,
@@ -272,11 +283,12 @@ exports.importFromExcel = async (req, res) => {
     // Process rows one at a time
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber >= 2) {
+        const randomString = generateRandomString(24);
         // Skip the header row
         const entry = {
-          tag: `${req.user.id}-${req.user.department}-${moment()
-            .tz("Asia/Bangkok")
-            .format("DD-MM-YYYY HH:mm:ss")}`,
+          tag: `${randomString}- ${req.user.id}- ${
+            req.user.department
+          }- ${moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss")}`,
           name: row.getCell(2).value ?? "",
           description: row.getCell(3).value ?? "",
           unit: row.getCell(4).value ?? "",
