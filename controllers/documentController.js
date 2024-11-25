@@ -15,6 +15,16 @@ const {
   createReportDocTemplate,
 } = require("../utils/docxTemplates");
 
+function generateRandomString(length) {
+  const characters =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+}
+
 exports.exportDocumentToDocx = async (req, res) => {
   const { id } = req.params;
   try {
@@ -147,9 +157,10 @@ exports.submitDocument = async (req, res) => {
     }
     // Handle Report Document creation
     else if (title === "Report Document") {
-      const tags = `${req.user.id}-${req.user.department}-${moment()
-        .tz("Asia/Bangkok")
-        .format("DD-MM-YYYY HH:mm:ss")}`;
+      const randomString = generateRandomString(24);
+      const tags = `${randomString}- ${req.user.id}- ${
+        req.user.department
+      }- ${moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss")}`;
 
       newDocument = new ReportDocument({
         title,
