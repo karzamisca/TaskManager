@@ -717,6 +717,18 @@
             }
             </td>
             <td>
+              <button class="edit-button" data-entry='${JSON.stringify({
+                tag: entry.tag,
+                name: entry.name,
+                description: entry.description,
+                unit: entry.unit,
+                amount: entry.amount,
+                unitPrice: entry.unitPrice,
+                vat: entry.vat,
+                paid: entry.paid,
+                deliveryDate: entry.deliveryDate,
+                note: entry.note,
+              })}'>Sửa/Edit</button>
             ${
               entry.approvalReceive
                 ? ""
@@ -726,7 +738,7 @@
               entry._id
             }">Xóa/Delete</button>
             </td>
-      `;
+            `;
 
           tableBody.appendChild(row);
 
@@ -739,6 +751,35 @@
 
         unpaidTracker.textContent = totalUnpaid.toLocaleString();
         paidTracker.textContent = totalPaid.toLocaleString();
+
+        // Add the event listener for edit buttons after the delete button event listeners:
+        document.querySelectorAll(".edit-button").forEach((button) => {
+          button.addEventListener("click", (event) => {
+            const entryData = JSON.parse(
+              event.target.getAttribute("data-entry")
+            );
+
+            // Get the update form elements
+            const updateForm = document.getElementById("updateForm");
+
+            // Set the values in the update form
+            updateForm.querySelector("#tag").value = entryData.tag;
+            updateForm.querySelector("#name").value = entryData.name;
+            updateForm.querySelector("#description").value =
+              entryData.description;
+            updateForm.querySelector("#unit").value = entryData.unit;
+            updateForm.querySelector("#amount").value = entryData.amount;
+            updateForm.querySelector("#unitPrice").value = entryData.unitPrice;
+            updateForm.querySelector("#vat").value = entryData.vat;
+            updateForm.querySelector("#paid").value = entryData.paid;
+            updateForm.querySelector("#deliveryDate").value =
+              entryData.deliveryDate;
+            updateForm.querySelector("#note").value = entryData.note;
+
+            // Scroll to the update form
+            updateForm.scrollIntoView({ behavior: "smooth" });
+          });
+        });
 
         document.querySelectorAll(".delete-button").forEach((button) => {
           button.addEventListener("click", async (event) => {
