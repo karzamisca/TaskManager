@@ -169,7 +169,7 @@ exports.approveReceiveEntry = async (req, res) => {
 exports.deleteEntry = async (req, res) => {
   try {
     if (req.user.role !== "approver") {
-      return res.status(404).json({
+      return res.json({
         error:
           "Truy cập bị từ chối. Bạn không có quyền xóa tài liệu./Access denied. You don't have permission to delete document.",
       });

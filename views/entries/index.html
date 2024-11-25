@@ -23,7 +23,7 @@
         padding: 0;
         box-sizing: border-box;
         max-width: 100vw;
-        overflow-x: hidden;
+        overflow-x: auto;
       }
 
       h1,
@@ -43,6 +43,14 @@
       .table-container {
         width: 100%;
         overflow-x: auto; /* Allows scrolling if the table overflows */
+      }
+
+      .entries-container {
+        max-height: 500px; /* Adjust this height as needed */
+        overflow-y: auto; /* Adds vertical scrollbar */
+        overflow-x: auto; /* Adds horizontal scrollbar */
+        border: 1px solid #ddd; /* Optional: Add border for better visibility */
+        margin-bottom: 20px; /* Optional: Add spacing below the table */
       }
 
       table,
@@ -287,37 +295,38 @@
     </form>
     <h2 class="mb-3">Bảng dữ liệu/Entries Table</h2>
     <!-- Table for displaying entries -->
-    <table id="entriesTable" class="table table-striped table-bordered">
-      <thead>
-        <tr>
-          <th onclick="sortTable(0)">Tem/Tag</th>
-          <th onclick="sortTable(1)">Tên dự án/Project name</th>
-          <th onclick="sortTable(2)">Mô tả/Description</th>
-          <th onclick="sortTable(3)">Đơn vị/Unit</th>
-          <th onclick="sortTable(4)">Số lượng/Amount</th>
-          <th onclick="sortTable(5)">Đơn giá/Unit Price</th>
-          <th onclick="sortTable(6)">Thành tiền /Total Price</th>
-          <th onclick="sortTable(7)">Thuế giá trị gia tăng/VAT (%)</th>
-          <th onclick="sortTable(8)">Giá trị VAT/VAT Value</th>
-          <th onclick="sortTable(9)">
-            Thành tiền sau VAT/Total Price After VAT
-          </th>
-          <th onclick="sortTable(10)">Đã trả/Paid</th>
-          <th onclick="sortTable(11)">Ngày giao hàng/Delivery Date</th>
-          <th onclick="sortTable(12)">Ghi chú/Note</th>
-          <th onclick="sortTable(13)">Ngày nhập liệu/Entry Date</th>
-          <th onclick="sortTable(14)">Người nhập liệu/Submitter</th>
-          <th onclick="sortTable(15)">
-            Xác nhận đã nhận hàng/Confirmed Received
-          </th>
-          <th>Hành động/Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Rows will be inserted dynamically by JavaScript -->
-      </tbody>
-    </table>
-
+    <div class="entries-container">
+      <table id="entriesTable" class="table table-striped table-bordered">
+        <thead>
+          <tr>
+            <th onclick="sortTable(0)">Tem/Tag</th>
+            <th onclick="sortTable(1)">Tên dự án/Project name</th>
+            <th onclick="sortTable(2)">Mô tả/Description</th>
+            <th onclick="sortTable(3)">Đơn vị/Unit</th>
+            <th onclick="sortTable(4)">Số lượng/Amount</th>
+            <th onclick="sortTable(5)">Đơn giá/Unit Price</th>
+            <th onclick="sortTable(6)">Thành tiền /Total Price</th>
+            <th onclick="sortTable(7)">Thuế giá trị gia tăng/VAT (%)</th>
+            <th onclick="sortTable(8)">Giá trị VAT/VAT Value</th>
+            <th onclick="sortTable(9)">
+              Thành tiền sau VAT/Total Price After VAT
+            </th>
+            <th onclick="sortTable(10)">Đã trả/Paid</th>
+            <th onclick="sortTable(11)">Ngày giao hàng/Delivery Date</th>
+            <th onclick="sortTable(12)">Ghi chú/Note</th>
+            <th onclick="sortTable(13)">Ngày nhập liệu/Entry Date</th>
+            <th onclick="sortTable(14)">Người nhập liệu/Submitter</th>
+            <th onclick="sortTable(15)">
+              Xác nhận đã nhận hàng/Confirmed Received
+            </th>
+            <th>Hành động/Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Rows will be inserted dynamically by JavaScript -->
+        </tbody>
+      </table>
+    </div>
     <h2>Nhập liệu mới/New Entry</h2>
     <!-- Form for adding a new entry -->
     <form id="entryForm" action="/entryNew" method="POST">
