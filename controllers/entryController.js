@@ -19,11 +19,9 @@ function generateRandomString(length) {
 // Serve the index.html file for the root route
 exports.getFormAndEntries = (req, res) => {
   if (req.user.role !== "approver") {
-    return res
-      .status(404)
-      .send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+    return res.send(
+      "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+    );
   }
   res.sendFile("index.html", { root: "./views/entries" });
 };

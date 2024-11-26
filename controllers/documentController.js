@@ -475,7 +475,7 @@ exports.deleteDocument = async (req, res) => {
     }
 
     if (!document) {
-      return res.status(404).send("Document not found");
+      return res.send("Document not found");
     }
 
     // Delete the document based on its type
@@ -511,7 +511,7 @@ exports.getApprovedProposalDocuments = async (req, res) => {
 exports.getProposalDocumentById = async (req, res) => {
   try {
     const proposal = await ProposalDocument.findById(req.params.id);
-    if (!proposal) return res.status(404).send("Proposal document not found");
+    if (!proposal) return res.send("Proposal document not found");
     res.json(proposal);
   } catch (err) {
     console.error("Error fetching proposal document:", err);

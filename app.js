@@ -39,7 +39,7 @@ app.use((err, req, res, next) => {
     err instanceof multer.MulterError ||
     err.message === "Invalid file type. Only Excel files are allowed."
   ) {
-    res.status(400).send(err.message);
+    res.send(err.message);
   } else {
     next(err);
   }
