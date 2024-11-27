@@ -25,11 +25,27 @@ function generateRandomString(length) {
   return result;
 }
 
+// For restricting cost center
 exports.getCurrentUser = (req, res) => {
   if (req.user) {
     return res.json({ username: req.user.username });
   }
   res.send("Unauthorized");
+};
+exports.getCostCenterRestrictions = (req, res) => {
+  const costCenterRestrictions = {
+    "Bình An 1": ["VuongVanBe", "BuiTheVinh"],
+    "Trần Quang": ["PhamLeTam", "LeVanTuan", "PhamLeThanh"],
+    "Châu Pha": ["NguyenTrongNghia"],
+    GTSG: ["LeQuangThanh"],
+    "Phú Mỹ 3": ["PhamVanDung", "PhanVanLong"],
+    Sentai: ["NguyenVanKy"],
+    "Tiến Đạt": ["LuongDucMinh", "VoThanhPhuoc", "VoThanhDuc"],
+    "Núi Sò": ["PhamAnhTuan", "VoThanhTrung"],
+    "T&T": ["BuiVanQuyet", "DuongDucChanh"],
+  };
+
+  res.json(costCenterRestrictions);
 };
 
 exports.exportDocumentToDocx = async (req, res) => {

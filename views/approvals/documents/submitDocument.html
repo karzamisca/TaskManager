@@ -162,39 +162,37 @@
         dateFormat: "d-m-Y",
         defaultDate: "today",
       });
-
-      // Logic to restrict cost center options
-      const costCenterRestrictions = {
-        "Bình An 1": ["VuongVanBe", "BuiTheVinh"],
-        "Trần Quang": ["PhamLeTam", "LeVanTuan", "PhamLeThanh"],
-        "Châu Pha": ["NguyenTrongNghia"],
-        GTSG: ["LeQuangThanh"],
-        "Phú Mỹ 3": ["PhamVanDung", "PhanVanLong"],
-        Sentai: ["NguyenVanKy"],
-        "Tiến Đạt": ["LuongDucMinh", "VoThanhPhuoc", "VoThanhDuc"],
-        "Núi Sò": ["PhamAnhTuan", "VoThanhTrung"],
-        "T&T": ["BuiVanQuyet", "DuongDucChanh"],
-      };
-
+      //Logic to restrict cost center
       let currentUser = null;
-
-      async function fetchCurrentUser() {
+      let costCenterRestrictions = {};
+      async function fetchCurrentUserAndRestrictions() {
         try {
-          const response = await fetch("/api/getCurrentUser");
-          if (response.ok) {
-            const data = await response.json();
-            currentUser = data.username;
-            restrictCostCenterOptions();
+          // Fetch current user
+          const userResponse = await fetch("/api/getCurrentUser");
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            currentUser = userData.username;
           } else {
             console.error("Failed to fetch user info.");
           }
+
+          // Fetch cost center restrictions
+          const restrictionsResponse = await fetch(
+            "/api/costCenterRestrictions"
+          );
+          if (restrictionsResponse.ok) {
+            costCenterRestrictions = await restrictionsResponse.json();
+          } else {
+            console.error("Failed to fetch cost center restrictions.");
+          }
+
+          restrictCostCenterOptions();
         } catch (err) {
-          console.error("Error fetching user info:", err);
+          console.error("Error fetching user or restrictions:", err);
         }
       }
-
       function restrictCostCenterOptions() {
-        if (!currentUser) return;
+        if (!currentUser || !costCenterRestrictions) return;
         const costCenterDropdown = document.getElementById("costCenter");
 
         // Iterate over the options and hide restricted ones for the current user
@@ -497,7 +495,7 @@
           "block";
       }
 
-      fetchCurrentUser();
+      fetchCurrentUserAndRestrictions();
       fetchApprovedDocuments();
       fetchApprovers();
       fetchApprovedProposals();

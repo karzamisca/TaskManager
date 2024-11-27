@@ -13,11 +13,16 @@ router.get("/submitDocument", authMiddleware, (req, res) => {
   res.sendFile("submitDocument.html", { root: "./views/approvals/documents" }); // Serve the submit document page
 });
 
-// Add to routes in `documentRoutes.js`
+// For restricting cost center
 router.get(
   "/api/getCurrentUser",
   authMiddleware,
   documentController.getCurrentUser
+);
+router.get(
+  "/api/costCenterRestrictions",
+  authMiddleware,
+  documentController.getCostCenterRestrictions
 );
 
 router.post(
