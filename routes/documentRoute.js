@@ -13,6 +13,13 @@ router.get("/submitDocument", authMiddleware, (req, res) => {
   res.sendFile("submitDocument.html", { root: "./views/approvals/documents" }); // Serve the submit document page
 });
 
+// Add to routes in `documentRoutes.js`
+router.get(
+  "/api/getCurrentUser",
+  authMiddleware,
+  documentController.getCurrentUser
+);
+
 router.post(
   "/submitDocument",
   authMiddleware,

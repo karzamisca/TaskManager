@@ -25,6 +25,13 @@ function generateRandomString(length) {
   return result;
 }
 
+exports.getCurrentUser = (req, res) => {
+  if (req.user) {
+    return res.json({ username: req.user.username });
+  }
+  res.send("Unauthorized");
+};
+
 exports.exportDocumentToDocx = async (req, res) => {
   const { id } = req.params;
   try {

@@ -163,6 +163,49 @@
         defaultDate: "today",
       });
 
+      // Logic to restrict cost center options
+      const costCenterRestrictions = {
+        "Bình An 1": ["VuongVanBe", "BuiTheVinh"],
+        "Trần Quang": ["PhamLeTam", "LeVanTuan", "PhamLeThanh"],
+        "Châu Pha": ["NguyenTrongNghia"],
+        GTSG: ["LeQuangThanh"],
+        "Phú Mỹ 3": ["PhamVanDung", "PhanVanLong"],
+        Sentai: ["NguyenVanKy"],
+        "Tiến Đạt": ["LuongDucMinh", "VoThanhPhuoc", "VoThanhDuc"],
+        "Núi Sò": ["PhamAnhTuan", "VoThanhTrung"],
+        "T&T": ["BuiVanQuyet", "DuongDucChanh"],
+      };
+
+      let currentUser = null;
+
+      async function fetchCurrentUser() {
+        try {
+          const response = await fetch("/api/getCurrentUser");
+          if (response.ok) {
+            const data = await response.json();
+            currentUser = data.username;
+            restrictCostCenterOptions();
+          } else {
+            console.error("Failed to fetch user info.");
+          }
+        } catch (err) {
+          console.error("Error fetching user info:", err);
+        }
+      }
+
+      function restrictCostCenterOptions() {
+        if (!currentUser) return;
+        const costCenterDropdown = document.getElementById("costCenter");
+
+        // Iterate over the options and hide restricted ones for the current user
+        Array.from(costCenterDropdown.options).forEach((option) => {
+          const allowedUsers = costCenterRestrictions[option.value];
+          if (allowedUsers && !allowedUsers.includes(currentUser)) {
+            option.style.display = "none";
+          }
+        });
+      }
+
       document
         .getElementById("title-dropdown")
         .addEventListener("change", function () {
@@ -265,6 +308,8 @@
               defaultDate: "today",
             });
             addContentButton.style.display = "none";
+            // Restrict cost center options based on current user
+            restrictCostCenterOptions();
           } else if (selectedTitle === "Processing Document") {
             contentFields.innerHTML = `
             <div id="product-entries">
@@ -452,6 +497,7 @@
           "block";
       }
 
+      fetchCurrentUser();
       fetchApprovedDocuments();
       fetchApprovers();
       fetchApprovedProposals();
