@@ -221,6 +221,10 @@
         />
       </div>
       <div class="col-md-2">
+        <label for="searchPackage">Gói/Package:</label>
+        <input type="text" id="searchPackage" placeholder="Search by package" />
+      </div>
+      <div class="col-md-2">
         <label for="searchUnit">Đơn vị/Unit:</label>
         <input type="text" id="searchUnit" placeholder="Search by unit" />
       </div>
@@ -302,21 +306,22 @@
             <th onclick="sortTable(0)">Tem/Tag</th>
             <th onclick="sortTable(1)">Tên dự án/Project name</th>
             <th onclick="sortTable(2)">Mô tả/Description</th>
-            <th onclick="sortTable(3)">Đơn vị/Unit</th>
-            <th onclick="sortTable(4)">Số lượng/Amount</th>
-            <th onclick="sortTable(5)">Đơn giá/Unit Price</th>
-            <th onclick="sortTable(6)">Thành tiền /Total Price</th>
-            <th onclick="sortTable(7)">Thuế giá trị gia tăng/VAT (%)</th>
-            <th onclick="sortTable(8)">Giá trị VAT/VAT Value</th>
-            <th onclick="sortTable(9)">
+            <th onclick="sortTable(3)">Gói/Package</th>
+            <th onclick="sortTable(4)">Đơn vị/Unit</th>
+            <th onclick="sortTable(5)">Số lượng/Amount</th>
+            <th onclick="sortTable(6)">Đơn giá/Unit Price</th>
+            <th onclick="sortTable(7)">Thành tiền /Total Price</th>
+            <th onclick="sortTable(8)">Thuế giá trị gia tăng/VAT (%)</th>
+            <th onclick="sortTable(9)">Giá trị VAT/VAT Value</th>
+            <th onclick="sortTable(10)">
               Thành tiền sau VAT/Total Price After VAT
             </th>
-            <th onclick="sortTable(10)">Đã trả/Paid</th>
-            <th onclick="sortTable(11)">Ngày giao hàng/Delivery Date</th>
-            <th onclick="sortTable(12)">Ghi chú/Note</th>
-            <th onclick="sortTable(13)">Ngày nhập liệu/Entry Date</th>
-            <th onclick="sortTable(14)">Người nhập liệu/Submitter</th>
-            <th onclick="sortTable(15)">
+            <th onclick="sortTable(11)">Đã trả/Paid</th>
+            <th onclick="sortTable(12)">Ngày giao hàng/Delivery Date</th>
+            <th onclick="sortTable(13)">Ghi chú/Note</th>
+            <th onclick="sortTable(14)">Ngày nhập liệu/Entry Date</th>
+            <th onclick="sortTable(15)">Người nhập liệu/Submitter</th>
+            <th onclick="sortTable(16)">
               Xác nhận đã nhận hàng/Confirmed Received
             </th>
             <th>Hành động/Actions</th>
@@ -341,18 +346,23 @@
       </div>
 
       <div class="form-group">
+        <label for="package">Gói/Package:</label>
+        <input type="text" id="package" name="package" required />
+      </div>
+
+      <div class="form-group">
         <label for="unit">Đơn vị/Unit:</label>
         <input type="text" id="unit" name="unit" required />
       </div>
 
       <div class="form-group">
-        <label for="amount">Số lượng/Amount:</label>
-        <input type="number" id="amount" name="amount" required />
+        <label for="deliveryDate">Ngày giao hàng/Delivery Date:</label>
+        <input type="date" id="deliveryDate" name="deliveryDate" required />
       </div>
 
       <div class="form-group">
-        <label for="deliveryDate">Ngày giao hàng/Delivery Date:</label>
-        <input type="date" id="deliveryDate" name="deliveryDate" required />
+        <label for="amount">Số lượng/Amount:</label>
+        <input type="number" id="amount" name="amount" required />
       </div>
 
       <div class="form-group">
@@ -406,18 +416,23 @@
       </div>
 
       <div class="form-group">
+        <label for="package">Gói/Package:</label>
+        <input type="text" id="package" name="package" />
+      </div>
+
+      <div class="form-group">
         <label for="unit">Đơn vị/Unit:</label>
         <input type="text" id="unit" name="unit" />
       </div>
 
       <div class="form-group">
-        <label for="amount">Số lượng/Amount:</label>
-        <input type="number" id="amount" name="amount" />
+        <label for="deliveryDate">Ngày giao hàng/Delivery Date:</label>
+        <input type="date" id="deliveryDate" name="deliveryDate" />
       </div>
 
       <div class="form-group">
-        <label for="deliveryDate">Ngày giao hàng/Delivery Date:</label>
-        <input type="date" id="deliveryDate" name="deliveryDate" />
+        <label for="amount">Số lượng/Amount:</label>
+        <input type="number" id="amount" name="amount" />
       </div>
 
       <div class="form-group">
@@ -577,6 +592,7 @@
           description: document
             .getElementById("searchDescription")
             .value.toLowerCase(),
+          package: document.getElementById("searchPackage").value.toLowerCase(),
           unit: document.getElementById("searchUnit").value.toLowerCase(),
           amount:
             parseFloat(document.getElementById("searchAmount").value) || null,
@@ -620,19 +636,20 @@
             tag: cells[0]?.textContent.toLowerCase(),
             name: cells[1]?.textContent.toLowerCase(),
             description: cells[2]?.textContent.toLowerCase(),
-            unit: cells[3]?.textContent.toLowerCase(),
-            amount: parseNumeric(cells[4]?.textContent),
-            unitPrice: parseNumeric(cells[5]?.textContent),
-            totalPrice: parseNumeric(cells[6]?.textContent),
-            vat: parseNumeric(cells[7]?.textContent),
-            vatValue: parseNumeric(cells[8]?.textContent),
-            totalPriceAfterVAT: parseNumeric(cells[9]?.textContent),
-            paid: parseNumeric(cells[10]?.textContent),
-            deliveryDate: cells[11]?.textContent,
-            note: cells[12]?.textContent.toLowerCase(),
-            entryDate: cells[13]?.textContent,
-            submitter: cells[14]?.textContent.toLowerCase(),
-            confirmedReceived: cells[15]?.textContent.toLowerCase(),
+            package: cells[3]?.textContent.toLowerCase(),
+            unit: cells[4]?.textContent.toLowerCase(),
+            amount: parseNumeric(cells[5]?.textContent),
+            unitPrice: parseNumeric(cells[6]?.textContent),
+            totalPrice: parseNumeric(cells[7]?.textContent),
+            vat: parseNumeric(cells[8]?.textContent),
+            vatValue: parseNumeric(cells[9]?.textContent),
+            totalPriceAfterVAT: parseNumeric(cells[10]?.textContent),
+            paid: parseNumeric(cells[11]?.textContent),
+            deliveryDate: cells[12]?.textContent,
+            note: cells[13]?.textContent.toLowerCase(),
+            entryDate: cells[14]?.textContent,
+            submitter: cells[15]?.textContent.toLowerCase(),
+            confirmedReceived: cells[16]?.textContent.toLowerCase(),
           };
 
           // Check if the row matches all filters
@@ -697,6 +714,7 @@
             <td>${entry.tag}</td>
             <td>${entry.name}</td>
             <td>${entry.description}</td>
+            <td>${entry.package}</td>
             <td>${entry.unit}</td>
             <td>${entry.amount.toLocaleString()}</td>
             <td>${entry.unitPrice.toLocaleString()}</td>
@@ -730,6 +748,7 @@
                 tag: entry.tag,
                 name: entry.name,
                 description: entry.description,
+                package: entry.package,
                 unit: entry.unit,
                 amount: entry.amount,
                 unitPrice: entry.unitPrice,
@@ -776,6 +795,7 @@
             updateForm.querySelector("#name").value = entryData.name;
             updateForm.querySelector("#description").value =
               entryData.description;
+            updateForm.querySelector("#package").value = entryData.package;
             updateForm.querySelector("#unit").value = entryData.unit;
             updateForm.querySelector("#amount").value = entryData.amount;
             updateForm.querySelector("#unitPrice").value = entryData.unitPrice;
@@ -838,7 +858,7 @@
         // Add event listeners to each search field
         document
           .querySelectorAll(
-            "#searchTag, #searchName, #searchDescription, #searchUnit, #searchAmount, #searchUnitPrice, #searchTotalPrice, #searchVAT, #searchVATValue, #searchTotalPriceAfterVAT, #searchPaid, #searchDeliveryDate, #searchNote, #searchEntryDate, #searchSubmitter, #searchConfirmedReceived"
+            "#searchTag, #searchName, #searchDescription, #searchPackage, #searchUnit, #searchAmount, #searchUnitPrice, #searchTotalPrice, #searchVAT, #searchVATValue, #searchTotalPriceAfterVAT, #searchPaid, #searchDeliveryDate, #searchNote, #searchEntryDate, #searchSubmitter, #searchConfirmedReceived"
           )
           .forEach((input) => input.addEventListener("input", filterTable));
 

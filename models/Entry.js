@@ -5,6 +5,7 @@ const entrySchema = new mongoose.Schema({
   tag: String,
   name: String,
   description: String,
+  package: String,
   unit: String,
   amount: Number,
   unitPrice: Number,
