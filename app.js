@@ -21,6 +21,7 @@ connectDB();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use(cookieParser()); // Use cookie-parser to parse cookies
+app.use(express.json());
 
 // Ensure uploads directory exists
 const uploadsDir = path.join(__dirname, "uploads");

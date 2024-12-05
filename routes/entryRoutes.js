@@ -50,6 +50,11 @@ router.post(
 );
 router.post("/entryNew", authMiddleware, entryController.createEntry); // Submit new entry
 router.delete("/entryDelete/:id", authMiddleware, entryController.deleteEntry); // Delete entry by ID
+router.delete(
+  "/entriesDelete",
+  authMiddleware,
+  entryController.deleteMultipleEntries
+);
 
 //For updating entry
 router.post("/entryUpdate", authMiddleware, entryController.updateEntry);

@@ -181,6 +181,28 @@ exports.deleteEntry = async (req, res) => {
     res.send("Lỗi xóa dữ liệu/Error deleting entry: " + err.message);
   }
 };
+exports.deleteMultipleEntries = async (req, res) => {
+  try {
+    if (req.user.role !== "approver") {
+      return res.json({
+        error:
+          "Truy cập bị từ chối. Bạn không có quyền xóa tài liệu./Access denied. You don't have permission to delete document.",
+      });
+    }
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "No entry IDs provided for deletion." });
+    }
+
+    await Entry.deleteMany({ _id: { $in: ids } });
+    res.send("Selected entries deleted successfully.");
+  } catch (err) {
+    res.status(500).send("Error deleting entries: " + err.message);
+  }
+};
 
 // Export all entries to Excel
 exports.exportToExcel = async (req, res) => {
