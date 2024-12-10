@@ -35,4 +35,9 @@ router.get("/approvers", async (req, res) => {
   }
 });
 
+router.post("/changePassword", authMiddleware, authController.changePassword);
+router.get("/changePassword", authMiddleware, (req, res) => {
+  res.sendFile("changePassword.html", { root: "./views" });
+});
+
 module.exports = router;

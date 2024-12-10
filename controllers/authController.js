@@ -44,3 +44,32 @@ exports.logout = (req, res) => {
   res.clearCookie("token"); // Clear the JWT cookie on logout
   res.redirect("/login");
 };
+
+exports.changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    const user = await User.findById(req.user.id); // Fetch current user based on decoded JWT
+    if (!user) {
+      return res.status(404).send("User not found."); // Ensure single response
+    }
+
+    // Verify current password
+    if (user.password !== currentPassword) {
+      return res.status(400).send("Current password is incorrect."); // Ensure single response
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save();
+
+    // Clear the JWT cookie to log the user out
+    res.clearCookie("token");
+
+    // Redirect to login page
+    return res.redirect("/login");
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send("Error updating password.");
+  }
+};
