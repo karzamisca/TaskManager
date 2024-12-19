@@ -83,3 +83,28 @@ exports.getFiles = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.deleteFile = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find the file in MongoDB
+    const file = await File.findOne({ googleDriveId: id });
+    if (!file) {
+      return res
+        .status(404)
+        .json({ message: "File not found in the database." });
+    }
+
+    // Delete the file from Google Drive
+    await drive.files.delete({ fileId: id });
+
+    // Remove the file metadata from MongoDB
+    await File.deleteOne({ googleDriveId: id });
+
+    res.status(200).json({ message: "File deleted successfully." });
+  } catch (error) {
+    console.error("Error during file deletion:", error);
+    res.status(500).json({ error: error.message });
+  }
+};

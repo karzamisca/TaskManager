@@ -31,7 +31,7 @@
         const formData = new FormData(uploadForm); // Create FormData from the form
 
         try {
-          const response = await fetch("/upload", {
+          const response = await fetch("/uploadGoogleDriveFile", {
             method: "POST",
             body: formData,
           });
@@ -53,11 +53,31 @@
             (file) => `
                 <div>
                     <span>${file.name}</span>
-                    <a href="/download/${file.googleDriveId}" download>Download</a>
+                    <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download>Download</a>
+                    <button onclick="deleteFile('${file.googleDriveId}')">Delete</button>
                 </div>
             `
           )
           .join("");
+      }
+
+      async function deleteFile(fileId) {
+        const confirmDelete = confirm(
+          "Are you sure you want to delete this file?"
+        );
+        if (!confirmDelete) return;
+
+        const response = await fetch(`/deleteGoogleDriveFile/${fileId}`, {
+          method: "DELETE",
+        });
+        const result = await response.json();
+
+        if (response.ok) {
+          alert(result.message);
+          fetchFiles(); // Refresh the file list
+        } else {
+          alert("Error deleting file: " + result.error);
+        }
       }
 
       fetchFiles();

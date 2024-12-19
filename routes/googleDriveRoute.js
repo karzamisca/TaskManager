@@ -5,6 +5,7 @@ const {
   uploadFile,
   downloadFile,
   getFiles,
+  deleteFile,
 } = require("../controllers/googleDriveController");
 
 const router = express.Router();
@@ -20,8 +21,14 @@ router.get("/googleDriveFileTransfer", authMiddleware, (req, res) => {
   });
 });
 
-router.post("/upload", authMiddleware, upload.single("file"), uploadFile);
-router.get("/download/:id", authMiddleware, downloadFile);
+router.post(
+  "/uploadGoogleDriveFile",
+  authMiddleware,
+  upload.single("file"),
+  uploadFile
+);
+router.get("/downloadGoogleDriveFile/:id", authMiddleware, downloadFile);
+router.delete("/deleteGoogleDriveFile/:id", authMiddleware, deleteFile);
 router.get("/googleDriveFile", authMiddleware, getFiles);
 
 module.exports = router;
