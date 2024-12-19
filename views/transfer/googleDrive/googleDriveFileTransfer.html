@@ -1,10 +1,8 @@
-<!-- views/transfer/googleDrive/googleDriveFileTransfer.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="/styles.css" />
     <title>Hệ thống chuyển tệp tin / Files Transfer System</title>
   </head>
   <body>
@@ -26,6 +24,10 @@
 
     <script>
       const uploadForm = document.getElementById("uploadForm");
+      const messageDiv = document.getElementById("message");
+      const fileListDiv = document.getElementById("fileList");
+
+      // Handle file upload
       uploadForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         const formData = new FormData(uploadForm); // Create FormData from the form
@@ -37,49 +39,65 @@
           });
 
           const result = await response.json();
-          document.getElementById("message").innerText = result.message;
+
+          if (response.ok) {
+            messageDiv.innerText = result.message;
+            location.reload(); // Refresh the page after successful upload
+          } else {
+            messageDiv.innerText = `Upload failed: ${result.error}`;
+          }
         } catch (error) {
-          document.getElementById("message").innerText = "Upload failed";
+          messageDiv.innerText = "An error occurred during the upload.";
         }
       });
 
+      // Fetch and display the file list
       async function fetchFiles() {
-        const response = await fetch("/googleDriveFile");
-        const files = await response.json();
+        try {
+          const response = await fetch("/googleDriveFile");
+          const files = await response.json();
 
-        const fileList = document.getElementById("fileList");
-        fileList.innerHTML = files
-          .map(
-            (file) => `
-                <div>
-                    <span>${file.name}</span>
-                    <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download>Download</a>
-                    <button onclick="deleteFile('${file.googleDriveId}')">Delete</button>
-                </div>
-            `
-          )
-          .join("");
+          fileListDiv.innerHTML = files
+            .map(
+              (file) => `
+                  <div>
+                      <span>${file.name}</span>
+                      <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download>Download</a>
+                      <button onclick="deleteFile('${file.googleDriveId}')">Delete</button>
+                  </div>
+              `
+            )
+            .join("");
+        } catch (error) {
+          fileListDiv.innerHTML = "<p>Error fetching files</p>";
+        }
       }
 
+      // Handle file deletion
       async function deleteFile(fileId) {
         const confirmDelete = confirm(
           "Are you sure you want to delete this file?"
         );
         if (!confirmDelete) return;
 
-        const response = await fetch(`/deleteGoogleDriveFile/${fileId}`, {
-          method: "DELETE",
-        });
-        const result = await response.json();
+        try {
+          const response = await fetch(`/deleteGoogleDriveFile/${fileId}`, {
+            method: "DELETE",
+          });
+          const result = await response.json();
 
-        if (response.ok) {
-          alert(result.message);
-          fetchFiles(); // Refresh the file list
-        } else {
-          alert("Error deleting file: " + result.error);
+          if (response.ok) {
+            alert(result.message);
+            fetchFiles(); // Refresh the file list
+          } else {
+            alert("Error deleting file: " + result.error);
+          }
+        } catch (error) {
+          alert("An error occurred during deletion.");
         }
       }
 
+      // Fetch files on page load
       fetchFiles();
     </script>
   </body>
