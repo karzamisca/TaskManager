@@ -1,6 +1,7 @@
 const drive = require("../middlewares/googleAuthMiddleware");
 const File = require("../models/GoogleDriveFile");
 const streamifier = require("streamifier");
+const moment = require("moment-timezone");
 
 exports.uploadFile = async (req, res) => {
   try {
@@ -27,6 +28,7 @@ exports.uploadFile = async (req, res) => {
       name: req.file.originalname,
       googleDriveId: response.data.id,
       mimeType: req.file.mimetype,
+      uploadedAt: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
     });
 
     await newFile.save();
