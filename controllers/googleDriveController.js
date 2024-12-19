@@ -26,6 +26,7 @@ exports.uploadFile = async (req, res) => {
     const newFile = new File({
       name: req.file.originalname,
       googleDriveId: response.data.id,
+      mimeType: req.file.mimetype,
     });
 
     await newFile.save();
@@ -40,17 +41,45 @@ exports.uploadFile = async (req, res) => {
   }
 };
 
+// Download file from Google Drive
 exports.downloadFile = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const file = await drive.files.get(
+    // Get file metadata from MongoDB
+    const file = await File.findOne({ googleDriveId: id });
+    if (!file) {
+      return res
+        .status(404)
+        .json({ message: "File not found in the database." });
+    }
+
+    // Fetch the file from Google Drive
+    const response = await drive.files.get(
       { fileId: id, alt: "media" },
       { responseType: "stream" }
     );
 
-    file.data.pipe(res);
+    // Use a fallback MIME type if undefined
+    const mimeType = file.mimeType || "application/octet-stream";
+
+    // Set headers and pipe the file stream to the response
+    res.setHeader("Content-Disposition", `attachment; filename="${file.name}"`);
+    res.setHeader("Content-Type", mimeType);
+    response.data.pipe(res);
   } catch (error) {
+    console.error("Error during file download:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get all files from MongoDB
+exports.getFiles = async (req, res) => {
+  try {
+    const files = await File.find();
+    res.status(200).json(files);
+  } catch (error) {
+    console.error("Error fetching files:", error);
     res.status(500).json({ error: error.message });
   }
 };

@@ -15,6 +15,11 @@
     </form>
 
     <div id="message"></div>
+
+    <div id="fileList">
+      <!-- File list will be populated here -->
+    </div>
+
     <a href="/main">Trở về màn hình chính / Back to Main</a><br />
     <a href="/logout">Đăng xuất / Logout</a><br />
 
@@ -36,6 +41,25 @@
           document.getElementById("message").innerText = "Upload failed";
         }
       });
+
+      async function fetchFiles() {
+        const response = await fetch("/googleDriveFile");
+        const files = await response.json();
+
+        const fileList = document.getElementById("fileList");
+        fileList.innerHTML = files
+          .map(
+            (file) => `
+                <div>
+                    <span>${file.name}</span>
+                    <a href="/download/${file.googleDriveId}" download>Download</a>
+                </div>
+            `
+          )
+          .join("");
+      }
+
+      fetchFiles();
     </script>
   </body>
 </html>

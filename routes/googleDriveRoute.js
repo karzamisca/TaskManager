@@ -4,6 +4,7 @@ const authMiddleware = require("../middlewares/authMiddleware");
 const {
   uploadFile,
   downloadFile,
+  getFiles,
 } = require("../controllers/googleDriveController");
 
 const router = express.Router();
@@ -21,5 +22,6 @@ router.get("/googleDriveFileTransfer", authMiddleware, (req, res) => {
 
 router.post("/upload", authMiddleware, upload.single("file"), uploadFile);
 router.get("/download/:id", authMiddleware, downloadFile);
+router.get("/googleDriveFile", authMiddleware, getFiles);
 
 module.exports = router;
