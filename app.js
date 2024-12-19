@@ -7,6 +7,7 @@ const authRoute = require("./routes/authRoute");
 const documentRoute = require("./routes/documentRoute");
 const authMiddleware = require("./middlewares/authMiddleware"); // JWT middleware
 const entryRoutes = require("./routes/entryRoutes");
+const googleDriveRoute = require("./routes/googleDriveRoute");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
@@ -31,6 +32,7 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Routes
 app.use("/", authRoute);
+app.use("/", authMiddleware, googleDriveRoute);
 app.use("/", authMiddleware, documentRoute); // Apply JWT middleware to document routes
 app.use("/", authMiddleware, entryRoutes);
 
