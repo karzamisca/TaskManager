@@ -42,8 +42,8 @@ exports.uploadFile = async (req, res) => {
 
     await newFile.save();
 
-    res.status(200).json({
-      message: "File uploaded successfully",
+    res.json({
+      message: "Tệp tin tải lên thành công / File uploaded successfully",
       file: newFile,
     });
   } catch (error) {
@@ -58,7 +58,7 @@ exports.createFolder = async (req, res) => {
     const { name } = req.body;
 
     if (!name) {
-      return res.status(400).json({ message: "Folder name is required." });
+      return res.json({ message: "Folder name is required." });
     }
 
     // Create a folder on Google Drive
@@ -76,12 +76,13 @@ exports.createFolder = async (req, res) => {
     const newFolder = new Folder({
       name,
       googleDriveId: response.data.id,
+      createdAt: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
     });
 
     await newFolder.save();
 
-    res.status(200).json({
-      message: "Folder created successfully.",
+    res.json({
+      message: "Thư mục tạo thành công / Folder created successfully.",
       folder: newFolder,
     });
   } catch (error) {
@@ -186,7 +187,9 @@ exports.deleteFile = async (req, res) => {
     // Remove the file metadata from MongoDB
     await File.deleteOne({ googleDriveId: id });
 
-    res.status(200).json({ message: "File deleted successfully." });
+    res.json({
+      message: "Tệp tin xóa thành công / File deleted successfully.",
+    });
   } catch (error) {
     console.error("Error during file deletion:", error);
     res.status(500).json({ error: error.message });
@@ -228,9 +231,10 @@ exports.deleteFolder = async (req, res) => {
     // Remove the folder metadata from MongoDB
     await Folder.deleteOne({ googleDriveId: id });
 
-    res
-      .status(200)
-      .json({ message: "Folder and its contents deleted successfully." });
+    res.json({
+      message:
+        "Thư mục và nội dung bên trong xóa thành công / Folder and its contents deleted successfully.",
+    });
   } catch (error) {
     console.error("Error during folder deletion:", error);
     res.status(500).json({ error: error.message });
