@@ -1,10 +1,11 @@
 const mongoose = require("mongoose");
 
-const googleDriveFileSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  googleDriveId: { type: String, required: true },
+const GoogleDriveFileSchema = new mongoose.Schema({
+  name: String,
+  googleDriveId: String,
   mimeType: String,
+  parentFolderId: { type: String, default: null }, // Added parent folder field
   uploadedAt: String,
 });
 
-module.exports = mongoose.model("GoogleDriveFile", googleDriveFileSchema);
+module.exports = mongoose.model("GoogleDriveFile", GoogleDriveFileSchema);

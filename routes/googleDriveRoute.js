@@ -6,6 +6,9 @@ const {
   downloadFile,
   getFiles,
   deleteFile,
+  createFolder,
+  getFolders,
+  deleteFolder,
 } = require("../controllers/googleDriveController");
 
 const router = express.Router();
@@ -21,14 +24,29 @@ router.get("/googleDriveFileTransfer", authMiddleware, (req, res) => {
   });
 });
 
+// File upload route
 router.post(
   "/uploadGoogleDriveFile",
   authMiddleware,
   upload.single("file"),
   uploadFile
 );
+
+// File download route
 router.get("/downloadGoogleDriveFile/:id", authMiddleware, downloadFile);
+
+// File deletion route
 router.delete("/deleteGoogleDriveFile/:id", authMiddleware, deleteFile);
+
+// Get all files route
 router.get("/googleDriveFile", authMiddleware, getFiles);
+
+// Create folder route
+router.post("/createGoogleDriveFolder", authMiddleware, createFolder);
+
+// Get all folders route
+router.get("/googleDriveFolders", authMiddleware, getFolders);
+
+router.delete("/deleteGoogleDriveFolder/:id", authMiddleware, deleteFolder);
 
 module.exports = router;

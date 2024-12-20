@@ -8,13 +8,35 @@
   <body>
     <h1>Hệ thống chuyển tệp tin / Files Transfer System</h1>
 
+    <!-- Folder Creation Form -->
+    <form id="folderForm">
+      <input
+        type="text"
+        id="folderName"
+        name="name"
+        placeholder="Folder Name"
+        required
+      />
+      <button type="submit">Tạo Thư Mục / Create Folder</button>
+    </form>
+
+    <!-- Folder List -->
+    <div id="folderList">
+      <!-- Folder list will be populated here -->
+    </div>
+
+    <!-- File Upload Form -->
     <form id="uploadForm" enctype="multipart/form-data">
+      <select id="folderSelect">
+        <option value="">Chọn Thư Mục / Select Folder (Optional)</option>
+      </select>
       <input type="file" id="fileInput" name="file" required />
       <button type="submit">Tải lên / Upload</button>
     </form>
 
     <div id="message"></div>
 
+    <!-- File List -->
     <div id="fileList">
       <!-- File list will be populated here -->
     </div>
@@ -23,14 +45,101 @@
     <a href="/logout">Đăng xuất / Logout</a><br />
 
     <script>
+      const folderForm = document.getElementById("folderForm");
+      const folderSelect = document.getElementById("folderSelect");
       const uploadForm = document.getElementById("uploadForm");
       const messageDiv = document.getElementById("message");
       const fileListDiv = document.getElementById("fileList");
+      const folderListDiv = document.getElementById("folderList");
+
+      // Handle folder creation
+      folderForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const folderName = document.getElementById("folderName").value;
+
+        try {
+          const response = await fetch("/createGoogleDriveFolder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: folderName }),
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            alert(result.message);
+            fetchFolders(); // Refresh folder list
+          } else {
+            alert("Error creating folder: " + result.error);
+          }
+        } catch (error) {
+          alert("An error occurred during folder creation.");
+        }
+      });
+
+      // Fetch and display folders
+      async function fetchFolders() {
+        try {
+          const response = await fetch("/googleDriveFolders");
+          const folders = await response.json();
+
+          folderSelect.innerHTML =
+            '<option value="">Chọn Thư Mục / Select Folder (Optional)</option>'; // Reset folder dropdown
+          folderListDiv.innerHTML = ""; // Clear existing folder list
+
+          folders.forEach((folder) => {
+            const option = document.createElement("option");
+            option.value = folder.googleDriveId;
+            option.textContent = folder.name;
+            folderSelect.appendChild(option);
+
+            // Add folder to the folder list with a delete button
+            const folderDiv = document.createElement("div");
+            folderDiv.innerHTML = `
+              <span>${folder.name}</span>
+              <button onclick="deleteFolder('${folder.googleDriveId}')">Xóa Thư Mục / Delete Folder</button>
+            `;
+            folderListDiv.appendChild(folderDiv);
+          });
+        } catch (error) {
+          folderListDiv.innerHTML = "<p>Error fetching folders.</p>";
+        }
+      }
+
+      // Handle folder deletion
+      async function deleteFolder(folderId) {
+        const confirmDelete = confirm(
+          "Bạn có chắc muốn xóa thư mục này? / Are you sure you want to delete this folder?"
+        );
+        if (!confirmDelete) return;
+
+        try {
+          const response = await fetch(`/deleteGoogleDriveFolder/${folderId}`, {
+            method: "DELETE",
+          });
+          const result = await response.json();
+
+          if (response.ok) {
+            alert(result.message);
+            fetchFolders(); // Refresh folder list after deletion
+            fetchFiles();
+          } else {
+            alert("Error deleting folder: " + result.error);
+          }
+        } catch (error) {
+          alert("An error occurred during folder deletion.");
+        }
+      }
 
       // Handle file upload
       uploadForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const formData = new FormData(uploadForm); // Create FormData from the form
+        const formData = new FormData(uploadForm);
+        const selectedFolder = folderSelect.value;
+
+        if (selectedFolder) {
+          formData.append("parentFolderId", selectedFolder); // Attach the selected folder ID
+        }
 
         try {
           const response = await fetch("/uploadGoogleDriveFile", {
@@ -42,7 +151,7 @@
 
           if (response.ok) {
             messageDiv.innerText = result.message;
-            location.reload(); // Refresh the page after successful upload
+            fetchFiles(); // Refresh file list
           } else {
             messageDiv.innerText = `Upload failed: ${result.error}`;
           }
@@ -51,7 +160,7 @@
         }
       });
 
-      // Fetch and display the file list
+      // Fetch and display files
       async function fetchFiles() {
         try {
           const response = await fetch("/googleDriveFile");
@@ -69,7 +178,7 @@
             )
             .join("");
         } catch (error) {
-          fileListDiv.innerHTML = "<p>Error fetching files</p>";
+          fileListDiv.innerHTML = "<p>Error fetching files.</p>";
         }
       }
 
@@ -97,7 +206,8 @@
         }
       }
 
-      // Fetch files on page load
+      // Fetch folders and files on page load
+      fetchFolders();
       fetchFiles();
     </script>
   </body>
