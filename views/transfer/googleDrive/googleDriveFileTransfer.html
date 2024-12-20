@@ -34,8 +34,6 @@
       <button type="submit">Tải lên / Upload</button>
     </form>
 
-    <div id="message"></div>
-
     <!-- File List -->
     <div id="fileList">
       <!-- File list will be populated here -->
@@ -48,7 +46,6 @@
       const folderForm = document.getElementById("folderForm");
       const folderSelect = document.getElementById("folderSelect");
       const uploadForm = document.getElementById("uploadForm");
-      const messageDiv = document.getElementById("message");
       const fileListDiv = document.getElementById("fileList");
       const folderListDiv = document.getElementById("folderList");
 
@@ -150,13 +147,13 @@
           const result = await response.json();
 
           if (response.ok) {
-            messageDiv.innerText = result.message;
+            alert(result.message); // Show success popup
             fetchFiles(); // Refresh file list
           } else {
-            messageDiv.innerText = `Upload failed: ${result.error}`;
+            alert(`Upload failed: ${result.error}`);
           }
         } catch (error) {
-          messageDiv.innerText = "An error occurred during the upload.";
+          alert("An error occurred during the upload.");
         }
       });
 
