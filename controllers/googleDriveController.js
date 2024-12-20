@@ -146,10 +146,20 @@ exports.downloadFile = async (req, res) => {
   }
 };
 
-// Get all files from MongoDB
+// Get all files or files for a specific folder from MongoDB
 exports.getFiles = async (req, res) => {
+  const folderId = req.query.folderId; // Get the folderId from query parameters
+
   try {
-    const files = await File.find();
+    let files;
+    if (folderId) {
+      // Fetch files for the specific folder
+      files = await File.find({ parentFolderId: folderId });
+    } else {
+      // Fetch all files if no folderId is specified
+      files = await File.find();
+    }
+
     res.status(200).json(files);
   } catch (error) {
     console.error("Error fetching files:", error);

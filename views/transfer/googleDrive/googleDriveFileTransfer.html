@@ -4,6 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hệ thống chuyển tệp tin / Files Transfer System</title>
+    <style>
+      /* Basic layout styling */
+      .folder-container {
+        margin-bottom: 20px;
+      }
+      .folder-item {
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        font-weight: bold;
+      }
+      .file-list {
+        padding-left: 20px;
+      }
+      .file-item {
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid #ccc;
+      }
+      .file-item a {
+        margin-right: 10px;
+      }
+    </style>
   </head>
   <body>
     <h1>Hệ thống chuyển tệp tin / Files Transfer System</h1>
@@ -19,12 +42,6 @@
       />
       <button type="submit">Tạo Thư Mục / Create Folder</button>
     </form>
-
-    <!-- Folder List -->
-    <div id="folderList">
-      <!-- Folder list will be populated here -->
-    </div>
-
     <!-- File Upload Form -->
     <form id="uploadForm" enctype="multipart/form-data">
       <select id="folderSelect">
@@ -34,9 +51,9 @@
       <button type="submit">Tải lên / Upload</button>
     </form>
 
-    <!-- File List -->
-    <div id="fileList">
-      <!-- File list will be populated here -->
+    <!-- Folder List -->
+    <div id="folderList">
+      <!-- Folders will be populated here -->
     </div>
 
     <a href="/main">Trở về màn hình chính / Back to Main</a><br />
@@ -46,7 +63,6 @@
       const folderForm = document.getElementById("folderForm");
       const folderSelect = document.getElementById("folderSelect");
       const uploadForm = document.getElementById("uploadForm");
-      const fileListDiv = document.getElementById("fileList");
       const folderListDiv = document.getElementById("folderList");
 
       // Handle folder creation
@@ -85,18 +101,28 @@
           folderListDiv.innerHTML = ""; // Clear existing folder list
 
           folders.forEach((folder) => {
+            // Add folder to the folder list with a delete button
+            const folderDiv = document.createElement("div");
+            folderDiv.classList.add("folder-container");
+            folderDiv.innerHTML = `
+        <div class="folder-item">
+          <span>${folder.name}</span>
+          <button onclick="deleteFolder('${folder.googleDriveId}')">Xóa Thư Mục / Delete Folder</button>
+        </div>
+        <div id="fileList-${folder.googleDriveId}" class="file-list">
+          <!-- Files will be populated here for this folder -->
+        </div>
+      `;
+            folderListDiv.appendChild(folderDiv);
+
+            // Add the folder to the folder select dropdown
             const option = document.createElement("option");
             option.value = folder.googleDriveId;
             option.textContent = folder.name;
             folderSelect.appendChild(option);
 
-            // Add folder to the folder list with a delete button
-            const folderDiv = document.createElement("div");
-            folderDiv.innerHTML = `
-              <span>${folder.name}</span>
-              <button onclick="deleteFolder('${folder.googleDriveId}')">Xóa Thư Mục / Delete Folder</button>
-            `;
-            folderListDiv.appendChild(folderDiv);
+            // Fetch files for the folder after adding it
+            fetchFiles(folder.googleDriveId); // Fetch files for the specific folder
           });
         } catch (error) {
           folderListDiv.innerHTML = "<p>Error fetching folders.</p>";
@@ -119,7 +145,6 @@
           if (response.ok) {
             alert(result.message);
             fetchFolders(); // Refresh folder list after deletion
-            fetchFiles();
           } else {
             alert("Error deleting folder: " + result.error);
           }
@@ -148,7 +173,7 @@
 
           if (response.ok) {
             alert(result.message); // Show success popup
-            fetchFiles(); // Refresh file list
+            fetchFiles(selectedFolder); // Refresh file list for the selected folder
           } else {
             alert(`Upload failed: ${result.error}`);
           }
@@ -157,24 +182,30 @@
         }
       });
 
-      // Fetch and display files
-      async function fetchFiles() {
+      // Fetch and display files for a specific folder
+      async function fetchFiles(folderId) {
         try {
-          const response = await fetch("/googleDriveFile");
+          const response = await fetch(`/googleDriveFile?folderId=${folderId}`);
           const files = await response.json();
 
-          fileListDiv.innerHTML = files
-            .map(
-              (file) => `
-                  <div>
-                      <span>${file.name}</span>
-                      <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download>Download</a>
-                      <button onclick="deleteFile('${file.googleDriveId}')">Delete</button>
-                  </div>
-              `
-            )
-            .join("");
+          const fileListDiv = document.getElementById(`fileList-${folderId}`);
+          fileListDiv.innerHTML = "<h3>Files</h3>"; // Add title for file section
+
+          if (files.length === 0) {
+            fileListDiv.innerHTML += "<p>No files found in this folder.</p>";
+          } else {
+            files.forEach((file) => {
+              fileListDiv.innerHTML += `
+          <div class="file-item">
+              <span>${file.name}</span>
+              <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download>Download</a>
+              <button onclick="deleteFile('${file.googleDriveId}')">Delete</button>
+          </div>
+        `;
+            });
+          }
         } catch (error) {
+          const fileListDiv = document.getElementById(`fileList-${folderId}`);
           fileListDiv.innerHTML = "<p>Error fetching files.</p>";
         }
       }
@@ -194,7 +225,7 @@
 
           if (response.ok) {
             alert(result.message);
-            fetchFiles(); // Refresh the file list
+            location.reload(); // Refresh the file list
           } else {
             alert("Error deleting file: " + result.error);
           }
@@ -205,7 +236,6 @@
 
       // Fetch folders and files on page load
       fetchFolders();
-      fetchFiles();
     </script>
   </body>
 </html>
