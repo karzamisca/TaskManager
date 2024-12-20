@@ -5,6 +5,7 @@ const {
   uploadFile,
   downloadFile,
   getFiles,
+  getRootFiles,
   deleteFile,
   createFolder,
   getFolders,
@@ -40,6 +41,8 @@ router.delete("/deleteGoogleDriveFile/:id", authMiddleware, deleteFile);
 
 // Get all files route
 router.get("/googleDriveFile", authMiddleware, getFiles);
+// Route to fetch root-level files
+router.get("/googleDriveRootFile", authMiddleware, getRootFiles);
 
 // Create folder route
 router.post("/createGoogleDriveFolder", authMiddleware, createFolder);
