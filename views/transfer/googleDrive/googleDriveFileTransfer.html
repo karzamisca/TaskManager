@@ -133,7 +133,13 @@
                 <button onclick="deleteFolder('${folder.googleDriveId}')">Xóa Thư Mục / Delete Folder</button>
               </div>
               <div id="fileList-${folder.googleDriveId}" class="file-list">
-                <!-- Files will be populated here for this folder -->
+                <form id="uploadForm-${folder.googleDriveId}" enctype="multipart/form-data" class="file-upload-form">
+                  <input type="file" name="file" required />
+                  <button type="submit">Tải lên / Upload</button>
+                </form>
+                <div class="file-items">
+                  <!-- Files will be populated here -->
+                </div>
               </div>
             `;
             folderListDiv.appendChild(folderDiv);
@@ -143,10 +149,44 @@
             option.textContent = folder.name;
             folderSelect.appendChild(option);
 
+            // Add event listener to the upload form
+            const uploadForm = document.getElementById(
+              `uploadForm-${folder.googleDriveId}`
+            );
+            uploadForm.addEventListener("submit", (e) =>
+              handleFileUpload(e, folder.googleDriveId)
+            );
+
             fetchFiles(folder.googleDriveId); // Fetch files for the folder
           });
         } catch (error) {
           folderListDiv.innerHTML = "<p>Error fetching folders.</p>";
+        }
+      }
+
+      // Handle file uploads for each folder
+      async function handleFileUpload(e, folderId) {
+        e.preventDefault();
+        const uploadForm = e.target;
+        const formData = new FormData(uploadForm);
+        formData.append("parentFolderId", folderId); // Attach the folder ID
+
+        try {
+          const response = await fetch("/uploadGoogleDriveFile", {
+            method: "POST",
+            body: formData,
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            alert(result.message);
+            fetchFiles(folderId); // Refresh files for the folder
+          } else {
+            alert(`Upload failed: ${result.error}`);
+          }
+        } catch (error) {
+          alert("An error occurred during the upload.");
         }
       }
 
@@ -161,32 +201,37 @@
       }
 
       // Fetch files for a specific folder
+      // Fetch files for a specific folder
       async function fetchFiles(folderId) {
         try {
           const response = await fetch(`/googleDriveFile?folderId=${folderId}`);
           const files = await response.json();
 
-          const fileListDiv = document.getElementById(`fileList-${folderId}`);
-          fileListDiv.innerHTML = ""; // Clear previous file list
+          const fileItemsDiv = document.querySelector(
+            `#fileList-${folderId} .file-items`
+          );
+          fileItemsDiv.innerHTML = ""; // Clear previous file list
 
           if (files.length === 0) {
-            fileListDiv.innerHTML +=
+            fileItemsDiv.innerHTML +=
               "<p>Chưa có tệp tin nào trong thư mục này / No files found in this folder.</p>";
           } else {
             files.forEach((file) => {
-              fileListDiv.innerHTML += `
+              fileItemsDiv.innerHTML += `
                 <div class="file-item">
                   <span>${file.name}</span>
                   <span>${file.uploadedAt}</span>
-                  <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download> Tải xuống / Download</a>
-                  <button onclick="deleteFile('${file.googleDriveId}')"> Xóa / Delete</button>
+                  <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download>Tải xuống / Download</a>
+                  <button onclick="deleteFile('${file.googleDriveId}')">Xóa / Delete</button>
                 </div>
               `;
             });
           }
         } catch (error) {
-          const fileListDiv = document.getElementById(`fileList-${folderId}`);
-          fileListDiv.innerHTML = "<p>Error fetching files.</p>";
+          const fileItemsDiv = document.querySelector(
+            `#fileList-${folderId} .file-items`
+          );
+          fileItemsDiv.innerHTML = "<p>Error fetching files.</p>";
         }
       }
 
@@ -235,7 +280,8 @@
 
           if (response.ok) {
             alert(result.message);
-            location.reload(); // Refresh the file list
+            fetchFolders(); // Refresh
+            fetchRootFiles();
           } else {
             alert("Error deleting file: " + result.error);
           }
