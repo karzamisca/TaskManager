@@ -71,7 +71,7 @@
 
     <!-- Root Files Section -->
     <div id="rootFilesList">
-      <h3>Tệp không thư mục / Root-Level Files</h3>
+      <h3>Tệp tin tại cấp gốc/ Root-Level Files</h3>
       <div id="fileList-root" class="fileList-root">
         <!-- Root files will be dynamically populated here -->
       </div>
@@ -129,6 +129,7 @@
             folderDiv.innerHTML = `
               <div class="folder-item">
                 <span class="folder-name" onclick="toggleFileList('${folder.googleDriveId}')">${folder.name}</span>
+                <span>${folder.createdAt}</span>
                 <button onclick="deleteFolder('${folder.googleDriveId}')">Xóa Thư Mục / Delete Folder</button>
               </div>
               <div id="fileList-${folder.googleDriveId}" class="file-list">
@@ -176,6 +177,7 @@
               fileListDiv.innerHTML += `
                 <div class="file-item">
                   <span>${file.name}</span>
+                  <span>${file.uploadedAt}</span>
                   <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download> Tải xuống / Download</a>
                   <button onclick="deleteFile('${file.googleDriveId}')"> Xóa / Delete</button>
                 </div>
@@ -205,6 +207,7 @@
               rootFilesDiv.innerHTML += `
                 <div class="file-item1">
                   <span>${file.name}</span>
+                  <span>${file.uploadedAt}</span>
                   <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download>Tải xuống / Download</a>
                   <button onclick="deleteFile('${file.googleDriveId}')">Xóa / Delete</button>
                 </div>
@@ -286,6 +289,7 @@
           if (response.ok) {
             alert(result.message); // Show success popup
             fetchFiles(selectedFolder); // Refresh files for the selected folder
+            fetchRootFiles(); //Refresh root-level file list
           } else {
             alert(`Upload failed: ${result.error}`);
           }
