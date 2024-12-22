@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bảng Tin Nhắn/Message Board</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }
+
+      h1 {
+        color: #333;
+      }
+
+      #messages {
+        margin-top: 20px;
+      }
+
+      #messages ul {
+        list-style-type: none;
+      }
+
+      #messages li {
+        margin-bottom: 10px;
+      }
+
+      form {
+        margin-top: 20px;
+      }
+
+      textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+      }
+
+      button {
+        padding: 10px 15px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #45a049;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Bảng Tin Nhắn/Message Board</h1>
+
+    <div id="messages">
+      <ul id="message-list"></ul>
+      <!-- This will be populated dynamically with JavaScript -->
+    </div>
+
+    <form id="message-form">
+      <textarea
+        name="content"
+        id="content"
+        rows="4"
+        placeholder="Nhập tin nhắn/Write a message..."
+        required
+      ></textarea>
+      <button type="submit">Đăng tin nhắn/Post Message</button>
+    </form>
+
+    <a href="/main">Trở về trang chủ/Back to Main</a><br />
+    <a href="/logout">Đăng xuất/Logout</a><br />
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Fetch messages on page load
+        fetchMessages();
+
+        // Handle message form submission
+        const messageForm = document.getElementById("message-form");
+        messageForm.addEventListener("submit", function (e) {
+          e.preventDefault();
+          const content = document.getElementById("content").value;
+
+          if (content.trim()) {
+            postMessage(content);
+          }
+        });
+      });
+
+      // Function to fetch messages from the backend
+      function fetchMessages() {
+        fetch("/messageGet")
+          .then((response) => response.json())
+          .then((data) => {
+            const messageList = document.getElementById("message-list");
+            messageList.innerHTML = ""; // Clear existing messages
+
+            data.forEach((message) => {
+              const messageItem = document.createElement("li");
+              messageItem.innerHTML = `
+          <strong>${message.user.username}</strong>: ${message.content}
+          <small>(${message.createdAt})</small>
+        `;
+              messageList.appendChild(messageItem);
+            });
+          })
+          .catch((err) => {
+            console.error("Error fetching messages:", err);
+          });
+      }
+
+      // Function to post a new message
+      function postMessage(content) {
+        fetch("/messagePost", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ content }),
+        })
+          .then((response) => response.json())
+          .then(() => {
+            // Clear the content after posting
+            document.getElementById("content").value = "";
+            fetchMessages(); // Refresh the message list
+          })
+          .catch((err) => {
+            console.error("Error posting message:", err);
+          });
+      }
+    </script>
+  </body>
+</html>

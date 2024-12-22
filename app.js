@@ -8,6 +8,7 @@ const documentRoute = require("./routes/documentRoute");
 const authMiddleware = require("./middlewares/authMiddleware"); // JWT middleware
 const entryRoute = require("./routes/entryRoute");
 const googleDriveRoute = require("./routes/googleDriveRoute");
+const messageRoute = require("./routes/messageRoute");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
@@ -35,6 +36,7 @@ app.use("/", authRoute);
 app.use("/", authMiddleware, googleDriveRoute);
 app.use("/", authMiddleware, documentRoute); // Apply JWT middleware to document routes
 app.use("/", authMiddleware, entryRoute);
+app.use("/", authMiddleware, messageRoute);
 
 // Error handling for multer
 app.use((err, req, res, next) => {
