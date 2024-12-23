@@ -118,8 +118,6 @@
           const response = await fetch("/googleDriveFolders");
           const folders = await response.json();
 
-          folderSelect.innerHTML =
-            '<option value="">Chọn Thư Mục / Select Folder</option>'; // Reset folder dropdown
           folderListDiv.innerHTML = ""; // Clear existing folder list
 
           folders.forEach((folder) => {
@@ -133,6 +131,10 @@
                 <button onclick="deleteFolder('${folder.googleDriveId}')">Xóa Thư Mục / Delete Folder</button>
               </div>
               <div id="fileList-${folder.googleDriveId}" class="file-list">
+                <form id="subFolderForm-${folder.googleDriveId}" class="subfolder-form">
+                  <input type="text" name="subfolderName" placeholder="Subfolder Name" required />
+                  <button type="submit">Tạo Thư Mục Con / Create Subfolder</button>
+                </form>
                 <form id="uploadForm-${folder.googleDriveId}" enctype="multipart/form-data" class="file-upload-form">
                   <input type="file" name="file" required />
                   <button type="submit">Tải lên / Upload</button>
@@ -142,12 +144,16 @@
                 </div>
               </div>
             `;
+
             folderListDiv.appendChild(folderDiv);
 
-            const option = document.createElement("option");
-            option.value = folder.googleDriveId;
-            option.textContent = folder.name;
-            folderSelect.appendChild(option);
+            // Add event listener to the subfolder creation form
+            const subFolderForm = document.getElementById(
+              `subFolderForm-${folder.googleDriveId}`
+            );
+            subFolderForm.addEventListener("submit", (e) =>
+              handleSubFolderCreation(e, folder.googleDriveId)
+            );
 
             // Add event listener to the upload form
             const uploadForm = document.getElementById(
@@ -161,6 +167,33 @@
           });
         } catch (error) {
           folderListDiv.innerHTML = "<p>Error fetching folders.</p>";
+        }
+      }
+
+      async function handleSubFolderCreation(e, parentFolderId) {
+        e.preventDefault();
+        const form = e.target;
+        const subfolderName = form.querySelector(
+          "input[name='subfolderName']"
+        ).value;
+
+        try {
+          const response = await fetch("/createGoogleDriveFolder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: subfolderName, parentFolderId }),
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            alert(result.message);
+            fetchFolders(); // Refresh folder list
+          } else {
+            alert("Error creating subfolder: " + result.error);
+          }
+        } catch (error) {
+          alert("An error occurred during subfolder creation.");
         }
       }
 
@@ -305,7 +338,7 @@
 
           if (response.ok) {
             alert(result.message);
-            fetchFolders(); // Refresh folder list
+            fetchFolders(); // Refresh the folder list
           } else {
             alert("Error deleting folder: " + result.error);
           }

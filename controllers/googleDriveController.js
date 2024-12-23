@@ -55,38 +55,39 @@ exports.uploadFile = async (req, res) => {
 // Create a folder on Google Drive
 exports.createFolder = async (req, res) => {
   try {
-    const { name } = req.body;
+    const { name, parentFolderId } = req.body;
 
-    if (!name) {
-      return res.json({ message: "Folder name is required." });
-    }
-
-    // Create a folder on Google Drive
+    // Set the parent ID for Google Drive
     const folderMetadata = {
       name,
       mimeType: "application/vnd.google-apps.folder",
+      parents: parentFolderId ? [parentFolderId] : [], // Assign parent if provided
     };
 
-    const response = await drive.files.create({
+    // Create folder on Google Drive
+    const driveResponse = await drive.files.create({
       resource: folderMetadata,
-      fields: "id",
+      fields: "id, name",
     });
 
-    // Save folder metadata to MongoDB
+    const googleDriveId = driveResponse.data.id;
+
+    // Save folder metadata in MongoDB
     const newFolder = new Folder({
       name,
-      googleDriveId: response.data.id,
+      googleDriveId,
+      parentFolderId: parentFolderId || null, // Store parentFolderId or null
       createdAt: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
     });
 
     await newFolder.save();
 
-    res.json({
+    res.status(201).json({
       message: "Thư mục tạo thành công / Folder created successfully.",
       folder: newFolder,
     });
   } catch (error) {
-    console.error("Error creating folder:", error);
+    console.error("Error during folder creation:", error);
     res.status(500).json({ error: error.message });
   }
 };
@@ -212,35 +213,33 @@ exports.deleteFolder = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Find the folder in MongoDB
-    const folder = await Folder.findOne({ googleDriveId: id });
-    if (!folder) {
-      return res
-        .status(404)
-        .json({ message: "Folder not found in the database." });
-    }
+    // Recursive function to delete a folder and its contents
+    const deleteFolderAndContents = async (folderId) => {
+      // Find all subfolders in the database
+      const subFolders = await Folder.find({ parentFolderId: folderId });
 
-    // Get a list of all files in the folder
-    const fileList = await drive.files.list({
-      q: `'${id}' in parents and trashed=false`,
-      fields: "files(id, name)",
-    });
+      for (const subFolder of subFolders) {
+        // Recursively delete subfolders and their contents
+        await deleteFolderAndContents(subFolder.googleDriveId);
+      }
 
-    const filesInFolder = fileList.data.files;
+      // Delete all files in the folder
+      const filesInFolder = await File.find({ parentFolderId: folderId });
 
-    // Delete files inside the folder from Google Drive
-    for (const file of filesInFolder) {
-      await drive.files.delete({ fileId: file.id });
+      for (const file of filesInFolder) {
+        await drive.files.delete({ fileId: file.googleDriveId }); // Delete file from Google Drive
+        await File.deleteOne({ googleDriveId: file.googleDriveId }); // Delete file record from the database
+      }
 
-      // Remove file records from the database
-      await File.deleteOne({ googleDriveId: file.id });
-    }
+      // Delete the folder from Google Drive
+      await drive.files.delete({ fileId: folderId });
 
-    // Delete the folder from Google Drive
-    await drive.files.delete({ fileId: id });
+      // Remove the folder record from the database
+      await Folder.deleteOne({ googleDriveId: folderId });
+    };
 
-    // Remove the folder metadata from MongoDB
-    await Folder.deleteOne({ googleDriveId: id });
+    // Start deletion with the root folder
+    await deleteFolderAndContents(id);
 
     res.json({
       message:
