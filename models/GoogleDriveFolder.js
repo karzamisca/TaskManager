@@ -1,3 +1,4 @@
+// models/GoogleDriveFolder.js
 const mongoose = require("mongoose");
 
 const googleDriveFolderSchema = new mongoose.Schema({
