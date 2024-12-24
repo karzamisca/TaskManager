@@ -120,54 +120,85 @@
 
           folderListDiv.innerHTML = ""; // Clear existing folder list
 
+          // Build nested folder structure
+          const folderMap = {};
           folders.forEach((folder) => {
-            const folderDiv = document.createElement("div");
-            folderDiv.classList.add("folder-container");
+            folderMap[folder.googleDriveId] = { ...folder, children: [] };
+          });
 
-            folderDiv.innerHTML = `
-              <div class="folder-item">
-                <span class="folder-name" onclick="toggleFileList('${folder.googleDriveId}')">${folder.name}</span>
-                <span>${folder.createdAt}</span>
-                <button onclick="deleteFolder('${folder.googleDriveId}')">Xóa Thư Mục / Delete Folder</button>
-              </div>
-              <div id="fileList-${folder.googleDriveId}" class="file-list">
-                <form id="subFolderForm-${folder.googleDriveId}" class="subfolder-form">
-                  <input type="text" name="subfolderName" placeholder="Subfolder Name" required />
-                  <button type="submit">Tạo Thư Mục Con / Create Subfolder</button>
-                </form>
-                <form id="uploadForm-${folder.googleDriveId}" enctype="multipart/form-data" class="file-upload-form">
-                  <input type="file" name="file" required />
-                  <button type="submit">Tải lên / Upload</button>
-                </form>
-                <div class="file-items">
-                  <!-- Files will be populated here -->
-                </div>
-              </div>
-            `;
+          // Organize folders into a tree structure
+          const rootFolders = [];
+          folders.forEach((folder) => {
+            if (folder.parentFolderId) {
+              folderMap[folder.parentFolderId].children.push(
+                folderMap[folder.googleDriveId]
+              );
+            } else {
+              rootFolders.push(folderMap[folder.googleDriveId]);
+            }
+          });
 
-            folderListDiv.appendChild(folderDiv);
-
-            // Add event listener to the subfolder creation form
-            const subFolderForm = document.getElementById(
-              `subFolderForm-${folder.googleDriveId}`
-            );
-            subFolderForm.addEventListener("submit", (e) =>
-              handleSubFolderCreation(e, folder.googleDriveId)
-            );
-
-            // Add event listener to the upload form
-            const uploadForm = document.getElementById(
-              `uploadForm-${folder.googleDriveId}`
-            );
-            uploadForm.addEventListener("submit", (e) =>
-              handleFileUpload(e, folder.googleDriveId)
-            );
-
-            fetchFiles(folder.googleDriveId); // Fetch files for the folder
+          // Render folder tree
+          rootFolders.forEach((folder) => {
+            folderListDiv.appendChild(renderFolder(folder));
           });
         } catch (error) {
           folderListDiv.innerHTML = "<p>Error fetching folders.</p>";
         }
+      }
+
+      // Recursive function to render a folder and its subfolders
+      function renderFolder(folder) {
+        const folderDiv = document.createElement("div");
+        folderDiv.classList.add("folder-container");
+
+        folderDiv.innerHTML = `
+    <div class="folder-item">
+      <span class="folder-name" onclick="toggleFileList('${folder.googleDriveId}')">${folder.name}</span>
+      <span>${folder.createdAt}</span>
+      <button onclick="deleteFolder('${folder.googleDriveId}')">Xóa Thư Mục / Delete Folder</button>
+    </div>
+    <div id="fileList-${folder.googleDriveId}" class="file-list">
+      <form id="subFolderForm-${folder.googleDriveId}" class="subfolder-form">
+        <input type="text" name="subfolderName" placeholder="Subfolder Name" required />
+        <button type="submit">Tạo Thư Mục Con / Create Subfolder</button>
+      </form>
+      <form id="uploadForm-${folder.googleDriveId}" enctype="multipart/form-data" class="file-upload-form">
+        <input type="file" name="file" required />
+        <button type="submit">Tải lên / Upload</button>
+      </form>
+      <div class="file-items">
+        <!-- Files will be populated here -->
+      </div>
+    </div>
+  `;
+
+        // Attach event listeners
+        const subFolderForm = folderDiv.querySelector(
+          `#subFolderForm-${folder.googleDriveId}`
+        );
+        subFolderForm.addEventListener("submit", (e) =>
+          handleSubFolderCreation(e, folder.googleDriveId)
+        );
+
+        const uploadForm = folderDiv.querySelector(
+          `#uploadForm-${folder.googleDriveId}`
+        );
+        uploadForm.addEventListener("submit", (e) =>
+          handleFileUpload(e, folder.googleDriveId)
+        );
+
+        fetchFiles(folder.googleDriveId); // Fetch files for the folder
+
+        // Render subfolders
+        const fileListDiv = folderDiv.querySelector(
+          `#fileList-${folder.googleDriveId}`
+        );
+        folder.children.forEach((childFolder) => {
+          fileListDiv.appendChild(renderFolder(childFolder));
+        });
+
+        return folderDiv;
       }
 
       async function handleSubFolderCreation(e, parentFolderId) {
