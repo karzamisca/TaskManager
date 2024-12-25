@@ -44,6 +44,8 @@
   <body>
     <h1>Hệ thống chuyển tệp tin / Files Transfer System</h1>
 
+    <button id="syncButton">Đồng bộ Google Drive / Sync Google Drive</button>
+
     <!-- Folder Creation Form -->
     <form id="folderForm">
       <input
@@ -87,6 +89,7 @@
       const uploadForm = document.getElementById("uploadForm");
       const folderListDiv = document.getElementById("folderList");
       const rootFilesDiv = document.getElementById("rootFiles");
+      const syncButton = document.getElementById("syncButton");
 
       // Handle folder creation
       folderForm.addEventListener("submit", async (e) => {
@@ -110,6 +113,33 @@
           }
         } catch (error) {
           alert("An error occurred during folder creation.");
+        }
+      });
+
+      syncButton.addEventListener("click", async () => {
+        try {
+          const confirmSync = confirm(
+            "Bạn có chắc chắn muốn đồng bộ? / Are you sure you want to sync?"
+          );
+          if (!confirmSync) return;
+
+          const response = await fetch("/fetch-and-sync");
+
+          if (response.ok) {
+            const result = await response.json();
+            alert(result.message || "Đồng bộ thành công! / Sync successful!");
+            fetchFolders(); // Refresh folder list
+            fetchRootFiles(); // Refresh root files
+          } else {
+            const error = await response.json();
+            alert(
+              "Đồng bộ thất bại: / Sync failed: " + (error.message || "Error")
+            );
+          }
+        } catch (error) {
+          alert(
+            "Đã xảy ra lỗi trong quá trình đồng bộ. / An error occurred during sync."
+          );
         }
       });
 
@@ -154,25 +184,25 @@
         folderDiv.classList.add("folder-container");
 
         folderDiv.innerHTML = `
-    <div class="folder-item">
-      <span class="folder-name" onclick="toggleFileList('${folder.googleDriveId}')">${folder.name}</span>
-      <span>${folder.createdAt}</span>
-      <button onclick="deleteFolder('${folder.googleDriveId}')">Xóa Thư Mục / Delete Folder</button>
-    </div>
-    <div id="fileList-${folder.googleDriveId}" class="file-list">
-      <form id="subFolderForm-${folder.googleDriveId}" class="subfolder-form">
-        <input type="text" name="subfolderName" placeholder="Subfolder Name" required />
-        <button type="submit">Tạo Thư Mục Con / Create Subfolder</button>
-      </form>
-      <form id="uploadForm-${folder.googleDriveId}" enctype="multipart/form-data" class="file-upload-form">
-        <input type="file" name="file" required />
-        <button type="submit">Tải lên / Upload</button>
-      </form>
-      <div class="file-items">
-        <!-- Files will be populated here -->
-      </div>
-    </div>
-  `;
+          <div class="folder-item">
+            <span class="folder-name" onclick="toggleFileList('${folder.googleDriveId}')">${folder.name}</span>
+            <span>${folder.createdAt}</span>
+            <button onclick="deleteFolder('${folder.googleDriveId}')">Xóa Thư Mục / Delete Folder</button>
+          </div>
+          <div id="fileList-${folder.googleDriveId}" class="file-list">
+            <form id="subFolderForm-${folder.googleDriveId}" class="subfolder-form">
+              <input type="text" name="subfolderName" placeholder="Subfolder Name" required />
+              <button type="submit">Tạo Thư Mục Con / Create Subfolder</button>
+            </form>
+            <form id="uploadForm-${folder.googleDriveId}" enctype="multipart/form-data" class="file-upload-form">
+              <input type="file" name="file" required />
+              <button type="submit">Tải lên / Upload</button>
+            </form>
+            <div class="file-items">
+              <!-- Files will be populated here -->
+            </div>
+          </div>
+        `;
 
         // Attach event listeners
         const subFolderForm = folderDiv.querySelector(

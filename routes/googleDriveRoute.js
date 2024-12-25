@@ -11,6 +11,9 @@ const {
   createFolder,
   getFolders,
   deleteFolder,
+  syncFiles,
+  syncFolders,
+  fetchAndSync,
 } = require("../controllers/googleDriveController");
 
 const router = express.Router();
@@ -52,5 +55,9 @@ router.post("/createGoogleDriveFolder", authMiddleware, createFolder);
 router.get("/googleDriveFolders", authMiddleware, getFolders);
 
 router.delete("/deleteGoogleDriveFolder/:id", authMiddleware, deleteFolder);
+
+router.get("/sync-files", syncFiles);
+router.get("/sync-folders", syncFolders);
+router.get("/fetch-and-sync", fetchAndSync);
 
 module.exports = router;

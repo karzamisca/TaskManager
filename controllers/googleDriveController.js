@@ -4,6 +4,7 @@ const File = require("../models/GoogleDriveFile");
 const Folder = require("../models/GoogleDriveFolder");
 const streamifier = require("streamifier");
 const moment = require("moment-timezone");
+require("dotenv").config();
 
 // Upload file to a folder
 exports.uploadFile = async (req, res) => {
@@ -248,6 +249,142 @@ exports.deleteFolder = async (req, res) => {
     });
   } catch (error) {
     console.error("Error during folder deletion:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Sync files from Google Drive to MongoDB
+exports.syncFiles = async () => {
+  try {
+    const response = await drive.files.list({
+      q: "mimeType!='application/vnd.google-apps.folder' and trashed=false and 'me' in owners",
+      fields: "files(id, name, mimeType, parents, createdTime)",
+    });
+
+    const filesFromDrive = response.data.files;
+
+    // Sync: Update or add files in MongoDB
+    for (const file of filesFromDrive) {
+      // Check if the file's parent is "root" (My Drive)
+      const isRootFile =
+        file.parents && file.parents[0] === process.env.MY_DRIVE_ID;
+
+      const existingFile = await File.findOne({ googleDriveId: file.id });
+
+      // Format the createdTime to "HH-mm-ss DD-MM-YYYY"
+      const formattedCreatedTime = moment(file.createdTime).format(
+        "HH:mm:ss DD-MM-YYYY"
+      );
+
+      if (existingFile) {
+        // Update existing file if necessary
+        existingFile.name = file.name;
+        existingFile.mimeType = file.mimeType;
+        // If it's a root file, set parentFolderId to null
+        existingFile.parentFolderId = isRootFile ? null : file.parents?.[0];
+        await existingFile.save();
+      } else {
+        // Add new file to MongoDB
+        const newFile = new File({
+          name: file.name,
+          googleDriveId: file.id,
+          mimeType: file.mimeType,
+          // Set parentFolderId to null if it's a root file, otherwise use its parent
+          parentFolderId: isRootFile ? null : file.parents?.[0],
+          uploadedAt: formattedCreatedTime,
+        });
+        await newFile.save();
+      }
+    }
+
+    // Remove files from MongoDB that are no longer on Google Drive
+    const driveFileIds = filesFromDrive.map((file) => file.id);
+    await File.deleteMany({ googleDriveId: { $nin: driveFileIds } });
+
+    return { success: true, message: "Files synchronized successfully." };
+  } catch (error) {
+    console.error("Error during file synchronization:", error);
+    return { success: false, message: error.message };
+  }
+};
+
+exports.syncFolders = async () => {
+  try {
+    const response = await drive.files.list({
+      q: "mimeType='application/vnd.google-apps.folder' and trashed=false and 'me' in owners",
+      fields: "files(id, name, parents, createdTime)",
+    });
+
+    const foldersFromDrive = response.data.files;
+
+    for (const folder of foldersFromDrive) {
+      // Check if the folder's parent is "root" (My Drive)
+      const isRootFolder =
+        folder.parents && folder.parents[0] === process.env.MY_DRIVE_ID;
+
+      const existingFolder = await Folder.findOne({ googleDriveId: folder.id });
+
+      // Format the createdTime to "HH-mm-ss DD-MM-YYYY"
+      const formattedCreatedTime = moment(folder.createdTime).format(
+        "HH:mm:ss DD-MM-YYYY"
+      );
+
+      if (existingFolder) {
+        // Update existing folder if necessary
+        existingFolder.name = folder.name;
+        // If it's a root folder, set parentFolderId to null
+        existingFolder.parentFolderId = isRootFolder
+          ? null
+          : folder.parents?.[0];
+        await existingFolder.save();
+      } else {
+        // Add new folder to MongoDB
+        const newFolder = new Folder({
+          name: folder.name,
+          googleDriveId: folder.id,
+          // Set parentFolderId to null if it is a root folder, otherwise use its parent
+          parentFolderId: isRootFolder ? null : folder.parents?.[0],
+          createdAt: formattedCreatedTime,
+        });
+        await newFolder.save();
+      }
+    }
+
+    const driveFolderIds = foldersFromDrive.map((folder) => folder.id);
+    await Folder.deleteMany({ googleDriveId: { $nin: driveFolderIds } });
+
+    return { success: true, message: "Folders synchronized successfully." };
+  } catch (error) {
+    console.error("Error during folder synchronization:", error);
+    return { success: false, message: error.message };
+  }
+};
+
+// Fetch and Sync Endpoint
+exports.fetchAndSync = async (req, res) => {
+  try {
+    const filesResult = await this.syncFiles();
+    const foldersResult = await this.syncFolders();
+
+    // Collect results and respond once
+    const results = {
+      files: filesResult,
+      folders: foldersResult,
+    };
+
+    if (filesResult.success && foldersResult.success) {
+      res.status(200).json({
+        message: "Files and folders synchronized successfully.",
+        results,
+      });
+    } else {
+      res.status(500).json({
+        message: "Some synchronization tasks failed.",
+        results,
+      });
+    }
+  } catch (error) {
+    console.error("Error during fetch and sync:", error);
     res.status(500).json({ error: error.message });
   }
 };
