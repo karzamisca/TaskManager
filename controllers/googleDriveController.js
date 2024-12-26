@@ -97,14 +97,22 @@ exports.createFolder = async (req, res) => {
 exports.getFolders = async (req, res) => {
   try {
     const foldersInDB = await Folder.find();
-    const driveResponse = await drive.files.list({
-      q: "mimeType='application/vnd.google-apps.folder'",
-      fields: "files(id, name)",
-    });
+    let allDriveFolders = [];
+    let pageToken = null;
 
-    const existingFolderIds = driveResponse.data.files.map(
-      (folder) => folder.id
-    );
+    // Fetch folders from Google Drive with pagination
+    do {
+      const driveResponse = await drive.files.list({
+        q: "mimeType='application/vnd.google-apps.folder' and trashed=false",
+        fields: "files(id, name), nextPageToken",
+        pageToken: pageToken,
+      });
+
+      allDriveFolders = [...allDriveFolders, ...driveResponse.data.files];
+      pageToken = driveResponse.data.nextPageToken; // Get the next page token if available
+    } while (pageToken);
+
+    const existingFolderIds = allDriveFolders.map((folder) => folder.id);
 
     // Filter out folders no longer existing on Google Drive
     const validFolders = foldersInDB.filter((folder) =>
@@ -157,7 +165,7 @@ exports.getFiles = async (req, res) => {
   try {
     let files;
     if (folderId) {
-      // Fetch files for the specific folder
+      // Fetch files for the specific folder from MongoDB
       files = await File.find({ parentFolderId: folderId });
     } else {
       // Fetch all files if no folderId is specified
@@ -256,22 +264,30 @@ exports.deleteFolder = async (req, res) => {
 // Sync files from Google Drive to MongoDB
 exports.syncFiles = async () => {
   try {
-    const response = await drive.files.list({
-      q: "mimeType!='application/vnd.google-apps.folder' and trashed=false and 'me' in owners",
-      fields: "files(id, name, mimeType, parents, createdTime)",
-    });
+    let allFiles = [];
+    let pageToken = null;
 
-    const filesFromDrive = response.data.files;
+    // Fetch files with pagination
+    do {
+      const response = await drive.files.list({
+        q: "mimeType!='application/vnd.google-apps.folder' and trashed=false",
+        fields:
+          "files(id, name, mimeType, parents, createdTime), nextPageToken",
+        pageToken: pageToken, // For pagination
+      });
+
+      allFiles = [...allFiles, ...response.data.files];
+      pageToken = response.data.nextPageToken; // Get the next page token if available
+    } while (pageToken);
 
     // Sync: Update or add files in MongoDB
-    for (const file of filesFromDrive) {
-      // Check if the file's parent is "root" (My Drive)
+    const updatePromises = allFiles.map(async (file) => {
       const isRootFile =
         file.parents && file.parents[0] === process.env.MY_DRIVE_ID;
 
       const existingFile = await File.findOne({ googleDriveId: file.id });
 
-      // Format the createdTime to "HH-mm-ss DD-MM-YYYY"
+      // Format the createdTime to "HH:mm:ss DD-MM-YYYY"
       const formattedCreatedTime = moment(file.createdTime).format(
         "HH:mm:ss DD-MM-YYYY"
       );
@@ -280,7 +296,6 @@ exports.syncFiles = async () => {
         // Update existing file if necessary
         existingFile.name = file.name;
         existingFile.mimeType = file.mimeType;
-        // If it's a root file, set parentFolderId to null
         existingFile.parentFolderId = isRootFile ? null : file.parents?.[0];
         await existingFile.save();
       } else {
@@ -289,16 +304,18 @@ exports.syncFiles = async () => {
           name: file.name,
           googleDriveId: file.id,
           mimeType: file.mimeType,
-          // Set parentFolderId to null if it's a root file, otherwise use its parent
           parentFolderId: isRootFile ? null : file.parents?.[0],
           uploadedAt: formattedCreatedTime,
         });
         await newFile.save();
       }
-    }
+    });
+
+    // Wait for all promises to resolve
+    await Promise.all(updatePromises);
 
     // Remove files from MongoDB that are no longer on Google Drive
-    const driveFileIds = filesFromDrive.map((file) => file.id);
+    const driveFileIds = allFiles.map((file) => file.id);
     await File.deleteMany({ googleDriveId: { $nin: driveFileIds } });
 
     return { success: true, message: "Files synchronized successfully." };
@@ -308,23 +325,32 @@ exports.syncFiles = async () => {
   }
 };
 
+// Sync folders from Google Drive to MongoDB
 exports.syncFolders = async () => {
   try {
-    const response = await drive.files.list({
-      q: "mimeType='application/vnd.google-apps.folder' and trashed=false and 'me' in owners",
-      fields: "files(id, name, parents, createdTime)",
-    });
+    let allFolders = [];
+    let pageToken = null;
 
-    const foldersFromDrive = response.data.files;
+    // Fetch folders with pagination
+    do {
+      const response = await drive.files.list({
+        q: "mimeType='application/vnd.google-apps.folder' and trashed=false",
+        fields: "files(id, name, parents, createdTime), nextPageToken",
+        pageToken: pageToken, // For pagination
+      });
 
-    for (const folder of foldersFromDrive) {
-      // Check if the folder's parent is "root" (My Drive)
+      allFolders = [...allFolders, ...response.data.files];
+      pageToken = response.data.nextPageToken; // Get the next page token if available
+    } while (pageToken);
+
+    // Sync: Update or add folders in MongoDB
+    const updatePromises = allFolders.map(async (folder) => {
       const isRootFolder =
         folder.parents && folder.parents[0] === process.env.MY_DRIVE_ID;
 
       const existingFolder = await Folder.findOne({ googleDriveId: folder.id });
 
-      // Format the createdTime to "HH-mm-ss DD-MM-YYYY"
+      // Format the createdTime to "HH:mm:ss DD-MM-YYYY"
       const formattedCreatedTime = moment(folder.createdTime).format(
         "HH:mm:ss DD-MM-YYYY"
       );
@@ -332,7 +358,6 @@ exports.syncFolders = async () => {
       if (existingFolder) {
         // Update existing folder if necessary
         existingFolder.name = folder.name;
-        // If it's a root folder, set parentFolderId to null
         existingFolder.parentFolderId = isRootFolder
           ? null
           : folder.parents?.[0];
@@ -342,15 +367,18 @@ exports.syncFolders = async () => {
         const newFolder = new Folder({
           name: folder.name,
           googleDriveId: folder.id,
-          // Set parentFolderId to null if it is a root folder, otherwise use its parent
           parentFolderId: isRootFolder ? null : folder.parents?.[0],
           createdAt: formattedCreatedTime,
         });
         await newFolder.save();
       }
-    }
+    });
 
-    const driveFolderIds = foldersFromDrive.map((folder) => folder.id);
+    // Wait for all promises to resolve
+    await Promise.all(updatePromises);
+
+    // Remove folders from MongoDB that are no longer on Google Drive
+    const driveFolderIds = allFolders.map((folder) => folder.id);
     await Folder.deleteMany({ googleDriveId: { $nin: driveFolderIds } });
 
     return { success: true, message: "Folders synchronized successfully." };
