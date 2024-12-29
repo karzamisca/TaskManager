@@ -8,6 +8,7 @@
     <style>
       /* Basic layout styling */
       .folder-container {
+        overflow-y: auto;
         margin-bottom: 20px;
       }
       .folder-item {
@@ -17,7 +18,10 @@
         font-weight: bold;
         display: flex;
         justify-content: space-between;
+        padding: 10px;
+        border-bottom: 1px solid #ddd;
         align-items: center;
+        gap: 200px;
       }
       .folder-name {
         cursor: pointer;
@@ -26,7 +30,14 @@
       .folder-name:hover {
         text-decoration: underline;
       }
+      .folder-created-at {
+        flex: 1;
+        text-align: right;
+        color: gray;
+        font-size: 0.9em;
+      }
       .file-list {
+        overflow-y: auto;
         padding-left: 20px;
         margin-top: 10px;
         display: none;
@@ -187,7 +198,7 @@
         folderDiv.innerHTML = `
           <div class="folder-item">
             <span class="folder-name" onclick="toggleFileList('${folder.googleDriveId}')">${folder.name}</span>
-            <span>${folder.createdAt}</span>
+            <span class="folder-created-at">${folder.createdAt}</span>
             <button onclick="deleteFolder('${folder.googleDriveId}')">Xóa Thư Mục / Delete Folder</button>
           </div>
           <div id="fileList-${folder.googleDriveId}" class="file-list">
@@ -314,9 +325,9 @@
             files.forEach((file) => {
               fileItemsDiv.innerHTML += `
                 <div class="file-item">
-                  <span>${file.name}</span>
-                  <span>${file.uploadedAt}</span>
-                  <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download>Tải xuống / Download</a>
+                  <span>${file.name} ||</span>
+                  <span>${file.uploadedAt} ||</span>
+                  <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download>Tải xuống / Download ||</a>
                   <button onclick="deleteFile('${file.googleDriveId}')">Xóa / Delete</button>
                 </div>
               `;
