@@ -3,6 +3,7 @@ const express = require("express");
 const multer = require("multer");
 const authMiddleware = require("../middlewares/authMiddleware");
 const {
+  getFileAndFolder,
   uploadFile,
   downloadFile,
   getFiles,
@@ -22,12 +23,8 @@ const router = express.Router();
 const storage = multer.memoryStorage(); // Store file in memory (buffer)
 const upload = multer({ storage: storage });
 
-// Serve index.html from the 'views' folder
-router.get("/googleDriveFileTransfer", authMiddleware, (req, res) => {
-  res.sendFile("googleDriveFileTransfer.html", {
-    root: "./views/transfer/googleDrive",
-  });
-});
+// Serve view
+router.get("/googleDriveFileTransfer", authMiddleware, getFileAndFolder);
 
 // File upload route
 router.post(

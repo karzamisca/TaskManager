@@ -6,6 +6,18 @@ const streamifier = require("streamifier");
 const moment = require("moment-timezone");
 require("dotenv").config();
 
+//Serve view
+exports.getFileAndFolder = (req, res) => {
+  if (req.user.role !== "approver") {
+    return res.send(
+      "Truy cập bị từ chối. Bạn không có quyền xác nhận đã nhận hàng./Access denied.You do not have permission to confirm received"
+    );
+  }
+  res.sendFile("googleDriveFileTransfer.html", {
+    root: "./views/transfer/googleDrive",
+  });
+};
+
 // Upload file to a folder
 exports.uploadFile = async (req, res) => {
   try {
