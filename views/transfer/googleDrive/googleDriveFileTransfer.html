@@ -6,49 +6,168 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hệ thống chuyển tệp tin / Files Transfer System</title>
     <style>
-      /* Basic layout styling */
-      .folder-container {
+      /* General styling */
+      body {
+        font-family: Arial, sans-serif;
+      }
+
+      /* Folder container with vertical scrolling */
+      #folderList {
+        max-height: 400px; /* Adjust height as needed */
         overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
         margin-bottom: 20px;
       }
+
+      /* File list container with vertical scrolling */
+      .file-list {
+        max-height: 300px; /* Adjust height as needed */
+        overflow-y: auto;
+        padding-left: 20px;
+        margin-top: 10px;
+        border-left: 2px dashed #ccc;
+        display: none; /* Subfolders hidden by default */
+      }
+
+      /* Subfolder and file list styling */
+      .folder-container {
+        margin-bottom: 15px;
+      }
+
       .folder-item {
-        margin-bottom: 10px;
-        padding: 10px;
-        border: 1px solid #ccc;
-        font-weight: bold;
         display: flex;
         justify-content: space-between;
-        padding: 10px;
-        border-bottom: 1px solid #ddd;
         align-items: center;
+        margin-bottom: 10px;
+        padding: 10px;
+        border: 1px solid #ddd;
+        background-color: #f9f9f9;
+        border-radius: 4px;
         gap: 200px;
       }
+
       .folder-name {
         cursor: pointer;
         color: #007bff;
+        text-decoration: none;
       }
+
       .folder-name:hover {
         text-decoration: underline;
       }
+
       .folder-created-at {
         flex: 1;
         text-align: right;
         color: gray;
         font-size: 0.9em;
       }
-      .file-list {
-        overflow-y: auto;
-        padding-left: 20px;
-        margin-top: 10px;
-        display: none;
-      }
+
       .file-item {
-        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         padding: 10px;
-        border: 1px solid #ccc;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #fff;
+        margin-bottom: 10px;
       }
+
+      .file-item span,
+      .file-item a,
+      .file-item button {
+        text-align: left;
+      }
+
+      .file-item span:nth-child(1) {
+        flex: 2; /* File name takes more space */
+      }
+
+      .file-item span:nth-child(2) {
+        flex: 1; /* Uploaded date */
+      }
+
       .file-item a {
-        margin-right: 10px;
+        flex: 1; /* Download link */
+        text-decoration: none;
+        color: #007bff;
+      }
+
+      .file-item a:hover {
+        text-decoration: underline;
+      }
+
+      .file-item button {
+        flex: 1; /* Delete button */
+        text-align: center;
+        background-color: #f44336;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+
+      .file-item button:hover {
+        background-color: #d32f2f;
+      }
+
+      /* Root-level files section with vertical scrolling */
+      #fileList-root {
+        max-height: 300px; /* Adjust height as needed */
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        padding: 10px;
+      }
+
+      .root-file-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #fff;
+        margin-bottom: 10px;
+      }
+
+      .root-file-item span,
+      .root-file-item a,
+      .root-file-item button {
+        text-align: left;
+      }
+
+      .root-file-item span.file-name {
+        flex: 2; /* File name takes more space */
+      }
+
+      .root-file-item span.upload-date {
+        flex: 1; /* Uploaded date */
+      }
+
+      .root-file-item a.download-link {
+        flex: 1; /* Download link */
+        text-decoration: none;
+        color: #007bff;
+      }
+
+      .root-file-item a.download-link:hover {
+        text-decoration: underline;
+      }
+
+      .root-file-item button.delete-button {
+        flex: 1; /* Delete button */
+        text-align: center;
+        background-color: #f44336;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+
+      .root-file-item button.delete-button:hover {
+        background-color: #d32f2f;
       }
     </style>
   </head>
@@ -78,9 +197,9 @@
       <button type="submit">Tải lên / Upload</button>
     </form>
 
+    <h3>Cấu Trúc Thư Mục / Directory Structure</h3>
     <!-- Folder List -->
     <div id="folderList">
-      <h3>Cấu Trúc Thư Mục / Directory Structure</h3>
       <!-- Folders will be populated here -->
     </div>
 
@@ -190,7 +309,21 @@
         }
       }
 
-      // Recursive function to render a folder and its subfolders
+      function renderFiles(file, container) {
+        const fileItemDiv = document.createElement("div");
+        fileItemDiv.classList.add("file-item");
+
+        fileItemDiv.innerHTML = `
+          <span>${file.name}</span> <!-- File Name -->
+          <span>${file.uploadedAt}</span> <!-- Uploaded Date -->
+          <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download>Tải xuống / Download</a> <!-- Download Link -->
+          <button onclick="deleteFile('${file.googleDriveId}')">Xóa / Delete</button> <!-- Delete Button -->
+        `;
+
+        container.appendChild(fileItemDiv);
+      }
+
+      // Render folder structure with subfolders hidden by default
       function renderFolder(folder) {
         const folderDiv = document.createElement("div");
         folderDiv.classList.add("folder-container");
@@ -211,12 +344,12 @@
               <button type="submit">Tải lên / Upload</button>
             </form>
             <div class="file-items">
-              <!-- Files will be populated here -->
+              <!-- Files will be dynamically populated here -->
             </div>
           </div>
         `;
 
-        // Attach event listeners
+        // Attach event listeners for subfolder and file upload
         const subFolderForm = folderDiv.querySelector(
           `#subFolderForm-${folder.googleDriveId}`
         );
@@ -231,16 +364,10 @@
           handleFileUpload(e, folder.googleDriveId)
         );
 
-        fetchFiles(folder.googleDriveId); // Fetch files for the folder
+        // Fetch files for this folder
+        fetchFiles(folder.googleDriveId);
 
-        // Render subfolders
-        const fileListDiv = folderDiv.querySelector(
-          `#fileList-${folder.googleDriveId}`
-        );
-        folder.children.forEach((childFolder) => {
-          fileListDiv.appendChild(renderFolder(childFolder));
-        });
-
+        // Return folder div for appending
         return folderDiv;
       }
 
@@ -300,11 +427,8 @@
       // Toggle file list visibility
       function toggleFileList(folderId) {
         const fileListDiv = document.getElementById(`fileList-${folderId}`);
-        if (fileListDiv.style.display === "none") {
-          fileListDiv.style.display = "block";
-        } else {
-          fileListDiv.style.display = "none";
-        }
+        fileListDiv.style.display =
+          fileListDiv.style.display === "none" ? "block" : "none";
       }
 
       // Fetch files for a specific folder
@@ -325,10 +449,10 @@
             files.forEach((file) => {
               fileItemsDiv.innerHTML += `
                 <div class="file-item">
-                  <span>${file.name} ||</span>
-                  <span>${file.uploadedAt} ||</span>
-                  <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download>Tải xuống / Download ||</a>
-                  <button onclick="deleteFile('${file.googleDriveId}')">Xóa / Delete</button>
+                  <span>${file.name}</span>
+                  <span>${file.uploadedAt}</span>
+                  <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download>Tải xuống/Download</a>
+                  <button onclick="deleteFile('${file.googleDriveId}')">Xóa/Delete</button>
                 </div>
               `;
             });
@@ -355,14 +479,17 @@
               "<p>Không có tệp tin nào tại cấp gốc / No root-level files found.</p>";
           } else {
             files.forEach((file) => {
-              rootFilesDiv.innerHTML += `
-                <div class="file-item1">
-                  <span>${file.name}</span>
-                  <span>${file.uploadedAt}</span>
-                  <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download>Tải xuống / Download</a>
-                  <button onclick="deleteFile('${file.googleDriveId}')">Xóa / Delete</button>
-                </div>
+              const fileItemDiv = document.createElement("div");
+              fileItemDiv.classList.add("root-file-item");
+
+              fileItemDiv.innerHTML = `
+                <span class="file-name">${file.name}</span> <!-- File Name -->
+                <span class="upload-date">${file.uploadedAt}</span> <!-- Uploaded Date -->
+                <a href="/downloadGoogleDriveFile/${file.googleDriveId}" class="download-link" download>Tải xuống / Download</a> <!-- Download Link -->
+                <button class="delete-button" onclick="deleteFile('${file.googleDriveId}')">Xóa / Delete</button> <!-- Delete Button -->
               `;
+
+              rootFilesDiv.appendChild(fileItemDiv);
             });
           }
         } catch (error) {
