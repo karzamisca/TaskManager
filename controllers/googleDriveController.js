@@ -10,7 +10,7 @@ require("dotenv").config();
 exports.getFileAndFolder = (req, res) => {
   if (req.user.role !== "approver") {
     return res.send(
-      "Truy cập bị từ chối. Bạn không có quyền xác nhận đã nhận hàng./Access denied.You do not have permission to confirm received"
+      "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied.You do not have permission to access."
     );
   }
   res.sendFile("googleDriveFileTransfer.html", {
