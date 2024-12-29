@@ -107,31 +107,19 @@ exports.createFolder = async (req, res) => {
 };
 
 exports.getFolders = async (req, res) => {
+  const parentFolderId = req.query.parentFolderId; // Get the parentFolderId from query parameters
+
   try {
-    const foldersInDB = await Folder.find();
-    let allDriveFolders = [];
-    let pageToken = null;
+    let folders;
+    if (parentFolderId) {
+      // Fetch subfolders for a specific parent folder from MongoDB
+      folders = await Folder.find({ parentFolderId: parentFolderId });
+    } else {
+      // Fetch root-level folders if no parentFolderId is specified
+      folders = await Folder.find(); // Assuming root folders have null parentFolderId
+    }
 
-    // Fetch folders from Google Drive with pagination
-    do {
-      const driveResponse = await drive.files.list({
-        q: "mimeType='application/vnd.google-apps.folder' and trashed=false",
-        fields: "files(id, name), nextPageToken",
-        pageToken: pageToken,
-      });
-
-      allDriveFolders = [...allDriveFolders, ...driveResponse.data.files];
-      pageToken = driveResponse.data.nextPageToken; // Get the next page token if available
-    } while (pageToken);
-
-    const existingFolderIds = allDriveFolders.map((folder) => folder.id);
-
-    // Filter out folders no longer existing on Google Drive
-    const validFolders = foldersInDB.filter((folder) =>
-      existingFolderIds.includes(folder.googleDriveId)
-    );
-
-    res.status(200).json(validFolders);
+    res.status(200).json(folders);
   } catch (error) {
     console.error("Error fetching folders:", error);
     res.status(500).json({ error: error.message });

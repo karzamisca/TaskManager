@@ -300,7 +300,7 @@
             }
           });
 
-          // Render folder tree
+          // Render folder tree and its files
           rootFolders.forEach((folder) => {
             folderListDiv.appendChild(renderFolder(folder));
           });
@@ -309,21 +309,7 @@
         }
       }
 
-      function renderFiles(file, container) {
-        const fileItemDiv = document.createElement("div");
-        fileItemDiv.classList.add("file-item");
-
-        fileItemDiv.innerHTML = `
-          <span>${file.name}</span> <!-- File Name -->
-          <span>${file.uploadedAt}</span> <!-- Uploaded Date -->
-          <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download>Tải xuống / Download</a> <!-- Download Link -->
-          <button onclick="deleteFile('${file.googleDriveId}')">Xóa / Delete</button> <!-- Delete Button -->
-        `;
-
-        container.appendChild(fileItemDiv);
-      }
-
-      // Render folder structure with subfolders hidden by default
+      // Render folder and handle subfolder creation, file uploads, and file display
       function renderFolder(folder) {
         const folderDiv = document.createElement("div");
         folderDiv.classList.add("folder-container");
@@ -367,7 +353,14 @@
         // Fetch files for this folder
         fetchFiles(folder.googleDriveId);
 
-        // Return folder div for appending
+        // Render subfolders recursively
+        const fileListDiv = folderDiv.querySelector(
+          `#fileList-${folder.googleDriveId}`
+        );
+        folder.children.forEach((childFolder) => {
+          fileListDiv.appendChild(renderFolder(childFolder));
+        });
+
         return folderDiv;
       }
 
@@ -463,6 +456,20 @@
           );
           fileItemsDiv.innerHTML = "<p>Error fetching files.</p>";
         }
+      }
+
+      function renderFiles(file, container) {
+        const fileItemDiv = document.createElement("div");
+        fileItemDiv.classList.add("file-item");
+
+        fileItemDiv.innerHTML = `
+          <span>${file.name}</span> <!-- File Name -->
+          <span>${file.uploadedAt}</span> <!-- Uploaded Date -->
+          <a href="/downloadGoogleDriveFile/${file.googleDriveId}" download>Tải xuống / Download</a> <!-- Download Link -->
+          <button onclick="deleteFile('${file.googleDriveId}')">Xóa / Delete</button> <!-- Delete Button -->
+        `;
+
+        container.appendChild(fileItemDiv);
       }
 
       // Fetch and display root-level files
