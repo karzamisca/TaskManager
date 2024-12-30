@@ -6,90 +6,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Approved Documents</title>
     <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      .container {
-        max-width: 2000px;
-        margin: 0 auto;
-        padding: 20px;
-      }
-
-      h2 {
-        text-align: center;
-        margin-bottom: 20px;
-      }
-
       table {
         width: 100%;
         border-collapse: collapse;
-        margin: 20px 0;
+        margin-top: 20px;
       }
-
       th,
       td {
         border: 1px solid #ddd;
         padding: 8px;
         text-align: left;
       }
-
       th {
         background-color: #333;
         color: white;
       }
-
       tr:hover {
         background-color: #f5f5f5;
       }
-
       .nested-table {
         width: 100%;
         border-collapse: collapse;
         margin: 0;
         background-color: transparent;
       }
-
       .nested-table th,
       .nested-table td {
         border: none;
         padding: 5px;
       }
-
       .nested-table th {
         background-color: #555;
         color: white;
-      }
-
-      a {
-        display: block;
-        margin-top: 20px;
-        text-align: center;
-        text-decoration: none;
-        color: #007bff;
-        font-weight: bold;
-      }
-
-      a:hover {
-        text-decoration: underline;
-      }
-
-      /* Responsive Design */
-      @media (max-width: 768px) {
-        table {
-          display: block;
-          overflow-x: auto;
-          white-space: nowrap;
-        }
-
-        th,
-        td {
-          padding: 6px;
-          font-size: 14px;
-        }
       }
     </style>
   </head>
@@ -180,32 +128,32 @@
     </div>
 
     <script>
-      const token = localStorage.getItem("token");
-
       async function exportToDocx(docId) {
-        const token = localStorage.getItem("token"); // If using auth
-        const response = await fetch(`/exportDocumentToDocx/${docId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.style.display = "none";
-          a.href = url;
-          a.download = "document.docx";
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-        } else {
-          alert("Failed to export document!");
+        try {
+          const response = await fetch(`/exportDocumentToDocx/${docId}`);
+          if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.style.display = "none";
+            a.href = url;
+            a.download = "document.docx";
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+          } else {
+            alert("Failed to export document!");
+          }
+        } catch (error) {
+          console.error("Error exporting document:", error);
+          alert("An error occurred while exporting the document.");
         }
       }
 
       async function fetchApprovedDocuments() {
-        const response = await fetch("/api/approvedDocument", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await fetch("/api/approvedDocument");
+        if (!response.ok) throw new Error("Failed to fetch documents");
+
         const documents = await response.json();
 
         const genericTableBody = document.querySelector(
