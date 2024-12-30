@@ -67,6 +67,7 @@
       /* File list container with vertical scrolling */
       .file-list {
         max-height: 300px; /* Adjust height as needed */
+        overflow-x: auto;
         overflow-y: auto;
         padding-left: 20px;
         margin-top: 10px;
@@ -180,6 +181,7 @@
       /* Root-level files section with vertical scrolling */
       #fileList-root {
         max-height: 300px;
+        overflow-x: auto;
         overflow-y: auto;
         border: 1px solid #ccc;
         padding: 10px;
@@ -268,6 +270,12 @@
           width: 100%;
           margin-top: 5px;
         }
+        /* Ensure root file list has vertical scrollbar on small screens */
+        #fileList-root {
+          max-height: 200px; /* Adjust height for smaller screens */
+          overflow-x: auto;
+          overflow-y: auto; /* Ensure scrollbar appears */
+        }
       }
 
       /* Tablet (Max-width: 768px) */
@@ -296,6 +304,11 @@
         .root-file-item button {
           width: 100%;
           margin-top: 5px;
+        }
+        #fileList-root {
+          max-height: 250px; /* Adjust height for tablets */
+          overflow-x: auto;
+          overflow-y: auto; /* Ensure scrollbar appears */
         }
       }
 
@@ -326,6 +339,11 @@
         .file-item button,
         .root-file-item button {
           flex: 0.5;
+        }
+        #fileList-root {
+          max-height: 250px; /* Adjust height for tablets */
+          overflow-x: auto;
+          overflow-y: auto; /* Ensure scrollbar appears */
         }
       }
     </style>
