@@ -9,6 +9,50 @@
       /* General styling */
       body {
         font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+      }
+
+      h1 {
+        text-align: center;
+        padding: 20px;
+        background-color: #007bff;
+        color: white;
+      }
+
+      button {
+        background-color: #007bff;
+        color: white;
+        padding: 10px;
+        border: none;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      /* Form styling */
+      form {
+        display: flex;
+        justify-content: center;
+        margin: 20px 0;
+      }
+
+      input,
+      select,
+      button {
+        margin-right: 10px;
+        padding: 10px;
+        font-size: 1rem;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+      }
+
+      button[type="submit"] {
+        margin-left: 0;
       }
 
       /* Folder container with vertical scrolling */
@@ -30,13 +74,14 @@
         display: none; /* Subfolders hidden by default */
       }
 
-      /* Subfolder and file list styling */
+      /* Folder item */
       .folder-container {
         margin-bottom: 15px;
       }
 
       .folder-item {
         display: flex;
+        flex-wrap: wrap; /* Allow line breaks if content is too long */
         justify-content: space-between;
         align-items: center;
         margin-bottom: 10px;
@@ -44,13 +89,15 @@
         border: 1px solid #ddd;
         background-color: #f9f9f9;
         border-radius: 4px;
-        gap: 200px;
+        gap: 20px;
       }
 
       .folder-name {
         cursor: pointer;
         color: #007bff;
         text-decoration: none;
+        word-wrap: break-word; /* Allow line breaks for long folder names */
+        flex: 2;
       }
 
       .folder-name:hover {
@@ -61,11 +108,30 @@
         flex: 1;
         text-align: right;
         color: gray;
-        font-size: 0.9em;
+        font-size: 1.2em;
+        word-wrap: break-word; /* Allow line breaks for the date if it's too long */
+        white-space: normal; /* Allow date to wrap */
       }
 
+      .folder-item button {
+        flex: 0.2;
+        text-align: center;
+        background-color: #f44336;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        cursor: pointer;
+        word-wrap: break-word; /* Allow line breaks for long button text */
+      }
+
+      .folder-item button:hover {
+        background-color: #d32f2f;
+      }
+
+      /* File item styling */
       .file-item {
         display: flex;
+        flex-wrap: wrap; /* Allow line breaks if content is too long */
         justify-content: space-between;
         align-items: center;
         padding: 10px;
@@ -75,24 +141,21 @@
         margin-bottom: 10px;
       }
 
-      .file-item span,
-      .file-item a,
-      .file-item button {
-        text-align: left;
-      }
-
       .file-item span:nth-child(1) {
         flex: 2; /* File name takes more space */
+        word-wrap: break-word; /* Allow line breaks for file name */
       }
 
       .file-item span:nth-child(2) {
         flex: 1; /* Uploaded date */
+        word-wrap: break-word; /* Allow line breaks for the date */
       }
 
       .file-item a {
         flex: 1; /* Download link */
         text-decoration: none;
         color: #007bff;
+        word-wrap: break-word; /* Allow line breaks for download link */
       }
 
       .file-item a:hover {
@@ -107,6 +170,7 @@
         border: none;
         padding: 5px 10px;
         cursor: pointer;
+        word-wrap: break-word; /* Allow line breaks for button */
       }
 
       .file-item button:hover {
@@ -115,7 +179,7 @@
 
       /* Root-level files section with vertical scrolling */
       #fileList-root {
-        max-height: 300px; /* Adjust height as needed */
+        max-height: 300px;
         overflow-y: auto;
         border: 1px solid #ccc;
         padding: 10px;
@@ -123,6 +187,7 @@
 
       .root-file-item {
         display: flex;
+        flex-wrap: wrap; /* Allow line breaks if content is too long */
         justify-content: space-between;
         align-items: center;
         padding: 10px;
@@ -132,33 +197,35 @@
         margin-bottom: 10px;
       }
 
-      .root-file-item span,
-      .root-file-item a,
-      .root-file-item button {
-        text-align: left;
+      .root-file-item .file-name {
+        flex: 3; /* Give more space to the file name */
+        word-wrap: break-word;
       }
 
-      .root-file-item span.file-name {
-        flex: 2; /* File name takes more space */
+      .root-file-item .upload-date {
+        flex: 0.5;
+        word-wrap: break-word;
       }
 
-      .root-file-item span.upload-date {
-        flex: 1; /* Uploaded date */
+      .root-file-item .download-link {
+        flex: 0.5;
+        word-wrap: break-word;
       }
 
-      .root-file-item a.download-link {
-        flex: 1; /* Download link */
-        text-decoration: none;
+      .root-file-item .delete-button {
+        flex: 0.5; /* Adjust the button width */
+      }
+
+      .root-file-item a {
         color: #007bff;
+        text-decoration: none;
       }
 
-      .root-file-item a.download-link:hover {
+      .root-file-item a:hover {
         text-decoration: underline;
       }
 
-      .root-file-item button.delete-button {
-        flex: 1; /* Delete button */
-        text-align: center;
+      .root-file-item button {
         background-color: #f44336;
         color: white;
         border: none;
@@ -166,8 +233,100 @@
         cursor: pointer;
       }
 
-      .root-file-item button.delete-button:hover {
+      .root-file-item button:hover {
         background-color: #d32f2f;
+      }
+
+      /* Responsive Design - Mobile (Max-width: 600px) */
+      @media (max-width: 600px) {
+        body {
+          font-size: 14px; /* Adjust font size for small screens */
+        }
+
+        h1 {
+          font-size: 1.5rem; /* Adjust header font size */
+        }
+
+        .folder-item,
+        .file-item,
+        .root-file-item {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .folder-name,
+        .file-name,
+        .upload-date,
+        .download-link,
+        .delete-button {
+          flex: 1 1 100%;
+        }
+
+        .folder-item button,
+        .file-item button,
+        .root-file-item button {
+          width: 100%;
+          margin-top: 5px;
+        }
+      }
+
+      /* Tablet (Max-width: 768px) */
+      @media (max-width: 768px) {
+        body {
+          font-size: 16px;
+        }
+
+        .folder-item,
+        .file-item,
+        .root-file-item {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .folder-name,
+        .file-name,
+        .upload-date,
+        .download-link,
+        .delete-button {
+          flex: 1 1 100%;
+        }
+
+        .folder-item button,
+        .file-item button,
+        .root-file-item button {
+          width: 100%;
+          margin-top: 5px;
+        }
+      }
+
+      /* Desktop (Above 1024px) */
+      @media (min-width: 1024px) {
+        body {
+          font-size: 18px;
+        }
+
+        .folder-item,
+        .file-item,
+        .root-file-item {
+          flex-direction: row;
+          align-items: center;
+        }
+
+        .folder-name,
+        .file-name {
+          flex: 2;
+        }
+
+        .upload-date,
+        .download-link {
+          flex: 1;
+        }
+
+        .folder-item button,
+        .file-item button,
+        .root-file-item button {
+          flex: 0.5;
+        }
       }
     </style>
   </head>
@@ -318,7 +477,7 @@
           <div class="folder-item">
             <span class="folder-name" onclick="toggleFileList('${folder.googleDriveId}')">${folder.name}</span>
             <span class="folder-created-at">${folder.createdAt}</span>
-            <button onclick="deleteFolder('${folder.googleDriveId}')">Xóa Thư Mục / Delete Folder</button>
+            <button onclick="deleteFolder('${folder.googleDriveId}')">Xóa / Delete</button>
           </div>
           <div id="fileList-${folder.googleDriveId}" class="file-list">
             <form id="subFolderForm-${folder.googleDriveId}" class="subfolder-form">
