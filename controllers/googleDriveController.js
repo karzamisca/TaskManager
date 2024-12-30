@@ -139,23 +139,67 @@ exports.downloadFile = async (req, res) => {
         .json({ message: "File not found in the database." });
     }
 
-    // Fetch the file from Google Drive
-    const response = await drive.files.get(
-      { fileId: id, alt: "media" },
-      { responseType: "stream" }
+    // Check if the file is a Google Workspace document (e.g., Google Docs, Sheets)
+    const fileMetadata = await drive.files.get({
+      fileId: id,
+      fields: "mimeType",
+    });
+
+    let response;
+    if (fileMetadata.data.mimeType.startsWith("application/vnd.google-apps")) {
+      // For Google Workspace files, export them in a suitable format
+      const exportMimeType = getExportMimeType(fileMetadata.data.mimeType);
+      if (!exportMimeType) {
+        return res
+          .status(400)
+          .json({ message: "Unsupported file type for export." });
+      }
+
+      response = await drive.files.export(
+        { fileId: id, mimeType: exportMimeType },
+        { responseType: "stream" }
+      );
+
+      res.setHeader("Content-Type", exportMimeType);
+    } else {
+      // Fetch the file as binary content
+      response = await drive.files.get(
+        { fileId: id, alt: "media" },
+        { responseType: "stream" }
+      );
+
+      const mimeType = file.mimeType || "application/octet-stream";
+      res.setHeader("Content-Type", mimeType);
+    }
+
+    // Escape the file name for safe use in the header
+    const escapedFileName = encodeURIComponent(file.name)
+      .replace(/'/g, "%27")
+      .replace(/"/g, "%22");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename*=UTF-8''${escapedFileName}`
     );
 
-    // Use a fallback MIME type if undefined
-    const mimeType = file.mimeType || "application/octet-stream";
-
-    // Set headers and pipe the file stream to the response
-    res.setHeader("Content-Disposition", `attachment; filename="${file.name}"`);
-    res.setHeader("Content-Type", mimeType);
+    // Pipe the file stream to the response
     response.data.pipe(res);
   } catch (error) {
     console.error("Error during file download:", error);
     res.status(500).json({ error: error.message });
   }
+};
+
+// Helper function to get export MIME type for Google Workspace files
+const getExportMimeType = (googleMimeType) => {
+  const exportMimeTypes = {
+    "application/vnd.google-apps.document": "application/pdf", // Google Docs -> PDF
+    "application/vnd.google-apps.spreadsheet":
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // Google Sheets -> XLSX
+    "application/vnd.google-apps.presentation":
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation", // Google Slides -> PPTX
+  };
+
+  return exportMimeTypes[googleMimeType] || null;
 };
 
 // Get all files or files for a specific folder from MongoDB
