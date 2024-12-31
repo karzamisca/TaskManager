@@ -199,7 +199,7 @@
             const contentTable = `
               <table class="nested-table">
                 <thead>
-                  <tr><th>Tên/Name</th><th>Text</th></tr>
+                  <tr><th>Tên/Name</th><th>Nội dung/Text</th></tr>
                 </thead>
                 <tbody>${contentTableRows}</tbody>
               </table>`;
@@ -355,7 +355,9 @@
 
       // Confirmation for document deletion
       function confirmDeletion() {
-        return confirm("Are you sure you want to delete this document?");
+        return confirm(
+          "Bạn có chắc muốn xóa phiếu này không?/Are you sure you want to delete this document?"
+        );
       }
 
       fetchPendingDocuments();

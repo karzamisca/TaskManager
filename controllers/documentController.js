@@ -472,12 +472,6 @@ exports.deleteDocument = async (req, res) => {
   const { id } = req.params;
 
   try {
-    if (req.user.role !== "approver") {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền xóa tài liệu./Access denied. You don't have permission to delete document."
-      );
-    }
-
     // Try to find the document in each collection
     let document = await Document.findById(id);
     let documentType = "Generic";
