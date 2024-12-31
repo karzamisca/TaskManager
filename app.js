@@ -12,7 +12,6 @@ const messageRoute = require("./routes/messageRoute");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
-const cors = require("cors");
 require("dotenv").config();
 
 const app = express();
@@ -38,13 +37,6 @@ app.use("/", authMiddleware, googleDriveRoute);
 app.use("/", authMiddleware, documentRoute); // Apply JWT middleware to document routes
 app.use("/", authMiddleware, entryRoute);
 app.use("/", authMiddleware, messageRoute);
-app.use(
-  cors({
-    origin: "https://kylongtask.azurewebsites.net", // The WebView origin
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
 
 // Error handling for multer
 app.use((err, req, res, next) => {
