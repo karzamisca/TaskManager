@@ -35,7 +35,7 @@ router.post(
 );
 
 // File download route
-router.get("/downloadGoogleDriveFile/:id", authMiddleware, downloadFile);
+router.get("/downloadGoogleDriveFile/:id", downloadFile);
 
 // File deletion route
 router.delete("/deleteGoogleDriveFile/:id", authMiddleware, deleteFile);
