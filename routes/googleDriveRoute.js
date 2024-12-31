@@ -53,8 +53,8 @@ router.get("/googleDriveFolders", authMiddleware, getFolders);
 
 router.delete("/deleteGoogleDriveFolder/:id", authMiddleware, deleteFolder);
 
-router.get("/sync-files", syncFiles);
-router.get("/sync-folders", syncFolders);
-router.get("/fetch-and-sync", fetchAndSync);
+router.get("/sync-files", authMiddleware, syncFiles);
+router.get("/sync-folders", authMiddleware, syncFolders);
+router.get("/fetch-and-sync", authMiddleware, fetchAndSync);
 
 module.exports = router;
