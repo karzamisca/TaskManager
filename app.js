@@ -33,7 +33,7 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Routes
 app.use("/", authRoute);
-app.use("/", googleDriveRoute);
+app.use("/", authMiddleware, googleDriveRoute);
 app.use("/", authMiddleware, documentRoute); // Apply JWT middleware to document routes
 app.use("/", authMiddleware, entryRoute);
 app.use("/", authMiddleware, messageRoute);
