@@ -22,6 +22,11 @@ const processingDocumentSchema = new mongoose.Schema({
       direction: String,
     },
   ],
+  fileMetadata: {
+    driveFileId: { type: String },
+    name: { type: String },
+    link: { type: String },
+  },
   submissionDate: { type: String, required: true },
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   approvers: [

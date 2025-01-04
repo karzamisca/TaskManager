@@ -69,7 +69,12 @@
   <body>
     <div class="container">
       <h2>Nộp phiếu mới/Submit New Document</h2>
-      <form id="submit-form" action="/submitDocument" method="POST">
+      <form
+        id="submit-form"
+        action="/submitDocument"
+        method="POST"
+        enctype="multipart/form-data"
+      >
         <label for="title">Title</label>
         <select name="title" id="title-dropdown" required>
           <option value="">Chọn mẫu phiếu/Select a title</option>
@@ -146,6 +151,9 @@
           <div id="productDetails"></div>
           <div id="appendedContentDetails"></div>
         </div>
+
+        <label for="file">Attach File:</label>
+        <input type="file" name="file" id="file" />
 
         <!-- Approvers selection -->
         <label for="approvers">Chọn người phê duyệt/Select Approvers</label>
@@ -525,13 +533,13 @@
         .addEventListener("click", function () {
           const contentFields = document.getElementById("content-fields");
           const nameLabel = document.createElement("label");
-          nameLabel.innerText = "Content Name";
+          nameLabel.innerText = "Tên nội dung/Content Name";
           const nameInput = document.createElement("input");
           nameInput.type = "text";
           nameInput.name = "contentName";
 
           const textLabel = document.createElement("label");
-          textLabel.innerText = "Content Text";
+          textLabel.innerText = "Nội dung/Content Text";
           const textArea = document.createElement("textarea");
           textArea.name = "contentText";
           textArea.rows = 5;

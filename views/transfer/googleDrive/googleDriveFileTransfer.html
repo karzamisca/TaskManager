@@ -367,11 +367,10 @@
 
     <!-- File Upload Form -->
     <form id="uploadForm" enctype="multipart/form-data">
-      <select id="folderSelect">
-        <option value="">Chọn Thư Mục / Select Folder</option>
-      </select>
       <input type="file" id="fileInput" name="file" required />
-      <button type="submit">Tải lên / Upload</button>
+      <button type="submit">
+        Tải Tệp Lên Cấp Gốc / Upload File To Root Level
+      </button>
     </form>
 
     <h3>Cấu Trúc Thư Mục / Directory Structure</h3>
@@ -393,7 +392,6 @@
 
     <script>
       const folderForm = document.getElementById("folderForm");
-      const folderSelect = document.getElementById("folderSelect");
       const uploadForm = document.getElementById("uploadForm");
       const folderListDiv = document.getElementById("folderList");
       const rootFilesDiv = document.getElementById("rootFiles");
@@ -504,7 +502,7 @@
             </form>
             <form id="uploadForm-${folder.googleDriveId}" enctype="multipart/form-data" class="file-upload-form">
               <input type="file" name="file" required />
-              <button type="submit">Tải lên / Upload</button>
+              <button type="submit">Tải Tệp Lên / Upload File</button>
             </form>
             <div class="file-items">
               <!-- Files will be dynamically populated here -->
@@ -735,11 +733,6 @@
       uploadForm.addEventListener("submit", async (e) => {
         e.preventDefault();
         const formData = new FormData(uploadForm);
-        const selectedFolder = folderSelect.value;
-
-        if (selectedFolder) {
-          formData.append("parentFolderId", selectedFolder); // Attach the selected folder ID
-        }
 
         try {
           const response = await fetch("/uploadGoogleDriveFile", {
@@ -751,7 +744,6 @@
 
           if (response.ok) {
             alert(result.message); // Show success popup
-            fetchFiles(selectedFolder); // Refresh files for the selected folder
             fetchRootFiles(); //Refresh root-level file list
           } else {
             alert(`Upload failed: ${result.error}`);

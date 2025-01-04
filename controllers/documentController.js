@@ -6,6 +6,8 @@ const moment = require("moment-timezone");
 const ProposalDocument = require("../models/ProposalDocument");
 const ProcessingDocument = require("../models/ProcessingDocument");
 const ReportDocument = require("../models/ReportDocument");
+const drive = require("../middlewares/googleAuthMiddleware.js");
+const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
 const {
@@ -14,6 +16,19 @@ const {
   createProcessingDocTemplate,
   createReportDocTemplate,
 } = require("../utils/docxTemplates");
+// Configure multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "uploads/"); // Ensure 'uploads/' directory exists
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+const upload = multer({
+  dest: "uploads/", // Temporary storage for uploaded files
+});
+require("dotenv").config();
 
 function generateRandomString(length) {
   const characters =
@@ -92,160 +107,186 @@ exports.exportDocumentToDocx = async (req, res) => {
 };
 
 exports.submitDocument = async (req, res) => {
-  const {
-    title,
-    contentName,
-    contentText,
-    products,
-    approvers,
-    approvedDocuments,
-    approvedProposal,
-    approvedProcessingDocument,
-  } = req.body;
-
-  try {
-    // Ensure approvers is always an array
-    const approversArray = Array.isArray(approvers) ? approvers : [approvers];
-
-    // Fetch approver details
-    const approverDetails = await Promise.all(
-      approversArray.map(async (approverId) => {
-        const approver = await User.findById(approverId);
-        return {
-          approver: approverId,
-          username: approver.username,
-          subRole: req.body[`subRole_${approverId}`],
-        };
-      })
-    );
-
-    let newDocument;
-
-    // Handle Proposal Document creation
-    if (title === "Proposal Document") {
-      newDocument = new ProposalDocument({
-        title,
-        maintenance: req.body.maintenance,
-        costCenter: req.body.costCenter,
-        dateOfError: req.body.dateOfError,
-        errorDescription: req.body.errorDescription,
-        direction: req.body.direction,
-        submittedBy: req.user.id,
-        approvers: approverDetails,
-        submissionDate: moment()
-          .tz("Asia/Bangkok")
-          .format("DD-MM-YYYY HH:mm:ss"),
-      });
+  upload.single("file")(req, res, async (err) => {
+    if (err) {
+      return res.send("Error uploading file.");
     }
-    // Handle Processing Document creation
-    else if (title === "Processing Document") {
-      const productEntries = products.map((product) => ({
-        ...product,
-        note: product.note || "",
-        totalCost: parseFloat(product.costPerUnit * product.amount),
-      }));
-      const grandTotalCost = parseFloat(
-        productEntries.reduce((acc, product) => acc + product.totalCost, 0)
+
+    const {
+      title,
+      contentName,
+      contentText,
+      products,
+      approvers,
+      approvedDocuments,
+      approvedProposal,
+      approvedProcessingDocument,
+    } = req.body;
+
+    try {
+      // Ensure approvers is always an array
+      const approversArray = Array.isArray(approvers) ? approvers : [approvers];
+
+      // Fetch approver details
+      const approverDetails = await Promise.all(
+        approversArray.map(async (approverId) => {
+          const approver = await User.findById(approverId);
+          return {
+            approver: approverId,
+            username: approver.username,
+            subRole: req.body[`subRole_${approverId}`],
+          };
+        })
       );
 
-      // Fetch details if an approved proposal is selected
-      let appendedContent = [];
-      if (approvedProposal) {
-        const proposal = await ProposalDocument.findById(approvedProposal);
-        if (proposal) {
-          appendedContent.push({
-            maintenance: proposal.maintenance,
-            costCenter: proposal.costCenter,
-            dateOfError: proposal.dateOfError,
-            errorDescription: proposal.errorDescription,
-            direction: proposal.direction,
-          });
-        }
+      let newDocument;
+
+      // Handle file upload to Google Drive if a file is attached
+      let uploadedFileData = null;
+      if (req.file) {
+        const folderId = process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID;
+        const fileMetadata = {
+          name: req.file.originalname,
+          parents: [folderId], // Replace with your Google Drive folder ID
+        };
+        const media = {
+          mimeType: req.file.mimetype,
+          body: fs.createReadStream(req.file.path),
+        };
+
+        const driveResponse = await drive.files.create({
+          resource: fileMetadata,
+          media,
+          fields: "id, webViewLink, name",
+        });
+
+        uploadedFileData = {
+          driveFileId: driveResponse.data.id,
+          name: driveResponse.data.name,
+          link: driveResponse.data.webViewLink,
+        };
+
+        // Cleanup: Remove the local file
+        fs.unlinkSync(req.file.path);
       }
 
-      newDocument = new ProcessingDocument({
-        title,
-        products: productEntries,
-        grandTotalCost,
-        appendedContent,
-        submissionDate: moment()
-          .tz("Asia/Bangkok")
-          .format("DD-MM-YYYY HH:mm:ss"),
-        submittedBy: req.user.id,
-        approvers: approverDetails,
-      });
+      // Document creation logic
+      if (title === "Proposal Document") {
+        newDocument = new ProposalDocument({
+          title,
+          maintenance: req.body.maintenance,
+          costCenter: req.body.costCenter,
+          dateOfError: req.body.dateOfError,
+          errorDescription: req.body.errorDescription,
+          direction: req.body.direction,
+          submittedBy: req.user.id,
+          approvers: approverDetails,
+          fileMetadata: uploadedFileData, // Attach file data
+          submissionDate: moment()
+            .tz("Asia/Bangkok")
+            .format("DD-MM-YYYY HH:mm:ss"),
+        });
+      } else if (title === "Processing Document") {
+        const productEntries = products.map((product) => ({
+          ...product,
+          note: product.note || "",
+          totalCost: parseFloat(product.costPerUnit * product.amount),
+        }));
+        const grandTotalCost = parseFloat(
+          productEntries.reduce((acc, product) => acc + product.totalCost, 0)
+        );
+
+        let appendedContent = [];
+        if (approvedProposal) {
+          const proposal = await ProposalDocument.findById(approvedProposal);
+          if (proposal) {
+            appendedContent.push({
+              maintenance: proposal.maintenance,
+              costCenter: proposal.costCenter,
+              dateOfError: proposal.dateOfError,
+              errorDescription: proposal.errorDescription,
+              direction: proposal.direction,
+            });
+          }
+        }
+
+        newDocument = new ProcessingDocument({
+          title,
+          products: productEntries,
+          grandTotalCost,
+          appendedContent,
+          submittedBy: req.user.id,
+          approvers: approverDetails,
+          fileMetadata: uploadedFileData, // Attach file data
+          submissionDate: moment()
+            .tz("Asia/Bangkok")
+            .format("DD-MM-YYYY HH:mm:ss"),
+        });
+      } else if (title === "Report Document") {
+        const randomString = generateRandomString(24);
+        const tags = `${randomString}- ${req.user.id}- ${
+          req.user.department
+        }- ${moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss")}`;
+
+        newDocument = new ReportDocument({
+          title,
+          tags,
+          postProcessingReport: req.body.postProcessingReport,
+          submittedBy: req.user.id,
+          approvers: approverDetails,
+          fileMetadata: uploadedFileData, // Attach file data
+          submissionDate: moment()
+            .tz("Asia/Bangkok")
+            .format("DD-MM-YYYY HH:mm:ss"),
+        });
+
+        if (approvedProcessingDocument) {
+          const processingDoc = await ProcessingDocument.findById(
+            approvedProcessingDocument
+          );
+          if (processingDoc) {
+            newDocument.appendedProcessingDocument = processingDoc;
+          }
+        }
+      } else {
+        const contentArray = [];
+
+        if (Array.isArray(contentName) && Array.isArray(contentText)) {
+          contentName.forEach((name, index) => {
+            contentArray.push({ name, text: contentText[index] });
+          });
+        } else {
+          contentArray.push({ name: contentName, text: contentText });
+        }
+
+        if (approvedDocuments && approvedDocuments.length > 0) {
+          const approvedDocs = await Document.find({
+            _id: { $in: approvedDocuments },
+          });
+          approvedDocs.forEach((doc) => contentArray.push(...doc.content));
+        }
+
+        newDocument = new Document({
+          title,
+          content: contentArray,
+          submittedBy: req.user.id,
+          approvers: approverDetails,
+          fileMetadata: uploadedFileData, // Attach file data
+          submissionDate: moment()
+            .tz("Asia/Bangkok")
+            .format("DD-MM-YYYY HH:mm:ss"),
+        });
+      }
 
       await newDocument.save();
-      return res.redirect("/mainDocument"); // Prevent multiple responses
-    }
-    // Handle Report Document creation
-    else if (title === "Report Document") {
-      const randomString = generateRandomString(24);
-      const tags = `${randomString}- ${req.user.id}- ${
-        req.user.department
-      }- ${moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss")}`;
-
-      newDocument = new ReportDocument({
-        title,
-        tags,
-        postProcessingReport: req.body.postProcessingReport,
-        submittedBy: req.user.id,
-        approvers: approverDetails,
-        submissionDate: moment()
-          .tz("Asia/Bangkok")
-          .format("DD-MM-YYYY HH:mm:ss"),
-      });
-
-      // Append the full Processing Document if selected
-      if (approvedProcessingDocument) {
-        const processingDoc = await ProcessingDocument.findById(
-          approvedProcessingDocument
-        );
-        if (processingDoc) {
-          newDocument.appendedProcessingDocument = processingDoc;
-        }
+      res.redirect("/mainDocument");
+    } catch (err) {
+      console.error("Error submitting document:", err);
+      if (!res.headersSent) {
+        res.send("Lỗi nộp tài liệu/Error submitting document");
       }
     }
-    // Handle Generic Document creation
-    else {
-      const contentArray = [];
-
-      // Populate content array for generic document
-      if (Array.isArray(contentName) && Array.isArray(contentText)) {
-        contentName.forEach((name, index) => {
-          contentArray.push({ name, text: contentText[index] });
-        });
-      } else {
-        contentArray.push({ name: contentName, text: contentText });
-      }
-
-      // Append content from selected approved documents
-      if (approvedDocuments && approvedDocuments.length > 0) {
-        const approvedDocs = await Document.find({
-          _id: { $in: approvedDocuments },
-        });
-        approvedDocs.forEach((doc) => contentArray.push(...doc.content));
-      }
-
-      newDocument = new Document({
-        title,
-        content: contentArray,
-        submittedBy: req.user.id,
-        approvers: approverDetails,
-        submissionDate: moment()
-          .tz("Asia/Bangkok")
-          .format("DD-MM-YYYY HH:mm:ss"),
-      });
-    }
-
-    await newDocument.save();
-    res.redirect("/mainDocument"); // Final redirect after successful save
-  } catch (err) {
-    console.error("Error submitting document:", err);
-    if (!res.headersSent) {
-      res.send("Lỗi nộp tài liệu/Error submitting document");
-    }
-  }
+  });
 };
 
 exports.getPendingDocument = async (req, res) => {

@@ -9,6 +9,11 @@ const documentSchema = new mongoose.Schema({
       text: { type: String, required: true }, // Actual content
     },
   ],
+  fileMetadata: {
+    driveFileId: { type: String },
+    name: { type: String },
+    link: { type: String },
+  },
   submissionDate: { type: String, required: true },
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   approvers: [

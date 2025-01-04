@@ -5,6 +5,11 @@ const reportDocumentSchema = new mongoose.Schema({
   title: { type: String, default: "Report Document", required: true },
   tags: { type: String, required: true },
   postProcessingReport: { type: String, required: true },
+  fileMetadata: {
+    driveFileId: { type: String },
+    name: { type: String },
+    link: { type: String },
+  },
   submissionDate: { type: String, required: true },
   submittedBy: {
     type: mongoose.Schema.Types.ObjectId,
