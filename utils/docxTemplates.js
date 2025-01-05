@@ -6,9 +6,28 @@ const {
   Table,
   TableRow,
   TableCell,
+  ExternalHyperlink,
 } = require("docx");
 
-const createGenericDocTemplate = (doc) => {
+const createGenericDocTemplate = async (doc) => {
+  // Populate the 'submittedBy' field with 'username'
+  await doc.populate("submittedBy", "username");
+
+  // Populate the 'approvedBy.user' field with 'username'
+  await doc.populate({
+    path: "approvedBy.user", // Populate the 'user' field inside 'approvedBy'
+    select: "username", // Get only the 'username'
+  });
+
+  // Merge approvers and approvedBy data together
+  const mergedApprovals = doc.approvers.map((approver, index) => {
+    const approval = doc.approvedBy[index]; // Assuming matching indexes
+    return {
+      username: approval ? approval.user.username : "",
+      approvalDate: approval ? approval.approvalDate : "",
+      subRole: approver.subRole,
+    };
+  });
   const docContent = new Document({
     sections: [
       {
@@ -24,7 +43,34 @@ const createGenericDocTemplate = (doc) => {
           }),
           new Paragraph({ text: `Mã phiếu/Document ID: ${doc._id}` }),
           new Paragraph({
-            text: `Được nộp bởi/Submitted By: ${doc.submittedBy}`,
+            children: [
+              new TextRun({
+                text: "Tệp đính kèm/Attached File: ",
+              }),
+              new ExternalHyperlink({
+                children: [
+                  new TextRun({
+                    text: doc.fileMetadata.name,
+                    style: "Hyperlink",
+                  }),
+                ],
+                link: doc.fileMetadata.link,
+              }),
+            ],
+          }),
+          new Paragraph({
+            text: `Được nộp bởi/Submitted By: ${doc.submittedBy.username}`,
+          }),
+
+          // Merged approval information
+          ...mergedApprovals.map((approval) => {
+            return new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Người phê duyệt/Approver: ${approval.username} (Vai trò/Role: ${approval.subRole}) - Phê duyệt vào/Approved on: ${approval.approvalDate}`,
+                }),
+              ],
+            });
           }),
         ],
       },
@@ -76,6 +122,22 @@ const createProposalDocTemplate = async (doc) => {
             text: `Mô tả lỗi/Error Description: ${doc.errorDescription}`,
           }),
           new Paragraph({ text: `Hướng xử lý/Direction: ${doc.direction}` }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Tệp đính kèm/Attached File: ",
+              }),
+              new ExternalHyperlink({
+                children: [
+                  new TextRun({
+                    text: doc.fileMetadata.name,
+                    style: "Hyperlink",
+                  }),
+                ],
+                link: doc.fileMetadata.link,
+              }),
+            ],
+          }),
           // Display the username of the person who submitted the document
           new Paragraph({
             text: `Được nộp bởi/Submitted By: ${doc.submittedBy.username}`,
@@ -100,21 +162,23 @@ const createProposalDocTemplate = async (doc) => {
 };
 
 const createProcessingDocTemplate = async (doc) => {
-  // Populate 'submittedBy', 'approvers', 'approvedBy', and 'appendedContent' fields
-  await doc.populate("submittedBy", "username"); // Populate submittedBy username
+  // Populate referenced fields
+  await doc.populate("submittedBy", "username");
   await doc.populate({
-    path: "approvers.approver", // Populate approvers with user details
+    path: "approvers.approver",
     select: "username subRole",
   });
   await doc.populate({
-    path: "approvedBy.user", // Populate approvedBy with user details
+    path: "approvedBy.user",
     select: "username",
   });
 
+  // Document content
   const docContent = new Document({
     sections: [
       {
         children: [
+          // Header
           new Paragraph({
             children: [
               new TextRun({
@@ -124,19 +188,15 @@ const createProcessingDocTemplate = async (doc) => {
               }),
             ],
           }),
-          new Paragraph({
-            text: `Mã phiếu/Document ID: ${doc._id}`,
-            spacing: { after: 200 },
-          }),
+          new Paragraph({ text: `Mã phiếu/Document ID: ${doc._id}` }),
           new Paragraph({
             text: `Được nộp bởi/Submitted By: ${doc.submittedBy.username}`,
-            spacing: { after: 200 },
           }),
 
-          // Products Table with explicitly set table and cell widths
+          // Products Table
           new Paragraph({ text: "Sản phẩm/Products:", bold: true }),
           new Table({
-            width: { size: 100, type: "pct" }, // Set table width to 100% of the page width
+            width: { size: 100, type: "pct" },
             rows: [
               new TableRow({
                 children: [
@@ -204,11 +264,31 @@ const createProcessingDocTemplate = async (doc) => {
             spacing: { before: 200 },
           }),
 
-          // Merge Approvers and ApprovedBy
+          // File Metadata
           new Paragraph({
-            text: "Phê duyệt/Approvals:",
+            text: "Tệp đính kèm phiếu xử lý/File attaches to processing document:",
             bold: true,
           }),
+          doc.fileMetadata
+            ? new Paragraph({
+                children: [
+                  new ExternalHyperlink({
+                    children: [
+                      new TextRun({
+                        text: doc.fileMetadata.name,
+                        style: "Hyperlink",
+                      }),
+                    ],
+                    link: doc.fileMetadata.link,
+                  }),
+                ],
+              })
+            : new Paragraph({
+                text: "Tệp đính kèm phiếu xử lý/File attaches to processing document:",
+              }),
+
+          // Approvals
+          new Paragraph({ text: "Phê duyệt/Approvals:", bold: true }),
           ...doc.approvers.map((approver) => {
             const approvalRecord = doc.approvedBy.find(
               (approval) =>
@@ -231,22 +311,44 @@ const createProcessingDocTemplate = async (doc) => {
 
           // Appended Content
           new Paragraph({
-            text: "Phiếu kèm theo/Appended Content:",
+            text: "Phiếu đề xuất kèm theo/Appended Content:",
             bold: true,
           }),
-          ...doc.appendedContent.map((content, index) => {
-            return new Paragraph({
-              children: [
-                new TextRun({
-                  text: `Error Details #${index + 1}:`,
-                  bold: true,
-                }),
-                new TextRun({
-                  text: `\nBảo trì/Maintenance: ${content.maintenance}\nTrạm/Center: ${content.costCenter}\nNgày xảy ra lỗi/Date of Error: ${content.dateOfError}\nMô tả lỗi/Error Description: ${content.errorDescription}\nHướng xử lý/Direction: ${content.direction}`,
-                }),
-              ],
-            });
-          }),
+          ...doc.appendedContent
+            .map((content) => [
+              new Paragraph({
+                text: `Bảo trì/Maintenance: ${content.maintenance}`,
+              }),
+              new Paragraph({ text: `Trạm/Center: ${content.costCenter}` }),
+              new Paragraph({
+                text: `Ngày xảy ra lỗi/Date of Error: ${content.dateOfError}`,
+              }),
+              new Paragraph({
+                text: `Mô tả lỗi/Error Description: ${content.errorDescription}`,
+              }),
+              new Paragraph({
+                text: `Hướng xử lý/Direction: ${content.direction}`,
+              }),
+              content.fileMetadata
+                ? new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: "Tệp đính kèm phiếu đề xuất/File attaches to proposal document: ",
+                      }),
+                      new ExternalHyperlink({
+                        children: [
+                          new TextRun({
+                            text: content.fileMetadata.name,
+                            style: "Hyperlink",
+                          }),
+                        ],
+                        link: content.fileMetadata.link,
+                      }),
+                    ],
+                  })
+                : new Paragraph({ text: "No Attached File" }),
+            ])
+            .flat(),
         ],
       },
     ],
@@ -257,7 +359,7 @@ const createProcessingDocTemplate = async (doc) => {
 
 const createReportDocTemplate = async (doc) => {
   // Populate necessary fields
-  await doc.populate("submittedBy", "username"); // Populate submittedBy username
+  await doc.populate("submittedBy", "username");
   await doc.populate({
     path: "approvers.approver",
     select: "username subRole",
@@ -266,7 +368,7 @@ const createReportDocTemplate = async (doc) => {
     path: "approvedBy.user",
     select: "username",
   });
-  await doc.populate("appendedProcessingDocument"); // Populate appended Processing Document
+  await doc.populate("appendedProcessingDocument");
 
   const docContent = new Document({
     sections: [
@@ -301,6 +403,27 @@ const createReportDocTemplate = async (doc) => {
             spacing: { after: 200 },
           }),
 
+          // Main File Metadata Section
+          new Paragraph({
+            text: "Tệp đính kèm phiếu báo cáo/File attaches to report document:",
+            bold: true,
+          }),
+          doc.fileMetadata
+            ? new Paragraph({
+                children: [
+                  new ExternalHyperlink({
+                    children: [
+                      new TextRun({
+                        text: doc.fileMetadata.name,
+                        style: "Hyperlink",
+                      }),
+                    ],
+                    link: doc.fileMetadata.link,
+                  }),
+                ],
+              })
+            : new Paragraph({ text: "No Main File Attached", italics: true }),
+
           // Appended Processing Document Section
           ...(doc.appendedProcessingDocument
             ? [
@@ -308,6 +431,31 @@ const createReportDocTemplate = async (doc) => {
                   text: "Phiếu xử lý kèm theo/Appended Processing Document:",
                   bold: true,
                 }),
+
+                // Main Processing Document File Metadata
+                doc.appendedProcessingDocument.fileMetadata
+                  ? new Paragraph({
+                      children: [
+                        new TextRun({
+                          text: "Tệp kèm theo phiếu xử lý/File attaches to Processing Document: ",
+                        }),
+                        new ExternalHyperlink({
+                          children: [
+                            new TextRun({
+                              text: doc.appendedProcessingDocument.fileMetadata
+                                .name,
+                              style: "Hyperlink",
+                            }),
+                          ],
+                          link: doc.appendedProcessingDocument.fileMetadata
+                            .link,
+                        }),
+                      ],
+                    })
+                  : new Paragraph({
+                      text: "No Processing Document File Attached",
+                      italics: true,
+                    }),
 
                 // Products Table
                 new Table({
@@ -399,11 +547,32 @@ const createReportDocTemplate = async (doc) => {
                             text: `Ngày xảy ra lỗi/Date of Error: ${content.dateOfError}`,
                           }),
                           new Paragraph({
-                            text: `Mô tả/Description: ${content.errorDescription}`,
+                            text: `Mô tả lỗi/Error Description: ${content.errorDescription}`,
                           }),
                           new Paragraph({
                             text: `Hướng xử lý/Direction: ${content.direction}`,
                           }),
+                          content.fileMetadata
+                            ? new Paragraph({
+                                children: [
+                                  new TextRun({
+                                    text: "Tệp đính kèm phiếu đề xuất/File attaches to proposal document: ",
+                                  }),
+                                  new ExternalHyperlink({
+                                    children: [
+                                      new TextRun({
+                                        text: content.fileMetadata.name,
+                                        style: "Hyperlink",
+                                      }),
+                                    ],
+                                    link: content.fileMetadata.link,
+                                  }),
+                                ],
+                              })
+                            : new Paragraph({
+                                text: "No Attached File",
+                                italics: true,
+                              }),
                           new Paragraph({ text: "" }), // Empty line to separate entries
                         ]
                       ),

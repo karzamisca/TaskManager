@@ -50,6 +50,7 @@
           <tr>
             <th>Mã/ID</th>
             <th>Nội dung/Content</th>
+            <th>Tệp đính kèm/Attached File</th>
             <th>Người cần phê duyệt/Approver(s)</th>
             <th>Người đã phê duyệt/Approved By</th>
             <th>Người nộp/Submitted By</th>
@@ -73,6 +74,7 @@
             <th>Ngày xảy ra lỗi/Date of Error</th>
             <th>Mô tả lỗi/Error Description</th>
             <th>Hướng xử lý/Direction</th>
+            <th>Tệp đính kèm/Attached File</th>
             <th>Người cần phê duyệt/Approver(s)</th>
             <th>Người đã phê duyệt/Approved By</th>
             <th>Người nộp/Submitted By</th>
@@ -93,6 +95,7 @@
             <th>Mã/ID</th>
             <th>Hàng hóa/Product Entries</th>
             <th>Chi phí/Grand Total Cost</th>
+            <th>Tệp đính kèm/Attached File</th>
             <th>Người cần phê duyệt/Approver(s)</th>
             <th>Người đã phê duyệt/Approved By</th>
             <th>Người nộp/Submitted By</th>
@@ -115,6 +118,7 @@
             <th>Tem/Tags</th>
             <th>Báo cáo tình trạng sau xử lý/Post-Processing Report</th>
             <th>Phiếu xử lý đi kèm/Appended Processing Document</th>
+            <th>Tệp đính kèm/Attached File</th>
             <th>Người cần phê duyệt/Approver(s)</th>
             <th>Người đã phê duyệt/Approved By</th>
             <th>Người nộp/Submitted By</th>
@@ -208,14 +212,26 @@
             row.innerHTML = `
               <td>${doc._id}</td>
               <td>${contentTable}</td>
+              <td>
+                ${
+                  doc.fileMetadata
+                    ? `<a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a>`
+                    : "Không có tệp đính kèm/No File Attached"
+                }
+              </td>
+
               <td>${approvers}</td>
               <td>${approvedBy}</td>
               <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
               <td>
-                <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
+                <form action="/approveDocument/${
+                  doc._id
+                }" method="POST" style="display:inline;">
                   <button type="submit">Phê duyệt/Approve</button>
                 </form>
-                <form action="/deleteDocument/${doc._id}" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
+                <form action="/deleteDocument/${
+                  doc._id
+                }" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
                   <button type="submit">Xóa/Delete</button>
                 </form>
               </td>`;
@@ -229,14 +245,25 @@
               <td>${doc.dateOfError}</td>
               <td>${doc.errorDescription}</td>
               <td>${doc.direction}</td>
+                            <td>
+                ${
+                  doc.fileMetadata
+                    ? `<a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a>`
+                    : "Không có tệp đính kèm/No File Attached"
+                }
+              </td>
               <td>${approvers}</td>
               <td>${approvedBy}</td>
               <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
               <td>
-                <form action="/approveDocument/${doc._id}" method="POST" style="display:inline;">
+                <form action="/approveDocument/${
+                  doc._id
+                }" method="POST" style="display:inline;">
                   <button type="submit">Phê duyệt/Approve</button>
                 </form>
-                <form action="/deleteDocument/${doc._id}" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
+                <form action="/deleteDocument/${
+                  doc._id
+                }" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
                   <button type="submit">Xóa/Delete</button>
                 </form>
               </td>`;
@@ -270,14 +297,30 @@
             const appendedContent = doc.appendedContent
               .map(
                 (content) => `
-                <div>
-                  <p><strong>Mã/ID:</strong> ${content._id}</p>
-                  <p><strong>Bảo dưỡng/Maintenance:</strong> ${content.maintenance}</p>
-                  <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
-                  <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${content.dateOfError}</p>
-                  <p><strong>Mô tả lỗi/Error Description:</strong> ${content.errorDescription}</p>
-                  <p><strong>Hướng xử lý/Direction:</strong> ${content.direction}</p>
-                </div>`
+                  <div>
+                    <p><strong>Mã/ID:</strong> ${content._id}</p>
+                    <p><strong>Bảo dưỡng/Maintenance:</strong> ${
+                      content.maintenance
+                    }</p>
+                    <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
+                    <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
+                      content.dateOfError
+                    }</p>
+                    <p><strong>Mô tả lỗi/Error Description:</strong> ${
+                      content.errorDescription
+                    }</p>
+                    <p><strong>Hướng xử lý/Direction:</strong> ${
+                      content.direction
+                    }</p>
+                    <p><strong>Tệp đính kèm/Attached File:</strong> 
+                      ${
+                        content.fileMetadata
+                          ? `<a href="${content.fileMetadata.link}" target="_blank">${content.fileMetadata.name}</a>`
+                          : "No File Attached"
+                      }
+                    </p>
+                  </div>
+                `
               )
               .join("");
 
@@ -286,6 +329,13 @@
               <td>${doc._id}</td>
               <td>${productTable}</td>
               <td>${doc.grandTotalCost.toLocaleString()}</td>
+              <td>
+                ${
+                  doc.fileMetadata
+                    ? `<a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a>`
+                    : "Không có tệp đính kèm/No File Attached"
+                }
+              </td>
               <td>${approvers}</td>
               <td>${approvedBy}</td>
               <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
@@ -303,52 +353,95 @@
           } else if (doc.title === "Report Document") {
             let appendedProcessingDoc = "N/A";
             if (doc.appendedProcessingDocument) {
+              // Process products
               const products = doc.appendedProcessingDocument.products
                 .map(
                   (product) =>
                     `<p>${
                       product.productName
-                    }: ${product.amount.toLocaleString()} đơn vị với đơn giá là ${product.costPerUnit.toLocaleString()} (Tổng tiền: ${product.totalCost.toLocaleString()}) (Ghi chú: ${
-                      product.note
-                    })</p>`
+                    }: ${product.amount.toLocaleString()} đơn vị với đơn giá là ${product.costPerUnit.toLocaleString()} 
+                      (Tổng tiền: ${product.totalCost.toLocaleString()}) 
+                      (Ghi chú: ${
+                        product.note || "Không có ghi chú/No Note"
+                      })</p>`
                 )
                 .join("");
+
+              // Handle file metadata directly from appendedProcessingDocument
+              const fileMetadata = doc.appendedProcessingDocument.fileMetadata
+                ? `<p><strong>Tệp đính kèm phiếu xử lý/File attaches to processing document:</strong> 
+                      <a href="${doc.appendedProcessingDocument.fileMetadata.link}" target="_blank">
+                        ${doc.appendedProcessingDocument.fileMetadata.name}
+                      </a>
+                    </p>`
+                : "<p><strong>Tệp đính kèm phiếu xử lý/File attaches to processing document:</strong></p>";
+
+              // Process appended content
+              const appendedContent =
+                doc.appendedProcessingDocument.appendedContent
+                  .map(
+                    (content) =>
+                      `<div>
+                        <p><strong>Bảo dưỡng/Maintenance:</strong> ${
+                          content.maintenance
+                        }</p>
+                        <p><strong>Trạm/Center:</strong> ${
+                          content.costCenter
+                        }</p>
+                        <p><strong>Mô tả lỗi/Error Description:</strong> ${
+                          content.errorDescription
+                        }</p>
+                        ${
+                          content.fileMetadata
+                            ? `<p><strong>Tệp đính kèm phiếu đề xuất/File attaches to proposal document:</strong> 
+                                <a href="${content.fileMetadata.link}" target="_blank">${content.fileMetadata.name}</a>
+                              </p>`
+                            : "<p><strong>Tệp đính kèm phiếu đề xuất/File attaches to proposal document:</strong></p>"
+                        }
+                      </div>`
+                  )
+                  .join("");
+
+              // Combine everything into appendedProcessingDoc
               appendedProcessingDoc = `
-            <div>
-              <p><strong>Ngày nộp/Submission Date:</strong> ${
-                doc.appendedProcessingDocument.submissionDate
-              }</p>
-              <p><strong>Chi phí/Grand Total Cost:</strong> ${doc.appendedProcessingDocument.grandTotalCost.toLocaleString()}</p>
-              <p><strong>Sản phẩm/Products:</strong><br>${products}</p>
-              ${doc.appendedProcessingDocument.appendedContent
-                .map(
-                  (content) =>
-                    `<p><strong>Maintenance:</strong> ${content.maintenance}</p>
-                 <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
-                 <p><strong>Mô tả lỗi/Error Description:</strong> ${content.errorDescription}</p>`
-                )
-                .join("")}
-            </div>
-          `;
+                <div>
+                  <p><strong>Ngày nộp/Submission Date:</strong> ${
+                    doc.appendedProcessingDocument.submissionDate
+                  }</p>
+                  <p><strong>Chi phí/Grand Total Cost:</strong> ${doc.appendedProcessingDocument.grandTotalCost.toLocaleString()}</p>
+                  <p><strong>Sản phẩm/Products:</strong><br>${products}</p>
+                  ${fileMetadata}
+                  ${appendedContent}
+                </div>
+              `;
             }
 
             const row = reportTableBody.insertRow();
             row.innerHTML = `
-          <td>${doc._id}</td>
-          <td>${doc.tags}</td>
-          <td>${doc.postProcessingReport}</td>
-          <td>${appendedProcessingDoc}</td>
-          <td>${approvers}</td>
-          <td>${approvedBy}</td>
-          <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
-          <td>
-            <form action="/approveDocument/${doc._id}" method="POST">
-              <button type="submit">Phê duyệt/Approve</button>
-            </form>
-            <form action="/deleteDocument/${doc._id}" method="POST" onsubmit="return confirm('Are you sure?')">
-              <button type="submit">Xóa/Delete</button>
-            </form>
-          </td>`;
+              <td>${doc._id}</td>
+              <td>${doc.tags}</td>
+              <td>${doc.postProcessingReport}</td>
+              <td>${appendedProcessingDoc}</td>
+              <td>
+                ${
+                  doc.fileMetadata
+                    ? `<a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a>`
+                    : "Không có tệp đính kèm/No File Attached"
+                }
+              </td>
+              <td>${approvers}</td>
+              <td>${approvedBy}</td>
+              <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+              <td>
+                <form action="/approveDocument/${doc._id}" method="POST">
+                  <button type="submit">Phê duyệt/Approve</button>
+                </form>
+                <form action="/deleteDocument/${
+                  doc._id
+                }" method="POST" onsubmit="return confirm('Are you sure?')">
+                  <button type="submit">Xóa/Delete</button>
+                </form>
+              </td>`;
           }
         });
       }

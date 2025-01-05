@@ -192,20 +192,34 @@ exports.submitDocument = async (req, res) => {
           note: product.note || "",
           totalCost: parseFloat(product.costPerUnit * product.amount),
         }));
+
         const grandTotalCost = parseFloat(
           productEntries.reduce((acc, product) => acc + product.totalCost, 0)
         );
 
         let appendedContent = [];
+
         if (approvedProposal) {
           const proposal = await ProposalDocument.findById(approvedProposal);
           if (proposal) {
+            // Create a valid fileMetadata object or set to undefined if no file exists
+            const proposalFileMetadata =
+              proposal.fileMetadata &&
+              Object.keys(proposal.fileMetadata).length > 0
+                ? {
+                    driveFileId: proposal.fileMetadata.driveFileId || "",
+                    name: proposal.fileMetadata.name || "",
+                    link: proposal.fileMetadata.link || "",
+                  }
+                : undefined;
+
             appendedContent.push({
               maintenance: proposal.maintenance,
               costCenter: proposal.costCenter,
               dateOfError: proposal.dateOfError,
               errorDescription: proposal.errorDescription,
               direction: proposal.direction,
+              fileMetadata: proposalFileMetadata, // Use the properly formatted fileMetadata
             });
           }
         }
@@ -217,7 +231,7 @@ exports.submitDocument = async (req, res) => {
           appendedContent,
           submittedBy: req.user.id,
           approvers: approverDetails,
-          fileMetadata: uploadedFileData, // Attach file data
+          fileMetadata: uploadedFileData || undefined, // Use undefined instead of null
           submissionDate: moment()
             .tz("Asia/Bangkok")
             .format("DD-MM-YYYY HH:mm:ss"),

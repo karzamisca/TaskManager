@@ -20,6 +20,11 @@ const processingDocumentSchema = new mongoose.Schema({
       dateOfError: String,
       errorDescription: String,
       direction: String,
+      fileMetadata: {
+        driveFileId: { type: String },
+        name: { type: String },
+        link: { type: String },
+      },
     },
   ],
   fileMetadata: {

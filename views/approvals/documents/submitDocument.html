@@ -100,6 +100,9 @@
           Thêm nội dung/Add More Content</button
         ><br />
 
+        <label for="file">Đính kèm tệp/Attach File:</label>
+        <input type="file" name="file" id="file" />
+
         <!-- Dropdown for appending approved documents, only visible for Generic Document -->
         <div id="append-approved-documents-section" style="display: none">
           <label for="approvedDocumentsDropdown"
@@ -151,9 +154,6 @@
           <div id="productDetails"></div>
           <div id="appendedContentDetails"></div>
         </div>
-
-        <label for="file">Attach File:</label>
-        <input type="file" name="file" id="file" />
 
         <!-- Approvers selection -->
         <label for="approvers">Chọn người phê duyệt/Select Approvers</label>
@@ -440,9 +440,20 @@
         previewDiv.innerHTML = `
           <p><strong>Bảo dưỡng/Maintenance:</strong> ${proposal.maintenance}</p>
           <p><strong>Trạm/Center:</strong> ${proposal.costCenter}</p>
-          <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${proposal.dateOfError}</p>
-          <p><strong>Mô tả lỗi/Error Description:</strong> ${proposal.errorDescription}</p>
+          <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
+            proposal.dateOfError
+          }</p>
+          <p><strong>Mô tả lỗi/Error Description:</strong> ${
+            proposal.errorDescription
+          }</p>
           <p><strong>Hướng xử lý/Direction:</strong> ${proposal.direction}</p>
+          <p><strong>Tệp đính kèm/Attached File:</strong> 
+            ${
+              proposal.fileMetadata
+                ? `<a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
+                : ""
+            }
+          </p>
         `;
       }
       async function fetchProcessingDocuments() {
@@ -481,14 +492,26 @@
 
         productDetails.innerHTML = doc.products
           .map(
-            (product) =>
-              `<p>${
-                product.productName
-              }: ${product.amount.toLocaleString()} đơn vị với đơn giá là ${product.costPerUnit.toLocaleString()} (Thành tiền: ${product.totalCost.toLocaleString()}) (Ghi chú:${
-                product.note
-              })</p>`
+            (product) => `
+              <p>
+                ${
+                  product.productName
+                }: ${product.amount.toLocaleString()} đơn vị với đơn giá là ${product.costPerUnit.toLocaleString()} 
+                (Thành tiền: ${product.totalCost.toLocaleString()}) 
+                (Ghi chú: ${product.note || "Không có ghi chú/No Note"}) 
+              </p>`
           )
           .join("");
+
+        // Add the file metadata outside of the products map
+        if (doc.fileMetadata) {
+          productDetails.innerHTML += `
+            <p><strong>Tệp đính kèm phiếu xử lý/File attaches to processing document:</strong></p> 
+            <p><a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`;
+        } else {
+          productDetails.innerHTML += `
+            <p><strong>Tệp đính kèm phiếu xử lý/File attaches to processing document:</strong></p>`;
+        }
 
         appendedContentDetails.innerHTML = `
           <p><strong>Ngày nộp/Submission Date:</strong> ${
@@ -500,7 +523,9 @@
             (content) =>
               `<p><strong>Bảo trì/Maintenance:</strong> ${content.maintenance}</p>
                <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
-               <p><strong>Mô tả lỗi/Error Description:</strong> ${content.errorDescription}</p>`
+               <p><strong>Mô tả lỗi/Error Description:</strong> ${content.errorDescription}</p>
+               <p><strong>Tệp đính kèm phiếu đề xuất/File attaches to proposal document:</strong></p>
+               <p><a href="${content.fileMetadata.link}" target="_blank">${content.fileMetadata.name}</a></p>`
           )
           .join("")}
       `;

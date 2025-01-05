@@ -50,6 +50,7 @@
           <tr>
             <th>Mã/ID</th>
             <th>Nội dung/Content</th>
+            <th>Tệp đính kèm/Attached File</th>
             <th>Được phê duyệt bởi/Approved By</th>
             <th>Nộp bởi/Submitted By</th>
             <th>Hành động/Action</th>
@@ -57,7 +58,7 @@
         </thead>
         <tbody>
           <tr>
-            <td colspan="4">Đang tải/Loading documents...</td>
+            <td colspan="6">Đang tải/Loading documents...</td>
           </tr>
         </tbody>
       </table>
@@ -72,6 +73,28 @@
             <th>Ngày xảy ra lỗi/Date of Error</th>
             <th>Mô tả lỗi/Error Description</th>
             <th>Hướng xử lý/Direction</th>
+            <th>Tệp đính kèm/Attached File</th>
+            <th>Được phê duyệt bởi/Approved By</th>
+            <th>Nộp bởi/Submitted By</th>
+            <th>Hành động/Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="10">Đang tải/Loading documents...</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Phiếu xử lý đã phê duyệt/Approved Processing Documents</h2>
+      <table id="approved-processing-documents">
+        <thead>
+          <tr>
+            <th>Mã/ID</th>
+            <th>Danh sách sản phẩm/Product Entries</th>
+            <th>Chi phí/Grand Total Cost</th>
+            <th>Tệp đính kèm/Attached File</th>
+            <th>Phiếu đề xuất kèm theo/Appended Proposal Content</th>
             <th>Được phê duyệt bởi/Approved By</th>
             <th>Nộp bởi/Submitted By</th>
             <th>Hành động/Action</th>
@@ -84,26 +107,6 @@
         </tbody>
       </table>
 
-      <h2>Phiếu xử lý đã phê duyệt/Approved Processing Documents</h2>
-      <table id="approved-processing-documents">
-        <thead>
-          <tr>
-            <th>Mã/ID</th>
-            <th>Danh sách sản phẩm/Product Entries</th>
-            <th>Chi phí/Grand Total Cost</th>
-            <th>Phiếu đề xuất kèm theo/Appended Proposal Content</th>
-            <th>Được phê duyệt bởi/Approved By</th>
-            <th>Nộp bởi/Submitted By</th>
-            <th>Hành động/Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="6">Đang tải/Loading documents...</td>
-          </tr>
-        </tbody>
-      </table>
-
       <h2>Phiếu báo cáo đã phê duyệt/Approved Report Documents</h2>
       <table id="approved-report-documents">
         <thead>
@@ -112,6 +115,7 @@
             <th>Tem/Tags</th>
             <th>Báo cáo sau xử lý/Post-Processing Report</th>
             <th>Phiếu xử lý kèm theo/Appended Processing Document</th>
+            <th>Tệp đính kèm/Attached File</th>
             <th>Được phê duyệt bởi/Approved By</th>
             <th>Nộp bởi/Submitted By</th>
             <th>Hành động/Action</th>
@@ -119,7 +123,7 @@
         </thead>
         <tbody>
           <tr>
-            <td colspan="9">Đang tải/Loading documents...</td>
+            <td colspan="8">Đang tải/Loading documents...</td>
           </tr>
         </tbody>
       </table>
@@ -176,36 +180,35 @@
 
         if (documents.length === 0) {
           genericTableBody.innerHTML =
-            "<tr><td colspan='4'>Chưa có phiếu chung đã duyệt/No approved generic documents.</td></tr>";
+            "<tr><td colspan='6'>Chưa có phiếu chung đã duyệt/No approved generic documents.</td></tr>";
           proposalTableBody.innerHTML =
-            "<tr><td colspan='8'>Chưa có phiếu đề xuất đã duyệt/No approved proposal documents.</td></tr>";
+            "<tr><td colspan='10'>Chưa có phiếu đề xuất đã duyệt/No approved proposal documents.</td></tr>";
           processingTableBody.innerHTML =
-            "<tr><td colspan='6'>Chưa có phiếu xử lý đã duyệt/No approved processing documents.</td></tr>";
+            "<tr><td colspan='8'>Chưa có phiếu xử lý đã duyệt/No approved processing documents.</td></tr>";
           reportTableBody.innerHTML =
-            "<tr><td colspan='9'>Chưa có phiếu báo cáo đã duyệt/No approved report documents.</td></tr>";
+            "<tr><td colspan='8'>Chưa có phiếu báo cáo đã duyệt/No approved report documents.</td></tr>";
           return;
         }
 
         documents.forEach((doc) => {
-          // Creating a combined HTML block for both approvers
           const approversHTML = doc.approvers
             .map((approver) => {
-              // Find the corresponding approvedBy entry based on a unique identifier
               const approvedInfo = doc.approvedBy.find(
                 (approved) => approved.username === approver.username
               );
-
-              // Only display if the approver has an approvalDate
               if (approvedInfo && approvedInfo.approvalDate) {
                 return `${approvedInfo.username} (${approver.subRole}) (${approvedInfo.approvalDate})<br>`;
               }
-              return ""; // Skip if not approved
+              return "";
             })
-            .filter((html) => html !== "") // Remove empty strings for non-approved entries
+            .filter((html) => html !== "")
             .join("");
 
+          const fileMetadataHTML = doc.fileMetadata
+            ? `<a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a>`
+            : "Không có tệp đính kèm/No File Attached";
+
           if (doc.title === "Generic Document") {
-            // Display content for Generic Document
             const contentTableRows = doc.content
               .map(
                 (item) => `<tr><td>${item.name}</td><td>${item.text}</td></tr>`
@@ -220,6 +223,7 @@
               <tr>
                 <td>${doc._id}</td>
                 <td>${contentTable}</td>
+                <td>${fileMetadataHTML}</td>
                 <td>${approversHTML}</td>
                 <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
                 <td>
@@ -230,7 +234,6 @@
               </tr>`;
             genericTableBody.insertAdjacentHTML("beforeend", row);
           } else if (doc.title === "Proposal Document") {
-            // Display specific fields for Proposal Document
             const row = `
               <tr>
                 <td>${doc._id}</td>
@@ -239,6 +242,7 @@
                 <td>${doc.dateOfError}</td>
                 <td>${doc.errorDescription}</td>
                 <td>${doc.direction}</td>
+                <td>${fileMetadataHTML}</td>
                 <td>${approversHTML}</td>
                 <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
                 <td>
@@ -249,17 +253,16 @@
               </tr>`;
             proposalTableBody.insertAdjacentHTML("beforeend", row);
           } else if (doc.title === "Processing Document") {
-            // Display product entries and appended proposal content for Processing Document
             const productRows = doc.products
               .map(
                 (product) => `
-              <tr>
-                <td>${product.productName}</td>
-                <td>${product.costPerUnit.toLocaleString()}</td>
-                <td>${product.amount.toLocaleString()}</td>
-                <td>${product.note}</td>
-                <td>${product.totalCost.toLocaleString()}</td>
-              </tr>`
+                <tr>
+                  <td>${product.productName}</td>
+                  <td>${product.costPerUnit.toLocaleString()}</td>
+                  <td>${product.amount.toLocaleString()}</td>
+                  <td>${product.note}</td>
+                  <td>${product.totalCost.toLocaleString()}</td>
+                </tr>`
               )
               .join("");
 
@@ -274,11 +277,24 @@
                 (content) => `
                 <div>
                   <p><strong>Mã/ID:</strong> ${content._id}</p>
-                  <p><strong>Bảo trì/Maintenance:</strong> ${content.maintenance}</p>
+                  <p><strong>Bảo trì/Maintenance:</strong> ${
+                    content.maintenance
+                  }</p>
                   <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
-                  <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${content.dateOfError}</p>
-                  <p><strong>Mô tả lỗi/Error Description:</strong> ${content.errorDescription}</p>
-                  <p><strong>Hướng xử lý/Direction:</strong> ${content.direction}</p>
+                  <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
+                    content.dateOfError
+                  }</p>
+                  <p><strong>Mô tả lỗi/Error Description:</strong> ${
+                    content.errorDescription
+                  }</p>
+                  <p><strong>Hướng xử lý/Direction:</strong> ${
+                    content.direction
+                  }</p>
+                  <p><strong>Tệp đính kèm phiếu đề xuất/File attaches to proposal document:</strong> ${
+                    content.fileMetadata
+                      ? `<a href="${content.fileMetadata.link}" target="_blank">${content.fileMetadata.name}</a>`
+                      : "Không có tệp đính kèm/No File Attached"
+                  }</p>
                 </div>`
               )
               .join("");
@@ -288,6 +304,7 @@
                 <td>${doc._id}</td>
                 <td>${productTable}</td>
                 <td>${doc.grandTotalCost.toLocaleString()}</td>
+                <td>${fileMetadataHTML}</td>
                 <td>${appendedContent || "N/A"}</td>
                 <td>${approversHTML}</td>
                 <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
@@ -301,56 +318,85 @@
               </tr>`;
             processingTableBody.insertAdjacentHTML("beforeend", row);
           } else if (doc.title === "Report Document") {
-            const approvedBy = doc.approvedBy
-              .map((approver) => `${approver.username} (${approver.role})<br>`)
-              .join("");
-
             let appendedProcessingDoc = "N/A";
             if (doc.appendedProcessingDocument) {
               const products = doc.appendedProcessingDocument.products
                 .map(
-                  (product) =>
-                    `<p>${
-                      product.productName
-                    }: ${product.amount.toLocaleString()} đơn vị với đơn giá là ${product.costPerUnit.toLocaleString()} (Tổng tiền: ${product.totalCost.toLocaleString()}) (Ghi chú: ${
-                      product.note
-                    })</p>`
+                  (product) => `<p>${
+                    product.productName
+                  }: ${product.amount.toLocaleString()} đơn vị với đơn giá là ${product.costPerUnit.toLocaleString()} 
+                  (Tổng tiền: ${product.totalCost.toLocaleString()}) 
+                  (Ghi chú: ${product.note || "Không có ghi chú/No Note"})</p>`
                 )
                 .join("");
+
+              const appendedContent =
+                doc.appendedProcessingDocument.appendedContent
+                  .map(
+                    (content) => `
+                  <div>
+                    <p><strong>Bảo dưỡng/Maintenance:</strong> ${
+                      content.maintenance
+                    }</p>
+                    <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
+                    <p><strong>Mô tả lỗi/Error Description:</strong> ${
+                      content.errorDescription
+                    }</p>
+                    ${
+                      content.fileMetadata
+                        ? `<p><strong>Tệp đính kèm phiếu đề xuất/File attaches to proposal document:</strong> 
+                        <a href="${content.fileMetadata.link}" target="_blank">${content.fileMetadata.name}</a>
+                      </p>`
+                        : "<p><strong>Tệp đính kèm phiếu đề xuất/File attaches to proposal document:</strong> Không có tệp đính kèm/No File Attached</p>"
+                    }
+                  </div>`
+                  )
+                  .join("");
+
               appendedProcessingDoc = `
-            <div>
-              <p><strong>Ngày nộp/Submission Date:</strong> ${
-                doc.appendedProcessingDocument.submissionDate
-              }</p>
-              <p><strong>Chi phí/Grand Total Cost:</strong> ${doc.appendedProcessingDocument.grandTotalCost.toLocaleString()}</p>
-              <p><strong>Sản phẩm/Products:</strong><br>${products}</p>
-              ${doc.appendedProcessingDocument.appendedContent
-                .map(
-                  (content) =>
-                    `<p><strong>Bảo trì/Maintenance:</strong> ${content.maintenance}</p>
-                 <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
-                 <p><strong>Mô tả lỗi/Error Description:</strong> ${content.errorDescription}</p>`
-                )
-                .join("")}
-            </div>
-          `;
+                <div>
+                  <p><strong>Ngày nộp/Submission Date:</strong> ${
+                    doc.appendedProcessingDocument.submissionDate
+                  }</p>
+                  <p><strong>Chi phí/Grand Total Cost:</strong> ${doc.appendedProcessingDocument.grandTotalCost.toLocaleString()}</p>
+                  <p><strong>Sản phẩm/Products:</strong><br>${products}</p>
+                  ${
+                    doc.appendedProcessingDocument.fileMetadata
+                      ? `<p><strong>Tệp đính kèm phiếu xử lý/File attaches to processing document:</strong> 
+                      <a href="${doc.appendedProcessingDocument.fileMetadata.link}" target="_blank">
+                        ${doc.appendedProcessingDocument.fileMetadata.name}
+                      </a>
+                    </p>`
+                      : "<p><strong>Tệp đính kèm phiếu xử lý/File attaches to processing document:</strong> Không có tệp đính kèm/No File Attached</p>"
+                  }
+                  ${appendedContent}
+                </div>`;
             }
 
-            const row = reportTableBody.insertRow();
-            row.innerHTML = `
-          <td>${doc._id}</td>
-          <td>${doc.tags}</td>
-          <td>${doc.postProcessingReport}</td>
-          <td>${appendedProcessingDoc}</td>
-          <td>${approversHTML}</td>
-          <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
-          <td>
-            <form action="/exportDocumentToDocx/${doc._id}" method="GET" style="display:inline;" onsubmit="return confirmExport()">
-              <button type="submit">Xuất ra DOCX/Export to DOCX</button>
-            </form>
-          </td>`;
+            const row = `
+              <tr>
+                <td>${doc._id}</td>
+                <td>${doc.tags}</td>
+                <td>${doc.postProcessingReport}</td>
+                <td>${appendedProcessingDoc}</td>
+                <td>${fileMetadataHTML}</td>
+                <td>${approversHTML}</td>
+                <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+                <td>
+                  <form action="/exportDocumentToDocx/${doc._id}" method="GET" style="display:inline;" onsubmit="return confirmExport()">
+                    <button type="submit">Xuất ra DOCX/Export to DOCX</button>
+                  </form>
+                </td>
+              </tr>`;
+            reportTableBody.insertAdjacentHTML("beforeend", row);
           }
         });
+      }
+
+      function confirmExport() {
+        return confirm(
+          "Bạn có chắc muốn xuất phiếu này ra DOCX không?/Are you sure you want to export this document to DOCX?"
+        );
       }
 
       fetchApprovedDocuments();
