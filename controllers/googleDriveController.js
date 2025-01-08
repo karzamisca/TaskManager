@@ -316,7 +316,9 @@ exports.syncFiles = async () => {
       const response = await drive.files.list({
         q: "mimeType!='application/vnd.google-apps.folder' and trashed=false",
         fields:
-          "files(id, name, mimeType, parents, createdTime), nextPageToken",
+          "files(id, name, mimeType, parents, createdTime, owners), nextPageToken",
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
         pageToken: pageToken, // For pagination
       });
 
