@@ -5,18 +5,173 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tài liệu/Document</title>
-    <link rel="stylesheet" href="/css/styles.css" />
+    <style>
+      /* General Reset */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Body and Background */
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f9;
+        color: #333;
+        line-height: 1.6;
+        height: 100vh; /* Full height of the viewport */
+        display: flex;
+        justify-content: center; /* Center horizontally */
+        align-items: center; /* Center vertically */
+      }
+
+      /* Main Container */
+      .container {
+        max-width: 800px; /* Maximum width */
+        width: 100%; /* Full width within the max-width */
+        padding: 30px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        text-align: center; /* Center the text */
+      }
+
+      /* Header Styling */
+      header {
+        margin-bottom: 30px;
+      }
+
+      h1 {
+        font-size: 2.5em;
+        color: #2c3e50;
+      }
+
+      /* Navigation Styling */
+      nav ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      nav ul li {
+        margin: 15px 0;
+      }
+
+      nav ul li a {
+        display: block;
+        padding: 12px 20px;
+        text-decoration: none;
+        color: #fff;
+        font-size: 1.1em;
+        border-radius: 4px;
+        text-align: center;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+      }
+
+      /* Specific link styles */
+      a.submit {
+        background-color: #27ae60;
+        border: 2px solid #2ecc71;
+      }
+
+      a.submit:hover {
+        background-color: #2ecc71;
+        transform: scale(1.05);
+      }
+
+      a.approve {
+        background-color: #f39c12;
+        border: 2px solid #f1c40f;
+      }
+
+      a.approve:hover {
+        background-color: #f1c40f;
+        transform: scale(1.05);
+      }
+
+      a.view {
+        background-color: #3498db;
+        border: 2px solid #2980b9;
+      }
+
+      a.view:hover {
+        background-color: #2980b9;
+        transform: scale(1.05);
+      }
+
+      a.back {
+        background-color: #8e44ad;
+        border: 2px solid #9b59b6;
+      }
+
+      a.back:hover {
+        background-color: #9b59b6;
+        transform: scale(1.05);
+      }
+
+      a.logout {
+        background-color: #e74c3c;
+        border: 2px solid #c0392b;
+      }
+
+      a.logout:hover {
+        background-color: #c0392b;
+        transform: scale(1.05);
+      }
+
+      /* Hover effects */
+      nav ul li a:hover {
+        cursor: pointer;
+      }
+
+      /* Links focus */
+      a:focus {
+        outline: none;
+        border: 2px solid #3498db;
+      }
+
+      /* Optional border between links */
+      nav ul li + li {
+        border-top: 1px solid #ecf0f1;
+        padding-top: 15px;
+      }
+
+      /* Add icons to each item (optional, but it can make the links more visually appealing) */
+      nav ul li a::before {
+        content: "\2022"; /* Bullet character for links */
+        margin-right: 8px;
+        font-size: 1.3em;
+      }
+    </style>
   </head>
   <body>
     <div class="container">
-      <h2>Document Console</h2>
-      <a href="/submitDocument">Nộp phiếu mới/Submit New Document</a><br />
-      <a href="/approveDocument">Phê duyệt phiếu/Approve Documents</a><br />
-      <a href="/viewApprovedDocument"
-        >Phiếu đã phê duyệt/View Approved Documents</a
-      ><br />
-      <a href="/main">Trở về màn hình chính/Back to Main</a><br />
-      <a href="/logout">Đăng xuất/Logout</a><br />
+      <header>
+        <h1>Hệ thống phê duyệt / Approval System</h1>
+      </header>
+
+      <nav>
+        <ul class="document-links">
+          <li>
+            <a href="/submitDocument" class="submit"
+              >Nộp phiếu mới/Submit New Document</a
+            >
+          </li>
+          <li>
+            <a href="/approveDocument" class="approve"
+              >Phê duyệt phiếu/Approve Documents</a
+            >
+          </li>
+          <li>
+            <a href="/viewApprovedDocument" class="view"
+              >Phiếu đã phê duyệt/View Approved Documents</a
+            >
+          </li>
+          <li>
+            <a href="/main" class="back">Trở về màn hình chính/Back to Main</a>
+          </li>
+          <li><a href="/logout" class="logout">Đăng xuất/Logout</a></li>
+        </ul>
+      </nav>
     </div>
   </body>
 </html>
