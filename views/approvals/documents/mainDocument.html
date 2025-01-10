@@ -18,7 +18,6 @@
         font-family: Arial, sans-serif;
         background-color: #f4f4f9;
         color: #333;
-        line-height: 1.6;
         height: 100vh; /* Full height of the viewport */
         display: flex;
         justify-content: center; /* Center horizontally */
@@ -27,23 +26,26 @@
 
       /* Main Container */
       .container {
-        max-width: 800px; /* Maximum width */
-        width: 100%; /* Full width within the max-width */
+        width: 90%;
+        max-width: 800px; /* Maximum width for larger screens */
         padding: 30px;
         background-color: #fff;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        text-align: center; /* Center the text */
+        text-align: center; /* Center the text inside */
+        transform: scale(1); /* Default scaling */
+        transition: transform 0.3s ease;
       }
 
       /* Header Styling */
       header {
-        margin-bottom: 30px;
+        margin-bottom: 20px;
       }
 
       h1 {
-        font-size: 2.5em;
+        font-size: 2em;
         color: #2c3e50;
+        margin-bottom: 20px;
       }
 
       /* Navigation Styling */
@@ -67,79 +69,68 @@
         transition: background-color 0.3s ease, transform 0.2s ease;
       }
 
-      /* Specific link styles */
+      /* Link Styles */
       a.submit {
         background-color: #27ae60;
-        border: 2px solid #2ecc71;
-      }
-
-      a.submit:hover {
-        background-color: #2ecc71;
-        transform: scale(1.05);
       }
 
       a.approve {
         background-color: #f39c12;
-        border: 2px solid #f1c40f;
-      }
-
-      a.approve:hover {
-        background-color: #f1c40f;
-        transform: scale(1.05);
       }
 
       a.view {
         background-color: #3498db;
-        border: 2px solid #2980b9;
-      }
-
-      a.view:hover {
-        background-color: #2980b9;
-        transform: scale(1.05);
       }
 
       a.back {
         background-color: #8e44ad;
-        border: 2px solid #9b59b6;
-      }
-
-      a.back:hover {
-        background-color: #9b59b6;
-        transform: scale(1.05);
       }
 
       a.logout {
         background-color: #e74c3c;
-        border: 2px solid #c0392b;
       }
 
-      a.logout:hover {
-        background-color: #c0392b;
-        transform: scale(1.05);
-      }
-
-      /* Hover effects */
+      /* Hover Effects */
       nav ul li a:hover {
+        transform: scale(1.05);
         cursor: pointer;
       }
 
-      /* Links focus */
-      a:focus {
-        outline: none;
-        border: 2px solid #3498db;
+      /* Responsive Scaling for Smaller Screens */
+      @media (max-width: 768px) {
+        .container {
+          transform: scale(0.9); /* Slightly smaller for tablets */
+        }
       }
 
-      /* Optional border between links */
-      nav ul li + li {
-        border-top: 1px solid #ecf0f1;
-        padding-top: 15px;
+      @media (max-width: 480px) {
+        .container {
+          transform: scale(0.8); /* Further scaling down for phones */
+        }
+
+        h1 {
+          font-size: 1.5em;
+        }
+
+        nav ul li a {
+          font-size: 1em;
+          padding: 10px 16px;
+        }
       }
 
-      /* Add icons to each item (optional, but it can make the links more visually appealing) */
-      nav ul li a::before {
-        content: "\2022"; /* Bullet character for links */
-        margin-right: 8px;
-        font-size: 1.3em;
+      @media (max-width: 360px) {
+        .container {
+          transform: scale(0.7); /* Even smaller for very small devices */
+        }
+
+        h1 {
+          font-size: 1.3em;
+        }
+
+        nav ul li a {
+          font-size: 0.9em;
+          padding: 8px 14px;
+        }
       }
     </style>
   </head>
