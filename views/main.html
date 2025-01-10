@@ -3,7 +3,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"
+    />
     <title>Main Page</title>
     <link rel="stylesheet" href="/css/styles.css" />
     <style>
@@ -13,6 +16,7 @@
         margin: 0;
         padding: 0;
       }
+
       .container {
         max-width: 800px;
         margin: 50px auto;
@@ -22,11 +26,13 @@
         border-radius: 8px;
         text-align: center;
       }
+
       h1 {
         font-size: 28px;
         color: #333;
         margin-bottom: 10px;
       }
+
       a {
         display: block;
         font-size: 18px;
@@ -39,16 +45,55 @@
         border-radius: 6px;
         transition: all 0.3s ease;
       }
+
       a:hover {
         color: #0056b3;
         background-color: #e6f0ff;
         border-color: #0056b3;
       }
+
       a:nth-child(odd) {
         background-color: #f0f8ff;
       }
+
       a:nth-child(even) {
         background-color: #fffaf0;
+      }
+
+      /* Responsive Design for Tablets */
+      @media (max-width: 768px) {
+        .container {
+          max-width: 90%;
+          margin: 30px auto;
+          padding: 15px;
+        }
+
+        h1 {
+          font-size: 24px;
+        }
+
+        a {
+          font-size: 16px;
+          padding: 12px;
+        }
+      }
+
+      /* Responsive Design for Mobile Devices */
+      @media (max-width: 480px) {
+        .container {
+          max-width: 100%;
+          margin: 20px auto;
+          padding: 10px;
+        }
+
+        h1 {
+          font-size: 20px;
+        }
+
+        a {
+          font-size: 14px;
+          padding: 10px;
+        }
       }
     </style>
   </head>
