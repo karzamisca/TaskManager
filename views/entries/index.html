@@ -5,10 +5,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
       href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
       rel="stylesheet"
     />
@@ -16,153 +12,243 @@
       Hệ Thống Theo Dõi Chi Phí Dự Án / Project Expenses Tracking System
     </title>
     <style>
-      /* Base styles for all screen sizes */
+      /* Base styles */
       body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
-        padding: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        margin: 0;
+        padding: 20px;
         box-sizing: border-box;
         max-width: 100vw;
-        overflow-x: auto;
+        line-height: 1.5;
+        color: #333;
+        background-color: #f5f5f5;
       }
 
+      /* Header styles */
+      header {
+        margin-bottom: 2rem;
+      }
+
+      header a {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        margin: 0.25rem;
+        text-decoration: none;
+        color: #2563eb;
+        border-radius: 0.375rem;
+        transition: background-color 0.2s;
+      }
+
+      header a:hover {
+        background-color: #e0e7ff;
+      }
+
+      /* Typography */
       h1,
       h2 {
-        color: #333;
+        color: #1e293b;
+        margin: 1.5rem 0;
       }
 
-      /* Table styling */
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 20px;
-        font-size: 0.8rem;
+      h1 {
+        font-size: 1.875rem;
+        border-bottom: 2px solid #e2e8f0;
+        padding-bottom: 0.5rem;
       }
 
-      /* Ensure table container scales properly */
-      .table-container {
-        width: 100%;
-        overflow-x: auto; /* Allows scrolling if the table overflows */
+      h2 {
+        font-size: 1.5rem;
+      }
+
+      /* Table styles */
+      .table-container,
+      .entries-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
       }
 
       .entries-container {
-        max-height: 500px; /* Adjust this height as needed */
-        overflow-y: auto; /* Adds vertical scrollbar */
-        overflow-x: auto; /* Adds horizontal scrollbar */
-        border: 1px solid #ddd; /* Optional: Add border for better visibility */
-        margin-bottom: 20px; /* Optional: Add spacing below the table */
+        max-height: 600px;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
       }
 
-      table,
-      th,
-      td {
-        border: 1px solid black;
-      }
-
-      th,
-      td {
-        padding: 8px;
-        text-align: left;
-      }
-
-      /* Form styling */
-      form {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px; /* Add gap for spacing between elements */
+      table {
         width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 0.875rem;
+      }
+
+      th,
+      td {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      th {
+        background-color: #f8fafc;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      tr:hover {
+        background-color: #f1f5f9;
+      }
+
+      /* Form styles */
+      form {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
       }
 
       .form-group {
-        margin-bottom: 10px;
-        flex: 1 1 calc(25% - 10px); /* Default: 4 items per row, with space */
-        min-width: 200px; /* Minimum size for small screens */
+        margin-bottom: 1rem;
+        flex: 1 1 calc(25% - 1rem);
+        min-width: 250px;
       }
 
-      .full-width {
-        flex: 1 1 100%; /* Occupies the full width of the row */
-        margin-bottom: 20px; /* Add extra space after */
+      .form-group label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: #4b5563;
       }
 
-      form input,
-      form select,
-      form button {
-        padding: 10px;
+      .form-group input,
+      .form-group select {
         width: 100%;
-        font-size: 1rem;
+        padding: 0.625rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: border-color 0.2s;
       }
 
-      /* Media queries for responsiveness */
+      .form-group input:focus,
+      .form-group select:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      }
 
-      /* Small devices (mobile) */
-      @media only screen and (max-width: 600px) {
-        h1,
-        h2 {
-          font-size: 1.2rem;
+      /* Button styles */
+      button {
+        background-color: #2563eb;
+        color: white;
+        padding: 0.625rem 1.25rem;
+        border: none;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      button:hover {
+        background-color: #1d4ed8;
+      }
+
+      .delete-button {
+        background-color: #dc2626;
+      }
+
+      .delete-button:hover {
+        background-color: #b91c1c;
+      }
+
+      .edit-button {
+        background-color: #059669;
+      }
+
+      .edit-button:hover {
+        background-color: #047857;
+      }
+
+      .approve-receive-button {
+        background-color: #7c3aed;
+      }
+
+      .approve-receive-button:hover {
+        background-color: #6d28d9;
+      }
+
+      /* Alert styles */
+      .alert {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+      }
+
+      .alert-warning {
+        background-color: #fef3c7;
+        border: 1px solid #fbbf24;
+        color: #92400e;
+      }
+
+      .alert-success {
+        background-color: #d1fae5;
+        border: 1px solid #34d399;
+        color: #065f46;
+      }
+
+      /* Tracker section */
+      #unpaidTracker,
+      #paidTracker {
+        font-weight: 600;
+        font-size: 1.125rem;
+      }
+
+      /* Responsive styles */
+      @media (max-width: 640px) {
+        body {
+          padding: 1rem;
         }
 
         .form-group {
-          flex: 1 1 100%; /* Stack all elements in a single column */
+          flex: 1 1 100%;
         }
 
-        .full-width {
-          flex: 1 1 100%; /* Occupies the full width of the row */
-          margin-bottom: 20px; /* Add extra space after */
+        table {
+          font-size: 0.75rem;
         }
 
-        form input,
-        form select,
-        form button {
-          font-size: 0.9rem; /* Adjust input font size */
-          padding: 8px;
-        }
-      }
-
-      /* Medium devices (tablets) */
-      @media only screen and (min-width: 601px) and (max-width: 1024px) {
-        h1,
-        h2 {
-          font-size: 1.5rem;
+        th,
+        td {
+          padding: 0.5rem;
         }
 
-        .form-group {
-          flex: 1 1 calc(50% - 10px); /* Two items per row */
-        }
-
-        .full-width {
-          flex: 1 1 100%; /* Occupies the full width of the row */
-          margin-bottom: 20px; /* Add extra space after */
-        }
-
-        form input,
-        form select,
-        form button {
-          font-size: 1rem;
-          padding: 10px;
+        button {
+          width: 100%;
+          margin-bottom: 0.5rem;
         }
       }
 
-      /* Large devices (desktops) */
-      @media only screen and (min-width: 1025px) {
-        h1,
-        h2 {
-          font-size: 2rem;
-        }
-
+      @media (min-width: 641px) and (max-width: 1024px) {
         .form-group {
-          flex: 1 1 calc(25% - 10px); /* Four items per row */
+          flex: 1 1 calc(50% - 1rem);
+        }
+      }
+
+      /* Print styles */
+      @media print {
+        .entries-container {
+          max-height: none;
+          overflow: visible;
         }
 
-        .full-width {
-          flex: 1 1 100%; /* Occupies the full width of the row */
-          margin-bottom: 20px; /* Add extra space after */
-        }
-
-        form input,
-        form select,
-        form button {
-          font-size: 1.1rem;
-          padding: 12px;
+        button,
+        input[type="file"],
+        #filterForm {
+          display: none;
         }
       }
     </style>
@@ -171,30 +257,28 @@
       href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
     />
   </head>
-  <body class="container mt-4">
-    <header class="mt-5 text-center">
+  <body>
+    <header>
       <a href="/main">Trở về trang chủ/Back to Main</a><br />
       <a href="/logout">Đăng xuất/Logout</a><br />
     </header>
 
-    <h1 class="mt-5">
-      Hệ Thống Theo Dõi Chi Phí Dự Án / Project Expenses Tracking System
-    </h1>
+    <h1>Hệ Thống Theo Dõi Chi Phí Dự Án / Project Expenses Tracking System</h1>
 
     <!-- Export Button -->
-    <div class="text-end mb-3">
+    <div>
       <button id="exportButton">Xuất ra Excel / Export to Excel</button>
     </div>
 
-    <h2 class="mb-3">Theo dõi/Trackers</h2>
-    <div class="row mb-4">
-      <div class="col-md-6">
+    <h2>Theo dõi/Trackers</h2>
+    <div>
+      <div>
         <div class="alert alert-warning">
           <strong>Chưa thanh toán/Unpaid:</strong>
           <span id="unpaidTracker">0</span>
         </div>
       </div>
-      <div class="col-md-6">
+      <div>
         <div class="alert alert-success">
           <strong>Đã thanh toán/Paid:</strong> <span id="paidTracker">0</span>
         </div>
@@ -202,17 +286,17 @@
     </div>
 
     <!-- Search fields for each column -->
-    <h2 class="mb-3">Lọc/Filter</h2>
-    <form id="filterForm" class="row g-3 mb-4">
-      <div class="col-md-2">
+    <h2>Lọc/Filter</h2>
+    <form id="filterForm">
+      <div>
         <label for="searchTag">Tem/Tag:</label>
         <input type="text" id="searchTag" placeholder="Search by tag" />
       </div>
-      <div class="col-md-2">
+      <div>
         <label for="searchName">Tên dự án/Project Name:</label>
         <input type="text" id="searchName" placeholder="Search by name" />
       </div>
-      <div class="col-md-2">
+      <div>
         <label for="searchDescription">Mô tả/Description:</label>
         <input
           type="text"
@@ -220,19 +304,19 @@
           placeholder="Search by description"
         />
       </div>
-      <div class="col-md-2">
+      <div>
         <label for="searchPackage">Gói/Package:</label>
         <input type="text" id="searchPackage" placeholder="Search by package" />
       </div>
-      <div class="col-md-2">
+      <div>
         <label for="searchUnit">Đơn vị/Unit:</label>
         <input type="text" id="searchUnit" placeholder="Search by unit" />
       </div>
-      <div class="col-md-2">
+      <div>
         <label for="searchAmount">Số lượng/Amount:</label>
         <input type="number" id="searchAmount" placeholder="Search by amount" />
       </div>
-      <div class="col-md-2">
+      <div>
         <label for="searchUnitPrice">Đơn giá/Unit Price:</label>
         <input
           type="number"
@@ -240,7 +324,7 @@
           placeholder="Search by unit price"
         />
       </div>
-      <div class="col-md-2">
+      <div>
         <label for="searchTotalPrice">Thành tiền /Total Price:</label>
         <input
           type="number"
@@ -248,11 +332,11 @@
           placeholder="Search by total price"
         />
       </div>
-      <div class="col-md-3">
+      <div>
         <label for="searchVAT">Thuế giá trị gia tăng/VAT (%):</label>
         <input type="number" id="searchVAT" placeholder="Search by VAT" />
       </div>
-      <div class="col-md-2">
+      <div>
         <label for="searchVATValue">Giá trị VAT/VAT Value:</label>
         <input
           type="number"
@@ -260,11 +344,11 @@
           placeholder="Search by VAT Value"
         />
       </div>
-      <div class="col-md-3">
+      <div>
         <label for="searchDeliveryDate">Ngày giao hàng/Delivery Date:</label>
         <input type="date" id="searchDeliveryDate" />
       </div>
-      <div class="col-md-4">
+      <div>
         <label for="searchTotalPriceAfterVAT"
           >Thành tiền sau VAT/Total Price After VAT:</label
         >
@@ -274,23 +358,23 @@
           placeholder="Search by total after VAT"
         />
       </div>
-      <div class="col-md-2">
+      <div>
         <label for="searchPaid">Đã trả/Paid:</label>
         <input type="number" id="searchPaid" />
       </div>
-      <div class="col-md-3">
+      <div>
         <label for="searchEntryDate">Ngày nhập liệu/Entry Date:</label>
         <input type="date" id="searchEntryDate" />
       </div>
-      <div class="col-md-3">
+      <div>
         <label for="searchNote">Ghi chú/Note:</label>
         <input type="text" id="searchNote" />
       </div>
-      <div class="col-md-3">
+      <div>
         <label for="searchSubmitter">Người nhập/Submitter:</label>
         <input type="text" id="searchSubmitter" />
       </div>
-      <div class="col-md-4">
+      <div>
         <label for="searchConfirmedReceived"
           >Xác nhận đã nhận hàng/Confirmed Received:</label
         >
@@ -299,15 +383,13 @@
     </form>
 
     <div>
-      <button id="deleteSelected" class="btn btn-danger">
-        Xoá dữ liệu đã chọn/Delete Selected
-      </button>
+      <button id="deleteSelected">Xoá dữ liệu đã chọn/Delete Selected</button>
     </div>
 
-    <h2 class="mb-3">Bảng dữ liệu/Entries Table</h2>
+    <h2>Bảng dữ liệu/Entries Table</h2>
     <!-- Table for displaying entries -->
     <div class="entries-container">
-      <table id="entriesTable" class="table table-striped table-bordered">
+      <table id="entriesTable">
         <thead>
           <tr>
             <th onclick="sortTable(1)">Tem/Tag</th>
@@ -401,7 +483,7 @@
       <button type="submit">Nộp/Submit</button>
     </form>
 
-    <h2 class="mt-4 mb-3">Chỉnh sửa dữ liệu/Update Entry</h2>
+    <h2>Chỉnh sửa dữ liệu/Update Entry</h2>
     <form id="updateForm" action="/entryUpdate" method="POST">
       <div class="form-group full-width">
         <label for="tag">Chọn tem/Choose tag:</label>
@@ -465,7 +547,7 @@
       <button type="submit">Chỉnh sửa/Update</button>
     </form>
 
-    <h2 class="mt-4 mb-3">Nhập liệu từ Excel/Import Entries from Excel</h2>
+    <h2>Nhập liệu từ Excel/Import Entries from Excel</h2>
     <!-- Form for importing Excel files -->
     <form
       id="importForm"
@@ -477,7 +559,7 @@
       <button type="submit">Nhập vào từ Excel/Import from Excel</button>
     </form>
 
-    <footer class="mt-5 text-center">
+    <footer>
       <a href="/main">Trở về trang chủ/Back to Main</a><br />
       <a href="/logout">Đăng xuất/Logout</a><br />
     </footer>
