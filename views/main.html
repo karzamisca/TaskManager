@@ -10,6 +10,7 @@
     <title>Main Page</title>
     <link rel="stylesheet" href="/css/styles.css" />
     <style>
+      /* Default (Light Mode) Styles */
       body {
         font-family: Arial, sans-serif;
         background-color: #f4f4f9;
@@ -101,6 +102,53 @@
         a {
           font-size: 14px;
           padding: 10px;
+        }
+      }
+
+      /* Dark Mode Styles */
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #121212;
+        }
+
+        .container {
+          background-color: #333;
+          color: #fff;
+          box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+          color: #fff;
+        }
+
+        a {
+          color: #fff;
+          background-color: #444;
+          border: 1px solid #666;
+        }
+
+        a:hover {
+          color: #fff;
+          background-color: #555;
+          border-color: #fff;
+        }
+
+        a:nth-child(odd) {
+          background-color: #555;
+        }
+
+        a:nth-child(even) {
+          background-color: #666;
+        }
+
+        /* Update button text color for better contrast */
+        button {
+          color: #e0e0e0; /* Slightly darker text */
+        }
+
+        button:hover {
+          background: #fff;
+          color: #fff; /* Maintain white text on hover */
         }
       }
     </style>
