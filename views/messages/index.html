@@ -5,15 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bảng Tin Nhắn/Message Board</title>
     <style>
+      /* Basic Reset */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Body styles */
       body {
-        font-family: Arial, sans-serif;
+        font-family: "Arial", sans-serif;
         margin: 20px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        transition: background-color 0.3s ease, color 0.3s ease;
       }
 
       h1 {
-        color: #333;
+        color: var(--primary-text-color);
+        margin-bottom: 20px;
+        font-size: 2rem;
       }
 
+      /* Message List */
       #messages {
         margin-top: 20px;
       }
@@ -23,29 +37,112 @@
       }
 
       #messages li {
+        background-color: var(--message-bg-color);
+        border: 1px solid var(--message-border-color);
+        border-radius: 8px;
+        padding: 10px;
         margin-bottom: 10px;
+        transition: background-color 0.3s ease;
       }
 
+      #messages li:hover {
+        background-color: var(--message-hover-bg-color);
+      }
+
+      small {
+        font-size: 0.8rem;
+        color: var(--secondary-text-color);
+      }
+
+      /* Form Styles */
       form {
         margin-top: 20px;
+        background-color: var(--form-bg-color);
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
       }
 
+      /* Textarea Styles */
       textarea {
         width: 100%;
-        padding: 10px;
-        border: 1px solid #ddd;
+        padding: 12px;
+        border: 1px solid var(--textarea-border-color);
+        border-radius: 8px;
+        resize: vertical;
+        margin-bottom: 10px;
+        background-color: var(--textarea-bg-color);
+        color: var(--textarea-text-color);
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      textarea:focus {
+        outline: none;
+        border-color: var(--textarea-focus-border-color);
       }
 
       button {
         padding: 10px 15px;
-        background-color: #4caf50;
-        color: white;
+        background-color: var(--primary-color);
+        color: #fff;
         border: none;
+        border-radius: 5px;
         cursor: pointer;
+        width: 100%;
       }
 
       button:hover {
-        background-color: #45a049;
+        background-color: var(--primary-hover-color);
+      }
+
+      /* Links */
+      a {
+        color: var(--link-color);
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      /* System Default Light/Dark Mode based on prefers-color-scheme */
+      /* Light Mode Variables */
+      :root {
+        --bg-color: #f0f0f0;
+        --text-color: #333;
+        --primary-color: #4caf50;
+        --primary-text-color: #222;
+        --message-bg-color: #fff;
+        --message-border-color: #ddd;
+        --message-hover-bg-color: #f9f9f9;
+        --form-bg-color: #fff;
+        --secondary-text-color: #666;
+        --link-color: #4caf50;
+        --textarea-bg-color: #fff;
+        --textarea-border-color: #ddd;
+        --textarea-text-color: #333;
+        --textarea-focus-border-color: #4caf50;
+      }
+
+      /* Dark Mode Variables */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-color: #2c2c2c;
+          --text-color: #fff;
+          --primary-color: #4caf50;
+          --primary-text-color: #fff;
+          --message-bg-color: #333;
+          --message-border-color: #444;
+          --message-hover-bg-color: #555;
+          --form-bg-color: #444;
+          --secondary-text-color: #aaa;
+          --link-color: #4caf50;
+          --textarea-bg-color: #555;
+          --textarea-border-color: #666;
+          --textarea-text-color: #fff;
+          --textarea-focus-border-color: #4caf50;
+        }
       }
     </style>
   </head>
@@ -54,7 +151,6 @@
 
     <div id="messages">
       <ul id="message-list"></ul>
-      <!-- This will be populated dynamically with JavaScript -->
     </div>
 
     <form id="message-form">
@@ -99,9 +195,9 @@
             data.forEach((message) => {
               const messageItem = document.createElement("li");
               messageItem.innerHTML = `
-          <strong>${message.user.username}</strong>: ${message.content}
-          <small>(${message.createdAt})</small>
-        `;
+                <strong>${message.user.username}</strong>: ${message.content}
+                <small>(${message.createdAt})</small>
+              `;
               messageList.appendChild(messageItem);
             });
           })
