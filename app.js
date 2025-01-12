@@ -12,6 +12,8 @@ const messageRoute = require("./routes/messageRoute");
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
+const cron = require("node-cron");
+const axios = require("axios");
 require("dotenv").config();
 
 const app = express();
@@ -47,6 +49,19 @@ app.use((err, req, res, next) => {
     res.send(err.message);
   } else {
     next(err);
+  }
+});
+
+// Cron job to ping the server every 5 minutes to keep it warm
+cron.schedule("*/5 * * * *", async () => {
+  try {
+    const serverUrl =
+      `https://kylongtask.azurewebsites.net/login` ||
+      `http://localhost:${PORT}`;
+    await axios.get(serverUrl);
+    console.log("Server pinged to keep it warm");
+  } catch (error) {
+    console.error("Failed to ping server:", error.message);
   }
 });
 
