@@ -216,6 +216,99 @@
       select:valid:not(:placeholder-shown) {
         border-color: #27ae60;
       }
+
+      /* Dark mode styles */
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #121212;
+          color: #f1f1f1;
+        }
+
+        .container {
+          background: #1e1e1e;
+          color: #f1f1f1;
+          box-shadow: 0 4px 6px rgba(255, 255, 255, 0.1),
+            0 1px 3px rgba(255, 255, 255, 0.08);
+        }
+
+        h2 {
+          color: #e0e0e0;
+          border-bottom: 2px solid #333;
+        }
+
+        label {
+          color: #cccccc;
+        }
+
+        input,
+        textarea,
+        select {
+          background-color: #333;
+          color: #f1f1f1;
+          border: 1.5px solid #444;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+          border-color: #90cdf4;
+          box-shadow: 0 0 0 3px rgba(144, 205, 244, 0.3);
+        }
+
+        button {
+          background: #2d3748;
+          color: #f1f1f1;
+        }
+
+        button:hover {
+          background: #4a5568;
+        }
+
+        button[type="button"] {
+          background: #4a5568;
+        }
+
+        button[type="button"]:hover {
+          background: #2d3748;
+        }
+
+        #product-entries,
+        #approver-selection div,
+        #proposalPreview,
+        #processingDocumentPreview {
+          background: #333;
+          color: #f1f1f1;
+        }
+
+        a {
+          color: #90cdf4;
+        }
+
+        a:hover {
+          color: #63b3ed;
+        }
+
+        input[type="file"] {
+          background: #333;
+          border-color: #444;
+        }
+
+        input[type="file"]:hover {
+          background: #444;
+        }
+
+        input:invalid,
+        textarea:invalid,
+        select:invalid {
+          border-color: #68d391;
+        }
+
+        input:valid:not(:placeholder-shown),
+        textarea:valid:not(:placeholder-shown),
+        select:valid:not(:placeholder-shown) {
+          border-color: #68d391;
+        }
+      }
     </style>
   </head>
   <body>
