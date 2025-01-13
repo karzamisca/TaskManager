@@ -28,6 +28,25 @@ router.post(
   documentController.submitDocument
 );
 
+// Route to get cost centers page (serving HTML)
+router.get("/costCenterAdmin", authMiddleware, (req, res) => {
+  res.sendFile("costCenterAdmin.html", { root: "./views/approvals/documents" }); // Serve the cost center admin page
+});
+// Route to fetch cost centers data (in JSON format)
+router.get(
+  "/getCostCenterAdmin",
+  authMiddleware,
+  documentController.getCostCenterAdmin
+);
+// Route to add a new cost center
+router.post("/addCostCenter", authMiddleware, documentController.addCostCenter);
+// Route to edit an existing cost center
+router.post(
+  "/editCostCenter/:id",
+  authMiddleware,
+  documentController.editCostCenter
+);
+
 // Approve document route
 router.get(
   "/approveDocument",

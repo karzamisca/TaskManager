@@ -69,6 +69,56 @@ exports.getCostCenters = async (req, res) => {
   }
 };
 
+// Get all cost centers (returns data in JSON format for the frontend to consume)
+exports.getCostCenterAdmin = async (req, res) => {
+  try {
+    const costCenters = await CostCenter.find();
+    res.json(costCenters); // Send the list of cost centers as JSON to the frontend
+  } catch (error) {
+    console.error("Error fetching cost centers:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+// Add a new cost center
+exports.addCostCenter = async (req, res) => {
+  const { name, allowedUsers } = req.body;
+
+  try {
+    const newCostCenter = new CostCenter({
+      name,
+      allowedUsers: allowedUsers ? allowedUsers.split(",") : [],
+    });
+
+    await newCostCenter.save();
+    res.redirect("/costCenterAdmin"); // Redirect to the cost center page after adding
+  } catch (error) {
+    console.error("Error adding cost center:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+// Edit an existing cost center
+exports.editCostCenter = async (req, res) => {
+  const { name, allowedUsers } = req.body;
+  const costCenterId = req.params.id;
+
+  try {
+    const updatedCostCenter = await CostCenter.findByIdAndUpdate(
+      costCenterId,
+      { name, allowedUsers: allowedUsers ? allowedUsers.split(",") : [] },
+      { new: true }
+    );
+
+    if (!updatedCostCenter) {
+      return res.status(404).json({ message: "Cost Center not found" });
+    }
+
+    res.redirect("/costCenterAdmin"); // After editing, redirect to the same page
+  } catch (error) {
+    console.error("Error editing cost center:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 exports.exportDocumentToDocx = async (req, res) => {
   const { id } = req.params;
   try {

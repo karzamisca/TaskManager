@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cost Centers</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-color: #f4f4f4;
+      }
+      h1 {
+        text-align: center;
+      }
+      form {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        width: 300px;
+        margin: 20px 0;
+      }
+      input[type="text"] {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 12px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      table {
+        width: 90%;
+        margin-top: 20px;
+        border-collapse: collapse;
+        text-align: left;
+      }
+      table,
+      th,
+      td {
+        border: 1px solid #ddd;
+      }
+      th,
+      td {
+        padding: 10px;
+        text-align: center;
+      }
+      th {
+        background-color: #f4f4f4;
+      }
+      #editModal {
+        background-color: rgba(0, 0, 0, 0.5);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      #editModal form {
+        background-color: white;
+        padding: 20px;
+        width: 500px;
+        border-radius: 8px;
+      }
+      #allowedUsersContainer {
+        display: flex;
+        flex-direction: column;
+      }
+      .user-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      .user-row input {
+        width: 85%;
+      }
+      .user-row button {
+        width: 10%;
+        padding: 5px;
+        background-color: red;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Cost Centers</h1>
+
+    <!-- Add New Cost Center Form -->
+    <h2>Add New Cost Center</h2>
+    <form id="addCostCenterForm">
+      <label for="name">Cost Center Name:</label>
+      <input type="text" id="name" name="name" required />
+
+      <label for="allowedUsers">Allowed Users (comma separated):</label>
+      <input type="text" id="allowedUsers" name="allowedUsers" />
+
+      <button type="submit">Add Cost Center</button>
+    </form>
+
+    <!-- Existing Cost Centers Table -->
+    <h2>Existing Cost Centers</h2>
+    <table id="costCentersTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Allowed Users</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Dynamic content will be populated here via JavaScript -->
+      </tbody>
+    </table>
+
+    <!-- Edit Cost Center Modal (hidden by default) -->
+    <div id="editModal" style="display: none">
+      <h2>Edit Cost Center</h2>
+      <form id="editForm" action="" method="POST">
+        <label for="editName">Cost Center Name:</label>
+        <input type="text" id="editName" name="name" required />
+
+        <label>Allowed Users:</label>
+        <div id="allowedUsersContainer"></div>
+
+        <button type="button" onclick="addUserInput()">Add User</button>
+        <button type="submit">Save Changes</button>
+        <button type="button" onclick="closeModal()">Cancel</button>
+      </form>
+    </div>
+
+    <script>
+      // Fetch all existing cost centers and render them on page load
+      window.onload = function () {
+        fetch("/getCostCenterAdmin")
+          .then((response) => response.json())
+          .then((data) => renderCostCenters(data));
+      };
+
+      function renderCostCenters(costCenters) {
+        const tableBody = document.querySelector("#costCentersTable tbody");
+        tableBody.innerHTML = ""; // Clear the table body first
+
+        costCenters.forEach(function (costCenter) {
+          const row = document.createElement("tr");
+
+          // Name column
+          const nameCell = document.createElement("td");
+          nameCell.textContent = costCenter.name;
+          row.appendChild(nameCell);
+
+          // Allowed users columns
+          if (costCenter.allowedUsers.length > 0) {
+            costCenter.allowedUsers.forEach((user) => {
+              const userCell = document.createElement("td");
+              userCell.textContent = user;
+              row.appendChild(userCell);
+            });
+          } else {
+            // If no allowed users, create an empty cell
+            const emptyCell = document.createElement("td");
+            emptyCell.textContent = "No allowed users";
+            row.appendChild(emptyCell);
+          }
+
+          // Actions column
+          const actionsCell = document.createElement("td");
+          actionsCell.innerHTML = `
+          <button onclick="editCostCenter('${costCenter._id}', '${
+            costCenter.name
+          }', '${costCenter.allowedUsers.join(", ")}')">Edit</button>
+        `;
+          row.appendChild(actionsCell);
+
+          tableBody.appendChild(row);
+        });
+      }
+
+      // Add a new cost center
+      document
+        .getElementById("addCostCenterForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+
+          const name = document.getElementById("name").value;
+          const allowedUsers = document.getElementById("allowedUsers").value;
+
+          fetch("/addCostCenter", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `name=${name}&allowedUsers=${allowedUsers}`,
+          }).then(
+            (response) => response.redirected && window.location.reload()
+          ); // Reload the page to reflect the new cost center
+        });
+
+      // Edit an existing cost center
+      function editCostCenter(id, name, allowedUsers) {
+        document.getElementById("editName").value = name;
+
+        const usersArray = allowedUsers.split(", ");
+        const allowedUsersContainer = document.getElementById(
+          "allowedUsersContainer"
+        );
+        allowedUsersContainer.innerHTML = ""; // Clear previous inputs
+
+        usersArray.forEach((user) => {
+          addUserInput(user);
+        });
+
+        const form = document.getElementById("editForm");
+        form.action = `/editCostCenter/${id}`;
+
+        document.getElementById("editModal").style.display = "block";
+      }
+
+      // Add a new input field for an allowed user
+      function addUserInput(user = "") {
+        const container = document.getElementById("allowedUsersContainer");
+        const userRow = document.createElement("div");
+        userRow.classList.add("user-row");
+
+        userRow.innerHTML = `
+        <input type="text" name="allowedUsers[]" value="${user}" />
+        <button type="button" onclick="removeUserInput(this)">X</button>
+      `;
+        container.appendChild(userRow);
+      }
+
+      // Remove an input field
+      function removeUserInput(button) {
+        button.parentElement.remove();
+      }
+
+      // Close the edit modal
+      function closeModal() {
+        document.getElementById("editModal").style.display = "none";
+      }
+
+      // Handle form submission for editing cost center
+      document
+        .getElementById("editForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+
+          const id = event.target.action.split("/").pop();
+          const name = document.getElementById("editName").value;
+
+          const userInputs = document.querySelectorAll(
+            "#allowedUsersContainer input"
+          );
+          const allowedUsers = Array.from(userInputs)
+            .map((input) => input.value)
+            .filter(Boolean);
+
+          fetch(`/editCostCenter/${id}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `name=${name}&allowedUsers=${allowedUsers.join(",")}`,
+          }).then(
+            (response) => response.redirected && window.location.reload()
+          ); // Reload the page to reflect the edited cost center
+        });
+    </script>
+  </body>
+</html>
