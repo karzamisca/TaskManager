@@ -7,6 +7,7 @@ const costCenterSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  allowedUsers: { type: [String], default: [] }, // Array of usernames
 });
 
 const CostCenter = mongoose.model("CostCenter", costCenterSchema);
