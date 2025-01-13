@@ -69,11 +69,37 @@ exports.getCostCenters = async (req, res) => {
   }
 };
 
-// Get all cost centers (returns data in JSON format for the frontend to consume)
-exports.getCostCenterAdmin = async (req, res) => {
+// Serve the cost center admin page
+exports.getCostCenterAdminPage = (req, res) => {
   try {
+    if (!["approver", "captainOfMech", "bossOfMech"].includes(req.user.role)) {
+      return res
+        .status(403)
+        .send(
+          "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+        );
+    }
+    // Serve the HTML file
+    res.sendFile(
+      path.join(__dirname, "../views/approvals/documents/costCenterAdmin.html")
+    );
+  } catch (error) {
+    console.error("Error serving the cost center admin page:", error);
+    res.status(500).send("Server error");
+  }
+};
+// API to fetch all cost centers
+exports.getCostCenters = async (req, res) => {
+  try {
+    if (!["approver", "captainOfMech", "bossOfMech"].includes(req.user.role)) {
+      return res
+        .status(403)
+        .send(
+          "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+        );
+    }
     const costCenters = await CostCenter.find();
-    res.json(costCenters); // Send the list of cost centers as JSON to the frontend
+    res.json(costCenters);
   } catch (error) {
     console.error("Error fetching cost centers:", error);
     res.status(500).json({ message: "Server error" });
@@ -115,6 +141,16 @@ exports.editCostCenter = async (req, res) => {
     res.redirect("/costCenterAdmin"); // After editing, redirect to the same page
   } catch (error) {
     console.error("Error editing cost center:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+// Delete a cost center
+exports.deleteCostCenter = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await CostCenter.findByIdAndDelete(id);
+    res.json({ message: "Cost Center deleted successfully" });
+  } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 };

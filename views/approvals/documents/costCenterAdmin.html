@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Cost Centers</title>
+    <title>Phân công trạm/Centers Assignment</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -106,28 +106,39 @@
     </style>
   </head>
   <body>
-    <h1>Cost Centers</h1>
+    <a href="/mainDocument">Trở về/Back</a>
+    <a href="/logout">Đăng xuất / Logout</a><br />
+
+    <h1>Phân công trạm/Centers Assignment</h1>
 
     <!-- Add New Cost Center Form -->
-    <h2>Add New Cost Center</h2>
+    <h2>Thêm trạm mới/Add New Center</h2>
     <form id="addCostCenterForm">
-      <label for="name">Cost Center Name:</label>
+      <label for="name">Tên trạm/Center Name:</label>
       <input type="text" id="name" name="name" required />
 
-      <label for="allowedUsers">Allowed Users (comma separated):</label>
+      <label for="allowedUsers"
+        >Người dùng được cấp quyền (tách bằng dấu phẩy) / Allowed Users (comma
+        separated):</label
+      >
       <input type="text" id="allowedUsers" name="allowedUsers" />
 
-      <button type="submit">Add Cost Center</button>
+      <button type="submit">Thêm trạm mới/Add New Center</button>
     </form>
 
+    <h3>
+      Ghi chú: Để trống tương đương với cấp quyền cho tất cả mọi người/Note:
+      Empty space means all users are allowed.
+    </h3>
+
     <!-- Existing Cost Centers Table -->
-    <h2>Existing Cost Centers</h2>
+    <h2>Trạm hiện có/Existing Centers</h2>
     <table id="costCentersTable">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Allowed Users</th>
-          <th>Actions</th>
+          <th>Tên/Name</th>
+          <th>Người dùng được cấp quyền/Allowed Users</th>
+          <th>Hành động/Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -137,19 +148,24 @@
 
     <!-- Edit Cost Center Modal (hidden by default) -->
     <div id="editModal" style="display: none">
-      <h2>Edit Cost Center</h2>
+      <h2>Sửa trạm/Edit Center</h2>
       <form id="editForm" action="" method="POST">
-        <label for="editName">Cost Center Name:</label>
+        <label for="editName">Tên trạm/Center Name:</label>
         <input type="text" id="editName" name="name" required />
 
-        <label>Allowed Users:</label>
+        <label>Người dùng được cấp quyền/Allowed Users:</label>
         <div id="allowedUsersContainer"></div>
 
-        <button type="button" onclick="addUserInput()">Add User</button>
-        <button type="submit">Save Changes</button>
+        <button type="button" onclick="addUserInput()">
+          Thêm người dùng/Add User
+        </button>
+        <button type="submit">Lưu thay đổi/Save Changes</button>
         <button type="button" onclick="closeModal()">Cancel</button>
       </form>
     </div>
+
+    <a href="/mainDocument">Trở về/Back</a>
+    <a href="/logout">Đăng xuất / Logout</a><br />
 
     <script>
       // Fetch all existing cost centers and render them on page load
@@ -171,26 +187,20 @@
           nameCell.textContent = costCenter.name;
           row.appendChild(nameCell);
 
-          // Allowed users columns
-          if (costCenter.allowedUsers.length > 0) {
-            costCenter.allowedUsers.forEach((user) => {
-              const userCell = document.createElement("td");
-              userCell.textContent = user;
-              row.appendChild(userCell);
-            });
-          } else {
-            // If no allowed users, create an empty cell
-            const emptyCell = document.createElement("td");
-            emptyCell.textContent = "No allowed users";
-            row.appendChild(emptyCell);
-          }
+          // Allowed users column
+          const usersCell = document.createElement("td");
+          usersCell.textContent = costCenter.allowedUsers.join(", ");
+          row.appendChild(usersCell);
 
           // Actions column
           const actionsCell = document.createElement("td");
           actionsCell.innerHTML = `
           <button onclick="editCostCenter('${costCenter._id}', '${
             costCenter.name
-          }', '${costCenter.allowedUsers.join(", ")}')">Edit</button>
+          }', '${costCenter.allowedUsers.join(", ")}')">Sửa/Edit</button>
+          <button onclick="deleteCostCenter('${
+            costCenter._id
+          }')">Xóa/Delete</button>
         `;
           row.appendChild(actionsCell);
 
@@ -236,6 +246,19 @@
         document.getElementById("editModal").style.display = "block";
       }
 
+      // Delete a cost center
+      function deleteCostCenter(id) {
+        if (
+          confirm(
+            "Bạn có chắc muốn xóa trạm nào không?/Are you sure you want to delete this center?"
+          )
+        ) {
+          fetch(`/deleteCostCenter/${id}`, { method: "DELETE" }).then(() =>
+            window.location.reload()
+          );
+        }
+      }
+
       // Add a new input field for an allowed user
       function addUserInput(user = "") {
         const container = document.getElementById("allowedUsersContainer");
@@ -258,31 +281,6 @@
       function closeModal() {
         document.getElementById("editModal").style.display = "none";
       }
-
-      // Handle form submission for editing cost center
-      document
-        .getElementById("editForm")
-        .addEventListener("submit", function (event) {
-          event.preventDefault();
-
-          const id = event.target.action.split("/").pop();
-          const name = document.getElementById("editName").value;
-
-          const userInputs = document.querySelectorAll(
-            "#allowedUsersContainer input"
-          );
-          const allowedUsers = Array.from(userInputs)
-            .map((input) => input.value)
-            .filter(Boolean);
-
-          fetch(`/editCostCenter/${id}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: `name=${name}&allowedUsers=${allowedUsers.join(",")}`,
-          }).then(
-            (response) => response.redirected && window.location.reload()
-          ); // Reload the page to reflect the edited cost center
-        });
     </script>
   </body>
 </html>
