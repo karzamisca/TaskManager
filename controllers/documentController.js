@@ -124,21 +124,30 @@ exports.addCostCenter = async (req, res) => {
 };
 // Edit an existing cost center
 exports.editCostCenter = async (req, res) => {
-  const { name, allowedUsers } = req.body;
-  const costCenterId = req.params.id;
-
   try {
+    const { id } = req.params;
+    const { name, allowedUsers } = req.body;
+
+    // Ensure allowedUsers is a string
+    let usersArray = [];
+
+    if (typeof allowedUsers === "string") {
+      usersArray = allowedUsers.split(",").map((user) => user.trim());
+    } else if (Array.isArray(allowedUsers)) {
+      usersArray = allowedUsers;
+    }
+
+    // Update cost center with the new allowed users list
     const updatedCostCenter = await CostCenter.findByIdAndUpdate(
-      costCenterId,
-      { name, allowedUsers: allowedUsers ? allowedUsers.split(",") : [] },
+      id,
+      { name, allowedUsers: usersArray },
       { new: true }
     );
 
     if (!updatedCostCenter) {
-      return res.status(404).json({ message: "Cost Center not found" });
+      return res.status(404).json({ message: "Cost center not found" });
     }
-
-    res.redirect("/costCenterAdmin"); // After editing, redirect to the same page
+    res.redirect("/costCenterAdmin");
   } catch (error) {
     console.error("Error editing cost center:", error);
     res.status(500).json({ message: "Server error" });
