@@ -415,47 +415,6 @@
         dateFormat: "d-m-Y",
         defaultDate: "today",
       });
-      //Logic to restrict cost center
-      let currentUser = null;
-      let costCenterRestrictions = {};
-      async function fetchCurrentUserAndRestrictions() {
-        try {
-          // Fetch current user
-          const userResponse = await fetch("/api/getCurrentUser");
-          if (userResponse.ok) {
-            const userData = await userResponse.json();
-            currentUser = userData.username;
-          } else {
-            console.error("Failed to fetch user info.");
-          }
-
-          // Fetch cost center restrictions
-          const restrictionsResponse = await fetch(
-            "/api/costCenterRestrictions"
-          );
-          if (restrictionsResponse.ok) {
-            costCenterRestrictions = await restrictionsResponse.json();
-          } else {
-            console.error("Failed to fetch cost center restrictions.");
-          }
-
-          restrictCostCenterOptions();
-        } catch (err) {
-          console.error("Error fetching user or restrictions:", err);
-        }
-      }
-      function restrictCostCenterOptions() {
-        if (!currentUser || !costCenterRestrictions) return;
-        const costCenterDropdown = document.getElementById("costCenter");
-
-        // Iterate over the options and hide restricted ones for the current user
-        Array.from(costCenterDropdown.options).forEach((option) => {
-          const allowedUsers = costCenterRestrictions[option.value];
-          if (allowedUsers && !allowedUsers.includes(currentUser)) {
-            option.style.display = "none";
-          }
-        });
-      }
 
       document
         .getElementById("title-dropdown")
@@ -485,88 +444,49 @@
 
           if (selectedTitle === "Proposal Document") {
             contentFields.innerHTML = `
-            <label for="maintenance">Bảo trì/Maintenance</label>
-            <input type="text" name="maintenance" required />
-            <label for="costCenter">Trạm/Center</label>
-            <select name="costCenter" id="costCenter" required>
-              <!-- List of cost centers here -->
-              <option value="">Chọn một trạm/Select a center</option>
-              <option value="Phòng mua hàng">Phòng mua hàng</option>
-              <option value="Phòng kỹ thuật">Phòng kỹ thuật</option>
-              <option value="Phòng công nghệ">Phòng công nghệ</option>
-              <option value="Đội biogas">Đội biogas</option>
-              <option value="Đội an toàn vận hành">Đội an toàn vận hành</option>
-              <option value="Đội bảo dưỡng sửa chữa">Đội bảo dưỡng sửa chữa</option>
-              <option value="Tiến Đạt">Tiến Đạt</option>
-              <option value="Núi Sò">Núi Sò</option>
-              <option value="Bình An 1">Bình An 1</option>
-              <option value="Trần Quang">Trần Quang</option>
-              <option value="Phú Mỹ 3">Phú Mỹ 3</option>
-              <option value="GTSG">GTSG</option>
-              <option value="Ngọc Minh">Ngọc Minh</option>
-              <option value="Châu Pha">Châu Pha</option>
-              <option value="Rich">Rich</option>
-              <option value="Tài Đức Phát">Tài Đức Phát</option>
-              <option value="Tetra Pak">Tetra Pak</option>
-              <option value="Thuận Phú">Thuận Phú</option>
-              <option value="Sentai">Sentai</option>
-              <option value="Tây Nam">Tây Nam</option>
-              <option value="60R-037.84 Kỳ Long">60R-037.84 Kỳ Long</option>
-              <option value="60R-036.90 Kỳ Long">60R-036.90 Kỳ Long</option>
-              <option value="60R-037.93 Kỳ Long">60R-037.93 Kỳ Long</option>
-              <option value="60R-037.53 Kỳ Long">60R-037.53 Kỳ Long</option>
-              <option value="50RM-016.52 Gas.S">50RM-016.52 Gas.S</option>
-              <option value="60R-021.33 Kỳ Long">60R-021.33 Kỳ Long</option>
-              <option value="50RM-017.31 Gas.S">50RM-017.31 Gas.S</option>
-              <option value="60R-028.93 Kỳ Long">60R-028.93 Kỳ Long</option>
-              <option value="60R-027.02 Kỳ Long">60R-027.02 Kỳ Long</option>
-              <option value="50RM-017.07 Gas.S">50RM-017.07 Gas.S</option>
-              <option value="50RM-014.69 Gas.S">50RM-014.69 Gas.S</option>
-              <option value="60R-013.83 Kỳ Long">60R-013.83 Kỳ Long</option>
-              <option value="60R-012.66 Kỳ Long">60R-012.66 Kỳ Long</option>
-              <option value="60R-022.10 Kỳ Long">60R-022.10 Kỳ Long</option>
-              <option value="60R-020.53 Kỳ Long">60R-020.53 Kỳ Long</option>
-              <option value="50RM-015.45 Gas.S">50RM-015.45 Gas.S</option>
-              <option value="50RM-013.89 Gas.S">50RM-013.89 Gas.S</option>
-              <option value="60R-020.12 Kỳ Long">60R-020.12 Kỳ Long</option>
-              <option value="60R-028.13 CNG">60R-028.13 CNG</option>
-              <option value="60R-012.40 CNG">60R-012.40 CNG</option>
-              <option value="60R-028.85 CNG">60R-028.85 CNG</option>
-              <option value="60R-021.40 CNG">60R-021.40 CNG</option>
-              <option value="60R-027.11 CNG">60R-027.11 CNG</option>
-              <option value="60R-028.11 CNG">60R-028.11 CNG</option>
-              <option value="60R-015.08 Gas.S">60R-015.08 Gas.S</option>
-              <option value="60R-015.35 Gas.S">60R-015.35 Gas.S</option>
-              <option value="60R-015.51 Gas.S">60R-015.51 Gas.S</option>
-              <option value="60R-015.42 Gas.S">60R-015.42 Gas.S</option>
-              <option value="60R-016.06 Gas.S">60R-016.06 Gas.S</option>
-              <option value="60R-019.56 Gas.S">60R-019.56 Gas.S</option>
-              <option value="60R-028.34 Kỳ Long">60R-028.34 Kỳ Long</option>
-              <option value="60R-026.64 Kỳ Long">60R-026.64 Kỳ Long</option>
-              <option value="60R-028.36 Kỳ Long">60R-028.36 Kỳ Long</option>
-              <option value="60R-025.36 Kỳ Long">60R-025.36 Kỳ Long</option>
-              <option value="60R-025.48 Kỳ Long">60R-025.48 Kỳ Long</option>
-              <option value="60R-028.64 Kỳ Long">60R-028.64 Kỳ Long</option>
-              <option value="60R-063.85 Data">60R-063.85 Data</option>
-              <option value="60R-063.62 Kỳ Long">60R-063.62 Kỳ Long</option>
-              <option value="60R-063.27 Kỳ Long">60R-063.27 Kỳ Long</option>
-              <option value="60R-026.98 Kỳ Long">60R-026.98 Kỳ Long</option>
-              <!-- Include other cost centers here -->
-            </select>
-            <label for="dateOfError">Ngày xảy ra lỗi/Date of Error</label>
-            <input type="text" name="dateOfError" id="dateOfError" required />
-            <label for="errorDescription">Mô tả lỗi/Error Description</label>
-            <textarea name="errorDescription" rows="3" required></textarea>
-            <label for="direction">Hướng xử lý/Direction</label>
-            <input type="text" name="direction" required />
-          `;
+              <label for="maintenance">Bảo trì/Maintenance</label>
+              <input type="text" name="maintenance" required />
+              <label for="costCenter">Trạm/Center</label>
+              <select name="costCenter" id="costCenter" required>
+                <option value="">Chọn một trạm/Select a center</option>
+                <!-- Options will be added here dynamically -->
+              </select>
+              <label for="dateOfError">Ngày xảy ra lỗi/Date of Error</label>
+              <input type="text" name="dateOfError" id="dateOfError" required />
+              <label for="errorDescription">Mô tả lỗi/Error Description</label>
+              <textarea name="errorDescription" rows="3" required></textarea>
+              <label for="direction">Hướng xử lý/Direction</label>
+              <input type="text" name="direction" required />
+            `;
+
+            // Fetch cost centers from the server (MongoDB)
+            fetch("/costCenters") // Adjust the URL to your actual API endpoint
+              .then((response) => response.json())
+              .then((data) => {
+                const costCenterSelect = document.getElementById("costCenter");
+
+                // Clear the existing options (if any)
+                costCenterSelect.innerHTML =
+                  '<option value="">Chọn một trạm/Select a center</option>';
+
+                // Add options dynamically
+                data.forEach((center) => {
+                  const option = document.createElement("option");
+                  option.value = center.name; // Assuming 'name' is the field for the center name
+                  option.textContent = center.name;
+                  costCenterSelect.appendChild(option);
+                });
+              })
+              .catch((error) => {
+                console.error("Error fetching cost centers:", error);
+              });
+
             flatpickr("#dateOfError", {
               dateFormat: "d-m-Y",
               defaultDate: "today",
             });
+
             addContentButton.style.display = "none";
-            // Restrict cost center options based on current user
-            restrictCostCenterOptions();
           } else if (selectedTitle === "Processing Document") {
             contentFields.innerHTML = `
             <div id="product-entries">
@@ -779,7 +699,6 @@
           "block";
       }
 
-      fetchCurrentUserAndRestrictions();
       fetchApprovedDocuments();
       fetchApprovers();
       fetchApprovedProposals();

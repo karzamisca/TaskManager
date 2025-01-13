@@ -1,6 +1,7 @@
 // controllers/documentController.js
 const Document = require("../models/Document");
 const User = require("../models/User");
+const CostCenter = require("../models/CostCenter");
 const mongoose = require("mongoose");
 const moment = require("moment-timezone");
 const ProposalDocument = require("../models/ProposalDocument");
@@ -40,77 +41,21 @@ function generateRandomString(length) {
   return result;
 }
 
-// For restricting cost center
+// Fetch all cost centers
 exports.getCurrentUser = (req, res) => {
   if (req.user) {
     return res.json({ username: req.user.username });
   }
   res.send("Unauthorized");
 };
-exports.getCostCenterRestrictions = (req, res) => {
-  const costCenterRestrictions = {
-    "Bình An 1": [
-      "VuongVanBe",
-      "BuiTheVinh",
-      "HoangLong",
-      "NgocCuong",
-      "VanNghia",
-      "KhaiHoang",
-    ],
-    "Trần Quang": [
-      "PhamLeTam",
-      "LeVanTuan",
-      "PhamLeThanh",
-      "HoangLong",
-      "NgocCuong",
-      "VanNghia",
-      "KhaiHoang",
-    ],
-    "Châu Pha": [
-      "NguyenTrongNghia",
-      "HoangLong",
-      "NgocCuong",
-      "VanNghia",
-      "KhaiHoang",
-    ],
-    GTSG: ["LeQuangThanh", "HoangLong", "NgocCuong", "VanNghia", "KhaiHoang"],
-    "Phú Mỹ 3": [
-      "PhamVanDung",
-      "PhanVanLong",
-      "HoangLong",
-      "NgocCuong",
-      "VanNghia",
-      "KhaiHoang",
-    ],
-    Sentai: ["NguyenVanKy", "HoangLong", "NgocCuong", "VanNghia", "KhaiHoang"],
-    "Tiến Đạt": [
-      "LuongDucMinh",
-      "VoThanhPhuoc",
-      "VoThanhDuc",
-      "HoangLong",
-      "NgocCuong",
-      "VanNghia",
-      "KhaiHoang",
-    ],
-    "Núi Sò": [
-      "PhamAnhTuan",
-      "VoThanhTrung",
-      "HoangLong",
-      "NgocCuong",
-      "VanNghia",
-      "KhaiHoang",
-    ],
-    "T&T": [
-      "BuiVanQuyet",
-      "DuongDucChanh",
-      "HoangLong",
-      "NgocCuong",
-      "VanNghia",
-      "KhaiHoang",
-    ],
-  };
-
-  res.json(costCenterRestrictions);
+exports.getCostCenters = async (req, res) => {
+  try {
+    const costCenters = await CostCenter.find();
+    res.json(costCenters);
+  } catch (error) {
+    console.error("Error fetching cost centers:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 exports.exportDocumentToDocx = async (req, res) => {

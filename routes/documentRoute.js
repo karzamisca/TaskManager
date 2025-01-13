@@ -14,16 +14,13 @@ router.get("/submitDocument", authMiddleware, (req, res) => {
 });
 
 // For restricting cost center
+// Route to fetch cost centers
 router.get(
-  "/api/getCurrentUser",
+  "/getCurrentUser",
   authMiddleware,
   documentController.getCurrentUser
 );
-router.get(
-  "/api/costCenterRestrictions",
-  authMiddleware,
-  documentController.getCostCenterRestrictions
-);
+router.get("/costCenters", authMiddleware, documentController.getCostCenters);
 
 router.post(
   "/submitDocument",
