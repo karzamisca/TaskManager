@@ -443,6 +443,7 @@
           processingDocumentPreview.style.display = "none";
 
           if (selectedTitle === "Proposal Document") {
+            // Create the base structure without the <select> options
             contentFields.innerHTML = `
               <label for="maintenance">Bảo trì/Maintenance</label>
               <input type="text" name="maintenance" required />
@@ -459,26 +460,42 @@
               <input type="text" name="direction" required />
             `;
 
-            // Fetch cost centers from the server (MongoDB)
-            fetch("/costCenters") // Adjust the URL to your actual API endpoint
+            // Fetch current user information
+            fetch("/getCurrentUser")
               .then((response) => response.json())
-              .then((data) => {
-                const costCenterSelect = document.getElementById("costCenter");
+              .then((userData) => {
+                const currentUser = userData.username; // Get the current user's username
 
-                // Clear the existing options (if any)
-                costCenterSelect.innerHTML =
-                  '<option value="">Chọn một trạm/Select a center</option>';
+                // Fetch cost centers
+                fetch("/costCenters")
+                  .then((response) => response.json())
+                  .then((costCenters) => {
+                    const costCenterSelect =
+                      document.getElementById("costCenter");
 
-                // Add options dynamically
-                data.forEach((center) => {
-                  const option = document.createElement("option");
-                  option.value = center.name; // Assuming 'name' is the field for the center name
-                  option.textContent = center.name;
-                  costCenterSelect.appendChild(option);
-                });
+                    // Clear the existing options (if any)
+                    costCenterSelect.innerHTML =
+                      '<option value="">Chọn một trạm/Select a center</option>';
+
+                    // Add options dynamically based on the allowed users
+                    costCenters.forEach((center) => {
+                      if (
+                        center.allowedUsers.length === 0 ||
+                        center.allowedUsers.includes(currentUser)
+                      ) {
+                        const option = document.createElement("option");
+                        option.value = center.name;
+                        option.textContent = center.name;
+                        costCenterSelect.appendChild(option);
+                      }
+                    });
+                  })
+                  .catch((error) => {
+                    console.error("Error fetching cost centers:", error);
+                  });
               })
               .catch((error) => {
-                console.error("Error fetching cost centers:", error);
+                console.error("Error fetching current user:", error);
               });
 
             flatpickr("#dateOfError", {

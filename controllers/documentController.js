@@ -50,7 +50,18 @@ exports.getCurrentUser = (req, res) => {
 };
 exports.getCostCenters = async (req, res) => {
   try {
-    const costCenters = await CostCenter.find();
+    // Get the current user's username from the authenticated request
+    const currentUsername = req.user ? req.user.username : null;
+
+    // Fetch cost centers that the current user is allowed to see
+    const costCenters = await CostCenter.find({
+      $or: [
+        { allowedUsers: { $in: [currentUsername] } }, // Check if the user is in the allowedUsers array
+        { allowedUsers: { $size: 0 } }, // If allowedUsers is empty, allow all users
+      ],
+    });
+
+    // Send the list of allowed cost centers as a response
     res.json(costCenters);
   } catch (error) {
     console.error("Error fetching cost centers:", error);
