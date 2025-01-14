@@ -95,6 +95,58 @@
         background-color: #f39c12;
       }
 
+      .filter-container {
+        margin: 20px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 34px;
+      }
+
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: 0.4s;
+        border-radius: 34px;
+      }
+
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 26px;
+        width: 26px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+
+      input:checked + .slider {
+        background-color: #f39c12;
+      }
+
+      input:checked + .slider:before {
+        transform: translateX(26px);
+      }
+
       @media (max-width: 768px) {
         table,
         .nested-table {
@@ -259,11 +311,54 @@
     </div>
 
     <script>
-      // Fetch and display pending documents with full details for Generic, Proposal, and Processing documents
-      async function fetchPendingDocuments() {
-        const response = await fetch("/api/pendingDocument");
-        const documents = await response.json();
+      let currentUser = null;
+      let allDocuments = [];
 
+      // Fetch current user info
+      async function fetchCurrentUser() {
+        try {
+          const response = await fetch("/getCurrentUser");
+          currentUser = await response.json();
+        } catch (error) {
+          console.error("Error fetching current user:", error);
+        }
+      }
+
+      // Filter documents for current user
+      function filterDocumentsForCurrentUser(documents) {
+        if (!currentUser) return documents;
+
+        return documents.filter((doc) => {
+          const isRequiredApprover = doc.approvers.some(
+            (approver) => approver.username === currentUser.username
+          );
+          const hasNotApprovedYet = !doc.approvedBy.some(
+            (approved) => approved.username === currentUser.username
+          );
+          return isRequiredApprover && hasNotApprovedYet;
+        });
+      }
+
+      // Modified display function to handle filtered documents
+      async function fetchAndDisplayDocuments() {
+        try {
+          const response = await fetch("/api/pendingDocument");
+          allDocuments = await response.json();
+
+          // Get filter state
+          const filterToggle = document.getElementById("filterToggle");
+          const documents = filterToggle.checked
+            ? filterDocumentsForCurrentUser(allDocuments)
+            : allDocuments;
+
+          displayDocuments(documents);
+        } catch (error) {
+          console.error("Error fetching documents:", error);
+        }
+      }
+
+      // Fetch and display pending documents with full details for Generic, Proposal, and Processing documents
+      function displayDocuments(documents) {
         const genericTableBody = document
           .getElementById("generic-document-table")
           .getElementsByTagName("tbody")[0];
@@ -277,6 +372,7 @@
           .getElementById("report-document-table")
           .getElementsByTagName("tbody")[0];
 
+        // Clear all tables
         genericTableBody.innerHTML = "";
         proposalTableBody.innerHTML = "";
         processingTableBody.innerHTML = "";
@@ -284,16 +380,15 @@
 
         if (documents.length === 0) {
           genericTableBody.innerHTML =
-            "<tr><td colspan='6'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
-          proposalTableBody.innerHTML =
-            "<tr><td colspan='10'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
-          processingTableBody.innerHTML =
-            "<tr><td colspan='8'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
-          reportTableBody.innerHTML =
             "<tr><td colspan='7'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
+          proposalTableBody.innerHTML =
+            "<tr><td colspan='11'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
+          processingTableBody.innerHTML =
+            "<tr><td colspan='9'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
+          reportTableBody.innerHTML =
+            "<tr><td colspan='9'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
           return;
         }
-
         documents.forEach((doc) => {
           const approvers = doc.approvers
             .map((approver) => `${approver.username} (${approver.subRole})<br>`)
@@ -576,7 +671,37 @@
         );
       }
 
-      fetchPendingDocuments();
+      // Initialize
+      async function initialize() {
+        // Add the filter toggle to the DOM
+        const filterContainer = document.createElement("div");
+        filterContainer.className = "filter-container";
+        filterContainer.innerHTML = `
+          <label class="toggle-switch">
+            <input type="checkbox" id="filterToggle">
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-switch-label">Chỉ hiện phiếu cần tôi phê duyệt / Show only documents requiring my approval</span>
+        `;
+
+        // Insert the filter toggle before the container div
+        const container = document.querySelector(".container");
+        container.insertBefore(filterContainer, container.firstChild);
+
+        // Add event listener for filter toggle
+        document
+          .getElementById("filterToggle")
+          .addEventListener("change", () => {
+            fetchAndDisplayDocuments();
+          });
+
+        // Fetch user and initial documents
+        await fetchCurrentUser();
+        await fetchAndDisplayDocuments();
+      }
+
+      // Start the application
+      initialize();
     </script>
   </body>
 </html>
