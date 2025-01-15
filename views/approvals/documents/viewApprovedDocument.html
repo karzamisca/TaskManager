@@ -21,6 +21,12 @@
         --link-color: #3498db;
         --button-bg-color: #3498db;
         --button-hover-bg-color: darkred;
+
+        --card-bg-color: #fff;
+        --table-border-color: #ddd;
+        --nested-proposal-bg: #f8f9fa;
+        --nested-proposal-border: #e9ecef;
+        --nested-proposal-strong: #2c3e50;
       }
 
       /* Dark Mode Variables */
@@ -38,6 +44,12 @@
           --link-color: #81b3f4;
           --button-bg-color: #81b3f4;
           --button-hover-bg-color: #3498db;
+
+          --card-bg-color: #2d2d2d;
+          --table-border-color: #404040;
+          --nested-proposal-bg: #1a232c;
+          --nested-proposal-border: #505050;
+          --nested-proposal-strong: #b8c5d9;
         }
       }
 
@@ -79,6 +91,47 @@
         width: 100%;
         border-collapse: collapse;
         font-size: 0.95rem;
+      }
+
+      .nested-proposals {
+        display: flex;
+        flex-direction: row;
+        gap: 1rem;
+        overflow-x: auto;
+        border: 1px solid var(--nested-proposal-border);
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-radius: 4px;
+        background-color: var(--nested-proposal-bg);
+      }
+
+      .nested-proposals p {
+        margin: 0.5rem 0;
+        line-height: 1.4;
+      }
+
+      .nested-proposals strong {
+        color: var(--nested-proposal-strong);
+        font-weight: 600;
+      }
+
+      .nested-proposals a {
+        display: inline-block;
+        margin-top: 0.25rem;
+      }
+
+      .nested-proposals > div {
+        flex: 0 0 auto;
+        min-width: 300px;
+        padding: 1rem;
+        border: 1px solid var(--table-border-color);
+        border-radius: 8px;
+        background-color: var(--card-bg-color);
+        box-shadow: var(--shadow-light);
+      }
+
+      .nested-proposals > div p {
+        margin: 0.5rem 0;
       }
 
       th,
@@ -406,37 +459,39 @@
             `;
 
             // Generate appended proposals content
-            const appendedProposalsContent = doc.appendedProposals
-              .map(
-                (proposal) => `
-                  <div class="appended-proposal">
-                    <p><strong>Mã phiếu đề xuất/Proposal ID:</strong> ${
-                      proposal.proposalId || "N/A"
-                    }</p>
-                    <p><strong>Công việc/Task:</strong> ${
-                      proposal.maintenance || "N/A"
-                    }</p>
-                    <p><strong>Trạm/Center:</strong> ${
-                      proposal.costCenter || "N/A"
-                    }</p>
-                    <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
-                      proposal.dateOfError || "N/A"
-                    }</p>
-                    <p><strong>Mô tả chi tiết/Details Description:</strong> ${
-                      proposal.errorDescription || "N/A"
-                    }</p>
-                    <p><strong>Hướng xử lý/Direction:</strong> ${
-                      proposal.direction || "N/A"
-                    }</p>
-                    <p><strong>Tệp đính kèm/File:</strong> ${
-                      proposal.fileMetadata && proposal.fileMetadata.link
-                        ? `<a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
-                        : "Không có tệp đính kèm/No File Attached"
-                    }</p>
-                  </div>
-                `
-              )
-              .join("");
+            const appendedProposalsContent = `
+              <div class="nested-proposals">
+                ${doc.appendedProposals
+                  .map(
+                    (proposal) => `
+                      <div>
+                        <p><strong>Mã phiếu đề xuất/Proposal ID:</strong> ${
+                          proposal.proposalId || "N/A"
+                        }</p>
+                        <p><strong>Công việc/Task:</strong> ${
+                          proposal.maintenance || "N/A"
+                        }</p>
+                        <p><strong>Trạm/Center:</strong> ${
+                          proposal.costCenter || "N/A"
+                        }</p>
+                        <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
+                          proposal.dateOfError || "N/A"
+                        }</p>
+                        <p><strong>Mô tả chi tiết/Details Description:</strong> ${
+                          proposal.errorDescription || "N/A"
+                        }</p>
+                        <p><strong>Hướng xử lý/Direction:</strong> ${
+                          proposal.direction || "N/A"
+                        }</p>
+                        <p><strong>Tệp đính kèm/Attached File:</strong> ${
+                          proposal.fileMetadata && proposal.fileMetadata.link
+                            ? `<a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
+                            : "Không có tệp đính kèm/No File Attached"
+                        }</p>
+                      </div>`
+                  )
+                  .join("")}
+              </div>`;
 
             // Generate approvers HTML
             const approversHTML = doc.approvers
@@ -483,8 +538,8 @@
                 .map(
                   (product) => `<p>${
                     product.productName
-                  }: ${product.amount.toLocaleString()} đơn vị với đơn giá là ${product.costPerUnit.toLocaleString()} 
-                  (Tổng tiền: ${product.totalCost.toLocaleString()}) 
+                  }: ${product.amount.toLocaleString()} đơn vị với đơn giá là ${product.costPerUnit.toLocaleString()}
+                  (Tổng tiền: ${product.totalCost.toLocaleString()})
                   (Ghi chú: ${product.note || "Không có ghi chú/No Note"})</p>`
                 )
                 .join("");
@@ -503,7 +558,7 @@
                     }</p>
                     ${
                       content.fileMetadata
-                        ? `<p><strong>Tệp đính kèm phiếu đề xuất/File attaches to proposal document:</strong> 
+                        ? `<p><strong>Tệp đính kèm phiếu đề xuất/File attaches to proposal document:</strong>
                         <a href="${content.fileMetadata.link}" target="_blank">${content.fileMetadata.name}</a>
                       </p>`
                         : "<p><strong>Tệp đính kèm phiếu đề xuất/File attaches to proposal document:</strong> Không có tệp đính kèm/No File Attached</p>"
@@ -521,7 +576,7 @@
                   <p><strong>Sản phẩm/Products:</strong><br>${products}</p>
                   ${
                     doc.appendedProcessingDocument.fileMetadata
-                      ? `<p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong> 
+                      ? `<p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong>
                       <a href="${doc.appendedProcessingDocument.fileMetadata.link}" target="_blank">
                         ${doc.appendedProcessingDocument.fileMetadata.name}
                       </a>
