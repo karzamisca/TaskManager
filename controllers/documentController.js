@@ -220,7 +220,7 @@ exports.submitDocument = async (req, res) => {
       products,
       approvers,
       approvedDocuments,
-      approvedProposal,
+      approvedProposals,
       approvedProcessingDocument,
     } = req.body;
 
@@ -298,41 +298,51 @@ exports.submitDocument = async (req, res) => {
           productEntries.reduce((acc, product) => acc + product.totalCost, 0)
         );
 
-        let appendedContent = [];
+        // Handle multiple proposal documents
+        let appendedProposals = [];
+        if (approvedProposals && approvedProposals.length > 0) {
+          appendedProposals = await Promise.all(
+            approvedProposals.map(async (proposalId) => {
+              const proposal = await ProposalDocument.findById(proposalId);
+              if (proposal) {
+                const proposalFileMetadata =
+                  proposal.fileMetadata &&
+                  Object.keys(proposal.fileMetadata).length > 0
+                    ? {
+                        driveFileId: proposal.fileMetadata.driveFileId || "",
+                        name: proposal.fileMetadata.name || "",
+                        link: proposal.fileMetadata.link || "",
+                      }
+                    : undefined;
 
-        if (approvedProposal) {
-          const proposal = await ProposalDocument.findById(approvedProposal);
-          if (proposal) {
-            // Create a valid fileMetadata object or set to undefined if no file exists
-            const proposalFileMetadata =
-              proposal.fileMetadata &&
-              Object.keys(proposal.fileMetadata).length > 0
-                ? {
-                    driveFileId: proposal.fileMetadata.driveFileId || "",
-                    name: proposal.fileMetadata.name || "",
-                    link: proposal.fileMetadata.link || "",
-                  }
-                : undefined;
-
-            appendedContent.push({
-              maintenance: proposal.maintenance,
-              costCenter: proposal.costCenter,
-              dateOfError: proposal.dateOfError,
-              errorDescription: proposal.errorDescription,
-              direction: proposal.direction,
-              fileMetadata: proposalFileMetadata, // Use the properly formatted fileMetadata
-            });
-          }
+                return {
+                  maintenance: proposal.maintenance,
+                  costCenter: proposal.costCenter,
+                  dateOfError: proposal.dateOfError,
+                  errorDescription: proposal.errorDescription,
+                  direction: proposal.direction,
+                  fileMetadata: proposalFileMetadata,
+                  proposalId: proposal._id,
+                };
+              }
+              return null;
+            })
+          );
         }
+
+        // Filter out any null values from failed lookups
+        appendedProposals = appendedProposals.filter(
+          (proposal) => proposal !== null
+        );
 
         newDocument = new ProcessingDocument({
           title,
           products: productEntries,
           grandTotalCost,
-          appendedContent,
+          appendedProposals,
           submittedBy: req.user.id,
           approvers: approverDetails,
-          fileMetadata: uploadedFileData || undefined, // Use undefined instead of null
+          fileMetadata: uploadedFileData || undefined,
           submissionDate: moment()
             .tz("Asia/Bangkok")
             .format("DD-MM-YYYY HH:mm:ss"),

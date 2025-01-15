@@ -28,6 +28,7 @@
       }
 
       table {
+        max-height: 40vh;
         width: 100%;
         border-collapse: collapse;
         margin-top: 20px;
@@ -244,10 +245,10 @@
         <thead>
           <tr>
             <th>Mã/ID</th>
-            <th>Bảo trì/Maintenance</th>
+            <th>Công việc/Task</th>
             <th>Trạm/Center</th>
             <th>Ngày xảy ra lỗi/Date of Error</th>
-            <th>Mô tả lỗi/Error Description</th>
+            <th>Mô tả chi tiết/Details Description</th>
             <th>Hướng xử lý/Direction</th>
             <th>Tệp đính kèm/Attached File</th>
             <th>Người cần phê duyệt/Approver(s)</th>
@@ -263,7 +264,9 @@
         </tbody>
       </table>
 
-      <h2>Phê duyệt phiếu xử lý / Pending Processing Documents for Approval</h2>
+      <h2>
+        Phê duyệt phiếu mua hàng / Pending Purchasing Documents for Approval
+      </h2>
       <table id="processing-document-table">
         <thead>
           <tr>
@@ -490,74 +493,98 @@
             const productRows = doc.products
               .map(
                 (p) => `
-                <tr>
-                  <td>${p.productName}</td>
-                  <td>${p.costPerUnit.toLocaleString()}</td>
-                  <td>${p.amount.toLocaleString()}</td>
-                  <td>${p.note}</td>
-                  <td>${p.totalCost.toLocaleString()}</td>
-                </tr>`
+                  <tr>
+                    <td>${p.productName}</td>
+                    <td>${p.costPerUnit.toLocaleString()}</td>
+                    <td>${p.amount.toLocaleString()}</td>
+                    <td>${p.note || "N/A"}</td>
+                    <td>${p.totalCost.toLocaleString()}</td>
+                  </tr>`
               )
               .join("");
 
             const productTable = `
               <table class="nested-table">
-                <tr>
-                  <th>Tên sản phẩm/Product Name</th>
-                  <th>Đơn giá/Cost per Unit</th>
-                  <th>Số lượng/Amount</th>
-                  <th>Ghi chú/Note</th>
-                  <th>Thành tiền/Total Cost</th>
-                </tr>
-                ${productRows}
+                <thead>
+                  <tr>
+                    <th>Tên sản phẩm/Product Name</th>
+                    <th>Đơn giá/Cost per Unit</th>
+                    <th>Số lượng/Amount</th>
+                    <th>Ghi chú/Note</th>
+                    <th>Thành tiền/Total Cost</th>
+                  </tr>
+                </thead>
+                <tbody>${productRows}</tbody>
               </table>`;
 
-            const appendedContent = doc.appendedContent
+            // Generate appended proposals content
+            const appendedProposalsContent = doc.appendedProposals
               .map(
-                (content) => `
+                (proposal) => `
                   <div>
-                    <p><strong>Mã/ID:</strong> ${content._id}</p>
-                    <p><strong>Bảo dưỡng/Maintenance:</strong> ${
-                      content.maintenance
+                    <p><strong>Mã phiếu đề xuất/Proposal ID:</strong> ${
+                      proposal.proposalId || "N/A"
                     }</p>
-                    <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
+                    <p><strong>Công việc/Task:</strong> ${
+                      proposal.maintenance || "N/A"
+                    }</p>
+                    <p><strong>Trạm/Center:</strong> ${
+                      proposal.costCenter || "N/A"
+                    }</p>
                     <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
-                      content.dateOfError
+                      proposal.dateOfError || "N/A"
                     }</p>
-                    <p><strong>Mô tả lỗi/Error Description:</strong> ${
-                      content.errorDescription
+                    <p><strong>Mô tả chi tiết/Details Description:</strong> ${
+                      proposal.errorDescription || "N/A"
                     }</p>
                     <p><strong>Hướng xử lý/Direction:</strong> ${
-                      content.direction
+                      proposal.direction || "N/A"
                     }</p>
-                    <p><strong>Tệp đính kèm/Attached File:</strong> 
-                      ${
-                        content.fileMetadata
-                          ? `<a href="${content.fileMetadata.link}" target="_blank">${content.fileMetadata.name}</a>`
-                          : "No File Attached"
-                      }
-                    </p>
-                  </div>
-                `
+                    <p><strong>Tệp đính kèm/Attached File:</strong> ${
+                      proposal.fileMetadata && proposal.fileMetadata.link
+                        ? `<a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
+                        : "Không có tệp đính kèm/No File Attached"
+                    }</p>
+                  </div>`
               )
               .join("");
 
+            // Generate approvers section
+            const approversHTML = doc.approvers
+              .map(
+                (approver) => `
+                  <div>
+                    <p>${approver.username} (${approver.subRole})</p>
+                  </div>`
+              )
+              .join("");
+
+            // Generate approved by section
+            const approvedByHTML = doc.approvedBy
+              .map(
+                (approver) => `
+                  <div>
+                    <p>${approver.username} (${approver.role}) - ${approver.approvalDate}</p>
+                  </div>`
+              )
+              .join("");
+
+            // Generate file metadata link
+            const fileMetadataHTML = doc.fileMetadata
+              ? `<a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a>`
+              : "Không có tệp đính kèm/No File Attached";
+
+            // Insert a new row in the processing table
             const row = processingTableBody.insertRow();
             row.innerHTML = `
               <td>${doc._id}</td>
               <td>${productTable}</td>
               <td>${doc.grandTotalCost.toLocaleString()}</td>
-              <td>
-                ${
-                  doc.fileMetadata
-                    ? `<a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a>`
-                    : "Không có tệp đính kèm/No File Attached"
-                }
-              </td>
-              <td>${approvers}</td>
-              <td>${approvedBy}</td>
+              <td>${fileMetadataHTML}</td>
+              <td>${approversHTML || "N/A"}</td>
+              <td>${approvedByHTML || "N/A"}</td>
               <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
-              <td>${appendedContent || "N/A"}</td>
+              <td>${appendedProposalsContent || "N/A"}</td>
               <td>
                 <form action="/approveDocument/${doc._id}" method="POST">
                   <button type="submit">Phê duyệt/Approve</button>
@@ -587,12 +614,12 @@
 
               // Handle file metadata directly from appendedProcessingDocument
               const fileMetadata = doc.appendedProcessingDocument.fileMetadata
-                ? `<p><strong>Tệp đính kèm phiếu xử lý/File attaches to processing document:</strong> 
+                ? `<p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong> 
                       <a href="${doc.appendedProcessingDocument.fileMetadata.link}" target="_blank">
                         ${doc.appendedProcessingDocument.fileMetadata.name}
                       </a>
                     </p>`
-                : "<p><strong>Tệp đính kèm phiếu xử lý/File attaches to processing document:</strong></p>";
+                : "<p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong></p>";
 
               // Process appended content
               const appendedContent =
@@ -606,7 +633,7 @@
                         <p><strong>Trạm/Center:</strong> ${
                           content.costCenter
                         }</p>
-                        <p><strong>Mô tả lỗi/Error Description:</strong> ${
+                        <p><strong>Mô tả chi tiết/Details Description:</strong> ${
                           content.errorDescription
                         }</p>
                         ${

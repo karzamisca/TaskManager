@@ -328,7 +328,7 @@
             Phiếu đề xuất/Proposal Document
           </option>
           <option value="Processing Document">
-            Phiếu xử lý/Processing Document
+            Phiếu mua hàng/Purchasing Document
           </option>
           <option value="Report Document">Phiếu báo cáo/Report Document</option>
         </select>
@@ -362,24 +362,38 @@
 
         <!-- Fields for selecting and previewing approved proposal document -->
         <div id="approved-proposal-section" style="display: none">
-          <label for="approvedProposal"
-            >Chọn một phiếu đề xuất đã duyệt/Select Approved Proposal
-            Document</label
+          <label for="approvedProposals"
+            >Chọn phiếu đề xuất đã duyệt/Select Approved Proposal
+            Documents</label
           >
-          <select
-            id="approvedProposalDropdown"
-            name="approvedProposal"
-            onchange="previewProposalContent(this.value)"
-          >
-            <option value="">Chọn phiếu đề xuất/Select a proposal</option>
-          </select>
-          <div id="proposalPreview"></div>
+          <div id="proposal-selections">
+            <div class="proposal-entry">
+              <select
+                class="approved-proposal-dropdown"
+                name="approvedProposals[]"
+                onchange="previewProposalContent(this)"
+              >
+                <option value="">Chọn phiếu đề xuất/Select a proposal</option>
+              </select>
+              <button
+                type="button"
+                class="remove-proposal"
+                onclick="removeProposalEntry(this)"
+              >
+                Xóa/Remove
+              </button>
+            </div>
+          </div>
+          <button type="button" onclick="addProposalEntry()">
+            Thêm phiếu đề xuất/Add Another Proposal
+          </button>
+          <div id="proposalPreviews"></div>
         </div>
 
         <!-- Dropdown for selecting Processing Document to append -->
         <div id="append-processing-documents-section" style="display: none">
           <label for="processingDocumentsDropdown"
-            >Chọn một phiếu xử lý đã duyệt/Select Processing Document to
+            >Chọn một phiếu mua hàng đã duyệt/Select Purchasing Document to
             Append</label
           >
           <select
@@ -387,14 +401,16 @@
             name="approvedProcessingDocument"
           >
             <option value="">
-              Chọn một phiếu xử lý/Select a processing document
+              Chọn một phiếu mua hàng/Select a purchasing document
             </option>
           </select>
         </div>
 
         <!-- Preview of the selected Processing Document -->
         <div id="processingDocumentPreview" style="display: none">
-          <h3>Xem trước phiếu xử lý đi kèm/Preview of Processing Document</h3>
+          <h3>
+            Xem trước phiếu mua hàng đi kèm/Preview of Purchasing Document
+          </h3>
           <p><strong>Thông tin sản phẩm/Product Details:</strong></p>
           <div id="productDetails"></div>
           <div id="appendedContentDetails"></div>
@@ -445,7 +461,7 @@
           if (selectedTitle === "Proposal Document") {
             // Create the base structure without the <select> options
             contentFields.innerHTML = `
-              <label for="maintenance">Bảo trì/Maintenance</label>
+              <label for="maintenance">Công việc/Task</label>
               <input type="text" name="maintenance" required />
               <label for="costCenter">Trạm/Center</label>
               <select name="costCenter" id="costCenter" required>
@@ -454,7 +470,7 @@
               </select>
               <label for="dateOfError">Ngày xảy ra lỗi/Date of Error</label>
               <input type="text" name="dateOfError" id="dateOfError" required />
-              <label for="errorDescription">Mô tả lỗi/Error Description</label>
+              <label for="errorDescription">Mô tả chi tiết/Details Description</label>
               <textarea name="errorDescription" rows="3" required></textarea>
               <label for="direction">Hướng xử lý/Direction</label>
               <input type="text" name="direction" required />
@@ -596,48 +612,101 @@
         });
       }
 
-      async function fetchApprovedProposals() {
+      function addProposalEntry() {
+        const container = document.getElementById("proposal-selections");
+        const newEntry = document.createElement("div");
+        newEntry.className = "proposal-entry";
+        newEntry.innerHTML = `
+          <select class="approved-proposal-dropdown" name="approvedProposals[]" onchange="previewProposalContent(this)">
+            <option value="">Chọn phiếu đề xuất/Select a proposal</option>
+          </select>
+          <button type="button" class="remove-proposal" onclick="removeProposalEntry(this)">Xóa/Remove</button>
+        `;
+        container.appendChild(newEntry);
+        // Populate the new dropdown
+        fetchApprovedProposals(newEntry.querySelector("select"));
+      }
+
+      function removeProposalEntry(button) {
+        const entry = button.parentElement;
+        const previewId = entry.querySelector("select").value;
+        if (previewId) {
+          const previewElement = document.getElementById(
+            `preview-${previewId}`
+          );
+          if (previewElement) previewElement.remove();
+        }
+        entry.remove();
+      }
+
+      async function fetchApprovedProposals(dropdown = null) {
         const response = await fetch("/api/approvedProposalDocuments");
         const approvedProposals = await response.json();
-        const dropdown = document.getElementById("approvedProposalDropdown");
 
-        approvedProposals.forEach((doc) => {
+        if (!dropdown) {
+          // If no specific dropdown provided, populate all dropdowns
+          document
+            .querySelectorAll(".approved-proposal-dropdown")
+            .forEach((select) => {
+              populateDropdown(select, approvedProposals);
+            });
+        } else {
+          populateDropdown(dropdown, approvedProposals);
+        }
+      }
+
+      function populateDropdown(select, proposals) {
+        select.innerHTML =
+          '<option value="">Chọn phiếu đề xuất/Select a proposal</option>';
+        proposals.forEach((doc) => {
           const option = document.createElement("option");
           option.value = doc._id;
-          option.textContent = doc._id;
-          dropdown.appendChild(option);
+          option.textContent = doc.maintenance;
+          select.appendChild(option);
         });
       }
 
-      async function previewProposalContent(documentId) {
-        if (!documentId) {
-          document.getElementById("proposalPreview").innerHTML = "";
-          return;
+      async function previewProposalContent(selectElement) {
+        const documentId = selectElement.value;
+        const previewsContainer = document.getElementById("proposalPreviews");
+
+        // Find the specific preview container for this select element
+        const selectContainer = selectElement.closest(".proposal-entry");
+        const existingPreview =
+          selectContainer.querySelector(".proposal-preview");
+        if (existingPreview) {
+          existingPreview.remove();
         }
+
+        if (!documentId) return;
 
         const response = await fetch(`/api/proposalDocument/${documentId}`);
         const proposal = await response.json();
 
-        const previewDiv = document.getElementById("proposalPreview");
+        const previewDiv = document.createElement("div");
+        previewDiv.className = "proposal-preview";
         previewDiv.innerHTML = `
-          <p><strong>Bảo dưỡng/Maintenance:</strong> ${proposal.maintenance}</p>
+          <h3>Xem trước phiếu đề xuất/Preview of Proposal ${documentId}</h3>
+          <p><strong>Công việc/Task:</strong> ${proposal.maintenance}</p>
           <p><strong>Trạm/Center:</strong> ${proposal.costCenter}</p>
           <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
             proposal.dateOfError
           }</p>
-          <p><strong>Mô tả lỗi/Error Description:</strong> ${
+          <p><strong>Mô tả chi tiết/Details Description:</strong> ${
             proposal.errorDescription
           }</p>
           <p><strong>Hướng xử lý/Direction:</strong> ${proposal.direction}</p>
-          <p><strong>Tệp đính kèm/Attached File:</strong> 
-            ${
-              proposal.fileMetadata
-                ? `<a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
-                : ""
-            }
-          </p>
+          ${
+            proposal.fileMetadata
+              ? `<p><strong>Tệp đính kèm/Attached File:</strong> 
+            <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
+              : ""
+          }
         `;
+        // Insert the preview right after the select container
+        selectContainer.appendChild(previewDiv);
       }
+
       async function fetchProcessingDocuments() {
         const response = await fetch("/api/approvedProcessingDocuments");
         const processingDocs = await response.json();
@@ -688,11 +757,11 @@
         // Add the file metadata outside of the products map
         if (doc.fileMetadata) {
           productDetails.innerHTML += `
-            <p><strong>Tệp đính kèm phiếu xử lý/File attaches to processing document:</strong></p> 
+            <p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong></p> 
             <p><a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`;
         } else {
           productDetails.innerHTML += `
-            <p><strong>Tệp đính kèm phiếu xử lý/File attaches to processing document:</strong></p>`;
+            <p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong></p>`;
         }
 
         appendedContentDetails.innerHTML = `
@@ -703,9 +772,9 @@
         ${doc.appendedContent
           .map(
             (content) =>
-              `<p><strong>Bảo trì/Maintenance:</strong> ${content.maintenance}</p>
+              `<p><strong>Công việc/Task:</strong> ${content.maintenance}</p>
                <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
-               <p><strong>Mô tả lỗi/Error Description:</strong> ${content.errorDescription}</p>
+               <p><strong>Mô tả chi tiết/Details Description:</strong> ${content.errorDescription}</p>
                <p><strong>Tệp đính kèm phiếu đề xuất/File attaches to proposal document:</strong></p>
                <p><a href="${content.fileMetadata.link}" target="_blank">${content.fileMetadata.name}</a></p>`
           )
