@@ -1,3 +1,4 @@
+// utils/docxTemplates.js
 const {
   Document,
   Packer,
@@ -113,13 +114,13 @@ const createProposalDocTemplate = async (doc) => {
             ],
           }),
           new Paragraph({ text: `Mã phiếu/Document ID: ${doc._id}` }),
-          new Paragraph({ text: `Bảo trì/Maintenance: ${doc.maintenance}` }),
+          new Paragraph({ text: `Công việc/Task: ${doc.task}` }),
           new Paragraph({ text: `Trạm/Center: ${doc.costCenter}` }),
           new Paragraph({
             text: `Ngày xảy ra lỗi/Date of Error: ${doc.dateOfError}`,
           }),
           new Paragraph({
-            text: `Mô tả lỗi/Error Description: ${doc.errorDescription}`,
+            text: `Mô tả chi tiết/Details Description: ${doc.detailsDescription}`,
           }),
           new Paragraph({ text: `Hướng xử lý/Direction: ${doc.direction}` }),
           new Paragraph({
@@ -162,16 +163,46 @@ const createProposalDocTemplate = async (doc) => {
 };
 
 const createProcessingDocTemplate = async (doc) => {
-  // Populate referenced fields
-  await doc.populate("submittedBy", "username");
-  await doc.populate({
-    path: "approvers.approver",
-    select: "username subRole",
-  });
-  await doc.populate({
-    path: "approvedBy.user",
-    select: "username",
-  });
+  // Validate input document
+  if (!doc) {
+    throw new Error("Document is required");
+  }
+
+  // Populate referenced fields with error handling
+  try {
+    await doc.populate("submittedBy", "username");
+    await doc.populate({
+      path: "approvers.approver",
+      select: "username subRole",
+    });
+    await doc.populate({
+      path: "approvedBy.user",
+      select: "username",
+    });
+  } catch (error) {
+    console.error("Error populating document fields:", error);
+    throw new Error("Failed to populate document references");
+  }
+
+  // Validate required data
+  if (!doc.products || !Array.isArray(doc.products)) {
+    doc.products = []; // Initialize empty array if undefined
+    console.warn("Products array is missing or invalid in document");
+  }
+
+  if (!doc.approvers || !Array.isArray(doc.approvers)) {
+    doc.approvers = [];
+    console.warn("Approvers array is missing or invalid in document");
+  }
+
+  if (!doc.approvedBy || !Array.isArray(doc.approvedBy)) {
+    doc.approvedBy = [];
+    console.warn("ApprovedBy array is missing or invalid in document");
+  }
+
+  if (!doc.appendedContent || !Array.isArray(doc.appendedContent)) {
+    doc.appendedContent = [];
+  }
 
   // Document content
   const docContent = new Document({
@@ -190,7 +221,9 @@ const createProcessingDocTemplate = async (doc) => {
           }),
           new Paragraph({ text: `Mã phiếu/Document ID: ${doc._id}` }),
           new Paragraph({
-            text: `Được nộp bởi/Submitted By: ${doc.submittedBy.username}`,
+            text: `Được nộp bởi/Submitted By: ${
+              doc.submittedBy?.username || "Unknown"
+            }`,
           }),
 
           // Products Table
@@ -198,6 +231,7 @@ const createProcessingDocTemplate = async (doc) => {
           new Table({
             width: { size: 100, type: "pct" },
             rows: [
+              // Table header
               new TableRow({
                 children: [
                   new TableCell({
@@ -222,29 +256,34 @@ const createProcessingDocTemplate = async (doc) => {
                   }),
                 ],
               }),
-              ...doc.products.map(
+              // Product rows with null checking
+              ...(doc.products || []).map(
                 (product) =>
                   new TableRow({
                     children: [
                       new TableCell({
-                        children: [new Paragraph(product.productName)],
+                        children: [new Paragraph(product.productName || "N/A")],
                         width: { size: 25, type: "pct" },
                       }),
                       new TableCell({
                         children: [
-                          new Paragraph(product.costPerUnit.toLocaleString()),
+                          new Paragraph(
+                            (product.costPerUnit || 0).toLocaleString()
+                          ),
                         ],
                         width: { size: 20, type: "pct" },
                       }),
                       new TableCell({
                         children: [
-                          new Paragraph(product.amount.toLocaleString()),
+                          new Paragraph((product.amount || 0).toLocaleString()),
                         ],
                         width: { size: 15, type: "pct" },
                       }),
                       new TableCell({
                         children: [
-                          new Paragraph(product.totalCost.toLocaleString()),
+                          new Paragraph(
+                            (product.totalCost || 0).toLocaleString()
+                          ),
                         ],
                         width: { size: 20, type: "pct" },
                       }),
@@ -260,13 +299,15 @@ const createProcessingDocTemplate = async (doc) => {
 
           // Grand Total Cost
           new Paragraph({
-            text: `Chi phí/Grand Total Cost: ${doc.grandTotalCost.toLocaleString()}`,
+            text: `Chi phí/Grand Total Cost: ${(
+              doc.grandTotalCost || 0
+            ).toLocaleString()}`,
             spacing: { before: 200 },
           }),
 
-          // File Metadata
+          // File Metadata with null checking
           new Paragraph({
-            text: "Tệp đính kèm phiếu xử lý/File attaches to processing document:",
+            text: "Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:",
             bold: true,
           }),
           doc.fileMetadata
@@ -283,51 +324,59 @@ const createProcessingDocTemplate = async (doc) => {
                   }),
                 ],
               })
-            : new Paragraph({
-                text: "Tệp đính kèm phiếu xử lý/File attaches to processing document:",
-              }),
+            : new Paragraph({ text: "No file attached" }),
 
-          // Approvals
+          // Approvals with null checking
           new Paragraph({ text: "Phê duyệt/Approvals:", bold: true }),
-          ...doc.approvers.map((approver) => {
-            const approvalRecord = doc.approvedBy.find(
+          ...(doc.approvers || []).map((approver) => {
+            const approvalRecord = (doc.approvedBy || []).find(
               (approval) =>
-                approval.user.toString() === approver.approver.toString()
+                approval.user?.toString() === approver.approver?.toString()
             );
             return new Paragraph({
               children: [
                 new TextRun({
-                  text: `Người phê duyệt/Approver: ${approver.username} (Vai trò/Role: ${approver.subRole})`,
+                  text: `Người phê duyệt/Approver: ${
+                    approver.username || "Unknown"
+                  } (Vai trò/Role: ${approver.subRole || "Unknown"})`,
                 }),
                 new TextRun({
                   text: approvalRecord
-                    ? ` - Vào lúc/Approved on ${approvalRecord.approvalDate}`
-                    : "",
+                    ? ` - Vào lúc/Approved on ${
+                        approvalRecord.approvalDate || "Unknown date"
+                      }`
+                    : " - Chưa phê duyệt/Pending",
                   italic: true,
                 }),
               ],
             });
           }),
 
-          // Appended Content
+          // Appended Content with null checking
           new Paragraph({
             text: "Phiếu đề xuất kèm theo/Appended Content:",
             bold: true,
           }),
-          ...doc.appendedContent
+          ...(doc.appendedProposals || [])
             .map((content) => [
               new Paragraph({
-                text: `Bảo trì/Maintenance: ${content.maintenance}`,
-              }),
-              new Paragraph({ text: `Trạm/Center: ${content.costCenter}` }),
-              new Paragraph({
-                text: `Ngày xảy ra lỗi/Date of Error: ${content.dateOfError}`,
+                text: `Công việc/Task: ${content.task || "N/A"}`,
               }),
               new Paragraph({
-                text: `Mô tả lỗi/Error Description: ${content.errorDescription}`,
+                text: `Trạm/Center: ${content.costCenter || "N/A"}`,
               }),
               new Paragraph({
-                text: `Hướng xử lý/Direction: ${content.direction}`,
+                text: `Ngày xảy ra lỗi/Date of Error: ${
+                  content.dateOfError || "N/A"
+                }`,
+              }),
+              new Paragraph({
+                text: `Mô tả chi tiết/Details Description: ${
+                  content.detailsDescription || "N/A"
+                }`,
+              }),
+              new Paragraph({
+                text: `Hướng xử lý/Direction: ${content.direction || "N/A"}`,
               }),
               content.fileMetadata
                 ? new Paragraph({
@@ -538,7 +587,7 @@ const createReportDocTemplate = async (doc) => {
                       ...doc.appendedProcessingDocument.appendedContent.flatMap(
                         (content) => [
                           new Paragraph({
-                            text: `Bảo trì/Maintenance: ${content.maintenance}`,
+                            text: `Công việc/Task: ${content.task}`,
                           }),
                           new Paragraph({
                             text: `Trạm/Center: ${content.costCenter}`,
@@ -547,7 +596,7 @@ const createReportDocTemplate = async (doc) => {
                             text: `Ngày xảy ra lỗi/Date of Error: ${content.dateOfError}`,
                           }),
                           new Paragraph({
-                            text: `Mô tả lỗi/Error Description: ${content.errorDescription}`,
+                            text: `Mô tả chi tiết/Details Description: ${content.detailsDescription}`,
                           }),
                           new Paragraph({
                             text: `Hướng xử lý/Direction: ${content.direction}`,

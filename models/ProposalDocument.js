@@ -3,10 +3,10 @@ const mongoose = require("mongoose");
 
 const proposalDocumentSchema = new mongoose.Schema({
   title: { type: String, default: "Proposal Document", required: true },
-  maintenance: { type: String, required: true },
+  task: { type: String, required: true },
   costCenter: { type: String, required: true },
   dateOfError: { type: String, required: true },
-  errorDescription: { type: String, required: true },
+  detailsDescription: { type: String, required: true },
   direction: { type: String, required: true },
   fileMetadata: {
     driveFileId: { type: String },

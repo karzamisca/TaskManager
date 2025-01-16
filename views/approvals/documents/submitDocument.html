@@ -461,8 +461,8 @@
           if (selectedTitle === "Proposal Document") {
             // Create the base structure without the <select> options
             contentFields.innerHTML = `
-              <label for="maintenance">Công việc/Task</label>
-              <input type="text" name="maintenance" required />
+              <label for="task">Công việc/Task</label>
+              <input type="text" name="task" required />
               <label for="costCenter">Trạm/Center</label>
               <select name="costCenter" id="costCenter" required>
                 <option value="">Chọn một trạm/Select a center</option>
@@ -470,8 +470,8 @@
               </select>
               <label for="dateOfError">Ngày xảy ra lỗi/Date of Error</label>
               <input type="text" name="dateOfError" id="dateOfError" required />
-              <label for="errorDescription">Mô tả chi tiết/Details Description</label>
-              <textarea name="errorDescription" rows="3" required></textarea>
+              <label for="detailsDescription">Mô tả chi tiết/Details Description</label>
+              <textarea name="detailsDescription" rows="3" required></textarea>
               <label for="direction">Hướng xử lý/Direction</label>
               <input type="text" name="direction" required />
             `;
@@ -661,7 +661,7 @@
         proposals.forEach((doc) => {
           const option = document.createElement("option");
           option.value = doc._id;
-          option.textContent = doc.maintenance;
+          option.textContent = doc.task;
           select.appendChild(option);
         });
       }
@@ -687,13 +687,13 @@
         previewDiv.className = "proposal-preview";
         previewDiv.innerHTML = `
           <h3>Xem trước phiếu đề xuất/Preview of Proposal ${documentId}</h3>
-          <p><strong>Công việc/Task:</strong> ${proposal.maintenance}</p>
+          <p><strong>Công việc/Task:</strong> ${proposal.task}</p>
           <p><strong>Trạm/Center:</strong> ${proposal.costCenter}</p>
           <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
             proposal.dateOfError
           }</p>
           <p><strong>Mô tả chi tiết/Details Description:</strong> ${
-            proposal.errorDescription
+            proposal.detailsDescription
           }</p>
           <p><strong>Hướng xử lý/Direction:</strong> ${proposal.direction}</p>
           ${
@@ -772,9 +772,9 @@
         ${doc.appendedContent
           .map(
             (content) =>
-              `<p><strong>Công việc/Task:</strong> ${content.maintenance}</p>
+              `<p><strong>Công việc/Task:</strong> ${content.task}</p>
                <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
-               <p><strong>Mô tả chi tiết/Details Description:</strong> ${content.errorDescription}</p>
+               <p><strong>Mô tả chi tiết/Details Description:</strong> ${content.detailsDescription}</p>
                <p><strong>Tệp đính kèm phiếu đề xuất/File attaches to proposal document:</strong></p>
                <p><a href="${content.fileMetadata.link}" target="_blank">${content.fileMetadata.name}</a></p>`
           )

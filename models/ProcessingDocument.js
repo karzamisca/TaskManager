@@ -15,10 +15,10 @@ const processingDocumentSchema = new mongoose.Schema({
   ],
   appendedProposals: [
     {
-      maintenance: String,
+      task: String,
       costCenter: String,
       dateOfError: String,
-      errorDescription: String,
+      detailsDescription: String,
       direction: String,
       fileMetadata: {
         driveFileId: { type: String },

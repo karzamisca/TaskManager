@@ -412,10 +412,10 @@
             const row = `
               <tr>
                 <td>${doc._id}</td>
-                <td>${doc.maintenance}</td>
+                <td>${doc.task}</td>
                 <td>${doc.costCenter}</td>
                 <td>${doc.dateOfError}</td>
-                <td>${doc.errorDescription}</td>
+                <td>${doc.detailsDescription}</td>
                 <td>${doc.direction}</td>
                 <td>${fileMetadataHTML}</td>
                 <td>${approversHTML}</td>
@@ -469,7 +469,7 @@
                           proposal.proposalId || "N/A"
                         }</p>
                         <p><strong>Công việc/Task:</strong> ${
-                          proposal.maintenance || "N/A"
+                          proposal.task || "N/A"
                         }</p>
                         <p><strong>Trạm/Center:</strong> ${
                           proposal.costCenter || "N/A"
@@ -478,7 +478,7 @@
                           proposal.dateOfError || "N/A"
                         }</p>
                         <p><strong>Mô tả chi tiết/Details Description:</strong> ${
-                          proposal.errorDescription || "N/A"
+                          proposal.detailsDescription || "N/A"
                         }</p>
                         <p><strong>Hướng xử lý/Direction:</strong> ${
                           proposal.direction || "N/A"
@@ -549,12 +549,10 @@
                   .map(
                     (content) => `
                   <div>
-                    <p><strong>Bảo dưỡng/Maintenance:</strong> ${
-                      content.maintenance
-                    }</p>
+                    <p><strong>Công việc/Task:</strong> ${content.task}</p>
                     <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
                     <p><strong>Mô tả chi tiết/Details Description:</strong> ${
-                      content.errorDescription
+                      content.detailsDescription
                     }</p>
                     ${
                       content.fileMetadata

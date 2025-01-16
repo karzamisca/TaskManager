@@ -174,25 +174,32 @@ exports.exportDocumentToDocx = async (req, res) => {
       (await ReportDocument.findById(id));
 
     if (!doc) {
-      return res.send("Không tìm thấy tài liệu/Document not found");
+      return res.status(404).send("Không tìm thấy tài liệu/Document not found");
     }
 
     let buffer;
-    switch (doc.title) {
-      case "Generic Document":
-        buffer = await createGenericDocTemplate(doc);
-        break;
-      case "Proposal Document":
-        buffer = await createProposalDocTemplate(doc);
-        break;
-      case "Processing Document":
-        buffer = await createProcessingDocTemplate(doc);
-        break;
-      case "Report Document":
-        buffer = await createReportDocTemplate(doc);
-        break;
-      default:
-        return res.send("Tài liệu chưa được hỗ trợ/Unsupported document type");
+    try {
+      switch (doc.title) {
+        case "Generic Document":
+          buffer = await createGenericDocTemplate(doc);
+          break;
+        case "Proposal Document":
+          buffer = await createProposalDocTemplate(doc);
+          break;
+        case "Processing Document":
+          buffer = await createProcessingDocTemplate(doc);
+          break;
+        case "Report Document":
+          buffer = await createReportDocTemplate(doc);
+          break;
+        default:
+          return res.send(
+            "Tài liệu chưa được hỗ trợ/Unsupported document type"
+          );
+      }
+    } catch (err) {
+      console.error("Error creating document template:", err);
+      return res.send("Lỗi tạo mẫu tài liệu/Error creating document template");
     }
 
     res.set({
@@ -202,7 +209,7 @@ exports.exportDocumentToDocx = async (req, res) => {
     });
     res.send(buffer);
   } catch (err) {
-    console.error(err);
+    console.error("Error in exportDocumentToDocx:", err);
     res.send("Lỗi xuất tài liệu/Error exporting document");
   }
 };
@@ -275,10 +282,10 @@ exports.submitDocument = async (req, res) => {
       if (title === "Proposal Document") {
         newDocument = new ProposalDocument({
           title,
-          maintenance: req.body.maintenance,
+          task: req.body.task,
           costCenter: req.body.costCenter,
           dateOfError: req.body.dateOfError,
-          errorDescription: req.body.errorDescription,
+          detailsDescription: req.body.detailsDescription,
           direction: req.body.direction,
           submittedBy: req.user.id,
           approvers: approverDetails,
@@ -316,10 +323,10 @@ exports.submitDocument = async (req, res) => {
                     : undefined;
 
                 return {
-                  maintenance: proposal.maintenance,
+                  task: proposal.task,
                   costCenter: proposal.costCenter,
                   dateOfError: proposal.dateOfError,
-                  errorDescription: proposal.errorDescription,
+                  detailsDescription: proposal.detailsDescription,
                   direction: proposal.direction,
                   fileMetadata: proposalFileMetadata,
                   proposalId: proposal._id,
