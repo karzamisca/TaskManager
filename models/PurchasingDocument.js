@@ -1,9 +1,9 @@
-// models/ProcessingDocument.js
+// models/PurchasingDocument.js
 
 const mongoose = require("mongoose");
 
-const processingDocumentSchema = new mongoose.Schema({
-  title: { type: String, default: "Processing Document", required: true },
+const purchasingDocumentSchema = new mongoose.Schema({
+  title: { type: String, default: "Purchasing Document", required: true },
   products: [
     {
       productName: { type: String, required: true },
@@ -57,4 +57,4 @@ const processingDocumentSchema = new mongoose.Schema({
   grandTotalCost: { type: Number, required: true }, // Sum of all totalCosts
 });
 
-module.exports = mongoose.model("ProcessingDocument", processingDocumentSchema);
+module.exports = mongoose.model("PurchasingDocument", purchasingDocumentSchema);

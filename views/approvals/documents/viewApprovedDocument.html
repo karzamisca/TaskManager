@@ -259,7 +259,7 @@
 
       <h2>Phiếu mua hàng đã phê duyệt/Approved Purchasing Documents</h2>
       <div class="table-container">
-        <table id="approved-processing-documents">
+        <table id="approved-purchasing-documents">
           <thead>
             <tr>
               <th>Mã/ID</th>
@@ -287,7 +287,7 @@
             <tr>
               <th>Mã/ID</th>
               <th>Tem/Tags</th>
-              <th>Báo cáo sau xử lý/Post-Processing Report</th>
+              <th>Báo cáo sau mua hàng/Post-Purchasing Report</th>
               <th>Phiếu mua hàng kèm theo/Appended Purchasing Document</th>
               <th>Tệp đính kèm/Attached File</th>
               <th>Được phê duyệt bởi/Approved By</th>
@@ -330,7 +330,7 @@
       }
 
       async function fetchApprovedDocuments() {
-        const response = await fetch("/api/approvedDocument");
+        const response = await fetch("/approvedDocument");
         if (!response.ok) throw new Error("Failed to fetch documents");
 
         const documents = await response.json();
@@ -341,8 +341,8 @@
         const proposalTableBody = document.querySelector(
           "#approved-proposal-documents tbody"
         );
-        const processingTableBody = document.querySelector(
-          "#approved-processing-documents tbody"
+        const purchasingTableBody = document.querySelector(
+          "#approved-purchasing-documents tbody"
         );
         const reportTableBody = document.querySelector(
           "#approved-report-documents tbody"
@@ -350,7 +350,7 @@
 
         genericTableBody.innerHTML = "";
         proposalTableBody.innerHTML = "";
-        processingTableBody.innerHTML = "";
+        purchasingTableBody.innerHTML = "";
         reportTableBody.innerHTML = "";
 
         if (documents.length === 0) {
@@ -358,7 +358,7 @@
             "<tr><td colspan='6'>Chưa có phiếu chung đã duyệt/No approved generic documents.</td></tr>";
           proposalTableBody.innerHTML =
             "<tr><td colspan='10'>Chưa có phiếu đề xuất đã duyệt/No approved proposal documents.</td></tr>";
-          processingTableBody.innerHTML =
+          purchasingTableBody.innerHTML =
             "<tr><td colspan='8'>Chưa có phiếu mua hàng đã duyệt/No approved purchasing documents.</td></tr>";
           reportTableBody.innerHTML =
             "<tr><td colspan='8'>Chưa có phiếu báo cáo đã duyệt/No approved report documents.</td></tr>";
@@ -427,7 +427,7 @@
                 </td>
               </tr>`;
             proposalTableBody.insertAdjacentHTML("beforeend", row);
-          } else if (doc.title === "Processing Document") {
+          } else if (doc.title === "Purchasing Document") {
             // Generate the product table rows
             const productRows = doc.products
               .map(
@@ -530,11 +530,11 @@
             `;
 
             // Append the row to the table body
-            processingTableBody.insertAdjacentHTML("beforeend", row);
+            purchasingTableBody.insertAdjacentHTML("beforeend", row);
           } else if (doc.title === "Report Document") {
-            let appendedProcessingDoc = "N/A";
-            if (doc.appendedProcessingDocument) {
-              const products = doc.appendedProcessingDocument.products
+            let appendedPurchasingDoc = "N/A";
+            if (doc.appendedPurchasingDocument) {
+              const products = doc.appendedPurchasingDocument.products
                 .map(
                   (product) => `<p>${
                     product.productName
@@ -545,7 +545,7 @@
                 .join("");
 
               const appendedContent =
-                doc.appendedProcessingDocument.appendedContent
+                doc.appendedPurchasingDocument.appendedContent
                   .map(
                     (content) => `
                   <div>
@@ -565,18 +565,18 @@
                   )
                   .join("");
 
-              appendedProcessingDoc = `
+              appendedPurchasingDoc = `
                 <div>
                   <p><strong>Ngày nộp/Submission Date:</strong> ${
-                    doc.appendedProcessingDocument.submissionDate
+                    doc.appendedPurchasingDocument.submissionDate
                   }</p>
-                  <p><strong>Chi phí/Grand Total Cost:</strong> ${doc.appendedProcessingDocument.grandTotalCost.toLocaleString()}</p>
+                  <p><strong>Chi phí/Grand Total Cost:</strong> ${doc.appendedPurchasingDocument.grandTotalCost.toLocaleString()}</p>
                   <p><strong>Sản phẩm/Products:</strong><br>${products}</p>
                   ${
-                    doc.appendedProcessingDocument.fileMetadata
+                    doc.appendedPurchasingDocument.fileMetadata
                       ? `<p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong>
-                      <a href="${doc.appendedProcessingDocument.fileMetadata.link}" target="_blank">
-                        ${doc.appendedProcessingDocument.fileMetadata.name}
+                      <a href="${doc.appendedPurchasingDocument.fileMetadata.link}" target="_blank">
+                        ${doc.appendedPurchasingDocument.fileMetadata.name}
                       </a>
                     </p>`
                       : "<p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong> Không có tệp đính kèm/No File Attached</p>"
@@ -589,8 +589,8 @@
               <tr>
                 <td>${doc._id}</td>
                 <td>${doc.tags}</td>
-                <td>${doc.postProcessingReport}</td>
-                <td>${appendedProcessingDoc}</td>
+                <td>${doc.postPurchasingReport}</td>
+                <td>${appendedPurchasingDoc}</td>
                 <td>${fileMetadataHTML}</td>
                 <td>${approversHTML}</td>
                 <td>${doc.submittedBy.username} (${doc.submissionDate})</td>

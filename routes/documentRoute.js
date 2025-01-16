@@ -73,12 +73,12 @@ router.get(
 
 // API routes to fetch documents
 router.get(
-  "/api/pendingDocument",
+  "/pendingDocument",
   authMiddleware,
   documentController.getPendingDocumentApi
 );
 router.get(
-  "/api/approvedDocument",
+  "/approvedDocument",
   authMiddleware,
   documentController.getApprovedDocumentApi
 );
@@ -90,29 +90,29 @@ router.post(
 );
 
 router.get(
-  "/api/approvedProposalDocuments",
+  "/approvedProposalDocuments",
   authMiddleware,
   documentController.getApprovedProposalDocuments
 );
 
 router.get(
-  "/api/proposalDocument/:id",
+  "/proposalDocument/:id",
   authMiddleware,
   documentController.getProposalDocumentById
 );
 
-// Route to fetch all approved Processing Documents
+// Route to fetch all approved Purchasing Documents
 router.get(
-  "/api/approvedProcessingDocuments",
+  "/approvedPurchasingDocuments",
   authMiddleware,
-  documentController.getApprovedProcessingDocuments
+  documentController.getApprovedPurchasingDocuments
 );
 
-// Route to fetch a specific Processing Document by ID
+// Route to fetch a specific Purchasing Document by ID
 router.get(
-  "/api/processingDocument/:id",
+  "/purchasingDocument/:id",
   authMiddleware,
-  documentController.getProcessingDocumentById
+  documentController.getPurchasingDocumentById
 );
 
 router.get(

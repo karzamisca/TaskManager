@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const reportDocumentSchema = new mongoose.Schema({
   title: { type: String, default: "Report Document", required: true },
   tags: { type: String, required: true },
-  postProcessingReport: { type: String, required: true },
+  postPurchasingReport: { type: String, required: true },
   fileMetadata: {
     driveFileId: { type: String },
     name: { type: String },
@@ -23,7 +23,7 @@ const reportDocumentSchema = new mongoose.Schema({
       subRole: { type: String, required: true },
     },
   ],
-  appendedProcessingDocument: { type: mongoose.Schema.Types.Mixed }, // This will store the full Processing Document
+  appendedPurchasingDocument: { type: mongoose.Schema.Types.Mixed }, // This will store the full Purchasing Document
   approvedBy: [
     {
       user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

@@ -367,7 +367,7 @@
       <h2>
         Phê duyệt phiếu mua hàng / Pending Purchasing Documents for Approval
       </h2>
-      <table id="processing-document-table">
+      <table id="purchasing-document-table">
         <thead>
           <tr>
             <th>Mã/ID</th>
@@ -383,7 +383,7 @@
         </thead>
         <tbody>
           <tr>
-            <td colspan="9">Loading processing documents...</td>
+            <td colspan="9">Loading purchasing documents...</td>
           </tr>
         </tbody>
       </table>
@@ -394,8 +394,8 @@
           <tr>
             <th>Mã/ID</th>
             <th>Tem/Tags</th>
-            <th>Báo cáo tình trạng sau xử lý/Post-Processing Report</th>
-            <th>Phiếu xử lý đi kèm/Appended Processing Document</th>
+            <th>Báo cáo tình trạng sau mua hàng/Post-Purchasing Report</th>
+            <th>Phiếu mua hàng đi kèm/Appended Purchasing Document</th>
             <th>Tệp đính kèm/Attached File</th>
             <th>Người cần phê duyệt/Approver(s)</th>
             <th>Người đã phê duyệt/Approved By</th>
@@ -445,7 +445,7 @@
       // Modified display function to handle filtered documents
       async function fetchAndDisplayDocuments() {
         try {
-          const response = await fetch("/api/pendingDocument");
+          const response = await fetch("/pendingDocument");
           allDocuments = await response.json();
 
           // Get filter state
@@ -460,7 +460,7 @@
         }
       }
 
-      // Fetch and display pending documents with full details for Generic, Proposal, and Processing documents
+      // Fetch and display pending documents with full details for Generic, Proposal, and Purchasing documents
       function displayDocuments(documents) {
         const genericTableBody = document
           .getElementById("generic-document-table")
@@ -468,8 +468,8 @@
         const proposalTableBody = document
           .getElementById("proposal-document-table")
           .getElementsByTagName("tbody")[0];
-        const processingTableBody = document
-          .getElementById("processing-document-table")
+        const purchasingTableBody = document
+          .getElementById("purchasing-document-table")
           .getElementsByTagName("tbody")[0];
         const reportTableBody = document
           .getElementById("report-document-table")
@@ -478,7 +478,7 @@
         // Clear all tables
         genericTableBody.innerHTML = "";
         proposalTableBody.innerHTML = "";
-        processingTableBody.innerHTML = "";
+        purchasingTableBody.innerHTML = "";
         reportTableBody.innerHTML = "";
 
         if (documents.length === 0) {
@@ -486,7 +486,7 @@
             "<tr><td colspan='7'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
           proposalTableBody.innerHTML =
             "<tr><td colspan='11'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
-          processingTableBody.innerHTML =
+          purchasingTableBody.innerHTML =
             "<tr><td colspan='9'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
           reportTableBody.innerHTML =
             "<tr><td colspan='9'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
@@ -588,8 +588,8 @@
                   <button type="submit">Xóa/Delete</button>
                 </form>
               </td>`;
-          } else if (doc.title === "Processing Document") {
-            // Display product entries for Processing Document
+          } else if (doc.title === "Purchasing Document") {
+            // Display product entries for Purchasing Document
             const productRows = doc.products
               .map(
                 (p) => `
@@ -677,8 +677,8 @@
               ? `<a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a>`
               : "Không có tệp đính kèm/No File Attached";
 
-            // Insert a new row in the processing table
-            const row = processingTableBody.insertRow();
+            // Insert a new row in the purchasing table
+            const row = purchasingTableBody.insertRow();
             row.innerHTML = `
               <td>${doc._id}</td>
               <td>${productTable}</td>
@@ -699,10 +699,10 @@
                 </form>
               </td>`;
           } else if (doc.title === "Report Document") {
-            let appendedProcessingDoc = "N/A";
-            if (doc.appendedProcessingDocument) {
+            let appendedPurchasingDoc = "N/A";
+            if (doc.appendedPurchasingDocument) {
               // Process products
-              const products = doc.appendedProcessingDocument.products
+              const products = doc.appendedPurchasingDocument.products
                 .map(
                   (product) =>
                     `<p>${
@@ -715,18 +715,18 @@
                 )
                 .join("");
 
-              // Handle file metadata directly from appendedProcessingDocument
-              const fileMetadata = doc.appendedProcessingDocument.fileMetadata
+              // Handle file metadata directly from appendedPurchasingDocument
+              const fileMetadata = doc.appendedPurchasingDocument.fileMetadata
                 ? `<p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong> 
-                      <a href="${doc.appendedProcessingDocument.fileMetadata.link}" target="_blank">
-                        ${doc.appendedProcessingDocument.fileMetadata.name}
+                      <a href="${doc.appendedPurchasingDocument.fileMetadata.link}" target="_blank">
+                        ${doc.appendedPurchasingDocument.fileMetadata.name}
                       </a>
                     </p>`
                 : "<p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong></p>";
 
               // Process appended content
               const appendedContent =
-                doc.appendedProcessingDocument.appendedContent
+                doc.appendedPurchasingDocument.appendedContent
                   .map(
                     (content) =>
                       `<div>
@@ -748,13 +748,13 @@
                   )
                   .join("");
 
-              // Combine everything into appendedProcessingDoc
-              appendedProcessingDoc = `
+              // Combine everything into appendedPurchasingDoc
+              appendedPurchasingDoc = `
                 <div>
                   <p><strong>Ngày nộp/Submission Date:</strong> ${
-                    doc.appendedProcessingDocument.submissionDate
+                    doc.appendedPurchasingDocument.submissionDate
                   }</p>
-                  <p><strong>Chi phí/Grand Total Cost:</strong> ${doc.appendedProcessingDocument.grandTotalCost.toLocaleString()}</p>
+                  <p><strong>Chi phí/Grand Total Cost:</strong> ${doc.appendedPurchasingDocument.grandTotalCost.toLocaleString()}</p>
                   <p><strong>Sản phẩm/Products:</strong><br>${products}</p>
                   ${fileMetadata}
                   ${appendedContent}
@@ -766,8 +766,8 @@
             row.innerHTML = `
               <td>${doc._id}</td>
               <td>${doc.tags}</td>
-              <td>${doc.postProcessingReport}</td>
-              <td>${appendedProcessingDoc}</td>
+              <td>${doc.postPurchasingReport}</td>
+              <td>${appendedPurchasingDoc}</td>
               <td>
                 ${
                   doc.fileMetadata

@@ -145,7 +145,7 @@
 
       /* Preview sections */
       #proposalPreview,
-      #processingDocumentPreview {
+      #purchasingDocumentPreview {
         background: #f8fafc;
         padding: 1.25rem;
         border-radius: 8px;
@@ -275,7 +275,7 @@
         #product-entries,
         #approver-selection div,
         #proposalPreview,
-        #processingDocumentPreview {
+        #purchasingDocumentPreview {
           background: #333;
           color: #f1f1f1;
         }
@@ -327,7 +327,7 @@
           <option value="Proposal Document">
             Phiếu đề xuất/Proposal Document
           </option>
-          <option value="Processing Document">
+          <option value="Purchasing Document">
             Phiếu mua hàng/Purchasing Document
           </option>
           <option value="Report Document">Phiếu báo cáo/Report Document</option>
@@ -390,15 +390,15 @@
           <div id="proposalPreviews"></div>
         </div>
 
-        <!-- Dropdown for selecting Processing Document to append -->
-        <div id="append-processing-documents-section" style="display: none">
-          <label for="processingDocumentsDropdown"
+        <!-- Dropdown for selecting Purchasing Document to append -->
+        <div id="append-purchasing-documents-section" style="display: none">
+          <label for="purchasingDocumentsDropdown"
             >Chọn một phiếu mua hàng đã duyệt/Select Purchasing Document to
             Append</label
           >
           <select
-            id="processingDocumentsDropdown"
-            name="approvedProcessingDocument"
+            id="purchasingDocumentsDropdown"
+            name="approvedPurchasingDocument"
           >
             <option value="">
               Chọn một phiếu mua hàng/Select a purchasing document
@@ -406,8 +406,8 @@
           </select>
         </div>
 
-        <!-- Preview of the selected Processing Document -->
-        <div id="processingDocumentPreview" style="display: none">
+        <!-- Preview of the selected Purchasing Document -->
+        <div id="purchasingDocumentPreview" style="display: none">
           <h3>
             Xem trước phiếu mua hàng đi kèm/Preview of Purchasing Document
           </h3>
@@ -444,19 +444,19 @@
           const appendApprovedDocumentsSection = document.getElementById(
             "append-approved-documents-section"
           );
-          const appendProcessingSection = document.getElementById(
-            "append-processing-documents-section"
+          const appendPurchasingSection = document.getElementById(
+            "append-purchasing-documents-section"
           );
-          const processingDocumentPreview = document.getElementById(
-            "processingDocumentPreview"
+          const purchasingDocumentPreview = document.getElementById(
+            "purchasingDocumentPreview"
           );
 
           contentFields.innerHTML = "";
           addContentButton.style.display = "none";
           approvedProposalSection.style.display = "none";
           appendApprovedDocumentsSection.style.display = "none";
-          appendProcessingSection.style.display = "none";
-          processingDocumentPreview.style.display = "none";
+          appendPurchasingSection.style.display = "none";
+          purchasingDocumentPreview.style.display = "none";
 
           if (selectedTitle === "Proposal Document") {
             // Create the base structure without the <select> options
@@ -520,7 +520,7 @@
             });
 
             addContentButton.style.display = "none";
-          } else if (selectedTitle === "Processing Document") {
+          } else if (selectedTitle === "Purchasing Document") {
             contentFields.innerHTML = `
             <div id="product-entries">
               <label>Tên sản phẩm/Product Name</label><input type="text" name="products[0][productName]" required />
@@ -532,12 +532,12 @@
           `;
             approvedProposalSection.style.display = "block";
           } else if (selectedTitle === "Report Document") {
-            appendProcessingSection.style.display = "block"; // Show dropdown for Processing Document
-            fetchProcessingDocuments(); // Fetch available Processing Documents
+            appendPurchasingSection.style.display = "block"; // Show dropdown for Purchasing Document
+            fetchPurchasingDocuments(); // Fetch available Purchasing Documents
             // Add fields for Report Document
             contentFields.innerHTML = `
-            <label for="postProcessingReport">Báo cáo sau xử lý/Post-Processing Report</label>
-            <textarea name="postProcessingReport" rows="5" required></textarea>
+            <label for="postPurchasingReport">Báo cáo sau mua hàng/Post-Purchasing Report</label>
+            <textarea name="postPurchasingReport" rows="5" required></textarea>
           `;
           } else if (selectedTitle === "Generic Document") {
             contentFields.innerHTML = `
@@ -598,7 +598,7 @@
       }
 
       async function fetchApprovedDocuments() {
-        const response = await fetch("/api/approvedDocument");
+        const response = await fetch("/approvedDocument");
         const approvedDocs = await response.json();
         const approvedDocsDropdown = document.getElementById(
           "approvedDocumentsDropdown"
@@ -640,7 +640,7 @@
       }
 
       async function fetchApprovedProposals(dropdown = null) {
-        const response = await fetch("/api/approvedProposalDocuments");
+        const response = await fetch("/approvedProposalDocuments");
         const approvedProposals = await response.json();
 
         if (!dropdown) {
@@ -680,7 +680,7 @@
 
         if (!documentId) return;
 
-        const response = await fetch(`/api/proposalDocument/${documentId}`);
+        const response = await fetch(`/proposalDocument/${documentId}`);
         const proposal = await response.json();
 
         const previewDiv = document.createElement("div");
@@ -707,12 +707,12 @@
         selectContainer.appendChild(previewDiv);
       }
 
-      async function fetchProcessingDocuments() {
-        const response = await fetch("/api/approvedProcessingDocuments");
-        const processingDocs = await response.json();
-        const dropdown = document.getElementById("processingDocumentsDropdown");
+      async function fetchPurchasingDocuments() {
+        const response = await fetch("/approvedPurchasingDocuments");
+        const purchasingDocs = await response.json();
+        const dropdown = document.getElementById("purchasingDocumentsDropdown");
 
-        processingDocs.forEach((doc) => {
+        purchasingDocs.forEach((doc) => {
           const option = document.createElement("option");
           option.value = doc._id;
           option.textContent = doc._id;
@@ -721,19 +721,19 @@
       }
 
       document
-        .getElementById("processingDocumentsDropdown")
+        .getElementById("purchasingDocumentsDropdown")
         .addEventListener("change", function () {
           const selectedDocId = this.value;
           if (selectedDocId) {
-            previewProcessingDocument(selectedDocId);
+            previewPurchasingDocument(selectedDocId);
           } else {
-            document.getElementById("processingDocumentPreview").style.display =
+            document.getElementById("purchasingDocumentPreview").style.display =
               "none";
           }
         });
 
-      async function previewProcessingDocument(docId) {
-        const response = await fetch(`/api/processingDocument/${docId}`);
+      async function previewPurchasingDocument(docId) {
+        const response = await fetch(`/purchasingDocument/${docId}`);
         const doc = await response.json();
 
         const productDetails = document.getElementById("productDetails");
@@ -781,7 +781,7 @@
           .join("")}
       `;
 
-        document.getElementById("processingDocumentPreview").style.display =
+        document.getElementById("purchasingDocumentPreview").style.display =
           "block";
       }
 

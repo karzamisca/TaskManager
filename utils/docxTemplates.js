@@ -162,7 +162,7 @@ const createProposalDocTemplate = async (doc) => {
   return Packer.toBuffer(docContent);
 };
 
-const createProcessingDocTemplate = async (doc) => {
+const createPurchasingDocTemplate = async (doc) => {
   // Validate input document
   if (!doc) {
     throw new Error("Document is required");
@@ -213,7 +213,7 @@ const createProcessingDocTemplate = async (doc) => {
           new Paragraph({
             children: [
               new TextRun({
-                text: "Phiếu xử lý/Processing Document",
+                text: "Phiếu mua hàng/Purchasing Document",
                 bold: true,
                 size: 32,
               }),
@@ -417,7 +417,7 @@ const createReportDocTemplate = async (doc) => {
     path: "approvedBy.user",
     select: "username",
   });
-  await doc.populate("appendedProcessingDocument");
+  await doc.populate("appendedPurchasingDocument");
 
   const docContent = new Document({
     sections: [
@@ -444,11 +444,11 @@ const createReportDocTemplate = async (doc) => {
             spacing: { after: 200 },
           }),
 
-          // Tags and Post-Processing Report
+          // Tags and Post-Purchasing Report
           new Paragraph({ text: "Chi tiết/Details:", bold: true }),
           new Paragraph({ text: `Tem/Tags: ${doc.tags}` }),
           new Paragraph({
-            text: `Báo cáo sau xử lý/Post-Processing Report: ${doc.postProcessingReport}`,
+            text: `Báo cáo sau mua hàng/Post-Purchasing Report: ${doc.postPurchasingReport}`,
             spacing: { after: 200 },
           }),
 
@@ -473,36 +473,36 @@ const createReportDocTemplate = async (doc) => {
               })
             : new Paragraph({ text: "No Main File Attached", italics: true }),
 
-          // Appended Processing Document Section
-          ...(doc.appendedProcessingDocument
+          // Appended Purchasing Document Section
+          ...(doc.appendedPurchasingDocument
             ? [
                 new Paragraph({
-                  text: "Phiếu xử lý kèm theo/Appended Processing Document:",
+                  text: "Phiếu mua hàng kèm theo/Appended Purchasing Document:",
                   bold: true,
                 }),
 
-                // Main Processing Document File Metadata
-                doc.appendedProcessingDocument.fileMetadata
+                // Main Purchasing Document File Metadata
+                doc.appendedPurchasingDocument.fileMetadata
                   ? new Paragraph({
                       children: [
                         new TextRun({
-                          text: "Tệp kèm theo phiếu xử lý/File attaches to Processing Document: ",
+                          text: "Tệp kèm theo phiếu mua hàng/File attaches to Purchasing Document: ",
                         }),
                         new ExternalHyperlink({
                           children: [
                             new TextRun({
-                              text: doc.appendedProcessingDocument.fileMetadata
+                              text: doc.appendedPurchasingDocument.fileMetadata
                                 .name,
                               style: "Hyperlink",
                             }),
                           ],
-                          link: doc.appendedProcessingDocument.fileMetadata
+                          link: doc.appendedPurchasingDocument.fileMetadata
                             .link,
                         }),
                       ],
                     })
                   : new Paragraph({
-                      text: "No Processing Document File Attached",
+                      text: "No Purchasing Document File Attached",
                       italics: true,
                     }),
 
@@ -536,7 +536,7 @@ const createReportDocTemplate = async (doc) => {
                         }),
                       ],
                     }),
-                    ...doc.appendedProcessingDocument.products.map(
+                    ...doc.appendedPurchasingDocument.products.map(
                       (product) =>
                         new TableRow({
                           children: [
@@ -577,14 +577,14 @@ const createReportDocTemplate = async (doc) => {
                 }),
 
                 // Appended Content Section
-                ...(doc.appendedProcessingDocument.appendedContent.length
+                ...(doc.appendedPurchasingDocument.appendedContent.length
                   ? [
                       new Paragraph({
                         text: "Phiếu đề xuất kèm theo/Appended Proposal Document:",
                         bold: true,
                         spacing: { before: 200 },
                       }),
-                      ...doc.appendedProcessingDocument.appendedContent.flatMap(
+                      ...doc.appendedPurchasingDocument.appendedContent.flatMap(
                         (content) => [
                           new Paragraph({
                             text: `Công việc/Task: ${content.task}`,
@@ -635,7 +635,7 @@ const createReportDocTemplate = async (doc) => {
               ]
             : [
                 new Paragraph({
-                  text: "Không có phiếu xử lý kèm theo/No appended processing document.",
+                  text: "Không có phiếu mua hàng kèm theo/No appended purchasing document.",
                   italics: true,
                 }),
               ]),
@@ -672,6 +672,6 @@ const createReportDocTemplate = async (doc) => {
 module.exports = {
   createGenericDocTemplate,
   createProposalDocTemplate,
-  createProcessingDocTemplate,
+  createPurchasingDocTemplate,
   createReportDocTemplate,
 };

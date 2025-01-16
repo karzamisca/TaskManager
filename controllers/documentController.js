@@ -5,7 +5,7 @@ const CostCenter = require("../models/CostCenter");
 const mongoose = require("mongoose");
 const moment = require("moment-timezone");
 const ProposalDocument = require("../models/ProposalDocument");
-const ProcessingDocument = require("../models/ProcessingDocument");
+const PurchasingDocument = require("../models/PurchasingDocument.js");
 const ReportDocument = require("../models/ReportDocument");
 const drive = require("../middlewares/googleAuthMiddleware.js");
 const multer = require("multer");
@@ -14,7 +14,7 @@ const path = require("path");
 const {
   createGenericDocTemplate,
   createProposalDocTemplate,
-  createProcessingDocTemplate,
+  createPurchasingDocTemplate,
   createReportDocTemplate,
 } = require("../utils/docxTemplates");
 // Configure multer
@@ -170,7 +170,7 @@ exports.exportDocumentToDocx = async (req, res) => {
     let doc =
       (await Document.findById(id)) ||
       (await ProposalDocument.findById(id)) ||
-      (await ProcessingDocument.findById(id)) ||
+      (await PurchasingDocument.findById(id)) ||
       (await ReportDocument.findById(id));
 
     if (!doc) {
@@ -186,8 +186,8 @@ exports.exportDocumentToDocx = async (req, res) => {
         case "Proposal Document":
           buffer = await createProposalDocTemplate(doc);
           break;
-        case "Processing Document":
-          buffer = await createProcessingDocTemplate(doc);
+        case "Purchasing Document":
+          buffer = await createPurchasingDocTemplate(doc);
           break;
         case "Report Document":
           buffer = await createReportDocTemplate(doc);
@@ -228,7 +228,7 @@ exports.submitDocument = async (req, res) => {
       approvers,
       approvedDocuments,
       approvedProposals,
-      approvedProcessingDocument,
+      approvedPurchasingDocument,
     } = req.body;
 
     try {
@@ -294,7 +294,7 @@ exports.submitDocument = async (req, res) => {
             .tz("Asia/Bangkok")
             .format("DD-MM-YYYY HH:mm:ss"),
         });
-      } else if (title === "Processing Document") {
+      } else if (title === "Purchasing Document") {
         const productEntries = products.map((product) => ({
           ...product,
           note: product.note || "",
@@ -342,7 +342,7 @@ exports.submitDocument = async (req, res) => {
           (proposal) => proposal !== null
         );
 
-        newDocument = new ProcessingDocument({
+        newDocument = new PurchasingDocument({
           title,
           products: productEntries,
           grandTotalCost,
@@ -363,7 +363,7 @@ exports.submitDocument = async (req, res) => {
         newDocument = new ReportDocument({
           title,
           tags,
-          postProcessingReport: req.body.postProcessingReport,
+          postPurchasingReport: req.body.postPurchasingReport,
           submittedBy: req.user.id,
           approvers: approverDetails,
           fileMetadata: uploadedFileData, // Attach file data
@@ -372,12 +372,12 @@ exports.submitDocument = async (req, res) => {
             .format("DD-MM-YYYY HH:mm:ss"),
         });
 
-        if (approvedProcessingDocument) {
-          const processingDoc = await ProcessingDocument.findById(
-            approvedProcessingDocument
+        if (approvedPurchasingDocument) {
+          const purchasingDoc = await PurchasingDocument.findById(
+            approvedPurchasingDocument
           );
-          if (processingDoc) {
-            newDocument.appendedProcessingDocument = processingDoc;
+          if (purchasingDoc) {
+            newDocument.appendedPurchasingDocument = purchasingDoc;
           }
         }
       } else {
@@ -423,7 +423,7 @@ exports.submitDocument = async (req, res) => {
 
 exports.getPendingDocument = async (req, res) => {
   try {
-    const pendingProcessingDocs = await ProcessingDocument.find({
+    const pendingPurchasingDocs = await PurchasingDocument.find({
       approved: false,
     }).populate("submittedBy", "username");
     const pendingProposalDocs = await ProposalDocument.find({
@@ -442,7 +442,7 @@ exports.getPendingDocument = async (req, res) => {
       {
         pendingGenericDocs: JSON.stringify(pendingGenericDocs),
         pendingProposalDocs: JSON.stringify(pendingProposalDocs),
-        pendingProcessingDocs: JSON.stringify(pendingProcessingDocs),
+        pendingPurchasingDocs: JSON.stringify(pendingPurchasingDocs),
         pendingReportDocs: JSON.stringify(pendingReportDocs),
       }
     );
@@ -462,11 +462,11 @@ exports.approveDocument = async (req, res) => {
       );
     }
 
-    // Check if the document is a Generic, Proposal, or Processing Document
+    // Check if the document is a Generic, Proposal, or Purchasing Document
     let document =
       (await Document.findById(id)) ||
       (await ProposalDocument.findById(id)) ||
-      (await ProcessingDocument.findById(id)) ||
+      (await PurchasingDocument.findById(id)) ||
       (await ReportDocument.findById(id));
 
     if (!document) {
@@ -512,8 +512,8 @@ exports.approveDocument = async (req, res) => {
     }
 
     // Save document in the correct collection
-    if (document instanceof ProcessingDocument) {
-      await ProcessingDocument.findByIdAndUpdate(id, document);
+    if (document instanceof PurchasingDocument) {
+      await PurchasingDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof ProposalDocument) {
       await ProposalDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof ReportDocument) {
@@ -537,7 +537,7 @@ exports.getApprovedDocument = async (req, res) => {
     const approvedProposalDocs = await ProposalDocument.find({
       approved: true,
     }).populate("submittedBy", "username");
-    const approvedProcessingDocs = await ProcessingDocument.find({
+    const approvedPurchasingDocs = await PurchasingDocument.find({
       approved: true,
     }).populate("submittedBy", "username");
     const approvedReportDocs = await ReportDocument.find({
@@ -553,7 +553,7 @@ exports.getApprovedDocument = async (req, res) => {
       {
         approvedGenericDocs: JSON.stringify(approvedGenericDocs),
         approvedProposalDocs: JSON.stringify(approvedProposalDocs),
-        approvedProcessingDocs: JSON.stringify(approvedProcessingDocs),
+        approvedPurchasingDocs: JSON.stringify(approvedPurchasingDocs),
         approvedReportDocs: JSON.stringify(approvedReportDocs),
       }
     );
@@ -575,8 +575,8 @@ exports.getPendingDocumentApi = async (req, res) => {
       approved: false,
     }).populate("submittedBy", "username");
 
-    // Fetch pending processing documents
-    const pendingProcessingDocs = await ProcessingDocument.find({
+    // Fetch pending purchasing documents
+    const pendingPurchasingDocs = await PurchasingDocument.find({
       approved: false,
     }).populate("submittedBy", "username");
 
@@ -589,7 +589,7 @@ exports.getPendingDocumentApi = async (req, res) => {
     const pendingDocuments = [
       ...pendingGenericDocs,
       ...pendingProposalDocs,
-      ...pendingProcessingDocs,
+      ...pendingPurchasingDocs,
       ...pendingReportDocs,
     ];
 
@@ -616,7 +616,7 @@ exports.getApprovedDocumentApi = async (req, res) => {
     }).populate("submittedBy", "username");
 
     // Fetch approved proposal documents
-    const approvedProcessingDocs = await ProcessingDocument.find({
+    const approvedPurchasingDocs = await PurchasingDocument.find({
       approved: true,
     }).populate("submittedBy", "username");
 
@@ -629,7 +629,7 @@ exports.getApprovedDocumentApi = async (req, res) => {
     const approvedDocuments = [
       ...approvedGenericDocs,
       ...approvedProposalDocs,
-      ...approvedProcessingDocs,
+      ...approvedPurchasingDocs,
       ...approvedReportDocs,
     ];
 
@@ -655,8 +655,8 @@ exports.deleteDocument = async (req, res) => {
     }
 
     if (!document && documentType === "Generic") {
-      document = await ProcessingDocument.findById(id);
-      if (document) documentType = "Processing";
+      document = await PurchasingDocument.findById(id);
+      if (document) documentType = "Purchasing";
     }
 
     if (!document && documentType === "Generic") {
@@ -671,8 +671,8 @@ exports.deleteDocument = async (req, res) => {
     // Delete the document based on its type
     if (documentType === "Proposal") {
       await ProposalDocument.findByIdAndDelete(id);
-    } else if (documentType === "Processing") {
-      await ProcessingDocument.findByIdAndDelete(id);
+    } else if (documentType === "Purchasing") {
+      await PurchasingDocument.findByIdAndDelete(id);
     } else if (documentType === "Report") {
       await ReportDocument.findByIdAndDelete(id);
     } else {
@@ -709,30 +709,30 @@ exports.getProposalDocumentById = async (req, res) => {
   }
 };
 
-exports.getApprovedProcessingDocuments = async (req, res) => {
+exports.getApprovedPurchasingDocuments = async (req, res) => {
   try {
-    const approvedProcessingDocs = await ProcessingDocument.find({
+    const approvedPurchasingDocs = await PurchasingDocument.find({
       approved: true,
     });
-    res.json(approvedProcessingDocs);
+    res.json(approvedPurchasingDocs);
   } catch (err) {
-    console.error("Error fetching approved processing documents:", err);
+    console.error("Error fetching approved purchasing documents:", err);
     res.send(
-      "Lỗi lấy tài liệu xử lý đã phê duyệt/Error fetching approved processing documents"
+      "Lỗi lấy tài liệu mua hàng đã phê duyệt/Error fetching approved purchasing documents"
     );
   }
 };
 
-exports.getProcessingDocumentById = async (req, res) => {
+exports.getPurchasingDocumentById = async (req, res) => {
   try {
-    const processingDoc = await ProcessingDocument.findById(req.params.id);
-    if (!processingDoc)
+    const purchasingDoc = await PurchasingDocument.findById(req.params.id);
+    if (!purchasingDoc)
       return res.send(
-        "Không tìm thấy tài liệu xử lý/Processing document not found"
+        "Không tìm thấy tài liệu mua hàng/Purchasing document not found"
       );
-    res.json(processingDoc);
+    res.json(purchasingDoc);
   } catch (err) {
-    console.error("Error fetching processing document:", err);
-    res.send("Lỗi lấy tài liệu xử lý/Error fetching processing document");
+    console.error("Error fetching purchasing document:", err);
+    res.send("Lỗi lấy tài liệu mua hàng/Error fetching purchasing document");
   }
 };
