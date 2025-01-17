@@ -594,6 +594,116 @@
                   <button type="submit">Xóa/Delete</button>
                 </form>
               </td>`;
+          } else if (doc.title === "Purchasing Document") {
+            // Display product entries for Purchasing Document
+            const productRows = doc.products
+              .map(
+                (p) => `
+                  <tr>
+                    <td>${p.productName}</td>
+                    <td>${p.costPerUnit.toLocaleString()}</td>
+                    <td>${p.amount.toLocaleString()}</td>
+                    <td>${p.note || "N/A"}</td>
+                    <td>${p.totalCost.toLocaleString()}</td>
+                  </tr>`
+              )
+              .join("");
+
+            const productTable = `
+              <table class="nested-table">
+                <thead>
+                  <tr>
+                    <th>Tên sản phẩm/Product Name</th>
+                    <th>Đơn giá/Cost per Unit</th>
+                    <th>Số lượng/Amount</th>
+                    <th>Ghi chú/Note</th>
+                    <th>Thành tiền/Total Cost</th>
+                  </tr>
+                </thead>
+                <tbody>${productRows}</tbody>
+              </table>`;
+
+            // Generate appended proposals content
+            const appendedProposalsContent = `
+              <div class="nested-proposals">
+                ${doc.appendedProposals
+                  .map(
+                    (proposal) => `
+                      <div>
+                        <p><strong>Mã phiếu đề xuất/Proposal ID:</strong> ${
+                          proposal.proposalId || "N/A"
+                        }</p>
+                        <p><strong>Công việc/Task:</strong> ${
+                          proposal.task || "N/A"
+                        }</p>
+                        <p><strong>Trạm/Center:</strong> ${
+                          proposal.costCenter || "N/A"
+                        }</p>
+                        <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
+                          proposal.dateOfError || "N/A"
+                        }</p>
+                        <p><strong>Mô tả chi tiết/Details Description:</strong> ${
+                          proposal.detailsDescription || "N/A"
+                        }</p>
+                        <p><strong>Hướng xử lý/Direction:</strong> ${
+                          proposal.direction || "N/A"
+                        }</p>
+                        <p><strong>Tệp đính kèm/Attached File:</strong> ${
+                          proposal.fileMetadata && proposal.fileMetadata.link
+                            ? `<a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
+                            : "Không có tệp đính kèm/No File Attached"
+                        }</p>
+                      </div>`
+                  )
+                  .join("")}
+              </div>`;
+
+            // Generate approvers section
+            const approversHTML = doc.approvers
+              .map(
+                (approver) => `
+                  <div>
+                    <p>${approver.username} (${approver.subRole})</p>
+                  </div>`
+              )
+              .join("");
+
+            // Generate approved by section
+            const approvedByHTML = doc.approvedBy
+              .map(
+                (approver) => `
+                  <div>
+                    <p>${approver.username} (${approver.role}) - ${approver.approvalDate}</p>
+                  </div>`
+              )
+              .join("");
+
+            // Generate file metadata link
+            const fileMetadataHTML = doc.fileMetadata
+              ? `<a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a>`
+              : "Không có tệp đính kèm/No File Attached";
+
+            // Insert a new row in the purchasing table
+            const row = purchasingTableBody.insertRow();
+            row.innerHTML = `
+              <td>${doc._id}</td>
+              <td>${productTable}</td>
+              <td>${doc.grandTotalCost.toLocaleString()}</td>
+              <td>${fileMetadataHTML}</td>
+              <td>${approversHTML || "N/A"}</td>
+              <td>${approvedByHTML || "N/A"}</td>
+              <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
+              <td>${appendedProposalsContent || "N/A"}</td>
+              <td>
+                <form action="/approveDocument/${doc._id}" method="POST">
+                  <button type="submit">Phê duyệt/Approve</button>
+                </form>
+                <form action="/deleteDocument/${
+                  doc._id
+                }" method="POST" onsubmit="return confirm('Are you sure?')">
+                  <button type="submit">Xóa/Delete</button>
+                </form>
+              </td>`;
           } else if (doc.title === "Payment Document") {
             let appendedPurchasingDocs = "N/A";
             let appendedProposalsContent = "N/A";
