@@ -23,7 +23,11 @@ const reportDocumentSchema = new mongoose.Schema({
       subRole: { type: String, required: true },
     },
   ],
-  appendedPurchasingDocument: { type: mongoose.Schema.Types.Mixed }, // This will store the full Purchasing Document
+  appendedPurchasingDocuments: [
+    {
+      type: mongoose.Schema.Types.Mixed, // Stores full Purchasing Document details
+    },
+  ],
   approvedBy: [
     {
       user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

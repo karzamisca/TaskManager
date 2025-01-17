@@ -393,16 +393,15 @@
         <!-- Dropdown for selecting Purchasing Document to append -->
         <div id="append-purchasing-documents-section" style="display: none">
           <label for="purchasingDocumentsDropdown"
-            >Chọn một phiếu mua hàng đã duyệt/Select Purchasing Document to
-            Append</label
+            >Select Purchasing Documents to Append</label
           >
           <select
             id="purchasingDocumentsDropdown"
-            name="approvedPurchasingDocument"
+            name="approvedPurchasingDocuments[]"
+            multiple
           >
-            <option value="">
-              Chọn một phiếu mua hàng/Select a purchasing document
-            </option>
+            <option value="">Select one or more purchasing documents</option>
+            <!-- Populate options dynamically -->
           </select>
         </div>
 
@@ -722,13 +721,26 @@
 
       document
         .getElementById("purchasingDocumentsDropdown")
-        .addEventListener("change", function () {
-          const selectedDocId = this.value;
-          if (selectedDocId) {
-            previewPurchasingDocument(selectedDocId);
-          } else {
-            document.getElementById("purchasingDocumentPreview").style.display =
-              "none";
+        .addEventListener("change", async function () {
+          const selectedDocIds = Array.from(this.selectedOptions).map(
+            (option) => option.value
+          );
+          const previewsContainer = document.getElementById(
+            "purchasingDocumentPreview"
+          );
+          previewsContainer.innerHTML = ""; // Clear previous previews
+
+          for (const docId of selectedDocIds) {
+            const response = await fetch(`/purchasingDocument/${docId}`);
+            const doc = await response.json();
+            // Render each document preview (similar to your existing preview logic)
+            previewsContainer.innerHTML += `
+            <div>
+                <h4>Purchasing Document ${docId}</h4>
+                <p><strong>Total Cost:</strong> ${doc.grandTotalCost}</p>
+                <!-- Add other details as needed -->
+            </div>
+        `;
           }
         });
 

@@ -360,26 +360,34 @@ exports.submitDocument = async (req, res) => {
           req.user.department
         }- ${moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss")}`;
 
+        let appendedPurchasingDocuments = [];
+        if (
+          req.body.approvedPurchasingDocuments &&
+          req.body.approvedPurchasingDocuments.length > 0
+        ) {
+          appendedPurchasingDocuments = await Promise.all(
+            req.body.approvedPurchasingDocuments.map(async (docId) => {
+              const purchasingDoc = await PurchasingDocument.findById(docId);
+              return purchasingDoc ? purchasingDoc.toObject() : null;
+            })
+          );
+          appendedPurchasingDocuments = appendedPurchasingDocuments.filter(
+            (doc) => doc !== null
+          );
+        }
+
         newDocument = new ReportDocument({
           title,
           tags,
           postPurchasingReport: req.body.postPurchasingReport,
           submittedBy: req.user.id,
           approvers: approverDetails,
-          fileMetadata: uploadedFileData, // Attach file data
+          fileMetadata: uploadedFileData,
+          appendedPurchasingDocuments,
           submissionDate: moment()
             .tz("Asia/Bangkok")
             .format("DD-MM-YYYY HH:mm:ss"),
         });
-
-        if (approvedPurchasingDocument) {
-          const purchasingDoc = await PurchasingDocument.findById(
-            approvedPurchasingDocument
-          );
-          if (purchasingDoc) {
-            newDocument.appendedPurchasingDocument = purchasingDoc;
-          }
-        }
       } else {
         const contentArray = [];
 
