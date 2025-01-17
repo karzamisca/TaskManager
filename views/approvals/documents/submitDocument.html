@@ -744,13 +744,13 @@
         productDetails.innerHTML = doc.products
           .map(
             (product) => `
-              <p>
-                ${
-                  product.productName
-                }: ${product.amount.toLocaleString()} đơn vị với đơn giá là ${product.costPerUnit.toLocaleString()} 
-                (Thành tiền: ${product.totalCost.toLocaleString()}) 
-                (Ghi chú: ${product.note || "Không có ghi chú/No Note"}) 
-              </p>`
+              <p>Tên sản phẩm/Product name: ${product.productName}</p> 
+              <p>Số lượng/Amount: ${product.amount.toLocaleString()}</p>
+              <p>Đơn giá/Unit Price: ${product.costPerUnit.toLocaleString()}</p>
+              <p>Thành tiền/Cost: ${product.totalCost.toLocaleString()}</p>
+              <p>Ghi chú/Note: ${
+                product.note || "Không có ghi chú/No Note"
+              }</p>`
           )
           .join("");
 
@@ -769,7 +769,7 @@
             doc.submissionDate
           }</p>
           <p><strong>Chi phí/Grand Total Cost:</strong> ${doc.grandTotalCost.toLocaleString()}</p>
-        ${doc.appendedContent
+        ${doc.appendedProposals
           .map(
             (content) =>
               `<p><strong>Công việc/Task:</strong> ${content.task}</p>
