@@ -355,11 +355,6 @@ exports.submitDocument = async (req, res) => {
             .format("DD-MM-YYYY HH:mm:ss"),
         });
       } else if (title === "Report Document") {
-        const randomString = generateRandomString(24);
-        const tags = `${randomString}- ${req.user.id}- ${
-          req.user.department
-        }- ${moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss")}`;
-
         let appendedPurchasingDocuments = [];
         if (
           req.body.approvedPurchasingDocuments &&
@@ -378,8 +373,10 @@ exports.submitDocument = async (req, res) => {
 
         newDocument = new ReportDocument({
           title,
-          tags,
-          postPurchasingReport: req.body.postPurchasingReport,
+          paymentMethod: req.body.paymentMethod,
+          amountOfMoney: req.body.amountOfMoney,
+          paid: req.body.paid,
+          paymentDeadline: req.body.paymentDeadline,
           submittedBy: req.user.id,
           approvers: approverDetails,
           fileMetadata: uploadedFileData,

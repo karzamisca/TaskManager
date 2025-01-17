@@ -330,7 +330,9 @@
           <option value="Purchasing Document">
             Phiếu mua hàng/Purchasing Document
           </option>
-          <option value="Report Document">Phiếu báo cáo/Report Document</option>
+          <option value="Report Document">
+            Phiếu thanh toán/Payment Document
+          </option>
         </select>
 
         <!-- Content fields for Generic Document -->
@@ -543,9 +545,19 @@
             fetchPurchasingDocuments(); // Fetch available Purchasing Documents
             // Add fields for Report Document
             contentFields.innerHTML = `
-            <label for="postPurchasingReport">Báo cáo sau mua hàng/Post-Purchasing Report</label>
-            <textarea name="postPurchasingReport" rows="5" required></textarea>
+            <label for="paymentMethod">Hình thức thanh toán/Payment Method</label>
+            <input type="text" name="paymentMethod" required />
+            <label for="amountOfMoney">Số tiền/Amount Of Money</label>
+            <input type="number" step="0.01" name="amountOfMoney" required />
+            <label for="paid">Đã trả/Paid</label>
+            <input type="number" step="0.01" name="paid" required />
+            <label for="paymentDeadline">Thời hạn trả/Payment Deadline</label>
+            <input type="text" name="paymentDeadline" id="paymentDeadline" required />
           `;
+            flatpickr("#paymentDeadline", {
+              dateFormat: "d-m-Y",
+              defaultDate: "today",
+            });
           } else if (selectedTitle === "Generic Document") {
             contentFields.innerHTML = `
             <label for="contentName">Tên nội dung/Content Name</label>
@@ -824,11 +836,11 @@
               }
               ${
                 doc.fileMetadata
-                  ? `<p><strong>Tệp đính kèm phiếu báo cáo/Attached File:</strong> 
+                  ? `<p><strong>Tệp đính kèm phiếu thanh toán/File attaches to payment document:</strong> 
                         <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
                   : "<p>Không có tệp đính kèm/No file attached.</p>"
               }
-              <button type="button" onclick="removePurchasingDocument('${selectedDocId}')">Remove</button>
+              <button type="button" onclick="removePurchasingDocument('${selectedDocId}')">Xóa/Remove</button>
           `;
 
             purchasingDocumentsList.appendChild(listItem);

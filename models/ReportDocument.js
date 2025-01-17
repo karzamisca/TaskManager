@@ -3,8 +3,10 @@ const mongoose = require("mongoose");
 
 const reportDocumentSchema = new mongoose.Schema({
   title: { type: String, default: "Report Document", required: true },
-  tags: { type: String, required: true },
-  postPurchasingReport: { type: String, required: true },
+  paymentMethod: { type: String, required: true },
+  amountOfMoney: { type: Number, required: true },
+  paid: { type: Number, required: true },
+  paymentDeadline: { type: String, required: true },
   fileMetadata: {
     driveFileId: { type: String },
     name: { type: String },
