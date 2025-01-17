@@ -417,7 +417,7 @@ const createReportDocTemplate = async (doc) => {
     path: "approvedBy.user",
     select: "username",
   });
-  await doc.populate("appendedPurchasingDocument");
+  await doc.populate("appendedPurchasingDocuments");
 
   const docContent = new Document({
     sections: [
@@ -427,7 +427,7 @@ const createReportDocTemplate = async (doc) => {
           new Paragraph({
             children: [
               new TextRun({
-                text: "Phiếu báo cáo/Report Document",
+                text: `${doc.title}/Report Document`,
                 bold: true,
                 size: 32,
               }),
@@ -443,12 +443,27 @@ const createReportDocTemplate = async (doc) => {
             text: `Được nộp bởi/Submitted By: ${doc.submittedBy.username}`,
             spacing: { after: 200 },
           }),
-
-          // Tags and Post-Purchasing Report
-          new Paragraph({ text: "Chi tiết/Details:", bold: true }),
-          new Paragraph({ text: `Tem/Tags: ${doc.tags}` }),
           new Paragraph({
-            text: `Báo cáo sau mua hàng/Post-Purchasing Report: ${doc.postPurchasingReport}`,
+            text: `Ngày nộp/Submission Date: ${doc.submissionDate}`,
+            spacing: { after: 200 },
+          }),
+
+          // Payment Information
+          new Paragraph({
+            text: "Thông tin thanh toán/Payment Information:",
+            bold: true,
+          }),
+          new Paragraph({
+            text: `Phương thức thanh toán/Payment Method: ${doc.paymentMethod}`,
+          }),
+          new Paragraph({
+            text: `Số tiền/Amount of Money: ${doc.amountOfMoney.toLocaleString()}`,
+          }),
+          new Paragraph({
+            text: `Đã thanh toán/Paid: ${doc.paid.toLocaleString()}`,
+          }),
+          new Paragraph({
+            text: `Hạn thanh toán/Payment Deadline: ${doc.paymentDeadline}`,
             spacing: { after: 200 },
           }),
 
@@ -473,119 +488,140 @@ const createReportDocTemplate = async (doc) => {
               })
             : new Paragraph({ text: "No Main File Attached", italics: true }),
 
-          // Appended Purchasing Document Section
-          ...(doc.appendedPurchasingDocument
-            ? [
+          // Appended Purchasing Documents Section
+          new Paragraph({
+            text: "Phiếu mua hàng kèm theo/Appended Purchasing Documents:",
+            bold: true,
+            spacing: { before: 200 },
+          }),
+          ...(doc.appendedPurchasingDocuments.length > 0
+            ? doc.appendedPurchasingDocuments.flatMap((purchDoc, index) => [
                 new Paragraph({
-                  text: "Phiếu mua hàng kèm theo/Appended Purchasing Document:",
+                  text: `Phiếu mua hàng/Purchasing Document #${index + 1}`,
                   bold: true,
                 }),
-
-                // Main Purchasing Document File Metadata
-                doc.appendedPurchasingDocument.fileMetadata
+                purchDoc.fileMetadata
                   ? new Paragraph({
                       children: [
                         new TextRun({
-                          text: "Tệp kèm theo phiếu mua hàng/File attaches to Purchasing Document: ",
+                          text: "Tệp kèm theo/File attached: ",
                         }),
                         new ExternalHyperlink({
                           children: [
                             new TextRun({
-                              text: doc.appendedPurchasingDocument.fileMetadata
-                                .name,
+                              text: purchDoc.fileMetadata.name,
                               style: "Hyperlink",
                             }),
                           ],
-                          link: doc.appendedPurchasingDocument.fileMetadata
-                            .link,
+                          link: purchDoc.fileMetadata.link,
                         }),
                       ],
                     })
                   : new Paragraph({
-                      text: "No Purchasing Document File Attached",
+                      text: "No File Attached",
                       italics: true,
                     }),
-
-                // Products Table
-                new Table({
-                  width: { size: 100, type: "pct" },
-                  rows: [
-                    new TableRow({
-                      children: [
-                        new TableCell({
-                          children: [
-                            new Paragraph("Tên sản phẩm/Product Name"),
-                          ],
-                          width: { size: 25, type: "pct" },
-                        }),
-                        new TableCell({
-                          children: [new Paragraph("Đơn giá/Cost Per Unit")],
-                          width: { size: 20, type: "pct" },
-                        }),
-                        new TableCell({
-                          children: [new Paragraph("Số lượng/Amount")],
-                          width: { size: 15, type: "pct" },
-                        }),
-                        new TableCell({
-                          children: [new Paragraph("Thành tiền/Total Cost")],
-                          width: { size: 20, type: "pct" },
-                        }),
-                        new TableCell({
-                          children: [new Paragraph("Ghi chú/Note")],
-                          width: { size: 20, type: "pct" },
-                        }),
-                      ],
-                    }),
-                    ...doc.appendedPurchasingDocument.products.map(
-                      (product) =>
+                purchDoc.products && purchDoc.products.length > 0
+                  ? new Table({
+                      width: { size: 100, type: "pct" },
+                      rows: [
                         new TableRow({
                           children: [
                             new TableCell({
-                              children: [new Paragraph(product.productName)],
+                              children: [
+                                new Paragraph("Tên sản phẩm/Product Name"),
+                              ],
                               width: { size: 25, type: "pct" },
                             }),
                             new TableCell({
                               children: [
-                                new Paragraph(
-                                  product.costPerUnit.toLocaleString()
-                                ),
+                                new Paragraph("Đơn giá/Cost Per Unit"),
                               ],
                               width: { size: 20, type: "pct" },
                             }),
                             new TableCell({
-                              children: [
-                                new Paragraph(product.amount.toLocaleString()),
-                              ],
+                              children: [new Paragraph("Số lượng/Amount")],
                               width: { size: 15, type: "pct" },
                             }),
                             new TableCell({
                               children: [
-                                new Paragraph(
-                                  product.totalCost.toLocaleString()
-                                ),
+                                new Paragraph("Thành tiền/Total Cost"),
                               ],
                               width: { size: 20, type: "pct" },
                             }),
                             new TableCell({
-                              children: [new Paragraph(product.note || "N/A")],
+                              children: [new Paragraph("Ghi chú/Note")],
                               width: { size: 20, type: "pct" },
                             }),
                           ],
-                        })
-                    ),
-                  ],
-                }),
+                        }),
+                        ...purchDoc.products.map(
+                          (product) =>
+                            new TableRow({
+                              children: [
+                                new TableCell({
+                                  children: [
+                                    new Paragraph(product.productName),
+                                  ],
+                                  width: { size: 25, type: "pct" },
+                                }),
+                                new TableCell({
+                                  children: [
+                                    new Paragraph(
+                                      product.costPerUnit.toLocaleString()
+                                    ),
+                                  ],
+                                  width: { size: 20, type: "pct" },
+                                }),
+                                new TableCell({
+                                  children: [
+                                    new Paragraph(
+                                      product.amount.toLocaleString()
+                                    ),
+                                  ],
+                                  width: { size: 15, type: "pct" },
+                                }),
+                                new TableCell({
+                                  children: [
+                                    new Paragraph(
+                                      product.totalCost.toLocaleString()
+                                    ),
+                                  ],
+                                  width: { size: 20, type: "pct" },
+                                }),
+                                new TableCell({
+                                  children: [
+                                    new Paragraph(product.note || "N/A"),
+                                  ],
+                                  width: { size: 20, type: "pct" },
+                                }),
+                              ],
+                            })
+                        ),
+                      ],
+                    })
+                  : new Paragraph({
+                      text: "No Products Listed",
+                      italics: true,
+                    }),
 
-                // Appended Content Section
-                ...(doc.appendedPurchasingDocument.appendedContent.length
+                // Appended Proposals Section for each Purchasing Document
+                ...(purchDoc.appendedProposals &&
+                purchDoc.appendedProposals.length > 0
                   ? [
                       new Paragraph({
-                        text: "Phiếu đề xuất kèm theo/Appended Proposal Document:",
+                        text: "Phiếu đề xuất kèm theo/Appended Proposal Documents:",
                         bold: true,
                         spacing: { before: 200 },
                       }),
-                      ...doc.appendedPurchasingDocument.appendedContent.flatMap(
-                        (content) => [
+                      ...purchDoc.appendedProposals.flatMap(
+                        (content, proposalIndex) => [
+                          new Paragraph({
+                            text: `Phiếu đề xuất/Proposal #${
+                              proposalIndex + 1
+                            }`,
+                            bold: true,
+                          }),
                           new Paragraph({
                             text: `Công việc/Task: ${content.task}`,
                           }),
@@ -622,26 +658,31 @@ const createReportDocTemplate = async (doc) => {
                                 text: "No Attached File",
                                 italics: true,
                               }),
-                          new Paragraph({ text: "" }), // Empty line to separate entries
+                          new Paragraph({ text: "", spacing: { after: 200 } }), // Spacing between proposals
                         ]
                       ),
                     ]
                   : [
                       new Paragraph({
-                        text: "Không có phiếu đề xuất kèm theo/No Appended Proposal Document.",
+                        text: "Không có phiếu đề xuất kèm theo/No appended proposal documents.",
                         italics: true,
                       }),
                     ]),
-              ]
+                new Paragraph({ text: "", spacing: { after: 200 } }), // Spacing between purchasing documents
+              ])
             : [
                 new Paragraph({
-                  text: "Không có phiếu mua hàng kèm theo/No appended purchasing document.",
+                  text: "Không có phiếu mua hàng kèm theo/No appended purchasing documents.",
                   italics: true,
                 }),
               ]),
 
           // Approvers and ApprovedBy
-          new Paragraph({ text: "Phê duyệt/Approvals:", bold: true }),
+          new Paragraph({
+            text: "Phê duyệt/Approvals:",
+            bold: true,
+            spacing: { before: 200 },
+          }),
           ...doc.approvers.map((approver) => {
             const approvalRecord = doc.approvedBy.find(
               (approval) =>
@@ -654,7 +695,7 @@ const createReportDocTemplate = async (doc) => {
                 }),
                 new TextRun({
                   text: approvalRecord
-                    ? ` - Phê duyệt vào/Approved on ${approvalRecord.approvalDate} bởi/by ${approvalRecord.username}`
+                    ? ` - Phê duyệt vào/Approved on ${approvalRecord.approvalDate} bởi/by ${approvalRecord.username} (${approvalRecord.role})`
                     : " - Chưa phê duyệt/Pending Approval",
                   italic: true,
                 }),

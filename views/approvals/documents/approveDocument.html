@@ -393,9 +393,12 @@
         <thead>
           <tr>
             <th>Mã/ID</th>
-            <th>Tem/Tags</th>
-            <th>Báo cáo tình trạng sau mua hàng/Post-Purchasing Report</th>
-            <th>Phiếu mua hàng đi kèm/Appended Purchasing Document</th>
+            <th>Phương thức thanh toán/Payment Method</th>
+            <th>Số tiền/Amount of Money</th>
+            <th>Đã thanh toán/Paid</th>
+            <th>Hạn thanh toán/Payment Deadline</th>
+            <th>Phiếu mua hàng đi kèm/Appended Purchasing Documents</th>
+            <th>Phiếu đề xuất đi kèm/Appended Proposals</th>
             <th>Tệp đính kèm/Attached File</th>
             <th>Người cần phê duyệt/Approver(s)</th>
             <th>Người đã phê duyệt/Approved By</th>
@@ -405,7 +408,7 @@
         </thead>
         <tbody>
           <tr>
-            <td colspan="9">Loading documents...</td>
+            <td colspan="12">Loading documents...</td>
           </tr>
         </tbody>
       </table>
@@ -588,186 +591,93 @@
                   <button type="submit">Xóa/Delete</button>
                 </form>
               </td>`;
-          } else if (doc.title === "Purchasing Document") {
-            // Display product entries for Purchasing Document
-            const productRows = doc.products
-              .map(
-                (p) => `
-                  <tr>
-                    <td>${p.productName}</td>
-                    <td>${p.costPerUnit.toLocaleString()}</td>
-                    <td>${p.amount.toLocaleString()}</td>
-                    <td>${p.note || "N/A"}</td>
-                    <td>${p.totalCost.toLocaleString()}</td>
-                  </tr>`
-              )
-              .join("");
-
-            const productTable = `
-              <table class="nested-table">
-                <thead>
-                  <tr>
-                    <th>Tên sản phẩm/Product Name</th>
-                    <th>Đơn giá/Cost per Unit</th>
-                    <th>Số lượng/Amount</th>
-                    <th>Ghi chú/Note</th>
-                    <th>Thành tiền/Total Cost</th>
-                  </tr>
-                </thead>
-                <tbody>${productRows}</tbody>
-              </table>`;
-
-            // Generate appended proposals content
-            const appendedProposalsContent = `
-              <div class="nested-proposals">
-                ${doc.appendedProposals
-                  .map(
-                    (proposal) => `
-                      <div>
-                        <p><strong>Mã phiếu đề xuất/Proposal ID:</strong> ${
-                          proposal.proposalId || "N/A"
-                        }</p>
-                        <p><strong>Công việc/Task:</strong> ${
-                          proposal.task || "N/A"
-                        }</p>
-                        <p><strong>Trạm/Center:</strong> ${
-                          proposal.costCenter || "N/A"
-                        }</p>
-                        <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
-                          proposal.dateOfError || "N/A"
-                        }</p>
-                        <p><strong>Mô tả chi tiết/Details Description:</strong> ${
-                          proposal.detailsDescription || "N/A"
-                        }</p>
-                        <p><strong>Hướng xử lý/Direction:</strong> ${
-                          proposal.direction || "N/A"
-                        }</p>
-                        <p><strong>Tệp đính kèm/Attached File:</strong> ${
-                          proposal.fileMetadata && proposal.fileMetadata.link
-                            ? `<a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
-                            : "Không có tệp đính kèm/No File Attached"
-                        }</p>
-                      </div>`
-                  )
-                  .join("")}
-              </div>`;
-
-            // Generate approvers section
-            const approversHTML = doc.approvers
-              .map(
-                (approver) => `
-                  <div>
-                    <p>${approver.username} (${approver.subRole})</p>
-                  </div>`
-              )
-              .join("");
-
-            // Generate approved by section
-            const approvedByHTML = doc.approvedBy
-              .map(
-                (approver) => `
-                  <div>
-                    <p>${approver.username} (${approver.role}) - ${approver.approvalDate}</p>
-                  </div>`
-              )
-              .join("");
-
-            // Generate file metadata link
-            const fileMetadataHTML = doc.fileMetadata
-              ? `<a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a>`
-              : "Không có tệp đính kèm/No File Attached";
-
-            // Insert a new row in the purchasing table
-            const row = purchasingTableBody.insertRow();
-            row.innerHTML = `
-              <td>${doc._id}</td>
-              <td>${productTable}</td>
-              <td>${doc.grandTotalCost.toLocaleString()}</td>
-              <td>${fileMetadataHTML}</td>
-              <td>${approversHTML || "N/A"}</td>
-              <td>${approvedByHTML || "N/A"}</td>
-              <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
-              <td>${appendedProposalsContent || "N/A"}</td>
-              <td>
-                <form action="/approveDocument/${doc._id}" method="POST">
-                  <button type="submit">Phê duyệt/Approve</button>
-                </form>
-                <form action="/deleteDocument/${
-                  doc._id
-                }" method="POST" onsubmit="return confirm('Are you sure?')">
-                  <button type="submit">Xóa/Delete</button>
-                </form>
-              </td>`;
           } else if (doc.title === "Report Document") {
-            let appendedPurchasingDoc = "N/A";
-            if (doc.appendedPurchasingDocument) {
-              // Process products
-              const products = doc.appendedPurchasingDocument.products
-                .map(
-                  (product) =>
-                    `<p>${
-                      product.productName
-                    }: ${product.amount.toLocaleString()} đơn vị với đơn giá là ${product.costPerUnit.toLocaleString()} 
-                      (Tổng tiền: ${product.totalCost.toLocaleString()}) 
-                      (Ghi chú: ${
-                        product.note || "Không có ghi chú/No Note"
-                      })</p>`
-                )
-                .join("");
+            let appendedPurchasingDocs = "N/A";
+            let appendedProposalsContent = "N/A";
 
-              // Handle file metadata directly from appendedPurchasingDocument
-              const fileMetadata = doc.appendedPurchasingDocument.fileMetadata
-                ? `<p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong> 
-                      <a href="${doc.appendedPurchasingDocument.fileMetadata.link}" target="_blank">
-                        ${doc.appendedPurchasingDocument.fileMetadata.name}
-                      </a>
-                    </p>`
-                : "<p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong></p>";
+            if (
+              doc.appendedPurchasingDocuments &&
+              doc.appendedPurchasingDocuments.length > 0
+            ) {
+              // Process purchasing documents - horizontal layout
+              appendedPurchasingDocs = `
+                <div class="documents-container" style="display: flex; gap: 1rem; overflow: auto; padding-bottom: 1rem;">
+                  ${doc.appendedPurchasingDocuments
+                    .map((purchDoc) => {
+                      // Process products
+                      const products = purchDoc.products
+                        .map(
+                          (product) =>
+                            `<li>
+                                <strong>${product.productName}</strong><br>
+                                Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
+                                Số lượng/Amount: ${product.amount.toLocaleString()}<br>
+                                Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
+                                Ghi chú/Notes: ${product.note || "None"}
+                            </li>`
+                        )
+                        .join("");
 
-              // Process appended content
-              const appendedContent =
-                doc.appendedPurchasingDocument.appendedContent
-                  .map(
-                    (content) =>
-                      `<div>
-                        <p><strong>Công việc/Task:</strong> ${content.task}</p>
-                        <p><strong>Trạm/Center:</strong> ${
-                          content.costCenter
-                        }</p>
-                        <p><strong>Mô tả chi tiết/Details Description:</strong> ${
-                          content.detailsDescription
-                        }</p>
-                        ${
-                          content.fileMetadata
-                            ? `<p><strong>Tệp đính kèm phiếu đề xuất/File attaches to proposal document:</strong> 
-                                <a href="${content.fileMetadata.link}" target="_blank">${content.fileMetadata.name}</a>
-                              </p>`
-                            : "<p><strong>Tệp đính kèm phiếu đề xuất/File attaches to proposal document:</strong></p>"
-                        }
-                      </div>`
-                  )
-                  .join("");
+                      // Handle file metadata
+                      const fileMetadata = purchDoc.fileMetadata
+                        ? `<p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong> 
+                            <a href="${purchDoc.fileMetadata.link}" target="_blank">${purchDoc.fileMetadata.name}</a></p>`
+                        : "";
 
-              // Combine everything into appendedPurchasingDoc
-              appendedPurchasingDoc = `
-                <div>
-                  <p><strong>Ngày nộp/Submission Date:</strong> ${
-                    doc.appendedPurchasingDocument.submissionDate
-                  }</p>
-                  <p><strong>Chi phí/Grand Total Cost:</strong> ${doc.appendedPurchasingDocument.grandTotalCost.toLocaleString()}</p>
-                  <p><strong>Sản phẩm/Products:</strong><br>${products}</p>
-                  ${fileMetadata}
-                  ${appendedContent}
-                </div>
-              `;
+                      return `
+                        <div class="purchasing-doc" style="flex: 0 0 300px; max-width: 300px; padding: 1rem; border: 1px solid #ddd; border-radius: 8px;">
+                          <p><strong>Tổng chi phí/Total Cost:</strong> ${purchDoc.grandTotalCost.toLocaleString()}</p>
+                          <p><strong>Sản phẩm/Products:</strong></p>
+                          <ul style="margin: 0; padding-left: 1.2rem;">${products}</ul>
+                          ${fileMetadata}
+                        </div>`;
+                    })
+                    .join("")}
+                </div>`;
+
+              // Process appended proposals separately - horizontal layout
+              const allProposals = doc.appendedPurchasingDocuments
+                .flatMap((purchDoc) => purchDoc.appendedProposals)
+                .filter((proposal) => proposal); // Filter out any undefined/null proposals
+
+              if (allProposals.length > 0) {
+                appendedProposalsContent = `
+                  <div class="proposals-container" style="display: flex; gap: 1rem; overflow: auto; padding-bottom: 1rem;">
+                    ${allProposals
+                      .map(
+                        (proposal) =>
+                          `<div class="proposal-card" style="flex: 0 0 300px; max-width: 300px; padding: 1rem; border: 1px solid #ddd; border-radius: 8px;">
+                            <p><strong>Công việc/Task:</strong> ${
+                              proposal.task
+                            }</p>
+                            <p><strong>Trạm/Center:</strong> ${
+                              proposal.costCenter
+                            }</p>
+                            <p><strong>Mô tả/Description:</strong> ${
+                              proposal.detailsDescription
+                            }</p>
+                            ${
+                              proposal.fileMetadata
+                                ? `<p><strong>Tệp đính kèm/File:</strong> 
+                                   <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
+                                : ""
+                            }
+                          </div>`
+                      )
+                      .join("")}
+                  </div>`;
+              }
             }
 
             const row = reportTableBody.insertRow();
             row.innerHTML = `
               <td>${doc._id}</td>
-              <td>${doc.tags}</td>
-              <td>${doc.postPurchasingReport}</td>
-              <td>${appendedPurchasingDoc}</td>
+              <td>${doc.paymentMethod}</td>
+              <td>${doc.amountOfMoney.toLocaleString()}</td>
+              <td>${doc.paid.toLocaleString()}</td>
+              <td>${doc.paymentDeadline}</td>
+              <td>${appendedPurchasingDocs}</td>
+              <td>${appendedProposalsContent}</td>
               <td>
                 ${
                   doc.fileMetadata
