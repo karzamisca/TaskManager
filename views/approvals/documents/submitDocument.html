@@ -392,17 +392,25 @@
 
         <!-- Dropdown for selecting Purchasing Document to append -->
         <div id="append-purchasing-documents-section" style="display: none">
-          <label for="purchasingDocumentsDropdown"
-            >Select Purchasing Documents to Append</label
-          >
-          <select
-            id="purchasingDocumentsDropdown"
-            name="approvedPurchasingDocuments[]"
-            multiple
-          >
-            <option value="">Select one or more purchasing documents</option>
-            <!-- Populate options dynamically -->
+          <label for="purchasingDocumentsDropdown">
+            Chọn phiếu mua hàng để kèm theo/Select a Purchasing Document to
+            Append
+          </label>
+          <select id="purchasingDocumentsDropdown">
+            <option value="">
+              Chọn phiếu mua hàng để kèm theo/Select a purchasing document
+            </option>
+            <!-- Options populated dynamically -->
           </select>
+          <button type="button" id="add-purchasing-document-btn">
+            Thêm phiếu mua hàng kèm theo /Append purchasing document
+          </button>
+        </div>
+
+        <!-- List of appended purchasing documents -->
+        <div id="appendedPurchasingDocumentsList">
+          <h3>Chọn phiếu mua hàng/Selected Purchasing Documents:</h3>
+          <ul id="purchasingDocumentsList"></ul>
         </div>
 
         <!-- Preview of the selected Purchasing Document -->
@@ -711,6 +719,9 @@
         const purchasingDocs = await response.json();
         const dropdown = document.getElementById("purchasingDocumentsDropdown");
 
+        // Populate dropdown options
+        dropdown.innerHTML =
+          '<option value="">Select a purchasing document</option>';
         purchasingDocs.forEach((doc) => {
           const option = document.createElement("option");
           option.value = doc._id;
@@ -719,87 +730,132 @@
         });
       }
 
+      // Add selected purchasing document to the list
       document
-        .getElementById("purchasingDocumentsDropdown")
-        .addEventListener("change", async function () {
-          const selectedDocIds = Array.from(this.selectedOptions).map(
-            (option) => option.value
+        .getElementById("add-purchasing-document-btn")
+        .addEventListener("click", async () => {
+          const dropdown = document.getElementById(
+            "purchasingDocumentsDropdown"
           );
-          const previewsContainer = document.getElementById(
-            "purchasingDocumentPreview"
+          const selectedDocId = dropdown.value;
+          const purchasingDocumentsList = document.getElementById(
+            "purchasingDocumentsList"
           );
-          previewsContainer.innerHTML = ""; // Clear previous previews
 
-          for (const docId of selectedDocIds) {
-            const response = await fetch(`/purchasingDocument/${docId}`);
+          if (!selectedDocId) {
+            alert(
+              "Xin hãy chọn phiếu mua hàng/Please select a purchasing document."
+            );
+            return;
+          }
+
+          // Check if the document is already added
+          if (document.querySelector(`#doc-${selectedDocId}`)) {
+            alert(
+              "Bạn đã thêm phiếu này rồi/This document has already been added."
+            );
+            return;
+          }
+
+          // Fetch and display the purchasing document details
+          try {
+            const response = await fetch(
+              `/purchasingDocument/${selectedDocId}`
+            );
+            if (!response.ok)
+              throw new Error("Failed to fetch document details.");
             const doc = await response.json();
-            // Render each document preview (similar to your existing preview logic)
-            previewsContainer.innerHTML += `
-            <div>
-                <h4>Purchasing Document ${docId}</h4>
-                <p><strong>Total Cost:</strong> ${doc.grandTotalCost}</p>
-                <!-- Add other details as needed -->
-            </div>
-        `;
+
+            const listItem = document.createElement("li");
+            listItem.id = `doc-${selectedDocId}`;
+            listItem.innerHTML = `
+              <strong>Mã/ID:</strong> ${doc._id}<br>
+              <strong>Tình trạng phê duyệt/Approval Status:</strong> ${
+                doc.approved
+                  ? "Đã phê duyệt/Approved"
+                  : "Chưa phê duyệt/Pending"
+              }<br>
+              <strong>Chi phí/Grand Total Cost:</strong> ${doc.grandTotalCost.toLocaleString()}<br>
+              <h3>Sản phẩm/Products:</h3>
+              <ul>
+                  ${doc.products
+                    .map(
+                      (product) => `
+                              <li>
+                                  <strong>${product.productName}</strong><br>
+                                  Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
+                                  Số lượng/Amount: ${product.amount.toLocaleString()}<br>
+                                  Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
+                                  Ghi chú/Notes: ${product.note || "None"}
+                              </li>
+                          `
+                    )
+                    .join("")}
+              </ul>
+              <h2>Các phiếu đề xuất đính kèm/Appended Proposals:</h2>
+              ${
+                doc.appendedProposals.length > 0
+                  ? doc.appendedProposals
+                      .map(
+                        (proposal) => `
+                                    <li>
+                                      <strong>${proposal.task}</strong><br>
+                                      Trạm/Center: ${proposal.costCenter}<br>
+                                      Ngày xảy ra lỗi/Date of Error: ${
+                                        proposal.dateOfError
+                                      }<br>
+                                      Mô tả chi tiết/Details Description: ${
+                                        proposal.detailsDescription
+                                      } <br>
+                                      Hướng xử lý/Direction: ${
+                                        proposal.direction
+                                      }<br>
+                                      ${
+                                        proposal.fileMetadata
+                                          ? `Tệp đính kèm phiếu đề xuất/Attached File to Proposal Document: 
+                                              <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
+                                          : ""
+                                      }<br>
+                                    </li>
+                                `
+                      )
+                      .join("")
+                  : "<p>Không có phiếu đề xuất đính kèm/No appended proposals.</p>"
+              }
+              ${
+                doc.fileMetadata
+                  ? `<p><strong>Tệp đính kèm phiếu báo cáo/Attached File:</strong> 
+                        <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
+                  : "<p>Không có tệp đính kèm/No file attached.</p>"
+              }
+              <button type="button" onclick="removePurchasingDocument('${selectedDocId}')">Remove</button>
+          `;
+
+            purchasingDocumentsList.appendChild(listItem);
+
+            // Add hidden input for form submission
+            const hiddenInput = document.createElement("input");
+            hiddenInput.type = "hidden";
+            hiddenInput.name = "approvedPurchasingDocuments[]";
+            hiddenInput.value = selectedDocId;
+            hiddenInput.id = `input-${selectedDocId}`;
+            document.getElementById("submit-form").appendChild(hiddenInput);
+          } catch (error) {
+            console.error("Error fetching document details:", error);
+            alert("Failed to add the purchasing document. Please try again.");
           }
         });
 
-      async function previewPurchasingDocument(docId) {
-        const response = await fetch(`/purchasingDocument/${docId}`);
-        const doc = await response.json();
-
-        const productDetails = document.getElementById("productDetails");
-        const appendedContentDetails = document.getElementById(
-          "appendedContentDetails"
-        );
-
-        productDetails.innerHTML = doc.products
-          .map(
-            (product) => `
-              <p>Tên sản phẩm/Product name: ${product.productName}</p> 
-              <p>Số lượng/Amount: ${product.amount.toLocaleString()}</p>
-              <p>Đơn giá/Unit Price: ${product.costPerUnit.toLocaleString()}</p>
-              <p>Thành tiền/Cost: ${product.totalCost.toLocaleString()}</p>
-              <p>Ghi chú/Note: ${
-                product.note || "Không có ghi chú/No Note"
-              }</p>`
-          )
-          .join("");
-
-        // Add the file metadata outside of the products map
-        if (doc.fileMetadata) {
-          productDetails.innerHTML += `
-            <p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong></p> 
-            <p><a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`;
-        } else {
-          productDetails.innerHTML += `
-            <p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong></p>`;
-        }
-
-        appendedContentDetails.innerHTML = `
-          <p><strong>Ngày nộp/Submission Date:</strong> ${
-            doc.submissionDate
-          }</p>
-          <p><strong>Chi phí/Grand Total Cost:</strong> ${doc.grandTotalCost.toLocaleString()}</p>
-        ${doc.appendedProposals
-          .map(
-            (content) =>
-              `<p><strong>Công việc/Task:</strong> ${content.task}</p>
-               <p><strong>Trạm/Center:</strong> ${content.costCenter}</p>
-               <p><strong>Mô tả chi tiết/Details Description:</strong> ${content.detailsDescription}</p>
-               <p><strong>Tệp đính kèm phiếu đề xuất/File attaches to proposal document:</strong></p>
-               <p><a href="${content.fileMetadata.link}" target="_blank">${content.fileMetadata.name}</a></p>`
-          )
-          .join("")}
-      `;
-
-        document.getElementById("purchasingDocumentPreview").style.display =
-          "block";
+      // Remove a purchasing document
+      function removePurchasingDocument(docId) {
+        document.getElementById(`doc-${docId}`).remove();
+        document.getElementById(`input-${docId}`).remove();
       }
 
       fetchApprovedDocuments();
       fetchApprovers();
       fetchApprovedProposals();
+      fetchPurchasingDocuments();
 
       document
         .getElementById("submit-form")
