@@ -6,7 +6,7 @@ const mongoose = require("mongoose");
 const moment = require("moment-timezone");
 const ProposalDocument = require("../models/ProposalDocument");
 const PurchasingDocument = require("../models/PurchasingDocument.js");
-const ReportDocument = require("../models/ReportDocument");
+const PaymentDocument = require("../models/PaymentDocument.js");
 const drive = require("../middlewares/googleAuthMiddleware.js");
 const multer = require("multer");
 const fs = require("fs");
@@ -15,7 +15,7 @@ const {
   createGenericDocTemplate,
   createProposalDocTemplate,
   createPurchasingDocTemplate,
-  createReportDocTemplate,
+  createPaymentDocTemplate,
 } = require("../utils/docxTemplates");
 // Configure multer
 const storage = multer.diskStorage({
@@ -171,7 +171,7 @@ exports.exportDocumentToDocx = async (req, res) => {
       (await Document.findById(id)) ||
       (await ProposalDocument.findById(id)) ||
       (await PurchasingDocument.findById(id)) ||
-      (await ReportDocument.findById(id));
+      (await PaymentDocument.findById(id));
 
     if (!doc) {
       return res.status(404).send("Không tìm thấy tài liệu/Document not found");
@@ -189,8 +189,8 @@ exports.exportDocumentToDocx = async (req, res) => {
         case "Purchasing Document":
           buffer = await createPurchasingDocTemplate(doc);
           break;
-        case "Report Document":
-          buffer = await createReportDocTemplate(doc);
+        case "Payment Document":
+          buffer = await createPaymentDocTemplate(doc);
           break;
         default:
           return res.send(
@@ -354,7 +354,7 @@ exports.submitDocument = async (req, res) => {
             .tz("Asia/Bangkok")
             .format("DD-MM-YYYY HH:mm:ss"),
         });
-      } else if (title === "Report Document") {
+      } else if (title === "Payment Document") {
         let appendedPurchasingDocuments = [];
         if (
           req.body.approvedPurchasingDocuments &&
@@ -371,8 +371,9 @@ exports.submitDocument = async (req, res) => {
           );
         }
 
-        newDocument = new ReportDocument({
+        newDocument = new PaymentDocument({
           title,
+          name: req.body.name,
           paymentMethod: req.body.paymentMethod,
           amountOfMoney: req.body.amountOfMoney,
           paid: req.body.paid,
@@ -437,7 +438,7 @@ exports.getPendingDocument = async (req, res) => {
     const pendingGenericDocs = await Document.find({
       approved: false,
     }).populate("submittedBy", "username");
-    const pendingReportDocs = await Document.find({
+    const pendingPaymentDocs = await Document.find({
       approved: false,
     }).populate("submittedBy", "username");
 
@@ -448,7 +449,7 @@ exports.getPendingDocument = async (req, res) => {
         pendingGenericDocs: JSON.stringify(pendingGenericDocs),
         pendingProposalDocs: JSON.stringify(pendingProposalDocs),
         pendingPurchasingDocs: JSON.stringify(pendingPurchasingDocs),
-        pendingReportDocs: JSON.stringify(pendingReportDocs),
+        pendingPaymentDocs: JSON.stringify(pendingPaymentDocs),
       }
     );
   } catch (err) {
@@ -472,7 +473,7 @@ exports.approveDocument = async (req, res) => {
       (await Document.findById(id)) ||
       (await ProposalDocument.findById(id)) ||
       (await PurchasingDocument.findById(id)) ||
-      (await ReportDocument.findById(id));
+      (await PaymentDocument.findById(id));
 
     if (!document) {
       return res.send("Không tìm thấy tài liệu/Document not found");
@@ -521,8 +522,8 @@ exports.approveDocument = async (req, res) => {
       await PurchasingDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof ProposalDocument) {
       await ProposalDocument.findByIdAndUpdate(id, document);
-    } else if (document instanceof ReportDocument) {
-      await ReportDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof PaymentDocument) {
+      await PaymentDocument.findByIdAndUpdate(id, document);
     } else {
       await Document.findByIdAndUpdate(id, document);
     }
@@ -545,7 +546,7 @@ exports.getApprovedDocument = async (req, res) => {
     const approvedPurchasingDocs = await PurchasingDocument.find({
       approved: true,
     }).populate("submittedBy", "username");
-    const approvedReportDocs = await ReportDocument.find({
+    const approvedPaymentDocs = await PaymentDocument.find({
       approved: true,
     }).populate("submittedBy", "username");
 
@@ -559,7 +560,7 @@ exports.getApprovedDocument = async (req, res) => {
         approvedGenericDocs: JSON.stringify(approvedGenericDocs),
         approvedProposalDocs: JSON.stringify(approvedProposalDocs),
         approvedPurchasingDocs: JSON.stringify(approvedPurchasingDocs),
-        approvedReportDocs: JSON.stringify(approvedReportDocs),
+        approvedPaymentDocs: JSON.stringify(approvedPaymentDocs),
       }
     );
   } catch (err) {
@@ -585,8 +586,8 @@ exports.getPendingDocumentApi = async (req, res) => {
       approved: false,
     }).populate("submittedBy", "username");
 
-    // Fetch pending report documents
-    const pendingReportDocs = await ReportDocument.find({
+    // Fetch pending payment documents
+    const pendingPaymentDocs = await PaymentDocument.find({
       approved: false,
     }).populate("submittedBy", "username");
 
@@ -595,7 +596,7 @@ exports.getPendingDocumentApi = async (req, res) => {
       ...pendingGenericDocs,
       ...pendingProposalDocs,
       ...pendingPurchasingDocs,
-      ...pendingReportDocs,
+      ...pendingPaymentDocs,
     ];
 
     // Return combined pending documents as JSON
@@ -625,8 +626,8 @@ exports.getApprovedDocumentApi = async (req, res) => {
       approved: true,
     }).populate("submittedBy", "username");
 
-    // Fetch approved report documents
-    const approvedReportDocs = await ReportDocument.find({
+    // Fetch approved payment documents
+    const approvedPaymentDocs = await PaymentDocument.find({
       approved: true,
     }).populate("submittedBy", "username");
 
@@ -635,7 +636,7 @@ exports.getApprovedDocumentApi = async (req, res) => {
       ...approvedGenericDocs,
       ...approvedProposalDocs,
       ...approvedPurchasingDocs,
-      ...approvedReportDocs,
+      ...approvedPaymentDocs,
     ];
 
     // Return combined approved documents as JSON
@@ -665,8 +666,8 @@ exports.deleteDocument = async (req, res) => {
     }
 
     if (!document && documentType === "Generic") {
-      document = await ReportDocument.findById(id);
-      if (document) documentType = "Report";
+      document = await PaymentDocument.findById(id);
+      if (document) documentType = "Payment";
     }
 
     if (!document) {
@@ -678,8 +679,8 @@ exports.deleteDocument = async (req, res) => {
       await ProposalDocument.findByIdAndDelete(id);
     } else if (documentType === "Purchasing") {
       await PurchasingDocument.findByIdAndDelete(id);
-    } else if (documentType === "Report") {
-      await ReportDocument.findByIdAndDelete(id);
+    } else if (documentType === "Payment") {
+      await PaymentDocument.findByIdAndDelete(id);
     } else {
       await Document.findByIdAndDelete(id);
     }

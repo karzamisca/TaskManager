@@ -330,7 +330,7 @@
           <option value="Purchasing Document">
             Phiếu mua hàng/Purchasing Document
           </option>
-          <option value="Report Document">
+          <option value="Payment Document">
             Phiếu thanh toán/Payment Document
           </option>
         </select>
@@ -540,11 +540,13 @@
             <button type="button" onclick="addProductEntry()">Thêm sản phẩm/Add More Products</button>
           `;
             approvedProposalSection.style.display = "block";
-          } else if (selectedTitle === "Report Document") {
+          } else if (selectedTitle === "Payment Document") {
             appendPurchasingSection.style.display = "block"; // Show dropdown for Purchasing Document
             fetchPurchasingDocuments(); // Fetch available Purchasing Documents
-            // Add fields for Report Document
+            // Add fields for Payment Document
             contentFields.innerHTML = `
+            <label for="name">Tên/Name</label>
+            <input type="text" name="name" required />
             <label for="paymentMethod">Hình thức thanh toán/Payment Method</label>
             <input type="text" name="paymentMethod" required />
             <label for="amountOfMoney">Số tiền/Amount Of Money</label>

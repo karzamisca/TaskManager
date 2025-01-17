@@ -406,7 +406,7 @@ const createPurchasingDocTemplate = async (doc) => {
   return Packer.toBuffer(docContent);
 };
 
-const createReportDocTemplate = async (doc) => {
+const createPaymentDocTemplate = async (doc) => {
   // Populate necessary fields
   await doc.populate("submittedBy", "username");
   await doc.populate({
@@ -427,7 +427,7 @@ const createReportDocTemplate = async (doc) => {
           new Paragraph({
             children: [
               new TextRun({
-                text: `${doc.title}/Report Document`,
+                text: `Phiếu thanh toán/${doc.title}`,
                 bold: true,
                 size: 32,
               }),
@@ -469,7 +469,7 @@ const createReportDocTemplate = async (doc) => {
 
           // Main File Metadata Section
           new Paragraph({
-            text: "Tệp đính kèm phiếu báo cáo/File attaches to report document:",
+            text: "Tệp đính kèm phiếu thanh toán/File attaches to payment document:",
             bold: true,
           }),
           doc.fileMetadata
@@ -714,5 +714,5 @@ module.exports = {
   createGenericDocTemplate,
   createProposalDocTemplate,
   createPurchasingDocTemplate,
-  createReportDocTemplate,
+  createPaymentDocTemplate,
 };

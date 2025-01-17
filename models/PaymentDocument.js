@@ -1,8 +1,9 @@
-// models/ReportDocument.js
+// models/PaymentDocument.js
 const mongoose = require("mongoose");
 
-const reportDocumentSchema = new mongoose.Schema({
-  title: { type: String, default: "Report Document", required: true },
+const paymentDocumentSchema = new mongoose.Schema({
+  title: { type: String, default: "Payment Document", required: true },
+  name: { type: String, required: true },
   paymentMethod: { type: String, required: true },
   amountOfMoney: { type: Number, required: true },
   paid: { type: Number, required: true },
@@ -41,4 +42,4 @@ const reportDocumentSchema = new mongoose.Schema({
   approved: { type: Boolean, default: false },
 });
 
-module.exports = mongoose.model("ReportDocument", reportDocumentSchema);
+module.exports = mongoose.model("PaymentDocument", paymentDocumentSchema);

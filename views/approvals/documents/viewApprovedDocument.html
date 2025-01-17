@@ -134,7 +134,6 @@
         margin: 0.5rem 0;
       }
 
-      th,
       td {
         border: 1px solid var(--border-color);
         padding: 0.75rem;
@@ -280,12 +279,13 @@
         </table>
       </div>
 
-      <h2>Phiếu báo cáo đã phê duyệt/Approved Report Documents</h2>
+      <h2>Phiếu thanh toán đã phê duyệt/Approved Payment Documents</h2>
       <div class="table-container">
-        <table id="approved-report-documents">
+        <table id="approved-payment-documents">
           <thead>
             <tr>
               <th>Mã/ID</th>
+              <th>Tên/Name</th>
               <th>Phương thức thanh toán/Payment Method</th>
               <th>Số tiền/Amount of Money</th>
               <th>Đã thanh toán/Paid</th>
@@ -347,14 +347,14 @@
         const purchasingTableBody = document.querySelector(
           "#approved-purchasing-documents tbody"
         );
-        const reportTableBody = document.querySelector(
-          "#approved-report-documents tbody"
+        const paymentTableBody = document.querySelector(
+          "#approved-payment-documents tbody"
         );
 
         genericTableBody.innerHTML = "";
         proposalTableBody.innerHTML = "";
         purchasingTableBody.innerHTML = "";
-        reportTableBody.innerHTML = "";
+        paymentTableBody.innerHTML = "";
 
         if (documents.length === 0) {
           genericTableBody.innerHTML =
@@ -363,8 +363,8 @@
             "<tr><td colspan='10'>Chưa có phiếu đề xuất đã duyệt/No approved proposal documents.</td></tr>";
           purchasingTableBody.innerHTML =
             "<tr><td colspan='8'>Chưa có phiếu mua hàng đã duyệt/No approved purchasing documents.</td></tr>";
-          reportTableBody.innerHTML =
-            "<tr><td colspan='8'>Chưa có phiếu báo cáo đã duyệt/No approved report documents.</td></tr>";
+          paymentTableBody.innerHTML =
+            "<tr><td colspan='8'>Chưa có phiếu thanh toán đã duyệt/No approved payment documents.</td></tr>";
           return;
         }
 
@@ -534,7 +534,7 @@
 
             // Append the row to the table body
             purchasingTableBody.insertAdjacentHTML("beforeend", row);
-          } else if (doc.title === "Report Document") {
+          } else if (doc.title === "Payment Document") {
             let appendedPurchasingDocs = "N/A";
             let appendedProposalsContent = "N/A";
 
@@ -612,9 +612,10 @@
               }
             }
 
-            const row = reportTableBody.insertRow();
+            const row = paymentTableBody.insertRow();
             row.innerHTML = `
               <td>${doc._id}</td>
+              <td>${doc.name}</td>
               <td>${doc.paymentMethod}</td>
               <td>${doc.amountOfMoney.toLocaleString()}</td>
               <td>${doc.paid.toLocaleString()}</td>

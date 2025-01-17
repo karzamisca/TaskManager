@@ -388,11 +388,14 @@
         </tbody>
       </table>
 
-      <h2>Phê duyệt phiếu báo cáo / Pending Report Documents for Approval</h2>
-      <table id="report-document-table">
+      <h2>
+        Phê duyệt phiếu thanh toán / Pending Payment Documents for Approval
+      </h2>
+      <table id="payment-document-table">
         <thead>
           <tr>
             <th>Mã/ID</th>
+            <th>Tên/Name</th>
             <th>Phương thức thanh toán/Payment Method</th>
             <th>Số tiền/Amount of Money</th>
             <th>Đã thanh toán/Paid</th>
@@ -474,15 +477,15 @@
         const purchasingTableBody = document
           .getElementById("purchasing-document-table")
           .getElementsByTagName("tbody")[0];
-        const reportTableBody = document
-          .getElementById("report-document-table")
+        const paymentTableBody = document
+          .getElementById("payment-document-table")
           .getElementsByTagName("tbody")[0];
 
         // Clear all tables
         genericTableBody.innerHTML = "";
         proposalTableBody.innerHTML = "";
         purchasingTableBody.innerHTML = "";
-        reportTableBody.innerHTML = "";
+        paymentTableBody.innerHTML = "";
 
         if (documents.length === 0) {
           genericTableBody.innerHTML =
@@ -491,7 +494,7 @@
             "<tr><td colspan='11'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
           purchasingTableBody.innerHTML =
             "<tr><td colspan='9'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
-          reportTableBody.innerHTML =
+          paymentTableBody.innerHTML =
             "<tr><td colspan='9'>Chưa có phiếu cần duyệt/No pending documents.</td></tr>";
           return;
         }
@@ -591,7 +594,7 @@
                   <button type="submit">Xóa/Delete</button>
                 </form>
               </td>`;
-          } else if (doc.title === "Report Document") {
+          } else if (doc.title === "Payment Document") {
             let appendedPurchasingDocs = "N/A";
             let appendedProposalsContent = "N/A";
 
@@ -669,9 +672,10 @@
               }
             }
 
-            const row = reportTableBody.insertRow();
+            const row = paymentTableBody.insertRow();
             row.innerHTML = `
               <td>${doc._id}</td>
+              <td>${doc.name}</td>
               <td>${doc.paymentMethod}</td>
               <td>${doc.amountOfMoney.toLocaleString()}</td>
               <td>${doc.paid.toLocaleString()}</td>
