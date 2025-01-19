@@ -735,11 +735,11 @@
 
         // Populate dropdown options
         dropdown.innerHTML =
-          '<option value="">Select a purchasing document</option>';
+          '<option value="">Hãy chọn một phiếu mua hàng/Select a purchasing document</option>';
         purchasingDocs.forEach((doc) => {
           const option = document.createElement("option");
           option.value = doc._id;
-          option.textContent = doc._id;
+          option.textContent = doc.submissionDate;
           dropdown.appendChild(option);
         });
       }
