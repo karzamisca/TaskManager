@@ -4,23 +4,29 @@ const PaymentDocument = require("../models/PaymentDocument");
 const ProposalDocument = require("../models/ProposalDocument");
 const PurchasingDocument = require("../models/PurchasingDocument");
 
-exports.createGroup = (req, res) => {
-  const { name, description } = req.body;
+// Add a new group
+exports.createGroup = async (req, res) => {
+  try {
+    const { name, description } = req.body;
 
-  const newGroup = new Group({
-    name,
-    description,
-  });
+    // Check if group already exists
+    const existingGroup = await Group.findOne({ name });
+    if (existingGroup) {
+      return res.json({ message: "Group name already exists" });
+    }
 
-  newGroup
-    .save()
-    .then(() => {
-      res.redirect("/group");
-    })
-    .catch((err) => {
-      console.log("Error creating group:", err);
-      res.status(500).send("Internal Server Error");
+    // Create new group
+    const group = new Group({
+      name,
+      description,
     });
+
+    await group.save();
+    res.status(201).json(group);
+  } catch (error) {
+    console.error("Error creating group:", error);
+    res.status(500).send("Internal Server Error");
+  }
 };
 
 // New method to get all groups as JSON

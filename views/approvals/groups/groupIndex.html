@@ -271,6 +271,14 @@
         <button type="submit">Tạo nhóm/Create Group</button>
       </form>
     </section>
+
+    <section>
+      <h2>Các nhóm hiện tại/Current Groups</h2>
+      <div id="group-names">
+        <!-- Group names will be dynamically added here -->
+      </div>
+    </section>
+
     <footer>
       <a href="/mainDocument">Trở về/Back</a>
     </footer>
@@ -479,6 +487,36 @@
             error
           )
         );
+
+      // Fetch group names from /getGroup and display them
+      fetch("/getGroup")
+        .then((response) => response.json())
+        .then((groups) => {
+          const groupNamesContainer = document.getElementById("group-names");
+
+          if (Array.isArray(groups) && groups.length > 0) {
+            const groupList = document.createElement("ul");
+
+            groups.forEach((group) => {
+              const listItem = document.createElement("li");
+              listItem.textContent = group.name; // Assuming group objects have a `name` property
+              groupList.appendChild(listItem);
+            });
+
+            groupNamesContainer.appendChild(groupList);
+          } else {
+            groupNamesContainer.textContent =
+              "Không có nhóm nào/No groups found.";
+          }
+        })
+        .catch((error) => {
+          console.error(
+            "Lỗi khi lấy danh sách nhóm/Error fetching groups:",
+            error
+          );
+          document.getElementById("group-names").textContent =
+            "Lỗi khi tải danh sách nhóm/Error loading groups.";
+        });
     </script>
   </body>
 </html>
