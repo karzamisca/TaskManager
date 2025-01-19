@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phiếu theo nhóm/Grouped Documents</title>
+  </head>
+  <style>
+    /* Base styles and CSS reset */
+    :root {
+      --primary-color: #2563eb;
+      --background-color: #ffffff;
+      --text-color: #1f2937;
+      --border-color: #e5e7eb;
+      --hover-color: #f3f4f6;
+      --section-bg: #f9fafb;
+      --shadow-color: rgba(0, 0, 0, 0.1);
+    }
+
+    /* Dark mode colors */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --primary-color: #3b82f6;
+        --background-color: #1f2937;
+        --text-color: #f3f4f6;
+        --border-color: #374151;
+        --hover-color: #374151;
+        --section-bg: #111827;
+        --shadow-color: rgba(0, 0, 0, 0.25);
+      }
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      line-height: 1.6;
+      color: var(--text-color);
+      background-color: var(--background-color);
+      padding: 1rem;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* Header styles */
+    header {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    header h1 {
+      font-size: clamp(1.5rem, 4vw, 2.5rem);
+      margin-bottom: 1rem;
+    }
+
+    header a {
+      color: var(--primary-color);
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      border: 1px solid var(--primary-color);
+      display: inline-block;
+      transition: all 0.2s;
+    }
+
+    header a:hover {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    /* Footer styles */
+    footer {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    footer h1 {
+      font-size: clamp(1.5rem, 4vw, 2.5rem);
+      margin-bottom: 1rem;
+    }
+
+    footer a {
+      color: var(--primary-color);
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      border: 1px solid var(--primary-color);
+      display: inline-block;
+      transition: all 0.2s;
+    }
+
+    footer a:hover {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    /* Section styles */
+    section {
+      overflow: auto;
+      max-height: 1000px;
+      background: var(--section-bg);
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 4px var(--shadow-color);
+    }
+
+    section h2 {
+      font-size: clamp(1.25rem, 3vw, 1.875rem);
+      margin-bottom: 1.5rem;
+      color: var(--text-color);
+    }
+
+    /* Form styles */
+    form {
+      display: grid;
+      gap: 1.5rem;
+      max-width: 600px;
+    }
+
+    form div {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    label {
+      font-weight: 500;
+    }
+
+    input,
+    textarea {
+      padding: 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: 0.375rem;
+      background-color: var(--background-color);
+      color: var(--text-color);
+    }
+
+    input:focus,
+    textarea:focus {
+      outline: 2px solid var(--primary-color);
+      outline-offset: -1px;
+    }
+
+    button {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.375rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    /* Document list styles */
+    #grouped-documents section {
+      background-color: var(--background-color);
+    }
+
+    #grouped-documents h3 {
+      font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+      margin-bottom: 1rem;
+      color: var(--primary-color);
+    }
+
+    ul {
+      list-style: none;
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    li {
+      padding: 1.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: 0.375rem;
+      background-color: var(--section-bg);
+      transition: transform 0.2s;
+    }
+
+    li:hover {
+      transform: translateY(-2px);
+    }
+
+    /* Document content styles */
+    li strong {
+      color: var(--primary-color);
+    }
+
+    li p {
+      margin: 0.5rem 0;
+    }
+
+    li a {
+      color: var(--primary-color);
+      text-decoration: none;
+    }
+
+    li a:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 640px) {
+      body {
+        padding: 0.5rem;
+      }
+
+      section {
+        padding: 1rem;
+      }
+
+      li {
+        padding: 1rem;
+      }
+    }
+
+    /* Print styles */
+    @media print {
+      body {
+        background: white;
+        color: black;
+      }
+
+      section {
+        box-shadow: none;
+        border: 1px solid #ddd;
+      }
+
+      header a,
+      button {
+        display: none;
+      }
+    }
+  </style>
+  <body>
+    <header>
+      <h1>Phiếu theo nhóm/Grouped Documents</h1>
+      <a href="/mainDocument">Trở về/Back</a>
+    </header>
+
+    <!-- Display Grouped Documents -->
+    <section>
+      <h2>Phiếu theo nhóm/Grouped Documents</h2>
+      <div id="grouped-documents">
+        <!-- Tài liệu nhóm sẽ được thêm vào đây/Dynamically added grouped documents will appear here -->
+      </div>
+    </section>
+
+    <!-- Create Group Form -->
+    <section>
+      <h2>Tạo nhóm mới/Create a New Group</h2>
+      <form action="/createGroup" method="POST">
+        <div>
+          <label for="name">Tên nhóm/Group Name:</label>
+          <input type="text" id="name" name="name" required />
+        </div>
+        <div>
+          <label for="description">Mô tả/Description:</label>
+          <textarea id="description" name="description" required></textarea>
+        </div>
+        <button type="submit">Tạo nhóm/Create Group</button>
+      </form>
+    </section>
+    <footer>
+      <a href="/mainDocument">Trở về/Back</a>
+    </footer>
+
+    <script>
+      // Lấy tài liệu nhóm từ API backend/Fetch grouped documents from the backend API
+      fetch("/getGroupedDocuments")
+        .then((response) => response.json())
+        .then((groupedDocuments) => {
+          const groupedDocumentsContainer =
+            document.getElementById("grouped-documents");
+
+          // Duyệt qua từng nhóm và hiển thị tài liệu của nó/Loop through each group and display its documents
+          for (const groupName in groupedDocuments) {
+            const group = groupedDocuments[groupName];
+
+            // Tạo một phần cho mỗi nhóm/Create a section for each group
+            const groupSection = document.createElement("section");
+            groupSection.innerHTML = `<h3>Nhóm/Group: ${groupName}</h3>`;
+
+            // Tạo danh sách tài liệu cho nhóm này/Create a list for the documents in this group
+            const documentList = document.createElement("ul");
+
+            group.forEach((doc) => {
+              const listItem = document.createElement("li");
+              let docContent = `<strong>Loại/Type: ${doc.type}</strong><br>`;
+
+              // Chi tiết tài liệu đề xuất/Proposal Document Details
+              if (doc.type === "Proposal") {
+                docContent += `
+                  <p><strong>Công việc/Task:</strong> ${doc.task}</p>
+                  <p><strong>Trạm/Center:</strong> ${doc.costCenter}</p>
+                  <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
+                    doc.dateOfError
+                  }</p>
+                  <p><strong>Mô tả chi tiết/Details Description:</strong> ${
+                    doc.detailsDescription
+                  }</p>
+                  <p><strong>Hướng xử lý/Direction:</strong> ${
+                    doc.direction
+                  }</p>
+                  ${
+                    doc.fileMetadata
+                      ? `<p><strong>Tệp đính kèm/Attached File:</strong> 
+                        <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
+                      : ""
+                  }
+                  <strong>Mã/ID:</strong> ${doc._id}<br>
+                  <strong>Tình trạng phê duyệt/Approval Status:</strong> ${
+                    doc.approved
+                      ? "Đã phê duyệt/Approved"
+                      : "Chưa phê duyệt/Pending"
+                  }<br>
+                `;
+              }
+
+              // Chi tiết tài liệu mua sắm/Purchasing Document Details
+              else if (doc.type === "Purchasing") {
+                docContent += `
+                  <strong>Sản phẩm/Products:</strong> ${doc.products
+                    .map(
+                      (product) =>
+                        `${product.productName} (Chi phí mỗi đơn vị/Cost per Unit: ${product.costPerUnit}, Số lượng/Amount: ${product.amount}, Tổng chi phí/Total Cost: ${product.totalCost})`
+                    )
+                    .join(", ")}<br>
+                  <strong>Tổng chi phí/TOTAL Grand Cost:</strong> ${doc.grandTotalCost.toLocaleString()}<br>
+                  ${
+                    doc.fileMetadata
+                      ? `<p><strong>Tệp đính kèm phiếu thanh toán/File attaches to payment document:</strong> 
+                        <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
+                      : "<p>Không có tệp đính kèm/No file attached.</p>"
+                  }
+                `;
+
+                // Hiển thị các đề xuất đã được thêm vào/Display appendedProposals (full Proposal Document details)
+                if (doc.appendedProposals && doc.appendedProposals.length > 0) {
+                  doc.appendedProposals.forEach((proposalDoc, index) => {
+                    docContent += `
+                      <strong>Đề xuất đã thêm/ Appended Proposal ${
+                        index + 1
+                      }:</strong><br>
+                      <p><strong>Công việc/Task:</strong> ${
+                        proposalDoc.task
+                      }</p>
+                      <p><strong>Trạm/Center:</strong> ${
+                        proposalDoc.costCenter
+                      }</p>
+                      <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
+                        proposalDoc.dateOfError
+                      }</p>
+                      <p><strong>Mô tả chi tiết/Details Description:</strong> ${
+                        proposalDoc.detailsDescription
+                      }</p>
+                      <p><strong>Hướng xử lý/Direction:</strong> ${
+                        proposalDoc.direction
+                      }</p>
+                      ${
+                        proposalDoc.fileMetadata
+                          ? `<p><strong>Tệp đính kèm phiếu đề xuất/Attached File to Proposal Document:</strong> 
+                            <a href="${proposalDoc.fileMetadata.link}" target="_blank">${proposalDoc.fileMetadata.name}</a></p>`
+                          : ""
+                      }
+                    `;
+                  });
+                }
+              }
+
+              // Chi tiết tài liệu thanh toán/Payment Document Details
+              else if (doc.type === "Payment") {
+                docContent += `
+                  <strong>Tên/Name:</strong> ${doc.name}<br>
+                  <strong>Phương thức thanh toán/Payment Method:</strong> ${
+                    doc.paymentMethod
+                  }<br>
+                  <strong>Số tiền/Amount of Money:</strong> ${
+                    doc.amountOfMoney
+                  }<br>
+                  <strong>Đã thanh toán/Paid:</strong> ${doc.paid}<br>
+                  <strong>Hạn thanh toán/Payment Deadline:</strong> ${
+                    doc.paymentDeadline
+                  }<br>
+                  ${
+                    doc.fileMetadata
+                      ? `<p><strong>Tệp đính kèm phiếu thanh toán/File attaches to payment document:</strong> 
+                        <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
+                      : "<p>Không có tệp đính kèm/No file attached.</p>"
+                  }
+                `;
+
+                // Hiển thị các tài liệu mua sắm đã được thêm vào/Display appendedPurchasingDocuments (full Purchasing Document details)
+                if (
+                  doc.appendedPurchasingDocuments &&
+                  doc.appendedPurchasingDocuments.length > 0
+                ) {
+                  doc.appendedPurchasingDocuments.forEach(
+                    (purchasingDoc, index) => {
+                      docContent += `
+                        <strong>Phiếu mua hàng đã thêm/Appended Purchasing Document ${
+                          index + 1
+                        }:</strong><br>
+                        <strong>Tiêu đề/Title:</strong> ${
+                          purchasingDoc.title
+                        }<br>
+                        <strong>Sản phẩm/Products:</strong> ${purchasingDoc.products
+                          .map(
+                            (product) =>
+                              `${product.productName} (Chi phí mỗi đơn vị/Cost per Unit: ${product.costPerUnit}, Số lượng/Amount: ${product.amount}, Tổng chi phí/Total Cost: ${product.totalCost})`
+                          )
+                          .join(", ")}<br>
+                        <strong>Tổng chi phí/TOTAL Grand Cost:</strong> ${purchasingDoc.grandTotalCost.toLocaleString()}<br>
+                      `;
+
+                      // Hiển thị các đề xuất đã được thêm vào cho mỗi tài liệu mua sắm/Display appendedProposals for each appended purchasing document
+                      if (
+                        purchasingDoc.appendedProposals &&
+                        purchasingDoc.appendedProposals.length > 0
+                      ) {
+                        purchasingDoc.appendedProposals.forEach(
+                          (proposalDoc, proposalIndex) => {
+                            docContent += `
+                            <strong>Phiếu đề xuất đã thêm/Appended Proposal ${
+                              proposalIndex + 1
+                            }:</strong><br>
+                            <p><strong>Công việc/Task:</strong> ${
+                              proposalDoc.task
+                            }</p>
+                            <p><strong>Trạm/Center:</strong> ${
+                              proposalDoc.costCenter
+                            }</p>
+                            <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
+                              proposalDoc.dateOfError
+                            }</p>
+                            <p><strong>Mô tả chi tiết/Details Description:</strong> ${
+                              proposalDoc.detailsDescription
+                            }</p>
+                            <p><strong>Hướng xử lý/Direction:</strong> ${
+                              proposalDoc.direction
+                            }</p>
+                            ${
+                              proposalDoc.fileMetadata
+                                ? `<p><strong>Tệp đính kèm phiếu đề xuất/Attached File to Proposal Document:</strong> 
+                                  <a href="${proposalDoc.fileMetadata.link}" target="_blank">${proposalDoc.fileMetadata.name}</a></p>`
+                                : ""
+                            }
+                          `;
+                          }
+                        );
+                      }
+                    }
+                  );
+                }
+              }
+
+              listItem.innerHTML = docContent;
+              documentList.appendChild(listItem);
+            });
+
+            // Thêm danh sách tài liệu vào phần nhóm/Append the document list to the group section
+            groupSection.appendChild(documentList);
+            groupedDocumentsContainer.appendChild(groupSection);
+          }
+        })
+        .catch((error) =>
+          console.error(
+            "Lỗi khi lấy phiếu theo nhóm/Error fetching grouped documents:",
+            error
+          )
+        );
+    </script>
+  </body>
+</html>

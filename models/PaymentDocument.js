@@ -40,6 +40,7 @@ const paymentDocumentSchema = new mongoose.Schema({
     },
   ],
   approved: { type: Boolean, default: false },
+  groupName: { type: String },
 });
 
 module.exports = mongoose.model("PaymentDocument", paymentDocumentSchema);

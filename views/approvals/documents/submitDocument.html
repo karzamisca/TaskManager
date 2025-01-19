@@ -369,22 +369,7 @@
             Documents</label
           >
           <div id="proposal-selections">
-            <div class="proposal-entry">
-              <select
-                class="approved-proposal-dropdown"
-                name="approvedProposals[]"
-                onchange="previewProposalContent(this)"
-              >
-                <option value="">Chọn phiếu đề xuất/Select a proposal</option>
-              </select>
-              <button
-                type="button"
-                class="remove-proposal"
-                onclick="removeProposalEntry(this)"
-              >
-                Xóa/Remove
-              </button>
-            </div>
+            <div class="proposal-entry"></div>
           </div>
           <button type="button" onclick="addProposalEntry()">
             Thêm phiếu đề xuất/Add Another Proposal
@@ -411,7 +396,6 @@
 
         <!-- List of appended purchasing documents -->
         <div id="appendedPurchasingDocumentsList">
-          <h3>Chọn phiếu mua hàng/Selected Purchasing Documents:</h3>
           <ul id="purchasingDocumentsList"></ul>
         </div>
 
@@ -483,7 +467,11 @@
               <textarea name="detailsDescription" rows="3" required></textarea>
               <label for="direction">Hướng xử lý/Direction</label>
               <input type="text" name="direction" required />
+              <select name="groupName" id="groupName">
+                <option value="">Chọn nhóm/Select a group</option>
+              </select>
             `;
+            populateGroupDropdown();
 
             // Fetch current user information
             fetch("/getCurrentUser")
@@ -538,7 +526,11 @@
               <label>Ghi chú/Note</label><input type="text" name="products[0][note]" />
             </div>
             <button type="button" onclick="addProductEntry()">Thêm sản phẩm/Add More Products</button>
+            <select name="groupName" id="groupName">
+              <option value="">Chọn nhóm/Select a group</option>
+            </select>
           `;
+            populateGroupDropdown();
             approvedProposalSection.style.display = "block";
           } else if (selectedTitle === "Payment Document") {
             appendPurchasingSection.style.display = "block"; // Show dropdown for Purchasing Document
@@ -555,7 +547,11 @@
             <input type="number" step="0.01" name="paid" required />
             <label for="paymentDeadline">Thời hạn trả/Payment Deadline</label>
             <input type="text" name="paymentDeadline" id="paymentDeadline" required />
+            <select name="groupName" id="groupName">
+              <option value="">Chọn nhóm/Select a group</option>
+            </select>
           `;
+            populateGroupDropdown();
             flatpickr("#paymentDeadline", {
               dateFormat: "d-m-Y",
               defaultDate: "today",
@@ -566,7 +562,11 @@
             <input type="text" name="contentName" required />
             <label for="contentText">Nội dung/Content Text</label>
             <textarea name="contentText" rows="5" required></textarea>
+            <select name="groupName" id="groupName">
+              <option value="">Chọn nhóm/Select a group</option>
+            </select>
           `;
+            populateGroupDropdown();
             addContentButton.style.display = "inline-block";
             appendApprovedDocumentsSection.style.display = "none";
           }
@@ -864,6 +864,34 @@
       function removePurchasingDocument(docId) {
         document.getElementById(`doc-${docId}`).remove();
         document.getElementById(`input-${docId}`).remove();
+      }
+
+      async function fetchGroups() {
+        try {
+          const response = await fetch("/getGroupDocument");
+          const groups = await response.json();
+          return groups;
+        } catch (error) {
+          console.error("Error fetching groups:", error);
+          return [];
+        }
+      }
+
+      async function populateGroupDropdown() {
+        const groups = await fetchGroups();
+        const groupSelect = document.getElementById("groupName");
+
+        // Clear existing options except the first one
+        groupSelect.innerHTML =
+          '<option value="">Chọn nhóm/Select a group</option>';
+
+        // Add new options
+        groups.forEach((group) => {
+          const option = document.createElement("option");
+          option.value = group.name;
+          option.textContent = group.name;
+          groupSelect.appendChild(option);
+        });
       }
 
       fetchApprovedDocuments();

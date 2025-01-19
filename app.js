@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 const authRoute = require("./routes/authRoute");
 const documentRoute = require("./routes/documentRoute");
+const groupRoute = require("./routes/groupRoute");
 const authMiddleware = require("./middlewares/authMiddleware"); // JWT middleware
 const entryRoute = require("./routes/entryRoute");
 const googleDriveRoute = require("./routes/googleDriveRoute");
@@ -37,6 +38,7 @@ if (!fs.existsSync(uploadsDir)) {
 app.use("/", authRoute);
 app.use("/", authMiddleware, googleDriveRoute);
 app.use("/", authMiddleware, documentRoute); // Apply JWT middleware to document routes
+app.use("/", authMiddleware, groupRoute);
 app.use("/", authMiddleware, entryRoute);
 app.use("/", authMiddleware, messageRoute);
 

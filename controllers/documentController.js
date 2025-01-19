@@ -287,6 +287,7 @@ exports.submitDocument = async (req, res) => {
           dateOfError: req.body.dateOfError,
           detailsDescription: req.body.detailsDescription,
           direction: req.body.direction,
+          groupName: req.body.groupName,
           submittedBy: req.user.id,
           approvers: approverDetails,
           fileMetadata: uploadedFileData, // Attach file data
@@ -347,6 +348,7 @@ exports.submitDocument = async (req, res) => {
           products: productEntries,
           grandTotalCost,
           appendedProposals,
+          groupName: req.body.groupName,
           submittedBy: req.user.id,
           approvers: approverDetails,
           fileMetadata: uploadedFileData || undefined,
@@ -378,6 +380,7 @@ exports.submitDocument = async (req, res) => {
           amountOfMoney: req.body.amountOfMoney,
           paid: req.body.paid,
           paymentDeadline: req.body.paymentDeadline,
+          groupName: req.body.groupName,
           submittedBy: req.user.id,
           approvers: approverDetails,
           fileMetadata: uploadedFileData,
@@ -407,6 +410,7 @@ exports.submitDocument = async (req, res) => {
         newDocument = new Document({
           title,
           content: contentArray,
+          groupName: req.body.groupName,
           submittedBy: req.user.id,
           approvers: approverDetails,
           fileMetadata: uploadedFileData, // Attach file data

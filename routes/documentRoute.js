@@ -2,6 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const documentController = require("../controllers/documentController");
+const Group = require("../models/Group");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 // Main page route
@@ -120,5 +121,14 @@ router.get(
   authMiddleware,
   documentController.exportDocumentToDocx
 );
+
+router.get("/getGroupDocument", authMiddleware, async (req, res) => {
+  try {
+    const groups = await Group.find({}, "name");
+    res.json(groups);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 module.exports = router;

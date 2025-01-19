@@ -55,6 +55,7 @@ const purchasingDocumentSchema = new mongoose.Schema({
     },
   ],
   grandTotalCost: { type: Number, required: true }, // Sum of all totalCosts
+  groupName: { type: String },
 });
 
 module.exports = mongoose.model("PurchasingDocument", purchasingDocumentSchema);
