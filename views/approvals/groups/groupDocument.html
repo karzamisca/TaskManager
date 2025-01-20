@@ -209,6 +209,22 @@
       text-decoration: underline;
     }
 
+    .document-content {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .document-details {
+      flex-grow: 1;
+    }
+
+    .document-actions {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-color);
+    }
+
     /* Responsive adjustments */
     @media (max-width: 640px) {
       body {
@@ -285,29 +301,99 @@
 
     <script>
       // Lấy tài liệu nhóm từ API backend/Fetch grouped documents from the backend API
+      function haveAllApproversApproved(approvers, approvedBy) {
+        return approvers.every((approver) =>
+          approvedBy.some(
+            (approved) =>
+              approved.username === approver.username && approved.approvalDate
+          )
+        );
+      }
+
       fetch("/getGroupedDocuments")
         .then((response) => response.json())
         .then((groupedDocuments) => {
           const groupedDocumentsContainer =
             document.getElementById("grouped-documents");
 
-          // Duyệt qua từng nhóm và hiển thị tài liệu của nó/Loop through each group and display its documents
           for (const groupName in groupedDocuments) {
             const group = groupedDocuments[groupName];
-
-            // Tạo một phần cho mỗi nhóm/Create a section for each group
             const groupSection = document.createElement("section");
             groupSection.innerHTML = `<h3>Nhóm/Group: ${groupName}</h3>`;
-
-            // Tạo danh sách tài liệu cho nhóm này/Create a list for the documents in this group
             const documentList = document.createElement("ul");
 
             group.forEach((doc) => {
               const listItem = document.createElement("li");
-              let docContent = `<strong>Loại/Type: ${doc.type}</strong><br>`;
 
-              // Chi tiết tài liệu đề xuất/Proposal Document Details
-              if (doc.type === "Proposal") {
+              const approvers = doc.approvers
+                .map(
+                  (approver) => `${approver.username} (${approver.subRole})<br>`
+                )
+                .join("");
+
+              const approvedBy = doc.approvers
+                .map((approver) => {
+                  const approvedInfo = doc.approvedBy.find(
+                    (approved) => approved.username === approver.username
+                  );
+                  if (approvedInfo && approvedInfo.approvalDate) {
+                    return `${approvedInfo.username} (${approver.subRole}) (${approvedInfo.approvalDate})<br>`;
+                  }
+                  return "";
+                })
+                .filter((html) => html !== "")
+                .join("");
+
+              // Check if all approvers have approved
+              const allApproved = haveAllApproversApproved(
+                doc.approvers,
+                doc.approvedBy
+              );
+
+              // Create document content wrapper
+              let docContent = `<div class="document-content">`;
+
+              // Document details section
+              docContent += `<div class="document-details">`;
+
+              docContent += `<strong>Loại/Type: ${doc.type}</strong><br>`;
+
+              // Add approval information section
+              docContent += `
+                <div class="approval-info" style="margin: 1rem 0; padding: 0.5rem; background: var(--section-bg); border-radius: 0.375rem;">
+                  <p><strong>Người phê duyệt/Approvers:</strong><br>${
+                    approvers || "Không có/None"
+                  }</p>
+                  <p><strong>Đã phê duyệt bởi/Approved By:</strong><br>${
+                    approvedBy || "Chưa có phê duyệt/No approvals yet"
+                  }</p>
+                </div>
+              `;
+
+              if (doc.type === "Chung/Generic") {
+                // Generic document handling
+                docContent += `
+                    ${doc.content
+                      .map(
+                        (section) => `
+                          <div class="content-section" style="margin: 1rem 0; padding: 0.5rem; background: var(--section-bg); border-radius: 0.375rem;">
+                            <strong>${section.name}:</strong><br>
+                            <p>${section.text}</p>
+                          </div>
+                        `
+                      )
+                      .join("")}
+                  <p><strong>Ngày nộp/Submission Date:</strong> ${
+                    doc.submissionDate
+                  }</p>
+                  ${
+                    doc.fileMetadata
+                      ? `<p><strong>Tệp đính kèm/Attached File:</strong> 
+                         <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
+                      : "<p>Không có tệp đính kèm/No file attached.</p>"
+                  }
+                `;
+              } else if (doc.type === "Đề xuất/Proposal") {
                 docContent += `
                   <p><strong>Công việc/Task:</strong> ${doc.task}</p>
                   <p><strong>Trạm/Center:</strong> ${doc.costCenter}</p>
@@ -323,20 +409,17 @@
                   ${
                     doc.fileMetadata
                       ? `<p><strong>Tệp đính kèm/Attached File:</strong> 
-                        <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
+                       <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
                       : ""
                   }
                   <strong>Mã/ID:</strong> ${doc._id}<br>
                   <strong>Tình trạng phê duyệt/Approval Status:</strong> ${
-                    doc.approved
+                    allApproved
                       ? "Đã phê duyệt/Approved"
                       : "Chưa phê duyệt/Pending"
                   }<br>
                 `;
-              }
-
-              // Chi tiết tài liệu mua sắm/Purchasing Document Details
-              else if (doc.type === "Purchasing") {
+              } else if (doc.type === "Mua hàng/Purchasing") {
                 docContent += `
                   <strong>Sản phẩm/Products:</strong> ${doc.products
                     .map(
@@ -344,50 +427,49 @@
                         `${product.productName} (Chi phí mỗi đơn vị/Cost per Unit: ${product.costPerUnit}, Số lượng/Amount: ${product.amount}, Tổng chi phí/Total Cost: ${product.totalCost})`
                     )
                     .join(", ")}<br>
-                  <strong>Tổng chi phí/TOTAL Grand Cost:</strong> ${doc.grandTotalCost.toLocaleString()}<br>
+                  <strong>Tổng chi phí/Grand Total Cost:</strong> ${doc.grandTotalCost.toLocaleString()}<br>
                   ${
                     doc.fileMetadata
                       ? `<p><strong>Tệp đính kèm phiếu thanh toán/File attaches to payment document:</strong> 
-                        <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
+                       <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
                       : "<p>Không có tệp đính kèm/No file attached.</p>"
                   }
                 `;
 
-                // Hiển thị các đề xuất đã được thêm vào/Display appendedProposals (full Proposal Document details)
+                // Add appended proposals if they exist
                 if (doc.appendedProposals && doc.appendedProposals.length > 0) {
                   doc.appendedProposals.forEach((proposalDoc, index) => {
                     docContent += `
-                      <strong>Đề xuất đã thêm/ Appended Proposal ${
-                        index + 1
-                      }:</strong><br>
-                      <p><strong>Công việc/Task:</strong> ${
-                        proposalDoc.task
-                      }</p>
-                      <p><strong>Trạm/Center:</strong> ${
-                        proposalDoc.costCenter
-                      }</p>
-                      <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
-                        proposalDoc.dateOfError
-                      }</p>
-                      <p><strong>Mô tả chi tiết/Details Description:</strong> ${
-                        proposalDoc.detailsDescription
-                      }</p>
-                      <p><strong>Hướng xử lý/Direction:</strong> ${
-                        proposalDoc.direction
-                      }</p>
-                      ${
-                        proposalDoc.fileMetadata
-                          ? `<p><strong>Tệp đính kèm phiếu đề xuất/Attached File to Proposal Document:</strong> 
-                            <a href="${proposalDoc.fileMetadata.link}" target="_blank">${proposalDoc.fileMetadata.name}</a></p>`
-                          : ""
-                      }
+                      <div style="margin-top: 1rem; padding: 1rem; background: var(--section-bg); border-radius: 0.375rem;">
+                        <strong>Đề xuất đã thêm/Appended Proposal ${
+                          index + 1
+                        }:</strong><br>
+                        <p><strong>Công việc/Task:</strong> ${
+                          proposalDoc.task
+                        }</p>
+                        <p><strong>Trạm/Center:</strong> ${
+                          proposalDoc.costCenter
+                        }</p>
+                        <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
+                          proposalDoc.dateOfError
+                        }</p>
+                        <p><strong>Mô tả chi tiết/Details Description:</strong> ${
+                          proposalDoc.detailsDescription
+                        }</p>
+                        <p><strong>Hướng xử lý/Direction:</strong> ${
+                          proposalDoc.direction
+                        }</p>
+                        ${
+                          proposalDoc.fileMetadata
+                            ? `<p><strong>Tệp đính kèm/Attached File:</strong> 
+                             <a href="${proposalDoc.fileMetadata.link}" target="_blank">${proposalDoc.fileMetadata.name}</a></p>`
+                            : ""
+                        }
+                      </div>
                     `;
                   });
                 }
-              }
-
-              // Chi tiết tài liệu thanh toán/Payment Document Details
-              else if (doc.type === "Payment") {
+              } else if (doc.type === "Thanh toán/Payment") {
                 docContent += `
                   <strong>Tên/Name:</strong> ${doc.name}<br>
                   <strong>Phương thức thanh toán/Payment Method:</strong> ${
@@ -403,12 +485,12 @@
                   ${
                     doc.fileMetadata
                       ? `<p><strong>Tệp đính kèm phiếu thanh toán/File attaches to payment document:</strong> 
-                        <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
+                       <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
                       : "<p>Không có tệp đính kèm/No file attached.</p>"
                   }
                 `;
 
-                // Hiển thị các tài liệu mua sắm đã được thêm vào/Display appendedPurchasingDocuments (full Purchasing Document details)
+                // Add appended purchasing documents if they exist
                 if (
                   doc.appendedPurchasingDocuments &&
                   doc.appendedPurchasingDocuments.length > 0
@@ -416,6 +498,7 @@
                   doc.appendedPurchasingDocuments.forEach(
                     (purchasingDoc, index) => {
                       docContent += `
+                      <div style="margin-top: 1rem; padding: 1rem; background: var(--section-bg); border-radius: 0.375rem;">
                         <strong>Phiếu mua hàng đã thêm/Appended Purchasing Document ${
                           index + 1
                         }:</strong><br>
@@ -428,10 +511,9 @@
                               `${product.productName} (Chi phí mỗi đơn vị/Cost per Unit: ${product.costPerUnit}, Số lượng/Amount: ${product.amount}, Tổng chi phí/Total Cost: ${product.totalCost})`
                           )
                           .join(", ")}<br>
-                        <strong>Tổng chi phí/TOTAL Grand Cost:</strong> ${purchasingDoc.grandTotalCost.toLocaleString()}<br>
-                      `;
-
-                      // Hiển thị các đề xuất đã được thêm vào cho mỗi tài liệu mua sắm/Display appendedProposals for each appended purchasing document
+                        <strong>Tổng chi phí/Grand Total Cost:</strong> ${purchasingDoc.grandTotalCost.toLocaleString()}<br>
+                      </div>
+                    `;
                       if (
                         purchasingDoc.appendedProposals &&
                         purchasingDoc.appendedProposals.length > 0
@@ -472,11 +554,30 @@
                 }
               }
 
+              // Close document details div
+              docContent += `</div>`;
+
+              // Add action buttons at the bottom
+              if (!allApproved) {
+                docContent += `
+                  <div class="document-actions">
+                    <form action="/approveGroupedDocument/${doc._id}" method="POST" style="display:inline;">
+                      <button type="submit">Phê duyệt/Approve</button>
+                    </form>
+                    <form action="/deleteGroupedDocument/${doc._id}" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
+                      <button type="submit" style="background-color: #dc2626;">Xóa/Delete</button>
+                    </form>
+                  </div>
+                `;
+              }
+
+              // Close document content wrapper
+              docContent += `</div>`;
+
               listItem.innerHTML = docContent;
               documentList.appendChild(listItem);
             });
 
-            // Thêm danh sách tài liệu vào phần nhóm/Append the document list to the group section
             groupSection.appendChild(documentList);
             groupedDocumentsContainer.appendChild(groupSection);
           }

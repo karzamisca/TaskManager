@@ -1,8 +1,11 @@
 // controllers/groupController.js
 const Group = require("../models/Group");
+const User = require("../models/User");
+const Document = require("../models/Document");
 const PaymentDocument = require("../models/PaymentDocument");
 const ProposalDocument = require("../models/ProposalDocument");
 const PurchasingDocument = require("../models/PurchasingDocument");
+const moment = require("moment-timezone");
 
 // Add a new group
 exports.createGroup = async (req, res) => {
@@ -43,30 +46,37 @@ exports.getGroup = (req, res) => {
 
 exports.getGroupedDocuments = async (req, res) => {
   try {
-    // Fetch all documents from the models and filter out documents without a groupName
+    // Fetch all documents from the models and filter out documents without a valid groupName
+    const Documents = await Document.find({
+      $and: [{ groupName: { $ne: null } }, { groupName: { $ne: "" } }],
+    });
     const proposalDocuments = await ProposalDocument.find({
-      groupName: { $ne: null },
+      $and: [{ groupName: { $ne: null } }, { groupName: { $ne: "" } }],
     });
     const paymentDocuments = await PaymentDocument.find({
-      groupName: { $ne: null },
+      $and: [{ groupName: { $ne: null } }, { groupName: { $ne: "" } }],
     });
     const purchasingDocuments = await PurchasingDocument.find({
-      groupName: { $ne: null },
+      $and: [{ groupName: { $ne: null } }, { groupName: { $ne: "" } }],
     });
 
     // Combine all documents into one array with a 'type' field
     const allDocuments = [
+      ...Documents.map((doc) => ({
+        ...doc.toObject(),
+        type: "Chung/Generic",
+      })),
       ...proposalDocuments.map((doc) => ({
         ...doc.toObject(),
-        type: "Proposal",
+        type: "Đề xuất/Proposal",
       })),
       ...purchasingDocuments.map((doc) => ({
         ...doc.toObject(),
-        type: "Purchasing",
+        type: "Mua hàng/Purchasing",
       })),
       ...paymentDocuments.map((doc) => ({
         ...doc.toObject(),
-        type: "Payment",
+        type: "Thanh toán/Payment",
       })),
     ];
 
@@ -84,5 +94,127 @@ exports.getGroupedDocuments = async (req, res) => {
   } catch (error) {
     console.error("Error fetching documents:", error);
     res.status(500).send("Internal Server Error");
+  }
+};
+
+exports.approveGroupedDocument = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    if (req.user.role !== "approver") {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền phê duyệt tài liệu./Access denied. You don't have permission to approve document."
+      );
+    }
+
+    // Check if the document is a Generic, Proposal, or Purchasing Document
+    let document =
+      (await Document.findById(id)) ||
+      (await ProposalDocument.findById(id)) ||
+      (await PurchasingDocument.findById(id)) ||
+      (await PaymentDocument.findById(id));
+
+    if (!document) {
+      return res.send("Không tìm thấy tài liệu/Document not found");
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.send("Không tìm thấy người dùng/User not found");
+    }
+
+    const isChosenApprover = document.approvers.some(
+      (approver) => approver.approver.toString() === req.user.id
+    );
+
+    if (!isChosenApprover) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền phê duyệt tài liệu này./Access denied. You don't have permission to approve this document."
+      );
+    }
+
+    const hasApproved = document.approvedBy.some(
+      (approver) => approver.user.toString() === req.user.id
+    );
+
+    if (hasApproved) {
+      return res.send(
+        "Bạn đã phê duyệt tài liệu rồi./You have already approved this document."
+      );
+    }
+
+    // Add the current approver to the list of `approvedBy`
+    document.approvedBy.push({
+      user: user.id,
+      username: user.username,
+      role: user.role,
+      approvalDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+    });
+
+    // If all approvers have approved, mark it as fully approved
+    if (document.approvedBy.length === document.approvers.length) {
+      document.approved = true;
+    }
+
+    // Save document in the correct collection
+    if (document instanceof PurchasingDocument) {
+      await PurchasingDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof ProposalDocument) {
+      await ProposalDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof PaymentDocument) {
+      await PaymentDocument.findByIdAndUpdate(id, document);
+    } else {
+      await Document.findByIdAndUpdate(id, document);
+    }
+
+    res.redirect("/groupedDocument");
+  } catch (err) {
+    console.error("Error approving document:", err);
+    res.send("Lỗi phê duyệt tài liệu/Error approving document");
+  }
+};
+
+exports.deleteGroupedDocument = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Try to find the document in each collection
+    let document = await Document.findById(id);
+    let documentType = "Generic";
+
+    if (!document) {
+      document = await ProposalDocument.findById(id);
+      if (document) documentType = "Proposal";
+    }
+
+    if (!document && documentType === "Generic") {
+      document = await PurchasingDocument.findById(id);
+      if (document) documentType = "Purchasing";
+    }
+
+    if (!document && documentType === "Generic") {
+      document = await PaymentDocument.findById(id);
+      if (document) documentType = "Payment";
+    }
+
+    if (!document) {
+      return res.send("Document not found");
+    }
+
+    // Delete the document based on its type
+    if (documentType === "Proposal") {
+      await ProposalDocument.findByIdAndDelete(id);
+    } else if (documentType === "Purchasing") {
+      await PurchasingDocument.findByIdAndDelete(id);
+    } else if (documentType === "Payment") {
+      await PaymentDocument.findByIdAndDelete(id);
+    } else {
+      await Document.findByIdAndDelete(id);
+    }
+
+    res.redirect("/groupedDocument"); // Redirect after deletion
+  } catch (err) {
+    console.error("Error deleting document:", err);
+    res.send("Lỗi xóa tài liệu/Error deleting document");
   }
 };

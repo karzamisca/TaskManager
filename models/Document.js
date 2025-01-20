@@ -32,6 +32,7 @@ const documentSchema = new mongoose.Schema({
       approvalDate: { type: String, required: true },
     },
   ],
+  groupName: { type: String },
 });
 
 module.exports = mongoose.model("Document", documentSchema);
