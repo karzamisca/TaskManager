@@ -20,29 +20,43 @@ const connectSSH = () => {
   });
 };
 
+// Normalize paths for cross-platform compatibility
+function normalizePath(inputPath) {
+  return inputPath.split(path.sep).join(path.posix.sep);
+}
+
 exports.serveHTML = (req, res) => {
   res.sendFile("fileServer.html", { root: "./views/transfer/fileServer" });
 };
 
 exports.listFiles = async (req, res) => {
-  const { path = "." } = req.query;
+  const rawPath = req.query.path || ".";
+  const normalizedPath = normalizePath(rawPath);
+
   try {
     const conn = await connectSSH();
     conn.sftp((err, sftp) => {
-      if (err) return res.status(500).send("Error opening SFTP session");
-
-      sftp.readdir(path, (err, list) => {
+      if (err) {
         conn.end();
-        if (err) return res.status(500).send("Error reading directory");
-        res.json(
-          list.map((item) => ({
-            name: item.filename,
-            type: item.longname[0] === "d" ? "folder" : "file",
-          }))
-        );
+        return res.status(500).send("Error opening SFTP session");
+      }
+
+      sftp.readdir(normalizedPath, (err, files) => {
+        conn.end();
+        if (err) {
+          return res.status(500).send("Error reading directory");
+        }
+
+        const fileList = files.map((file) => ({
+          name: file.filename,
+          type: file.longname.startsWith("d") ? "folder" : "file",
+        }));
+
+        res.json(fileList);
       });
     });
   } catch (err) {
+    console.error("Connection error:", err);
     res.status(500).send("Error connecting to SSH server");
   }
 };
@@ -199,9 +213,10 @@ exports.uploadFile = [
       return res.status(400).send("No file uploaded");
     }
 
-    const uploadPath = req.body.path || ".";
+    const rawUploadPath = req.body.path || ".";
+    const uploadPath = normalizePath(rawUploadPath); // Normalize the path
     const fileName = req.file.originalname;
-    const fullPath = path.join(uploadPath, fileName);
+    const fullPath = path.posix.join(uploadPath, fileName); // Use path.posix.join for Linux compatibility
 
     try {
       const conn = await connectSSH();
