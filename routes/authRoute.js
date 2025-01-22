@@ -21,11 +21,11 @@ router.get("/main", authMiddleware, (req, res) => {
   res.sendFile("main.html", { root: "./views" }); // Serve the main page
 });
 
-router.get("/template", authMiddleware, (req, res) => {
-  res.sendFile("template.html", { root: "./views/approvals" }); // Serve the template page
+router.get("/mainFileTransfer", authMiddleware, (req, res) => {
+  res.sendFile("mainFileTransfer.html", { root: "./views/transfer" }); // Serve the template page
 });
 
-router.get("/approvers", async (req, res) => {
+router.get("/approvers", authMiddleware, async (req, res) => {
   try {
     const approvers = await User.find({ role: "approver" });
     res.json(approvers);

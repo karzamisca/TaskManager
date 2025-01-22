@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>File Manager</title>
+  </head>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f4f4f9;
+    }
+
+    #app {
+      max-width: 600px;
+      margin: auto;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    #controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    #files {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .file,
+    .folder {
+      padding: 10px;
+      background: #ffffff;
+      border: 1px solid #ddd;
+      cursor: pointer;
+    }
+
+    .file:hover,
+    .folder:hover {
+      background: #f0f0f0;
+    }
+  </style>
+  <body>
+    <header>
+      <a href="/mainFileTransfer">Trở về trang chính/Back to main</a>
+    </header>
+
+    <div id="app">
+      <h1>File Manager</h1>
+      <div id="controls">
+        <input
+          type="text"
+          id="folder-path"
+          placeholder="Enter folder path (default: root)"
+        />
+        <button onclick="listFiles()">List Files</button>
+        <button onclick="createFolder()">Create Folder</button>
+      </div>
+      <div id="files"></div>
+    </div>
+
+    <footer>
+      <a href="/mainFileTransfer">Trở về trang chính/Back to main</a>
+    </footer>
+    <script>
+      async function listFiles() {
+        const path = document.getElementById("folder-path").value || ".";
+        const response = await fetch(
+          `/fileServerManager?path=${encodeURIComponent(path)}`
+        );
+        const files = await response.json();
+        const filesDiv = document.getElementById("files");
+
+        filesDiv.innerHTML = "";
+        files.forEach((file) => {
+          const div = document.createElement("div");
+          div.className = file.type;
+          div.innerText = file.name;
+          div.onclick = () => {
+            if (file.type === "folder") {
+              document.getElementById(
+                "folder-path"
+              ).value = `${path}/${file.name}`;
+              listFiles();
+            }
+          };
+
+          // Add delete button
+          const deleteButton = document.createElement("button");
+          deleteButton.innerText = "Delete";
+          deleteButton.onclick = async (e) => {
+            e.stopPropagation();
+            await deleteFile(path, file.name);
+            listFiles();
+          };
+
+          // Add download button
+          const downloadButton = document.createElement("button");
+          downloadButton.innerText = "Download";
+          downloadButton.onclick = async (e) => {
+            e.stopPropagation();
+            await downloadFile(path, file.name);
+          };
+
+          div.appendChild(deleteButton);
+          div.appendChild(downloadButton);
+          filesDiv.appendChild(div);
+        });
+      }
+
+      async function createFolder() {
+        const path = document.getElementById("folder-path").value || "."; // Default to current path if empty
+        const folderName = prompt("Enter new folder name:");
+        if (!folderName) return;
+
+        try {
+          // Make a POST request to the backend to create the folder
+          const response = await fetch(`/fileServerManager`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: `${path}/${folderName}` }),
+          });
+
+          // Check if the request was successful
+          if (response.ok) {
+            alert("Folder created successfully");
+          } else {
+            // If there was an error, alert the user
+            const errorText = await response.text();
+            alert(`Error creating folder: ${errorText}`);
+          }
+
+          // Reload the file list after folder creation
+          listFiles();
+        } catch (err) {
+          // Handle network or other errors
+          console.error("Error:", err);
+          alert("An error occurred while creating the folder.");
+        }
+      }
+
+      async function deleteFile(path, fileName) {
+        const fullPath = `${path}/${fileName}`;
+        await fetch(`/fileServerManager`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: fullPath }),
+        });
+      }
+
+      async function downloadFile(path, fileName) {
+        const fullPath = `${path}/${fileName}`;
+        const response = await fetch(
+          `/fileServerDownload?path=${encodeURIComponent(fullPath)}`
+        );
+        if (response.ok) {
+          const blob = await response.blob();
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = fileName;
+          link.click();
+        } else {
+          alert("Error downloading file");
+        }
+      }
+
+      listFiles();
+    </script>
+  </body>
+</html>
