@@ -14,7 +14,7 @@
     }
 
     #app {
-      max-width: 600px;
+      max-width: 800px;
       margin: auto;
     }
 
@@ -26,6 +26,16 @@
       display: flex;
       gap: 10px;
       margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    #upload-section {
+      width: 100%;
+      padding: 15px;
+      background: #fff;
+      border: 2px dashed #ccc;
+      text-align: center;
+      margin: 10px 0;
     }
 
     #files {
@@ -40,11 +50,19 @@
       background: #ffffff;
       border: 1px solid #ddd;
       cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .file:hover,
     .folder:hover {
       background: #f0f0f0;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 5px;
     }
   </style>
   <body>
@@ -63,6 +81,13 @@
         <button onclick="listFiles()">List Files</button>
         <button onclick="createFolder()">Create Folder</button>
       </div>
+
+      <div id="upload-section">
+        <input type="file" id="file-input" multiple />
+        <button onclick="uploadFiles()">Upload Files</button>
+        <div id="upload-progress"></div>
+      </div>
+
       <div id="files"></div>
     </div>
 
@@ -82,23 +107,33 @@
         files.forEach((file) => {
           const div = document.createElement("div");
           div.className = file.type;
-          div.innerText = file.name;
-          div.onclick = () => {
-            if (file.type === "folder") {
+
+          const nameSpan = document.createElement("span");
+          nameSpan.innerText = file.name;
+          div.appendChild(nameSpan);
+
+          const buttonGroup = document.createElement("div");
+          buttonGroup.className = "button-group";
+
+          // Add click handler to both the div and nameSpan for folders
+          if (file.type === "folder") {
+            div.onclick = nameSpan.onclick = () => {
               document.getElementById(
                 "folder-path"
               ).value = `${path}/${file.name}`;
               listFiles();
-            }
-          };
+            };
+          }
 
           // Add delete button
           const deleteButton = document.createElement("button");
           deleteButton.innerText = "Delete";
           deleteButton.onclick = async (e) => {
             e.stopPropagation();
-            await deleteFile(path, file.name);
-            listFiles();
+            if (confirm(`Are you sure you want to delete ${file.name}?`)) {
+              await deleteItem(path, file.name, file.type);
+              listFiles();
+            }
           };
 
           // Add download button
@@ -109,50 +144,54 @@
             await downloadFile(path, file.name);
           };
 
-          div.appendChild(deleteButton);
-          div.appendChild(downloadButton);
+          buttonGroup.appendChild(downloadButton);
+          buttonGroup.appendChild(deleteButton);
+          div.appendChild(buttonGroup);
           filesDiv.appendChild(div);
         });
       }
 
       async function createFolder() {
-        const path = document.getElementById("folder-path").value || "."; // Default to current path if empty
+        const path = document.getElementById("folder-path").value || ".";
         const folderName = prompt("Enter new folder name:");
         if (!folderName) return;
 
         try {
-          // Make a POST request to the backend to create the folder
           const response = await fetch(`/fileServerManager`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ path: `${path}/${folderName}` }),
           });
 
-          // Check if the request was successful
           if (response.ok) {
             alert("Folder created successfully");
           } else {
-            // If there was an error, alert the user
             const errorText = await response.text();
             alert(`Error creating folder: ${errorText}`);
           }
 
-          // Reload the file list after folder creation
           listFiles();
         } catch (err) {
-          // Handle network or other errors
           console.error("Error:", err);
           alert("An error occurred while creating the folder.");
         }
       }
 
-      async function deleteFile(path, fileName) {
-        const fullPath = `${path}/${fileName}`;
-        await fetch(`/fileServerManager`, {
+      async function deleteItem(path, name, type) {
+        const fullPath = `${path}/${name}`;
+        const response = await fetch(`/fileServerManager`, {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: fullPath }),
+          body: JSON.stringify({
+            path: fullPath,
+            type: type,
+          }),
         });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          alert(`Error deleting ${type}: ${errorText}`);
+        }
       }
 
       async function downloadFile(path, fileName) {
@@ -169,6 +208,45 @@
         } else {
           alert("Error downloading file");
         }
+      }
+
+      async function uploadFiles() {
+        const fileInput = document.getElementById("file-input");
+        const files = fileInput.files;
+        const currentPath = document.getElementById("folder-path").value || ".";
+        const progressDiv = document.getElementById("upload-progress");
+
+        if (files.length === 0) {
+          alert("Please select files to upload");
+          return;
+        }
+
+        for (let i = 0; i < files.length; i++) {
+          const formData = new FormData();
+          formData.append("file", files[i]);
+          formData.append("path", currentPath);
+
+          progressDiv.innerHTML = `Uploading ${files[i].name}...`;
+
+          try {
+            const response = await fetch("/fileServerUpload", {
+              method: "POST",
+              body: formData,
+            });
+
+            if (response.ok) {
+              progressDiv.innerHTML += " Done!<br>";
+            } else {
+              const errorText = await response.text();
+              progressDiv.innerHTML += ` Error: ${errorText}<br>`;
+            }
+          } catch (err) {
+            progressDiv.innerHTML += ` Error: ${err.message}<br>`;
+          }
+        }
+
+        fileInput.value = "";
+        listFiles();
       }
 
       listFiles();

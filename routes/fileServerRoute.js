@@ -27,11 +27,14 @@ router.delete(
   fileServerController.deleteFile
 );
 
-// Download file
+// Download a file or folder
 router.get(
   "/fileServerDownload",
   authMiddleware,
   fileServerController.downloadFile
 );
+
+// Upload files
+router.post("/fileServerUpload", fileServerController.uploadFile);
 
 module.exports = router;

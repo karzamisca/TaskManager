@@ -1,6 +1,8 @@
 const { Client } = require("ssh2");
-const archiver = require("archiver"); // Add this dependency for zipping folders
+const archiver = require("archiver");
 const path = require("path");
+const multer = require("multer"); // Add this for handling file uploads
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Connect to SSH
 const connectSSH = () => {
@@ -18,12 +20,10 @@ const connectSSH = () => {
   });
 };
 
-// Serve the HTML
 exports.serveHTML = (req, res) => {
   res.sendFile("fileServer.html", { root: "./views/transfer/fileServer" });
 };
 
-// List files
 exports.listFiles = async (req, res) => {
   const { path = "." } = req.query;
   try {
@@ -47,22 +47,18 @@ exports.listFiles = async (req, res) => {
   }
 };
 
-// Create nested folders
 exports.createFolder = async (req, res) => {
   const { path } = req.body;
   if (!path) return res.status(400).send("Path is required");
 
   try {
     const conn = await connectSSH();
-
-    // Execute the mkdir command with the '-p' option to ensure all folders are created
     conn.exec(`mkdir -p "${path}"`, (err, stream) => {
       if (err) {
         conn.end();
         return res.status(500).send("Error executing mkdir command");
       }
 
-      // Handle the stream close event
       stream
         .on("close", (code) => {
           conn.end();
@@ -73,11 +69,9 @@ exports.createFolder = async (req, res) => {
           }
         })
         .on("data", (data) => {
-          // Optionally log output to debug
           console.log("STDOUT: " + data);
         })
         .stderr.on("data", (data) => {
-          // Log stderr output for debugging
           console.error("STDERR: " + data);
         });
     });
@@ -87,28 +81,54 @@ exports.createFolder = async (req, res) => {
   }
 };
 
-// Delete file/folder
 exports.deleteFile = async (req, res) => {
-  const { path } = req.body;
+  const { path, type } = req.body;
   if (!path) return res.status(400).send("Path is required");
 
   try {
     const conn = await connectSSH();
-    conn.sftp((err, sftp) => {
-      if (err) return res.status(500).send("Error opening SFTP session");
 
-      sftp.unlink(path, (err) => {
-        conn.end();
-        if (err) return res.status(500).send("Error deleting file");
-        res.send("File deleted");
+    if (type === "folder") {
+      // Delete folder and its contents recursively
+      conn.exec(`rm -rf "${path}"`, (err, stream) => {
+        if (err) {
+          conn.end();
+          return res.status(500).send("Error deleting folder");
+        }
+
+        stream
+          .on("close", (code) => {
+            conn.end();
+            if (code === 0) {
+              return res.send("Folder deleted successfully");
+            } else {
+              return res.status(500).send("Error deleting folder");
+            }
+          })
+          .on("data", (data) => {
+            console.log("STDOUT: " + data);
+          })
+          .stderr.on("data", (data) => {
+            console.error("STDERR: " + data);
+          });
       });
-    });
+    } else {
+      // Delete single file
+      conn.sftp((err, sftp) => {
+        if (err) return res.status(500).send("Error opening SFTP session");
+
+        sftp.unlink(path, (err) => {
+          conn.end();
+          if (err) return res.status(500).send("Error deleting file");
+          res.send("File deleted");
+        });
+      });
+    }
   } catch (err) {
     res.status(500).send("Error connecting to SSH server");
   }
 };
 
-// Download file
 exports.downloadFile = async (req, res) => {
   const { path } = req.query;
   if (!path) return res.status(400).send("Path is required");
@@ -121,7 +141,6 @@ exports.downloadFile = async (req, res) => {
         return res.status(500).send("Error opening SFTP session");
       }
 
-      // Check if the path is a file or directory
       sftp.stat(path, (err, stats) => {
         if (err) {
           conn.end();
@@ -129,10 +148,9 @@ exports.downloadFile = async (req, res) => {
         }
 
         if (stats.isDirectory()) {
-          // Handle directory download: create a zip archive
           res.attachment(`${path.split("/").pop()}.zip`);
-
           const archive = archiver("zip", { zlib: { level: 9 } });
+
           archive.on("error", (err) => {
             console.error("Archive Error:", err);
             if (!res.headersSent) {
@@ -141,18 +159,13 @@ exports.downloadFile = async (req, res) => {
             conn.end();
           });
 
-          // Pipe the archive to the response
           archive.pipe(res);
-
-          // Add the folder to the archive
           archive.directory(path, false);
-
           archive.finalize();
           archive.on("end", () => {
-            conn.end(); // Clean up the connection after archiving
+            conn.end();
           });
         } else {
-          // Handle file download
           const stream = sftp.createReadStream(path);
 
           stream.on("error", (err) => {
@@ -160,12 +173,12 @@ exports.downloadFile = async (req, res) => {
             if (!res.headersSent) {
               res.status(500).send("Error downloading file");
             }
-            conn.end(); // Clean up the connection
+            conn.end();
           });
 
           res.attachment(path.split("/").pop());
           stream.pipe(res).on("close", () => {
-            conn.end(); // Clean up the connection after streaming
+            conn.end();
           });
         }
       });
@@ -177,3 +190,46 @@ exports.downloadFile = async (req, res) => {
     }
   }
 };
+
+// New file upload handler
+exports.uploadFile = [
+  upload.single("file"),
+  async (req, res) => {
+    if (!req.file) {
+      return res.status(400).send("No file uploaded");
+    }
+
+    const uploadPath = req.body.path || ".";
+    const fileName = req.file.originalname;
+    const fullPath = path.join(uploadPath, fileName);
+
+    try {
+      const conn = await connectSSH();
+      conn.sftp((err, sftp) => {
+        if (err) {
+          conn.end();
+          return res.status(500).send("Error opening SFTP session");
+        }
+
+        const writeStream = sftp.createWriteStream(fullPath);
+
+        writeStream.on("close", () => {
+          conn.end();
+          res.send("File uploaded successfully");
+        });
+
+        writeStream.on("error", (err) => {
+          conn.end();
+          console.error("Write stream error:", err);
+          res.status(500).send("Error uploading file");
+        });
+
+        // Write the file buffer to the remote server
+        writeStream.end(req.file.buffer);
+      });
+    } catch (err) {
+      console.error("Connection error:", err);
+      res.status(500).send("Error connecting to SSH server");
+    }
+  },
+];
