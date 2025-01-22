@@ -309,10 +309,12 @@
 
         for (let i = 0; i < files.length; i++) {
           const formData = new FormData();
+          const fileName = files[i].name; // Extract the file name
           formData.append("file", files[i]);
           formData.append("path", currentPath);
+          formData.append("fileName", fileName); // Send the sanitized file name
 
-          progressDiv.innerHTML = `Uploading ${files[i].name}...`;
+          progressDiv.innerHTML = `Uploading ${fileName}...`;
 
           try {
             const response = await fetch("/fileServerUpload", {
@@ -331,10 +333,9 @@
           }
         }
 
-        fileInput.value = "";
-        listFiles();
+        fileInput.value = ""; // Clear the file input
+        listFiles(); // Refresh the file list
       }
-
       listFiles();
     </script>
   </body>
