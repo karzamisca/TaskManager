@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>File Manager</title>
+    <title>Máy chủ chứa tệp tin/File Server</title>
     <style>
       :root {
         --font-family: Arial, sans-serif;
@@ -155,7 +155,8 @@
   </head>
   <body>
     <header>
-      <a href="/mainFileTransfer">Trở về trang chính/Back to main</a>
+      <a href="/mainFileTransfer">Trở về/Back</a>
+      <a href="/logout">Đăng xuất/Logout</a><br />
     </header>
 
     <div id="app">
@@ -166,13 +167,13 @@
           id="folder-path"
           placeholder="Enter folder path (default: root)"
         />
-        <button onclick="listFiles()">List Files</button>
-        <button onclick="createFolder()">Create Folder</button>
+        <button onclick="listFiles()">Tải lại/Refresh</button>
+        <button onclick="createFolder()">Tạo thư mục mới/Create Folder</button>
       </div>
 
       <div id="upload-section">
         <input type="file" id="file-input" multiple />
-        <button onclick="uploadFiles()">Upload Files</button>
+        <button onclick="uploadFiles()">Tải lên tệp tin/Upload Files</button>
         <div id="upload-progress"></div>
       </div>
 
@@ -180,7 +181,8 @@
     </div>
 
     <footer>
-      <a href="/mainFileTransfer">Trở về trang chính/Back to main</a>
+      <a href="/mainFileTransfer">Trở về/Back</a>
+      <a href="/logout">Đăng xuất/Logout</a><br />
     </footer>
     <script>
       function normalizePath(path) {
@@ -218,17 +220,21 @@
           }
 
           const deleteButton = document.createElement("button");
-          deleteButton.innerText = "Delete";
+          deleteButton.innerText = "Xóa/Delete";
           deleteButton.onclick = async (e) => {
             e.stopPropagation();
-            if (confirm(`Are you sure you want to delete ${file.name}?`)) {
+            if (
+              confirm(
+                `Bạn có chắc muốn xóa/Are you sure you want to delete ${file.name}?`
+              )
+            ) {
               await deleteItem(path, file.name, file.type);
               listFiles();
             }
           };
 
           const downloadButton = document.createElement("button");
-          downloadButton.innerText = "Download";
+          downloadButton.innerText = "Tải xuống/Download";
           downloadButton.onclick = async (e) => {
             e.stopPropagation();
             await downloadFile(path, file.name);
@@ -244,7 +250,9 @@
       async function createFolder() {
         const rawPath = document.getElementById("folder-path").value || ".";
         const path = normalizePath(rawPath);
-        const folderName = prompt("Enter new folder name:");
+        const folderName = prompt(
+          "Nhập tên thư mục mới/Enter new folder name:"
+        );
         if (!folderName) return;
 
         try {
@@ -255,7 +263,7 @@
           });
 
           if (response.ok) {
-            alert("Folder created successfully");
+            alert("Thư mục được tạo thành công/Folder created successfully");
           } else {
             const errorText = await response.text();
             alert(`Error creating folder: ${errorText}`);
@@ -309,7 +317,7 @@
         const progressDiv = document.getElementById("upload-progress");
 
         if (files.length === 0) {
-          alert("Please select files to upload");
+          alert("Hãy chọn tệp tin để tải lên/Please select files to upload");
           return;
         }
 
@@ -318,7 +326,7 @@
           formData.append("file", files[i]);
           formData.append("path", path);
 
-          progressDiv.innerHTML = `Uploading ${files[i].name}...`;
+          progressDiv.innerHTML = `Đang tải lên/Uploading ${files[i].name}...`;
 
           try {
             const response = await fetch("/fileServerUpload", {
@@ -327,7 +335,7 @@
             });
 
             if (response.ok) {
-              progressDiv.innerHTML += " Done!<br>";
+              progressDiv.innerHTML += " Xong/Done!<br>";
             } else {
               const errorText = await response.text();
               progressDiv.innerHTML += ` Error: ${errorText}<br>`;

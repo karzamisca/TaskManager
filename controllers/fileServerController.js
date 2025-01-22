@@ -155,13 +155,14 @@ exports.downloadFile = async (req, res) => {
         return res.status(500).send("Error opening SFTP session");
       }
 
-      sftp.stat(path, (err, stats) => {
+      sftp.stat(path, async (err, stats) => {
         if (err) {
           conn.end();
           return res.status(500).send("Error checking file/directory");
         }
 
         if (stats.isDirectory()) {
+          // Set the response headers for a zip file
           res.attachment(`${path.split("/").pop()}.zip`);
           const archive = archiver("zip", { zlib: { level: 9 } });
 
@@ -174,12 +175,49 @@ exports.downloadFile = async (req, res) => {
           });
 
           archive.pipe(res);
-          archive.directory(path, false);
+
+          // Recursively add directory contents to the archive
+          const addDirectoryToArchive = async (dirPath, archivePath = "") => {
+            const files = await new Promise((resolve, reject) => {
+              sftp.readdir(dirPath, (err, files) => {
+                if (err) return reject(err);
+                resolve(files);
+              });
+            });
+
+            for (const file of files) {
+              const filePath = `${dirPath}/${file.filename}`;
+              const fileStats = await new Promise((resolve, reject) => {
+                sftp.stat(filePath, (err, stats) => {
+                  if (err) return reject(err);
+                  resolve(stats);
+                });
+              });
+
+              if (fileStats.isDirectory()) {
+                // Recursively add subdirectories
+                await addDirectoryToArchive(
+                  filePath,
+                  `${archivePath}/${file.filename}`
+                );
+              } else {
+                // Add files to the archive
+                const readStream = sftp.createReadStream(filePath);
+                archive.append(readStream, {
+                  name: `${archivePath}/${file.filename}`,
+                });
+              }
+            }
+          };
+
+          await addDirectoryToArchive(path);
+
           archive.finalize();
           archive.on("end", () => {
             conn.end();
           });
         } else {
+          // Handle single file download
           const stream = sftp.createReadStream(path);
 
           stream.on("error", (err) => {
@@ -204,7 +242,6 @@ exports.downloadFile = async (req, res) => {
     }
   }
 };
-
 // New file upload handler
 exports.uploadFile = [
   upload.single("file"),
