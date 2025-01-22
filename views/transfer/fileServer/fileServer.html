@@ -4,67 +4,155 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>File Manager</title>
+    <style>
+      :root {
+        --font-family: Arial, sans-serif;
+        --background-light: #f4f4f9;
+        --background-dark: #1e1e1e;
+        --text-light: #333;
+        --text-dark: #f4f4f9;
+        --border-light: #ddd;
+        --border-dark: #444;
+        --hover-light: #f0f0f0;
+        --hover-dark: #333;
+        --primary-color: #007bff;
+        --primary-hover: #0056b3;
+        --spacing-unit: 1rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background: var(--background-dark);
+          --text: var(--text-dark);
+          --border: var(--border-dark);
+          --hover: var(--hover-dark);
+        }
+      }
+
+      @media (prefers-color-scheme: light) {
+        :root {
+          --background: var(--background-light);
+          --text: var(--text-light);
+          --border: var(--border-light);
+          --hover: var(--hover-light);
+        }
+      }
+
+      body {
+        font-family: var(--font-family);
+        margin: 0;
+        padding: calc(var(--spacing-unit) * 1.25);
+        background: var(--background);
+        color: var(--text);
+      }
+
+      #app {
+        max-width: 800px;
+        margin: auto;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: calc(var(--spacing-unit) * 1.5);
+      }
+
+      #controls {
+        display: flex;
+        gap: var(--spacing-unit);
+        margin-bottom: calc(var(--spacing-unit) * 1.5);
+        flex-wrap: wrap;
+      }
+
+      #upload-section {
+        width: 100%;
+        padding: var(--spacing-unit);
+        background: var(--background);
+        border: 2px dashed var(--border);
+        text-align: center;
+        margin: var(--spacing-unit) 0;
+      }
+
+      #files {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-unit);
+      }
+
+      .file,
+      .folder {
+        padding: var(--spacing-unit);
+        background: var(--background);
+        border: 1px solid var(--border);
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background 0.2s ease;
+      }
+
+      .file:hover,
+      .folder:hover {
+        background: var(--hover);
+      }
+
+      .folder {
+        font-weight: bold;
+      }
+
+      .file::before {
+        content: "📄";
+        margin-right: calc(var(--spacing-unit) * 0.5);
+      }
+
+      .folder::before {
+        content: "📁";
+        margin-right: calc(var(--spacing-unit) * 0.5);
+      }
+
+      .button-group {
+        display: flex;
+        gap: calc(var(--spacing-unit) * 0.5);
+      }
+
+      button {
+        padding: calc(var(--spacing-unit) * 0.5) var(--spacing-unit);
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      }
+
+      button:hover {
+        background: var(--primary-hover);
+      }
+
+      input[type="text"],
+      input[type="file"] {
+        padding: calc(var(--spacing-unit) * 0.5);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: var(--background);
+        color: var(--text);
+      }
+
+      header,
+      footer {
+        text-align: center;
+        margin: var(--spacing-unit) 0;
+      }
+
+      a {
+        color: var(--primary-color);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+    </style>
   </head>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f4f4f9;
-    }
-
-    #app {
-      max-width: 800px;
-      margin: auto;
-    }
-
-    h1 {
-      text-align: center;
-    }
-
-    #controls {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-
-    #upload-section {
-      width: 100%;
-      padding: 15px;
-      background: #fff;
-      border: 2px dashed #ccc;
-      text-align: center;
-      margin: 10px 0;
-    }
-
-    #files {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .file,
-    .folder {
-      padding: 10px;
-      background: #ffffff;
-      border: 1px solid #ddd;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .file:hover,
-    .folder:hover {
-      background: #f0f0f0;
-    }
-
-    .button-group {
-      display: flex;
-      gap: 5px;
-    }
-  </style>
   <body>
     <header>
       <a href="/mainFileTransfer">Trở về trang chính/Back to main</a>
@@ -95,6 +183,7 @@
       <a href="/mainFileTransfer">Trở về trang chính/Back to main</a>
     </footer>
     <script>
+      // JavaScript remains unchanged
       async function listFiles() {
         const path = document.getElementById("folder-path").value || ".";
         const response = await fetch(
@@ -115,7 +204,6 @@
           const buttonGroup = document.createElement("div");
           buttonGroup.className = "button-group";
 
-          // Add click handler to both the div and nameSpan for folders
           if (file.type === "folder") {
             div.onclick = nameSpan.onclick = () => {
               document.getElementById(
@@ -125,7 +213,6 @@
             };
           }
 
-          // Add delete button
           const deleteButton = document.createElement("button");
           deleteButton.innerText = "Delete";
           deleteButton.onclick = async (e) => {
@@ -136,7 +223,6 @@
             }
           };
 
-          // Add download button
           const downloadButton = document.createElement("button");
           downloadButton.innerText = "Download";
           downloadButton.onclick = async (e) => {
