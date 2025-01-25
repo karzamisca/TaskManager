@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project Management</title>
+  </head>
+  <body>
+    <div id="app">
+      <h1>Project Management</h1>
+
+      <!-- Create New Project -->
+      <div id="create-project">
+        <h2>Create New Project</h2>
+        <form id="create-project-form">
+          <label for="project-title">Title:</label>
+          <input
+            type="text"
+            id="project-title"
+            placeholder="Enter project title"
+          />
+          <label for="project-description">Description:</label>
+          <textarea
+            id="project-description"
+            placeholder="Enter project description"
+          ></textarea>
+          <button type="button" onclick="createProject()">
+            Create Project
+          </button>
+        </form>
+      </div>
+
+      <!-- List of Projects -->
+      <div id="project-list">
+        <h2>Your Projects</h2>
+        <ul id="projects">
+          <!-- Project list items will be dynamically added here -->
+        </ul>
+      </div>
+
+      <!-- Project Details -->
+      <div id="project-details" style="display: none">
+        <h2 id="project-details-title"></h2>
+        <p id="project-details-description"></p>
+
+        <!-- Proposal Phase -->
+        <div id="phase-proposal">
+          <h3>Proposal Phase</h3>
+          <form id="proposal-form">
+            <label for="proposal-task">Task:</label>
+            <input type="text" id="proposal-task" placeholder="Enter task" />
+            <label for="proposal-cost-center">Cost Center:</label>
+            <input
+              type="text"
+              id="proposal-cost-center"
+              placeholder="Enter cost center"
+            />
+            <label for="proposal-date-of-error">Date of Error:</label>
+            <input
+              type="text"
+              id="proposal-date-of-error"
+              placeholder="Enter date of error"
+            />
+            <label for="proposal-details-description"
+              >Details Description:</label
+            >
+            <textarea
+              id="proposal-details-description"
+              placeholder="Enter details description"
+            ></textarea>
+            <label for="proposal-direction">Direction:</label>
+            <input
+              type="text"
+              id="proposal-direction"
+              placeholder="Enter direction"
+            />
+            <label for="proposal-submission-date">Submission Date:</label>
+            <input
+              type="text"
+              id="proposal-submission-date"
+              placeholder="Enter submission date"
+            />
+            <button type="button" onclick="updatePhase('proposal')">
+              Submit
+            </button>
+            <button type="button" onclick="approvePhase('proposal')">
+              Approve
+            </button>
+          </form>
+        </div>
+
+        <!-- Purchasing Phase -->
+        <div id="phase-purchasing">
+          <h3>Purchasing Phase</h3>
+          <form id="purchasing-form">
+            <label for="purchasing-title">Title:</label>
+            <input
+              type="text"
+              id="purchasing-title"
+              placeholder="Enter title"
+            />
+            <label for="purchasing-name">Name:</label>
+            <input type="text" id="purchasing-name" placeholder="Enter name" />
+            <label for="purchasing-payment-method">Payment Method:</label>
+            <input
+              type="text"
+              id="purchasing-payment-method"
+              placeholder="Enter payment method"
+            />
+            <label for="purchasing-amount-of-money">Amount of Money:</label>
+            <input
+              type="number"
+              id="purchasing-amount-of-money"
+              placeholder="Enter amount"
+            />
+            <label for="purchasing-paid">Paid:</label>
+            <input
+              type="number"
+              id="purchasing-paid"
+              placeholder="Enter paid amount"
+            />
+            <label for="purchasing-payment-deadline">Payment Deadline:</label>
+            <input
+              type="text"
+              id="purchasing-payment-deadline"
+              placeholder="Enter payment deadline"
+            />
+            <label for="purchasing-submission-date">Submission Date:</label>
+            <input
+              type="text"
+              id="purchasing-submission-date"
+              placeholder="Enter submission date"
+            />
+            <button type="button" onclick="updatePhase('purchasing')">
+              Submit
+            </button>
+            <button type="button" onclick="approvePhase('purchasing')">
+              Approve
+            </button>
+          </form>
+        </div>
+
+        <!-- Payment Phase -->
+        <div id="phase-payment">
+          <h3>Payment Phase</h3>
+          <form id="payment-form">
+            <label for="payment-title">Title:</label>
+            <input type="text" id="payment-title" placeholder="Enter title" />
+            <label for="payment-name">Name:</label>
+            <input type="text" id="payment-name" placeholder="Enter name" />
+            <label for="payment-payment-method">Payment Method:</label>
+            <input
+              type="text"
+              id="payment-payment-method"
+              placeholder="Enter payment method"
+            />
+            <label for="payment-amount-of-money">Amount of Money:</label>
+            <input
+              type="number"
+              id="payment-amount-of-money"
+              placeholder="Enter amount"
+            />
+            <label for="payment-paid">Paid:</label>
+            <input
+              type="number"
+              id="payment-paid"
+              placeholder="Enter paid amount"
+            />
+            <label for="payment-payment-deadline">Payment Deadline:</label>
+            <input
+              type="text"
+              id="payment-payment-deadline"
+              placeholder="Enter payment deadline"
+            />
+            <label for="payment-submission-date">Submission Date:</label>
+            <input
+              type="text"
+              id="payment-submission-date"
+              placeholder="Enter submission date"
+            />
+            <button type="button" onclick="updatePhase('payment')">
+              Submit
+            </button>
+            <button type="button" onclick="approvePhase('payment')">
+              Approve
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <script>
+      let token = null;
+      let currentProjectId = null;
+      let currentUserRole = null;
+      let currentProject = null;
+      let currentUserId = null;
+
+      // Fetch user role and ID
+      async function fetchUserRole() {
+        const response = await fetch("/getRoleProjectDocument", {
+          credentials: "include", // Include cookies
+        });
+        const data = await response.json();
+        currentUserRole = data.role;
+        currentUserId = data._id; // Use _id instead of userId
+        console.log("Current user role:", currentUserRole); // Debugging
+        console.log("Current user ID:", currentUserId); // Debugging
+      }
+      // Create a new project
+      async function createProject() {
+        const title = document.getElementById("project-title").value;
+        const description = document.getElementById(
+          "project-description"
+        ).value;
+
+        const response = await fetch("/createProjectDocument", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include", // Include cookies
+          body: JSON.stringify({ title, description }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          alert("Project created successfully");
+          loadProjects(); // Reload the project list
+        } else {
+          alert(data.message);
+        }
+      }
+
+      // Load all projects
+      async function loadProjects() {
+        const response = await fetch("/getAllProjectDocuments", {
+          credentials: "include", // Include cookies
+        });
+        const projects = await response.json();
+        console.log("Projects loaded:", projects); // Debugging
+
+        const projectList = document.getElementById("projects");
+        projectList.innerHTML = "";
+
+        projects.forEach((project) => {
+          const li = document.createElement("li");
+          li.textContent = project.title;
+          li.setAttribute("data-project-id", project._id); // Attach projectId
+          li.onclick = () => loadProject(project._id); // Load project details
+          projectList.appendChild(li);
+        });
+      }
+
+      // Load project details
+      async function loadProject(projectId) {
+        console.log("Loading project with ID:", projectId); // Debugging
+        currentProjectId = projectId; // Set the current project ID
+
+        const response = await fetch(`/getProjectDocument/${projectId}`, {
+          credentials: "include", // Include cookies
+        });
+        const data = await response.json();
+        console.log("Project data from backend:", data); // Debugging
+
+        if (!response.ok) {
+          alert(data.message || "Failed to load project");
+          return;
+        }
+
+        currentProject = data; // Store the current project data
+        document.getElementById("project-details").style.display = "block";
+        document.getElementById("project-details-title").innerText = data.title;
+        document.getElementById("project-details-description").innerText =
+          data.description;
+
+        // Lock phases based on their status
+        lockPhase("proposal", data.phases.proposal);
+        lockPhase("purchasing", data.phases.purchasing);
+        lockPhase("payment", data.phases.payment);
+      }
+
+      // Lock a phase if it's approved
+      function lockPhase(phase, phaseData) {
+        console.log(`Checking ${phase} phase status...`); // Debugging
+        console.log("Phase data:", phaseData); // Debugging
+
+        const form = document.getElementById(`${phase}-form`);
+        const submitButton = form.querySelector(
+          "button[onclick*='updatePhase']"
+        );
+        const approveButton = form.querySelector(
+          "button[onclick*='approvePhase']"
+        );
+
+        // Populate form fields
+        for (const [key, value] of Object.entries(phaseData)) {
+          const input = form.querySelector(`#${phase}-${key}`);
+          if (input) input.value = value;
+        }
+
+        // Handle phase status
+        if (phaseData.status === "Pending") {
+          console.log(
+            `Phase ${phase} is pending. Enabling inputs and approval.`
+          ); // Debugging
+          form.querySelectorAll("input, textarea").forEach((element) => {
+            element.disabled = false;
+          });
+          submitButton.disabled = false; // Enable the submit button
+          approveButton.disabled = !canApprovePhase(phase); // Allow approval if the user can approve
+        } else if (phaseData.status === "Locked") {
+          console.log(
+            `Phase ${phase} is locked. Disabling inputs and approval.`
+          ); // Debugging
+          form
+            .querySelectorAll("input, textarea, button")
+            .forEach((element) => {
+              element.disabled = true;
+            });
+        } else if (phaseData.status === "Partially Approved") {
+          console.log(
+            `Phase ${phase} is partially approved. Disabling inputs but allowing approval.`
+          ); // Debugging
+          form.querySelectorAll("input, textarea").forEach((element) => {
+            element.disabled = true;
+          });
+          submitButton.disabled = true; // Disable the submit button
+          approveButton.disabled = !canApprovePhase(phase); // Allow approval if the user can approve
+        } else if (phaseData.status === "Approved") {
+          console.log(
+            `Phase ${phase} is fully approved. Locking inputs and buttons.`
+          ); // Debugging
+          form
+            .querySelectorAll("input, textarea, button")
+            .forEach((element) => {
+              element.disabled = true;
+            });
+        }
+
+        console.log("Submit button state:", submitButton.disabled); // Debugging
+        console.log("Approve button state:", approveButton.disabled); // Debugging
+      }
+
+      // Check if the current user can approve the phase
+      function canApprovePhase(phase) {
+        console.log("Checking if user can approve phase:", phase); // Debugging
+        console.log("Current user role:", currentUserRole); // Debugging
+        console.log("Current user ID:", currentUserId); // Debugging
+        console.log("Current project data:", currentProject); // Debugging
+
+        if (phase === "proposal" && currentUserRole === "approver") return true;
+        if (phase === "purchasing" && currentUserRole === "approver")
+          return true;
+        if (
+          phase === "payment" &&
+          (currentUserRole === "approver" || currentUserRole === "Director")
+        ) {
+          // Check if the user has already approved the payment phase
+          if (currentProject && currentProject.phases.payment.approvedBy) {
+            const userHasApproved =
+              currentProject.phases.payment.approvedBy.some(
+                (approverId) => approverId === currentUserId
+              );
+            if (userHasApproved) {
+              console.log("User has already approved this phase."); // Debugging
+              return false; // User has already approved
+            }
+          }
+          return true;
+        }
+        return false;
+      }
+
+      async function approvePhase(phase) {
+        if (!currentProjectId) {
+          alert("No project selected. Please select a project first.");
+          return;
+        }
+
+        console.log(
+          `Attempting to approve ${phase} phase for project ${currentProjectId}...`
+        ); // Debugging
+        console.log("Current user role:", currentUserRole); // Debugging
+
+        // Check if the user has the correct role to approve the phase
+        if (!canApprovePhase(phase)) {
+          alert("You do not have permission to approve this phase.");
+          return;
+        }
+
+        const response = await fetch("/approvePhaseProjectDocument", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include", // Include cookies
+          body: JSON.stringify({ projectId: currentProjectId, phase }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          alert("Phase approved successfully");
+          console.log("Updated project data:", data); // Debugging
+          loadProject(currentProjectId); // Reload project details
+        } else {
+          alert(data.message);
+        }
+      }
+
+      async function updatePhase(phase) {
+        if (!currentProjectId) {
+          alert("No project selected. Please select a project first.");
+          return;
+        }
+
+        console.log(
+          `Updating ${phase} phase for project ${currentProjectId}...`
+        ); // Debugging
+
+        const form = document.getElementById(`${phase}-form`);
+        const details = {};
+
+        // Collect phase details from the form
+        form.querySelectorAll("input, textarea").forEach((input) => {
+          const key = input.id.replace(`${phase}-`, "");
+          console.log(`Found input: ${key} = ${input.value}`); // Debugging
+          if (input.value) {
+            details[key] = input.value;
+          }
+        });
+
+        console.log("Sending phase details:", details); // Debugging
+
+        const response = await fetch("/updatePhaseDetailsProjectDocument", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include", // Include cookies
+          body: JSON.stringify({
+            projectId: currentProjectId,
+            phase,
+            details,
+          }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          alert("Phase details updated successfully");
+          loadProject(currentProjectId); // Reload project details
+        } else {
+          alert(data.message);
+        }
+      }
+
+      // On page load
+      window.onload = async () => {
+        await fetchUserRole();
+        await loadProjects();
+      };
+    </script>
+  </body>
+</html>

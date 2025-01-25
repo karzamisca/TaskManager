@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 const authRoute = require("./routes/authRoute");
 const documentRoute = require("./routes/documentRoute");
+const projectDocumentRoute = require("./routes/projectDocumentRoute");
 const groupRoute = require("./routes/groupRoute");
 const authMiddleware = require("./middlewares/authMiddleware"); // JWT middleware
 const entryRoute = require("./routes/entryRoute");
@@ -40,6 +41,7 @@ app.use("/", authRoute);
 app.use("/", authMiddleware, googleDriveRoute);
 app.use("/", authMiddleware, fileServerRoute);
 app.use("/", authMiddleware, documentRoute); // Apply JWT middleware to document routes
+app.use("/", authMiddleware, projectDocumentRoute);
 app.use("/", authMiddleware, groupRoute);
 app.use("/", authMiddleware, entryRoute);
 app.use("/", authMiddleware, messageRoute);
