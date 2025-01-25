@@ -12,21 +12,21 @@
       <!-- Create New Project -->
       <div id="create-project">
         <h2>Create New Project</h2>
-        <form id="create-project-form">
+        <form id="create-project-form" onsubmit="createProject(event)">
           <label for="project-title">Title:</label>
           <input
             type="text"
             id="project-title"
             placeholder="Enter project title"
+            required
           />
           <label for="project-description">Description:</label>
           <textarea
             id="project-description"
             placeholder="Enter project description"
+            required
           ></textarea>
-          <button type="button" onclick="createProject()">
-            Create Project
-          </button>
+          <button type="submit">Create Project</button>
         </form>
       </div>
 
@@ -46,20 +46,27 @@
         <!-- Proposal Phase -->
         <div id="phase-proposal">
           <h3>Proposal Phase</h3>
-          <form id="proposal-form">
+          <form id="proposal-form" onsubmit="updatePhase('proposal', event)">
             <label for="proposal-task">Task:</label>
-            <input type="text" id="proposal-task" placeholder="Enter task" />
+            <input
+              type="text"
+              id="proposal-task"
+              placeholder="Enter task"
+              required
+            />
             <label for="proposal-cost-center">Cost Center:</label>
             <input
               type="text"
               id="proposal-cost-center"
               placeholder="Enter cost center"
+              required
             />
             <label for="proposal-date-of-error">Date of Error:</label>
             <input
               type="text"
               id="proposal-date-of-error"
               placeholder="Enter date of error"
+              required
             />
             <label for="proposal-details-description"
               >Details Description:</label
@@ -67,22 +74,23 @@
             <textarea
               id="proposal-details-description"
               placeholder="Enter details description"
+              required
             ></textarea>
             <label for="proposal-direction">Direction:</label>
             <input
               type="text"
               id="proposal-direction"
               placeholder="Enter direction"
+              required
             />
             <label for="proposal-submission-date">Submission Date:</label>
             <input
               type="text"
               id="proposal-submission-date"
               placeholder="Enter submission date"
+              required
             />
-            <button type="button" onclick="updatePhase('proposal')">
-              Submit
-            </button>
+            <button type="submit">Submit</button>
             <button type="button" onclick="approvePhase('proposal')">
               Approve
             </button>
@@ -92,48 +100,29 @@
         <!-- Purchasing Phase -->
         <div id="phase-purchasing">
           <h3>Purchasing Phase</h3>
-          <form id="purchasing-form">
-            <label for="purchasing-title">Title:</label>
-            <input
-              type="text"
-              id="purchasing-title"
-              placeholder="Enter title"
-            />
-            <label for="purchasing-name">Name:</label>
-            <input type="text" id="purchasing-name" placeholder="Enter name" />
-            <label for="purchasing-payment-method">Payment Method:</label>
-            <input
-              type="text"
-              id="purchasing-payment-method"
-              placeholder="Enter payment method"
-            />
-            <label for="purchasing-amount-of-money">Amount of Money:</label>
+          <form
+            id="purchasing-form"
+            onsubmit="updatePhase('purchasing', event)"
+          >
+            <div id="purchasing-products">
+              <!-- Product fields will be dynamically added here -->
+            </div>
+            <button type="button" onclick="addProduct()">Add Product</button>
+            <label for="purchasing-grand-total-cost">Grand Total Cost:</label>
             <input
               type="number"
-              id="purchasing-amount-of-money"
-              placeholder="Enter amount"
-            />
-            <label for="purchasing-paid">Paid:</label>
-            <input
-              type="number"
-              id="purchasing-paid"
-              placeholder="Enter paid amount"
-            />
-            <label for="purchasing-payment-deadline">Payment Deadline:</label>
-            <input
-              type="text"
-              id="purchasing-payment-deadline"
-              placeholder="Enter payment deadline"
+              id="purchasing-grand-total-cost"
+              placeholder="Enter grand total cost"
+              readonly
             />
             <label for="purchasing-submission-date">Submission Date:</label>
             <input
               type="text"
               id="purchasing-submission-date"
               placeholder="Enter submission date"
+              required
             />
-            <button type="button" onclick="updatePhase('purchasing')">
-              Submit
-            </button>
+            <button type="submit">Submit</button>
             <button type="button" onclick="approvePhase('purchasing')">
               Approve
             </button>
@@ -143,44 +132,57 @@
         <!-- Payment Phase -->
         <div id="phase-payment">
           <h3>Payment Phase</h3>
-          <form id="payment-form">
+          <form id="payment-form" onsubmit="updatePhase('payment', event)">
             <label for="payment-title">Title:</label>
-            <input type="text" id="payment-title" placeholder="Enter title" />
+            <input
+              type="text"
+              id="payment-title"
+              placeholder="Enter title"
+              required
+            />
             <label for="payment-name">Name:</label>
-            <input type="text" id="payment-name" placeholder="Enter name" />
+            <input
+              type="text"
+              id="payment-name"
+              placeholder="Enter name"
+              required
+            />
             <label for="payment-payment-method">Payment Method:</label>
             <input
               type="text"
               id="payment-payment-method"
               placeholder="Enter payment method"
+              required
             />
             <label for="payment-amount-of-money">Amount of Money:</label>
             <input
               type="number"
               id="payment-amount-of-money"
               placeholder="Enter amount"
+              required
             />
             <label for="payment-paid">Paid:</label>
             <input
               type="number"
               id="payment-paid"
               placeholder="Enter paid amount"
+              required
             />
             <label for="payment-payment-deadline">Payment Deadline:</label>
             <input
               type="text"
               id="payment-payment-deadline"
               placeholder="Enter payment deadline"
+              required
             />
             <label for="payment-submission-date">Submission Date:</label>
             <input
               type="text"
               id="payment-submission-date"
               placeholder="Enter submission date"
+              required
             />
-            <button type="button" onclick="updatePhase('payment')">
-              Submit
-            </button>
+            <button type="submit">Submit</button>
             <button type="button" onclick="approvePhase('payment')">
               Approve
             </button>
@@ -194,6 +196,7 @@
       let currentUserRole = null;
       let currentProject = null;
       let currentUserId = null;
+      let productCount = 0;
 
       // Fetch user role and ID
       async function fetchUserRole() {
@@ -206,8 +209,10 @@
         console.log("Current user role:", currentUserRole); // Debugging
         console.log("Current user ID:", currentUserId); // Debugging
       }
+
       // Create a new project
-      async function createProject() {
+      async function createProject(event) {
+        event.preventDefault(); // Prevent default form submission
         const title = document.getElementById("project-title").value;
         const description = document.getElementById(
           "project-description"
@@ -285,17 +290,82 @@
         console.log("Phase data:", phaseData); // Debugging
 
         const form = document.getElementById(`${phase}-form`);
-        const submitButton = form.querySelector(
-          "button[onclick*='updatePhase']"
-        );
+        const submitButton = form.querySelector("button[type='submit']");
         const approveButton = form.querySelector(
           "button[onclick*='approvePhase']"
         );
+        const addProductButton = document.querySelector(
+          "#purchasing-form button[onclick*='addProduct']"
+        );
 
         // Populate form fields
-        for (const [key, value] of Object.entries(phaseData)) {
-          const input = form.querySelector(`#${phase}-${key}`);
-          if (input) input.value = value;
+        if (phase === "purchasing") {
+          // Populate products
+          const productsDiv = document.getElementById("purchasing-products");
+          productsDiv.innerHTML = ""; // Clear existing products
+          phaseData.products.forEach((product, index) => {
+            const productDiv = document.createElement("div");
+            productDiv.innerHTML = `
+              <h4>Product ${index + 1}</h4>
+              <label for="purchasing-product-name-${index}">Product Name:</label>
+              <input
+                type="text"
+                id="purchasing-product-name-${index}"
+                value="${product.productName}"
+                ${phaseData.status !== "Pending" ? "disabled" : ""}
+                required
+              />
+              <label for="purchasing-cost-per-unit-${index}">Cost Per Unit:</label>
+              <input
+                type="number"
+                id="purchasing-cost-per-unit-${index}"
+                value="${product.costPerUnit}"
+                ${phaseData.status !== "Pending" ? "disabled" : ""}
+                required
+              />
+              <label for="purchasing-amount-${index}">Amount:</label>
+              <input
+                type="number"
+                id="purchasing-amount-${index}"
+                value="${product.amount}"
+                ${phaseData.status !== "Pending" ? "disabled" : ""}
+                required
+              />
+              <label for="purchasing-total-cost-${index}">Total Cost:</label>
+              <input
+                type="number"
+                id="purchasing-total-cost-${index}"
+                value="${product.totalCost}"
+                readonly
+              />
+              <label for="purchasing-note-${index}">Note:</label>
+              <input
+                type="text"
+                id="purchasing-note-${index}"
+                value="${product.note}"
+                ${phaseData.status !== "Pending" ? "disabled" : ""}
+                required
+              />
+            `;
+            productsDiv.appendChild(productDiv);
+          });
+
+          // Populate grand total cost and submission date
+          document.getElementById("purchasing-grand-total-cost").value =
+            phaseData.grandTotalCost;
+          document.getElementById("purchasing-submission-date").value =
+            phaseData.submissionDate;
+
+          // Enable or disable the "Add Product" button based on phase status
+          if (addProductButton) {
+            addProductButton.disabled = phaseData.status !== "Pending";
+          }
+        } else {
+          // For other phases, populate fields as before
+          for (const [key, value] of Object.entries(phaseData)) {
+            const input = form.querySelector(`#${phase}-${key}`);
+            if (input) input.value = value;
+          }
         }
 
         // Handle phase status
@@ -407,7 +477,8 @@
         }
       }
 
-      async function updatePhase(phase) {
+      async function updatePhase(phase, event) {
+        event.preventDefault(); // Prevent default form submission
         if (!currentProjectId) {
           alert("No project selected. Please select a project first.");
           return;
@@ -451,6 +522,50 @@
         } else {
           alert(data.message);
         }
+      }
+
+      function addProduct() {
+        const productDiv = document.createElement("div");
+        productDiv.innerHTML = `
+          <h4>Product ${productCount + 1}</h4>
+          <label for="purchasing-product-name-${productCount}">Product Name:</label>
+          <input
+            type="text"
+            id="purchasing-product-name-${productCount}"
+            placeholder="Enter product name"
+            required
+          />
+          <label for="purchasing-cost-per-unit-${productCount}">Cost Per Unit:</label>
+          <input
+            type="number"
+            id="purchasing-cost-per-unit-${productCount}"
+            placeholder="Enter cost per unit"
+            required
+          />
+          <label for="purchasing-amount-${productCount}">Amount:</label>
+          <input
+            type="number"
+            id="purchasing-amount-${productCount}"
+            placeholder="Enter amount"
+            required
+          />
+          <label for="purchasing-total-cost-${productCount}">Total Cost:</label>
+          <input
+            type="number"
+            id="purchasing-total-cost-${productCount}"
+            placeholder="Total cost"
+            readonly
+          />
+          <label for="purchasing-note-${productCount}">Note:</label>
+          <input
+            type="text"
+            id="purchasing-note-${productCount}"
+            placeholder="Enter note"
+            required
+          />
+        `;
+        document.getElementById("purchasing-products").appendChild(productDiv);
+        productCount++;
       }
 
       // On page load

@@ -5,7 +5,7 @@ const projectDocumentSchema = new mongoose.Schema({
   description: { type: String, required: true },
   phases: {
     proposal: {
-      status: { type: String, default: "Pending" }, // Initial phase is "Pending"
+      status: { type: String, default: "Pending" },
       approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
       task: { type: String, default: "" },
       costCenter: { type: String, default: "" },
@@ -15,18 +15,22 @@ const projectDocumentSchema = new mongoose.Schema({
       submissionDate: { type: String, default: "" },
     },
     purchasing: {
-      status: { type: String, default: "Locked" }, // Initial phase is "Locked"
+      status: { type: String, default: "Locked" },
       approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      title: { type: String, default: "Payment Document" },
-      name: { type: String, default: "" },
-      paymentMethod: { type: String, default: "" },
-      amountOfMoney: { type: Number, default: 0 },
-      paid: { type: Number, default: 0 },
-      paymentDeadline: { type: String, default: "" },
+      products: [
+        {
+          productName: { type: String, required: true },
+          costPerUnit: { type: Number, required: true },
+          amount: { type: Number, required: true },
+          totalCost: { type: Number, required: true }, // Cost per unit x amount
+          note: { type: String },
+        },
+      ],
+      grandTotalCost: { type: Number, default: 0 }, // Sum of all totalCosts
       submissionDate: { type: String, default: "" },
     },
     payment: {
-      status: { type: String, default: "Locked" }, // Initial phase is "Locked"
+      status: { type: String, default: "Locked" },
       approvedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
       title: { type: String, default: "Payment Document" },
       name: { type: String, default: "" },

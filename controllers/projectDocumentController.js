@@ -132,12 +132,8 @@ exports.updatePhaseDetailsProjectDocument = async (req, res) => {
         "submission-date": "submissionDate",
       },
       purchasing: {
-        title: "title",
-        name: "name",
-        "payment-method": "paymentMethod",
-        "amount-of-money": "amountOfMoney",
-        paid: "paid",
-        "payment-deadline": "paymentDeadline",
+        products: "products",
+        "grand-total-cost": "grandTotalCost",
         "submission-date": "submissionDate",
       },
       payment: {
@@ -151,11 +147,44 @@ exports.updatePhaseDetailsProjectDocument = async (req, res) => {
       },
     };
 
-    // Update phase-specific fields
-    for (const [formField, value] of Object.entries(details)) {
-      const schemaField = fieldMappings[phase][formField];
-      if (schemaField && project.phases[phase][schemaField] !== undefined) {
-        project.phases[phase][schemaField] = value;
+    // Handle purchasing phase differently
+    if (phase === "purchasing") {
+      const products = [];
+      let grandTotalCost = 0;
+
+      // Collect product details
+      let i = 0;
+      while (details[`product-name-${i}`]) {
+        const productName = details[`product-name-${i}`];
+        const costPerUnit = parseFloat(details[`cost-per-unit-${i}`]);
+        const amount = parseFloat(details[`amount-${i}`]);
+        const totalCost = costPerUnit * amount;
+        const note = details[`note-${i}`];
+
+        if (productName && !isNaN(costPerUnit) && !isNaN(amount)) {
+          products.push({
+            productName,
+            costPerUnit,
+            amount,
+            totalCost,
+            note,
+          });
+          grandTotalCost += totalCost;
+        }
+        i++;
+      }
+
+      // Update purchasing phase details
+      project.phases.purchasing.products = products;
+      project.phases.purchasing.grandTotalCost = grandTotalCost;
+      project.phases.purchasing.submissionDate = details["submission-date"];
+    } else {
+      // For other phases, update phase-specific fields
+      for (const [formField, value] of Object.entries(details)) {
+        const schemaField = fieldMappings[phase][formField];
+        if (schemaField && project.phases[phase][schemaField] !== undefined) {
+          project.phases[phase][schemaField] = value;
+        }
       }
     }
 
