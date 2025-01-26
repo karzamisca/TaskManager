@@ -176,6 +176,7 @@ exports.updatePhaseDetailsProjectDocument = async (req, res) => {
       project.phases.purchasing.products = products;
       project.phases.purchasing.grandTotalCost = grandTotalCost;
       project.phases.purchasing.submissionDate = details["submission-date"];
+      project.phases.purchasing.title = details.title; // Ensure this line is present
     } else {
       // For other phases, update phase-specific fields
       for (const [formField, value] of Object.entries(details)) {

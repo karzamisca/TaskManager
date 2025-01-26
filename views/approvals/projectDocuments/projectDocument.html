@@ -508,17 +508,12 @@
           return;
         }
 
-        console.log(
-          `Updating ${phase} phase for project ${currentProjectId}...`
-        ); // Debugging
-
         const form = document.getElementById(`${phase}-form`);
         const details = {};
 
         // Collect phase details from the form
         form.querySelectorAll("input, textarea").forEach((input) => {
           const key = input.id.replace(`${phase}-`, "");
-          console.log(`Found input: ${key} = ${input.value}`); // Debugging
           if (input.value) {
             details[key] = input.value;
           }
