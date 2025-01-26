@@ -38,5 +38,10 @@ router.get(
   "/getRoleProjectDocument",
   projectDocumentController.getRoleProjectDocument
 );
+router.get(
+  "/costCentersProjectDocument",
+  authMiddleware,
+  projectDocumentController.getCostCentersProjectDocument
+);
 
 module.exports = router;

@@ -1,5 +1,6 @@
 const Project = require("../models/ProjectDocument");
 const User = require("../models/User");
+const CostCenter = require("../models/CostCenter");
 
 //Serve view
 exports.getProjectDocumentView = (req, res) => {
@@ -234,4 +235,25 @@ exports.getRoleProjectDocument = async (req, res) => {
     return res.json({ role: req.user.role, _id: req.user._id }); // Return _id instead of userId
   }
   res.status(401).send("Unauthorized");
+};
+
+exports.getCostCentersProjectDocument = async (req, res) => {
+  try {
+    // Get the current user's username from the authenticated request
+    const currentUsername = req.user ? req.user.username : null;
+
+    // Fetch cost centers that the current user is allowed to see
+    const costCenters = await CostCenter.find({
+      $or: [
+        { allowedUsers: { $in: [currentUsername] } }, // Check if the user is in the allowedUsers array
+        { allowedUsers: { $size: 0 } }, // If allowedUsers is empty, allow all users
+      ],
+    });
+
+    // Send the list of allowed cost centers as a response
+    res.json(costCenters);
+  } catch (error) {
+    console.error("Error fetching cost centers:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };

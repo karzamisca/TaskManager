@@ -55,12 +55,9 @@
               required
             />
             <label for="proposal-cost-center">Cost Center:</label>
-            <input
-              type="text"
-              id="proposal-cost-center"
-              placeholder="Enter cost center"
-              required
-            />
+            <select id="proposal-cost-center" required>
+              <!-- Cost center options will be dynamically added here -->
+            </select>
             <label for="proposal-date-of-error">Date of Error:</label>
             <input
               type="text"
@@ -176,6 +173,7 @@
       let currentProject = null;
       let currentUserId = null;
       let productCount = 0;
+      let allowedCostCenters = []; // Store allowed cost centers for the current user
 
       // Fetch user role and ID
       async function fetchUserRole() {
@@ -187,6 +185,69 @@
         currentUserId = data._id; // Use _id instead of userId
         console.log("Current user role:", currentUserRole); // Debugging
         console.log("Current user ID:", currentUserId); // Debugging
+      }
+
+      // Fetch allowed cost centers for the current user
+      async function fetchAllowedCostCenters() {
+        fetch("/getCurrentUser")
+          .then((response) => response.json())
+          .then((userData) => {
+            const currentUser = userData.username; // Get the current user's username
+
+            // Fetch cost centers
+            fetch("/costCentersProjectDocument")
+              .then((response) => response.json())
+              .then((costCenters) => {
+                const costCenterSelect = document.getElementById(
+                  "proposal-cost-center"
+                );
+
+                // Clear the existing options (if any)
+                costCenterSelect.innerHTML =
+                  '<option value="">Chọn một trạm/Select a center</option>';
+
+                // Add options dynamically based on the allowed users
+                costCenters.forEach((center) => {
+                  if (
+                    center.allowedUsers.length === 0 ||
+                    center.allowedUsers.includes(currentUser)
+                  ) {
+                    const option = document.createElement("option");
+                    option.value = center.name;
+                    option.textContent = center.name;
+                    costCenterSelect.appendChild(option);
+                  }
+                });
+              })
+              .catch((error) => {
+                console.error("Error fetching cost centers:", error);
+              });
+          })
+          .catch((error) => {
+            console.error("Error fetching current user:", error);
+          });
+      }
+
+      // Populate the cost center dropdown with allowed cost centers
+      function populateCostCenterDropdown() {
+        const costCenterDropdown = document.getElementById(
+          "proposal-cost-center"
+        );
+        costCenterDropdown.innerHTML = ""; // Clear existing options
+
+        // Add a default option
+        const defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.textContent = "Select a cost center";
+        costCenterDropdown.appendChild(defaultOption);
+
+        // Add allowed cost centers
+        allowedCostCenters.forEach((costCenter) => {
+          const option = document.createElement("option");
+          option.value = costCenter.name;
+          option.textContent = costCenter.name;
+          costCenterDropdown.appendChild(option);
+        });
       }
 
       // Create a new project
@@ -378,9 +439,11 @@
           console.log(
             `Phase ${phase} is pending. Enabling inputs and approval.`
           ); // Debugging
-          form.querySelectorAll("input, textarea").forEach((element) => {
-            element.disabled = false;
-          });
+          form
+            .querySelectorAll("input, textarea, select")
+            .forEach((element) => {
+              element.disabled = false;
+            });
           submitButton.disabled = false; // Enable the submit button
           approveButton.disabled = !canApprovePhase(phase); // Allow approval if the user can approve
         } else if (phaseData.status === "Locked") {
@@ -388,7 +451,7 @@
             `Phase ${phase} is locked. Disabling inputs and approval.`
           ); // Debugging
           form
-            .querySelectorAll("input, textarea, button")
+            .querySelectorAll("input, textarea, select, button")
             .forEach((element) => {
               element.disabled = true;
             });
@@ -396,9 +459,11 @@
           console.log(
             `Phase ${phase} is partially approved. Disabling inputs but allowing approval.`
           ); // Debugging
-          form.querySelectorAll("input, textarea").forEach((element) => {
-            element.disabled = true;
-          });
+          form
+            .querySelectorAll("input, textarea, select")
+            .forEach((element) => {
+              element.disabled = true;
+            });
           submitButton.disabled = true; // Disable the submit button
           approveButton.disabled = !canApprovePhase(phase); // Allow approval if the user can approve
         } else if (phaseData.status === "Approved") {
@@ -406,7 +471,7 @@
             `Phase ${phase} is fully approved. Locking inputs and buttons.`
           ); // Debugging
           form
-            .querySelectorAll("input, textarea, button")
+            .querySelectorAll("input, textarea, select, button")
             .forEach((element) => {
               element.disabled = true;
             });
@@ -493,7 +558,7 @@
         const details = {};
 
         // Collect phase details from the form
-        form.querySelectorAll("input, textarea").forEach((input) => {
+        form.querySelectorAll("input, textarea, select").forEach((input) => {
           const key = input.id.replace(`${phase}-`, "");
           if (input.value) {
             details[key] = input.value;
@@ -571,6 +636,7 @@
       // On page load
       window.onload = async () => {
         await fetchUserRole();
+        await fetchAllowedCostCenters(); // Fetch allowed cost centers
         await loadProjects();
       };
     </script>
