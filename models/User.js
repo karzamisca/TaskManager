@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: { type: String, required: true }, // Add role field
   department: { type: String, required: true }, // Add department field
+  refreshToken: { type: String },
 });
 
 module.exports = mongoose.model("User", userSchema);
