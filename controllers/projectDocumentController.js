@@ -104,6 +104,22 @@ exports.approvePhaseProjectDocument = async (req, res) => {
   res.json({ message: "Phase approved successfully", project });
 };
 
+function getCurrentGMT7Date() {
+  const date = new Date();
+  const offset = 7; // GMT+7
+  const localTime = date.getTime() + offset * 60 * 60 * 1000;
+  const localDate = new Date(localTime);
+
+  const day = String(localDate.getUTCDate()).padStart(2, "0");
+  const month = String(localDate.getUTCMonth() + 1).padStart(2, "0"); // Months are 0-based
+  const year = localDate.getUTCFullYear();
+  const hours = String(localDate.getUTCHours()).padStart(2, "0");
+  const minutes = String(localDate.getUTCMinutes()).padStart(2, "0");
+  const seconds = String(localDate.getUTCSeconds()).padStart(2, "0");
+
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+}
+
 exports.updatePhaseDetailsProjectDocument = async (req, res) => {
   const { projectId, phase, details } = req.body;
   console.log("Updating phase details:", { projectId, phase, details }); // Debugging
@@ -127,13 +143,11 @@ exports.updatePhaseDetailsProjectDocument = async (req, res) => {
         "date-of-error": "dateOfError",
         "details-description": "detailsDescription",
         direction: "direction",
-        "submission-date": "submissionDate",
       },
       purchasing: {
         title: "title",
         products: "products",
         "grand-total-cost": "grandTotalCost",
-        "submission-date": "submissionDate",
       },
       payment: {
         title: "title",
@@ -141,7 +155,6 @@ exports.updatePhaseDetailsProjectDocument = async (req, res) => {
         "amount-of-money": "amountOfMoney",
         paid: "paid",
         "payment-deadline": "paymentDeadline",
-        "submission-date": "submissionDate",
       },
     };
 
@@ -175,7 +188,6 @@ exports.updatePhaseDetailsProjectDocument = async (req, res) => {
       // Update purchasing phase details
       project.phases.purchasing.products = products;
       project.phases.purchasing.grandTotalCost = grandTotalCost;
-      project.phases.purchasing.submissionDate = details["submission-date"];
       project.phases.purchasing.title = details.title; // Ensure this line is present
     } else {
       // For other phases, update phase-specific fields
@@ -186,6 +198,9 @@ exports.updatePhaseDetailsProjectDocument = async (req, res) => {
         }
       }
     }
+
+    // Update lastUpdatedAt for the phase
+    project.phases[phase].lastUpdatedAt = getCurrentGMT7Date();
 
     console.log("Updated project:", project); // Debugging
 

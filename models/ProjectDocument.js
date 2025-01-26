@@ -1,5 +1,22 @@
 const mongoose = require("mongoose");
 
+// Helper function to format dates in GMT+7
+function getCurrentGMT7Date() {
+  const date = new Date();
+  const offset = 7; // GMT+7
+  const localTime = date.getTime() + offset * 60 * 60 * 1000;
+  const localDate = new Date(localTime);
+
+  const day = String(localDate.getUTCDate()).padStart(2, "0");
+  const month = String(localDate.getUTCMonth() + 1).padStart(2, "0"); // Months are 0-based
+  const year = localDate.getUTCFullYear();
+  const hours = String(localDate.getUTCHours()).padStart(2, "0");
+  const minutes = String(localDate.getUTCMinutes()).padStart(2, "0");
+  const seconds = String(localDate.getUTCSeconds()).padStart(2, "0");
+
+  return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+}
+
 const projectDocumentSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
@@ -12,7 +29,7 @@ const projectDocumentSchema = new mongoose.Schema({
       dateOfError: { type: String, default: "" },
       detailsDescription: { type: String, default: "" },
       direction: { type: String, default: "" },
-      submissionDate: { type: String, default: "" },
+      lastUpdatedAt: { type: String, default: "" },
     },
     purchasing: {
       status: { type: String, default: "Locked" },
@@ -28,7 +45,7 @@ const projectDocumentSchema = new mongoose.Schema({
         },
       ],
       grandTotalCost: { type: Number, default: 0 }, // Sum of all totalCosts
-      submissionDate: { type: String, default: "" },
+      lastUpdatedAt: { type: String, default: "" },
     },
     payment: {
       status: { type: String, default: "Locked" },
@@ -38,11 +55,11 @@ const projectDocumentSchema = new mongoose.Schema({
       amountOfMoney: { type: Number, default: 0 },
       paid: { type: Number, default: 0 },
       paymentDeadline: { type: String, default: "" },
-      submissionDate: { type: String, default: "" },
+      lastUpdatedAt: { type: String, default: "" },
     },
   },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  createdAt: { type: Date, default: Date.now },
+  createdAt: { type: String, default: getCurrentGMT7Date },
 });
 
 module.exports = mongoose.model("ProjectDocument", projectDocumentSchema);

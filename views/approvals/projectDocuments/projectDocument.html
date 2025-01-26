@@ -83,13 +83,6 @@
               placeholder="Enter direction"
               required
             />
-            <label for="proposal-submission-date">Submission Date:</label>
-            <input
-              type="text"
-              id="proposal-submission-date"
-              placeholder="Enter submission date"
-              required
-            />
             <button type="submit">Submit</button>
             <button type="button" onclick="approvePhase('proposal')">
               Approve
@@ -121,13 +114,6 @@
               id="purchasing-grand-total-cost"
               placeholder="Enter grand total cost"
               readonly
-            />
-            <label for="purchasing-submission-date">Submission Date:</label>
-            <input
-              type="text"
-              id="purchasing-submission-date"
-              placeholder="Enter submission date"
-              required
             />
             <button type="submit">Submit</button>
             <button type="button" onclick="approvePhase('purchasing')">
@@ -173,13 +159,6 @@
               type="text"
               id="payment-payment-deadline"
               placeholder="Enter payment deadline"
-              required
-            />
-            <label for="payment-submission-date">Submission Date:</label>
-            <input
-              type="text"
-              id="payment-submission-date"
-              placeholder="Enter submission date"
               required
             />
             <button type="submit">Submit</button>
@@ -358,11 +337,9 @@
             productsDiv.appendChild(productDiv);
           });
 
-          // Populate grand total cost and submission date
+          // Populate grand total cost
           document.getElementById("purchasing-grand-total-cost").value =
             phaseData.grandTotalCost;
-          document.getElementById("purchasing-submission-date").value =
-            phaseData.submissionDate;
 
           // Populate the title field
           document.getElementById("purchasing-title").value =
@@ -383,8 +360,6 @@
             phaseData.detailsDescription || "";
           document.getElementById("proposal-direction").value =
             phaseData.direction || "";
-          document.getElementById("proposal-submission-date").value =
-            phaseData.submissionDate || "";
         } else if (phase === "payment") {
           // Populate payment phase fields
           document.getElementById("payment-title").value =
@@ -396,8 +371,6 @@
           document.getElementById("payment-paid").value = phaseData.paid || "";
           document.getElementById("payment-payment-deadline").value =
             phaseData.paymentDeadline || "";
-          document.getElementById("payment-submission-date").value =
-            phaseData.submissionDate || "";
         }
 
         // Handle phase status
@@ -442,6 +415,7 @@
         console.log("Submit button state:", submitButton.disabled); // Debugging
         console.log("Approve button state:", approveButton.disabled); // Debugging
       }
+
       // Check if the current user can approve the phase
       function canApprovePhase(phase) {
         console.log("Checking if user can approve phase:", phase); // Debugging
