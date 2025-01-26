@@ -278,6 +278,13 @@
         document.getElementById("project-details-description").innerText =
           data.description;
 
+        // Initialize productCount based on the number of existing products
+        if (data.phases.purchasing && data.phases.purchasing.products) {
+          productCount = data.phases.purchasing.products.length;
+        } else {
+          productCount = 0; // Reset if no products exist
+        }
+
         // Lock phases based on their status
         lockPhase("proposal", data.phases.proposal);
         lockPhase("purchasing", data.phases.purchasing);
@@ -300,9 +307,10 @@
 
         // Populate form fields
         if (phase === "purchasing") {
-          // Populate products
           const productsDiv = document.getElementById("purchasing-products");
           productsDiv.innerHTML = ""; // Clear existing products
+
+          // Populate products
           phaseData.products.forEach((product, index) => {
             const productDiv = document.createElement("div");
             productDiv.innerHTML = `
@@ -434,7 +442,6 @@
         console.log("Submit button state:", submitButton.disabled); // Debugging
         console.log("Approve button state:", approveButton.disabled); // Debugging
       }
-
       // Check if the current user can approve the phase
       function canApprovePhase(phase) {
         console.log("Checking if user can approve phase:", phase); // Debugging
@@ -584,7 +591,7 @@
           />
         `;
         document.getElementById("purchasing-products").appendChild(productDiv);
-        productCount++;
+        productCount++; // Increment the product count
       }
 
       // On page load
