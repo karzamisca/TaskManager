@@ -17,6 +17,7 @@ const projectDocumentSchema = new mongoose.Schema({
     purchasing: {
       status: { type: String, default: "Locked" },
       approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      title: { type: String, default: "Purchasing Document" },
       products: [
         {
           productName: { type: String, required: true },
@@ -33,7 +34,6 @@ const projectDocumentSchema = new mongoose.Schema({
       status: { type: String, default: "Locked" },
       approvedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
       title: { type: String, default: "Payment Document" },
-      name: { type: String, default: "" },
       paymentMethod: { type: String, default: "" },
       amountOfMoney: { type: Number, default: 0 },
       paid: { type: Number, default: 0 },

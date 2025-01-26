@@ -104,6 +104,13 @@
             id="purchasing-form"
             onsubmit="updatePhase('purchasing', event)"
           >
+            <label for="purchasing-title">Title:</label>
+            <input
+              type="text"
+              id="purchasing-title"
+              placeholder="Enter title"
+              required
+            />
             <div id="purchasing-products">
               <!-- Product fields will be dynamically added here -->
             </div>
@@ -138,13 +145,6 @@
               type="text"
               id="payment-title"
               placeholder="Enter title"
-              required
-            />
-            <label for="payment-name">Name:</label>
-            <input
-              type="text"
-              id="payment-name"
-              placeholder="Enter name"
               required
             />
             <label for="payment-payment-method">Payment Method:</label>
@@ -356,16 +356,40 @@
           document.getElementById("purchasing-submission-date").value =
             phaseData.submissionDate;
 
+          // Populate the title field
+          document.getElementById("purchasing-title").value =
+            phaseData.title || "";
+
           // Enable or disable the "Add Product" button based on phase status
           if (addProductButton) {
             addProductButton.disabled = phaseData.status !== "Pending";
           }
-        } else {
-          // For other phases, populate fields as before
-          for (const [key, value] of Object.entries(phaseData)) {
-            const input = form.querySelector(`#${phase}-${key}`);
-            if (input) input.value = value;
-          }
+        } else if (phase === "proposal") {
+          // Populate proposal phase fields
+          document.getElementById("proposal-task").value = phaseData.task || "";
+          document.getElementById("proposal-cost-center").value =
+            phaseData.costCenter || "";
+          document.getElementById("proposal-date-of-error").value =
+            phaseData.dateOfError || "";
+          document.getElementById("proposal-details-description").value =
+            phaseData.detailsDescription || "";
+          document.getElementById("proposal-direction").value =
+            phaseData.direction || "";
+          document.getElementById("proposal-submission-date").value =
+            phaseData.submissionDate || "";
+        } else if (phase === "payment") {
+          // Populate payment phase fields
+          document.getElementById("payment-title").value =
+            phaseData.title || "";
+          document.getElementById("payment-payment-method").value =
+            phaseData.paymentMethod || "";
+          document.getElementById("payment-amount-of-money").value =
+            phaseData.amountOfMoney || "";
+          document.getElementById("payment-paid").value = phaseData.paid || "";
+          document.getElementById("payment-payment-deadline").value =
+            phaseData.paymentDeadline || "";
+          document.getElementById("payment-submission-date").value =
+            phaseData.submissionDate || "";
         }
 
         // Handle phase status

@@ -72,16 +72,14 @@ exports.approvePhaseProjectDocument = async (req, res) => {
     project.phases.payment.approvedBy.push(req._id);
 
     // Check if both roles have approved
-    const hasHeadOfAccounting = project.phases.payment.approvedBy.some(
-      (userId) => {
-        const user = User.findById(userId);
-        return user.role === "approver";
-      }
-    );
-    const hasDirector = project.phases.payment.approvedBy.some((userId) => {
-      const user = User.findById(userId);
-      return user.role === "Director";
+    const approvedUsers = await User.find({
+      _id: { $in: project.phases.payment.approvedBy },
     });
+
+    const hasHeadOfAccounting = approvedUsers.some(
+      (user) => user.role === "approver"
+    );
+    const hasDirector = approvedUsers.some((user) => user.role === "Director");
 
     // Mark the phase as fully approved if both roles have approved
     if (hasHeadOfAccounting && hasDirector) {
@@ -132,13 +130,13 @@ exports.updatePhaseDetailsProjectDocument = async (req, res) => {
         "submission-date": "submissionDate",
       },
       purchasing: {
+        title: "title",
         products: "products",
         "grand-total-cost": "grandTotalCost",
         "submission-date": "submissionDate",
       },
       payment: {
         title: "title",
-        name: "name",
         "payment-method": "paymentMethod",
         "amount-of-money": "amountOfMoney",
         paid: "paid",
