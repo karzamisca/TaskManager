@@ -27,7 +27,17 @@ router.get("/mainFileTransfer", authMiddleware, (req, res) => {
 
 router.get("/approvers", authMiddleware, async (req, res) => {
   try {
-    const approvers = await User.find({ role: "approver" });
+    const approvers = await User.find({
+      role: {
+        $in: [
+          "approver",
+          "headOfMechanical",
+          "headOfAccounting",
+          "headOfPurchasing",
+          "director",
+        ],
+      },
+    });
     res.json(approvers);
   } catch (err) {
     console.error(err);

@@ -2,6 +2,144 @@
 const Project = require("../models/ProjectDocument");
 const User = require("../models/User");
 const CostCenter = require("../models/CostCenter");
+const drive = require("../middlewares/googleAuthMiddleware");
+const { Readable } = require("stream");
+
+exports.uploadFiles = async (req, res) => {
+  try {
+    const { projectId, phase } = req.body;
+    const files = req.files;
+
+    if (!files || files.length === 0) {
+      return res.status(400).json({ message: "No files provided" });
+    }
+
+    // Get the project and verify phase status
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    if (project.phases[phase].status !== "Pending") {
+      return res
+        .status(400)
+        .json({ message: "Cannot upload files to this phase anymore" });
+    }
+
+    const uploadedFiles = [];
+
+    // Upload each file to Google Drive
+    for (const file of files) {
+      try {
+        // Create file metadata
+        const fileMetadata = {
+          name: file.originalname,
+          parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID], // Specify the folder ID where files will be stored
+        };
+
+        // Create media stream
+        const media = {
+          mimeType: file.mimetype,
+          body: Readable.from(file.buffer),
+        };
+
+        // Upload file to Google Drive
+        const driveResponse = await drive.files.create({
+          resource: fileMetadata,
+          media: media,
+          fields: "id, webViewLink",
+        });
+
+        // Create file permissions (make it viewable by anyone with the link)
+        await drive.permissions.create({
+          fileId: driveResponse.data.id,
+          requestBody: {
+            role: "reader",
+            type: "anyone",
+          },
+        });
+
+        // Add file to project's phase attachments
+        const attachment = {
+          name: file.originalname,
+          googleDriveId: driveResponse.data.id,
+          googleDriveUrl: driveResponse.data.webViewLink,
+          uploadedBy: req.user._id,
+        };
+
+        project.phases[phase].attachments.push(attachment);
+        uploadedFiles.push(attachment);
+      } catch (error) {
+        console.error("Error uploading file to Google Drive:", error);
+        // Continue with other files even if one fails
+        continue;
+      }
+    }
+
+    // Save the updated project
+    await project.save();
+
+    res.status(200).json({
+      message: "Files uploaded successfully",
+      files: uploadedFiles,
+    });
+  } catch (error) {
+    console.error("Error in uploadFiles:", error);
+    res.status(500).json({ message: "Error uploading files" });
+  }
+};
+
+exports.removeFile = async (req, res) => {
+  try {
+    const { projectId, phase, fileId } = req.body;
+
+    // Get the project
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // Check phase status
+    if (project.phases[phase].status !== "Pending") {
+      return res
+        .status(400)
+        .json({ message: "Cannot remove files from this phase anymore" });
+    }
+
+    // Find the file attachment
+    const attachmentIndex = project.phases[phase].attachments.findIndex(
+      (attachment) => attachment._id.toString() === fileId
+    );
+
+    if (attachmentIndex === -1) {
+      return res.status(404).json({ message: "File attachment not found" });
+    }
+
+    const attachment = project.phases[phase].attachments[attachmentIndex];
+
+    try {
+      // Delete file from Google Drive
+      await drive.files.delete({
+        fileId: attachment.googleDriveId,
+      });
+    } catch (error) {
+      console.error("Error deleting file from Google Drive:", error);
+      // Continue with removing from database even if Drive deletion fails
+    }
+
+    // Remove attachment from project
+    project.phases[phase].attachments.splice(attachmentIndex, 1);
+    await project.save();
+
+    res.status(200).json({
+      message: "File removed successfully",
+      fileId: fileId,
+    });
+  } catch (error) {
+    console.error("Error in removeFile:", error);
+    res.status(500).json({ message: "Error removing file" });
+  }
+};
 
 //Serve view
 exports.getProjectDocumentView = (req, res) => {
@@ -33,25 +171,22 @@ exports.createProjectDocument = async (req, res) => {
 };
 
 exports.approvePhaseProjectDocument = async (req, res) => {
-  console.log("User ID from middleware:", req._id); // Debugging
-  console.log("User Role from middleware:", req.role); // Debugging
-
   const { projectId, phase } = req.body;
   const project = await Project.findById(projectId);
 
   if (!project) return res.status(404).json({ message: "Project not found" });
 
   // Role-based checks
-  if (phase === "proposal" && req.role !== "approver") {
+  if (phase === "proposal" && req.role !== "headOfMechanical") {
     return res.status(403).json({ message: "Unauthorized" });
   }
-  if (phase === "purchasing" && req.role !== "approver") {
+  if (phase === "purchasing" && req.role !== "headOfPurchasing") {
     return res.status(403).json({ message: "Unauthorized" });
   }
   if (
     phase === "payment" &&
-    req.role !== "approver" &&
-    req.role !== "Director"
+    req.role !== "headOfAccounting" &&
+    req.role !== "director"
   ) {
     return res.status(403).json({ message: "Unauthorized" });
   }
@@ -79,9 +214,9 @@ exports.approvePhaseProjectDocument = async (req, res) => {
     });
 
     const hasHeadOfAccounting = approvedUsers.some(
-      (user) => user.role === "approver"
+      (user) => user.role === "headOfAccounting"
     );
-    const hasDirector = approvedUsers.some((user) => user.role === "Director");
+    const hasDirector = approvedUsers.some((user) => user.role === "director");
 
     // Mark the phase as fully approved if both roles have approved
     if (hasHeadOfAccounting && hasDirector) {
@@ -124,7 +259,6 @@ function getCurrentGMT7Date() {
 
 exports.updatePhaseDetailsProjectDocument = async (req, res) => {
   const { projectId, phase, details } = req.body;
-  console.log("Updating phase details:", { projectId, phase, details }); // Debugging
 
   try {
     const project = await Project.findById(projectId);
@@ -203,8 +337,6 @@ exports.updatePhaseDetailsProjectDocument = async (req, res) => {
 
     // Update lastUpdatedAt for the phase
     project.phases[phase].lastUpdatedAt = getCurrentGMT7Date();
-
-    console.log("Updated project:", project); // Debugging
 
     // Save the updated project
     await project.save();

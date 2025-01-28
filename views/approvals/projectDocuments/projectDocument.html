@@ -5,11 +5,58 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Project Management</title>
+    <style>
+      .file-attachments {
+        margin: 1em 0;
+        padding: 1em;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+
+      .file-attachments ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .file-attachments li {
+        display: flex;
+        align-items: center;
+        gap: 1em;
+        margin: 0.5em 0;
+      }
+
+      .file-attachments button {
+        padding: 0.25em 0.5em;
+        background-color: #ff4444;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .attach-file-btn {
+        background-color: #4caf50;
+        color: white;
+        padding: 0.5em 1em;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 1em;
+      }
+
+      .attach-file-btn:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+      }
+    </style>
   </head>
   <body>
-    <div id="app">
+    <header>
+      <a href="/mainDocument">Trở về/Back</a>
       <h1>Project Management</h1>
+    </header>
 
+    <div id="app">
       <!-- Create New Project -->
       <div id="create-project">
         <h2>Create New Project</h2>
@@ -81,6 +128,27 @@
               placeholder="Enter direction"
               required
             />
+            <div class="file-attachments">
+              <h4>Attachments</h4>
+              <div id="proposal-attachments-list">
+                <!-- Attachments will be listed here -->
+              </div>
+              <div class="file-input-wrapper">
+                <input
+                  type="file"
+                  id="proposal-file-input"
+                  multiple
+                  style="display: none"
+                />
+                <button
+                  type="button"
+                  onclick="triggerFileInput('proposal')"
+                  class="attach-file-btn"
+                >
+                  Attach Files
+                </button>
+              </div>
+            </div>
             <button type="submit">Submit</button>
             <button type="button" onclick="approvePhase('proposal')">
               Approve
@@ -113,6 +181,27 @@
               placeholder="Enter grand total cost"
               readonly
             />
+            <div class="file-attachments">
+              <h4>Attachments</h4>
+              <div id="purchasing-attachments-list">
+                <!-- Attachments will be listed here -->
+              </div>
+              <div class="file-input-wrapper">
+                <input
+                  type="file"
+                  id="purchasing-file-input"
+                  multiple
+                  style="display: none"
+                />
+                <button
+                  type="button"
+                  onclick="triggerFileInput('purchasing')"
+                  class="attach-file-btn"
+                >
+                  Attach Files
+                </button>
+              </div>
+            </div>
             <button type="submit">Submit</button>
             <button type="button" onclick="approvePhase('purchasing')">
               Approve
@@ -159,6 +248,27 @@
               placeholder="Enter payment deadline"
               required
             />
+            <div class="file-attachments">
+              <h4>Attachments</h4>
+              <div id="payment-attachments-list">
+                <!-- Attachments will be listed here -->
+              </div>
+              <div class="file-input-wrapper">
+                <input
+                  type="file"
+                  id="payment-file-input"
+                  multiple
+                  style="display: none"
+                />
+                <button
+                  type="button"
+                  onclick="triggerFileInput('payment')"
+                  class="attach-file-btn"
+                >
+                  Attach Files
+                </button>
+              </div>
+            </div>
             <button type="submit">Submit</button>
             <button type="button" onclick="approvePhase('payment')">
               Approve
@@ -167,6 +277,10 @@
         </div>
       </div>
     </div>
+    <footer>
+      <a href="/mainDocument">Trở về/Back</a>
+    </footer>
+
     <script>
       let token = null;
       let currentProjectId = null;
@@ -184,8 +298,6 @@
         const data = await response.json();
         currentUserRole = data.role;
         currentUserId = data._id; // Use _id instead of userId
-        console.log("Current user role:", currentUserRole); // Debugging
-        console.log("Current user ID:", currentUserId); // Debugging
       }
 
       // Fetch allowed cost centers for the current user
@@ -283,7 +395,6 @@
           credentials: "include", // Include cookies
         });
         const projects = await response.json();
-        console.log("Projects loaded:", projects); // Debugging
 
         const projectList = document.getElementById("projects");
         projectList.innerHTML = "";
@@ -299,44 +410,46 @@
 
       // Load project details
       async function loadProject(projectId) {
-        console.log("Loading project with ID:", projectId); // Debugging
-        currentProjectId = projectId; // Set the current project ID
-
         const response = await fetch(`/getProjectDocument/${projectId}`, {
-          credentials: "include", // Include cookies
+          credentials: "include",
         });
-        const data = await response.json();
-        console.log("Project data from backend:", data); // Debugging
 
+        const data = await response.json();
         if (!response.ok) {
           alert(data.message || "Failed to load project");
           return;
         }
 
-        currentProject = data; // Store the current project data
+        currentProject = data;
+        currentProjectId = projectId;
+
         document.getElementById("project-details").style.display = "block";
         document.getElementById("project-details-title").innerText = data.title;
         document.getElementById("project-details-description").innerText =
           data.description;
 
-        // Initialize productCount based on the number of existing products
-        if (data.phases.purchasing && data.phases.purchasing.products) {
-          productCount = data.phases.purchasing.products.length;
-        } else {
-          productCount = 0; // Reset if no products exist
-        }
+        // Initialize phases
+        ["proposal", "purchasing", "payment"].forEach((phase) => {
+          // Update phase displays and forms
+          lockPhase(phase, data.phases[phase]);
 
-        // Lock phases based on their status
-        lockPhase("proposal", data.phases.proposal);
-        lockPhase("purchasing", data.phases.purchasing);
-        lockPhase("payment", data.phases.payment);
+          // Display attachments if they exist
+          if (data.phases[phase].attachments) {
+            displayAttachments(phase, data.phases[phase].attachments);
+          }
+
+          // Update the attach file button state
+          const attachBtn = document.querySelector(
+            `#${phase}-attachments-list + .file-input-wrapper .attach-file-btn`
+          );
+          if (attachBtn) {
+            attachBtn.disabled = !canModifyPhase(phase);
+          }
+        });
       }
 
       // Lock a phase if it's approved
       function lockPhase(phase, phaseData) {
-        console.log(`Checking ${phase} phase status...`); // Debugging
-        console.log("Phase data:", phaseData); // Debugging
-
         const form = document.getElementById(`${phase}-form`);
         const submitButton = form.querySelector("button[type='submit']");
         const approveButton = form.querySelector(
@@ -437,9 +550,6 @@
 
         // Handle phase status
         if (phaseData.status === "Pending") {
-          console.log(
-            `Phase ${phase} is pending. Enabling inputs and approval.`
-          ); // Debugging
           form
             .querySelectorAll("input, textarea, select")
             .forEach((element) => {
@@ -448,18 +558,12 @@
           submitButton.disabled = false; // Enable the submit button
           approveButton.disabled = !canApprovePhase(phase); // Allow approval if the user can approve
         } else if (phaseData.status === "Locked") {
-          console.log(
-            `Phase ${phase} is locked. Disabling inputs and approval.`
-          ); // Debugging
           form
             .querySelectorAll("input, textarea, select, button")
             .forEach((element) => {
               element.disabled = true;
             });
         } else if (phaseData.status === "Partially Approved") {
-          console.log(
-            `Phase ${phase} is partially approved. Disabling inputs but allowing approval.`
-          ); // Debugging
           form
             .querySelectorAll("input, textarea, select")
             .forEach((element) => {
@@ -468,33 +572,24 @@
           submitButton.disabled = true; // Disable the submit button
           approveButton.disabled = !canApprovePhase(phase); // Allow approval if the user can approve
         } else if (phaseData.status === "Approved") {
-          console.log(
-            `Phase ${phase} is fully approved. Locking inputs and buttons.`
-          ); // Debugging
           form
             .querySelectorAll("input, textarea, select, button")
             .forEach((element) => {
               element.disabled = true;
             });
         }
-
-        console.log("Submit button state:", submitButton.disabled); // Debugging
-        console.log("Approve button state:", approveButton.disabled); // Debugging
       }
 
       // Check if the current user can approve the phase
       function canApprovePhase(phase) {
-        console.log("Checking if user can approve phase:", phase); // Debugging
-        console.log("Current user role:", currentUserRole); // Debugging
-        console.log("Current user ID:", currentUserId); // Debugging
-        console.log("Current project data:", currentProject); // Debugging
-
-        if (phase === "proposal" && currentUserRole === "approver") return true;
-        if (phase === "purchasing" && currentUserRole === "approver")
+        if (phase === "proposal" && currentUserRole === "headOfMechanical")
+          return true;
+        if (phase === "purchasing" && currentUserRole === "headOfPurchasing")
           return true;
         if (
           phase === "payment" &&
-          (currentUserRole === "approver" || currentUserRole === "Director")
+          (currentUserRole === "headOfAccounting" ||
+            currentUserRole === "director")
         ) {
           // Check if the user has already approved the payment phase
           if (currentProject && currentProject.phases.payment.approvedBy) {
@@ -503,7 +598,6 @@
                 (approverId) => approverId === currentUserId
               );
             if (userHasApproved) {
-              console.log("User has already approved this phase."); // Debugging
               return false; // User has already approved
             }
           }
@@ -517,11 +611,6 @@
           alert("No project selected. Please select a project first.");
           return;
         }
-
-        console.log(
-          `Attempting to approve ${phase} phase for project ${currentProjectId}...`
-        ); // Debugging
-        console.log("Current user role:", currentUserRole); // Debugging
 
         // Check if the user has the correct role to approve the phase
         if (!canApprovePhase(phase)) {
@@ -541,7 +630,6 @@
         const data = await response.json();
         if (response.ok) {
           alert("Phase approved successfully");
-          console.log("Updated project data:", data); // Debugging
           loadProject(currentProjectId); // Reload project details
         } else {
           alert(data.message);
@@ -565,8 +653,6 @@
             details[key] = input.value;
           }
         });
-
-        console.log("Sending phase details:", details); // Debugging
 
         const response = await fetch("/updatePhaseDetailsProjectDocument", {
           method: "POST",
@@ -633,6 +719,153 @@
         document.getElementById("purchasing-products").appendChild(productDiv);
         productCount++; // Increment the product count
       }
+
+      // Function to display attachments
+      function displayAttachments(phase, attachments) {
+        const attachmentsList = document.getElementById(
+          `${phase}-attachments-list`
+        );
+        if (!attachmentsList) {
+          console.error(
+            `Attachments list element not found for phase: ${phase}`
+          );
+          return;
+        }
+
+        attachmentsList.innerHTML = "";
+
+        if (!attachments || attachments.length === 0) {
+          attachmentsList.innerHTML =
+            '<p style="margin: 0.5em 0; color: #666;">No attachments</p>';
+          return;
+        }
+
+        const list = document.createElement("ul");
+        attachments.forEach((file) => {
+          const item = document.createElement("li");
+
+          const link = document.createElement("a");
+          link.href = file.googleDriveUrl;
+          link.target = "_blank";
+          link.textContent = file.name;
+          item.appendChild(link);
+
+          if (canModifyPhase(phase)) {
+            const removeBtn = document.createElement("button");
+            removeBtn.textContent = "Remove";
+            removeBtn.className = "remove-file-btn";
+            removeBtn.onclick = () => removeFile(phase, file._id);
+            item.appendChild(removeBtn);
+          }
+
+          list.appendChild(item);
+        });
+
+        attachmentsList.appendChild(list);
+      }
+
+      // Function to trigger file input
+      function triggerFileInput(phase) {
+        if (!canModifyPhase(phase)) return;
+        document.getElementById(`${phase}-file-input`).click();
+      }
+
+      // Function to check if phase can be modified
+      function canModifyPhase(phase) {
+        return (
+          currentProject &&
+          currentProject.phases[phase] &&
+          currentProject.phases[phase].status === "Pending"
+        );
+      }
+
+      // Function to upload files to Google Drive
+      async function uploadFiles(phase, files) {
+        const formData = new FormData();
+        formData.append("phase", phase);
+        formData.append("projectId", currentProjectId);
+        for (let file of files) {
+          formData.append("files", file);
+        }
+
+        try {
+          const response = await fetch("/uploadProjectFiles", {
+            method: "POST",
+            body: formData,
+            credentials: "include",
+          });
+
+          const result = await response.json();
+          if (response.ok) {
+            await loadProject(currentProjectId); // Reload project to show new attachments
+          } else {
+            alert(result.message || "Failed to upload files");
+          }
+        } catch (error) {
+          console.error("Error uploading files:", error);
+          alert("Failed to upload files");
+        }
+      }
+
+      // Function to remove file attachment
+      async function removeFile(phase, fileId) {
+        if (!canModifyPhase(phase)) {
+          alert("Cannot remove files from this phase anymore");
+          return;
+        }
+
+        try {
+          const response = await fetch("/removeProjectFile", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              projectId: currentProjectId,
+              phase,
+              fileId,
+            }),
+          });
+
+          const result = await response.json();
+          if (response.ok) {
+            await loadProject(currentProjectId); // Reload project to update attachments list
+          } else {
+            alert(result.message || "Failed to remove file");
+          }
+        } catch (error) {
+          console.error("Error removing file:", error);
+          alert("Failed to remove file");
+        }
+      }
+
+      // Update the loadProject function to display attachments
+      const originalLoadProject = loadProject;
+      loadProject = async function (projectId) {
+        await originalLoadProject(projectId);
+
+        // Display attachments for each phase
+        ["proposal", "purchasing", "payment"].forEach((phase) => {
+          if (currentProject.phases[phase].attachments) {
+            displayAttachments(phase, currentProject.phases[phase].attachments);
+          }
+        });
+      };
+
+      // Add event listeners when the page loads
+      document.addEventListener("DOMContentLoaded", function () {
+        ["proposal", "purchasing", "payment"].forEach((phase) => {
+          const fileInput = document.getElementById(`${phase}-file-input`);
+          if (fileInput) {
+            fileInput.addEventListener("change", (event) => {
+              if (event.target.files.length > 0) {
+                uploadFiles(phase, event.target.files);
+              }
+            });
+          }
+        });
+      });
 
       // On page load
       window.onload = async () => {
