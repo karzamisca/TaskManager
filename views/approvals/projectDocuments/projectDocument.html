@@ -4,13 +4,87 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Project Management</title>
+    <title>Phiếu theo dự án/Project Document</title>
     <style>
+      :root {
+        --background-color: #ffffff;
+        --text-color: #333333;
+        --border-color: #dddddd;
+        --button-bg-color: #4caf50;
+        --button-text-color: #ffffff;
+        --button-disabled-bg-color: #cccccc;
+        --button-disabled-text-color: #666666;
+        --file-attachment-bg-color: #f9f9f9;
+        --file-attachment-text-color: #333333;
+        --header-footer-bg-color: #f1f1f1;
+        --header-footer-text-color: #333333;
+        --font-size-base: 16px; /* Base font size for scaling */
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --background-color: #121212;
+          --text-color: #e0e0e0;
+          --border-color: #444444;
+          --button-bg-color: #4caf50;
+          --button-text-color: #ffffff;
+          --button-disabled-bg-color: #666666;
+          --button-disabled-text-color: #cccccc;
+          --file-attachment-bg-color: #1e1e1e;
+          --file-attachment-text-color: #e0e0e0;
+          --header-footer-bg-color: #1e1e1e;
+          --header-footer-text-color: #e0e0e0;
+        }
+      }
+
+      /* Base styles */
+      body {
+        background-color: var(--background-color);
+        color: var(--text-color);
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        font-size: var(--font-size-base);
+      }
+
+      header,
+      footer {
+        background-color: var(--header-footer-bg-color);
+        color: var(--header-footer-text-color);
+        padding: 1em;
+        text-align: center;
+      }
+
+      header a,
+      footer a {
+        color: var(--header-footer-text-color);
+        text-decoration: none;
+      }
+
+      header a:hover,
+      footer a:hover {
+        text-decoration: underline;
+      }
+
+      #app {
+        padding: 1em;
+        max-width: 1200px; /* Limit max width for large screens */
+        margin: 0 auto; /* Center the content */
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        color: var(--text-color);
+      }
+
       .file-attachments {
         margin: 1em 0;
         padding: 1em;
-        border: 1px solid #ddd;
+        border: 1px solid var(--border-color);
         border-radius: 4px;
+        background-color: var(--file-attachment-bg-color);
       }
 
       .file-attachments ul {
@@ -35,8 +109,8 @@
       }
 
       .attach-file-btn {
-        background-color: #4caf50;
-        color: white;
+        background-color: var(--button-bg-color);
+        color: var(--button-text-color);
         padding: 0.5em 1em;
         border: none;
         border-radius: 4px;
@@ -45,15 +119,160 @@
       }
 
       .attach-file-btn:disabled {
-        background-color: #cccccc;
+        background-color: var(--button-disabled-bg-color);
+        color: var(--button-disabled-text-color);
         cursor: not-allowed;
+      }
+
+      form {
+        display: flex;
+        flex-direction: column;
+        gap: 1em;
+      }
+
+      label {
+        font-weight: bold;
+      }
+
+      input,
+      textarea,
+      select {
+        padding: 0.5em;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background-color: var(--background-color);
+        color: var(--text-color);
+        width: 100%; /* Make inputs responsive */
+        box-sizing: border-box; /* Include padding in width */
+      }
+
+      button {
+        padding: 0.5em 1em;
+        background-color: var(--button-bg-color);
+        color: var(--button-text-color);
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        background-color: var(--button-disabled-bg-color);
+        color: var(--button-disabled-text-color);
+        cursor: not-allowed;
+      }
+
+      #project-list ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      #project-list li {
+        padding: 0.5em;
+        border-bottom: 1px solid var(--border-color);
+        cursor: pointer;
+      }
+
+      #project-list li:hover {
+        background-color: var(--file-attachment-bg-color);
+      }
+
+      #project-details {
+        margin-top: 1em;
+      }
+
+      #phase-proposal,
+      #phase-purchasing,
+      #phase-payment {
+        margin-top: 1em;
+        padding: 1em;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background-color: var(--file-attachment-bg-color);
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        :root {
+          --font-size-base: 14px; /* Smaller font size for mobile */
+        }
+
+        header,
+        footer {
+          padding: 0.5em;
+        }
+
+        #app {
+          padding: 0.5em;
+        }
+
+        h1 {
+          font-size: 1.5em; /* Smaller heading for mobile */
+        }
+
+        h2 {
+          font-size: 1.25em;
+        }
+
+        h3 {
+          font-size: 1.1em;
+        }
+
+        .file-attachments {
+          padding: 0.5em;
+        }
+
+        .attach-file-btn {
+          width: 100%; /* Full-width buttons on mobile */
+        }
+
+        form {
+          gap: 0.5em; /* Reduce gap between form elements */
+        }
+
+        input,
+        textarea,
+        select {
+          padding: 0.25em; /* Smaller padding for inputs */
+        }
+
+        button {
+          width: 100%; /* Full-width buttons on mobile */
+        }
+      }
+
+      @media (max-width: 480px) {
+        :root {
+          --font-size-base: 12px; /* Even smaller font size for very small screens */
+        }
+
+        h1 {
+          font-size: 1.25em;
+        }
+
+        h2 {
+          font-size: 1.1em;
+        }
+
+        h3 {
+          font-size: 1em;
+        }
+
+        .file-attachments li {
+          flex-direction: column; /* Stack file attachment items vertically */
+          align-items: flex-start;
+        }
+
+        .file-attachments button {
+          width: 100%; /* Full-width remove button */
+          margin-top: 0.5em;
+        }
       }
     </style>
   </head>
   <body>
     <header>
       <a href="/mainDocument">Trở về/Back</a>
-      <h1>Project Management</h1>
+      <h1>Phiếu theo dự án/Project Document</h1>
     </header>
 
     <div id="app">
@@ -80,7 +299,7 @@
 
       <!-- List of Projects -->
       <div id="project-list">
-        <h2>Your Projects</h2>
+        <h2>Danh sách các dự án/Projects List</h2>
         <ul id="projects">
           <!-- Project list items will be dynamically added here -->
         </ul>
@@ -93,20 +312,22 @@
 
         <!-- Proposal Phase -->
         <div id="phase-proposal">
-          <h3>Proposal Phase</h3>
+          <h3>Bước đề xuất/Proposal Phase</h3>
           <form id="proposal-form" onsubmit="updatePhase('proposal', event)">
-            <label for="proposal-task">Task:</label>
+            <label for="proposal-task">Công việc/Task:</label>
             <input
               type="text"
               id="proposal-task"
               placeholder="Enter task"
               required
             />
-            <label for="proposal-cost-center">Cost Center:</label>
+            <label for="proposal-cost-center">Trạm/Center:</label>
             <select id="proposal-cost-center" required>
               <!-- Cost center options will be dynamically added here -->
             </select>
-            <label for="proposal-date-of-error">Date of Error:</label>
+            <label for="proposal-date-of-error"
+              >Ngày xảy ra lỗi/Date of Error:</label
+            >
             <input
               type="text"
               id="proposal-date-of-error"
@@ -114,14 +335,14 @@
               required
             />
             <label for="proposal-details-description"
-              >Details Description:</label
+              >Mô tả chi tiết/Details Description:</label
             >
             <textarea
               id="proposal-details-description"
               placeholder="Enter details description"
               required
             ></textarea>
-            <label for="proposal-direction">Direction:</label>
+            <label for="proposal-direction">Hướng xử lý/Direction:</label>
             <input
               type="text"
               id="proposal-direction"
@@ -129,7 +350,7 @@
               required
             />
             <div class="file-attachments">
-              <h4>Attachments</h4>
+              <h4>Kèm theo/Attachments</h4>
               <div id="proposal-attachments-list">
                 <!-- Attachments will be listed here -->
               </div>
@@ -145,25 +366,25 @@
                   onclick="triggerFileInput('proposal')"
                   class="attach-file-btn"
                 >
-                  Attach Files
+                  Tải tệp tin kèm theo/Attach Files
                 </button>
               </div>
             </div>
-            <button type="submit">Submit</button>
+            <button type="submit">Nộp/Submit</button>
             <button type="button" onclick="approvePhase('proposal')">
-              Approve
+              Phê duyệt/Approve
             </button>
           </form>
         </div>
 
         <!-- Purchasing Phase -->
         <div id="phase-purchasing">
-          <h3>Purchasing Phase</h3>
+          <h3>Bước mua hàng/Purchasing Phase</h3>
           <form
             id="purchasing-form"
             onsubmit="updatePhase('purchasing', event)"
           >
-            <label for="purchasing-title">Title:</label>
+            <label for="purchasing-title">Tiêu đề/Title:</label>
             <input
               type="text"
               id="purchasing-title"
@@ -173,8 +394,12 @@
             <div id="purchasing-products">
               <!-- Product fields will be dynamically added here -->
             </div>
-            <button type="button" onclick="addProduct()">Add Product</button>
-            <label for="purchasing-grand-total-cost">Grand Total Cost:</label>
+            <button type="button" onclick="addProduct()">
+              Thêm sản phẩm/Add Product
+            </button>
+            <label for="purchasing-grand-total-cost"
+              >Chi phí/Grand Total Cost:</label
+            >
             <input
               type="number"
               id="purchasing-grand-total-cost"
@@ -182,7 +407,7 @@
               readonly
             />
             <div class="file-attachments">
-              <h4>Attachments</h4>
+              <h4>Kèm theo/Attachments</h4>
               <div id="purchasing-attachments-list">
                 <!-- Attachments will be listed here -->
               </div>
@@ -198,50 +423,56 @@
                   onclick="triggerFileInput('purchasing')"
                   class="attach-file-btn"
                 >
-                  Attach Files
+                  Tải tệp tin kèm theo/Attach Files
                 </button>
               </div>
             </div>
-            <button type="submit">Submit</button>
+            <button type="submit">Nộp/Submit</button>
             <button type="button" onclick="approvePhase('purchasing')">
-              Approve
+              Phê duyệt/Approve
             </button>
           </form>
         </div>
 
         <!-- Payment Phase -->
         <div id="phase-payment">
-          <h3>Payment Phase</h3>
+          <h3>Bước thanh toán/Payment Phase</h3>
           <form id="payment-form" onsubmit="updatePhase('payment', event)">
-            <label for="payment-title">Title:</label>
+            <label for="payment-title">Tiêu đề/Title:</label>
             <input
               type="text"
               id="payment-title"
               placeholder="Enter title"
               required
             />
-            <label for="payment-payment-method">Payment Method:</label>
+            <label for="payment-payment-method"
+              >Phương pháp thanh toán/Payment Method:</label
+            >
             <input
               type="text"
               id="payment-payment-method"
               placeholder="Enter payment method"
               required
             />
-            <label for="payment-amount-of-money">Amount of Money:</label>
+            <label for="payment-amount-of-money"
+              >Số lượng tiền/Amount of Money:</label
+            >
             <input
               type="number"
               id="payment-amount-of-money"
               placeholder="Enter amount"
               required
             />
-            <label for="payment-paid">Paid:</label>
+            <label for="payment-paid">Đã thanh toán/Paid:</label>
             <input
               type="number"
               id="payment-paid"
               placeholder="Enter paid amount"
               required
             />
-            <label for="payment-payment-deadline">Payment Deadline:</label>
+            <label for="payment-payment-deadline"
+              >Hạn thanh toán/Payment Deadline:</label
+            >
             <input
               type="text"
               id="payment-payment-deadline"
@@ -249,7 +480,7 @@
               required
             />
             <div class="file-attachments">
-              <h4>Attachments</h4>
+              <h4>Kèm theo/Attachments</h4>
               <div id="payment-attachments-list">
                 <!-- Attachments will be listed here -->
               </div>
@@ -265,13 +496,13 @@
                   onclick="triggerFileInput('payment')"
                   class="attach-file-btn"
                 >
-                  Attach Files
+                  Tải tệp tin kèm theo/Attach Files
                 </button>
               </div>
             </div>
-            <button type="submit">Submit</button>
+            <button type="submit">Nộp/Submit</button>
             <button type="button" onclick="approvePhase('payment')">
-              Approve
+              Phê duyệt/Approve
             </button>
           </form>
         </div>
@@ -752,7 +983,7 @@
 
           if (canModifyPhase(phase)) {
             const removeBtn = document.createElement("button");
-            removeBtn.textContent = "Remove";
+            removeBtn.textContent = "Xóa/Remove";
             removeBtn.className = "remove-file-btn";
             removeBtn.onclick = () => removeFile(phase, file._id);
             item.appendChild(removeBtn);
