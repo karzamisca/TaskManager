@@ -5,10 +5,16 @@ const documentController = require("../controllers/documentController");
 const Group = require("../models/Group");
 const authMiddleware = require("../middlewares/authMiddleware");
 
-// Main page route
+// Main single document approval page route
 router.get("/mainDocument", authMiddleware, (req, res) => {
   res.sendFile("mainDocument.html", { root: "./views/approvals/documents" }); // Serve the submit document page
 });
+
+// Main approval page route
+router.get("/mainApproval", authMiddleware, (req, res) => {
+  res.sendFile("mainApproval.html", { root: "./views/approvals" }); // Serve the submit document page
+});
+
 // Submit document route
 router.get("/submitDocument", authMiddleware, (req, res) => {
   res.sendFile("submitDocument.html", { root: "./views/approvals/documents" }); // Serve the submit document page

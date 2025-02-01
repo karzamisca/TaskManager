@@ -60,14 +60,17 @@
         transition: background-color 0.3s ease, transform 0.2s ease;
       }
 
-      a.submit {
-        background-color: #27ae60;
-      }
-      a.approve {
-        background-color: #f39c12;
-      }
-      a.view {
+      a.document {
         background-color: #3498db;
+      }
+      a.project {
+        background-color: #b7db34;
+      }
+      a.group {
+        background-color: #db34a3;
+      }
+      a.costCenterAdmin {
+        background-color: #adab44;
       }
       a.back {
         background-color: #8e44ad;
@@ -101,15 +104,19 @@
           color: #121212;
         }
 
-        a.submit {
+        a.document {
           color: #f1f1f1;
           background-color: #555;
         }
-        a.approve {
+        a.project {
           color: #f1f1f1;
           background-color: #555;
         }
-        a.view {
+        a.group {
+          color: #f1f1f1;
+          background-color: #555;
+        }
+        a.costCenterAdmin {
           color: #f1f1f1;
           background-color: #555;
         }
@@ -169,22 +176,27 @@
       <nav>
         <ul class="document-links">
           <li>
-            <a href="/submitDocument" class="submit"
-              >Nộp phiếu đơn mới/Submit New Single Document</a
+            <a href="/projectDocument" class="project"
+              >Phiếu theo dự án/Project Documents</a
             >
           </li>
           <li>
-            <a href="/approveDocument" class="approve"
-              >Phê duyệt phiếu đơn/Approve Single Documents</a
+            <a href="/mainDocument" class="document"
+              >Phiếu đơn/Single Documents</a
             >
           </li>
           <li>
-            <a href="/viewApprovedDocument" class="view"
-              >Phiếu đơn đã phê duyệt/View Approved Single Documents</a
+            <a href="/groupedDocument" class="group"
+              >Phiếu theo nhóm/Grouped Documents</a
             >
           </li>
           <li>
-            <a href="/mainApproval" class="back">Trở về /Back</a>
+            <a href="/costCenterAdmin" class="costCenterAdmin"
+              >Phân công trạm/Centers Assignment</a
+            >
+          </li>
+          <li>
+            <a href="/main" class="back">Trở về màn hình chính/Back to Main</a>
           </li>
           <li><a href="/logout" class="logout">Đăng xuất/Logout</a></li>
         </ul>
