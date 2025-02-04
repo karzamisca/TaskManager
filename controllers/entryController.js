@@ -18,7 +18,7 @@ function generateRandomString(length) {
 
 // Serve the index.html file for the root route
 exports.getFormAndEntries = (req, res) => {
-  if (!["approver", "reader"].includes(req.user.role)) {
+  if (!["approver", "headOfPurchasing"].includes(req.user.role)) {
     return res.send(
       "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
     );
