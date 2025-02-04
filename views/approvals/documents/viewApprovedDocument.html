@@ -286,9 +286,9 @@
             <tr>
               <th>Mã/ID</th>
               <th>Tên/Name</th>
+              <th>Nội dung/Content</th>
               <th>Phương thức thanh toán/Payment Method</th>
               <th>Số tiền/Amount of Money</th>
-              <th>Đã thanh toán/Paid</th>
               <th>Hạn thanh toán/Payment Deadline</th>
               <th>Phiếu mua hàng đi kèm/Appended Purchasing Documents</th>
               <th>Phiếu đề xuất đi kèm/Appended Proposals</th>
@@ -616,9 +616,9 @@
             row.innerHTML = `
               <td>${doc._id}</td>
               <td>${doc.name}</td>
+              <td>${doc.content}</td>
               <td>${doc.paymentMethod}</td>
               <td>${doc.amountOfMoney.toLocaleString()}</td>
-              <td>${doc.paid.toLocaleString()}</td>
               <td>${doc.paymentDeadline}</td>
               <td>${appendedPurchasingDocs}</td>
               <td>${appendedProposalsContent}</td>

@@ -376,9 +376,9 @@ exports.submitDocument = async (req, res) => {
         newDocument = new PaymentDocument({
           title,
           name: req.body.name,
+          content: req.body.content,
           paymentMethod: req.body.paymentMethod,
           amountOfMoney: req.body.amountOfMoney,
-          paid: req.body.paid,
           paymentDeadline: req.body.paymentDeadline,
           groupName: req.body.groupName,
           submittedBy: req.user.id,

@@ -454,13 +454,16 @@ const createPaymentDocTemplate = async (doc) => {
             bold: true,
           }),
           new Paragraph({
+            text: `Tên/Name: ${doc.name}`,
+          }),
+          new Paragraph({
+            text: `Nội dung/Content: ${doc.content}`,
+          }),
+          new Paragraph({
             text: `Phương thức thanh toán/Payment Method: ${doc.paymentMethod}`,
           }),
           new Paragraph({
             text: `Số tiền/Amount of Money: ${doc.amountOfMoney.toLocaleString()}`,
-          }),
-          new Paragraph({
-            text: `Đã thanh toán/Paid: ${doc.paid.toLocaleString()}`,
           }),
           new Paragraph({
             text: `Hạn thanh toán/Payment Deadline: ${doc.paymentDeadline}`,
