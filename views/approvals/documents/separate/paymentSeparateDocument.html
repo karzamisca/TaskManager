@@ -67,11 +67,12 @@
 
       /* Table styles */
       table {
+        max-height: 50vh;
         width: 100%;
         border-collapse: collapse;
         margin-bottom: 20px;
         font-size: clamp(12px, 0.9vw, 14px);
-        overflow-x: auto;
+        overflow: auto;
         display: block;
       }
 
@@ -165,6 +166,45 @@
         border-radius: 4px;
         display: none;
         animation: fadeIn 0.3s ease-in-out;
+      }
+
+      .documents-container,
+      .proposals-container {
+        display: flex;
+        gap: 1rem;
+        overflow: auto;
+        padding-bottom: 1rem;
+      }
+
+      .purchasing-doc,
+      .proposal-card {
+        flex: 0 0 300px;
+        max-width: 300px;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background-color: var(--bg-color);
+      }
+
+      .purchasing-doc ul {
+        margin: 0;
+        padding-left: 1.2rem;
+        list-style-type: none;
+      }
+
+      .purchasing-doc li {
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .purchasing-doc li:last-child {
+        border-bottom: none;
+      }
+
+      /* Make table cells containing flex containers wider */
+      td.documents-cell {
+        min-width: 320px;
       }
 
       @keyframes fadeIn {
@@ -268,6 +308,8 @@
           <th>Phương thức trả tiền/Payment Method</th>
           <th>Số tiền/Amount of Money</th>
           <th>Hạn trả/Payment Deadline</th>
+          <th>Phiếu mua hàng kèm theo/Appended Purchasing Documents</th>
+          <th>Phiếu đề xuất kèm theo/Appended Proposal Documents</th>
           <th>Ngày nộp phiếu/Submission Date</th>
           <th>Tên nhóm/Group Name</th>
           <th>Tình trạng/Status</th>
@@ -305,6 +347,75 @@
         }, 5000);
       }
 
+      function renderPurchasingDocuments(purchDocs) {
+        if (!purchDocs || purchDocs.length === 0) return "";
+
+        return `
+          <div class="documents-container">
+            ${purchDocs
+              .map((purchDoc) => {
+                const products = purchDoc.products
+                  .map(
+                    (product) => `
+                <li>
+                  <strong>${product.productName}</strong><br>
+                  Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
+                  Số lượng/Amount: ${product.amount.toLocaleString()}<br>
+                  Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
+                  Ghi chú/Notes: ${product.note || "None"}
+                </li>
+              `
+                  )
+                  .join("");
+
+                const fileMetadata = purchDoc.fileMetadata
+                  ? `<p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong> 
+                    <a href="${purchDoc.fileMetadata.link}" target="_blank">${purchDoc.fileMetadata.name}</a></p>`
+                  : "";
+
+                return `
+                <div class="purchasing-doc">
+                  <p><strong>Tổng chi phí/Total Cost:</strong> ${purchDoc.grandTotalCost.toLocaleString()}</p>
+                  <p><strong>Sản phẩm/Products:</strong></p>
+                  <ul>${products}</ul>
+                  ${fileMetadata}
+                </div>`;
+              })
+              .join("")}
+          </div>`;
+      }
+
+      function renderProposals(purchDocs) {
+        const allProposals = purchDocs
+          .flatMap((purchDoc) => purchDoc.appendedProposals)
+          .filter((proposal) => proposal);
+
+        if (allProposals.length === 0) return "";
+
+        return `
+          <div class="proposals-container">
+            ${allProposals
+              .map(
+                (proposal) => `
+              <div class="proposal-card">
+                <p><strong>Công việc/Task:</strong> ${proposal.task}</p>
+                <p><strong>Trạm/Center:</strong> ${proposal.costCenter}</p>
+                <p><strong>Mô tả/Description:</strong> ${
+                  proposal.detailsDescription
+                }</p>
+                ${
+                  proposal.fileMetadata
+                    ? `<p><strong>Tệp đính kèm/File:</strong> 
+                      <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
+                    : ""
+                }
+              </div>
+            `
+              )
+              .join("")}
+          </div>`;
+      }
+
       async function fetchPaymentDocuments() {
         try {
           const response = await fetch("/paymentDocuments");
@@ -326,6 +437,12 @@
                         <td>${doc.paymentMethod || "-"}</td>
                         <td>${doc.amountOfMoney?.toLocaleString() || "-"}</td>
                         <td>${doc.paymentDeadline || "-"}</td>
+                        <td class="documents-cell">${renderPurchasingDocuments(
+                          doc.appendedPurchasingDocuments || []
+                        )}</td>
+                        <td class="documents-cell">${renderProposals(
+                          doc.appendedPurchasingDocuments || []
+                        )}</td>
                         <td>${doc.submissionDate || "-"}</td>
                         <td>${doc.groupName || "-"}</td>
                         <td class="${doc.approved ? "approved" : "unapproved"}">
