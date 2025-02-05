@@ -137,4 +137,16 @@ router.get("/getGroupDocument", authMiddleware, async (req, res) => {
   }
 });
 
+// Route to fetch payment documents and calculate sums
+router.get("/paymentSeparateDocument", authMiddleware, (req, res) => {
+  res.sendFile("paymentSeparateDocument.html", {
+    root: "./views/approvals/documents/separate",
+  }); // Serve the submit document page
+});
+router.get(
+  "/paymentDocuments",
+  authMiddleware,
+  documentController.getPaymentDocumentForSeparateView
+);
+
 module.exports = router;

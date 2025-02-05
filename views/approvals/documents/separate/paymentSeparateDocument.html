@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phiếu thanh toán/Payment Documents</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        line-height: 1.6;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        font-size: 14px;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 12px 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+        font-weight: bold;
+      }
+      tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+      tr:hover {
+        background-color: #f5f5f5;
+      }
+      .approved {
+        color: green;
+        font-weight: bold;
+      }
+      .unapproved {
+        color: red;
+        font-weight: bold;
+      }
+      .approve-btn {
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      .approve-btn:hover {
+        background-color: #45a049;
+      }
+      .summary {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+      }
+      .message {
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        display: none;
+      }
+      .message.error {
+        background-color: #ffebee;
+        color: #c62828;
+        border: 1px solid #ffcdd2;
+      }
+      .message.success {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #c8e6c9;
+      }
+      .file-link {
+        color: #2196f3;
+        text-decoration: none;
+      }
+      .file-link:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Phiếu thanh toán/Payment Documents</h1>
+    <div id="messageContainer" class="message"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Tên/Name</th>
+          <th>Nội dung/Content</th>
+          <th>Tệp tin kèm theo/Attached File</th>
+          <th>Phương thức trả tiền/Payment Method</th>
+          <th>Số tiền/Amount of Money</th>
+          <th>Hạn trả/Payment Deadline</th>
+          <th>Ngày nộp phiếu/Submission Date</th>
+          <th>Tên nhóm/Group Name</th>
+          <th>Tình trạng/Status</th>
+          <th>Người phê duyệt/Approvers</th>
+          <th>Hành động/Action</th>
+        </tr>
+      </thead>
+      <tbody id="paymentDocumentsTable">
+        <!-- Payment documents will be populated here -->
+      </tbody>
+    </table>
+
+    <div class="summary">
+      <h2>Tóm tắt/Summary</h2>
+      <p>
+        Số tiền đã phê duyệt/Total Approved Amount:
+        <span id="approvedSum" class="approved">0</span>
+      </p>
+      <p>
+        Số tiền chưa phê duyệt/Total Unapproved Amount:
+        <span id="unapprovedSum" class="unapproved">0</span>
+      </p>
+    </div>
+    <a href="/mainDocument">Trở về/Back</a>
+
+    <script>
+      function showMessage(message, isError = false) {
+        const messageContainer = document.getElementById("messageContainer");
+        messageContainer.textContent = message;
+        messageContainer.style.display = "block";
+        messageContainer.className = `message ${isError ? "error" : "success"}`;
+        setTimeout(() => {
+          messageContainer.style.display = "none";
+        }, 5000);
+      }
+
+      async function fetchPaymentDocuments() {
+        try {
+          const response = await fetch("/paymentDocuments");
+          const data = await response.json();
+
+          const tableBody = document.getElementById("paymentDocumentsTable");
+          tableBody.innerHTML = "";
+
+          data.paymentDocuments.forEach((doc) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                        <td>${doc.name || "-"}</td>
+                        <td>${doc.content || "-"}</td>
+                        <td>${
+                          doc.fileMetadata?.link
+                            ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+                            : "-"
+                        }</td>
+                        <td>${doc.paymentMethod || "-"}</td>
+                        <td>${doc.amountOfMoney?.toLocaleString() || "-"}</td>
+                        <td>${doc.paymentDeadline || "-"}</td>
+                        <td>${doc.submissionDate || "-"}</td>
+                        <td>${doc.groupName || "-"}</td>
+                        <td class="${doc.approved ? "approved" : "unapproved"}">
+                            ${doc.approved ? "Approved" : "Unapproved"}
+                        </td>
+                        <td>
+                            ${
+                              doc.approvers.map((a) => a.username).join(", ") ||
+                              "-"
+                            }
+                        </td>
+                        <td>
+                            ${
+                              !doc.approved
+                                ? `<button class="approve-btn" onclick="approveDocument('${doc._id}')">Phê duyệt/Approve</button>`
+                                : "-"
+                            }
+                        </td>
+                    `;
+            tableBody.appendChild(row);
+          });
+
+          document.getElementById("approvedSum").textContent =
+            data.approvedSum.toLocaleString();
+          document.getElementById("unapprovedSum").textContent =
+            data.unapprovedSum.toLocaleString();
+        } catch (err) {
+          console.error("Error fetching payment documents:", err);
+          showMessage("Error fetching payment documents", true);
+        }
+      }
+
+      async function approveDocument(documentId) {
+        try {
+          const response = await fetch(`/approveDocument/${documentId}`, {
+            method: "POST",
+          });
+
+          const message = await response.text();
+
+          if (response.ok) {
+            showMessage(message);
+            fetchPaymentDocuments();
+          } else {
+            showMessage(message, true);
+          }
+        } catch (err) {
+          console.error("Error approving document:", err);
+          showMessage("Error approving document", true);
+        }
+      }
+
+      // Fetch payment documents when the page loads
+      fetchPaymentDocuments();
+    </script>
+  </body>
+</html>

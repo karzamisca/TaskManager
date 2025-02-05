@@ -72,7 +72,16 @@ exports.getCostCenters = async (req, res) => {
 // Serve the cost center admin page
 exports.getCostCenterAdminPage = (req, res) => {
   try {
-    if (!["approver", "captainOfMech", "bossOfMech"].includes(req.user.role)) {
+    if (
+      ![
+        "approver",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+        "captainOfMech",
+      ].includes(req.user.role)
+    ) {
       return res
         .status(403)
         .send(
@@ -91,7 +100,16 @@ exports.getCostCenterAdminPage = (req, res) => {
 // API to fetch all cost centers
 exports.getCostCenters = async (req, res) => {
   try {
-    if (!["approver", "captainOfMech", "bossOfMech"].includes(req.user.role)) {
+    if (
+      ![
+        "approver",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+        "captainOfMech",
+      ].includes(req.user.role)
+    ) {
       return res
         .status(403)
         .send(
@@ -466,10 +484,20 @@ exports.approveDocument = async (req, res) => {
   const { id } = req.params;
 
   try {
-    if (req.user.role !== "approver") {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền phê duyệt tài liệu./Access denied. You don't have permission to approve document."
-      );
+    if (
+      ![
+        "approver",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send(
+          "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+        );
     }
 
     // Check if the document is a Generic, Proposal, or Purchasing Document
@@ -744,5 +772,32 @@ exports.getPurchasingDocumentById = async (req, res) => {
   } catch (err) {
     console.error("Error fetching purchasing document:", err);
     res.send("Lỗi lấy tài liệu mua hàng/Error fetching purchasing document");
+  }
+};
+
+exports.getPaymentDocumentForSeparateView = async (req, res) => {
+  try {
+    const paymentDocuments = await PaymentDocument.find({});
+
+    // Calculate the sum of amountOfMoney for approved and unapproved documents
+    let approvedSum = 0;
+    let unapprovedSum = 0;
+
+    paymentDocuments.forEach((doc) => {
+      if (doc.approved) {
+        approvedSum += doc.amountOfMoney;
+      } else {
+        unapprovedSum += doc.amountOfMoney;
+      }
+    });
+
+    res.json({
+      paymentDocuments,
+      approvedSum,
+      unapprovedSum,
+    });
+  } catch (err) {
+    console.error("Error fetching payment documents:", err);
+    res.status(500).send("Error fetching payment documents");
   }
 };

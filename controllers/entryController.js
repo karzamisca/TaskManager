@@ -18,10 +18,20 @@ function generateRandomString(length) {
 
 // Serve the index.html file for the root route
 exports.getFormAndEntries = (req, res) => {
-  if (!["approver", "headOfPurchasing"].includes(req.user.role)) {
-    return res.send(
-      "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-    );
+  if (
+    ![
+      "approver",
+      "headOfMechanical",
+      "headOfAccounting",
+      "headOfPurchasing",
+      "director",
+    ].includes(req.user.role)
+  ) {
+    return res
+      .status(403)
+      .send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
   }
   res.sendFile("index.html", { root: "./views/entries" });
 };
