@@ -5,80 +5,254 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Phiếu thanh toán/Payment Documents</title>
     <style>
+      /* Base styles and CSS reset */
+      :root {
+        --primary-color: #4caf50;
+        --primary-hover: #45a049;
+        --text-color: #333;
+        --bg-color: #fff;
+        --border-color: #ddd;
+        --table-stripe: #f9f9f9;
+        --table-hover: #f5f5f5;
+        --table-header: #f2f2f2;
+        --success-bg: #e8f5e9;
+        --success-text: #2e7d32;
+        --success-border: #c8e6c9;
+        --error-bg: #ffebee;
+        --error-text: #c62828;
+        --error-border: #ffcdd2;
+        --link-color: #2196f3;
+        --summary-bg: #f8f9fa;
+      }
+
+      /* Dark mode colors */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --primary-color: #66bb6a;
+          --primary-hover: #81c784;
+          --text-color: #e0e0e0;
+          --bg-color: #121212;
+          --border-color: #404040;
+          --table-stripe: #1e1e1e;
+          --table-hover: #2d2d2d;
+          --table-header: #2d2d2d;
+          --success-bg: #1b5e20;
+          --success-text: #a5d6a7;
+          --success-border: #2e7d32;
+          --error-bg: #b71c1c;
+          --error-text: #ef9a9a;
+          --error-border: #c62828;
+          --link-color: #64b5f6;
+          --summary-bg: #1e1e1e;
+        }
+      }
+
+      /* Base styles */
       body {
         font-family: Arial, sans-serif;
-        margin: 20px;
+        margin: 0;
+        padding: 20px;
         line-height: 1.6;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        min-height: 100vh;
       }
+
+      /* Responsive container */
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      /* Table styles */
       table {
         width: 100%;
         border-collapse: collapse;
         margin-bottom: 20px;
-        font-size: 14px;
+        font-size: clamp(12px, 0.9vw, 14px);
+        overflow-x: auto;
+        display: block;
       }
+
+      /* Custom scrollbar */
+      table::-webkit-scrollbar {
+        height: 8px;
+        width: 8px;
+      }
+
+      table::-webkit-scrollbar-track {
+        background: var(--table-stripe);
+        border-radius: 4px;
+      }
+
+      table::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+      }
+
+      table::-webkit-scrollbar-thumb:hover {
+        background: var(--primary-color);
+      }
+
       th,
       td {
-        border: 1px solid #ddd;
-        padding: 12px 8px;
+        border: 1px solid var(--border-color);
+        padding: clamp(8px, 1vw, 12px);
         text-align: left;
       }
+
       th {
-        background-color: #f2f2f2;
+        background-color: var(--table-header);
         font-weight: bold;
+        position: sticky;
+        top: 0;
+        z-index: 1;
       }
+
       tr:nth-child(even) {
-        background-color: #f9f9f9;
+        background-color: var(--table-stripe);
       }
+
       tr:hover {
-        background-color: #f5f5f5;
+        background-color: var(--table-hover);
       }
+
+      /* Status styles */
       .approved {
-        color: green;
+        color: var(--success-text);
         font-weight: bold;
       }
+
       .unapproved {
-        color: red;
+        color: var(--error-text);
         font-weight: bold;
       }
+
+      /* Button styles */
       .approve-btn {
-        background-color: #4caf50;
-        color: white;
+        background-color: var(--primary-color);
+        color: var(--bg-color);
         border: none;
         padding: 8px 16px;
         cursor: pointer;
         border-radius: 4px;
+        transition: background-color 0.2s, transform 0.1s;
       }
+
       .approve-btn:hover {
-        background-color: #45a049;
+        background-color: var(--primary-hover);
+        transform: translateY(-1px);
       }
+
+      .approve-btn:active {
+        transform: translateY(0);
+      }
+
+      /* Summary section */
       .summary {
-        background-color: #f8f9fa;
+        background-color: var(--summary-bg);
         padding: 20px;
         border-radius: 8px;
         margin-top: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
+
+      /* Message styles */
       .message {
-        padding: 10px;
+        padding: 12px;
         margin: 10px 0;
         border-radius: 4px;
         display: none;
+        animation: fadeIn 0.3s ease-in-out;
       }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
       .message.error {
-        background-color: #ffebee;
-        color: #c62828;
-        border: 1px solid #ffcdd2;
+        background-color: var(--error-bg);
+        color: var(--error-text);
+        border: 1px solid var(--error-border);
       }
+
       .message.success {
-        background-color: #e8f5e9;
-        color: #2e7d32;
-        border: 1px solid #c8e6c9;
+        background-color: var(--success-bg);
+        color: var(--success-text);
+        border: 1px solid var(--success-border);
       }
+
+      /* Link styles */
       .file-link {
-        color: #2196f3;
+        color: var(--link-color);
         text-decoration: none;
+        transition: color 0.2s;
       }
+
       .file-link:hover {
         text-decoration: underline;
+      }
+
+      /* Responsive typography */
+      h1 {
+        font-size: clamp(24px, 3vw, 32px);
+        margin-bottom: 20px;
+      }
+
+      h2 {
+        font-size: clamp(20px, 2.5vw, 28px);
+      }
+
+      /* Media queries for responsive layout */
+      @media screen and (max-width: 768px) {
+        body {
+          padding: 10px;
+        }
+
+        .container {
+          padding: 0 10px;
+        }
+
+        table {
+          font-size: 12px;
+        }
+
+        th,
+        td {
+          padding: 8px;
+        }
+
+        .approve-btn {
+          padding: 6px 12px;
+        }
+      }
+
+      /* Print styles */
+      @media print {
+        .approve-btn {
+          display: none;
+        }
+
+        body {
+          padding: 0;
+        }
+
+        table {
+          page-break-inside: auto;
+        }
+
+        tr {
+          page-break-inside: avoid;
+          page-break-after: auto;
+        }
       }
     </style>
   </head>
@@ -168,6 +342,11 @@
                                 ? `<button class="approve-btn" onclick="approveDocument('${doc._id}')">Phê duyệt/Approve</button>`
                                 : "-"
                             }
+                            ${
+                              !doc.approved
+                                ? `<button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa/Delete</button>`
+                                : "-"
+                            }    
                         </td>
                     `;
             tableBody.appendChild(row);
@@ -186,6 +365,26 @@
       async function approveDocument(documentId) {
         try {
           const response = await fetch(`/approveDocument/${documentId}`, {
+            method: "POST",
+          });
+
+          const message = await response.text();
+
+          if (response.ok) {
+            showMessage(message);
+            fetchPaymentDocuments();
+          } else {
+            showMessage(message, true);
+          }
+        } catch (err) {
+          console.error("Error approving document:", err);
+          showMessage("Error approving document", true);
+        }
+      }
+
+      async function deleteDocument(documentId) {
+        try {
+          const response = await fetch(`/deleteDocument/${documentId}`, {
             method: "POST",
           });
 

@@ -482,7 +482,6 @@ exports.getPendingDocument = async (req, res) => {
 
 exports.approveDocument = async (req, res) => {
   const { id } = req.params;
-
   try {
     if (
       ![
@@ -493,11 +492,9 @@ exports.approveDocument = async (req, res) => {
         "director",
       ].includes(req.user.role)
     ) {
-      return res
-        .status(403)
-        .send(
-          "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-        );
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
     }
 
     // Check if the document is a Generic, Proposal, or Purchasing Document
@@ -519,7 +516,6 @@ exports.approveDocument = async (req, res) => {
     const isChosenApprover = document.approvers.some(
       (approver) => approver.approver.toString() === req.user.id
     );
-
     if (!isChosenApprover) {
       return res.send(
         "Truy cập bị từ chối. Bạn không có quyền phê duyệt tài liệu này./Access denied. You don't have permission to approve this document."
@@ -529,7 +525,6 @@ exports.approveDocument = async (req, res) => {
     const hasApproved = document.approvedBy.some(
       (approver) => approver.user.toString() === req.user.id
     );
-
     if (hasApproved) {
       return res.send(
         "Bạn đã phê duyệt tài liệu rồi./You have already approved this document."
@@ -560,10 +555,14 @@ exports.approveDocument = async (req, res) => {
       await Document.findByIdAndUpdate(id, document);
     }
 
-    res.redirect("/approveDocument");
+    const successMessage = document.approved
+      ? "Tài liệu đã được phê duyệt hoàn toàn./Document has been fully approved."
+      : "Tài liệu đã được phê duyệt thành công./Document has been successfully approved.";
+
+    return res.send(successMessage);
   } catch (err) {
     console.error("Error approving document:", err);
-    res.send("Lỗi phê duyệt tài liệu/Error approving document");
+    return res.send("Lỗi phê duyệt tài liệu/Error approving document");
   }
 };
 
@@ -681,27 +680,22 @@ exports.getApprovedDocumentApi = async (req, res) => {
 
 exports.deleteDocument = async (req, res) => {
   const { id } = req.params;
-
   try {
     // Try to find the document in each collection
     let document = await Document.findById(id);
     let documentType = "Generic";
-
     if (!document) {
       document = await ProposalDocument.findById(id);
       if (document) documentType = "Proposal";
     }
-
     if (!document && documentType === "Generic") {
       document = await PurchasingDocument.findById(id);
       if (document) documentType = "Purchasing";
     }
-
     if (!document && documentType === "Generic") {
       document = await PaymentDocument.findById(id);
       if (document) documentType = "Payment";
     }
-
     if (!document) {
       return res.send("Document not found");
     }
@@ -717,7 +711,8 @@ exports.deleteDocument = async (req, res) => {
       await Document.findByIdAndDelete(id);
     }
 
-    res.redirect("/approveDocument"); // Redirect after deletion
+    // Send success message after deletion
+    res.send(`Document of type ${documentType} has been successfully deleted`);
   } catch (err) {
     console.error("Error deleting document:", err);
     res.send("Lỗi xóa tài liệu/Error deleting document");
