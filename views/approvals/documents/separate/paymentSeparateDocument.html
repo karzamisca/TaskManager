@@ -272,6 +272,7 @@
           <th>Tên nhóm/Group Name</th>
           <th>Tình trạng/Status</th>
           <th>Người phê duyệt/Approvers</th>
+          <th>Đã phê duyệt bởi/Approved By</th>
           <th>Hành động/Action</th>
         </tr>
       </thead>
@@ -332,10 +333,16 @@
                         </td>
                         <td>
                             ${
-                              doc.approvers.map((a) => a.username).join(", ") ||
-                              "-"
+                              doc.approvers
+                                .map((a) => `${a.username} (${a.subRole})`)
+                                .join(", ") || "-"
                             }
                         </td>
+                        <td>${
+                          doc.approvedBy
+                            .map((a) => `${a.username} - ${a.approvalDate}`)
+                            .join("<br>") || "-"
+                        }</td>
                         <td>
                             ${
                               !doc.approved
