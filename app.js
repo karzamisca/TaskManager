@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 const authRoute = require("./routes/authRoute");
+const adminRoute = require("./routes/adminRoute");
 const documentRoute = require("./routes/documentRoute");
 const projectDocumentRoute = require("./routes/projectDocumentRoute");
 const groupRoute = require("./routes/groupRoute");
@@ -38,6 +39,7 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Routes
 app.use("/", authRoute);
+app.use("/", authMiddleware, adminRoute);
 app.use("/", authMiddleware, googleDriveRoute);
 app.use("/", authMiddleware, fileServerRoute);
 app.use("/", authMiddleware, documentRoute); // Apply JWT middleware to document routes
