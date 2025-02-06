@@ -8,6 +8,7 @@ const ProposalDocument = require("../models/ProposalDocument");
 const PurchasingDocument = require("../models/PurchasingDocument.js");
 const PaymentDocument = require("../models/PaymentDocument.js");
 const drive = require("../middlewares/googleAuthMiddleware.js");
+const { Readable } = require("stream");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
@@ -684,5 +685,93 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
   } catch (err) {
     console.error("Error fetching payment documents:", err);
     res.status(500).send("Error fetching payment documents");
+  }
+};
+exports.getPaymentDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const document = await PaymentDocument.findById(id);
+
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    res.json(document);
+  } catch (error) {
+    console.error("Error fetching payment document:", error);
+    res.status(500).json({ message: "Error fetching document" });
+  }
+};
+exports.updatePaymentDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, content, paymentMethod, amountOfMoney, paymentDeadline } =
+      req.body;
+    const file = req.file;
+
+    const doc = await PaymentDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Update basic fields
+    doc.name = name;
+    doc.content = content;
+    doc.paymentMethod = paymentMethod;
+    doc.amountOfMoney = parseFloat(amountOfMoney);
+    doc.paymentDeadline = paymentDeadline;
+
+    // Handle file update if provided
+    if (file) {
+      // Delete old file from Google Drive if it exists
+      if (doc.fileMetadata?.driveFileId) {
+        try {
+          await drive.files.delete({
+            fileId: doc.fileMetadata.driveFileId,
+          });
+        } catch (error) {
+          console.error("Error deleting old file:", error);
+        }
+      }
+
+      // Upload new file
+      const fileMetadata = {
+        name: file.originalname,
+        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
+      };
+
+      const media = {
+        mimeType: file.mimetype,
+        body: Readable.from(file.buffer),
+      };
+
+      const driveResponse = await drive.files.create({
+        resource: fileMetadata,
+        media: media,
+        fields: "id, webViewLink",
+      });
+
+      // Update file permissions
+      await drive.permissions.create({
+        fileId: driveResponse.data.id,
+        requestBody: {
+          role: "reader",
+          type: "anyone",
+        },
+      });
+
+      // Update document with new file metadata
+      doc.fileMetadata = {
+        driveFileId: driveResponse.data.id,
+        name: file.originalname,
+        link: driveResponse.data.webViewLink,
+      };
+    }
+
+    await doc.save();
+    res.json({ message: "Document updated successfully" });
+  } catch (error) {
+    console.error("Error updating payment document:", error);
+    res.status(500).json({ message: "Error updating document" });
   }
 };

@@ -464,12 +464,11 @@
                         <td>
                             ${
                               !doc.approved
-                                ? `<button class="approve-btn" onclick="approveDocument('${doc._id}')">Phê duyệt/Approve</button>`
-                                : "-"
-                            }
-                            ${
-                              !doc.approved
-                                ? `<button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa/Delete</button>`
+                                ? `
+                                    <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa/Edit</button>
+                                    <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">Phê duyệt/Approve</button>
+                                    <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa/Delete</button>
+                                  `
                                 : "-"
                             }    
                         </td>
@@ -526,6 +525,145 @@
           showMessage("Error approving document", true);
         }
       }
+
+      // Add edit modal HTML at the end of the table
+      function addEditModal() {
+        const modalHTML = `
+          <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+            <div style="position: relative; background: var(--bg-color); margin: 10% auto; padding: 20px; width: 80%; max-width: 600px; border-radius: 8px;">
+              <span onclick="closeEditModal()" style="position: absolute; right: 20px; top: 10px; cursor: pointer; font-size: 24px;">&times;</span>
+              <h2>Chỉnh sửa phiếu thanh toán/Edit Payment Document</h2>
+              <form id="editForm" onsubmit="handleEditSubmit(event)">
+                <input type="hidden" id="editDocId">
+                <div style="margin-bottom: 15px;">
+                  <label for="editName">Tên/Name:</label>
+                  <input type="text" id="editName" required style="width: 100%; padding: 8px; margin-top: 5px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                  <label for="editContent">Nội dung/Content:</label>
+                  <textarea id="editContent" required style="width: 100%; padding: 8px; margin-top: 5px; min-height: 100px;"></textarea>
+                </div>
+                <div style="margin-bottom: 15px;">
+                  <label for="editPaymentMethod">Hình thức thanh toán/Payment Method:</label>
+                  <input type="text" id="editPaymentMethod" required style="width: 100%; padding: 8px; margin-top: 5px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                  <label for="editAmount">Số lượng tiền/Amount of Money:</label>
+                  <input type="number" id="editAmount" required style="width: 100%; padding: 8px; margin-top: 5px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                  <label for="editDeadline">Hạn thanh toán/Payment Deadline (DD-MM-YYYY):</label>
+                  <input type="text" 
+                        id="editDeadline" 
+                        required 
+                        placeholder="DD/MM/YYYY"
+                        pattern="(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[012])-[0-9]{4}"
+                        style="width: 100%; padding: 8px; margin-top: 5px;">
+                </div>
+                <div style="margin-bottom: 15px;">
+                  <label for="editFile">Thay tệp tin mới/Update File:</label>
+                  <input type="file" id="editFile" style="width: 100%; padding: 8px; margin-top: 5px;">
+                </div>
+                <button type="submit" class="approve-btn" style="margin-right: 10px;">Lưu thay đổi/Save Changes</button>
+                <button type="button" class="approve-btn" onclick="closeEditModal()" style="background: #666;">Hủy/Cancel</button>
+              </form>
+            </div>
+          </div>
+        `;
+
+        document.body.insertAdjacentHTML("beforeend", modalHTML);
+      }
+
+      // Add edit button to each row in the fetchPaymentDocuments function
+      function addEditButton(doc) {
+        if (!doc.approved) {
+          return `<button class="approve-btn" onclick="editDocument('${doc._id}')">Chỉnh sửa/Edit</button>`;
+        }
+        return "";
+      }
+
+      // Edit document function
+      async function editDocument(docId) {
+        try {
+          const response = await fetch(`/getPaymentDocument/${docId}`);
+          const doc = await response.json();
+
+          document.getElementById("editDocId").value = docId;
+          document.getElementById("editName").value = doc.name;
+          document.getElementById("editContent").value = doc.content;
+          document.getElementById("editPaymentMethod").value =
+            doc.paymentMethod;
+          document.getElementById("editAmount").value = doc.amountOfMoney;
+          document.getElementById("editDeadline").value = doc.paymentDeadline;
+
+          document.getElementById("editModal").style.display = "block";
+        } catch (err) {
+          console.error("Error fetching document details:", err);
+          showMessage("Error loading document details", true);
+        }
+      }
+
+      // Close edit modal
+      function closeEditModal() {
+        document.getElementById("editModal").style.display = "none";
+        document.getElementById("editForm").reset();
+      }
+
+      // Handle edit form submission
+      async function handleEditSubmit(event) {
+        event.preventDefault();
+
+        const docId = document.getElementById("editDocId").value;
+        const formData = new FormData();
+
+        formData.append("name", document.getElementById("editName").value);
+        formData.append(
+          "content",
+          document.getElementById("editContent").value
+        );
+        formData.append(
+          "paymentMethod",
+          document.getElementById("editPaymentMethod").value
+        );
+        formData.append(
+          "amountOfMoney",
+          document.getElementById("editAmount").value
+        );
+        formData.append(
+          "paymentDeadline",
+          document.getElementById("editDeadline").value
+        );
+
+        const fileInput = document.getElementById("editFile");
+        if (fileInput.files.length > 0) {
+          formData.append("file", fileInput.files[0]);
+        }
+
+        try {
+          const response = await fetch(`/updatePaymentDocument/${docId}`, {
+            method: "POST",
+            body: formData,
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            showMessage("Document updated successfully");
+            closeEditModal();
+            fetchPaymentDocuments();
+          } else {
+            showMessage(result.message || "Error updating document", true);
+          }
+        } catch (err) {
+          console.error("Error updating document:", err);
+          showMessage("Error updating document", true);
+        }
+      }
+
+      // Call addEditModal when the page loads
+      document.addEventListener("DOMContentLoaded", () => {
+        addEditModal();
+      });
 
       // Fetch payment documents when the page loads
       fetchPaymentDocuments();

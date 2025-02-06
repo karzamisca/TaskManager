@@ -1,9 +1,14 @@
 // routes/documentRoute.js
 const express = require("express");
+const multer = require("multer");
 const router = express.Router();
 const documentController = require("../controllers/documentController");
 const Group = require("../models/Group");
 const authMiddleware = require("../middlewares/authMiddleware");
+
+// Set up multer to handle in-memory file uploads
+const storage = multer.memoryStorage(); // Store file in memory (buffer)
+const upload = multer({ storage: storage });
 
 // Main single document approval page route
 router.get("/mainDocument", authMiddleware, (req, res) => {
@@ -123,6 +128,17 @@ router.get(
   "/getPaymentDocumentForSeparatedView",
   authMiddleware,
   documentController.getPaymentDocumentForSeparatedView
+);
+router.post(
+  "/updatePaymentDocument/:id",
+  upload.single("file"),
+  authMiddleware,
+  documentController.updatePaymentDocument
+);
+router.get(
+  "/getPaymentDocument/:id",
+  authMiddleware,
+  documentController.getPaymentDocument
 );
 
 module.exports = router;
