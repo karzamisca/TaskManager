@@ -466,7 +466,7 @@ exports.getPendingDocument = async (req, res) => {
 
     // Serve the static HTML file and pass documents as JSON
     res.sendFile(
-      path.join(__dirname, "../views/approvals/documents/approveDocument.html"),
+      path.join(__dirname, "../views/approvals/documents/unifiedViewDocuments/approveDocument.html"),
       {
         pendingGenericDocs: JSON.stringify(pendingGenericDocs),
         pendingProposalDocs: JSON.stringify(pendingProposalDocs),
@@ -585,7 +585,7 @@ exports.getApprovedDocument = async (req, res) => {
     res.sendFile(
       path.join(
         __dirname,
-        "../views/approvals/documents/viewApprovedDocument.html"
+        "../views/approvals/documents/unifiedViewDocuments/viewApprovedDocument.html"
       ),
       {
         approvedGenericDocs: JSON.stringify(approvedGenericDocs),
