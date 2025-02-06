@@ -1,3 +1,4 @@
+<!-- views/approvals/documents/separatedViewDocuments/separatedViewPaymentDocument.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -418,7 +419,7 @@
 
       async function fetchPaymentDocuments() {
         try {
-          const response = await fetch("/paymentDocuments");
+          const response = await fetch("/getPaymentDocumentForSeparatedView");
           const data = await response.json();
 
           const tableBody = document.getElementById("paymentDocumentsTable");

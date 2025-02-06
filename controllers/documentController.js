@@ -770,7 +770,7 @@ exports.getPurchasingDocumentById = async (req, res) => {
   }
 };
 
-exports.getPaymentDocumentForSeparateView = async (req, res) => {
+exports.getPaymentDocumentForSeparatedView = async (req, res) => {
   try {
     const paymentDocuments = await PaymentDocument.find({});
 
