@@ -194,6 +194,41 @@
         margin: 0.5rem 0;
       }
 
+      #messageContainer {
+        display: none;
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 25px;
+        border-radius: 4px;
+        z-index: 1000;
+        font-weight: 500;
+        animation: slideIn 0.3s ease-out;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      .message.success {
+        background-color: #4caf50;
+        color: white;
+        border: 1px solid #45a049;
+      }
+
+      .message.error {
+        background-color: #f44336;
+        color: white;
+        border: 1px solid #da190b;
+      }
+
       /* Dark Mode Styles for Nested Proposals */
       @media (prefers-color-scheme: dark) {
         body {
@@ -257,6 +292,16 @@
         .nested-proposals > div p {
           color: var(--text-color-dark);
         }
+
+        .message.success {
+          background-color: #2e7d32;
+          border-color: #1b5e20;
+        }
+
+        .message.error {
+          background-color: #c62828;
+          border-color: #b71c1c;
+        }
       }
 
       /* Responsive Design (Screen Scaling) */
@@ -319,6 +364,7 @@
   </head>
 
   <body>
+    <div id="messageContainer"></div>
     <div class="container">
       <h2>Phê duyệt phiếu chung / Pending Generic Documents for Approval</h2>
       <table id="generic-document-table">
@@ -448,13 +494,75 @@
         });
       }
 
+      function showMessage(message, isError = false) {
+        const messageContainer = document.getElementById("messageContainer");
+        messageContainer.textContent = message;
+        messageContainer.style.display = "block";
+        messageContainer.className = `message ${isError ? "error" : "success"}`;
+        setTimeout(() => {
+          messageContainer.style.display = "none";
+        }, 5000);
+      }
+
+      async function approveDocument(docId) {
+        try {
+          const response = await fetch(`/approveDocument/${docId}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+
+          const message = await response.text();
+
+          if (response.ok) {
+            showMessage(message);
+            await fetchAndDisplayDocuments();
+          } else {
+            showMessage(message, true);
+          }
+        } catch (error) {
+          console.error("Error approving document:", error);
+          showMessage(message, true);
+        }
+      }
+
+      // Modified delete function to use showMessage
+      async function deleteDocument(docId) {
+        if (
+          confirm(
+            "Bạn có chắc muốn xóa phiếu này không?/Are you sure you want to delete this document?"
+          )
+        ) {
+          try {
+            const response = await fetch(`/deleteDocument/${docId}`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            });
+
+            const message = await response.text();
+
+            if (response.ok) {
+              showMessage(message);
+              await fetchAndDisplayDocuments();
+            } else {
+              showMessage(message, true);
+            }
+          } catch (error) {
+            console.error("Error deleting document:", error);
+            showMessage(message, true);
+          }
+        }
+      }
+
       // Modified display function to handle filtered documents
       async function fetchAndDisplayDocuments() {
         try {
           const response = await fetch("/pendingDocument");
           allDocuments = await response.json();
 
-          // Get filter state
           const filterToggle = document.getElementById("filterToggle");
           const documents = filterToggle.checked
             ? filterDocumentsForCurrentUser(allDocuments)
@@ -463,6 +571,7 @@
           displayDocuments(documents);
         } catch (error) {
           console.error("Error fetching documents:", error);
+          showMessage("Lỗi tải dữ liệu/Error loading documents", true);
         }
       }
 
@@ -551,16 +660,12 @@
               <td>${approvedBy}</td>
               <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
               <td>
-                <form action="/approveDocument/${
+                <button onclick="approveDocument('${
                   doc._id
-                }" method="POST" style="display:inline;">
-                  <button type="submit">Phê duyệt/Approve</button>
-                </form>
-                <form action="/deleteDocument/${
+                }')">Phê duyệt/Approve</button>
+                <button onclick="deleteDocument('${
                   doc._id
-                }" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
-                  <button type="submit">Xóa/Delete</button>
-                </form>
+                }')">Xóa/Delete</button>
               </td>`;
           } else if (doc.title === "Proposal Document") {
             // Display specific fields for Proposal Document
@@ -583,16 +688,12 @@
               <td>${approvedBy}</td>
               <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
               <td>
-                <form action="/approveDocument/${
+                <button onclick="approveDocument('${
                   doc._id
-                }" method="POST" style="display:inline;">
-                  <button type="submit">Phê duyệt/Approve</button>
-                </form>
-                <form action="/deleteDocument/${
+                }')">Phê duyệt/Approve</button>
+                <button onclick="deleteDocument('${
                   doc._id
-                }" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
-                  <button type="submit">Xóa/Delete</button>
-                </form>
+                }')">Xóa/Delete</button>
               </td>`;
           } else if (doc.title === "Purchasing Document") {
             // Display product entries for Purchasing Document
@@ -695,14 +796,12 @@
               <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
               <td>${appendedProposalsContent || "N/A"}</td>
               <td>
-                <form action="/approveDocument/${doc._id}" method="POST">
-                  <button type="submit">Phê duyệt/Approve</button>
-                </form>
-                <form action="/deleteDocument/${
+                <button onclick="approveDocument('${
                   doc._id
-                }" method="POST" onsubmit="return confirm('Are you sure?')">
-                  <button type="submit">Xóa/Delete</button>
-                </form>
+                }')">Phê duyệt/Approve</button>
+                <button onclick="deleteDocument('${
+                  doc._id
+                }')">Xóa/Delete</button>
               </td>`;
           } else if (doc.title === "Payment Document") {
             let appendedPurchasingDocs = "N/A";
@@ -803,14 +902,12 @@
               <td>${approvedBy}</td>
               <td>${doc.submittedBy.username} (${doc.submissionDate})</td>
               <td>
-                <form action="/approveDocument/${doc._id}" method="POST">
-                  <button type="submit">Phê duyệt/Approve</button>
-                </form>
-                <form action="/deleteDocument/${
+                <button onclick="approveDocument('${
                   doc._id
-                }" method="POST" onsubmit="return confirm('Are you sure?')">
-                  <button type="submit">Xóa/Delete</button>
-                </form>
+                }')">Phê duyệt/Approve</button>
+                <button onclick="deleteDocument('${
+                  doc._id
+                }')">Xóa/Delete</button>
               </td>`;
           }
         });
