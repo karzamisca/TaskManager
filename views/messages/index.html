@@ -3,197 +3,226 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bảng Tin Nhắn/Message Board</title>
+    <title>Private Message Rooms</title>
     <style>
-      /* Basic Reset */
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+      /* Add to existing styles */
+      .room-list {
+        margin: 20px 0;
+        display: grid;
+        gap: 10px;
       }
 
-      /* Body styles */
-      body {
-        font-family: "Arial", sans-serif;
-        margin: 20px;
-        background-color: var(--bg-color);
-        color: var(--text-color);
-        transition: background-color 0.3s ease, color 0.3s ease;
-      }
-
-      h1 {
-        color: var(--primary-text-color);
-        margin-bottom: 20px;
-        font-size: 2rem;
-      }
-
-      /* Message List */
-      #messages {
-        margin-top: 20px;
-      }
-
-      #messages ul {
-        list-style-type: none;
-      }
-
-      #messages li {
+      .room-card {
         background-color: var(--message-bg-color);
         border: 1px solid var(--message-border-color);
         border-radius: 8px;
-        padding: 10px;
-        margin-bottom: 10px;
-        transition: background-color 0.3s ease;
+        padding: 15px;
+        cursor: pointer;
       }
 
-      #messages li:hover {
+      .room-card:hover {
         background-color: var(--message-hover-bg-color);
       }
 
-      small {
-        font-size: 0.8rem;
-        color: var(--secondary-text-color);
+      .room-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
       }
 
-      /* Form Styles */
-      form {
-        margin-top: 20px;
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+
+      .modal-content {
         background-color: var(--form-bg-color);
+        margin: 15% auto;
         padding: 20px;
         border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        width: 80%;
+        max-width: 500px;
       }
 
-      /* Textarea Styles */
-      textarea {
+      .close {
+        float: right;
+        cursor: pointer;
+        font-size: 1.5rem;
+      }
+
+      .user-select {
         width: 100%;
-        padding: 12px;
-        border: 1px solid var(--textarea-border-color);
-        border-radius: 8px;
-        resize: vertical;
+        padding: 8px;
         margin-bottom: 10px;
         background-color: var(--textarea-bg-color);
         color: var(--textarea-text-color);
-        transition: background-color 0.3s ease, color 0.3s ease;
+        border: 1px solid var(--textarea-border-color);
+        border-radius: 4px;
       }
 
-      textarea:focus {
-        outline: none;
-        border-color: var(--textarea-focus-border-color);
+      .room-messages {
+        display: none;
+        margin-top: 20px;
       }
 
-      button {
-        padding: 10px 15px;
-        background-color: var(--primary-color);
-        color: #fff;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        width: 100%;
+      .back-to-rooms {
+        margin-bottom: 10px;
+        display: inline-block;
       }
 
-      button:hover {
-        background-color: var(--primary-hover-color);
+      .member-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
       }
 
-      /* Links */
-      a {
-        color: var(--link-color);
-        text-decoration: none;
-        font-size: 0.9rem;
-      }
-
-      a:hover {
-        text-decoration: underline;
-      }
-
-      /* System Default Light/Dark Mode based on prefers-color-scheme */
-      /* Light Mode Variables */
-      :root {
-        --bg-color: #f0f0f0;
-        --text-color: #333;
-        --primary-color: #4caf50;
-        --primary-text-color: #222;
-        --message-bg-color: #fff;
-        --message-border-color: #ddd;
-        --message-hover-bg-color: #f9f9f9;
-        --form-bg-color: #fff;
-        --secondary-text-color: #666;
-        --link-color: #4caf50;
-        --textarea-bg-color: #fff;
-        --textarea-border-color: #ddd;
-        --textarea-text-color: #333;
-        --textarea-focus-border-color: #4caf50;
-      }
-
-      /* Dark Mode Variables */
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg-color: #2c2c2c;
-          --text-color: #fff;
-          --primary-color: #4caf50;
-          --primary-text-color: #fff;
-          --message-bg-color: #333;
-          --message-border-color: #444;
-          --message-hover-bg-color: #555;
-          --form-bg-color: #444;
-          --secondary-text-color: #aaa;
-          --link-color: #4caf50;
-          --textarea-bg-color: #555;
-          --textarea-border-color: #666;
-          --textarea-text-color: #fff;
-          --textarea-focus-border-color: #4caf50;
-        }
+      .creator-badge {
+        color: green;
+        font-weight: bold;
       }
     </style>
   </head>
   <body>
     <h1>Bảng Tin Nhắn/Message Board</h1>
 
-    <div id="messages">
-      <ul id="message-list"></ul>
+    <!-- Room List View -->
+    <div id="rooms-view">
+      <button id="create-room-btn" onclick="showCreateRoomModal()">
+        Tạo phòng mới/Create New Room
+      </button>
+      <div class="room-list" id="room-list"></div>
     </div>
 
-    <form id="message-form">
-      <textarea
-        name="content"
-        id="content"
-        rows="4"
-        placeholder="Nhập tin nhắn/Write a message..."
-        required
-      ></textarea>
-      <button type="submit">Đăng tin nhắn/Post Message</button>
-    </form>
+    <!-- Room Messages View -->
+    <div id="room-messages-view" class="room-messages">
+      <a href="#" class="back-to-rooms" onclick="showRoomList()">
+        ← Trở lại danh sách phòng/Back to Rooms
+      </a>
+      <h2 id="current-room-name"></h2>
+      <div id="room-messages"></div>
+      <form id="room-message-form">
+        <textarea
+          name="content"
+          id="room-content"
+          rows="4"
+          placeholder="Nhập tin nhắn/Write a message..."
+          required
+        ></textarea>
+        <button type="submit">Đăng tin nhắn/Post Message</button>
+      </form>
+    </div>
 
-    <a href="/main">Trở về trang chủ/Back to Main</a><br />
-    <a href="/logout">Đăng xuất/Logout</a><br />
+    <!-- Create Room Modal -->
+    <div id="create-room-modal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="hideCreateRoomModal()">&times;</span>
+        <h2>Tạo phòng mới/Create New Room</h2>
+        <form id="create-room-form">
+          <input
+            type="text"
+            id="room-name"
+            placeholder="Tên phòng/Room Name"
+            required
+            class="user-select"
+          />
+          <select id="room-members" multiple class="user-select" required>
+            <!-- Users will be populated here -->
+          </select>
+          <button type="submit">Tạo/Create</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Manage Room Modal -->
+    <div id="manage-room-modal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="hideManageRoomModal()">&times;</span>
+        <h2>Quản lý phòng/Manage Room</h2>
+
+        <!-- Add New Members Form -->
+        <form id="add-members-form">
+          <select id="new-members" multiple class="user-select">
+            <!-- Users will be populated here -->
+          </select>
+          <button type="submit">Thêm thành viên/Add Members</button>
+        </form>
+
+        <!-- Current Members List -->
+        <div id="current-members"></div>
+
+        <!-- Delete Room Button -->
+        <button onclick="deleteRoom(currentRoomId)">
+          Xóa phòng/Delete Room
+        </button>
+      </div>
+    </div>
 
     <script>
+      let currentRoomId = null;
+
+      // Initialize the room functionality
       document.addEventListener("DOMContentLoaded", function () {
-        // Fetch messages on page load
-        fetchMessages();
-
-        // Handle message form submission
-        const messageForm = document.getElementById("message-form");
-        messageForm.addEventListener("submit", function (e) {
-          e.preventDefault();
-          const content = document.getElementById("content").value;
-
-          if (content.trim()) {
-            postMessage(content);
-          }
-        });
+        fetchRooms();
+        setupCreateRoomForm();
+        setupRoomMessageForm();
+        setupAddMembersForm();
       });
 
-      // Function to fetch messages from the backend
-      function fetchMessages() {
-        fetch("/messageGet")
+      // Fetch and display rooms
+      function fetchRooms() {
+        fetch("/rooms")
           .then((response) => response.json())
-          .then((data) => {
-            const messageList = document.getElementById("message-list");
-            messageList.innerHTML = ""; // Clear existing messages
+          .then((rooms) => {
+            const roomList = document.getElementById("room-list");
+            roomList.innerHTML = "";
 
-            data.forEach((message) => {
-              const messageItem = document.createElement("li");
+            rooms.forEach((room) => {
+              const roomCard = document.createElement("div");
+              roomCard.className = "room-card";
+              roomCard.onclick = () => openRoom(room._id, room.name);
+
+              roomCard.innerHTML = `
+                <div class="room-header">
+                  <strong>${room.name}</strong>
+                  <small>${room.members.length} members</small>
+                  <button onclick="showManageRoomModal('${room._id}')">Quản lý/Manage</button>
+                </div>
+                <small>Created by: ${room.creator.username}</small>
+              `;
+
+              roomList.appendChild(roomCard);
+            });
+          })
+          .catch((err) => console.error("Error fetching rooms:", err));
+      }
+
+      // Open a specific room
+      function openRoom(roomId, roomName) {
+        currentRoomId = roomId;
+        document.getElementById("rooms-view").style.display = "none";
+        document.getElementById("room-messages-view").style.display = "block";
+        document.getElementById("current-room-name").textContent = roomName;
+        fetchRoomMessages(roomId);
+      }
+
+      // Fetch room messages
+      function fetchRoomMessages(roomId) {
+        fetch(`/room/${roomId}/messages`)
+          .then((response) => response.json())
+          .then((messages) => {
+            const messageList = document.getElementById("room-messages");
+            messageList.innerHTML = "";
+
+            messages.forEach((message) => {
+              const messageItem = document.createElement("div");
+              messageItem.className = "message";
               messageItem.innerHTML = `
                 <strong>${message.user.username}</strong>: ${message.content}
                 <small>(${message.createdAt})</small>
@@ -201,29 +230,231 @@
               messageList.appendChild(messageItem);
             });
           })
-          .catch((err) => {
-            console.error("Error fetching messages:", err);
-          });
+          .catch((err) => console.error("Error fetching room messages:", err));
       }
 
-      // Function to post a new message
-      function postMessage(content) {
-        fetch("/messagePost", {
+      // Show room list
+      function showRoomList() {
+        currentRoomId = null;
+        document.getElementById("rooms-view").style.display = "block";
+        document.getElementById("room-messages-view").style.display = "none";
+      }
+
+      // Setup room message form
+      function setupRoomMessageForm() {
+        const form = document.getElementById("room-message-form");
+        form.onsubmit = function (e) {
+          e.preventDefault();
+          const content = document.getElementById("room-content").value;
+
+          if (content.trim() && currentRoomId) {
+            fetch("/room/message", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                roomId: currentRoomId,
+                content: content,
+              }),
+            })
+              .then(() => {
+                document.getElementById("room-content").value = "";
+                fetchRoomMessages(currentRoomId);
+              })
+              .catch((err) => console.error("Error posting message:", err));
+          }
+        };
+      }
+
+      // Modal functions
+      function showCreateRoomModal() {
+        document.getElementById("create-room-modal").style.display = "block";
+        fetchUsers();
+      }
+
+      function hideCreateRoomModal() {
+        document.getElementById("create-room-modal").style.display = "none";
+      }
+
+      // Fetch users for room creation
+      function fetchUsers() {
+        fetch("/users")
+          .then((response) => response.json())
+          .then((users) => {
+            const select = document.getElementById("room-members");
+            select.innerHTML = "";
+
+            users.forEach((user) => {
+              const option = document.createElement("option");
+              option.value = user._id;
+              option.textContent = user.username;
+              select.appendChild(option);
+            });
+          })
+          .catch((err) => console.error("Error fetching users:", err));
+      }
+
+      // Setup create room form
+      function setupCreateRoomForm() {
+        const form = document.getElementById("create-room-form");
+        form.onsubmit = function (e) {
+          e.preventDefault();
+          const name = document.getElementById("room-name").value;
+          const memberSelect = document.getElementById("room-members");
+          const memberIds = Array.from(memberSelect.selectedOptions).map(
+            (option) => option.value
+          );
+
+          fetch("/room/create", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: name,
+              memberIds: memberIds,
+            }),
+          })
+            .then(() => {
+              hideCreateRoomModal();
+              fetchRooms();
+              form.reset();
+            })
+            .catch((err) => console.error("Error creating room:", err));
+        };
+      }
+
+      // Room management functions
+      function showManageRoomModal(roomId) {
+        event.stopPropagation(); // Prevent room opening
+        currentRoomId = roomId;
+        document.getElementById("manage-room-modal").style.display = "block";
+        fetchRoomMembers(roomId);
+        fetchUsersForAdding();
+      }
+
+      function hideManageRoomModal() {
+        document.getElementById("manage-room-modal").style.display = "none";
+      }
+
+      // Fetch users for the "Add Members" dropdown
+      function fetchUsersForAdding() {
+        fetch("/users")
+          .then((response) => response.json())
+          .then((users) => {
+            const select = document.getElementById("new-members");
+            select.innerHTML = "";
+
+            users.forEach((user) => {
+              const option = document.createElement("option");
+              option.value = user._id;
+              option.textContent = user.username;
+              select.appendChild(option);
+            });
+          })
+          .catch((err) => console.error("Error fetching users:", err));
+      }
+
+      // Fetch and display current room members
+      function fetchRoomMembers(roomId) {
+        fetch(`/room/${roomId}/members`)
+          .then((response) => response.json())
+          .then((members) => {
+            const memberList = document.getElementById("current-members");
+            memberList.innerHTML = "";
+
+            members.forEach((member) => {
+              const memberItem = document.createElement("div");
+              memberItem.className = "member-item";
+              memberItem.innerHTML = `
+                <span>${member.username} (${member.department})</span>
+                ${
+                  member._id !== room.creator
+                    ? `<button onclick="removeMember('${member._id}')">Xóa/Remove</button>`
+                    : '<span class="creator-badge">Người tạo/Creator</span>'
+                }
+              `;
+              memberList.appendChild(memberItem);
+            });
+          })
+          .catch((err) => console.error("Error fetching room members:", err));
+      }
+
+      // Add new members to the room
+      function addMembersToRoom() {
+        const memberSelect = document.getElementById("new-members");
+        const memberIds = Array.from(memberSelect.selectedOptions).map(
+          (option) => option.value
+        );
+
+        if (!currentRoomId || memberIds.length === 0) return;
+
+        fetch("/room/members/add", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ content }),
+          body: JSON.stringify({
+            roomId: currentRoomId,
+            memberIds: memberIds,
+          }),
         })
-          .then((response) => response.json())
           .then(() => {
-            // Clear the content after posting
-            document.getElementById("content").value = "";
-            fetchMessages(); // Refresh the message list
+            fetchRoomMembers(currentRoomId); // Refresh the members list
+            fetchRooms(); // Update the room list
           })
-          .catch((err) => {
-            console.error("Error posting message:", err);
-          });
+          .catch((err) => console.error("Error adding members:", err));
+      }
+
+      // Remove a member from the room
+      function removeMember(memberId) {
+        if (!currentRoomId) return;
+
+        fetch("/room/members/remove", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            roomId: currentRoomId,
+            memberId: memberId,
+          }),
+        })
+          .then(() => {
+            fetchRoomMembers(currentRoomId); // Refresh the members list
+            fetchRooms(); // Update the room list
+          })
+          .catch((err) => console.error("Error removing member:", err));
+      }
+
+      // Delete the room
+      function deleteRoom(roomId) {
+        if (
+          !confirm(
+            "Bạn có chắc muốn xóa phòng này?/Are you sure you want to delete this room?"
+          )
+        )
+          return;
+
+        fetch(`/room/${roomId}`, {
+          method: "DELETE",
+        })
+          .then(() => {
+            hideManageRoomModal();
+            showRoomList();
+            fetchRooms();
+          })
+          .catch((err) => console.error("Error deleting room:", err));
+      }
+
+      // Setup the "Add Members" form
+      function setupAddMembersForm() {
+        const form = document.getElementById("add-members-form");
+        form.onsubmit = function (e) {
+          e.preventDefault();
+          addMembersToRoom();
+        };
       }
     </script>
   </body>
