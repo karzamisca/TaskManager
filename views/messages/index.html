@@ -87,9 +87,36 @@
         color: green;
         font-weight: bold;
       }
+
+      .header {
+        background-color: var(--form-bg-color);
+        padding: 15px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--message-border-color);
+        display: flex;
+        gap: 20px;
+      }
+
+      .header a {
+        color: var(--textarea-text-color);
+        text-decoration: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+      }
+
+      .header a:hover {
+        background-color: var(--message-hover-bg-color);
+      }
     </style>
   </head>
   <body>
+    <div class="header">
+      <a href="/main">Trở về trang chính/Back to main</a>
+      <a href="/changePassword">Đổi mật khẩu / Change password</a>
+      <a href="/logout">Đăng xuất / Logout</a>
+    </div>
+
     <h1>Bảng Tin Nhắn/Message Board</h1>
 
     <!-- Room List View -->
