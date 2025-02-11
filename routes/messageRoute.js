@@ -3,6 +3,11 @@ const express = require("express");
 const router = express.Router();
 const messageController = require("../controllers/messageController");
 const authMiddleware = require("../middlewares/authMiddleware");
+const multer = require("multer");
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+});
 
 router.get("/message", authMiddleware, (req, res) => {
   res.sendFile("index.html", {
@@ -18,7 +23,12 @@ router.get("/messageGet", authMiddleware, messageController.getMessages);
 
 router.post("/room/create", authMiddleware, messageController.createRoom);
 router.get("/rooms", authMiddleware, messageController.getRooms);
-router.post("/room/message", authMiddleware, messageController.postRoomMessage);
+router.post(
+  "/room/message",
+  authMiddleware,
+  upload.array("files"), // 'files' is the field name, 5 is max files
+  messageController.postRoomMessage
+);
 router.get(
   "/room/:roomId/messages",
   authMiddleware,

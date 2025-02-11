@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Private Message Rooms</title>
+    <title>Bảng tin nhắn/Message Board</title>
     <style>
       :root {
         --primary-color: #4caf50;
@@ -264,6 +264,47 @@
         margin-left: 8px;
       }
 
+      .file-upload-container {
+        margin: 10px 0;
+      }
+
+      #file-list {
+        margin-top: 10px;
+      }
+
+      .file-item {
+        display: flex;
+        align-items: center;
+        padding: 5px;
+        background: #f5f5f5;
+        border-radius: 4px;
+        margin-bottom: 5px;
+      }
+
+      .file-item .remove-file {
+        margin-left: auto;
+        color: red;
+        cursor: pointer;
+      }
+
+      .message .attachments {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+      }
+
+      .message .attachment-link {
+        display: block;
+        padding: 5px;
+        margin: 2px 0;
+        color: #0066cc;
+        text-decoration: none;
+      }
+
+      .message .attachment-link:hover {
+        text-decoration: underline;
+      }
+
       @media (max-width: 768px) {
         .member-selection {
           grid-template-columns: 1fr;
@@ -308,6 +349,17 @@
           placeholder="Nhập tin nhắn/Write a message..."
           required
         ></textarea>
+        <div class="file-upload-container">
+          <input type="file" id="file-upload" multiple style="display: none" />
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick="document.getElementById('file-upload').click()"
+          >
+            <i class="fas fa-paperclip"></i> Attach Files
+          </button>
+          <div id="file-list"></div>
+        </div>
         <button type="submit" class="btn btn-primary">
           Gửi tin nhắn/Send Message
         </button>
@@ -480,12 +532,42 @@
           selected: [],
         },
       };
+      let selectedFiles = [];
 
       // Initialize
       document.addEventListener("DOMContentLoaded", function () {
         fetchRooms();
         setupMessageForm();
       });
+
+      // Add file upload handling
+      document
+        .getElementById("file-upload")
+        .addEventListener("change", function (e) {
+          const files = Array.from(e.target.files);
+          selectedFiles = [...selectedFiles, ...files];
+          displaySelectedFiles();
+        });
+
+      function displaySelectedFiles() {
+        const fileList = document.getElementById("file-list");
+        fileList.innerHTML = "";
+
+        selectedFiles.forEach((file, index) => {
+          const fileItem = document.createElement("div");
+          fileItem.className = "file-item";
+          fileItem.innerHTML = `
+          <span>${file.name}</span>
+          <span class="remove-file" onclick="removeFile(${index})">×</span>
+        `;
+          fileList.appendChild(fileItem);
+        });
+      }
+
+      function removeFile(index) {
+        selectedFiles.splice(index, 1);
+        displaySelectedFiles();
+      }
 
       // Fetch and display rooms
       function fetchRooms() {
@@ -566,36 +648,62 @@
         messages.forEach((message) => {
           const messageDiv = document.createElement("div");
           messageDiv.className = "message";
+
+          let attachmentsHTML = "";
+          if (message.attachments && message.attachments.length > 0) {
+            attachmentsHTML = `
+        <div class="attachments">
+          ${message.attachments
+            .map(
+              (attachment) => `
+            <a href="${attachment.webViewLink}" target="_blank" class="attachment-link">
+              📎 ${attachment.fileName}
+            </a>
+          `
+            )
+            .join("")}
+        </div>
+      `;
+          }
+
           messageDiv.innerHTML = `
-          <strong>${message.user.username}</strong>
-          <small>${new Date(message.createdAt).toLocaleString()}</small>
-          <p>${message.content}</p>
-        `;
+      <strong>${message.user.username}</strong>
+      <small>${new Date(message.createdAt).toLocaleString()}</small>
+      <p>${message.content}</p>
+      ${attachmentsHTML}
+    `;
+
           messageList.appendChild(messageDiv);
         });
 
         // Scroll to bottom of messages
         messageList.scrollTop = messageList.scrollHeight;
       }
+
       function setupMessageForm() {
         document.getElementById("message-form").onsubmit = function (e) {
           e.preventDefault();
           const content = this.querySelector("textarea").value;
 
           if (content.trim() && currentRoomId) {
+            const formData = new FormData();
+            formData.append("content", content);
+            formData.append("roomId", currentRoomId);
+
+            // Append files if any
+            selectedFiles.forEach((file) => {
+              formData.append("files", file);
+            });
+
             fetch("/room/message", {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                roomId: currentRoomId,
-                content: content,
-              }),
+              body: formData, // Don't set Content-Type header, let browser handle it
             })
               .then((response) => response.json())
               .then(() => {
                 this.querySelector("textarea").value = "";
+                selectedFiles = [];
+                displaySelectedFiles();
                 fetchMessages(currentRoomId);
               })
               .catch((err) => console.error("Error sending message:", err));

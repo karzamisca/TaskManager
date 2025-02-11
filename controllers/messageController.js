@@ -4,6 +4,47 @@ const moment = require("moment-timezone");
 const Room = require("../models/Room");
 const RoomMessage = require("../models/RoomMessage");
 const User = require("../models/User");
+const drive = require("../middlewares/googleAuthMiddleware");
+const { Readable } = require("stream");
+const path = require("path");
+
+async function uploadToGoogleDrive(file) {
+  try {
+    const fileMetadata = {
+      name: file.originalname,
+      parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID], // Make sure to set this in .env
+    };
+
+    const media = {
+      mimeType: file.mimetype,
+      body: Readable.from(file.buffer),
+    };
+
+    const response = await drive.files.create({
+      requestBody: fileMetadata,
+      media: media,
+      fields: "id, webViewLink",
+    });
+
+    // Set file to be accessible via link
+    await drive.permissions.create({
+      fileId: response.data.id,
+      requestBody: {
+        role: "reader",
+        type: "anyone",
+      },
+    });
+
+    return {
+      fileId: response.data.id,
+      webViewLink: response.data.webViewLink,
+      fileName: file.originalname,
+    };
+  } catch (error) {
+    console.error("Error uploading to Google Drive:", error);
+    throw error;
+  }
+}
 
 // Post a new message
 exports.postMessage = async (req, res) => {
@@ -75,6 +116,7 @@ exports.getRooms = async (req, res) => {
 
 exports.postRoomMessage = async (req, res) => {
   const { roomId, content } = req.body;
+  let attachments = [];
 
   try {
     // Verify user is a member of the room
@@ -85,10 +127,19 @@ exports.postRoomMessage = async (req, res) => {
         .json({ error: "Not authorized to post in this room" });
     }
 
+    // Handle file uploads if present
+    if (req.files && req.files.length > 0) {
+      // Upload each file to Google Drive
+      attachments = await Promise.all(
+        req.files.map((file) => uploadToGoogleDrive(file))
+      );
+    }
+
     const newMessage = new RoomMessage({
       room: roomId,
       user: req.user.id,
       content,
+      attachments,
       createdAt: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
     });
 
