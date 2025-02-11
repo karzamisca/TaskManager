@@ -755,15 +755,41 @@
             return response.json();
           })
           .then(() => {
-            // Refresh the rooms data and update the display
-            fetchRooms().then(() => {
+            return fetchRooms();
+          })
+          .then(() => {
+            const currentRoom = rooms.find(
+              (room) => room._id === currentRoomId
+            );
+            if (currentRoom) {
+              displayCurrentMembers(currentRoom);
+              // Refresh the available users list
+              return fetch("/users");
+            }
+          })
+          .then((response) => {
+            if (response && response.ok) {
+              return response.json();
+            }
+          })
+          .then((allUsers) => {
+            if (allUsers) {
               const currentRoom = rooms.find(
                 (room) => room._id === currentRoomId
               );
               if (currentRoom) {
-                displayCurrentMembers(currentRoom);
+                // Update the available users list excluding current members
+                const memberIds = new Set(
+                  currentRoom.members.map((m) => m._id)
+                );
+                users.add.available = allUsers.filter(
+                  (u) => !memberIds.has(u._id)
+                );
+                // Refresh the display
+                updateMemberLists("add");
+                updateMemberCounts("add");
               }
-            });
+            }
           })
           .catch((err) => {
             console.error("Error removing member:", err);
