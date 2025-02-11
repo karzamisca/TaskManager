@@ -463,11 +463,17 @@
                         }</td>
                         <td>
                             ${
+                              doc.approvedBy.length === 0 // Check if no approvals have been given
+                                ? `
+                                  <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa/Edit</button>
+                                  <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa/Delete</button>
+                                `
+                                : ""
+                            }
+                            ${
                               !doc.approved
                                 ? `
-                                    <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa/Edit</button>
                                     <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">Phê duyệt/Approve</button>
-                                    <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa/Delete</button>
                                   `
                                 : "-"
                             }    
