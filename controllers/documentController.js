@@ -284,7 +284,9 @@ exports.submitDocument = async (req, res) => {
           name: req.body.name,
           content: req.body.content,
           paymentMethod: req.body.paymentMethod,
-          amountOfMoney: req.body.amountOfMoney,
+          totalPayment: req.body.totalPayment,
+          advancePayment: req.body.advancePayment || 0,
+          balance: req.body.balance || 0,
           paymentDeadline: req.body.paymentDeadline,
           groupName: req.body.groupName,
           submittedBy: req.user.id,
@@ -665,15 +667,15 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
   try {
     const paymentDocuments = await PaymentDocument.find({});
 
-    // Calculate the sum of amountOfMoney for approved and unapproved documents
+    // Calculate the sum of totalPayment for approved and unapproved documents
     let approvedSum = 0;
     let unapprovedSum = 0;
 
     paymentDocuments.forEach((doc) => {
       if (doc.approved) {
-        approvedSum += doc.amountOfMoney;
+        approvedSum += doc.totalPayment;
       } else {
-        unapprovedSum += doc.amountOfMoney;
+        unapprovedSum += doc.totalPayment;
       }
     });
 
@@ -705,8 +707,15 @@ exports.getPaymentDocument = async (req, res) => {
 exports.updatePaymentDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, content, paymentMethod, amountOfMoney, paymentDeadline } =
-      req.body;
+    const {
+      name,
+      content,
+      paymentMethod,
+      totalPayment,
+      advancePayment,
+      balance,
+      paymentDeadline,
+    } = req.body;
     const file = req.file;
 
     const doc = await PaymentDocument.findById(id);
@@ -718,7 +727,9 @@ exports.updatePaymentDocument = async (req, res) => {
     doc.name = name;
     doc.content = content;
     doc.paymentMethod = paymentMethod;
-    doc.amountOfMoney = parseFloat(amountOfMoney);
+    doc.totalPayment = parseFloat(totalPayment);
+    doc.advancePayment = parseFloat(advancePayment);
+    doc.balance = parseFloat(balance);
     doc.paymentDeadline = paymentDeadline;
 
     // Handle file update if provided
@@ -739,12 +750,10 @@ exports.updatePaymentDocument = async (req, res) => {
         name: file.originalname,
         parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
       };
-
       const media = {
         mimeType: file.mimetype,
         body: Readable.from(file.buffer),
       };
-
       const driveResponse = await drive.files.create({
         resource: fileMetadata,
         media: media,

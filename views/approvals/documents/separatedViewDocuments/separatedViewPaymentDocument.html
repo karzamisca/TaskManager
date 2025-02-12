@@ -307,7 +307,9 @@
           <th>Nội dung/Content</th>
           <th>Tệp tin kèm theo/Attached File</th>
           <th>Phương thức trả tiền/Payment Method</th>
-          <th>Số tiền/Amount of Money</th>
+          <th>Tổng thanh toán/Total Payment</th>
+          <th>Thanh toán trước/Advance Payment</th>
+          <th>Số dư/Balance</th>
           <th>Hạn trả/Payment Deadline</th>
           <th>Phiếu mua hàng kèm theo/Appended Purchasing Documents</th>
           <th>Phiếu đề xuất kèm theo/Appended Proposal Documents</th>
@@ -436,7 +438,9 @@
                             : "-"
                         }</td>
                         <td>${doc.paymentMethod || "-"}</td>
-                        <td>${doc.amountOfMoney?.toLocaleString() || "-"}</td>
+                        <td>${doc.totalPayment?.toLocaleString() || "-"}</td>
+                        <td>${doc.advancePayment?.toLocaleString() || "-"}</td>
+                        <td>${doc.balance?.toLocaleString() || "-"}</td>
                         <td>${doc.paymentDeadline || "-"}</td>
                         <td class="documents-cell">${renderPurchasingDocuments(
                           doc.appendedPurchasingDocuments || []
@@ -535,43 +539,144 @@
       // Add edit modal HTML at the end of the table
       function addEditModal() {
         const modalHTML = `
-          <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-            <div style="position: relative; background: var(--bg-color); margin: 10% auto; padding: 20px; width: 80%; max-width: 600px; border-radius: 8px;">
-              <span onclick="closeEditModal()" style="position: absolute; right: 20px; top: 10px; cursor: pointer; font-size: 24px;">&times;</span>
-              <h2>Chỉnh sửa phiếu thanh toán/Edit Payment Document</h2>
+          <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+            <div style="
+              position: fixed; 
+              top: 50%; 
+              left: 50%; 
+              transform: translate(-50%, -50%); 
+              background: var(--bg-color); 
+              padding: clamp(16px, 2vw, 24px);
+              width: clamp(300px, 85vw, 900px);
+              border-radius: clamp(4px, 1vw, 8px);
+              max-height: 90vh;
+              overflow-y: auto;
+              font-size: clamp(14px, 1.5vw, 16px);
+            ">
+              <span onclick="closeEditModal()" style="
+                position: sticky; 
+                float: right; 
+                top: 10px; 
+                cursor: pointer; 
+                font-size: clamp(20px, 2vw, 28px);
+                padding: clamp(4px, 0.5vw, 8px);
+              ">&times;</span>
+              
+              <h2 style="font-size: clamp(18px, 2vw, 24px); margin-bottom: clamp(16px, 2vw, 24px);">
+                Chỉnh sửa phiếu thanh toán/Edit Payment Document
+              </h2>
+              
               <form id="editForm" onsubmit="handleEditSubmit(event)">
                 <input type="hidden" id="editDocId">
-                <div style="margin-bottom: 15px;">
-                  <label for="editName">Tên/Name:</label>
-                  <input type="text" id="editName" required style="width: 100%; padding: 8px; margin-top: 5px;">
+                
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label for="editName" style="display: block; margin-bottom: 0.5em;">Tên/Name:</label>
+                  <input type="text" id="editName" required style="
+                    width: 100%;
+                    padding: clamp(6px, 1vw, 12px);
+                    font-size: inherit;
+                    border: 1px solid var(--border-color);
+                    border-radius: clamp(3px, 0.5vw, 6px);
+                  ">
                 </div>
-                <div style="margin-bottom: 15px;">
-                  <label for="editContent">Nội dung/Content:</label>
-                  <textarea id="editContent" required style="width: 100%; padding: 8px; margin-top: 5px; min-height: 100px;"></textarea>
+
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label for="editContent" style="display: block; margin-bottom: 0.5em;">Nội dung/Content:</label>
+                  <textarea id="editContent" required style="
+                    width: 100%;
+                    padding: clamp(6px, 1vw, 12px);
+                    min-height: clamp(80px, 15vh, 150px);
+                    font-size: inherit;
+                    border: 1px solid var(--border-color);
+                    border-radius: clamp(3px, 0.5vw, 6px);
+                  "></textarea>
                 </div>
-                <div style="margin-bottom: 15px;">
-                  <label for="editPaymentMethod">Hình thức thanh toán/Payment Method:</label>
-                  <input type="text" id="editPaymentMethod" required style="width: 100%; padding: 8px; margin-top: 5px;">
+
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label for="editPaymentMethod" style="display: block; margin-bottom: 0.5em;">Hình thức thanh toán/Payment Method:</label>
+                  <input type="text" id="editPaymentMethod" required style="
+                    width: 100%;
+                    padding: clamp(6px, 1vw, 12px);
+                    font-size: inherit;
+                    border: 1px solid var(--border-color);
+                    border-radius: clamp(3px, 0.5vw, 6px);
+                  ">
                 </div>
-                <div style="margin-bottom: 15px;">
-                  <label for="editAmount">Số lượng tiền/Amount of Money:</label>
-                  <input type="number" id="editAmount" required style="width: 100%; padding: 8px; margin-top: 5px;">
+
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label for="editTotalPayment" style="display: block; margin-bottom: 0.5em;">Tổng thanh toán/Total Payment:</label>
+                  <input type="number" id="editTotalPayment" required style="
+                    width: 100%;
+                    padding: clamp(6px, 1vw, 12px);
+                    font-size: inherit;
+                    border: 1px solid var(--border-color);
+                    border-radius: clamp(3px, 0.5vw, 6px);
+                  ">
                 </div>
-                <div style="margin-bottom: 15px;">
-                  <label for="editDeadline">Hạn thanh toán/Payment Deadline (DD-MM-YYYY):</label>
+
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label for="editAdvancePayment" style="display: block; margin-bottom: 0.5em;">Thanh toán trước/Advance Payment:</label>
+                  <input type="number" id="editAdvancePayment" required style="
+                    width: 100%;
+                    padding: clamp(6px, 1vw, 12px);
+                    font-size: inherit;
+                    border: 1px solid var(--border-color);
+                    border-radius: clamp(3px, 0.5vw, 6px);
+                  ">
+                </div>
+
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label for="editBalance" style="display: block; margin-bottom: 0.5em;">Số dư/Balance:</label>
+                  <input type="number" id="editBalance" required style="
+                    width: 100%;
+                    padding: clamp(6px, 1vw, 12px);
+                    font-size: inherit;
+                    border: 1px solid var(--border-color);
+                    border-radius: clamp(3px, 0.5vw, 6px);
+                  ">
+                </div>
+
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label for="editDeadline" style="display: block; margin-bottom: 0.5em;">Hạn thanh toán/Payment Deadline (DD-MM-YYYY):</label>
                   <input type="text" 
                         id="editDeadline" 
                         required 
                         placeholder="DD/MM/YYYY"
                         pattern="(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[012])-[0-9]{4}"
-                        style="width: 100%; padding: 8px; margin-top: 5px;">
+                        style="
+                          width: 100%;
+                          padding: clamp(6px, 1vw, 12px);
+                          font-size: inherit;
+                          border: 1px solid var(--border-color);
+                          border-radius: clamp(3px, 0.5vw, 6px);
+                        ">
                 </div>
-                <div style="margin-bottom: 15px;">
-                  <label for="editFile">Thay tệp tin mới/Update File:</label>
-                  <input type="file" id="editFile" style="width: 100%; padding: 8px; margin-top: 5px;">
+
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới/Update File:</label>
+                  <input type="file" id="editFile" style="
+                    width: 100%;
+                    padding: clamp(6px, 1vw, 12px);
+                    font-size: inherit;
+                  ">
                 </div>
-                <button type="submit" class="approve-btn" style="margin-right: 10px;">Lưu thay đổi/Save Changes</button>
-                <button type="button" class="approve-btn" onclick="closeEditModal()" style="background: #666;">Hủy/Cancel</button>
+
+                <div style="
+                  display: flex;
+                  gap: clamp(8px, 1vw, 16px);
+                  margin-top: clamp(20px, 2.5vw, 32px);
+                ">
+                  <button type="submit" class="approve-btn" style="
+                    padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
+                    font-size: inherit;
+                  ">Lưu thay đổi/Save Changes</button>
+                  
+                  <button type="button" class="approve-btn" onclick="closeEditModal()" style="
+                    background: #666;
+                    padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
+                    font-size: inherit;
+                  ">Hủy/Cancel</button>
+                </div>
               </form>
             </div>
           </div>
@@ -593,15 +698,16 @@
         try {
           const response = await fetch(`/getPaymentDocument/${docId}`);
           const doc = await response.json();
-
           document.getElementById("editDocId").value = docId;
           document.getElementById("editName").value = doc.name;
           document.getElementById("editContent").value = doc.content;
           document.getElementById("editPaymentMethod").value =
             doc.paymentMethod;
-          document.getElementById("editAmount").value = doc.amountOfMoney;
+          document.getElementById("editTotalPayment").value = doc.totalPayment;
+          document.getElementById("editAdvancePayment").value =
+            doc.advancePayment;
+          document.getElementById("editBalance").value = doc.balance;
           document.getElementById("editDeadline").value = doc.paymentDeadline;
-
           document.getElementById("editModal").style.display = "block";
         } catch (err) {
           console.error("Error fetching document details:", err);
@@ -618,10 +724,8 @@
       // Handle edit form submission
       async function handleEditSubmit(event) {
         event.preventDefault();
-
         const docId = document.getElementById("editDocId").value;
         const formData = new FormData();
-
         formData.append("name", document.getElementById("editName").value);
         formData.append(
           "content",
@@ -632,9 +736,17 @@
           document.getElementById("editPaymentMethod").value
         );
         formData.append(
-          "amountOfMoney",
-          document.getElementById("editAmount").value
-        );
+          "totalPayment",
+          document.getElementById("editTotalPayment").value
+        ); // Changed from amountOfMoney
+        formData.append(
+          "advancePayment",
+          document.getElementById("editAdvancePayment").value
+        ); // New field
+        formData.append(
+          "balance",
+          document.getElementById("editBalance").value
+        ); // New field
         formData.append(
           "paymentDeadline",
           document.getElementById("editDeadline").value
@@ -650,9 +762,7 @@
             method: "POST",
             body: formData,
           });
-
           const result = await response.json();
-
           if (response.ok) {
             showMessage("Document updated successfully");
             closeEditModal();

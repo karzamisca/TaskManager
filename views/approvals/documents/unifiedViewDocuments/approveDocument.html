@@ -444,7 +444,9 @@
             <th>Tên/Name</th>
             <th>Nội dung/Content</th>
             <th>Phương thức thanh toán/Payment Method</th>
-            <th>Số tiền/Amount of Money</th>
+            <th>Tổng thanh toán/Total Payment</th>
+            <th>Thanh toán trước/Advance Payment</th>
+            <th>Số dư/Balance</th>
             <th>Hạn thanh toán/Payment Deadline</th>
             <th>Phiếu mua hàng đi kèm/Appended Purchasing Documents</th>
             <th>Phiếu đề xuất đi kèm/Appended Proposals</th>
@@ -887,7 +889,9 @@
               <td>${doc.name}</td>
               <td>${doc.content}</td>
               <td>${doc.paymentMethod}</td>
-              <td>${doc.amountOfMoney.toLocaleString()}</td>
+              <td>${doc.totalPayment?.toLocaleString() || "-"}</td>
+              <td>${doc.advancePayment?.toLocaleString() || "-"}</td>
+              <td>${doc.balance?.toLocaleString() || "-"}</td>
               <td>${doc.paymentDeadline}</td>
               <td>${appendedPurchasingDocs}</td>
               <td>${appendedProposalsContent}</td>
