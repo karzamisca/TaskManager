@@ -340,6 +340,48 @@
     <a href="/mainDocument">Trở về/Back</a>
 
     <script>
+      let currentUser = null;
+      let paymentDocuments = null;
+      let showOnlyPendingApprovals = false;
+
+      // Add the toggle switch creation function
+      function createToggleSwitch() {
+        const toggleContainer = document.createElement("div");
+        toggleContainer.style.marginBottom = "1rem";
+        toggleContainer.innerHTML = `
+          <label class="toggle-switch" style="display: flex; align-items: center; cursor: pointer;">
+            <input type="checkbox" id="pendingToggle" style="margin-right: 0.5rem;">
+            <span>Chỉ hiện phiếu tôi cần phê duyệt/Show only documents pending my approval</span>
+          </label>
+        `;
+        return toggleContainer;
+      }
+
+      // Add the current user fetch function
+      async function fetchCurrentUser() {
+        try {
+          const response = await fetch("/getCurrentUser");
+          currentUser = await response.json();
+        } catch (error) {
+          console.error("Error fetching current user:", error);
+        }
+      }
+
+      // Add the document filter function
+      function filterDocumentsForCurrentUser(documents) {
+        if (!currentUser || !showOnlyPendingApprovals) return documents;
+
+        return documents.filter((doc) => {
+          const isRequiredApprover = doc.approvers.some(
+            (approver) => approver.username === currentUser.username
+          );
+          const hasNotApprovedYet = !doc.approvedBy.some(
+            (approved) => approved.username === currentUser.username
+          );
+          return isRequiredApprover && hasNotApprovedYet;
+        });
+      }
+
       function showMessage(message, isError = false) {
         const messageContainer = document.getElementById("messageContainer");
         messageContainer.textContent = message;
@@ -423,11 +465,16 @@
         try {
           const response = await fetch("/getPaymentDocumentForSeparatedView");
           const data = await response.json();
+          paymentDocuments = data.paymentDocuments;
+
+          // Filter documents
+          const filteredDocuments =
+            filterDocumentsForCurrentUser(paymentDocuments);
 
           const tableBody = document.getElementById("paymentDocumentsTable");
           tableBody.innerHTML = "";
 
-          data.paymentDocuments.forEach((doc) => {
+          filteredDocuments.forEach((doc) => {
             const row = document.createElement("tr");
             row.innerHTML = `
                         <td>${doc.name || "-"}</td>
@@ -776,13 +823,31 @@
         }
       }
 
-      // Call addEditModal when the page loads
+      // Modify the initialization code
+      async function initializePage() {
+        await fetchCurrentUser();
+
+        // Add toggle switch before the table
+        const table = document.querySelector("table");
+        table.parentElement.insertBefore(createToggleSwitch(), table);
+
+        // Add toggle event listener
+        document
+          .getElementById("pendingToggle")
+          .addEventListener("change", (e) => {
+            showOnlyPendingApprovals = e.target.checked;
+            fetchPaymentDocuments();
+          });
+
+        // Initial fetch of documents
+        fetchPaymentDocuments();
+      }
+
+      // Update the DOMContentLoaded event listener
       document.addEventListener("DOMContentLoaded", () => {
         addEditModal();
+        initializePage();
       });
-
-      // Fetch payment documents when the page loads
-      fetchPaymentDocuments();
     </script>
   </body>
 </html>
