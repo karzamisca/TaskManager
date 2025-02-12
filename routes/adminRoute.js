@@ -6,7 +6,6 @@ const adminController = require("../controllers/adminController");
 router.get("/admin", authMiddleware, adminController.getAdminPage);
 
 // Serve the Cost Center Admin page
-router.get("/costCenters", authMiddleware, adminController.getCostCenters);
 router.get(
   "/costCenterAdmin",
   authMiddleware,

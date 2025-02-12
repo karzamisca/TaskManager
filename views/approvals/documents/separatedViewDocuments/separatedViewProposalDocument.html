@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phiếu đề xuất/Proposal Documents</title>
+    <style>
+      /* Base styles and CSS reset */
+      :root {
+        --primary-color: #4caf50;
+        --primary-hover: #45a049;
+        --text-color: #333;
+        --bg-color: #fff;
+        --border-color: #ddd;
+        --table-stripe: #f9f9f9;
+        --table-hover: #f5f5f5;
+        --table-header: #f2f2f2;
+        --success-bg: #e8f5e9;
+        --success-text: #2e7d32;
+        --success-border: #c8e6c9;
+        --error-bg: #ffebee;
+        --error-text: #c62828;
+        --error-border: #ffcdd2;
+        --link-color: #2196f3;
+        --summary-bg: #f8f9fa;
+      }
+
+      /* Dark mode colors */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --primary-color: #66bb6a;
+          --primary-hover: #81c784;
+          --text-color: #e0e0e0;
+          --bg-color: #121212;
+          --border-color: #404040;
+          --table-stripe: #1e1e1e;
+          --table-hover: #2d2d2d;
+          --table-header: #2d2d2d;
+          --success-bg: #1b5e20;
+          --success-text: #a5d6a7;
+          --success-border: #2e7d32;
+          --error-bg: #b71c1c;
+          --error-text: #ef9a9a;
+          --error-border: #c62828;
+          --link-color: #64b5f6;
+          --summary-bg: #1e1e1e;
+        }
+      }
+
+      /* Base styles */
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        line-height: 1.6;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        min-height: 100vh;
+      }
+
+      /* Responsive container */
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      /* Table styles */
+      table {
+        max-height: 50vh;
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        font-size: clamp(12px, 0.9vw, 14px);
+        overflow: auto;
+        display: block;
+      }
+
+      /* Custom scrollbar */
+      table::-webkit-scrollbar {
+        height: 8px;
+        width: 8px;
+      }
+
+      table::-webkit-scrollbar-track {
+        background: var(--table-stripe);
+        border-radius: 4px;
+      }
+
+      table::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+      }
+
+      table::-webkit-scrollbar-thumb:hover {
+        background: var(--primary-color);
+      }
+
+      th,
+      td {
+        border: 1px solid var(--border-color);
+        padding: clamp(8px, 1vw, 12px);
+        text-align: left;
+      }
+
+      th {
+        background-color: var(--table-header);
+        font-weight: bold;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+
+      tr:nth-child(even) {
+        background-color: var(--table-stripe);
+      }
+
+      tr:hover {
+        background-color: var(--table-hover);
+      }
+
+      /* Status styles */
+      .approved {
+        color: var(--success-text);
+        font-weight: bold;
+      }
+
+      .unapproved {
+        color: var(--error-text);
+        font-weight: bold;
+      }
+
+      /* Button styles */
+      .approve-btn {
+        background-color: var(--primary-color);
+        color: var(--bg-color);
+        border: none;
+        padding: 8px 16px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background-color 0.2s, transform 0.1s;
+      }
+
+      .approve-btn:hover {
+        background-color: var(--primary-hover);
+        transform: translateY(-1px);
+      }
+
+      .approve-btn:active {
+        transform: translateY(0);
+      }
+
+      /* Summary section */
+      .summary {
+        background-color: var(--summary-bg);
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Message styles */
+      .message {
+        padding: 12px;
+        margin: 10px 0;
+        border-radius: 4px;
+        display: none;
+        animation: fadeIn 0.3s ease-in-out;
+      }
+
+      .documents-container,
+      .proposals-container {
+        display: flex;
+        gap: 1rem;
+        overflow: auto;
+        padding-bottom: 1rem;
+      }
+
+      .purchasing-doc,
+      .proposal-card {
+        flex: 0 0 300px;
+        max-width: 300px;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        background-color: var(--bg-color);
+      }
+
+      .purchasing-doc ul {
+        margin: 0;
+        padding-left: 1.2rem;
+        list-style-type: none;
+      }
+
+      .purchasing-doc li {
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .purchasing-doc li:last-child {
+        border-bottom: none;
+      }
+
+      /* Make table cells containing flex containers wider */
+      td.documents-cell {
+        min-width: 320px;
+      }
+
+      .approval-status {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .approver-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 4px;
+        background-color: var(--table-stripe);
+      }
+
+      .status-icon {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+      }
+
+      .status-pending {
+        background-color: #ffd700;
+      }
+
+      .status-approved {
+        background-color: var(--success-text);
+      }
+
+      .approval-date {
+        font-size: 0.9em;
+        color: var(--text-color);
+        opacity: 0.8;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message.error {
+        background-color: var(--error-bg);
+        color: var(--error-text);
+        border: 1px solid var(--error-border);
+      }
+
+      .message.success {
+        background-color: var(--success-bg);
+        color: var(--success-text);
+        border: 1px solid var(--success-border);
+      }
+
+      /* Link styles */
+      .file-link {
+        color: var(--link-color);
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      .file-link:hover {
+        text-decoration: underline;
+      }
+
+      /* Responsive typography */
+      h1 {
+        font-size: clamp(24px, 3vw, 32px);
+        margin-bottom: 20px;
+      }
+
+      h2 {
+        font-size: clamp(20px, 2.5vw, 28px);
+      }
+
+      /* Media queries for responsive layout */
+      @media screen and (max-width: 768px) {
+        body {
+          padding: 10px;
+        }
+        .container {
+          padding: 0 10px;
+        }
+        table {
+          font-size: 12px;
+        }
+        th,
+        td {
+          padding: 8px;
+        }
+        .approve-btn {
+          padding: 6px 12px;
+        }
+      }
+
+      /* Print styles */
+      @media print {
+        .approve-btn {
+          display: none;
+        }
+        body {
+          padding: 0;
+        }
+        table {
+          page-break-inside: auto;
+        }
+        tr {
+          page-break-inside: avoid;
+          page-break-after: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Phiếu đề xuất/Proposal Documents</h1>
+    <div id="messageContainer" class="message"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Công việc/Task</th>
+          <th>Trạm/Cost Center</th>
+          <th>Ngày lỗi/Date of Error</th>
+          <th>Mô tả chi tiết/Details Description</th>
+          <th>Hướng xử lý/Direction</th>
+          <th>Tệp tin kèm theo/Attached File</th>
+          <th>Ngày nộp phiếu/Submission Date</th>
+          <th>Tên nhóm/Group Name</th>
+          <th>Tình trạng/Status</th>
+          <th>Trạng thái phê duyệt/Approval Status</th>
+          <th>Hành động/Action</th>
+        </tr>
+      </thead>
+      <tbody id="proposalDocumentsTable">
+        <!-- Proposal documents will be populated here -->
+      </tbody>
+    </table>
+    <div class="summary">
+      <h2>Tóm tắt/Summary</h2>
+      <p>
+        Số phiếu đã phê duyệt/Total Approved Proposals:
+        <span id="approvedSum" class="approved">0</span>
+      </p>
+      <p>
+        Số phiếu chưa phê duyệt/Total Unapproved Proposals:
+        <span id="unapprovedSum" class="unapproved">0</span>
+      </p>
+    </div>
+    <a href="/mainDocument">Trở về/Back</a>
+    <script>
+      let currentUser = null;
+      let proposalDocuments = null;
+      let showOnlyPendingApprovals = false;
+
+      // Add the toggle switch creation function
+      function createToggleSwitch() {
+        const toggleContainer = document.createElement("div");
+        toggleContainer.style.marginBottom = "1rem";
+        toggleContainer.innerHTML = `
+                <label class="toggle-switch" style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" id="pendingToggle" style="margin-right: 0.5rem;">
+                    <span>Chỉ hiện phiếu tôi cần phê duyệt/Show only documents pending my approval</span>
+                </label>
+            `;
+        return toggleContainer;
+      }
+
+      // Add the current user fetch function
+      async function fetchCurrentUser() {
+        try {
+          const response = await fetch("/getCurrentUser");
+          currentUser = await response.json();
+        } catch (error) {
+          console.error("Error fetching current user:", error);
+        }
+      }
+
+      // Add the document filter function
+      function filterDocumentsForCurrentUser(documents) {
+        if (!currentUser || !showOnlyPendingApprovals) return documents;
+        return documents.filter((doc) => {
+          const isRequiredApprover = doc.approvers.some(
+            (approver) => approver.username === currentUser.username
+          );
+          const hasNotApprovedYet = !doc.approvedBy.some(
+            (approved) => approved.username === currentUser.username
+          );
+          return isRequiredApprover && hasNotApprovedYet;
+        });
+      }
+
+      function showMessage(message, isError = false) {
+        const messageContainer = document.getElementById("messageContainer");
+        messageContainer.textContent = message;
+        messageContainer.style.display = "block";
+        messageContainer.className = `message ${isError ? "error" : "success"}`;
+        setTimeout(() => {
+          messageContainer.style.display = "none";
+        }, 5000);
+      }
+
+      async function fetchProposalDocuments() {
+        try {
+          const response = await fetch("/getProposalDocumentForSeparatedView");
+          const data = await response.json();
+          proposalDocuments = data.proposalDocuments;
+          const filteredDocuments =
+            filterDocumentsForCurrentUser(proposalDocuments);
+          const tableBody = document.getElementById("proposalDocumentsTable");
+          tableBody.innerHTML = "";
+          filteredDocuments.forEach((doc) => {
+            const approvalStatus = doc.approvers
+              .map((approver) => {
+                const hasApproved = doc.approvedBy.find(
+                  (a) => a.username === approver.username
+                );
+                return `
+                                <div class="approver-item">
+                                    <span class="status-icon ${
+                                      hasApproved
+                                        ? "status-approved"
+                                        : "status-pending"
+                                    }"></span>
+                                    <div>
+                                        <div>${approver.username} (${
+                  approver.subRole
+                })</div>
+                                        ${
+                                          hasApproved
+                                            ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
+                                            : '<div class="approval-date">Pending</div>'
+                                        }
+                                    </div>
+                                </div>
+                            `;
+              })
+              .join("");
+
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                        <td>${doc.task || "-"}</td>
+                        <td>${doc.costCenter || "-"}</td>
+                        <td>${doc.dateOfError || "-"}</td>
+                        <td>${doc.detailsDescription || "-"}</td>
+                        <td>${doc.direction || "-"}</td>
+                        <td>${
+                          doc.fileMetadata?.link
+                            ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+                            : "-"
+                        }</td>
+                        <td>${doc.submissionDate || "-"}</td>
+                        <td>${doc.groupName || "-"}</td>
+                        <td class="${
+                          doc.approved ? "approved" : "unapproved"
+                        }">${doc.approved ? "Approved" : "Unapproved"}</td>
+                        <td class="approval-status">${approvalStatus}</td>
+                        <td>
+                            ${
+                              doc.approvedBy.length === 0
+                                ? `
+                                <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa/Edit</button>
+                                <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa/Delete</button>
+                            `
+                                : ""
+                            }
+                            ${
+                              !doc.approved
+                                ? `
+                                <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
+                                    Phê duyệt/Approve
+                                </button>
+                            `
+                                : "-"
+                            }
+                        </td>
+                    `;
+            tableBody.appendChild(row);
+          });
+
+          // Update summary section
+          document.getElementById("approvedSum").textContent =
+            data.approvedSum.toLocaleString();
+          document.getElementById("unapprovedSum").textContent =
+            data.unapprovedSum.toLocaleString();
+        } catch (err) {
+          console.error("Error fetching proposal documents:", err);
+          showMessage("Error fetching proposal documents", true);
+        }
+      }
+
+      async function approveDocument(documentId) {
+        try {
+          const response = await fetch(`/approveDocument/${documentId}`, {
+            method: "POST",
+          });
+          const message = await response.text();
+          if (response.ok) {
+            showMessage(message);
+            fetchProposalDocuments();
+          } else {
+            showMessage(message, true);
+          }
+        } catch (err) {
+          console.error("Error approving document:", err);
+          showMessage("Error approving document", true);
+        }
+      }
+
+      async function deleteDocument(documentId) {
+        try {
+          const response = await fetch(`/deleteDocument/${documentId}`, {
+            method: "POST",
+          });
+          const message = await response.text();
+          if (response.ok) {
+            showMessage(message);
+            fetchProposalDocuments();
+          } else {
+            showMessage(message, true);
+          }
+        } catch (err) {
+          console.error("Error deleting document:", err);
+          showMessage("Error deleting document", true);
+        }
+      }
+
+      async function populateCostCenterDropdown() {
+        try {
+          // Fetch the current user
+          const userResponse = await fetch("/getCurrentUser");
+          const userData = await userResponse.json();
+          const currentUser = userData.username;
+
+          // Fetch cost centers
+          const costCenterResponse = await fetch("/costCenters");
+          const costCenters = await costCenterResponse.json();
+
+          // Get the cost center dropdown in the edit modal
+          const costCenterDropdown = document.getElementById("editCostCenter");
+
+          // Clear existing options
+          costCenterDropdown.innerHTML =
+            '<option value="">Chọn một trạm/Select a center</option>';
+
+          // Populate the dropdown with allowed cost centers
+          costCenters.forEach((center) => {
+            if (
+              center.allowedUsers.length === 0 ||
+              center.allowedUsers.includes(currentUser)
+            ) {
+              const option = document.createElement("option");
+              option.value = center.name;
+              option.textContent = center.name;
+              costCenterDropdown.appendChild(option);
+            }
+          });
+        } catch (error) {
+          console.error("Error fetching cost centers:", error);
+        }
+      }
+
+      // Add edit modal HTML at the end of the table
+      function addEditModal() {
+        const modalHTML = `
+            <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+                <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-color); padding: clamp(16px, 2vw, 24px); width: clamp(300px, 85vw, 900px); border-radius: clamp(4px, 1vw, 8px); max-height: 90vh; overflow-y: auto; font-size: clamp(14px, 1.5vw, 16px);">
+                    <span onclick="closeEditModal()" style="position: sticky; float: right; top: 10px; cursor: pointer; font-size: clamp(20px, 2vw, 28px); padding: clamp(4px, 0.5vw, 8px);">&times;</span>
+                    <h2 style="font-size: clamp(18px, 2vw, 24px); margin-bottom: clamp(16px, 2vw, 24px);">Chỉnh sửa phiếu đề xuất/Edit Proposal Document</h2>
+                    <form id="editForm" onsubmit="handleEditSubmit(event)">
+                        <input type="hidden" id="editDocId">
+                        <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                            <label for="editTask" style="display: block; margin-bottom: 0.5em;">Công việc/Task:</label>
+                            <input type="text" id="editTask" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
+                        </div>
+                        <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                            <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm/Cost Center:</label>
+                            <select id="editCostCenter" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
+                                <option value="">Chọn một trạm/Select a center</option>
+                                <!-- Options will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                            <label for="editDateOfError" style="display: block; margin-bottom: 0.5em;">Ngày lỗi/Date of Error:</label>
+                            <input type="text" id="editDateOfError" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
+                        </div>
+                        <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                            <label for="editDetailsDescription" style="display: block; margin-bottom: 0.5em;">Mô tả chi tiết/Details Description:</label>
+                            <textarea id="editDetailsDescription" required style="width: 100%; padding: clamp(6px, 1vw, 12px); min-height: clamp(80px, 15vh, 150px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);"></textarea>
+                        </div>
+                        <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                            <label for="editDirection" style="display: block; margin-bottom: 0.5em;">Hướng xử lý/Direction:</label>
+                            <textarea id="editDirection" required style="width: 100%; padding: clamp(6px, 1vw, 12px); min-height: clamp(80px, 15vh, 150px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);"></textarea>
+                        </div>
+                        <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                            <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới/Update File:</label>
+                            <input type="file" id="editFile" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
+                        </div>
+                        <div style="display: flex; gap: clamp(8px, 1vw, 16px); margin-top: clamp(20px, 2.5vw, 32px);">
+                            <button type="submit" class="approve-btn" style="padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px); font-size: inherit;">Lưu thay đổi/Save Changes</button>
+                            <button type="button" class="approve-btn" onclick="closeEditModal()" style="background: #666; padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px); font-size: inherit;">Hủy/Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            `;
+        document.body.insertAdjacentHTML("beforeend", modalHTML);
+      }
+
+      // Add edit button to each row in the fetchProposalDocuments function
+      function addEditButton(doc) {
+        if (!doc.approved) {
+          return `<button class="approve-btn" onclick="editDocument('${doc._id}')">Chỉnh sửa/Edit</button>`;
+        }
+        return "";
+      }
+
+      // Edit document function
+      async function editDocument(docId) {
+        try {
+          const response = await fetch(`/getProposalDocument/${docId}`);
+          const doc = await response.json();
+
+          // Populate the form fields
+          document.getElementById("editDocId").value = docId;
+          document.getElementById("editTask").value = doc.task;
+          document.getElementById("editDateOfError").value = doc.dateOfError;
+          document.getElementById("editDetailsDescription").value =
+            doc.detailsDescription;
+          document.getElementById("editDirection").value = doc.direction;
+
+          // Populate the cost center dropdown
+          await populateCostCenterDropdown();
+          document.getElementById("editCostCenter").value = doc.costCenter;
+
+          // Show the modal
+          document.getElementById("editModal").style.display = "block";
+        } catch (err) {
+          console.error("Error fetching document details:", err);
+          showMessage("Error loading document details", true);
+        }
+      }
+
+      // Close edit modal
+      function closeEditModal() {
+        document.getElementById("editModal").style.display = "none";
+        document.getElementById("editForm").reset();
+      }
+
+      // Handle edit form submission
+      async function handleEditSubmit(event) {
+        event.preventDefault();
+        const docId = document.getElementById("editDocId").value;
+        const formData = new FormData();
+        formData.append("task", document.getElementById("editTask").value);
+        formData.append(
+          "costCenter",
+          document.getElementById("editCostCenter").value
+        );
+        formData.append(
+          "dateOfError",
+          document.getElementById("editDateOfError").value
+        );
+        formData.append(
+          "detailsDescription",
+          document.getElementById("editDetailsDescription").value
+        );
+        formData.append(
+          "direction",
+          document.getElementById("editDirection").value
+        );
+        const fileInput = document.getElementById("editFile");
+        if (fileInput.files.length > 0) {
+          formData.append("file", fileInput.files[0]);
+        }
+        try {
+          const response = await fetch(`/updateProposalDocument/${docId}`, {
+            method: "POST",
+            body: formData,
+          });
+          const result = await response.json();
+          if (response.ok) {
+            showMessage("Document updated successfully");
+            closeEditModal();
+            fetchProposalDocuments();
+          } else {
+            showMessage(result.message || "Error updating document", true);
+          }
+        } catch (err) {
+          console.error("Error updating document:", err);
+          showMessage("Error updating document", true);
+        }
+      }
+
+      // Modify the initialization code
+      async function initializePage() {
+        await fetchCurrentUser();
+        // Add toggle switch before the table
+        const table = document.querySelector("table");
+        table.parentElement.insertBefore(createToggleSwitch(), table);
+        // Add toggle event listener
+        document
+          .getElementById("pendingToggle")
+          .addEventListener("change", (e) => {
+            showOnlyPendingApprovals = e.target.checked;
+            fetchProposalDocuments();
+          });
+        // Initial fetch of documents
+        fetchProposalDocuments();
+      }
+
+      // Update the DOMContentLoaded event listener
+      document.addEventListener("DOMContentLoaded", () => {
+        addEditModal();
+        initializePage();
+      });
+    </script>
+  </body>
+</html>

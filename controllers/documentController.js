@@ -784,3 +784,131 @@ exports.updatePaymentDocument = async (req, res) => {
     res.status(500).json({ message: "Error updating document" });
   }
 };
+
+exports.updateProposalDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { task, costCenter, dateOfError, detailsDescription, direction } =
+      req.body;
+    const file = req.file;
+
+    const doc = await ProposalDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Fetch the current user
+    const currentUser = req.user.username;
+
+    // Fetch allowed cost centers for the current user
+    const costCenters = await CostCenter.find({
+      $or: [
+        { allowedUsers: { $in: [currentUser] } },
+        { allowedUsers: { $size: 0 } },
+      ],
+    });
+
+    // Check if the new cost center is allowed for the user
+    const isCostCenterAllowed = costCenters.some(
+      (center) => center.name === costCenter
+    );
+    if (!isCostCenterAllowed) {
+      return res.status(403).json({
+        message: "You do not have permission to edit this cost center.",
+      });
+    }
+
+    // Update the document
+    doc.task = task;
+    doc.costCenter = costCenter;
+    doc.dateOfError = dateOfError;
+    doc.detailsDescription = detailsDescription;
+    doc.direction = direction;
+
+    // Handle file update if provided
+    if (file) {
+      // Delete old file from Google Drive if it exists
+      if (doc.fileMetadata?.driveFileId) {
+        try {
+          await drive.files.delete({
+            fileId: doc.fileMetadata.driveFileId,
+          });
+        } catch (error) {
+          console.error("Error deleting old file:", error);
+        }
+      }
+
+      // Upload new file
+      const fileMetadata = {
+        name: file.originalname,
+        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
+      };
+      const media = {
+        mimeType: file.mimetype,
+        body: Readable.from(file.buffer),
+      };
+      const driveResponse = await drive.files.create({
+        resource: fileMetadata,
+        media: media,
+        fields: "id, webViewLink",
+      });
+
+      // Update file permissions
+      await drive.permissions.create({
+        fileId: driveResponse.data.id,
+        requestBody: {
+          role: "reader",
+          type: "anyone",
+        },
+      });
+
+      // Update document with new file metadata
+      doc.fileMetadata = {
+        driveFileId: driveResponse.data.id,
+        name: file.originalname,
+        link: driveResponse.data.webViewLink,
+      };
+    }
+
+    await doc.save();
+    res.json({ message: "Document updated successfully" });
+  } catch (error) {
+    console.error("Error updating proposal document:", error);
+    res.status(500).json({ message: "Error updating document" });
+  }
+};
+exports.getProposalDocumentForSeparatedView = async (req, res) => {
+  try {
+    const proposalDocuments = await ProposalDocument.find({});
+    let approvedSum = 0;
+    let unapprovedSum = 0;
+    proposalDocuments.forEach((doc) => {
+      if (doc.approved) {
+        approvedSum += 1;
+      } else {
+        unapprovedSum += 1;
+      }
+    });
+    res.json({
+      proposalDocuments,
+      approvedSum,
+      unapprovedSum,
+    });
+  } catch (err) {
+    console.error("Error fetching proposal documents:", err);
+    res.status(500).send("Error fetching proposal documents");
+  }
+};
+exports.getProposalDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const document = await ProposalDocument.findById(id);
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+    res.json(document);
+  } catch (error) {
+    console.error("Error fetching proposal document:", error);
+    res.status(500).json({ message: "Error fetching document" });
+  }
+};
