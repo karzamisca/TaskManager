@@ -363,6 +363,10 @@
     <div class="summary">
       <h2>Tóm tắt/Summary</h2>
       <p>
+        Số tiền đã chi/Paid Amount:
+        <span id="paidSum" class="approved">0</span>
+      </p>
+      <p>
         Số tiền đã phê duyệt/Total Approved Amount:
         <span id="approvedSum" class="approved">0</span>
       </p>
@@ -583,6 +587,8 @@
           // Update summary section
           document.getElementById("approvedSum").textContent =
             data.approvedSum.toLocaleString();
+          document.getElementById("paidSum").textContent =
+            data.paidSum.toLocaleString();
           document.getElementById("unapprovedSum").textContent =
             data.unapprovedSum.toLocaleString();
         } catch (err) {

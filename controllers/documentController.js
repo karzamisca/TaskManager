@@ -668,20 +668,24 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
     const paymentDocuments = await PaymentDocument.find({});
 
     // Calculate the sum of totalPayment for approved and unapproved documents
-    let approvedSum = 0;
+    let approvedSum = 0; // Sum for documents with only one approver left
+    let paidSum = 0; // Sum for fully approved documents
     let unapprovedSum = 0;
 
     paymentDocuments.forEach((doc) => {
       if (doc.approved) {
-        approvedSum += doc.totalPayment;
+        paidSum += doc.totalPayment; // Fully approved documents
+      } else if (doc.approvers.length - doc.approvedBy.length === 1) {
+        approvedSum += doc.totalPayment; // Only one approver left
       } else {
-        unapprovedSum += doc.totalPayment;
+        unapprovedSum += doc.totalPayment; // More than one approver left
       }
     });
 
     res.json({
       paymentDocuments,
       approvedSum,
+      paidSum,
       unapprovedSum,
     });
   } catch (err) {
