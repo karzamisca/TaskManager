@@ -163,4 +163,29 @@ router.get(
   documentController.getProposalDocument
 );
 
+router.get("/separatedViewPurchasingDocument", authMiddleware, (req, res) => {
+  res.sendFile("separatedViewPurchasingDocument.html", {
+    root: "./views/approvals/documents/separatedViewDocuments",
+  });
+});
+// Route to fetch purchasing documents for the separated view
+router.get(
+  "/getPurchasingDocumentForSeparatedView",
+  authMiddleware,
+  documentController.getPurchasingDocumentsForSeparatedView
+);
+// Route to fetch a specific purchasing document by ID
+router.get(
+  "/getPurchasingDocument/:id",
+  authMiddleware,
+  documentController.getPurchasingDocument
+);
+// Route to update a purchasing document
+router.post(
+  "/updatePurchasingDocument/:id",
+  upload.single("file"),
+  authMiddleware,
+  documentController.updatePurchasingDocument
+);
+
 module.exports = router;

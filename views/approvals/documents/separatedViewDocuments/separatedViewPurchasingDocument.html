@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phiếu mua hàng/Purchasing Documents</title>
+    <style>
+      /* Base styles and CSS reset */
+      :root {
+        --primary-color: #4caf50;
+        --primary-hover: #45a049;
+        --text-color: #333;
+        --bg-color: #fff;
+        --border-color: #ddd;
+        --table-stripe: #f9f9f9;
+        --table-hover: #f5f5f5;
+        --table-header: #f2f2f2;
+        --success-bg: #e8f5e9;
+        --success-text: #2e7d32;
+        --success-border: #c8e6c9;
+        --error-bg: #ffebee;
+        --error-text: #c62828;
+        --error-border: #ffcdd2;
+        --link-color: #2196f3;
+        --summary-bg: #f8f9fa;
+      }
+
+      /* Dark mode colors */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --primary-color: #66bb6a;
+          --primary-hover: #81c784;
+          --text-color: #e0e0e0;
+          --bg-color: #121212;
+          --border-color: #404040;
+          --table-stripe: #1e1e1e;
+          --table-hover: #2d2d2d;
+          --table-header: #2d2d2d;
+          --success-bg: #1b5e20;
+          --success-text: #a5d6a7;
+          --success-border: #2e7d32;
+          --error-bg: #b71c1c;
+          --error-text: #ef9a9a;
+          --error-border: #c62828;
+          --link-color: #64b5f6;
+          --summary-bg: #1e1e1e;
+        }
+      }
+
+      /* Base styles */
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        line-height: 1.6;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      /* Table styles */
+      table {
+        max-height: 50vh;
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+        font-size: clamp(12px, 0.9vw, 14px);
+        overflow: auto;
+        display: block;
+      }
+
+      table::-webkit-scrollbar {
+        height: 8px;
+        width: 8px;
+      }
+
+      table::-webkit-scrollbar-track {
+        background: var(--table-stripe);
+        border-radius: 4px;
+      }
+
+      table::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 4px;
+      }
+
+      table::-webkit-scrollbar-thumb:hover {
+        background: var(--primary-color);
+      }
+
+      th,
+      td {
+        border: 1px solid var(--border-color);
+        padding: clamp(8px, 1vw, 12px);
+        text-align: left;
+      }
+
+      th {
+        background-color: var(--table-header);
+        font-weight: bold;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+
+      tr:nth-child(even) {
+        background-color: var(--table-stripe);
+      }
+
+      tr:hover {
+        background-color: var(--table-hover);
+      }
+
+      /* Status styles */
+      .approved {
+        color: var(--success-text);
+        font-weight: bold;
+      }
+
+      .unapproved {
+        color: var(--error-text);
+        font-weight: bold;
+      }
+
+      /* Button styles */
+      .approve-btn {
+        background-color: var(--primary-color);
+        color: var(--bg-color);
+        border: none;
+        padding: 8px 16px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: background-color 0.2s, transform 0.1s;
+      }
+
+      .approve-btn:hover {
+        background-color: var(--primary-hover);
+        transform: translateY(-1px);
+      }
+
+      .approve-btn:active {
+        transform: translateY(0);
+      }
+
+      /* Summary section */
+      .summary {
+        background-color: var(--summary-bg);
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Message styles */
+      .message {
+        padding: 12px;
+        margin: 10px 0;
+        border-radius: 4px;
+        display: none;
+        animation: fadeIn 0.3s ease-in-out;
+      }
+
+      .message.error {
+        background-color: var(--error-bg);
+        color: var(--error-text);
+        border: 1px solid var(--error-border);
+      }
+
+      .message.success {
+        background-color: var(--success-bg);
+        color: var(--success-text);
+        border: 1px solid var(--success-border);
+      }
+
+      /* Products list styles */
+      .products-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .product-item {
+        padding: 0.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background-color: var(--bg-color);
+      }
+
+      /* Approval status styles */
+      .approval-status {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .approver-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 4px;
+        background-color: var(--table-stripe);
+      }
+
+      .status-icon {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+      }
+
+      .status-pending {
+        background-color: #ffd700;
+      }
+
+      .status-approved {
+        background-color: var(--success-text);
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media screen and (max-width: 768px) {
+        body {
+          padding: 10px;
+        }
+
+        .container {
+          padding: 0 10px;
+        }
+
+        table {
+          font-size: 12px;
+        }
+
+        th,
+        td {
+          padding: 8px;
+        }
+
+        .approve-btn {
+          padding: 6px 12px;
+        }
+      }
+
+      @media print {
+        .approve-btn {
+          display: none;
+        }
+
+        body {
+          padding: 0;
+        }
+
+        table {
+          page-break-inside: auto;
+        }
+
+        tr {
+          page-break-inside: avoid;
+          page-break-after: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Phiếu mua hàng/Purchasing Documents</h1>
+    <div id="messageContainer" class="message"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Sản phẩm/Products</th>
+          <th>Tệp tin kèm theo/Attached File</th>
+          <th>Tổng chi phí/Total Cost</th>
+          <th>Phiếu đề xuất kèm theo/Appended Proposals</th>
+          <th>Ngày nộp phiếu/Submission Date</th>
+          <th>Tên nhóm/Group Name</th>
+          <th>Tình trạng/Status</th>
+          <th>Trạng thái phê duyệt/Approval Status</th>
+          <th>Hành động/Action</th>
+        </tr>
+      </thead>
+      <tbody id="purchasingDocumentsTable">
+        <!-- Purchasing documents will be populated here -->
+      </tbody>
+    </table>
+
+    <div class="summary">
+      <h2>Tóm tắt/Summary</h2>
+      <p>
+        Tổng chi phí đã phê duyệt/Total Approved Cost:
+        <span id="approvedSum" class="approved">0</span>
+      </p>
+      <p>
+        Tổng chi phí chưa phê duyệt/Total Unapproved Cost:
+        <span id="unapprovedSum" class="unapproved">0</span>
+      </p>
+    </div>
+    <a href="/mainDocument">Trở về/Back</a>
+
+    <script>
+      let currentUser = null;
+      let purchasingDocuments = null;
+      let showOnlyPendingApprovals = false;
+
+      function createToggleSwitch() {
+        const toggleContainer = document.createElement("div");
+        toggleContainer.style.marginBottom = "1rem";
+        toggleContainer.innerHTML = `
+          <label class="toggle-switch" style="display: flex; align-items: center; cursor: pointer;">
+            <input type="checkbox" id="pendingToggle" style="margin-right: 0.5rem;">
+            <span>Chỉ hiện phiếu tôi cần phê duyệt/Show only documents pending my approval</span>
+          </label>
+        `;
+        return toggleContainer;
+      }
+
+      async function fetchCurrentUser() {
+        try {
+          const response = await fetch("/getCurrentUser");
+          currentUser = await response.json();
+        } catch (error) {
+          console.error("Error fetching current user:", error);
+        }
+      }
+
+      function filterDocumentsForCurrentUser(documents) {
+        if (!currentUser || !showOnlyPendingApprovals) return documents;
+
+        return documents.filter((doc) => {
+          const isRequiredApprover = doc.approvers.some(
+            (approver) => approver.username === currentUser.username
+          );
+          const hasNotApprovedYet = !doc.approvedBy.some(
+            (approved) => approved.username === currentUser.username
+          );
+          return isRequiredApprover && hasNotApprovedYet;
+        });
+      }
+
+      function showMessage(message, isError = false) {
+        const messageContainer = document.getElementById("messageContainer");
+        messageContainer.textContent = message;
+        messageContainer.style.display = "block";
+        messageContainer.className = `message ${isError ? "error" : "success"}`;
+        setTimeout(() => {
+          messageContainer.style.display = "none";
+        }, 5000);
+      }
+
+      function renderProducts(products) {
+        if (!products || products.length === 0) return "-";
+
+        return `
+          <div class="products-container">
+            ${products
+              .map(
+                (product) => `
+              <div class="product-item">
+                <strong>${product.productName}</strong><br>
+                Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
+                Số lượng/Amount: ${product.amount.toLocaleString()}<br>
+                Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
+                ${product.note ? `Ghi chú/Notes: ${product.note}` : ""}
+              </div>
+            `
+              )
+              .join("")}
+          </div>
+        `;
+      }
+
+      function renderProposals(proposals) {
+        if (!proposals || proposals.length === 0) return "-";
+
+        return `
+          <div class="products-container">
+            ${proposals
+              .map(
+                (proposal) => `
+              <div class="product-item">
+                <strong>Công việc/Task:</strong> ${proposal.task}<br>
+                <strong>Trạm/Center:</strong> ${proposal.costCenter}<br>
+                <strong>Mô tả/Description:</strong> ${
+                  proposal.detailsDescription
+                }<br>
+                ${
+                  proposal.fileMetadata
+                    ? `<strong>Tệp đính kèm/File:</strong> 
+                   <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
+                    : ""
+                }
+              </div>
+            `
+              )
+              .join("")}
+          </div>
+        `;
+      }
+
+      async function fetchPurchasingDocuments() {
+        try {
+          const response = await fetch(
+            "/getPurchasingDocumentForSeparatedView"
+          );
+          const data = await response.json();
+          purchasingDocuments = data.purchasingDocuments;
+
+          const filteredDocuments =
+            filterDocumentsForCurrentUser(purchasingDocuments);
+          const tableBody = document.getElementById("purchasingDocumentsTable");
+          tableBody.innerHTML = "";
+
+          filteredDocuments.forEach((doc) => {
+            const approvalStatus = doc.approvers
+              .map((approver) => {
+                const hasApproved = doc.approvedBy.find(
+                  (a) => a.username === approver.username
+                );
+                return `
+                  <div class="approver-item">
+                    <span class="status-icon ${
+                      hasApproved ? "status-approved" : "status-pending"
+                    }"></span>
+                    <div>
+                      <div>${approver.username} (${approver.subRole})</div>
+                      ${
+                        hasApproved
+                          ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
+                          : '<div class="approval-date">Pending</div>'
+                      }
+                    </div>
+                  </div>
+                `;
+              })
+              .join("");
+
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${renderProducts(doc.products)}</td>
+              <td>${
+                doc.fileMetadata?.link
+                  ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+                  : "-"
+              }</td>
+              <td>${doc.grandTotalCost?.toLocaleString() || "-"}</td>
+              <td>${renderProposals(doc.appendedProposals)}</td>
+              <td>${doc.submissionDate || "-"}</td>
+              <td>${doc.groupName || "-"}</td>
+              <td class="${doc.approved ? "approved" : "unapproved"}">
+                ${doc.approved ? "Approved" : "Unapproved"}
+                </td>
+              <td class="approval-status">${approvalStatus}</td>
+              <td>
+                ${
+                  doc.approvedBy.length === 0
+                    ? `
+                  <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa/Edit</button>
+                  <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa/Delete</button>
+                `
+                    : ""
+                }
+                ${
+                  !doc.approved
+                    ? `
+                  <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
+                    Phê duyệt/Approve
+                  </button>
+                `
+                    : "-"
+                }    
+              </td>
+            `;
+            tableBody.appendChild(row);
+          });
+
+          // Update summary section
+          const approvedSum = filteredDocuments
+            .filter((doc) => doc.approved)
+            .reduce((sum, doc) => sum + (doc.grandTotalCost || 0), 0);
+
+          const unapprovedSum = filteredDocuments
+            .filter((doc) => !doc.approved)
+            .reduce((sum, doc) => sum + (doc.grandTotalCost || 0), 0);
+
+          document.getElementById("approvedSum").textContent =
+            approvedSum.toLocaleString();
+          document.getElementById("unapprovedSum").textContent =
+            unapprovedSum.toLocaleString();
+        } catch (err) {
+          console.error("Error fetching purchasing documents:", err);
+          showMessage("Error fetching purchasing documents", true);
+        }
+      }
+
+      async function approveDocument(documentId) {
+        try {
+          const response = await fetch(`/approveDocument/${documentId}`, {
+            method: "POST",
+          });
+
+          const message = await response.text();
+
+          if (response.ok) {
+            showMessage(message);
+            fetchPurchasingDocuments();
+          } else {
+            showMessage(message, true);
+          }
+        } catch (err) {
+          console.error("Error approving document:", err);
+          showMessage("Error approving document", true);
+        }
+      }
+
+      async function deleteDocument(documentId) {
+        try {
+          const response = await fetch(`/deleteDocument/${documentId}`, {
+            method: "POST",
+          });
+
+          const message = await response.text();
+
+          if (response.ok) {
+            showMessage(message);
+            fetchPurchasingDocuments();
+          } else {
+            showMessage(message, true);
+          }
+        } catch (err) {
+          console.error("Error deleting document:", err);
+          showMessage("Error deleting document", true);
+        }
+      }
+
+      function addEditModal() {
+        const modalHTML = `
+          <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+            <div style="
+              position: fixed; 
+              top: 50%; 
+              left: 50%; 
+              transform: translate(-50%, -50%); 
+              background: var(--bg-color); 
+              padding: clamp(16px, 2vw, 24px);
+              width: clamp(300px, 85vw, 900px);
+              border-radius: clamp(4px, 1vw, 8px);
+              max-height: 90vh;
+              overflow-y: auto;
+              font-size: clamp(14px, 1.5vw, 16px);
+            ">
+              <span onclick="closeEditModal()" style="
+                position: sticky; 
+                float: right; 
+                top: 10px; 
+                cursor: pointer; 
+                font-size: clamp(20px, 2vw, 28px);
+                padding: clamp(4px, 0.5vw, 8px);
+              ">&times;</span>
+              
+              <h2 style="font-size: clamp(18px, 2vw, 24px); margin-bottom: clamp(16px, 2vw, 24px);">
+                Chỉnh sửa phiếu mua hàng/Edit Purchasing Document
+              </h2>
+              
+              <form id="editForm" onsubmit="handleEditSubmit(event)">
+                <input type="hidden" id="editDocId">
+                
+
+                <div id="productsContainer" style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label style="display: block; margin-bottom: 0.5em;">Sản phẩm/Products:</label>
+                  <div id="productsList"></div>
+                  <button type="button" class="approve-btn" onclick="addProductField()" style="margin-top: 10px;">
+                    Thêm sản phẩm/Add Product
+                  </button>
+                </div>
+
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới/Update File:</label>
+                  <input type="file" id="editFile" style="
+                    width: 100%;
+                    padding: clamp(6px, 1vw, 12px);
+                    font-size: inherit;
+                  ">
+                </div>
+
+                <div style="
+                  display: flex;
+                  gap: clamp(8px, 1vw, 16px);
+                  margin-top: clamp(20px, 2.5vw, 32px);
+                ">
+                  <button type="submit" class="approve-btn" style="
+                    padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
+                    font-size: inherit;
+                  ">Lưu thay đổi/Save Changes</button>
+                  
+                  <button type="button" class="approve-btn" onclick="closeEditModal()" style="
+                    background: #666;
+                    padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
+                    font-size: inherit;
+                  ">Hủy/Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+
+        document.body.insertAdjacentHTML("beforeend", modalHTML);
+      }
+
+      function addProductField(product = null) {
+        const productsList = document.getElementById("productsList");
+        const productDiv = document.createElement("div");
+        productDiv.className = "product-item";
+        productDiv.style.marginBottom = "10px";
+        productDiv.innerHTML = `
+          <div style="display: grid; gap: 10px;">
+            <input type="text" placeholder="Tên sản phẩm/Product Name" 
+                   value="${product?.productName || ""}" required
+                   style="width: 100%; padding: 8px;">
+            <input type="number" placeholder="Đơn giá/Cost Per Unit" 
+                   value="${product?.costPerUnit || ""}" required
+                   style="width: 100%; padding: 8px;">
+            <input type="number" placeholder="Số lượng/Amount" 
+                   value="${product?.amount || ""}" required
+                   style="width: 100%; padding: 8px;">
+            <input type="text" placeholder="Ghi chú/Note" 
+                   value="${product?.note || ""}"
+                   style="width: 100%; padding: 8px;">
+            <button type="button" class="approve-btn" onclick="this.parentElement.parentElement.remove()" 
+                    style="background: #dc3545;">Xóa/Remove</button>
+          </div>
+        `;
+        productsList.appendChild(productDiv);
+      }
+
+      async function editDocument(docId) {
+        try {
+          const response = await fetch(`/getPurchasingDocument/${docId}`);
+          const doc = await response.json();
+
+          document.getElementById("editDocId").value = docId;
+
+          // Clear and repopulate products
+          const productsList = document.getElementById("productsList");
+          productsList.innerHTML = "";
+          doc.products.forEach((product) => addProductField(product));
+
+          document.getElementById("editModal").style.display = "block";
+        } catch (err) {
+          console.error("Error fetching document details:", err);
+          showMessage("Error loading document details", true);
+        }
+      }
+
+      function closeEditModal() {
+        document.getElementById("editModal").style.display = "none";
+        document.getElementById("editForm").reset();
+        document.getElementById("productsList").innerHTML = "";
+      }
+
+      async function handleEditSubmit(event) {
+        event.preventDefault();
+        const docId = document.getElementById("editDocId").value;
+        const formData = new FormData();
+
+        // Get all products
+        const products = [];
+        const productItems = document.querySelectorAll(".product-item");
+
+        productItems.forEach((item) => {
+          const productInputs = item.querySelectorAll("input");
+          if (productInputs.length >= 4) {
+            const costPerUnit = parseFloat(productInputs[1].value) || 0;
+            const amount = parseInt(productInputs[2].value) || 0;
+
+            const product = {
+              productName: productInputs[0].value,
+              costPerUnit: costPerUnit,
+              amount: amount,
+              totalCost: costPerUnit * amount,
+              note: productInputs[3].value,
+            };
+            products.push(product);
+          }
+        });
+
+        formData.append("products", JSON.stringify(products));
+
+        // Calculate grand total
+        const grandTotalCost = products.reduce(
+          (sum, product) => sum + product.totalCost,
+          0
+        );
+        formData.append("grandTotalCost", grandTotalCost);
+
+        const fileInput = document.getElementById("editFile");
+        if (fileInput.files.length > 0) {
+          formData.append("file", fileInput.files[0]);
+        }
+
+        try {
+          const response = await fetch(`/updatePurchasingDocument/${docId}`, {
+            method: "POST",
+            body: formData,
+          });
+          const result = await response.json();
+          if (response.ok) {
+            showMessage("Document updated successfully");
+            closeEditModal();
+            fetchPurchasingDocuments();
+          } else {
+            showMessage(result.message || "Error updating document", true);
+          }
+        } catch (err) {
+          console.error("Error updating document:", err);
+          showMessage("Error updating document", true);
+        }
+      }
+
+      async function initializePage() {
+        await fetchCurrentUser();
+
+        const table = document.querySelector("table");
+        table.parentElement.insertBefore(createToggleSwitch(), table);
+
+        document
+          .getElementById("pendingToggle")
+          .addEventListener("change", (e) => {
+            showOnlyPendingApprovals = e.target.checked;
+            fetchPurchasingDocuments();
+          });
+
+        fetchPurchasingDocuments();
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        addEditModal();
+        initializePage();
+      });
+    </script>
+  </body>
+</html>

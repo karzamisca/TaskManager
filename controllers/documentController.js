@@ -916,3 +916,149 @@ exports.getProposalDocument = async (req, res) => {
     res.status(500).json({ message: "Error fetching document" });
   }
 };
+
+// Fetch all Purchasing Documents
+exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
+  try {
+    const purchasingDocuments = await PurchasingDocument.find({}).populate(
+      "submittedBy",
+      "username"
+    );
+
+    // Calculate sums for approved and unapproved documents
+    let approvedSum = 0;
+    let unapprovedSum = 0;
+
+    purchasingDocuments.forEach((doc) => {
+      if (doc.approved) {
+        approvedSum += doc.grandTotalCost;
+      } else {
+        unapprovedSum += doc.grandTotalCost;
+      }
+    });
+
+    res.json({
+      purchasingDocuments,
+      approvedSum,
+      unapprovedSum,
+    });
+  } catch (err) {
+    console.error("Error fetching purchasing documents:", err);
+    res.status(500).send("Error fetching purchasing documents");
+  }
+};
+// Fetch a specific Purchasing Document by ID
+exports.getPurchasingDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const document = await PurchasingDocument.findById(id);
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+    res.json(document);
+  } catch (error) {
+    console.error("Error fetching purchasing document:", error);
+    res.status(500).json({ message: "Error fetching document" });
+  }
+};
+// Update a Purchasing Document
+exports.updatePurchasingDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const file = req.file;
+
+    // Parse the products JSON string into an object
+    let products;
+    try {
+      products = JSON.parse(req.body.products);
+    } catch (error) {
+      return res.status(400).json({ message: "Invalid products data format" });
+    }
+
+    // Parse grandTotalCost as a number
+    const grandTotalCost = parseFloat(req.body.grandTotalCost);
+
+    // Parse appendedProposals if it exists
+    let appendedProposals;
+    if (req.body.appendedProposals) {
+      try {
+        appendedProposals = JSON.parse(req.body.appendedProposals);
+      } catch (error) {
+        return res
+          .status(400)
+          .json({ message: "Invalid appendedProposals data format" });
+      }
+    }
+
+    const doc = await PurchasingDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Update basic fields
+    doc.products = products;
+    doc.grandTotalCost = grandTotalCost;
+    if (appendedProposals) {
+      doc.appendedProposals = appendedProposals;
+    }
+
+    // Handle file update if provided
+    if (file) {
+      // Delete old file from Google Drive if it exists
+      if (doc.fileMetadata?.driveFileId) {
+        try {
+          await drive.files.delete({
+            fileId: doc.fileMetadata.driveFileId,
+          });
+        } catch (error) {
+          console.error("Error deleting old file:", error);
+          // Continue execution even if file deletion fails
+        }
+      }
+
+      // Upload new file
+      const fileMetadata = {
+        name: file.originalname,
+        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
+      };
+      const media = {
+        mimeType: file.mimetype,
+        body: Readable.from(file.buffer),
+      };
+
+      const driveResponse = await drive.files.create({
+        resource: fileMetadata,
+        media: media,
+        fields: "id, webViewLink",
+      });
+
+      // Update file permissions
+      await drive.permissions.create({
+        fileId: driveResponse.data.id,
+        requestBody: {
+          role: "reader",
+          type: "anyone",
+        },
+      });
+
+      // Update document with new file metadata
+      doc.fileMetadata = {
+        driveFileId: driveResponse.data.id,
+        name: file.originalname,
+        link: driveResponse.data.webViewLink,
+      };
+    }
+
+    await doc.save();
+    res.json({
+      message: "Document updated successfully",
+      document: doc, // Return the updated document
+    });
+  } catch (error) {
+    console.error("Error updating purchasing document:", error);
+    res.status(500).json({
+      message: "Error updating document",
+      error: error.message, // Include error message for debugging
+    });
+  }
+};
