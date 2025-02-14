@@ -322,6 +322,37 @@
         color: var(--bg-color);
       }
 
+      #suspendModal .full-view-content {
+        max-width: 500px;
+      }
+
+      #suspendModal textarea {
+        width: 100%;
+        min-height: 100px;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+      }
+
+      .status {
+        font-weight: bold;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+
+      .approved {
+        color: green;
+      }
+
+      .suspended {
+        color: red;
+      }
+
+      .pending {
+        color: yellow;
+      }
+
       @keyframes fadeIn {
         from {
           opacity: 0;
@@ -439,6 +470,33 @@
         <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
         <h2 style="margin-bottom: 24px">Chi tiết đầy đủ/Full Details</h2>
         <div id="fullViewContent"></div>
+      </div>
+    </div>
+
+    <div id="suspendModal" class="full-view-modal">
+      <div class="full-view-content">
+        <span class="close-btn" onclick="closeSuspendModal()">&times;</span>
+        <h2>Hoãn tài liệu/Suspend Document</h2>
+        <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
+          <div style="margin-bottom: 20px">
+            <label for="suspendReason">Lý do hoãn/Suspend Reason:</label>
+            <textarea
+              id="suspendReason"
+              required
+              style="width: 100%; padding: 10px"
+            ></textarea>
+          </div>
+          <div style="display: flex; gap: 10px">
+            <button type="submit" class="approve-btn">Hoãn/Suspend</button>
+            <button
+              type="button"
+              class="approve-btn"
+              onclick="closeSuspendModal()"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -581,6 +639,17 @@
           </div>`;
       }
 
+      function renderStatus(status) {
+        switch (status) {
+          case "Approved":
+            return `<span class="status approved">Approved</span>`;
+          case "Suspended":
+            return `<span class="status suspended">Suspended</span>`;
+          default:
+            return `<span class="status pending">Pending</span>`;
+        }
+      }
+
       async function fetchPaymentDocuments() {
         try {
           const response = await fetch("/getPaymentDocumentForSeparatedView");
@@ -620,15 +689,17 @@
             const row = document.createElement("tr");
             row.innerHTML = `
               <td>${doc.name || "-"}</td>
-              <td>${doc.content || "-"}</td>
+              <td>${doc.content || "-"} ${
+              doc.suspendReason
+                ? `(Lý do hoãn tài liệu: ${doc.suspendReason})`
+                : ""
+            }</td>
               <td>${doc.paymentMethod || "-"}</td>
               <td>${doc.totalPayment?.toLocaleString() || "-"}</td>
               <td>${doc.advancePayment?.toLocaleString() || "-"}</td>
               <td>${doc.balance?.toLocaleString() || "-"}</td>
               <td>${doc.paymentDeadline || "-"}</td>
-              <td class="${doc.approved ? "approved" : "unapproved"}">
-                ${doc.approved ? "Approved" : "Unapproved"}
-              </td>
+              <td>${renderStatus(doc.status)}</td>
               <td class="approval-status">${approvalStatus}</td>
               <td>
                   <button class="approve-btn" onclick="showFullView('${
@@ -645,14 +716,25 @@
                     : ""
                 }
                 ${
-                  !doc.approved
+                  doc.status === "Pending"
                     ? `
                   <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
                     Phê duyệt/Approve
                   </button>
                 `
-                    : "-"
-                }    
+                    : ""
+                }
+                ${
+                  doc.status === "Approved"
+                    ? ""
+                    : doc.status === "Suspended"
+                    ? `
+                    <button class="approve-btn" onclick="openDocument('${doc._id}')">Mở/Open</button>
+                  `
+                    : `
+                    <button class="approve-btn" onclick="suspendDocument('${doc._id}')">Hoãn/Suspend</button>
+                  `
+                }
               </td>
             `;
             tableBody.appendChild(row);
@@ -1111,6 +1193,72 @@
 
       function closeFullViewModal() {
         document.getElementById("fullViewModal").style.display = "none";
+      }
+
+      // Function to show the suspend modal
+      function suspendDocument(docId) {
+        document.getElementById("suspendModal").style.display = "block";
+        document.getElementById("suspendForm").dataset.docId = docId;
+      }
+
+      // Function to close the suspend modal
+      function closeSuspendModal() {
+        document.getElementById("suspendModal").style.display = "none";
+        document.getElementById("suspendForm").reset();
+      }
+
+      // Function to handle suspend form submission
+      async function handleSuspendSubmit(event) {
+        event.preventDefault();
+        const docId = event.target.dataset.docId;
+        const suspendReason = document.getElementById("suspendReason").value;
+
+        try {
+          const response = await fetch(`/suspendDocument/${docId}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ suspendReason }),
+          });
+
+          const message = await response.text(); // Get the response message
+
+          if (response.ok) {
+            showMessage(message); // Show success message
+            closeSuspendModal();
+            fetchPaymentDocuments();
+          } else {
+            showMessage(message, true); // Show error message
+          }
+        } catch (err) {
+          console.error("Error suspending document:", err);
+          showMessage(
+            "Lỗi khi tạm dừng tài liệu/Error suspending document",
+            true
+          );
+        }
+      }
+
+      // Function to reopen the document
+      async function openDocument(docId) {
+        try {
+          const response = await fetch(`/openDocument/${docId}`, {
+            method: "POST",
+          });
+
+          const message = await response.text(); // Get the response message
+
+          if (response.ok) {
+            showMessage(message); // Show success message
+            fetchPaymentDocuments();
+          } else {
+            showMessage(message, true); // Show error message
+          }
+        } catch (err) {
+          console.error("Error reopening document:", err);
+          showMessage("Lỗi khi mở lại tài liệu/Error reopening document", true);
+        }
       }
 
       // Update window click event to close modals

@@ -434,7 +434,7 @@ exports.approveDocument = async (req, res) => {
 
     // If all approvers have approved, mark it as fully approved
     if (document.approvedBy.length === document.approvers.length) {
-      document.approved = true;
+      document.status = "Approved"; // Update status to Approved
     }
 
     // Save document in the correct collection
@@ -448,9 +448,10 @@ exports.approveDocument = async (req, res) => {
       await Document.findByIdAndUpdate(id, document);
     }
 
-    const successMessage = document.approved
-      ? "Tài liệu đã được phê duyệt hoàn toàn./Document has been fully approved."
-      : "Tài liệu đã được phê duyệt thành công./Document has been successfully approved.";
+    const successMessage =
+      document.status === "Approved"
+        ? "Tài liệu đã được phê duyệt hoàn toàn./Document has been fully approved."
+        : "Tài liệu đã được phê duyệt thành công./Document has been successfully approved.";
 
     return res.send(successMessage);
   } catch (err) {
@@ -612,6 +613,101 @@ exports.deleteDocument = async (req, res) => {
   }
 };
 
+exports.suspendDocument = async (req, res) => {
+  const { id } = req.params;
+  const { suspendReason } = req.body;
+
+  try {
+    // Restrict access to only users with the role of "director"
+    if (req.user.role !== "director") {
+      return res.send(
+        "Truy cập bị từ chối. Chỉ giám đốc có quyền tạm dừng tài liệu./Access denied. Only directors can suspend documents."
+      );
+    }
+
+    // Find the document in any of the collections
+    let document =
+      (await Document.findById(id)) ||
+      (await ProposalDocument.findById(id)) ||
+      (await PurchasingDocument.findById(id)) ||
+      (await PaymentDocument.findById(id));
+
+    if (!document) {
+      return res.status(404).send("Không tìm thấy tài liệu/Document not found");
+    }
+
+    // Revert and lock all approval progress
+    document.approved = false;
+    document.approvedBy = []; // Clear all approvals
+    document.status = "Suspended"; // Add a new field for status
+    document.suspendReason = suspendReason; // Add suspend reason
+
+    // Save the document in the correct collection
+    if (document instanceof PurchasingDocument) {
+      await PurchasingDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof ProposalDocument) {
+      await ProposalDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof PaymentDocument) {
+      await PaymentDocument.findByIdAndUpdate(id, document);
+    } else {
+      await Document.findByIdAndUpdate(id, document);
+    }
+
+    res.send(
+      "Tài liệu đã được tạm dừng thành công./Document has been suspended successfully."
+    );
+  } catch (err) {
+    console.error("Lỗi khi tạm dừng tài liệu/Error suspending document:", err);
+    res.status(500).send("Lỗi khi tạm dừng tài liệu/Error suspending document");
+  }
+};
+
+exports.openDocument = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Restrict access to only users with the role of "director"
+    if (req.user.role !== "director") {
+      return res.send(
+        "Truy cập bị từ chối. Chỉ giám đốc có quyền mở lại tài liệu./Access denied. Only directors can reopen documents."
+      );
+    }
+
+    // Find the document in any of the collections
+    let document =
+      (await Document.findById(id)) ||
+      (await ProposalDocument.findById(id)) ||
+      (await PurchasingDocument.findById(id)) ||
+      (await PaymentDocument.findById(id));
+
+    if (!document) {
+      return res.status(404).send("Không tìm thấy tài liệu/Document not found");
+    }
+
+    // Revert the suspension
+    document.status = "Pending"; // Change status back to pending
+    document.suspendReason = ""; // Clear suspend reason
+
+    // Save the document in the correct collection
+    if (document instanceof PurchasingDocument) {
+      await PurchasingDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof ProposalDocument) {
+      await ProposalDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof PaymentDocument) {
+      await PaymentDocument.findByIdAndUpdate(id, document);
+    } else {
+      await Document.findByIdAndUpdate(id, document);
+    }
+
+    res.send(
+      "Tài liệu đã được mở lại thành công./Document has been reopened successfully."
+    );
+  } catch (err) {
+    console.error("Lỗi khi mở lại tài liệu/Error reopening document:", err);
+    res.status(500).send("Lỗi khi mở lại tài liệu/Error reopening document");
+  }
+};
+
 exports.getApprovedProposalDocuments = async (req, res) => {
   try {
     const approvedProposals = await ProposalDocument.find({ approved: true });
@@ -673,7 +769,7 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
     let unapprovedSum = 0;
 
     paymentDocuments.forEach((doc) => {
-      if (doc.approved) {
+      if (doc.status === "Approved") {
         paidSum += doc.totalPayment; // Fully approved documents
       } else if (doc.approvers.length - doc.approvedBy.length === 1) {
         approvedSum += doc.totalPayment; // Only one approver left

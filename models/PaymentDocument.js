@@ -41,7 +41,12 @@ const paymentDocumentSchema = new mongoose.Schema({
       approvalDate: { type: String, required: true },
     },
   ],
-  approved: { type: Boolean, default: false },
+  status: {
+    type: String,
+    enum: ["Pending", "Approved", "Suspended"], // Possible states
+    default: "Pending",
+  },
+  suspendReason: { type: String, default: "" },
   groupName: { type: String },
 });
 

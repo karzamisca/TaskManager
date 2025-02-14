@@ -77,6 +77,18 @@ router.post(
   documentController.deleteDocument
 );
 
+router.post(
+  "/suspendDocument/:id",
+  authMiddleware,
+  documentController.suspendDocument
+);
+
+router.post(
+  "/openDocument/:id",
+  authMiddleware,
+  documentController.openDocument
+);
+
 router.get(
   "/approvedProposalDocuments",
   authMiddleware,
