@@ -243,6 +243,85 @@
         opacity: 0.8;
       }
 
+      .full-view-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        overflow-y: auto;
+      }
+
+      .full-view-content {
+        position: relative;
+        margin: 50px auto;
+        background: var(--bg-color);
+        padding: 30px;
+        width: 90%;
+        max-width: 1000px;
+        border-radius: 8px;
+      }
+
+      .full-view-section {
+        margin-bottom: 24px;
+        padding: 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+      }
+
+      .full-view-section h3 {
+        margin-top: 0;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .detail-label {
+        font-weight: bold;
+        color: var(--text-color);
+        opacity: 0.8;
+      }
+
+      .detail-value {
+        color: var(--text-color);
+      }
+
+      .close-btn {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        cursor: pointer;
+        font-size: 24px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--border-color);
+        color: var(--text-color);
+      }
+
+      .close-btn:hover {
+        background: var(--primary-color);
+        color: var(--bg-color);
+      }
+
       @keyframes fadeIn {
         from {
           opacity: 0;
@@ -340,16 +419,11 @@
         <tr>
           <th>Tên/Name</th>
           <th>Nội dung/Content</th>
-          <th>Tệp tin kèm theo/Attached File</th>
           <th>Phương thức trả tiền/Payment Method</th>
           <th>Tổng thanh toán/Total Payment</th>
           <th>Thanh toán trước/Advance Payment</th>
           <th>Số dư/Balance</th>
           <th>Hạn trả/Payment Deadline</th>
-          <th>Phiếu mua hàng kèm theo/Appended Purchasing Documents</th>
-          <th>Phiếu đề xuất kèm theo/Appended Proposal Documents</th>
-          <th>Ngày nộp phiếu/Submission Date</th>
-          <th>Tên nhóm/Group Name</th>
           <th>Tình trạng/Status</th>
           <th>Trạng thái phê duyệt/Approval Status</th>
           <th>Hành động/Action</th>
@@ -359,6 +433,14 @@
         <!-- Payment documents will be populated here -->
       </tbody>
     </table>
+
+    <div id="fullViewModal" class="full-view-modal">
+      <div class="full-view-content">
+        <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
+        <h2 style="margin-bottom: 24px">Chi tiết đầy đủ/Full Details</h2>
+        <div id="fullViewContent"></div>
+      </div>
+    </div>
 
     <div class="summary">
       <h2>Tóm tắt/Summary</h2>
@@ -539,29 +621,21 @@
             row.innerHTML = `
               <td>${doc.name || "-"}</td>
               <td>${doc.content || "-"}</td>
-              <td>${
-                doc.fileMetadata?.link
-                  ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-                  : "-"
-              }</td>
               <td>${doc.paymentMethod || "-"}</td>
               <td>${doc.totalPayment?.toLocaleString() || "-"}</td>
               <td>${doc.advancePayment?.toLocaleString() || "-"}</td>
               <td>${doc.balance?.toLocaleString() || "-"}</td>
               <td>${doc.paymentDeadline || "-"}</td>
-              <td class="documents-cell">${renderPurchasingDocuments(
-                doc.appendedPurchasingDocuments || []
-              )}</td>
-              <td class="documents-cell">${renderProposals(
-                doc.appendedPurchasingDocuments || []
-              )}</td>
-              <td>${doc.submissionDate || "-"}</td>
-              <td>${doc.groupName || "-"}</td>
               <td class="${doc.approved ? "approved" : "unapproved"}">
                 ${doc.approved ? "Approved" : "Unapproved"}
               </td>
               <td class="approval-status">${approvalStatus}</td>
               <td>
+                  <button class="approve-btn" onclick="showFullView('${
+                    doc._id
+                  }')" style="margin-right: 5px;">
+                    Xem đầy đủ/Full View
+                  </button>
                 ${
                   doc.approvedBy.length === 0
                     ? `
@@ -876,6 +950,180 @@
           showMessage("Error updating document", true);
         }
       }
+
+      async function showFullView(docId) {
+        try {
+          const doc = paymentDocuments.find((d) => d._id === docId);
+          if (!doc) throw new Error("Document not found");
+
+          const fullViewContent = document.getElementById("fullViewContent");
+
+          // Format date strings
+          const submissionDate = doc.submissionDate || "Not specified";
+          const paymentDeadline = doc.paymentDeadline || "Not specified";
+
+          fullViewContent.innerHTML = `
+            <!-- Basic Information Section -->
+            <div class="full-view-section">
+              <h3>Thông tin cơ bản/Basic Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Tên/Name:</span>
+                  <span class="detail-value">${
+                    doc.name || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Tên nhóm/Group Name:</span>
+                  <span class="detail-value">${
+                    doc.groupName || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Ngày nộp/Submission Date:</span>
+                  <span class="detail-value">${submissionDate}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Hạn trả/Payment Deadline:</span>
+                  <span class="detail-value">${paymentDeadline}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Content Section -->
+            <div class="full-view-section">
+              <h3>Nội dung/Content</h3>
+              <p style="white-space: pre-wrap;">${
+                doc.content || "No content provided"
+              }</p>
+            </div>
+
+            <!-- Payment Information Section -->
+            <div class="full-view-section">
+              <h3>Thông tin thanh toán/Payment Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Phương thức/Payment Method:</span>
+                  <span class="detail-value">${
+                    doc.paymentMethod || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Tổng thanh toán/Total Payment:</span>
+                  <span class="detail-value">${
+                    doc.totalPayment?.toLocaleString() || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Thanh toán trước/Advance Payment:</span>
+                  <span class="detail-value">${
+                    doc.advancePayment?.toLocaleString() || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Số dư/Balance:</span>
+                  <span class="detail-value">${
+                    doc.balance?.toLocaleString() || "Not specified"
+                  }</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- File Attachment Section -->
+            <div class="full-view-section">
+              <h3>Tệp tin kèm theo/Attached File</h3>
+              ${
+                doc.fileMetadata
+                  ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+                  : "No file attached"
+              }
+            </div>
+
+            <!-- Purchasing Documents Section -->
+            <div class="full-view-section">
+              <h3>Phiếu mua hàng kèm theo/Appended Purchasing Documents</h3>
+              ${
+                doc.appendedPurchasingDocuments?.length
+                  ? renderPurchasingDocuments(doc.appendedPurchasingDocuments)
+                  : "No purchasing documents attached"
+              }
+            </div>
+
+            <!-- Proposals Section -->
+            <div class="full-view-section">
+              <h3>Phiếu đề xuất kèm theo/Appended Proposal Documents</h3>
+              ${
+                doc.appendedPurchasingDocuments?.length
+                  ? renderProposals(doc.appendedPurchasingDocuments)
+                  : "No proposal documents attached"
+              }
+            </div>
+
+            <!-- Status Section -->
+            <div class="full-view-section">
+              <h3>Trạng thái/Status Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Tình trạng/Status:</span>
+                  <span class="detail-value ${
+                    doc.approved ? "approved" : "unapproved"
+                  }">
+                    ${doc.approved ? "Approved" : "Unapproved"}
+                  </span>
+                </div>
+              </div>
+              <div style="margin-top: 16px;">
+                <h4>Trạng thái phê duyệt/Approval Status:</h4>
+                <div class="approval-status">
+                  ${doc.approvers
+                    .map((approver) => {
+                      const hasApproved = doc.approvedBy.find(
+                        (a) => a.username === approver.username
+                      );
+                      return `
+                      <div class="approver-item">
+                        <span class="status-icon ${
+                          hasApproved ? "status-approved" : "status-pending"
+                        }"></span>
+                        <div>
+                          <div>${approver.username} (${approver.subRole})</div>
+                          ${
+                            hasApproved
+                              ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
+                              : '<div class="approval-date">Pending</div>'
+                          }
+                        </div>
+                      </div>
+                    `;
+                    })
+                    .join("")}
+                </div>
+              </div>
+            </div>
+          `;
+
+          document.getElementById("fullViewModal").style.display = "block";
+        } catch (err) {
+          console.error("Error showing full view:", err);
+          showMessage("Error loading full document details", true);
+        }
+      }
+
+      function closeFullViewModal() {
+        document.getElementById("fullViewModal").style.display = "none";
+      }
+
+      // Update window click event to close modals
+      window.onclick = function (event) {
+        const fullViewModal = document.getElementById("fullViewModal");
+        const editModal = document.getElementById("editModal");
+        if (event.target === fullViewModal) {
+          closeFullViewModal();
+        }
+        if (event.target === editModal) {
+          closeEditModal();
+        }
+      };
 
       // Modify the initialization code
       async function initializePage() {
