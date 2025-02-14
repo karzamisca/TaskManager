@@ -514,6 +514,14 @@
         Số tiền chưa phê duyệt/Total Unapproved Amount:
         <span id="unapprovedSum" class="unapproved">0</span>
       </p>
+      <p>
+        Số phiếu đã phê duyệt/Total Approved Document:
+        <span id="approvedDocument" class="approved">0</span>
+      </p>
+      <p>
+        Số phiếu chưa phê duyệt/Total Unapproved Document:
+        <span id="unapprovedDocument" class="unapproved">0</span>
+      </p>
     </div>
     <a href="/mainDocument">Trở về/Back</a>
 
@@ -747,6 +755,10 @@
             data.paidSum.toLocaleString();
           document.getElementById("unapprovedSum").textContent =
             data.unapprovedSum.toLocaleString();
+          document.getElementById("approvedDocument").textContent =
+            data.approvedDocument.toLocaleString();
+          document.getElementById("unapprovedDocument").textContent =
+            data.unapprovedDocument.toLocaleString();
         } catch (err) {
           console.error("Error fetching payment documents:", err);
           showMessage("Error fetching payment documents", true);

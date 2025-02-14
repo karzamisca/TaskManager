@@ -22,7 +22,6 @@ const proposalDocumentSchema = new mongoose.Schema({
       subRole: { type: String, required: true },
     },
   ],
-  approved: { type: Boolean, default: false },
   approvedBy: [
     {
       user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -31,6 +30,12 @@ const proposalDocumentSchema = new mongoose.Schema({
       approvalDate: { type: String, required: true },
     },
   ],
+  status: {
+    type: String,
+    enum: ["Pending", "Approved", "Suspended"], // Possible states
+    default: "Pending",
+  },
+  suspendReason: { type: String, default: "" },
   groupName: { type: String },
 });
 

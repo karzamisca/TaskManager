@@ -222,6 +222,24 @@
         background-color: var(--success-text);
       }
 
+      .status {
+        font-weight: bold;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+
+      .approved {
+        color: green;
+      }
+
+      .suspended {
+        color: red;
+      }
+
+      .pending {
+        color: yellow;
+      }
+
       @keyframes fadeIn {
         from {
           opacity: 0;
@@ -284,7 +302,7 @@
         <tr>
           <th>Sản phẩm/Products</th>
           <th>Tệp tin kèm theo/Attached File</th>
-          <th>Tổng chi phí/Total Cost</th>
+          <th>Tổng chi phí/Grand Total Cost</th>
           <th>Phiếu đề xuất kèm theo/Appended Proposals</th>
           <th>Ngày nộp phiếu/Submission Date</th>
           <th>Tên nhóm/Group Name</th>
@@ -301,12 +319,20 @@
     <div class="summary">
       <h2>Tóm tắt/Summary</h2>
       <p>
-        Tổng chi phí đã phê duyệt/Total Approved Cost:
+        Tổng chi phí đã phê duyệt/Total Approved Grand Total Cost:
         <span id="approvedSum" class="approved">0</span>
       </p>
       <p>
-        Tổng chi phí chưa phê duyệt/Total Unapproved Cost:
+        Tổng chi phí chưa phê duyệt/Total Unapproved Grand Total Cost:
         <span id="unapprovedSum" class="unapproved">0</span>
+      </p>
+      <p>
+        Số phiếu đã phê duyệt/Total Approved Document:
+        <span id="approvedDocument" class="approved">0</span>
+      </p>
+      <p>
+        Số phiếu chưa phê duyệt/Total Unapproved Document:
+        <span id="unapprovedDocument" class="unapproved">0</span>
       </p>
     </div>
     <a href="/mainDocument">Trở về/Back</a>
@@ -359,6 +385,17 @@
         setTimeout(() => {
           messageContainer.style.display = "none";
         }, 5000);
+      }
+
+      function renderStatus(status) {
+        switch (status) {
+          case "Approved":
+            return `<span class="status approved">Approved</span>`;
+          case "Suspended":
+            return `<span class="status suspended">Suspended</span>`;
+          default:
+            return `<span class="status pending">Pending</span>`;
+        }
       }
 
       function renderProducts(products) {
@@ -460,9 +497,7 @@
               <td>${renderProposals(doc.appendedProposals)}</td>
               <td>${doc.submissionDate || "-"}</td>
               <td>${doc.groupName || "-"}</td>
-              <td class="${doc.approved ? "approved" : "unapproved"}">
-                ${doc.approved ? "Approved" : "Unapproved"}
-                </td>
+              <td>${renderStatus(doc.status)}</td>
               <td class="approval-status">${approvalStatus}</td>
               <td>
                 ${
@@ -474,14 +509,14 @@
                     : ""
                 }
                 ${
-                  !doc.approved
+                  doc.status === "Pending"
                     ? `
                   <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
                     Phê duyệt/Approve
                   </button>
                 `
-                    : "-"
-                }    
+                    : ""
+                }  
               </td>
             `;
             tableBody.appendChild(row);
@@ -489,17 +524,21 @@
 
           // Update summary section
           const approvedSum = filteredDocuments
-            .filter((doc) => doc.approved)
+            .filter((doc) => doc.status === "Approved")
             .reduce((sum, doc) => sum + (doc.grandTotalCost || 0), 0);
 
           const unapprovedSum = filteredDocuments
-            .filter((doc) => !doc.approved)
+            .filter((doc) => doc.status === "Pending")
             .reduce((sum, doc) => sum + (doc.grandTotalCost || 0), 0);
 
           document.getElementById("approvedSum").textContent =
             approvedSum.toLocaleString();
           document.getElementById("unapprovedSum").textContent =
             unapprovedSum.toLocaleString();
+          document.getElementById("approvedDocument").textContent =
+            data.approvedDocument.toLocaleString();
+          document.getElementById("unapprovedDocument").textContent =
+            data.unapprovedDocument.toLocaleString();
         } catch (err) {
           console.error("Error fetching purchasing documents:", err);
           showMessage("Error fetching purchasing documents", true);

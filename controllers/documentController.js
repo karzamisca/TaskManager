@@ -767,14 +767,19 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
     let approvedSum = 0; // Sum for documents with only one approver left
     let paidSum = 0; // Sum for fully approved documents
     let unapprovedSum = 0;
+    let approvedDocument = 0;
+    let unapprovedDocument = 0;
 
     paymentDocuments.forEach((doc) => {
       if (doc.status === "Approved") {
         paidSum += doc.totalPayment; // Fully approved documents
+        approvedDocument += 1;
       } else if (doc.approvers.length - doc.approvedBy.length === 1) {
         approvedSum += doc.totalPayment; // Only one approver left
+        unapprovedDocument += 1;
       } else {
         unapprovedSum += doc.totalPayment; // More than one approver left
+        unapprovedDocument += 1;
       }
     });
 
@@ -783,6 +788,8 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
       approvedSum,
       paidSum,
       unapprovedSum,
+      approvedDocument,
+      unapprovedDocument,
     });
   } catch (err) {
     console.error("Error fetching payment documents:", err);
@@ -980,19 +987,19 @@ exports.updateProposalDocument = async (req, res) => {
 exports.getProposalDocumentForSeparatedView = async (req, res) => {
   try {
     const proposalDocuments = await ProposalDocument.find({});
-    let approvedSum = 0;
-    let unapprovedSum = 0;
+    let approvedDocument = 0;
+    let unapprovedDocument = 0;
     proposalDocuments.forEach((doc) => {
-      if (doc.approved) {
-        approvedSum += 1;
+      if (doc.status === "Approved") {
+        approvedDocument += 1;
       } else {
-        unapprovedSum += 1;
+        unapprovedDocument += 1;
       }
     });
     res.json({
       proposalDocuments,
-      approvedSum,
-      unapprovedSum,
+      approvedDocument,
+      unapprovedDocument,
     });
   } catch (err) {
     console.error("Error fetching proposal documents:", err);
@@ -1024,12 +1031,16 @@ exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
     // Calculate sums for approved and unapproved documents
     let approvedSum = 0;
     let unapprovedSum = 0;
+    let approvedDocument = 0;
+    let unapprovedDocument = 0;
 
     purchasingDocuments.forEach((doc) => {
-      if (doc.approved) {
+      if (doc.status === "Approved") {
         approvedSum += doc.grandTotalCost;
+        approvedDocument += 1;
       } else {
         unapprovedSum += doc.grandTotalCost;
+        unapprovedDocument += 1;
       }
     });
 
@@ -1037,6 +1048,8 @@ exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
       purchasingDocuments,
       approvedSum,
       unapprovedSum,
+      approvedDocument,
+      unapprovedDocument,
     });
   } catch (err) {
     console.error("Error fetching purchasing documents:", err);

@@ -55,6 +55,12 @@ const purchasingDocumentSchema = new mongoose.Schema({
     },
   ],
   grandTotalCost: { type: Number, required: true }, // Sum of all totalCosts
+  status: {
+    type: String,
+    enum: ["Pending", "Approved", "Suspended"], // Possible states
+    default: "Pending",
+  },
+  suspendReason: { type: String, default: "" },
   groupName: { type: String },
 });
 

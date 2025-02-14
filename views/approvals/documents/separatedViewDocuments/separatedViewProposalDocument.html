@@ -242,6 +242,24 @@
         opacity: 0.8;
       }
 
+      .status {
+        font-weight: bold;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+
+      .approved {
+        color: green;
+      }
+
+      .suspended {
+        color: red;
+      }
+
+      .pending {
+        color: yellow;
+      }
+
       @keyframes fadeIn {
         from {
           opacity: 0;
@@ -351,11 +369,11 @@
       <h2>Tóm tắt/Summary</h2>
       <p>
         Số phiếu đã phê duyệt/Total Approved Proposals:
-        <span id="approvedSum" class="approved">0</span>
+        <span id="approvedDocument" class="approved">0</span>
       </p>
       <p>
         Số phiếu chưa phê duyệt/Total Unapproved Proposals:
-        <span id="unapprovedSum" class="unapproved">0</span>
+        <span id="unapprovedDocument" class="unapproved">0</span>
       </p>
     </div>
     <a href="/mainDocument">Trở về/Back</a>
@@ -411,6 +429,17 @@
         }, 5000);
       }
 
+      function renderStatus(status) {
+        switch (status) {
+          case "Approved":
+            return `<span class="status approved">Approved</span>`;
+          case "Suspended":
+            return `<span class="status suspended">Suspended</span>`;
+          default:
+            return `<span class="status pending">Pending</span>`;
+        }
+      }
+
       async function fetchProposalDocuments() {
         try {
           const response = await fetch("/getProposalDocumentForSeparatedView");
@@ -462,38 +491,36 @@
                         }</td>
                         <td>${doc.submissionDate || "-"}</td>
                         <td>${doc.groupName || "-"}</td>
-                        <td class="${
-                          doc.approved ? "approved" : "unapproved"
-                        }">${doc.approved ? "Approved" : "Unapproved"}</td>
+                        <td>${renderStatus(doc.status)}</td>
                         <td class="approval-status">${approvalStatus}</td>
                         <td>
-                            ${
-                              doc.approvedBy.length === 0
-                                ? `
-                                <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa/Edit</button>
-                                <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa/Delete</button>
-                            `
-                                : ""
-                            }
-                            ${
-                              !doc.approved
-                                ? `
-                                <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
-                                    Phê duyệt/Approve
-                                </button>
-                            `
-                                : "-"
-                            }
+                          ${
+                            doc.approvedBy.length === 0
+                              ? `
+                            <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa/Edit</button>
+                            <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa/Delete</button>
+                          `
+                              : ""
+                          }
+                          ${
+                            doc.status === "Pending"
+                              ? `
+                            <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
+                              Phê duyệt/Approve
+                            </button>
+                          `
+                              : ""
+                          }
                         </td>
                     `;
             tableBody.appendChild(row);
           });
 
           // Update summary section
-          document.getElementById("approvedSum").textContent =
-            data.approvedSum.toLocaleString();
-          document.getElementById("unapprovedSum").textContent =
-            data.unapprovedSum.toLocaleString();
+          document.getElementById("approvedDocument").textContent =
+            data.approvedDocument.toLocaleString();
+          document.getElementById("unapprovedDocument").textContent =
+            data.unapprovedDocument.toLocaleString();
         } catch (err) {
           console.error("Error fetching proposal documents:", err);
           showMessage("Error fetching proposal documents", true);
