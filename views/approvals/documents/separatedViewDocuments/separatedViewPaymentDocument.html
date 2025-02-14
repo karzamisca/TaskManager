@@ -1147,11 +1147,7 @@
               <div class="detail-grid">
                 <div class="detail-item">
                   <span class="detail-label">Tình trạng/Status:</span>
-                  <span class="detail-value ${
-                    doc.approved ? "approved" : "unapproved"
-                  }">
-                    ${doc.approved ? "Approved" : "Unapproved"}
-                  </span>
+                  <span class="detail-value ${renderStatus(doc.status)}</span>
                 </div>
               </div>
               <div style="margin-top: 16px;">
