@@ -18,6 +18,11 @@ const fs = require("fs");
 const multer = require("multer");
 const cron = require("node-cron");
 const axios = require("axios");
+const documentController = require("./controllers/documentController"); // Import the email notification function
+const Document = require("./models/Document");
+const ProposalDocument = require("./models/ProposalDocument");
+const PurchasingDocument = require("./models/PurchasingDocument");
+const PaymentDocument = require("./models/PaymentDocument");
 require("dotenv").config();
 
 const app = express();
@@ -67,9 +72,42 @@ cron.schedule("*/5 * * * *", async () => {
       `https://kylongtask.azurewebsites.net/login` ||
       `http://localhost:${PORT}`;
     await axios.get(serverUrl);
-    console.log("Server pinged to keep it warm");
   } catch (error) {
     console.error("Failed to ping server:", error.message);
+  }
+});
+
+// Cron job to send email notifications every 5 minutes
+cron.schedule("0 */8 * * *", async () => {
+  try {
+    // Fetch all documents that are not fully approved
+    const pendingDocuments = await Document.find({
+      status: { $ne: "Approved" },
+    });
+    const pendingProposals = await ProposalDocument.find({
+      status: { $ne: "Approved" },
+    });
+    const pendingPurchasingDocs = await PurchasingDocument.find({
+      status: { $ne: "Approved" },
+    });
+    const pendingPaymentDocs = await PaymentDocument.find({
+      status: { $ne: "Approved" },
+    });
+
+    // Combine all pending documents
+    const allPendingDocuments = [
+      ...pendingDocuments,
+      ...pendingProposals,
+      ...pendingPurchasingDocs,
+      ...pendingPaymentDocs,
+    ];
+
+    // Send email notifications for each pending document
+    for (const document of allPendingDocuments) {
+      await documentController.sendPendingApprovalEmails(document);
+    }
+  } catch (error) {
+    console.error("Error in pending approval email scheduler:", error);
   }
 });
 

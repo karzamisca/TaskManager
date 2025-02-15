@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
   role: { type: String, required: true }, // Add role field
   department: { type: String, required: true }, // Add department field
   refreshToken: { type: String },
+  email: { type: String },
 });
 
 module.exports = mongoose.model("User", userSchema);

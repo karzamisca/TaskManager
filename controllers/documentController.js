@@ -12,6 +12,7 @@ const { Readable } = require("stream");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
+const { sendEmail } = require("../utils/emailService");
 const {
   createGenericDocTemplate,
   createProposalDocTemplate,
@@ -67,6 +68,33 @@ exports.getCostCenters = async (req, res) => {
   } catch (error) {
     console.error("Error fetching cost centers:", error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.sendPendingApprovalEmails = async (document) => {
+  try {
+    // Get the list of approvers who haven't approved yet
+    const pendingApprovers = document.approvers.filter((approver) => {
+      return !document.approvedBy.some(
+        (approved) => approved.user.toString() === approver.approver.toString()
+      );
+    });
+
+    // Fetch the email addresses of the pending approvers
+    const pendingApproverIds = pendingApprovers.map(
+      (approver) => approver.approver
+    );
+    const pendingUsers = await User.find({ _id: { $in: pendingApproverIds } });
+
+    // Send email notifications
+    pendingUsers.forEach((user) => {
+      const subject = "Phiếu cần phê duyệt";
+      const text = `Xin chào ${user.username},\n\nBạn có một "${document.title}" cần phê duyệt.\n\nXin cảm ơn,\nHệ thống quản lý tác vụ tự động Kỳ Long.`;
+
+      sendEmail(user.email, subject, text); // Assuming the User model has an email field
+    });
+  } catch (error) {
+    console.error("Error sending pending approval emails:", error);
   }
 };
 
