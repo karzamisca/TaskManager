@@ -77,24 +77,23 @@ cron.schedule("*/5 * * * *", async () => {
   }
 });
 
-// Cron job to send email notifications every 5 minutes
-cron.schedule("0 */8 * * *", async () => {
+// Cron job to send email notifications every 24 hours
+cron.schedule("0 10 * * *", async () => {
   try {
     // Fetch all documents that are not fully approved
-    const pendingDocuments = await Document.find({
-      status: { $ne: "Approved" },
-    });
-    const pendingProposals = await ProposalDocument.find({
-      status: { $ne: "Approved" },
-    });
-    const pendingPurchasingDocs = await PurchasingDocument.find({
-      status: { $ne: "Approved" },
-    });
-    const pendingPaymentDocs = await PaymentDocument.find({
-      status: { $ne: "Approved" },
-    });
+    const [
+      pendingDocuments,
+      pendingProposals,
+      pendingPurchasingDocs,
+      pendingPaymentDocs,
+    ] = await Promise.all([
+      Document.find({ status: { $ne: "Approved" } }),
+      ProposalDocument.find({ status: { $ne: "Approved" } }),
+      PurchasingDocument.find({ status: { $ne: "Approved" } }),
+      PaymentDocument.find({ status: { $ne: "Approved" } }),
+    ]);
 
-    // Combine all pending documents
+    // Combine all pending documents and send consolidated emails
     const allPendingDocuments = [
       ...pendingDocuments,
       ...pendingProposals,
@@ -102,10 +101,7 @@ cron.schedule("0 */8 * * *", async () => {
       ...pendingPaymentDocs,
     ];
 
-    // Send email notifications for each pending document
-    for (const document of allPendingDocuments) {
-      await documentController.sendPendingApprovalEmails(document);
-    }
+    await documentController.sendPendingApprovalEmails(allPendingDocuments);
   } catch (error) {
     console.error("Error in pending approval email scheduler:", error);
   }

@@ -12,7 +12,10 @@ const { Readable } = require("stream");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
-const { sendEmail } = require("../utils/emailService");
+const {
+  sendEmail,
+  groupDocumentsByApprover,
+} = require("../utils/emailService");
 const {
   createGenericDocTemplate,
   createProposalDocTemplate,
@@ -71,28 +74,45 @@ exports.getCostCenters = async (req, res) => {
   }
 };
 
-exports.sendPendingApprovalEmails = async (document) => {
+exports.sendPendingApprovalEmails = async (allDocuments) => {
   try {
-    // Get the list of approvers who haven't approved yet
-    const pendingApprovers = document.approvers.filter((approver) => {
-      return !document.approvedBy.some(
-        (approved) => approved.user.toString() === approver.approver.toString()
-      );
-    });
+    // Group documents by approver
+    const documentsByApprover = groupDocumentsByApprover(allDocuments);
 
-    // Fetch the email addresses of the pending approvers
-    const pendingApproverIds = pendingApprovers.map(
-      (approver) => approver.approver
-    );
-    const pendingUsers = await User.find({ _id: { $in: pendingApproverIds } });
+    // Fetch all relevant users at once
+    const approverIds = Array.from(documentsByApprover.keys());
+    const users = await User.find({ _id: { $in: approverIds } });
 
-    // Send email notifications
-    pendingUsers.forEach((user) => {
-      const subject = "Phiếu cần phê duyệt";
-      const text = `Xin chào ${user.username},\n\nBạn có một "${document.title}" cần phê duyệt.\n\nXin cảm ơn,\nHệ thống quản lý tác vụ tự động Kỳ Long.`;
+    // Send consolidated emails to each approver
+    for (const user of users) {
+      const userDocuments = documentsByApprover.get(user._id.toString());
+      if (!userDocuments || userDocuments.length === 0) continue;
 
-      sendEmail(user.email, subject, text); // Assuming the User model has an email field
-    });
+      // Create the email content
+      const subject = "Danh sách phiếu cần phê duyệt";
+      let text = `Xin chào ${user.username},\n\n`;
+      text += `Bạn có ${userDocuments.length} phiếu đang chờ phê duyệt:\n\n`;
+
+      // Group documents by type
+      const documentsByType = userDocuments.reduce((acc, doc) => {
+        if (!acc[doc.type]) acc[doc.type] = [];
+        acc[doc.type].push(doc);
+        return acc;
+      }, {});
+
+      // Add documents grouped by type to the email
+      Object.entries(documentsByType).forEach(([type, docs]) => {
+        text += `${type}:\n`;
+        docs.forEach((doc) => {
+          text += `ID: ${doc.id}\n`;
+        });
+        text += "\n";
+      });
+
+      text += `\nXin cảm ơn,\nHệ thống quản lý tác vụ tự động Kỳ Long.`;
+
+      await sendEmail(user.email, subject, text);
+    }
   } catch (error) {
     console.error("Error sending pending approval emails:", error);
   }
