@@ -1,4 +1,3 @@
-//app.js
 const express = require("express");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
@@ -78,34 +77,76 @@ cron.schedule("*/5 * * * *", async () => {
 });
 
 // Cron job to send email notifications every 24 hours
-cron.schedule("0 10 * * *", async () => {
-  try {
-    // Fetch all documents that are not fully approved
-    const [
-      pendingDocuments,
-      pendingProposals,
-      pendingPurchasingDocs,
-      pendingPaymentDocs,
-    ] = await Promise.all([
-      Document.find({ status: { $ne: "Approved" } }),
-      ProposalDocument.find({ status: { $ne: "Approved" } }),
-      PurchasingDocument.find({ status: { $ne: "Approved" } }),
-      PaymentDocument.find({ status: { $ne: "Approved" } }),
-    ]);
-
-    // Combine all pending documents and send consolidated emails
-    const allPendingDocuments = [
-      ...pendingDocuments,
-      ...pendingProposals,
-      ...pendingPurchasingDocs,
-      ...pendingPaymentDocs,
-    ];
-
-    await documentController.sendPendingApprovalEmails(allPendingDocuments);
-  } catch (error) {
-    console.error("Error in pending approval email scheduler:", error);
+cron.schedule(
+  "0 10 * * *",
+  async () => {
+    try {
+      // Fetch all documents that are not fully approved
+      const [
+        pendingDocuments,
+        pendingProposals,
+        pendingPurchasingDocs,
+        pendingPaymentDocs,
+      ] = await Promise.all([
+        Document.find({ status: { $ne: "Approved" } }),
+        ProposalDocument.find({ status: { $ne: "Approved" } }),
+        PurchasingDocument.find({ status: { $ne: "Approved" } }),
+        PaymentDocument.find({ status: { $ne: "Approved" } }),
+      ]);
+      // Combine all pending documents and send consolidated emails
+      const allPendingDocuments = [
+        ...pendingDocuments,
+        ...pendingProposals,
+        ...pendingPurchasingDocs,
+        ...pendingPaymentDocs,
+      ];
+      await documentController.sendPendingApprovalEmails(allPendingDocuments);
+    } catch (error) {
+      console.error("Error in pending approval email scheduler:", error);
+    }
+  },
+  {
+    timezone: "Asia/Ho_Chi_Minh",
   }
-});
+);
+
+cron.schedule(
+  "0 10 * * *",
+  async () => {
+    try {
+      // Fetch all documents that are not fully approved
+      const [
+        pendingDocuments,
+        pendingProposals,
+        pendingPurchasingDocs,
+        pendingPaymentDocs,
+      ] = await Promise.all([
+        Document.find({ status: { $ne: "Approved" } }),
+        ProposalDocument.find({ status: { $ne: "Approved" } }),
+        PurchasingDocument.find({ status: { $ne: "Approved" } }),
+        PaymentDocument.find({ status: { $ne: "Approved" } }),
+      ]);
+
+      // Combine all pending documents
+      const allPendingDocuments = [
+        ...pendingDocuments,
+        ...pendingProposals,
+        ...pendingPurchasingDocs,
+        ...pendingPaymentDocs,
+      ];
+
+      // Send Chatfuel messages
+      await documentController.sendPendingApprovalChatfuelMessages(
+        allPendingDocuments
+      );
+    } catch (error) {
+      console.error("Error in pending approval Chatfuel scheduler:", error);
+    }
+  },
+  {
+    timezone: "Asia/Ho_Chi_Minh",
+  }
+);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

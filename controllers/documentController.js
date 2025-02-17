@@ -35,6 +35,56 @@ const upload = multer({
   dest: "uploads/", // Temporary storage for uploaded files
 });
 require("dotenv").config();
+const axios = require("axios");
+
+const CHATFUEL_BOT_ID = process.env.CHATFUEL_BOT_ID;
+const CHATFUEL_TOKEN = process.env.CHATFUEL_TOKEN;
+const CHATFUEL_BLOCK_ID = process.env.CHATFUEL_BLOCK_ID;
+
+async function sendChatfuelMessage(userId) {
+  // Construct the full URL with required parameters
+  const url = `https://api.chatfuel.com/bots/${CHATFUEL_BOT_ID}/users/${userId}/send?chatfuel_token=${CHATFUEL_TOKEN}&chatfuel_block_id=${CHATFUEL_BLOCK_ID}`;
+
+  try {
+    // Send a POST request with no body
+    const response = await axios.post(url, null, {
+      headers: {
+        "Content-Type": "application/json", // Ensure the correct Content-Type
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Error sending Chatfuel message:",
+      error.response ? error.response.data : error.message
+    );
+  }
+}
+
+exports.sendPendingApprovalChatfuelMessages = async (allDocuments) => {
+  try {
+    // Group documents by approver
+    const documentsByApprover = groupDocumentsByApprover(allDocuments);
+
+    // Fetch all relevant users at once
+    const approverIds = Array.from(documentsByApprover.keys());
+    const users = await User.find({ _id: { $in: approverIds } });
+
+    // Send Chatfuel messages to each approver
+    for (const user of users) {
+      const userDocuments = documentsByApprover.get(user._id.toString());
+      if (!userDocuments || userDocuments.length === 0) continue;
+
+      // Send Chatfuel message (if Facebook user ID is available)
+      if (user.facebookUserId) {
+        await sendChatfuelMessage(user.facebookUserId);
+      } else {
+        console.warn(`No Facebook user ID found for user: ${user.username}`);
+      }
+    }
+  } catch (error) {
+    console.error("Error sending pending approval Chatfuel messages:", error);
+  }
+};
 
 function generateRandomString(length) {
   const characters =

@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   department: { type: String, required: true }, // Add department field
   refreshToken: { type: String },
   email: { type: String },
+  facebookUserId: { type: String },
 });
 
 module.exports = mongoose.model("User", userSchema);
