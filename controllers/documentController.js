@@ -390,19 +390,18 @@ exports.submitDocument = async (req, res) => {
 exports.getPendingDocument = async (req, res) => {
   try {
     const pendingPurchasingDocs = await PurchasingDocument.find({
-      approved: false,
+      status: "Pending",
     }).populate("submittedBy", "username");
     const pendingProposalDocs = await ProposalDocument.find({
-      approved: false,
+      status: "Pending",
     }).populate("submittedBy", "username");
     const pendingGenericDocs = await Document.find({
-      approved: false,
+      status: "Pending",
     }).populate("submittedBy", "username");
-    const pendingPaymentDocs = await Document.find({
-      approved: false,
+    const pendingPaymentDocs = await PaymentDocument.find({
+      status: "Pending",
     }).populate("submittedBy", "username");
 
-    // Serve the static HTML file and pass documents as JSON
     res.sendFile(
       path.join(
         __dirname,
@@ -511,19 +510,18 @@ exports.approveDocument = async (req, res) => {
 exports.getApprovedDocument = async (req, res) => {
   try {
     const approvedGenericDocs = await Document.find({
-      approved: true,
+      status: "Approved",
     }).populate("submittedBy", "username");
     const approvedProposalDocs = await ProposalDocument.find({
-      approved: true,
+      status: "Approved",
     }).populate("submittedBy", "username");
     const approvedPurchasingDocs = await PurchasingDocument.find({
-      approved: true,
+      status: "Approved",
     }).populate("submittedBy", "username");
     const approvedPaymentDocs = await PaymentDocument.find({
-      approved: true,
+      status: "Approved",
     }).populate("submittedBy", "username");
 
-    // Serve the static HTML file and pass documents as JSON
     res.sendFile(
       path.join(
         __dirname,
@@ -544,27 +542,19 @@ exports.getApprovedDocument = async (req, res) => {
 
 exports.getPendingDocumentApi = async (req, res) => {
   try {
-    // Fetch pending generic documents
     const pendingGenericDocs = await Document.find({
-      approved: false,
+      status: "Pending",
     }).populate("submittedBy", "username");
-
-    // Fetch pending proposal documents
     const pendingProposalDocs = await ProposalDocument.find({
-      approved: false,
+      status: "Pending",
     }).populate("submittedBy", "username");
-
-    // Fetch pending purchasing documents
     const pendingPurchasingDocs = await PurchasingDocument.find({
-      approved: false,
+      status: "Pending",
     }).populate("submittedBy", "username");
-
-    // Fetch pending payment documents
     const pendingPaymentDocs = await PaymentDocument.find({
-      approved: false,
+      status: "Pending",
     }).populate("submittedBy", "username");
 
-    // Combine both document types into a single array
     const pendingDocuments = [
       ...pendingGenericDocs,
       ...pendingProposalDocs,
@@ -572,7 +562,6 @@ exports.getPendingDocumentApi = async (req, res) => {
       ...pendingPaymentDocs,
     ];
 
-    // Return combined pending documents as JSON
     res.json(pendingDocuments);
   } catch (err) {
     console.error("Error fetching pending documents:", err);
@@ -584,27 +573,19 @@ exports.getPendingDocumentApi = async (req, res) => {
 
 exports.getApprovedDocumentApi = async (req, res) => {
   try {
-    // Fetch approved generic documents
     const approvedGenericDocs = await Document.find({
-      approved: true,
+      status: "Approved",
     }).populate("submittedBy", "username");
-
-    // Fetch approved proposal documents
     const approvedProposalDocs = await ProposalDocument.find({
-      approved: true,
+      status: "Approved",
     }).populate("submittedBy", "username");
-
-    // Fetch approved proposal documents
     const approvedPurchasingDocs = await PurchasingDocument.find({
-      approved: true,
+      status: "Approved",
     }).populate("submittedBy", "username");
-
-    // Fetch approved payment documents
     const approvedPaymentDocs = await PaymentDocument.find({
-      approved: true,
+      status: "Approved",
     }).populate("submittedBy", "username");
 
-    // Combine both document types into a single array
     const approvedDocuments = [
       ...approvedGenericDocs,
       ...approvedProposalDocs,
@@ -612,11 +593,10 @@ exports.getApprovedDocumentApi = async (req, res) => {
       ...approvedPaymentDocs,
     ];
 
-    // Return combined approved documents as JSON
     res.json(approvedDocuments);
   } catch (err) {
     console.error("Error fetching approved documents:", err);
-    res.send("Lỗi lấy tài liệu đang chờ/Error fetching approved documents");
+    res.send("Lỗi lấy tài liệu đã phê duyệt/Error fetching approved documents");
   }
 };
 
@@ -758,7 +738,9 @@ exports.openDocument = async (req, res) => {
 
 exports.getApprovedProposalDocuments = async (req, res) => {
   try {
-    const approvedProposals = await ProposalDocument.find({ approved: true });
+    const approvedProposals = await ProposalDocument.find({
+      status: "Approved",
+    });
     res.json(approvedProposals);
   } catch (err) {
     console.error("Error fetching approved proposals:", err);
@@ -782,7 +764,7 @@ exports.getProposalDocumentById = async (req, res) => {
 exports.getApprovedPurchasingDocuments = async (req, res) => {
   try {
     const approvedPurchasingDocs = await PurchasingDocument.find({
-      approved: true,
+      status: "Approved",
     });
     res.json(approvedPurchasingDocs);
   } catch (err) {
