@@ -78,7 +78,7 @@ cron.schedule("*/5 * * * *", async () => {
 
 // Cron job to send email notifications every 24 hours
 cron.schedule(
-  "0 10 * * *",
+  "0 10,15 * * *",
   async () => {
     try {
       // Fetch all documents that are not fully approved
@@ -111,7 +111,7 @@ cron.schedule(
 );
 
 cron.schedule(
-  "0 10 * * *",
+  "0 10,15 * * *",
   async () => {
     try {
       // Fetch all documents that are not fully approved
