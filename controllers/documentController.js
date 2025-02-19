@@ -384,7 +384,6 @@ exports.submitDocument = async (req, res) => {
           paymentMethod: req.body.paymentMethod,
           totalPayment: req.body.totalPayment,
           advancePayment: req.body.advancePayment || 0,
-          balance: req.body.balance || 0,
           paymentDeadline: req.body.paymentDeadline,
           groupName: req.body.groupName,
           submittedBy: req.user.id,
@@ -900,7 +899,6 @@ exports.updatePaymentDocument = async (req, res) => {
       paymentMethod,
       totalPayment,
       advancePayment,
-      balance,
       paymentDeadline,
     } = req.body;
     const file = req.file;
@@ -916,7 +914,6 @@ exports.updatePaymentDocument = async (req, res) => {
     doc.paymentMethod = paymentMethod;
     doc.totalPayment = parseFloat(totalPayment);
     doc.advancePayment = parseFloat(advancePayment);
-    doc.balance = parseFloat(balance);
     doc.paymentDeadline = paymentDeadline;
 
     // Handle file update if provided

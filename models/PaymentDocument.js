@@ -8,7 +8,6 @@ const paymentDocumentSchema = new mongoose.Schema({
   paymentMethod: { type: String, required: true },
   totalPayment: { type: Number, required: true },
   advancePayment: { type: Number, default: 0 },
-  balance: { type: Number, default: 0 },
   paymentDeadline: { type: String, required: true },
   fileMetadata: {
     driveFileId: { type: String },
