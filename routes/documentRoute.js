@@ -147,6 +147,11 @@ router.post(
   authMiddleware,
   documentController.updatePaymentDocument
 );
+router.post(
+  "/updatePaymentDocumentDeclaration/:id",
+  authMiddleware,
+  documentController.updatePaymentDocumentDeclaration
+);
 router.get(
   "/getPaymentDocument/:id",
   authMiddleware,

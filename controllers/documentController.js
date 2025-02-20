@@ -981,6 +981,26 @@ exports.updatePaymentDocument = async (req, res) => {
   }
 };
 
+exports.updatePaymentDocumentDeclaration = async (req, res) => {
+  const { id } = req.params;
+  const { declaration } = req.body;
+
+  try {
+    const doc = await PaymentDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    doc.declaration = declaration;
+    await doc.save();
+
+    res.json({ message: "Declaration updated successfully" });
+  } catch (error) {
+    console.error("Error updating declaration:", error);
+    res.status(500).json({ message: "Error updating declaration" });
+  }
+};
+
 exports.updateProposalDocument = async (req, res) => {
   try {
     const { id } = req.params;

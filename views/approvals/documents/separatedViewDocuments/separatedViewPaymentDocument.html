@@ -700,7 +700,7 @@
               doc.suspendReason
                 ? `(Lý do từ chối tài liệu: ${doc.suspendReason})`
                 : ""
-            }</td>
+            }${doc.declaration ? `(Kê khai: ${doc.declaration})` : ""}</td>
               <td>${doc.paymentMethod || "-"}</td>
               <td>${doc.totalPayment?.toLocaleString() || "-"}</td>
               <td>${doc.advancePayment?.toLocaleString() || "-"}</td>
@@ -708,11 +708,11 @@
               <td>${renderStatus(doc.status)}</td>
               <td class="approval-status">${approvalStatus}</td>
               <td>
-                  <button class="approve-btn" onclick="showFullView('${
-                    doc._id
-                  }')" style="margin-right: 5px;">
-                    Xem đầy đủ/Full View
-                  </button>
+                <button class="approve-btn" onclick="showFullView('${
+                  doc._id
+                }')" style="margin-right: 5px;">
+                  Xem đầy đủ/Full View
+                </button>
                 ${
                   doc.approvedBy.length === 0
                     ? `
@@ -732,14 +732,18 @@
                 }
                 ${
                   doc.status === "Approved"
-                    ? ""
+                    ? `
+                  <button class="approve-btn" onclick="editDeclaration('${doc._id}')" style="margin-right: 5px;">
+                    Kê khai/Declaration
+                  </button>
+                `
                     : doc.status === "Suspended"
                     ? `
-                    <button class="approve-btn" onclick="openDocument('${doc._id}')">Mở/Open</button>
-                  `
+                  <button class="approve-btn" onclick="openDocument('${doc._id}')">Mở/Open</button>
+                `
                     : `
-                    <button class="approve-btn" onclick="suspendDocument('${doc._id}')">Từ chối/Suspend</button>
-                  `
+                  <button class="approve-btn" onclick="suspendDocument('${doc._id}')">Từ chối/Suspend</button>
+                `
                 }
               </td>
             `;
@@ -1063,6 +1067,12 @@
                   <span class="detail-label">Hạn trả/Payment Deadline:</span>
                   <span class="detail-value">${paymentDeadline}</span>
                 </div>
+                <div class="detail-item">
+                  <span class="detail-label">Kê khai/Declaration:</span>
+                  <span class="detail-value">${
+                    doc.declaration || "Not specified"
+                  }</span>
+                </div>
               </div>
             </div>
 
@@ -1250,6 +1260,66 @@
         } catch (err) {
           console.error("Error reopening document:", err);
           showMessage("Lỗi khi mở lại tài liệu/Error reopening document", true);
+        }
+      }
+
+      function editDeclaration(docId) {
+        const doc = paymentDocuments.find((d) => d._id === docId);
+        if (!doc) return;
+
+        // Create a modal for editing the declaration
+        const modalHTML = `
+          <div id="declarationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+            <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-color); padding: 20px; width: 90%; max-width: 500px; border-radius: 8px;">
+              <span onclick="closeDeclarationModal()" style="position: absolute; right: 10px; top: 10px; cursor: pointer; font-size: 24px;">&times;</span>
+              <h2>Kê Khai/Declaration</h2>
+              <textarea id="declarationInput" style="width: 100%; height: 150px; padding: 10px; font-size: 16px;">${
+                doc.declaration || ""
+              }</textarea>
+              <button onclick="saveDeclaration('${docId}')" class="approve-btn" style="margin-top: 10px;">Lưu kê khai/Save Declaration</button>
+            </div>
+          </div>
+        `;
+
+        // Append the modal to the body
+        document.body.insertAdjacentHTML("beforeend", modalHTML);
+
+        // Show the modal
+        document.getElementById("declarationModal").style.display = "block";
+      }
+
+      function closeDeclarationModal() {
+        const modal = document.getElementById("declarationModal");
+        if (modal) {
+          modal.remove(); // Remove the modal from the DOM
+        }
+      }
+
+      async function saveDeclaration(docId) {
+        const declaration = document.getElementById("declarationInput").value;
+
+        try {
+          const response = await fetch(
+            `/updatePaymentDocumentDeclaration/${docId}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ declaration }),
+            }
+          );
+
+          if (response.ok) {
+            showMessage("Declaration updated successfully");
+            closeDeclarationModal();
+            fetchPaymentDocuments(); // Refresh the document list
+          } else {
+            showMessage("Error updating declaration", true);
+          }
+        } catch (err) {
+          console.error("Error updating declaration:", err);
+          showMessage("Error updating declaration", true);
         }
       }
 

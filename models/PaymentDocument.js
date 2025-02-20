@@ -46,6 +46,7 @@ const paymentDocumentSchema = new mongoose.Schema({
     default: "Pending",
   },
   suspendReason: { type: String, default: "" },
+  declaration: { type: String, default: "" },
   groupName: { type: String },
 });
 
