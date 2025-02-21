@@ -218,3 +218,164 @@ exports.deleteGroupedDocument = async (req, res) => {
     res.send("Lỗi xóa tài liệu/Error deleting document");
   }
 };
+
+// Add a document to a group
+exports.addDocumentToGroup = async (req, res) => {
+  try {
+    const { documentId, documentType, groupName } = req.body;
+
+    let document;
+    // Find the document based on its type
+    switch (documentType) {
+      case "generic":
+        document = await Document.findById(documentId);
+        break;
+      case "proposal":
+        document = await ProposalDocument.findById(documentId);
+        break;
+      case "purchasing":
+        document = await PurchasingDocument.findById(documentId);
+        break;
+      case "payment":
+        document = await PaymentDocument.findById(documentId);
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid document type" });
+    }
+
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Update the document with the group name
+    document.groupName = groupName;
+
+    // Save the document in the appropriate collection
+    switch (documentType) {
+      case "generic":
+        await Document.findByIdAndUpdate(documentId, document);
+        break;
+      case "proposal":
+        await ProposalDocument.findByIdAndUpdate(documentId, document);
+        break;
+      case "purchasing":
+        await PurchasingDocument.findByIdAndUpdate(documentId, document);
+        break;
+      case "payment":
+        await PaymentDocument.findByIdAndUpdate(documentId, document);
+        break;
+    }
+
+    res.status(200).json({ message: "Document added to group successfully" });
+  } catch (error) {
+    console.error("Error adding document to group:", error);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// Get all unassigned documents
+exports.getUnassignedDocuments = async (req, res) => {
+  try {
+    // Fetch documents with no group assigned
+    const genericDocuments = await Document.find({
+      $or: [{ groupName: null }, { groupName: "" }],
+    });
+
+    const proposalDocuments = await ProposalDocument.find({
+      $or: [{ groupName: null }, { groupName: "" }],
+    });
+
+    const purchasingDocuments = await PurchasingDocument.find({
+      $or: [{ groupName: null }, { groupName: "" }],
+    });
+
+    const paymentDocuments = await PaymentDocument.find({
+      $or: [{ groupName: null }, { groupName: "" }],
+    });
+
+    // Combine all documents with type information
+    const allDocuments = [
+      ...genericDocuments.map((doc) => ({
+        ...doc.toObject(),
+        documentType: "generic",
+        displayType: "Chung/Generic",
+      })),
+      ...proposalDocuments.map((doc) => ({
+        ...doc.toObject(),
+        documentType: "proposal",
+        displayType: "Đề xuất/Proposal",
+      })),
+      ...purchasingDocuments.map((doc) => ({
+        ...doc.toObject(),
+        documentType: "purchasing",
+        displayType: "Mua hàng/Purchasing",
+      })),
+      ...paymentDocuments.map((doc) => ({
+        ...doc.toObject(),
+        documentType: "payment",
+        displayType: "Thanh toán/Payment",
+      })),
+    ];
+
+    res.json(allDocuments);
+  } catch (error) {
+    console.error("Error fetching unassigned documents:", error);
+    res.status(500).send("Internal Server Error");
+  }
+};
+
+// Remove document from group
+exports.removeDocumentFromGroup = async (req, res) => {
+  try {
+    const { documentId, documentType } = req.body;
+
+    let document;
+    // Find the document based on its type
+    switch (documentType) {
+      case "generic":
+        document = await Document.findById(documentId);
+        break;
+      case "proposal":
+        document = await ProposalDocument.findById(documentId);
+        break;
+      case "purchasing":
+        document = await PurchasingDocument.findById(documentId);
+        break;
+      case "payment":
+        document = await PaymentDocument.findById(documentId);
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid document type" });
+    }
+
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Remove the group assignment
+    document.groupName = "";
+
+    // Save the document in the appropriate collection
+    switch (documentType) {
+      case "generic":
+        await Document.findByIdAndUpdate(documentId, document);
+        break;
+      case "proposal":
+        await ProposalDocument.findByIdAndUpdate(documentId, document);
+        break;
+      case "purchasing":
+        await PurchasingDocument.findByIdAndUpdate(documentId, document);
+        break;
+      case "payment":
+        await PaymentDocument.findByIdAndUpdate(documentId, document);
+        break;
+    }
+
+    res
+      .status(200)
+      .json({ message: "Document removed from group successfully" });
+  } catch (error) {
+    console.error("Error removing document from group:", error);
+    res.status(500).send("Internal Server Error");
+  }
+};

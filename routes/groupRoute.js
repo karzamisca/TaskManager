@@ -33,4 +33,19 @@ router.post(
   groupController.deleteGroupedDocument
 );
 
+// Route to get unassigned documents
+router.get("/getUnassignedDocuments", groupController.getUnassignedDocuments);
+
+// Routes for document group management
+router.post(
+  "/addDocumentToGroup",
+  authMiddleware,
+  groupController.addDocumentToGroup
+);
+router.post(
+  "/removeDocumentFromGroup",
+  authMiddleware,
+  groupController.removeDocumentFromGroup
+);
+
 module.exports = router;
