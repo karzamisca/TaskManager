@@ -1315,12 +1315,14 @@
             }
           );
 
+          const message = await response.text();
+
           if (response.ok) {
-            showMessage("Declaration updated successfully");
+            showMessage(message);
             closeDeclarationModal();
             fetchPaymentDocuments(); // Refresh the document list
           } else {
-            showMessage("Error updating declaration", true);
+            showMessage(message, true);
           }
         } catch (err) {
           console.error("Error updating declaration:", err);

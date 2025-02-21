@@ -986,6 +986,20 @@ exports.updatePaymentDocumentDeclaration = async (req, res) => {
   const { declaration } = req.body;
 
   try {
+    if (
+      ![
+        "approver",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+      ].includes(req.user.role)
+    ) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
+
     const doc = await PaymentDocument.findById(id);
     if (!doc) {
       return res.status(404).json({ message: "Document not found" });
@@ -994,7 +1008,7 @@ exports.updatePaymentDocumentDeclaration = async (req, res) => {
     doc.declaration = declaration;
     await doc.save();
 
-    res.json({ message: "Declaration updated successfully" });
+    res.send("Declaration updated successfully");
   } catch (error) {
     console.error("Error updating declaration:", error);
     res.status(500).json({ message: "Error updating declaration" });
