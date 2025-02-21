@@ -469,7 +469,7 @@ const createPaymentDocTemplate = async (doc) => {
             text: `Thanh toán trước/Advance Payment: ${doc.advancePayment.toLocaleString()}`,
           }),
           new Paragraph({
-            text: `Số dư/Balance: ${doc.balance.toLocaleString()}`,
+            text: `Kê khai/Declaration: ${doc.declaration}`,
           }),
           new Paragraph({
             text: `Hạn thanh toán/Payment Deadline: ${doc.paymentDeadline}`,

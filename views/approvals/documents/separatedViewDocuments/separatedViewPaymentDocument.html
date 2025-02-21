@@ -713,6 +713,11 @@
                 }')" style="margin-right: 5px;">
                   Xem đầy đủ/Full View
                 </button>
+                <form action="/exportDocumentToDocx/${
+                  doc._id
+                }" method="GET" style="display:inline;">
+                    <button class="approve-btn">Xuất ra DOCX/Export to DOCX</button>
+                </form>
                 ${
                   doc.approvedBy.length === 0
                     ? `

@@ -494,6 +494,11 @@
                         <td>${renderStatus(doc.status)}</td>
                         <td class="approval-status">${approvalStatus}</td>
                         <td>
+                          <form action="/exportDocumentToDocx/${
+                            doc._id
+                          }" method="GET" style="display:inline;">
+                            <button class="approve-btn">Xuất ra DOCX/Export to DOCX</button>
+                          </form>
                           ${
                             doc.approvedBy.length === 0
                               ? `
