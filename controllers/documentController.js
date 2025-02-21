@@ -986,15 +986,7 @@ exports.updatePaymentDocumentDeclaration = async (req, res) => {
   const { declaration } = req.body;
 
   try {
-    if (
-      ![
-        "approver",
-        "headOfMechanical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "director",
-      ].includes(req.user.role)
-    ) {
+    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
       return res.send(
         "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
       );
