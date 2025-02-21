@@ -25,7 +25,7 @@ exports.createGroup = async (req, res) => {
     });
 
     await group.save();
-    res.status(201).json(group);
+    res.redirect("/groupedDocument");
   } catch (error) {
     console.error("Error creating group:", error);
     res.status(500).send("Internal Server Error");

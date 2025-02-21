@@ -5,361 +5,342 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Phiếu theo nhóm/Grouped Documents</title>
   </head>
-  <style>
-    /* Base styles and CSS reset */
-    :root {
-      --primary-color: #2563eb;
-      --background-color: #ffffff;
-      --text-color: #1f2937;
-      --border-color: #e5e7eb;
-      --hover-color: #f3f4f6;
-      --section-bg: #f9fafb;
-      --shadow-color: rgba(0, 0, 0, 0.1);
-    }
-
-    /* Dark mode colors */
-    @media (prefers-color-scheme: dark) {
+  <body>
+    <style>
+      /* Base styles and CSS reset */
       :root {
-        --primary-color: #3b82f6;
-        --background-color: #1f2937;
-        --text-color: #f3f4f6;
-        --border-color: #374151;
-        --hover-color: #374151;
-        --section-bg: #111827;
-        --shadow-color: rgba(0, 0, 0, 0.25);
+        --primary-color: #2563eb;
+        --background-color: #ffffff;
+        --text-color: #1f2937;
+        --border-color: #e5e7eb;
+        --hover-color: #f3f4f6;
+        --section-bg: #f9fafb;
+        --shadow-color: rgba(0, 0, 0, 0.1);
       }
-    }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      line-height: 1.6;
-      color: var(--text-color);
-      background-color: var(--background-color);
-      padding: 1rem;
-      transition: background-color 0.3s, color 0.3s;
-    }
-
-    /* Header styles */
-    header {
-      margin-bottom: 2rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    header h1 {
-      font-size: clamp(1.5rem, 4vw, 2.5rem);
-      margin-bottom: 1rem;
-    }
-
-    header a {
-      color: var(--primary-color);
-      text-decoration: none;
-      padding: 0.5rem 1rem;
-      border-radius: 0.375rem;
-      border: 1px solid var(--primary-color);
-      display: inline-block;
-      transition: all 0.2s;
-    }
-
-    header a:hover {
-      background-color: var(--primary-color);
-      color: white;
-    }
-
-    /* Footer styles */
-    footer {
-      margin-bottom: 2rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    footer h1 {
-      font-size: clamp(1.5rem, 4vw, 2.5rem);
-      margin-bottom: 1rem;
-    }
-
-    footer a {
-      color: var(--primary-color);
-      text-decoration: none;
-      padding: 0.5rem 1rem;
-      border-radius: 0.375rem;
-      border: 1px solid var(--primary-color);
-      display: inline-block;
-      transition: all 0.2s;
-    }
-
-    footer a:hover {
-      background-color: var(--primary-color);
-      color: white;
-    }
-
-    /* Section styles */
-    section {
-      overflow: auto;
-      max-height: 1000px;
-      background: var(--section-bg);
-      border-radius: 0.5rem;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
-      box-shadow: 0 2px 4px var(--shadow-color);
-    }
-
-    section h2 {
-      font-size: clamp(1.25rem, 3vw, 1.875rem);
-      margin-bottom: 1.5rem;
-      color: var(--text-color);
-    }
-
-    /* Form styles */
-    form {
-      display: grid;
-      gap: 1.5rem;
-      max-width: 600px;
-    }
-
-    form div {
-      display: grid;
-      gap: 0.5rem;
-    }
-
-    label {
-      font-weight: 500;
-    }
-
-    input,
-    textarea {
-      padding: 0.75rem;
-      border: 1px solid var(--border-color);
-      border-radius: 0.375rem;
-      background-color: var(--background-color);
-      color: var(--text-color);
-    }
-
-    input:focus,
-    textarea:focus {
-      outline: 2px solid var(--primary-color);
-      outline-offset: -1px;
-    }
-
-    button {
-      background-color: var(--primary-color);
-      color: white;
-      padding: 0.75rem 1.5rem;
-      border: none;
-      border-radius: 0.375rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-
-    button:hover {
-      opacity: 0.9;
-    }
-
-    /* Document list styles */
-    #grouped-documents section {
-      background-color: var(--background-color);
-    }
-
-    #grouped-documents h3 {
-      font-size: clamp(1.125rem, 2.5vw, 1.5rem);
-      margin-bottom: 1rem;
-      color: var(--primary-color);
-    }
-
-    ul {
-      list-style: none;
-      display: grid;
-      gap: 1.5rem;
-    }
-
-    li {
-      padding: 1.5rem;
-      border: 1px solid var(--border-color);
-      border-radius: 0.375rem;
-      background-color: var(--section-bg);
-      transition: transform 0.2s;
-    }
-
-    li:hover {
-      transform: translateY(-2px);
-    }
-
-    /* Document content styles */
-    li strong {
-      color: var(--primary-color);
-    }
-
-    li p {
-      margin: 0.5rem 0;
-    }
-
-    li a {
-      color: var(--primary-color);
-      text-decoration: none;
-    }
-
-    li a:hover {
-      text-decoration: underline;
-    }
-
-    .document-content {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-
-    .document-details {
-      flex-grow: 1;
-    }
-
-    .document-actions {
-      margin-top: 2rem;
-      padding-top: 1rem;
-      border-top: 1px solid var(--border-color);
-    }
-
-    /* Document management styles */
-    .operation-container {
-      background-color: var(--section-bg);
-      border-radius: 0.5rem;
-      padding: 1.5rem;
-      margin-top: 1rem;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr auto;
-      gap: 1rem;
-      align-items: end;
-    }
-
-    @media (max-width: 768px) {
-      .form-grid {
-        grid-template-columns: 1fr;
+      /* Dark mode colors */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --primary-color: #3b82f6;
+          --background-color: #1f2937;
+          --text-color: #f3f4f6;
+          --border-color: #374151;
+          --hover-color: #374151;
+          --section-bg: #111827;
+          --shadow-color: rgba(0, 0, 0, 0.25);
+        }
       }
-    }
 
-    .form-control {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid var(--border-color);
-      border-radius: 0.375rem;
-      background-color: var(--background-color);
-      color: var(--text-color);
-    }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-    .action-button {
-      background-color: var(--primary-color);
-      color: white;
-      padding: 0.75rem 1.5rem;
-      border: none;
-      border-radius: 0.375rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-
-    .action-button:hover {
-      opacity: 0.9;
-    }
-
-    .action-button.danger {
-      background-color: #dc2626;
-    }
-
-    .status-message {
-      margin-top: 1rem;
-      padding: 0.5rem;
-      border-radius: 0.375rem;
-    }
-
-    .status-message.success {
-      background-color: rgba(16, 185, 129, 0.2);
-      color: #065f46;
-    }
-
-    .status-message.error {
-      background-color: rgba(239, 68, 68, 0.2);
-      color: #991b1b;
-    }
-
-    .document-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.75rem;
-      border: 1px solid var(--border-color);
-      border-radius: 0.375rem;
-      margin-bottom: 0.5rem;
-      background-color: var(--background-color);
-    }
-
-    .document-info {
-      flex-grow: 1;
-    }
-
-    .remove-btn {
-      background-color: #dc2626;
-      color: white;
-      padding: 0.5rem 0.75rem;
-      border: none;
-      border-radius: 0.375rem;
-      cursor: pointer;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 640px) {
       body {
-        padding: 0.5rem;
+        font-family: system-ui, -apple-system, sans-serif;
+        line-height: 1.6;
+        color: var(--text-color);
+        background-color: var(--background-color);
+        padding: 1rem;
+        transition: background-color 0.3s, color 0.3s;
       }
 
+      /* Header styles */
+      header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      header h1 {
+        font-size: clamp(1.5rem, 4vw, 2.5rem);
+        margin-bottom: 1rem;
+      }
+
+      header a {
+        color: var(--primary-color);
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        border: 1px solid var(--primary-color);
+        display: inline-block;
+        transition: all 0.2s;
+      }
+
+      header a:hover {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      /* Footer styles */
+      footer {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      footer h1 {
+        font-size: clamp(1.5rem, 4vw, 2.5rem);
+        margin-bottom: 1rem;
+      }
+
+      footer a {
+        color: var(--primary-color);
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        border: 1px solid var(--primary-color);
+        display: inline-block;
+        transition: all 0.2s;
+      }
+
+      footer a:hover {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      /* Section styles */
       section {
-        padding: 1rem;
+        overflow: auto;
+        max-height: 1000px;
+        background: var(--section-bg);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 4px var(--shadow-color);
+      }
+
+      section h2 {
+        font-size: clamp(1.25rem, 3vw, 1.875rem);
+        margin-bottom: 1.5rem;
+        color: var(--text-color);
+      }
+
+      /* Form styles */
+      form {
+        display: grid;
+        gap: 1.5rem;
+        max-width: 600px;
+      }
+
+      form div {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      label {
+        font-weight: 500;
+      }
+
+      input,
+      textarea {
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        background-color: var(--background-color);
+        color: var(--text-color);
+      }
+
+      input:focus,
+      textarea:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: -1px;
+      }
+
+      button {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+
+      button:hover {
+        opacity: 0.9;
+      }
+
+      ul {
+        list-style: none;
+        display: grid;
+        gap: 1.5rem;
       }
 
       li {
-        padding: 1rem;
-      }
-    }
-
-    /* Print styles */
-    @media print {
-      body {
-        background: white;
-        color: black;
+        padding: 1.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        background-color: var(--section-bg);
+        transition: transform 0.2s;
       }
 
-      section {
-        box-shadow: none;
-        border: 1px solid #ddd;
+      li:hover {
+        transform: translateY(-2px);
       }
 
-      header a,
-      button {
-        display: none;
+      /* Document content styles */
+      li strong {
+        color: var(--primary-color);
       }
-    }
-  </style>
-  <body>
+
+      li p {
+        margin: 0.5rem 0;
+      }
+
+      li a {
+        color: var(--primary-color);
+        text-decoration: none;
+      }
+
+      li a:hover {
+        text-decoration: underline;
+      }
+
+      .document-content {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .document-details {
+        flex-grow: 1;
+      }
+
+      .document-actions {
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+      }
+
+      /* Document management styles */
+      .operation-container {
+        background-color: var(--section-bg);
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-top: 1rem;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto;
+        gap: 1rem;
+        align-items: end;
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        background-color: var(--background-color);
+        color: var(--text-color);
+      }
+
+      .action-button {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: opacity 0.2s;
+      }
+
+      .action-button:hover {
+        opacity: 0.9;
+      }
+
+      .action-button.danger {
+        background-color: #dc2626;
+      }
+
+      .status-message {
+        margin-top: 1rem;
+        padding: 0.5rem;
+        border-radius: 0.375rem;
+      }
+
+      .status-message.success {
+        background-color: rgba(16, 185, 129, 0.2);
+        color: #065f46;
+      }
+
+      .status-message.error {
+        background-color: rgba(239, 68, 68, 0.2);
+        color: #991b1b;
+      }
+
+      .document-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        margin-bottom: 0.5rem;
+        background-color: var(--background-color);
+      }
+
+      .document-info {
+        flex-grow: 1;
+      }
+
+      .remove-btn {
+        background-color: #dc2626;
+        color: white;
+        padding: 0.5rem 0.75rem;
+        border: none;
+        border-radius: 0.375rem;
+        cursor: pointer;
+      }
+
+      @media (max-width: 768px) {
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 640px) {
+        body {
+          padding: 0.5rem;
+        }
+
+        section {
+          padding: 1rem;
+        }
+
+        li {
+          padding: 1rem;
+        }
+      }
+
+      /* Print styles */
+      @media print {
+        body {
+          background: white;
+          color: black;
+        }
+
+        section {
+          box-shadow: none;
+          border: 1px solid #ddd;
+        }
+
+        header a,
+        button {
+          display: none;
+        }
+      }
+    </style>
     <header>
       <h1>Phiếu theo nhóm/Grouped Documents</h1>
       <a href="/mainDocument">Trở về/Back</a>
     </header>
-
-    <!-- Display Grouped Documents -->
-    <section>
-      <h2>Phiếu theo nhóm/Grouped Documents</h2>
-      <div id="grouped-documents">
-        <!-- Tài liệu nhóm sẽ được thêm vào đây/Dynamically added grouped documents will appear here -->
-      </div>
-    </section>
 
     <!-- Create Group Form -->
     <section>
@@ -382,67 +363,79 @@
       <h2>Quản lý tài liệu trong nhóm/Manage Documents in Groups</h2>
 
       <!-- Add Document to Group -->
-      <div class="operation-container">
+      <div>
         <h3>Thêm tài liệu vào nhóm/Add Document to Group</h3>
-        <div class="form-grid">
+        <div>
           <div>
             <label for="group-select">Chọn nhóm/Select Group:</label>
-            <select id="group-select" class="form-control">
+            <select id="group-select">
               <option value="">-- Chọn nhóm/Select Group --</option>
-              <!-- Groups will be populated dynamically -->
             </select>
           </div>
 
           <div>
             <label for="document-select">Chọn tài liệu/Select Document:</label>
-            <select id="document-select" class="form-control">
+            <select id="document-select">
               <option value="">-- Chọn tài liệu/Select Document --</option>
-              <!-- Documents will be populated dynamically -->
             </select>
           </div>
 
-          <button id="add-to-group-btn" class="action-button">
-            Thêm vào nhóm/Add to Group
-          </button>
+          <button id="add-to-group-btn">Thêm vào nhóm/Add to Group</button>
         </div>
-        <div id="add-status-message" class="status-message"></div>
+        <div id="add-status-message"></div>
       </div>
 
       <!-- Remove Document from Group -->
-      <div class="operation-container" style="margin-top: 2rem">
-        <h3>Xóa tài liệu khỏi nhóm/Remove Document from Group</h3>
+      <div>
+        <h3>Phiếu trong nhóm/Document in the Group</h3>
         <div id="remove-document-container">
-          <!-- Will be dynamically populated with grouped documents for removal -->
           <p>Chọn một nhóm trước/Select a group first</p>
         </div>
-        <div id="remove-status-message" class="status-message"></div>
+        <div id="remove-status-message"></div>
       </div>
     </section>
 
-    <section>
-      <h2>Các nhóm hiện tại/Current Groups</h2>
-      <div id="group-names">
-        <!-- Group names will be dynamically added here -->
+    <!-- Modal -->
+    <div
+      id="documentModal"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+      "
+    >
+      <div
+        style="
+          position: relative;
+          background: white;
+          margin: 50px auto;
+          padding: 20px;
+          width: 80%;
+          max-height: 80%;
+          overflow: auto;
+        "
+      >
+        <button
+          onclick="closeModal()"
+          style="position: absolute; right: 10px; top: 10px"
+        >
+          Close
+        </button>
+        <div id="modalContent"></div>
       </div>
-    </section>
-
-    <footer>
-      <a href="/mainDocument">Trở về/Back</a>
-    </footer>
+    </div>
 
     <script>
-      // Global variables
       let currentUser = null;
       let groupedDocuments = null;
-      let showOnlyPendingApprovals = false;
-      // Global variables for document management
       let allGroups = [];
       let unassignedDocuments = [];
-      let selectedGroupDocuments = {};
 
-      // Initialize document management functionality
       async function initializeDocumentManagement() {
-        // Fetch all groups
         try {
           const response = await fetch("/getGroup");
           allGroups = await response.json();
@@ -451,7 +444,6 @@
           console.error("Error fetching groups:", error);
         }
 
-        // Fetch unassigned documents
         try {
           const response = await fetch("/getUnassignedDocuments");
           unassignedDocuments = await response.json();
@@ -460,7 +452,6 @@
           console.error("Error fetching unassigned documents:", error);
         }
 
-        // Add event listeners
         document
           .getElementById("group-select")
           .addEventListener("change", handleGroupChange);
@@ -469,16 +460,11 @@
           .addEventListener("click", addDocumentToGroup);
       }
 
-      // Populate group select dropdown
       function populateGroupSelect() {
         const groupSelect = document.getElementById("group-select");
-
-        // Clear existing options except the first one
         while (groupSelect.options.length > 1) {
           groupSelect.remove(1);
         }
-
-        // Add groups as options
         allGroups.forEach((group) => {
           const option = document.createElement("option");
           option.value = group.name;
@@ -487,24 +473,17 @@
         });
       }
 
-      // Populate document select dropdown
       function populateDocumentSelect() {
         const documentSelect = document.getElementById("document-select");
-
-        // Clear existing options except the first one
         while (documentSelect.options.length > 1) {
           documentSelect.remove(1);
         }
-
-        // Add documents as options
         unassignedDocuments.forEach((doc) => {
           const option = document.createElement("option");
           option.value = JSON.stringify({
             id: doc._id,
             type: doc.documentType,
           });
-
-          // Create a descriptive display text based on document type
           let displayText = `${doc.displayType}: `;
           if (doc.documentType === "generic") {
             displayText += doc.title || "Untitled";
@@ -515,34 +494,20 @@
           } else if (doc.documentType === "payment") {
             displayText += `${doc.name} (Amount: ${doc.totalPayment})`;
           }
-
           option.textContent = displayText;
           documentSelect.appendChild(option);
         });
       }
 
-      // Handle group selection change
-      function handleGroupChange() {
-        const selectedGroup = document.getElementById("group-select").value;
-        if (!selectedGroup) {
-          document.getElementById("remove-document-container").innerHTML =
-            "<p>Chọn một nhóm trước/Select a group first</p>";
-          return;
-        }
-
-        // If groupedDocuments has been loaded, display documents for the selected group
-        if (groupedDocuments && groupedDocuments[selectedGroup]) {
-          displayGroupDocumentsForRemoval(
-            selectedGroup,
-            groupedDocuments[selectedGroup]
-          );
-        } else {
-          document.getElementById("remove-document-container").innerHTML =
-            "<p>Không có tài liệu trong nhóm này/No documents in this group</p>";
-        }
+      function showModal(docContent) {
+        document.getElementById("modalContent").innerHTML = docContent;
+        document.getElementById("documentModal").style.display = "block";
       }
 
-      // Display documents from a group that can be removed
+      function closeModal() {
+        document.getElementById("documentModal").style.display = "none";
+      }
+
       function displayGroupDocumentsForRemoval(groupName, documents) {
         const container = document.getElementById("remove-document-container");
         container.innerHTML = "";
@@ -555,8 +520,6 @@
 
         documents.forEach((doc) => {
           const documentItem = document.createElement("div");
-          documentItem.className = "document-item";
-
           let documentTitle = "";
           if (doc.type === "Chung/Generic") {
             documentTitle = doc.title || "Untitled";
@@ -569,77 +532,125 @@
           }
 
           documentItem.innerHTML = `
-      <div class="document-info">
-        <strong>${doc.type}:</strong> ${documentTitle}
-      </div>
-      <button class="remove-btn" data-id="${
-        doc._id
-      }" data-type="${getDocumentType(doc.type)}">
-        Xóa khỏi nhóm/Remove
-      </button>
-    `;
+                    <div>
+                        <strong>${doc.type}:</strong> ${documentTitle}
+                        <button onclick="showDocumentDetails('${
+                          doc._id
+                        }', '${groupName}')">View Details</button>
+                        <button class="remove-btn" data-id="${
+                          doc._id
+                        }" data-type="${getDocumentType(doc.type)}">
+                            Xóa khỏi nhóm/Remove
+                        </button>
+                    </div>
+                `;
 
           container.appendChild(documentItem);
         });
 
-        // Add event listeners to remove buttons
         document.querySelectorAll(".remove-btn").forEach((button) => {
           button.addEventListener("click", removeDocumentFromGroup);
         });
       }
 
-      // Convert display type to internal type
-      function getDocumentType(displayType) {
-        switch (displayType) {
-          case "Chung/Generic":
-            return "generic";
-          case "Đề xuất/Proposal":
-            return "proposal";
-          case "Mua hàng/Purchasing":
-            return "purchasing";
-          case "Thanh toán/Payment":
-            return "payment";
-          default:
-            return "generic";
-        }
+      function showDocumentDetails(docId, groupName) {
+        const doc = groupedDocuments[groupName].find((d) => d._id === docId);
+        if (!doc) return;
+
+        let modalContent = `
+                <h2>${doc.type}</h2>
+                <div>
+                    <strong>Document ID:</strong> ${doc._id}<br>
+                    ${generateDocumentContent(doc)}
+                </div>
+            `;
+
+        showModal(modalContent);
       }
 
-      // Add document to group
+      function generateDocumentContent(doc) {
+        let content = "";
+
+        if (doc.type === "Chung/Generic") {
+          content = doc.content
+            .map(
+              (section) => `
+                    <div>
+                        <strong>${section.name}:</strong><br>
+                        <p>${section.text}</p>
+                    </div>
+                `
+            )
+            .join("");
+        } else if (doc.type === "Đề xuất/Proposal") {
+          content = `
+                    <p><strong>Task:</strong> ${doc.task}</p>
+                    <p><strong>Cost Center:</strong> ${doc.costCenter}</p>
+                    <p><strong>Date of Error:</strong> ${doc.dateOfError}</p>
+                    <p><strong>Details:</strong> ${doc.detailsDescription}</p>
+                    <p><strong>Direction:</strong> ${doc.direction}</p>
+                `;
+        } else if (doc.type === "Mua hàng/Purchasing") {
+          content = `
+                    <p><strong>Products:</strong></p>
+                    ${doc.products
+                      .map(
+                        (product) => `
+                        <div>
+                            <p>${product.productName}</p>
+                            <p>Cost per Unit: ${product.costPerUnit}</p>
+                            <p>Amount: ${product.amount}</p>
+                            <p>Total: ${product.totalCost}</p>
+                        </div>
+                    `
+                      )
+                      .join("")}
+                    <p><strong>Grand Total:</strong> ${doc.grandTotalCost}</p>
+                `;
+        } else if (doc.type === "Thanh toán/Payment") {
+          content = `
+                    <p><strong>Name:</strong> ${doc.name}</p>
+                    <p><strong>Payment Method:</strong> ${doc.paymentMethod}</p>
+                    <p><strong>Total Payment:</strong> ${doc.totalPayment}</p>
+                    <p><strong>Advance Payment:</strong> ${doc.advancePayment}</p>
+                    <p><strong>Deadline:</strong> ${doc.paymentDeadline}</p>
+                `;
+        }
+
+        return content;
+      }
+
+      function getDocumentType(displayType) {
+        const typeMap = {
+          "Chung/Generic": "generic",
+          "Đề xuất/Proposal": "proposal",
+          "Mua hàng/Purchasing": "purchasing",
+          "Thanh toán/Payment": "payment",
+        };
+        return typeMap[displayType] || "generic";
+      }
+
       async function addDocumentToGroup() {
         const groupSelect = document.getElementById("group-select");
         const documentSelect = document.getElementById("document-select");
         const statusMessage = document.getElementById("add-status-message");
 
-        // Clear previous status
         statusMessage.textContent = "";
-        statusMessage.className = "status-message";
 
         const groupName = groupSelect.value;
         const documentData = documentSelect.value;
 
-        if (!groupName) {
-          statusMessage.textContent =
-            "Vui lòng chọn một nhóm/Please select a group";
-          statusMessage.className = "status-message error";
+        if (!groupName || !documentData) {
+          statusMessage.textContent = "Please select both group and document";
           return;
         }
 
-        if (!documentData) {
-          statusMessage.textContent =
-            "Vui lòng chọn một tài liệu/Please select a document";
-          statusMessage.className = "status-message error";
-          return;
-        }
-
-        // Parse document data
         const { id, type } = JSON.parse(documentData);
 
         try {
           const response = await fetch("/addDocumentToGroup", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               documentId: id,
               documentType: type,
@@ -647,91 +658,54 @@
             }),
           });
 
-          const result = await response.json();
-
           if (response.ok) {
-            statusMessage.textContent =
-              "Tài liệu đã được thêm vào nhóm/Document added to group successfully";
-            statusMessage.className = "status-message success";
-
-            // Refresh document lists
+            statusMessage.textContent = "Document added successfully";
             await refreshDocumentData();
           } else {
-            statusMessage.textContent =
-              result.message || "Có lỗi xảy ra/An error occurred";
-            statusMessage.className = "status-message error";
+            statusMessage.textContent = "Error adding document";
           }
         } catch (error) {
-          console.error("Error adding document to group:", error);
-          statusMessage.textContent =
-            "Lỗi kết nối máy chủ/Server connection error";
-          statusMessage.className = "status-message error";
+          console.error("Error:", error);
+          statusMessage.textContent = "Server error";
         }
       }
 
-      // Remove document from group
       async function removeDocumentFromGroup(event) {
         const button = event.target;
         const documentId = button.getAttribute("data-id");
         const documentType = button.getAttribute("data-type");
         const statusMessage = document.getElementById("remove-status-message");
 
-        // Clear previous status
-        statusMessage.textContent = "";
-        statusMessage.className = "status-message";
-
         try {
           const response = await fetch("/removeDocumentFromGroup", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              documentId,
-              documentType,
-            }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ documentId, documentType }),
           });
-
-          const result = await response.json();
 
           if (response.ok) {
-            statusMessage.textContent =
-              "Tài liệu đã được xóa khỏi nhóm/Document removed from group successfully";
-            statusMessage.className = "status-message success";
-
-            // Refresh document lists
+            statusMessage.textContent = "Document removed successfully";
             await refreshDocumentData();
           } else {
-            statusMessage.textContent =
-              result.message || "Có lỗi xảy ra/An error occurred";
-            statusMessage.className = "status-message error";
+            statusMessage.textContent = "Error removing document";
           }
         } catch (error) {
-          console.error("Error removing document from group:", error);
-          statusMessage.textContent =
-            "Lỗi kết nối máy chủ/Server connection error";
-          statusMessage.className = "status-message error";
+          console.error("Error:", error);
+          statusMessage.textContent = "Server error";
         }
       }
 
-      // Refresh all document data
       async function refreshDocumentData() {
-        // Refresh unassigned documents
         try {
-          const response = await fetch("/getUnassignedDocuments");
-          unassignedDocuments = await response.json();
+          const [unassignedResponse, groupedResponse] = await Promise.all([
+            fetch("/getUnassignedDocuments"),
+            fetch("/getGroupedDocuments"),
+          ]);
+
+          unassignedDocuments = await unassignedResponse.json();
+          groupedDocuments = await groupedResponse.json();
+
           populateDocumentSelect();
-        } catch (error) {
-          console.error("Error refreshing unassigned documents:", error);
-        }
-
-        // Refresh grouped documents
-        try {
-          const response = await fetch("/getGroupedDocuments");
-          groupedDocuments = await response.json();
-          renderDocuments(groupedDocuments);
-
-          // Update the removal section if a group is selected
           const selectedGroup = document.getElementById("group-select").value;
           if (selectedGroup && groupedDocuments[selectedGroup]) {
             displayGroupDocumentsForRemoval(
@@ -740,412 +714,41 @@
             );
           }
         } catch (error) {
-          console.error("Error refreshing grouped documents:", error);
+          console.error("Error refreshing data:", error);
         }
       }
 
-      // Add initialize call to the DOMContentLoaded event
+      function handleGroupChange() {
+        const selectedGroup = document.getElementById("group-select").value;
+        if (!selectedGroup) {
+          document.getElementById("remove-document-container").innerHTML =
+            "<p>Chọn một nhóm trước/Select a group first</p>";
+          return;
+        }
+
+        if (groupedDocuments && groupedDocuments[selectedGroup]) {
+          displayGroupDocumentsForRemoval(
+            selectedGroup,
+            groupedDocuments[selectedGroup]
+          );
+        } else {
+          document.getElementById("remove-document-container").innerHTML =
+            "<p>Không có tài liệu trong nhóm này/No documents in this group</p>";
+        }
+      }
+
       document.addEventListener("DOMContentLoaded", () => {
-        initializePage();
         initializeDocumentManagement();
+        refreshDocumentData();
       });
 
-      // Add confirmation function for document deletion
-      function confirmDeletion() {
-        return confirm(
-          "Bạn có chắc chắn muốn xóa tài liệu này?/Are you sure you want to delete this document?"
-        );
-      }
-
-      function haveAllApproversApproved(approvers, approvedBy) {
-        return approvers.every((approver) =>
-          approvedBy.some(
-            (approved) =>
-              approved.username === approver.username && approved.approvalDate
-          )
-        );
-      }
-
-      // Fetch current user info
-      async function fetchCurrentUser() {
-        try {
-          const response = await fetch("/getCurrentUser");
-          currentUser = await response.json();
-        } catch (error) {
-          console.error("Error fetching current user:", error);
-        }
-      }
-
-      // Filter documents for current user
-      function filterDocumentsForCurrentUser(documents) {
-        if (!currentUser || !showOnlyPendingApprovals) return documents;
-
-        return documents.filter((doc) => {
-          const isRequiredApprover = doc.approvers.some(
-            (approver) => approver.username === currentUser.username
-          );
-          const hasNotApprovedYet = !doc.approvedBy.some(
-            (approved) => approved.username === currentUser.username
-          );
-          return isRequiredApprover && hasNotApprovedYet;
-        });
-      }
-
-      // Create toggle switch HTML
-      function createToggleSwitch() {
-        const toggleContainer = document.createElement("div");
-        toggleContainer.style.marginBottom = "1rem";
-        toggleContainer.innerHTML = `
-          <label class="toggle-switch" style="display: flex; align-items: center; cursor: pointer;">
-            <input type="checkbox" id="pendingToggle" style="margin-right: 0.5rem;">
-            <span>Chỉ hiện phiếu cần phê duyệt/Show only documents pending my approval</span>
-          </label>
-        `;
-        return toggleContainer;
-      }
-
-      function renderDocuments(groupedDocs) {
-        const groupedDocumentsContainer =
-          document.getElementById("grouped-documents");
-        groupedDocumentsContainer.innerHTML = ""; // Clear existing content
-
-        for (const groupName in groupedDocs) {
-          const group = groupedDocs[groupName];
-          const filteredGroup = filterDocumentsForCurrentUser(group);
-
-          // Skip empty groups after filtering
-          if (filteredGroup.length === 0) continue;
-
-          const groupSection = document.createElement("section");
-          groupSection.innerHTML = `<h3>Nhóm/Group: ${groupName}</h3>`;
-          const documentList = document.createElement("ul");
-
-          filteredGroup.forEach((doc) => {
-            const listItem = document.createElement("li");
-
-            const approvers = doc.approvers
-              .map(
-                (approver) => `${approver.username} (${approver.subRole})<br>`
-              )
-              .join("");
-
-            const approvedBy = doc.approvers
-              .map((approver) => {
-                const approvedInfo = doc.approvedBy.find(
-                  (approved) => approved.username === approver.username
-                );
-                if (approvedInfo && approvedInfo.approvalDate) {
-                  return `${approvedInfo.username} (${approver.subRole}) (${approvedInfo.approvalDate})<br>`;
-                }
-                return "";
-              })
-              .filter((html) => html !== "")
-              .join("");
-
-            // Check if all approvers have approved
-            const allApproved = haveAllApproversApproved(
-              doc.approvers,
-              doc.approvedBy
-            );
-
-            // Create document content wrapper
-            let docContent = `<div class="document-content">`;
-
-            // Document details section
-            docContent += `<div class="document-details">`;
-
-            docContent += `<strong>Loại/Type: ${doc.type}</strong><br>`;
-
-            // Add approval information section
-            docContent += `
-              <div class="approval-info" style="margin: 1rem 0; padding: 0.5rem; background: var(--section-bg); border-radius: 0.375rem;">
-                <p><strong>Người phê duyệt/Approvers:</strong><br>${
-                  approvers || "Không có/None"
-                }</p>
-                <p><strong>Đã phê duyệt bởi/Approved By:</strong><br>${
-                  approvedBy || "Chưa có phê duyệt/No approvals yet"
-                }</p>
-              </div>
-            `;
-
-            if (doc.type === "Chung/Generic") {
-              docContent += `
-          ${doc.content
-            .map(
-              (section) => `
-                <div class="content-section" style="margin: 1rem 0; padding: 0.5rem; background: var(--section-bg); border-radius: 0.375rem;">
-                  <strong>${section.name}:</strong><br>
-                  <p>${section.text}</p>
-                </div>
-              `
-            )
-            .join("")}
-              <p><strong>Ngày nộp/Submission Date:</strong> ${
-                doc.submissionDate
-              }</p>
-              ${
-                doc.fileMetadata
-                  ? `<p><strong>Tệp đính kèm/Attached File:</strong> 
-                    <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
-                  : "<p>Không có tệp đính kèm/No file attached.</p>"
-              }
-            `;
-            } else if (doc.type === "Đề xuất/Proposal") {
-              docContent += `
-                <p><strong>Công việc/Task:</strong> ${doc.task}</p>
-                <p><strong>Trạm/Center:</strong> ${doc.costCenter}</p>
-                <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
-                  doc.dateOfError
-                }</p>
-                <p><strong>Mô tả chi tiết/Details Description:</strong> ${
-                  doc.detailsDescription
-                }</p>
-                <p><strong>Hướng xử lý/Direction:</strong> ${doc.direction}</p>
-                ${
-                  doc.fileMetadata
-                    ? `<p><strong>Tệp đính kèm/Attached File:</strong> 
-                      <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
-                    : ""
-                }
-                <strong>Mã/ID:</strong> ${doc._id}<br>
-                <strong>Tình trạng phê duyệt/Approval Status:</strong> ${
-                  allApproved
-                    ? "Đã phê duyệt/Approved"
-                    : "Chưa phê duyệt/Pending"
-                }<br>
-              `;
-            } else if (doc.type === "Mua hàng/Purchasing") {
-              docContent += `
-                <strong>Sản phẩm/Products:</strong> ${doc.products
-                  .map(
-                    (product) =>
-                      `${product.productName} (Chi phí mỗi đơn vị/Cost per Unit: ${product.costPerUnit}, Số lượng/Amount: ${product.amount}, Tổng chi phí/Total Cost: ${product.totalCost})`
-                  )
-                  .join(", ")}<br>
-                <strong>Tổng chi phí/Grand Total Cost:</strong> ${doc.grandTotalCost.toLocaleString()}<br>
-                ${
-                  doc.fileMetadata
-                    ? `<p><strong>Tệp đính kèm phiếu thanh toán/File attaches to payment document:</strong> 
-                      <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
-                    : "<p>Không có tệp đính kèm/No file attached.</p>"
-                }
-              `;
-
-              // Add appended proposals if they exist
-              if (doc.appendedProposals && doc.appendedProposals.length > 0) {
-                doc.appendedProposals.forEach((proposalDoc, index) => {
-                  docContent += `
-                    <div style="margin-top: 1rem; padding: 1rem; background: var(--section-bg); border-radius: 0.375rem;">
-                      <strong>Đề xuất đã thêm/Appended Proposal ${
-                        index + 1
-                      }:</strong><br>
-                      <p><strong>Công việc/Task:</strong> ${
-                        proposalDoc.task
-                      }</p>
-                      <p><strong>Trạm/Center:</strong> ${
-                        proposalDoc.costCenter
-                      }</p>
-                      <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
-                        proposalDoc.dateOfError
-                      }</p>
-                      <p><strong>Mô tả chi tiết/Details Description:</strong> ${
-                        proposalDoc.detailsDescription
-                      }</p>
-                      <p><strong>Hướng xử lý/Direction:</strong> ${
-                        proposalDoc.direction
-                      }</p>
-                      ${
-                        proposalDoc.fileMetadata
-                          ? `<p><strong>Tệp đính kèm/Attached File:</strong> 
-                            <a href="${proposalDoc.fileMetadata.link}" target="_blank">${proposalDoc.fileMetadata.name}</a></p>`
-                          : ""
-                      }
-                    </div>
-                  `;
-                });
-              }
-            } else if (doc.type === "Thanh toán/Payment") {
-              docContent += `
-                <strong>Tên/Name:</strong> ${doc.name}<br>
-                <strong>Phương thức thanh toán/Payment Method:</strong> ${
-                  doc.paymentMethod
-                }<br>
-                <strong>Số tiền/Amount of Money:</strong> ${
-                  doc.amountOfMoney
-                }<br>
-                <strong>Đã thanh toán/Paid:</strong> ${doc.paid}<br>
-                <strong>Hạn thanh toán/Payment Deadline:</strong> ${
-                  doc.paymentDeadline
-                }<br>
-                ${
-                  doc.fileMetadata
-                    ? `<p><strong>Tệp đính kèm phiếu thanh toán/File attaches to payment document:</strong> 
-                      <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
-                    : "<p>Không có tệp đính kèm/No file attached.</p>"
-                }
-              `;
-
-              // Add appended purchasing documents if they exist
-              if (
-                doc.appendedPurchasingDocuments &&
-                doc.appendedPurchasingDocuments.length > 0
-              ) {
-                doc.appendedPurchasingDocuments.forEach(
-                  (purchasingDoc, index) => {
-                    docContent += `
-                      <div style="margin-top: 1rem; padding: 1rem; background: var(--section-bg); border-radius: 0.375rem;">
-                        <strong>Phiếu mua hàng đã thêm/Appended Purchasing Document ${
-                          index + 1
-                        }:</strong><br>
-                        <strong>Tiêu đề/Title:</strong> ${
-                          purchasingDoc.title
-                        }<br>
-                        <strong>Sản phẩm/Products:</strong> ${purchasingDoc.products
-                          .map(
-                            (product) =>
-                              `${product.productName} (Chi phí mỗi đơn vị/Cost per Unit: ${product.costPerUnit}, Số lượng/Amount: ${product.amount}, Tổng chi phí/Total Cost: ${product.totalCost})`
-                          )
-                          .join(", ")}<br>
-                        <strong>Tổng chi phí/Grand Total Cost:</strong> ${purchasingDoc.grandTotalCost.toLocaleString()}<br>
-                      </div>
-                    `;
-                    if (
-                      purchasingDoc.appendedProposals &&
-                      purchasingDoc.appendedProposals.length > 0
-                    ) {
-                      purchasingDoc.appendedProposals.forEach(
-                        (proposalDoc, proposalIndex) => {
-                          docContent += `
-                            <div style="margin-top: 1rem; padding: 1rem; background: var(--section-bg); border-radius: 0.375rem;">
-                              <strong>Phiếu đề xuất đã thêm/Appended Proposal ${
-                                proposalIndex + 1
-                              }:</strong><br>
-                              <p><strong>Công việc/Task:</strong> ${
-                                proposalDoc.task
-                              }</p>
-                              <p><strong>Trạm/Center:</strong> ${
-                                proposalDoc.costCenter
-                              }</p>
-                              <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
-                                proposalDoc.dateOfError
-                              }</p>
-                              <p><strong>Mô tả chi tiết/Details Description:</strong> ${
-                                proposalDoc.detailsDescription
-                              }</p>
-                              <p><strong>Hướng xử lý/Direction:</strong> ${
-                                proposalDoc.direction
-                              }</p>
-                              ${
-                                proposalDoc.fileMetadata
-                                  ? `<p><strong>Tệp đính kèm phiếu đề xuất/Attached File to Proposal Document:</strong> 
-                                    <a href="${proposalDoc.fileMetadata.link}" target="_blank">${proposalDoc.fileMetadata.name}</a></p>`
-                                  : ""
-                              }
-                            </div>
-                          `;
-                        }
-                      );
-                    }
-                  }
-                );
-              }
-            }
-
-            // Close document details div
-            docContent += `</div>`;
-
-            // Add action buttons at the bottom
-            if (!allApproved) {
-              docContent += `
-                <div class="document-actions">
-                  <form action="/approveGroupedDocument/${doc._id}" method="POST" style="display:inline;">
-                    <button type="submit">Phê duyệt/Approve</button>
-                  </form>
-                  <form action="/deleteGroupedDocument/${doc._id}" method="POST" style="display:inline;" onsubmit="return confirmDeletion()">
-                    <button type="submit" style="background-color: #dc2626;">Xóa/Delete</button>
-                  </form>
-                </div>
-              `;
-            }
-
-            // Close document content wrapper
-            docContent += `</div>`;
-
-            listItem.innerHTML = docContent;
-            documentList.appendChild(listItem);
-          });
-
-          groupSection.appendChild(documentList);
-          groupedDocumentsContainer.appendChild(groupSection);
-        }
-      }
-      // Initialize the page
-      async function initializePage() {
-        await fetchCurrentUser();
-
-        // Add toggle switch before the grouped-documents section
-        const groupedDocumentsSection =
-          document.querySelector("#grouped-documents").parentElement;
-        groupedDocumentsSection.insertBefore(
-          createToggleSwitch(),
-          document.getElementById("grouped-documents")
-        );
-
-        // Add toggle event listener
-        document
-          .getElementById("pendingToggle")
-          .addEventListener("change", (e) => {
-            showOnlyPendingApprovals = e.target.checked;
-            renderDocuments(groupedDocuments);
-          });
-
-        // Fetch and render documents
-        try {
-          const response = await fetch("/getGroupedDocuments");
-          groupedDocuments = await response.json();
-          renderDocuments(groupedDocuments);
-
-          // Update document management sections after fetching grouped documents
-          const selectedGroup = document.getElementById("group-select").value;
-          if (selectedGroup && groupedDocuments[selectedGroup]) {
-            displayGroupDocumentsForRemoval(
-              selectedGroup,
-              groupedDocuments[selectedGroup]
-            );
+      // Close modal when clicking outside
+      document
+        .getElementById("documentModal")
+        .addEventListener("click", function (event) {
+          if (event.target === this) {
+            closeModal();
           }
-        } catch (error) {
-          console.error("Error fetching grouped documents:", error);
-        }
-      }
-
-      // Fetch group names from /getGroup and display them
-      fetch("/getGroup")
-        .then((response) => response.json())
-        .then((groups) => {
-          const groupNamesContainer = document.getElementById("group-names");
-
-          if (Array.isArray(groups) && groups.length > 0) {
-            const groupList = document.createElement("ul");
-
-            groups.forEach((group) => {
-              const listItem = document.createElement("li");
-              listItem.textContent = group.name; // Assuming group objects have a `name` property
-              groupList.appendChild(listItem);
-            });
-
-            groupNamesContainer.appendChild(groupList);
-          } else {
-            groupNamesContainer.textContent =
-              "Không có nhóm nào/No groups found.";
-          }
-        })
-        .catch((error) => {
-          console.error(
-            "Lỗi khi lấy danh sách nhóm/Error fetching groups:",
-            error
-          );
-          document.getElementById("group-names").textContent =
-            "Lỗi khi tải danh sách nhóm/Error loading groups.";
         });
     </script>
   </body>
