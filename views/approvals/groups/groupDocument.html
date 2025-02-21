@@ -425,7 +425,9 @@
         >
           Close
         </button>
-        <div id="modalContent"></div>
+        <div id="modalContent">
+          <!-- Modal content will be dynamically inserted here based on the document type -->
+        </div>
       </div>
     </div>
 
@@ -490,9 +492,9 @@
           } else if (doc.documentType === "proposal") {
             displayText += doc.task || "Untitled";
           } else if (doc.documentType === "purchasing") {
-            displayText += `${doc.title} (Total: ${doc.grandTotalCost})`;
+            displayText += `${doc.title} (Tổng chi phí: ${doc.grandTotalCost})`;
           } else if (doc.documentType === "payment") {
-            displayText += `${doc.name} (Amount: ${doc.totalPayment})`;
+            displayText += `${doc.name} (Tổng thanh toán: ${doc.totalPayment}) ${doc.declaration}`;
           }
           option.textContent = displayText;
           documentSelect.appendChild(option);
@@ -526,9 +528,9 @@
           } else if (doc.type === "Đề xuất/Proposal") {
             documentTitle = doc.task || "Untitled";
           } else if (doc.type === "Mua hàng/Purchasing") {
-            documentTitle = `${doc.title} (Total: ${doc.grandTotalCost})`;
+            documentTitle = `${doc.title} (Tổng chi phí: ${doc.grandTotalCost})`;
           } else if (doc.type === "Thanh toán/Payment") {
-            documentTitle = `${doc.name} (Amount: ${doc.totalPayment})`;
+            documentTitle = `${doc.name} (Tổng thanh toán: ${doc.totalPayment}) (Kê khai: ${doc.declaration})`;
           }
 
           documentItem.innerHTML = `
@@ -582,39 +584,175 @@
                 `
             )
             .join("");
-        } else if (doc.type === "Đề xuất/Proposal") {
+        } else if (doc.type === "Thanh toán/Payment") {
           content = `
-                    <p><strong>Task:</strong> ${doc.task}</p>
-                    <p><strong>Cost Center:</strong> ${doc.costCenter}</p>
-                    <p><strong>Date of Error:</strong> ${doc.dateOfError}</p>
-                    <p><strong>Details:</strong> ${doc.detailsDescription}</p>
-                    <p><strong>Direction:</strong> ${doc.direction}</p>
-                `;
-        } else if (doc.type === "Mua hàng/Purchasing") {
-          content = `
-                    <p><strong>Products:</strong></p>
-                    ${doc.products
+            <h2>Phiếu thanh toán/Payment Document</h2>
+            <div>
+              <strong>Mã/Document ID:</strong> ${doc._id}<br>
+              <strong>Tên/Name:</strong> ${doc.name}<br>
+              <strong>Phương thức trả tiền/Payment Method:</strong> ${
+                doc.paymentMethod
+              }<br>
+              <strong>Tổng thanh toán/Total Payment:</strong> ${
+                doc.totalPayment
+              }<br>
+              <strong>Tạm ứng/Advance Payment:</strong> ${
+                doc.advancePayment
+              }<br>
+              <strong>Hạn thanh toán/Payment Deadline:</strong> ${
+                doc.paymentDeadline
+              }<br>
+              <strong>Ngày nộp/Submission Date:</strong> ${
+                doc.submissionDate
+              }<br>
+              <strong>Tình trạng/Status:</strong> ${doc.status}<br>
+              ${
+                doc.suspendReason
+                  ? `<strong>Lý do từ chối/Suspend Reason:</strong> ${doc.suspendReason}<br>`
+                  : ""
+              }
+              ${
+                doc.declaration
+                  ? `<strong>Kê khai/Declaration:</strong> ${doc.declaration}<br>`
+                  : ""
+              }
+              <strong>Phiếu mua sắm kèm theo/Appended Purchasing Documents:</strong><br>
+              ${doc.appendedPurchasingDocuments
+                .map(
+                  (purchasingDoc) => `
+                <div>
+                  <strong>Tiêu đề/Title:</strong> ${purchasingDoc.title}<br>
+                  <strong>Sản phẩm/Products:</strong><br>
+                  ${purchasingDoc.products
+                    .map(
+                      (product) => `
+                    <div>
+                      <strong>Tên sản phẩm/Product Name:</strong> ${
+                        product.productName
+                      }<br>
+                      <strong>Đơn giá/Cost Per Unit:</strong> ${
+                        product.costPerUnit
+                      }<br>
+                      <strong>Số lượng/Amount:</strong> ${product.amount}<br>
+                      <strong>Thành tiền/Total Cost:</strong> ${
+                        product.totalCost
+                      }<br>
+                      ${
+                        product.note
+                          ? `<strong>Ghi chú/Note:</strong> ${product.note}<br>`
+                          : ""
+                      }
+                    </div>
+                  `
+                    )
+                    .join("")}
+                  <strong>Tổng chi phí/Grand Total Cost:</strong> ${
+                    purchasingDoc.grandTotalCost
+                  }<br>
+                  <strong>Phiếu đề xuất kèm theo/Appended Proposals:</strong><br>
+                    ${purchasingDoc.appendedProposals
                       .map(
-                        (product) => `
-                        <div>
-                            <p>${product.productName}</p>
-                            <p>Cost per Unit: ${product.costPerUnit}</p>
-                            <p>Amount: ${product.amount}</p>
-                            <p>Total: ${product.totalCost}</p>
-                        </div>
+                        (proposal) => `
+                      <div style="margin-left: 20px; border-left: 2px solid #ccc; padding-left: 10px;">
+                        <strong>Công việc/Task:</strong> ${proposal.task}<br>
+                        <strong>Trạm/Center:</strong> ${proposal.costCenter}<br>
+                        <strong>Ngày xảy ra lỗi/Date of Error:</strong> ${proposal.dateOfError}<br>
+                        <strong>Mô tả chi tiết/Details Description:</strong> ${proposal.detailsDescription}<br>
+                        <strong>Hướng xử lý/Direction:</strong> ${proposal.direction}<br>
+                      </div>
                     `
                       )
                       .join("")}
-                    <p><strong>Grand Total:</strong> ${doc.grandTotalCost}</p>
+                  </div>
+                  `
+                )
+                .join("")}
+                  </div>
                 `;
-        } else if (doc.type === "Thanh toán/Payment") {
+        } else if (doc.type === "Mua hàng/Purchasing") {
           content = `
-                    <p><strong>Name:</strong> ${doc.name}</p>
-                    <p><strong>Payment Method:</strong> ${doc.paymentMethod}</p>
-                    <p><strong>Total Payment:</strong> ${doc.totalPayment}</p>
-                    <p><strong>Advance Payment:</strong> ${doc.advancePayment}</p>
-                    <p><strong>Deadline:</strong> ${doc.paymentDeadline}</p>
-                `;
+            <h2>Phiếu mua hàng/Purchasing Document</h2>
+            <div>
+              <strong>Mã/Document ID:</strong> ${doc._id}<br>
+              <strong>Tiêu đề/Title:</strong> ${doc.title}<br>
+              <strong>Sản phẩm/Products:</strong><br>
+              ${doc.products
+                .map(
+                  (product) => `
+                <div>
+                  <strong>Tên sản phẩm/Product Name:</strong> ${
+                    product.productName
+                  }<br>
+                  <strong>Đơn giá/Cost Per Unit:</strong> ${
+                    product.costPerUnit
+                  }<br>
+                  <strong>Số lượng/Amount:</strong> ${product.amount}<br>
+                  <strong>Thành tiền/Total Cost:</strong> ${
+                    product.totalCost
+                  }<br>
+                  ${
+                    product.note
+                      ? `<strong>Ghi chú/Note:</strong> ${product.note}<br>`
+                      : ""
+                  }
+                </div>
+              `
+                )
+                .join("")}
+              <strong>Tổng chi phí/Grand Total Cost:</strong> ${
+                doc.grandTotalCost
+              }<br>
+              <strong>Ngày nộp/Submission Date:</strong> ${
+                doc.submissionDate
+              }<br>
+              <strong>Tình trạng/Status:</strong> ${doc.status}<br>
+              ${
+                doc.suspendReason
+                  ? `<strong>Lý do từ chôi/Suspend Reason:</strong> ${doc.suspendReason}<br>`
+                  : ""
+              }
+              <strong>Phiếu đề xuất kèm theo/Appended Proposals:</strong><br>
+              ${doc.appendedProposals
+                .map(
+                  (proposal) => `
+                <div>
+                  <strong>Công việc/Task:</strong> ${proposal.task}<br>
+                  <strong>Trạm/Center:</strong> ${proposal.costCenter}<br>
+                  <strong>Ngày xảy ra lỗi/Date of Error:</strong> ${proposal.dateOfError}<br>
+                  <strong>Mô tả chi tiết/Details Description:</strong> ${proposal.detailsDescription}<br>
+                  <strong>Hướng xử lý/Direction:</strong> ${proposal.direction}<br>
+                </div>
+              `
+                )
+                .join("")}
+            </div>
+          `;
+        } else if (doc.type === "Đề xuất/Proposal") {
+          content = `
+            <h2>Phiếu đề xuất/Proposal Document</h2>
+            <div>
+              <strong>Mã/Document ID:</strong> ${doc._id}<br>
+              <strong>Tiêu đề/Title:</strong> ${doc.title}<br>
+              <strong>Công việc/Task:</strong> ${doc.task}<br>
+              <strong>Trạm/Center:</strong> ${doc.costCenter}<br>
+              <strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
+                doc.dateOfError
+              }<br>
+              <strong>Mô tả chi tiết/Details Description:</strong> ${
+                doc.detailsDescription
+              }<br>
+              <strong>Hướng xử lý/Direction:</strong> ${doc.direction}<br>
+              <strong>Người xử lý/Submission Date:</strong> ${
+                doc.submissionDate
+              }<br>
+              <strong>Tình trạng/Status:</strong> ${doc.status}<br>
+              ${
+                doc.suspendReason
+                  ? `<strong>Lý do từ chối/Suspend Reason:</strong> ${doc.suspendReason}<br>`
+                  : ""
+              }
+            </div>
+          `;
         }
 
         return content;
@@ -707,11 +845,23 @@
 
           populateDocumentSelect();
           const selectedGroup = document.getElementById("group-select").value;
-          if (selectedGroup && groupedDocuments[selectedGroup]) {
-            displayGroupDocumentsForRemoval(
-              selectedGroup,
-              groupedDocuments[selectedGroup]
-            );
+
+          // Check if selectedGroup exists and has documents
+          if (selectedGroup) {
+            // Handle case when group exists but has no documents (empty array)
+            if (
+              groupedDocuments[selectedGroup] &&
+              groupedDocuments[selectedGroup].length > 0
+            ) {
+              displayGroupDocumentsForRemoval(
+                selectedGroup,
+                groupedDocuments[selectedGroup]
+              );
+            } else {
+              // Handle the case where the group is empty (no documents)
+              document.getElementById("remove-document-container").innerHTML =
+                "<p>Không có tài liệu trong nhóm này/No documents in this group</p>";
+            }
           }
         } catch (error) {
           console.error("Error refreshing data:", error);
@@ -726,7 +876,12 @@
           return;
         }
 
-        if (groupedDocuments && groupedDocuments[selectedGroup]) {
+        // Check if groupedDocuments exists, the selected group exists, and it has documents
+        if (
+          groupedDocuments &&
+          groupedDocuments[selectedGroup] &&
+          groupedDocuments[selectedGroup].length > 0
+        ) {
           displayGroupDocumentsForRemoval(
             selectedGroup,
             groupedDocuments[selectedGroup]
