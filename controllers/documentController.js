@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const moment = require("moment-timezone");
 const ProposalDocument = require("../models/ProposalDocument");
 const PurchasingDocument = require("../models/PurchasingDocument.js");
+const DeliveryDocument = require("../models/DeliveryDocument");
 const PaymentDocument = require("../models/PaymentDocument.js");
 const drive = require("../middlewares/googleAuthMiddleware.js");
 const { Readable } = require("stream");
@@ -259,7 +260,7 @@ exports.submitDocument = async (req, res) => {
         const folderId = process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID;
         const fileMetadata = {
           name: req.file.originalname,
-          parents: [folderId], // Replace with your Google Drive folder ID
+          parents: [folderId],
         };
         const media = {
           mimeType: req.file.mimetype,
@@ -294,7 +295,7 @@ exports.submitDocument = async (req, res) => {
           groupName: req.body.groupName,
           submittedBy: req.user.id,
           approvers: approverDetails,
-          fileMetadata: uploadedFileData, // Attach file data
+          fileMetadata: uploadedFileData,
           submissionDate: moment()
             .tz("Asia/Bangkok")
             .format("DD-MM-YYYY HH:mm:ss"),
@@ -355,7 +356,68 @@ exports.submitDocument = async (req, res) => {
           groupName: req.body.groupName,
           submittedBy: req.user.id,
           approvers: approverDetails,
-          fileMetadata: uploadedFileData || undefined,
+          fileMetadata: uploadedFileData,
+          submissionDate: moment()
+            .tz("Asia/Bangkok")
+            .format("DD-MM-YYYY HH:mm:ss"),
+        });
+      } else if (title === "Delivery Document") {
+        const productEntries = products.map((product) => ({
+          ...product,
+          note: product.note || "",
+          totalCost: parseFloat(product.costPerUnit * product.amount),
+        }));
+
+        const grandTotalCost = parseFloat(
+          productEntries.reduce((acc, product) => acc + product.totalCost, 0)
+        );
+
+        let appendedProposals = [];
+        if (approvedProposals && approvedProposals.length > 0) {
+          appendedProposals = await Promise.all(
+            approvedProposals.map(async (proposalId) => {
+              const proposal = await ProposalDocument.findById(proposalId);
+              if (proposal) {
+                const proposalFileMetadata =
+                  proposal.fileMetadata &&
+                  Object.keys(proposal.fileMetadata).length > 0
+                    ? {
+                        driveFileId: proposal.fileMetadata.driveFileId || "",
+                        name: proposal.fileMetadata.name || "",
+                        link: proposal.fileMetadata.link || "",
+                      }
+                    : undefined;
+
+                return {
+                  task: proposal.task,
+                  costCenter: proposal.costCenter,
+                  dateOfError: proposal.dateOfError,
+                  detailsDescription: proposal.detailsDescription,
+                  direction: proposal.direction,
+                  fileMetadata: proposalFileMetadata,
+                  proposalId: proposal._id,
+                };
+              }
+              return null;
+            })
+          );
+        }
+
+        appendedProposals = appendedProposals.filter(
+          (proposal) => proposal !== null
+        );
+
+        newDocument = new DeliveryDocument({
+          title,
+          name: req.body.name,
+          costCenter: req.body.costCenter,
+          products: productEntries,
+          grandTotalCost,
+          appendedProposals,
+          groupName: req.body.groupName,
+          submittedBy: req.user.id,
+          approvers: approverDetails,
+          fileMetadata: uploadedFileData,
           submissionDate: moment()
             .tz("Asia/Bangkok")
             .format("DD-MM-YYYY HH:mm:ss"),
@@ -418,7 +480,7 @@ exports.submitDocument = async (req, res) => {
           groupName: req.body.groupName,
           submittedBy: req.user.id,
           approvers: approverDetails,
-          fileMetadata: uploadedFileData, // Attach file data
+          fileMetadata: uploadedFileData,
           submissionDate: moment()
             .tz("Asia/Bangkok")
             .format("DD-MM-YYYY HH:mm:ss"),
