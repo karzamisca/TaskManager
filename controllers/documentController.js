@@ -21,6 +21,7 @@ const {
   createGenericDocTemplate,
   createProposalDocTemplate,
   createPurchasingDocTemplate,
+  createDeliveryDocTemplate,
   createPaymentDocTemplate,
 } = require("../utils/docxTemplates");
 // Configure multer
@@ -176,6 +177,7 @@ exports.exportDocumentToDocx = async (req, res) => {
       (await Document.findById(id)) ||
       (await ProposalDocument.findById(id)) ||
       (await PurchasingDocument.findById(id)) ||
+      (await DeliveryDocument.findById(id)) ||
       (await PaymentDocument.findById(id));
 
     if (!doc) {
@@ -193,6 +195,9 @@ exports.exportDocumentToDocx = async (req, res) => {
           break;
         case "Purchasing Document":
           buffer = await createPurchasingDocTemplate(doc);
+          break;
+        case "Delivery Document":
+          buffer = await createDeliveryDocTemplate(doc);
           break;
         case "Payment Document":
           buffer = await createPaymentDocTemplate(doc);
@@ -553,7 +558,8 @@ exports.approveDocument = async (req, res) => {
       (await Document.findById(id)) ||
       (await ProposalDocument.findById(id)) ||
       (await PurchasingDocument.findById(id)) ||
-      (await PaymentDocument.findById(id));
+      (await PaymentDocument.findById(id)) ||
+      (await DeliveryDocument.findById(id));
 
     if (!document) {
       return res.send("Không tìm thấy tài liệu/Document not found");
@@ -602,6 +608,8 @@ exports.approveDocument = async (req, res) => {
       await ProposalDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof PaymentDocument) {
       await PaymentDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof DeliveryDocument) {
+      await DeliveryDocument.findByIdAndUpdate(id, document);
     } else {
       await Document.findByIdAndUpdate(id, document);
     }
@@ -729,6 +737,10 @@ exports.deleteDocument = async (req, res) => {
       document = await PaymentDocument.findById(id);
       if (document) documentType = "Payment";
     }
+    if (!document && documentType === "Generic") {
+      document = await DeliveryDocument.findById(id);
+      if (document) documentType = "Delivery";
+    }
     if (!document) {
       return res.send("Document not found");
     }
@@ -740,6 +752,8 @@ exports.deleteDocument = async (req, res) => {
       await PurchasingDocument.findByIdAndDelete(id);
     } else if (documentType === "Payment") {
       await PaymentDocument.findByIdAndDelete(id);
+    } else if (documentType === "Delivery") {
+      await DeliveryDocument.findByIdAndDelete(id);
     } else {
       await Document.findByIdAndDelete(id);
     }
@@ -1345,6 +1359,162 @@ exports.updatePurchasingDocument = async (req, res) => {
     res.status(500).json({
       message: "Error updating document",
       error: error.message, // Include error message for debugging
+    });
+  }
+};
+
+// Fetch all Delivery Documents
+exports.getDeliveryDocumentsForSeparatedView = async (req, res) => {
+  try {
+    const deliveryDocuments = await DeliveryDocument.find({}).populate(
+      "submittedBy",
+      "username"
+    );
+
+    // Calculate sums for approved and unapproved documents
+    let approvedSum = 0;
+    let unapprovedSum = 0;
+    let approvedDocument = 0;
+    let unapprovedDocument = 0;
+
+    deliveryDocuments.forEach((doc) => {
+      if (doc.status === "Approved") {
+        approvedSum += doc.grandTotalCost;
+        approvedDocument += 1;
+      } else {
+        unapprovedSum += doc.grandTotalCost;
+        unapprovedDocument += 1;
+      }
+    });
+
+    res.json({
+      deliveryDocuments,
+      approvedSum,
+      unapprovedSum,
+      approvedDocument,
+      unapprovedDocument,
+    });
+  } catch (err) {
+    console.error("Error fetching delivery documents:", err);
+    res.status(500).send("Error fetching delivery documents");
+  }
+};
+// Fetch a specific Delivery Document by ID
+exports.getDeliveryDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const document = await DeliveryDocument.findById(id);
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+    res.json(document);
+  } catch (error) {
+    console.error("Error fetching delivery document:", error);
+    res.status(500).json({ message: "Error fetching document" });
+  }
+};
+// Update a Delivery Document
+exports.updateDeliveryDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const file = req.file;
+
+    // Parse the products JSON string into an object
+    let products;
+    try {
+      products = JSON.parse(req.body.products);
+    } catch (error) {
+      return res.status(400).json({ message: "Invalid products data format" });
+    }
+
+    // Parse grandTotalCost as a number
+    const grandTotalCost = parseFloat(req.body.grandTotalCost);
+    const name = req.body.name;
+    const costCenter = req.body.costCenter;
+
+    // Parse appendedProposals if it exists
+    let appendedProposals;
+    if (req.body.appendedProposals) {
+      try {
+        appendedProposals = JSON.parse(req.body.appendedProposals);
+      } catch (error) {
+        return res
+          .status(400)
+          .json({ message: "Invalid appendedProposals data format" });
+      }
+    }
+
+    const doc = await DeliveryDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Update basic fields
+    doc.products = products;
+    doc.grandTotalCost = grandTotalCost;
+    doc.name = name;
+    doc.costCenter = costCenter;
+    if (appendedProposals) {
+      doc.appendedProposals = appendedProposals;
+    }
+
+    // Handle file update if provided
+    if (file) {
+      // Delete old file from Google Drive if it exists
+      if (doc.fileMetadata?.driveFileId) {
+        try {
+          await drive.files.delete({
+            fileId: doc.fileMetadata.driveFileId,
+          });
+        } catch (error) {
+          console.error("Error deleting old file:", error);
+          // Continue execution even if file deletion fails
+        }
+      }
+
+      // Upload new file
+      const fileMetadata = {
+        name: file.originalname,
+        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
+      };
+      const media = {
+        mimeType: file.mimetype,
+        body: Readable.from(file.buffer),
+      };
+
+      const driveResponse = await drive.files.create({
+        resource: fileMetadata,
+        media: media,
+        fields: "id, webViewLink",
+      });
+
+      // Update file permissions
+      await drive.permissions.create({
+        fileId: driveResponse.data.id,
+        requestBody: {
+          role: "reader",
+          type: "anyone",
+        },
+      });
+
+      // Update document with new file metadata
+      doc.fileMetadata = {
+        driveFileId: driveResponse.data.id,
+        name: file.originalname,
+        link: driveResponse.data.webViewLink,
+      };
+    }
+
+    await doc.save();
+    res.json({
+      message: "Document updated successfully",
+      document: doc,
+    });
+  } catch (error) {
+    console.error("Error updating delivery document:", error);
+    res.status(500).json({
+      message: "Error updating document",
+      error: error.message,
     });
   }
 };

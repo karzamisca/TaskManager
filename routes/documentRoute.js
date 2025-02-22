@@ -205,4 +205,26 @@ router.post(
   documentController.updatePurchasingDocument
 );
 
+router.get("/separatedViewDeliveryDocument", authMiddleware, (req, res) => {
+  res.sendFile("separatedViewDeliveryDocument.html", {
+    root: "./views/approvals/documents/separatedViewDocuments",
+  });
+});
+router.get(
+  "/getDeliveryDocumentForSeparatedView",
+  authMiddleware,
+  documentController.getDeliveryDocumentsForSeparatedView
+);
+router.get(
+  "/getDeliveryDocument/:id",
+  authMiddleware,
+  documentController.getDeliveryDocument
+);
+router.post(
+  "/updateDeliveryDocument/:id",
+  upload.single("file"),
+  authMiddleware,
+  documentController.updateDeliveryDocument
+);
+
 module.exports = router;

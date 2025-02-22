@@ -406,6 +406,252 @@ const createPurchasingDocTemplate = async (doc) => {
   return Packer.toBuffer(docContent);
 };
 
+const createDeliveryDocTemplate = async (doc) => {
+  // Validate input document
+  if (!doc) {
+    throw new Error("Document is required");
+  }
+
+  // Populate referenced fields with error handling
+  try {
+    await doc.populate("submittedBy", "username");
+    await doc.populate({
+      path: "approvers.approver",
+      select: "username subRole",
+    });
+    await doc.populate({
+      path: "approvedBy.user",
+      select: "username",
+    });
+  } catch (error) {
+    console.error("Error populating document fields:", error);
+    throw new Error("Failed to populate document references");
+  }
+
+  // Validate required data
+  if (!doc.products || !Array.isArray(doc.products)) {
+    doc.products = []; // Initialize empty array if undefined
+    console.warn("Products array is missing or invalid in document");
+  }
+
+  if (!doc.approvers || !Array.isArray(doc.approvers)) {
+    doc.approvers = [];
+    console.warn("Approvers array is missing or invalid in document");
+  }
+
+  if (!doc.approvedBy || !Array.isArray(doc.approvedBy)) {
+    doc.approvedBy = [];
+    console.warn("ApprovedBy array is missing or invalid in document");
+  }
+
+  if (!doc.appendedContent || !Array.isArray(doc.appendedContent)) {
+    doc.appendedContent = [];
+  }
+
+  // Document content
+  const docContent = new Document({
+    sections: [
+      {
+        children: [
+          // Header
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: "Phiếu xuất kho/Delivery Document",
+                bold: true,
+                size: 32,
+              }),
+            ],
+          }),
+          new Paragraph({ text: `Mã phiếu/Document ID: ${doc._id}` }),
+          new Paragraph({ text: `Tên/Name: ${doc.name}` }),
+          new Paragraph({
+            text: `Được nộp bởi/Submitted By: ${
+              doc.submittedBy?.username || "Unknown"
+            }`,
+          }),
+          new Paragraph({ text: `Trạm/Center: ${doc.costCenter}` }),
+
+          // Products Table
+          new Paragraph({ text: "Sản phẩm/Products:", bold: true }),
+          new Table({
+            width: { size: 100, type: "pct" },
+            rows: [
+              // Table header
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph("Tên sản phẩm/Product Name")],
+                    width: { size: 25, type: "pct" },
+                  }),
+                  new TableCell({
+                    children: [new Paragraph("Đơn giá/Cost Per Unit")],
+                    width: { size: 20, type: "pct" },
+                  }),
+                  new TableCell({
+                    children: [new Paragraph("Số lượng/Amount")],
+                    width: { size: 15, type: "pct" },
+                  }),
+                  new TableCell({
+                    children: [new Paragraph("Tổng tiền/Total Cost")],
+                    width: { size: 20, type: "pct" },
+                  }),
+                  new TableCell({
+                    children: [new Paragraph("Ghi chú/Note")],
+                    width: { size: 20, type: "pct" },
+                  }),
+                ],
+              }),
+              // Product rows with null checking
+              ...(doc.products || []).map(
+                (product) =>
+                  new TableRow({
+                    children: [
+                      new TableCell({
+                        children: [new Paragraph(product.productName || "N/A")],
+                        width: { size: 25, type: "pct" },
+                      }),
+                      new TableCell({
+                        children: [
+                          new Paragraph(
+                            (product.costPerUnit || 0).toLocaleString()
+                          ),
+                        ],
+                        width: { size: 20, type: "pct" },
+                      }),
+                      new TableCell({
+                        children: [
+                          new Paragraph((product.amount || 0).toLocaleString()),
+                        ],
+                        width: { size: 15, type: "pct" },
+                      }),
+                      new TableCell({
+                        children: [
+                          new Paragraph(
+                            (product.totalCost || 0).toLocaleString()
+                          ),
+                        ],
+                        width: { size: 20, type: "pct" },
+                      }),
+                      new TableCell({
+                        children: [new Paragraph(product.note || "N/A")],
+                        width: { size: 20, type: "pct" },
+                      }),
+                    ],
+                  })
+              ),
+            ],
+          }),
+
+          // Grand Total Cost
+          new Paragraph({
+            text: `Chi phí/Grand Total Cost: ${(
+              doc.grandTotalCost || 0
+            ).toLocaleString()}`,
+            spacing: { before: 200 },
+          }),
+
+          // File Metadata with null checking
+          new Paragraph({
+            text: "Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:",
+            bold: true,
+          }),
+          doc.fileMetadata
+            ? new Paragraph({
+                children: [
+                  new ExternalHyperlink({
+                    children: [
+                      new TextRun({
+                        text: doc.fileMetadata.name,
+                        style: "Hyperlink",
+                      }),
+                    ],
+                    link: doc.fileMetadata.link,
+                  }),
+                ],
+              })
+            : new Paragraph({ text: "No file attached" }),
+
+          // Approvals with null checking
+          new Paragraph({ text: "Phê duyệt/Approvals:", bold: true }),
+          ...(doc.approvers || []).map((approver) => {
+            const approvalRecord = (doc.approvedBy || []).find(
+              (approval) =>
+                approval.user?.toString() === approver.approver?.toString()
+            );
+            return new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Người phê duyệt/Approver: ${
+                    approver.username || "Unknown"
+                  } (Vai trò/Role: ${approver.subRole || "Unknown"})`,
+                }),
+                new TextRun({
+                  text: approvalRecord
+                    ? ` - Vào lúc/Approved on ${
+                        approvalRecord.approvalDate || "Unknown date"
+                      }`
+                    : " - Chưa phê duyệt/Pending",
+                  italic: true,
+                }),
+              ],
+            });
+          }),
+
+          // Appended Content with null checking
+          new Paragraph({
+            text: "Phiếu đề xuất kèm theo/Appended Content:",
+            bold: true,
+          }),
+          ...(doc.appendedProposals || [])
+            .map((content) => [
+              new Paragraph({
+                text: `Công việc/Task: ${content.task || "N/A"}`,
+              }),
+              new Paragraph({
+                text: `Trạm/Center: ${content.costCenter || "N/A"}`,
+              }),
+              new Paragraph({
+                text: `Ngày xảy ra lỗi/Date of Error: ${
+                  content.dateOfError || "N/A"
+                }`,
+              }),
+              new Paragraph({
+                text: `Mô tả chi tiết/Details Description: ${
+                  content.detailsDescription || "N/A"
+                }`,
+              }),
+              new Paragraph({
+                text: `Hướng xử lý/Direction: ${content.direction || "N/A"}`,
+              }),
+              content.fileMetadata
+                ? new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: "Tệp đính kèm phiếu đề xuất/File attaches to proposal document: ",
+                      }),
+                      new ExternalHyperlink({
+                        children: [
+                          new TextRun({
+                            text: content.fileMetadata.name,
+                            style: "Hyperlink",
+                          }),
+                        ],
+                        link: content.fileMetadata.link,
+                      }),
+                    ],
+                  })
+                : new Paragraph({ text: "No Attached File" }),
+            ])
+            .flat(),
+        ],
+      },
+    ],
+  });
+
+  return Packer.toBuffer(docContent);
+};
+
 const createPaymentDocTemplate = async (doc) => {
   // Populate necessary fields
   await doc.populate("submittedBy", "username");
@@ -723,5 +969,6 @@ module.exports = {
   createGenericDocTemplate,
   createProposalDocTemplate,
   createPurchasingDocTemplate,
+  createDeliveryDocTemplate,
   createPaymentDocTemplate,
 };
