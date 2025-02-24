@@ -591,7 +591,11 @@
                   <strong>${product.productName}</strong><br>
                   Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
                   Số lượng/Amount: ${product.amount.toLocaleString()}<br>
+                  Thuế/Vat (%): ${(product.vat ?? 0).toLocaleString()}<br>
                   Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
+                  Thành tiền sau thuế/Total Cost After Vat: ${(
+                    product.totalCostAfterVat ?? product.totalCost
+                  ).toLocaleString()}<br>
                   Ghi chú/Notes: ${product.note || "None"}
                 </li>
               `

@@ -310,10 +310,17 @@ exports.submitDocument = async (req, res) => {
           ...product,
           note: product.note || "",
           totalCost: parseFloat(product.costPerUnit * product.amount),
+          totalCostAfterVat: parseFloat(
+            product.costPerUnit * product.amount +
+              product.costPerUnit * product.amount * (product.vat / 100)
+          ),
         }));
 
         const grandTotalCost = parseFloat(
-          productEntries.reduce((acc, product) => acc + product.totalCost, 0)
+          productEntries.reduce(
+            (acc, product) => acc + product.totalCostAfterVat,
+            0
+          )
         );
 
         // Handle multiple proposal documents
@@ -371,10 +378,17 @@ exports.submitDocument = async (req, res) => {
           ...product,
           note: product.note || "",
           totalCost: parseFloat(product.costPerUnit * product.amount),
+          totalCostAfterVat: parseFloat(
+            product.costPerUnit * product.amount +
+              product.costPerUnit * product.amount * (product.vat / 100)
+          ),
         }));
 
         const grandTotalCost = parseFloat(
-          productEntries.reduce((acc, product) => acc + product.totalCost, 0)
+          productEntries.reduce(
+            (acc, product) => acc + product.totalCostAfterVat,
+            0
+          )
         );
 
         let appendedProposals = [];

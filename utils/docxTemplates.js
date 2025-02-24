@@ -247,7 +247,17 @@ const createPurchasingDocTemplate = async (doc) => {
                     width: { size: 15, type: "pct" },
                   }),
                   new TableCell({
-                    children: [new Paragraph("Tổng tiền/Total Cost")],
+                    children: [new Paragraph("Thuế/Vat (%)")],
+                    width: { size: 15, type: "pct" },
+                  }),
+                  new TableCell({
+                    children: [new Paragraph("Thành tiền/Total Cost")],
+                    width: { size: 20, type: "pct" },
+                  }),
+                  new TableCell({
+                    children: [
+                      new Paragraph("Thành tiền sau thuế/Total Cost After Vat"),
+                    ],
                     width: { size: 20, type: "pct" },
                   }),
                   new TableCell({
@@ -281,8 +291,22 @@ const createPurchasingDocTemplate = async (doc) => {
                       }),
                       new TableCell({
                         children: [
+                          new Paragraph((product.vat || 0).toLocaleString()),
+                        ],
+                        width: { size: 15, type: "pct" },
+                      }),
+                      new TableCell({
+                        children: [
                           new Paragraph(
                             (product.totalCost || 0).toLocaleString()
+                          ),
+                        ],
+                        width: { size: 20, type: "pct" },
+                      }),
+                      new TableCell({
+                        children: [
+                          new Paragraph(
+                            (product.totalCostAfterVat || 0).toLocaleString()
                           ),
                         ],
                         width: { size: 20, type: "pct" },
@@ -493,7 +517,17 @@ const createDeliveryDocTemplate = async (doc) => {
                     width: { size: 15, type: "pct" },
                   }),
                   new TableCell({
-                    children: [new Paragraph("Tổng tiền/Total Cost")],
+                    children: [new Paragraph("Thuế/Vat (%)")],
+                    width: { size: 15, type: "pct" },
+                  }),
+                  new TableCell({
+                    children: [new Paragraph("Thành tiền/Total Cost")],
+                    width: { size: 20, type: "pct" },
+                  }),
+                  new TableCell({
+                    children: [
+                      new Paragraph("Thành tiền sau thuế/Total Cost After Vat"),
+                    ],
                     width: { size: 20, type: "pct" },
                   }),
                   new TableCell({
@@ -527,8 +561,22 @@ const createDeliveryDocTemplate = async (doc) => {
                       }),
                       new TableCell({
                         children: [
+                          new Paragraph((product.vat || 0).toLocaleString()),
+                        ],
+                        width: { size: 15, type: "pct" },
+                      }),
+                      new TableCell({
+                        children: [
                           new Paragraph(
                             (product.totalCost || 0).toLocaleString()
+                          ),
+                        ],
+                        width: { size: 20, type: "pct" },
+                      }),
+                      new TableCell({
+                        children: [
+                          new Paragraph(
+                            (product.totalCostAfterVat || 0).toLocaleString()
                           ),
                         ],
                         width: { size: 20, type: "pct" },
@@ -799,8 +847,20 @@ const createPaymentDocTemplate = async (doc) => {
                               width: { size: 15, type: "pct" },
                             }),
                             new TableCell({
+                              children: [new Paragraph("Thuế/Vat (%)")],
+                              width: { size: 15, type: "pct" },
+                            }),
+                            new TableCell({
                               children: [
                                 new Paragraph("Thành tiền/Total Cost"),
+                              ],
+                              width: { size: 20, type: "pct" },
+                            }),
+                            new TableCell({
+                              children: [
+                                new Paragraph(
+                                  "Thành tiền sau thuế/Total Cost After Vat"
+                                ),
                               ],
                               width: { size: 20, type: "pct" },
                             }),
@@ -837,9 +897,23 @@ const createPaymentDocTemplate = async (doc) => {
                                   width: { size: 15, type: "pct" },
                                 }),
                                 new TableCell({
+                                  children: [new Paragraph(product.vat || 0)],
+                                  width: { size: 15, type: "pct" },
+                                }),
+                                new TableCell({
                                   children: [
                                     new Paragraph(
                                       product.totalCost.toLocaleString()
+                                    ),
+                                  ],
+                                  width: { size: 20, type: "pct" },
+                                }),
+                                new TableCell({
+                                  children: [
+                                    new Paragraph(
+                                      (
+                                        product.totalCostAfterVat || 0
+                                      ).toLocaleString()
                                     ),
                                   ],
                                   width: { size: 20, type: "pct" },

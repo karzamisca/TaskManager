@@ -526,6 +526,7 @@
                 <label>Tên sản phẩm/Product Name</label><input type="text" name="products[0][productName]" required />
                 <label>Đơn giá/Cost per Unit</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
                 <label>Số lượng/Amount</label><input type="number" name="products[0][amount]" required />
+                <label>Thuế/Vat (%)</label><input type="number" name="products[0][vat]" required />
                 <label>Ghi chú/Note</label><input type="text" name="products[0][note]" />
               </div>
               <button type="button" onclick="addProductEntry()">Thêm sản phẩm/Add More Products</button>
@@ -573,6 +574,7 @@
                 <label>Tên sản phẩm/Product Name</label><input type="text" name="products[0][productName]" required />
                 <label>Đơn giá/Cost per Unit</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
                 <label>Số lượng/Amount</label><input type="number" name="products[0][amount]" required />
+                <label>Thuế/Vat (%)</label><input type="number" name="products[0][vat]" required />
                 <label>Ghi chú/Note</label><input type="text" name="products[0][note]" />
               </div>
               <button type="button" onclick="addProductEntry()">Thêm sản phẩm/Add More Products</button>
@@ -636,12 +638,13 @@
 
       function addProductEntry() {
         const productEntries = document.getElementById("product-entries");
-        const productCount = productEntries.children.length / 4;
+        const productCount = productEntries.children.length / 5;
 
         const newEntry = `
           <label>Tên sản phẩm/Product Name</label><input type="text" name="products[${productCount}][productName]" required />
           <label>Đơn giá/Cost per Unit</label><input type="number" name="products[${productCount}][costPerUnit]" required />
           <label>Số lượng/Amount</label><input type="number" name="products[${productCount}][amount]" required />
+          <label>Thuế/Vat</label><input type="number" name="products[${productCount}][vat]" required />
           <label>Ghi chú/Note</label><input type="text" name="products[${productCount}][note]" />
         `;
         productEntries.insertAdjacentHTML("beforeend", newEntry);
@@ -861,7 +864,9 @@
                                   <strong>${product.productName}</strong><br>
                                   Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
                                   Số lượng/Amount: ${product.amount.toLocaleString()}<br>
+                                  Thuế/Vat (%): ${product.vat.toLocaleString()}<br>
                                   Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
+                                  Thành tiền sau thuế/Total Cost After Vat: ${product.totalCostAfterVat.toLocaleString()}<br>
                                   Ghi chú/Notes: ${product.note || "None"}
                               </li>
                           `

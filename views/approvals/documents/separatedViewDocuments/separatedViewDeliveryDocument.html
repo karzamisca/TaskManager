@@ -411,7 +411,13 @@
                 <strong>${product.productName}</strong><br>
                 Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
                 Số lượng/Amount: ${product.amount.toLocaleString()}<br>
+                Thuế/Vat (%): ${
+                  product.vat.toLocaleString() || ""
+                }<br>                
                 Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
+                Thành tiền sau thuế/Total Cost After Vat: ${
+                  product.totalCostAfterVat.toLocaleString() || ""
+                }<br>                
                 ${product.note ? `Ghi chú/Notes: ${product.note}` : ""}
               </div>
             `
@@ -608,6 +614,9 @@
             <input type="number" placeholder="Số lượng/Amount" 
                    value="${product?.amount || ""}" required
                    style="width: 100%; padding: 8px;">
+            <input type="number" placeholder="Thuế/Vat (%)" 
+                   value="${product?.vat || ""}" required
+                   style="width: 100%; padding: 8px;">                   
             <input type="text" placeholder="Ghi chú/Note" 
                    value="${product?.note || ""}"
                    style="width: 100%; padding: 8px;">
@@ -701,12 +710,16 @@
           if (productInputs.length >= 4) {
             const costPerUnit = parseFloat(productInputs[1].value) || 0;
             const amount = parseInt(productInputs[2].value) || 0;
+            const vat = parseInt(productInputs[3].value) || 0;
 
             const product = {
               productName: productInputs[0].value,
               costPerUnit: costPerUnit,
               amount: amount,
+              vat: vat,
               totalCost: costPerUnit * amount,
+              totalCostAfterVat:
+                costPerUnit * amount + costPerUnit * amount * (vat / 100),
               note: productInputs[3].value,
             };
             products.push(product);
@@ -717,7 +730,7 @@
 
         // Calculate grand total
         const grandTotalCost = products.reduce(
-          (sum, product) => sum + product.totalCost,
+          (sum, product) => sum + product.totalCostAfterVat,
           0
         );
         formData.append("grandTotalCost", grandTotalCost);

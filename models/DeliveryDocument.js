@@ -10,7 +10,9 @@ const deliveryDocumentSchema = new mongoose.Schema({
       productName: { type: String, required: true },
       costPerUnit: { type: Number, required: true },
       amount: { type: Number, required: true },
+      vat: { type: Number, required: true, default: 0 },
       totalCost: { type: Number, required: true }, // Cost per unit x amount
+      totalCostAfterVat: { type: Number, required: true },
       note: { type: String },
     },
   ],
