@@ -480,9 +480,13 @@
 
             const row = document.createElement("tr");
             row.innerHTML = `
-                        <td>${doc.task || "-"} ${
-              doc.declaration ? `(Kê khai: ${doc.declaration})` : ""
-            }</td>
+                        <td>${doc.task || "-"} 
+                          ${
+                            doc.declaration
+                              ? `(Kê khai: ${doc.declaration})`
+                              : ""
+                          }
+                        </td>
                         <td>${doc.costCenter || "-"}</td>
                         <td>${doc.dateOfError || "-"}</td>
                         <td>${doc.detailsDescription || "-"}</td>

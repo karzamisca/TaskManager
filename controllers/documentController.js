@@ -1089,7 +1089,7 @@ exports.updatePaymentDocumentDeclaration = async (req, res) => {
     doc.declaration = declaration;
     await doc.save();
 
-    res.send("Declaration updated successfully");
+    res.send("Kê khai cập nhật thành công/Declaration updated successfully");
   } catch (error) {
     console.error("Error updating declaration:", error);
     res.status(500).json({ message: "Error updating declaration" });
@@ -1242,7 +1242,7 @@ exports.updateProposalDocumentDeclaration = async (req, res) => {
     doc.declaration = declaration;
     await doc.save();
 
-    res.send("Declaration updated successfully");
+    res.send("Kê khai cập nhật thành công/Declaration updated successfully");
   } catch (error) {
     console.error("Error updating declaration:", error);
     res.status(500).json({ message: "Error updating declaration" });
@@ -1398,6 +1398,31 @@ exports.updatePurchasingDocument = async (req, res) => {
       message: "Error updating document",
       error: error.message, // Include error message for debugging
     });
+  }
+};
+exports.updatePurchasingDocumentDeclaration = async (req, res) => {
+  const { id } = req.params;
+  const { declaration } = req.body;
+
+  try {
+    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
+
+    const doc = await PurchasingDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    doc.declaration = declaration;
+    await doc.save();
+
+    res.send("Kê khai cập nhật thành công/Declaration updated successfully");
+  } catch (error) {
+    console.error("Error updating declaration:", error);
+    res.status(500).json({ message: "Error updating declaration" });
   }
 };
 

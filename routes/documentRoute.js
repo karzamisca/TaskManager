@@ -209,6 +209,11 @@ router.post(
   authMiddleware,
   documentController.updatePurchasingDocument
 );
+router.post(
+  "/updatePurchasingDocumentDeclaration/:id",
+  authMiddleware,
+  documentController.updatePurchasingDocumentDeclaration
+);
 
 router.get("/separatedViewDeliveryDocument", authMiddleware, (req, res) => {
   res.sendFile("separatedViewDeliveryDocument.html", {
