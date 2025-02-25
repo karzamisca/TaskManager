@@ -174,6 +174,11 @@ router.post(
   authMiddleware,
   documentController.updateProposalDocument
 );
+router.post(
+  "/updateProposalDocumentDeclaration/:id",
+  authMiddleware,
+  documentController.updateProposalDocumentDeclaration
+);
 router.get(
   "/getProposalDocument/:id",
   authMiddleware,

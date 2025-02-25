@@ -1070,7 +1070,6 @@ exports.updatePaymentDocument = async (req, res) => {
     res.status(500).json({ message: "Error updating document" });
   }
 };
-
 exports.updatePaymentDocumentDeclaration = async (req, res) => {
   const { id } = req.params;
   const { declaration } = req.body;
@@ -1222,6 +1221,31 @@ exports.getProposalDocument = async (req, res) => {
   } catch (error) {
     console.error("Error fetching proposal document:", error);
     res.status(500).json({ message: "Error fetching document" });
+  }
+};
+exports.updateProposalDocumentDeclaration = async (req, res) => {
+  const { id } = req.params;
+  const { declaration } = req.body;
+
+  try {
+    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
+
+    const doc = await ProposalDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    doc.declaration = declaration;
+    await doc.save();
+
+    res.send("Declaration updated successfully");
+  } catch (error) {
+    console.error("Error updating declaration:", error);
+    res.status(500).json({ message: "Error updating declaration" });
   }
 };
 

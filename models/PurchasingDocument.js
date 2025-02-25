@@ -62,6 +62,7 @@ const purchasingDocumentSchema = new mongoose.Schema({
     enum: ["Pending", "Approved", "Suspended"], // Possible states
     default: "Pending",
   },
+  declaration: { type: String, default: "" },
   suspendReason: { type: String, default: "" },
   groupName: { type: String },
 });

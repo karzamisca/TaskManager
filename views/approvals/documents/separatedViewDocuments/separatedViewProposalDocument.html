@@ -480,7 +480,9 @@
 
             const row = document.createElement("tr");
             row.innerHTML = `
-                        <td>${doc.task || "-"}</td>
+                        <td>${doc.task || "-"} ${
+              doc.declaration ? `(Kê khai: ${doc.declaration})` : ""
+            }</td>
                         <td>${doc.costCenter || "-"}</td>
                         <td>${doc.dateOfError || "-"}</td>
                         <td>${doc.detailsDescription || "-"}</td>
@@ -513,6 +515,15 @@
                               ? `
                             <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
                               Phê duyệt/Approve
+                            </button>
+                          `
+                              : ""
+                          }
+                          ${
+                            doc.status === "Approved"
+                              ? `
+                            <button class="approve-btn" onclick="editDeclaration('${doc._id}')" style="margin-right: 5px;">
+                              Kê khai/Declaration
                             </button>
                           `
                               : ""
@@ -735,6 +746,80 @@
           showMessage("Error updating document", true);
         }
       }
+
+      function editDeclaration(docId) {
+        const doc = proposalDocuments.find((d) => d._id === docId);
+        if (!doc) return;
+
+        // Create a modal for editing the declaration
+        const modalHTML = `
+          <div id="declarationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+            <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-color); padding: 20px; width: 90%; max-width: 500px; border-radius: 8px;">
+              <span onclick="closeDeclarationModal()" style="position: absolute; right: 10px; top: 10px; cursor: pointer; font-size: 24px;">&times;</span>
+              <h2>Kê Khai/Declaration</h2>
+              <textarea id="declarationInput" style="width: 100%; height: 150px; padding: 10px; font-size: 16px;">${
+                doc.declaration || ""
+              }</textarea>
+              <button onclick="saveDeclaration('${docId}')" class="approve-btn" style="margin-top: 10px;">Lưu kê khai/Save Declaration</button>
+            </div>
+          </div>
+        `;
+
+        // Append the modal to the body
+        document.body.insertAdjacentHTML("beforeend", modalHTML);
+
+        // Show the modal
+        document.getElementById("declarationModal").style.display = "block";
+      }
+
+      function closeDeclarationModal() {
+        const modal = document.getElementById("declarationModal");
+        if (modal) {
+          modal.remove(); // Remove the modal from the DOM
+        }
+      }
+
+      async function saveDeclaration(docId) {
+        const declaration = document.getElementById("declarationInput").value;
+
+        try {
+          const response = await fetch(
+            `/updateProposalDocumentDeclaration/${docId}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ declaration }),
+            }
+          );
+
+          const message = await response.text();
+
+          if (response.ok) {
+            showMessage(message);
+            closeDeclarationModal();
+            fetchProposalDocuments(); // Refresh the document list
+          } else {
+            showMessage(message, true);
+          }
+        } catch (err) {
+          console.error("Error updating declaration:", err);
+          showMessage("Error updating declaration", true);
+        }
+      }
+
+      // Update window click event to close modals
+      window.onclick = function (event) {
+        const fullViewModal = document.getElementById("fullViewModal");
+        const editModal = document.getElementById("editModal");
+        if (event.target === fullViewModal) {
+          closeFullViewModal();
+        }
+        if (event.target === editModal) {
+          closeEditModal();
+        }
+      };
 
       // Modify the initialization code
       async function initializePage() {
