@@ -742,17 +742,24 @@
                 ${
                   doc.status === "Approved"
                     ? `
-                  <button class="approve-btn" onclick="editDeclaration('${doc._id}')" style="margin-right: 5px;">
-                    Kê khai/Declaration
-                  </button>
-                `
+                      <button class="approve-btn" onclick="editDeclaration('${doc._id}')" style="margin-right: 5px;">
+                        Kê khai/Declaration
+                      </button>
+                      <button class="approve-btn" onclick="suspendDocument('${doc._id}')">
+                        Từ chối/Suspend
+                      </button>
+                    `
                     : doc.status === "Suspended"
                     ? `
-                  <button class="approve-btn" onclick="openDocument('${doc._id}')">Mở/Open</button>
-                `
+                      <button class="approve-btn" onclick="openDocument('${doc._id}')">
+                        Mở/Open
+                      </button>
+                    `
                     : `
-                  <button class="approve-btn" onclick="suspendDocument('${doc._id}')">Từ chối/Suspend</button>
-                `
+                      <button class="approve-btn" onclick="suspendDocument('${doc._id}')">
+                        Từ chối/Suspend
+                      </button>
+                    `
                 }
               </td>
             `;
