@@ -77,6 +77,16 @@ cron.schedule("*/5 * * * *", async () => {
   }
 });
 
+// Cron job to ping the server every 5 minutes to keep it warm
+cron.schedule("*/5 * * * *", async () => {
+  try {
+    const serverUrl = `https://kylongtech.com` || `http://localhost:${PORT}`;
+    await axios.get(serverUrl);
+  } catch (error) {
+    console.error("Failed to ping server:", error.message);
+  }
+});
+
 // Cron job to send email notifications every 24 hours
 cron.schedule("0 */8 * * *", async () => {
   try {
