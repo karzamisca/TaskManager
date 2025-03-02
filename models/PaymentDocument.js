@@ -2,6 +2,7 @@
 const mongoose = require("mongoose");
 
 const paymentDocumentSchema = new mongoose.Schema({
+  tag: { type: String, required: true },
   title: { type: String, default: "Payment Document", required: true },
   name: { type: String, required: true },
   content: { type: String, required: true },

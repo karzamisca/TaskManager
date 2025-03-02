@@ -448,7 +448,7 @@
     <table>
       <thead>
         <tr>
-          <th>Tên/Name</th>
+          <th>Mã/Tag</th>
           <th>Nội dung/Content</th>
           <th>Phương thức trả tiền/Payment Method</th>
           <th>Tổng thanh toán/Total Payment</th>
@@ -699,7 +699,7 @@
 
             const row = document.createElement("tr");
             row.innerHTML = `
-              <td>${doc.name || "-"}</td>
+              <td>${doc.tag || "-"}</td>
               <td>${doc.content || "-"} ${
               doc.suspendReason
                 ? `(Lý do từ chối tài liệu: ${doc.suspendReason})`
@@ -1064,6 +1064,10 @@
               <h3>Thông tin cơ bản/Basic Information</h3>
               <div class="detail-grid">
                 <div class="detail-item">
+                  <span class="detail-label">Mã/Tag:</span>
+                  <span class="detail-value">${
+                    doc.tag || "Not specified"
+                  }</span>
                   <span class="detail-label">Tên/Name:</span>
                   <span class="detail-value">${
                     doc.name || "Not specified"

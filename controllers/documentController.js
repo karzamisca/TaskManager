@@ -458,7 +458,14 @@ exports.submitDocument = async (req, res) => {
           );
         }
 
+        // Format the submission date for both display and the tag
+        const now = moment().tz("Asia/Bangkok");
+        const submissionDateForTag = now.format("DDMMYYYYHHmmss");
+        // Create the tag by combining name and formatted date
+        const tag = `${req.body.name}${submissionDateForTag}`;
+
         newDocument = new PaymentDocument({
+          tag,
           title,
           name: req.body.name,
           content: req.body.content,
