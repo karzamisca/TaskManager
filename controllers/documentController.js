@@ -1253,6 +1253,99 @@ exports.updatePurchasingDocumentDeclaration = async (req, res) => {
     res.status(500).json({ message: "Error updating declaration" });
   }
 };
+exports.suspendPurchasingDocument = async (req, res) => {
+  const { id } = req.params;
+  const { suspendReason } = req.body;
+
+  try {
+    // Restrict access to only users with the role of "director"
+    if (req.user.role !== "headOfPurchasing") {
+      return res.send(
+        "Truy cập bị từ chối. Chỉ trưởng phòng mua hàng có quyền tạm dừng phiếu mua hàng./Access denied. Only Head of Purchasing Department can suspend purchasing documents."
+      );
+    }
+
+    // Find the document in any of the collections
+    let document =
+      (await Document.findById(id)) ||
+      (await ProposalDocument.findById(id)) ||
+      (await PurchasingDocument.findById(id)) ||
+      (await PaymentDocument.findById(id));
+
+    if (!document) {
+      return res.status(404).send("Không tìm thấy tài liệu/Document not found");
+    }
+
+    // Revert and lock all approval progress
+    document.approved = false;
+    document.approvedBy = []; // Clear all approvals
+    document.status = "Suspended"; // Add a new field for status
+    document.suspendReason = suspendReason; // Add suspend reason
+
+    // Save the document in the correct collection
+    if (document instanceof PurchasingDocument) {
+      await PurchasingDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof ProposalDocument) {
+      await ProposalDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof PaymentDocument) {
+      await PaymentDocument.findByIdAndUpdate(id, document);
+    } else {
+      await Document.findByIdAndUpdate(id, document);
+    }
+
+    res.send(
+      "Tài liệu đã được tạm dừng thành công./Document has been suspended successfully."
+    );
+  } catch (err) {
+    console.error("Lỗi khi tạm dừng tài liệu/Error suspending document:", err);
+    res.status(500).send("Lỗi khi tạm dừng tài liệu/Error suspending document");
+  }
+};
+exports.openPurchasingDocument = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Restrict access to only users with the role of "director"
+    if (req.user.role !== "headOfPurchasing") {
+      return res.send(
+        "Truy cập bị từ chối. Chỉ trưởng phòng mua hàng có quyền mở lại phiếu mua hàng./Access denied. Only Head of Purchasing Department can reopen purchasing documents."
+      );
+    }
+
+    // Find the document in any of the collections
+    let document =
+      (await Document.findById(id)) ||
+      (await ProposalDocument.findById(id)) ||
+      (await PurchasingDocument.findById(id)) ||
+      (await PaymentDocument.findById(id));
+
+    if (!document) {
+      return res.status(404).send("Không tìm thấy tài liệu/Document not found");
+    }
+
+    // Revert the suspension
+    document.status = "Pending"; // Change status back to pending
+    document.suspendReason = ""; // Clear suspend reason
+
+    // Save the document in the correct collection
+    if (document instanceof PurchasingDocument) {
+      await PurchasingDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof ProposalDocument) {
+      await ProposalDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof PaymentDocument) {
+      await PaymentDocument.findByIdAndUpdate(id, document);
+    } else {
+      await Document.findByIdAndUpdate(id, document);
+    }
+
+    res.send(
+      "Tài liệu đã được mở lại thành công./Document has been reopened successfully."
+    );
+  } catch (err) {
+    console.error("Lỗi khi mở lại tài liệu/Error reopening document:", err);
+    res.status(500).send("Lỗi khi mở lại tài liệu/Error reopening document");
+  }
+};
 //// END OF PURCHASING DOCUMENT CONTROLLER
 
 //// PAYMENT DOCUMENT CONTROLLER

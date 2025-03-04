@@ -175,6 +175,16 @@ router.post(
   authMiddleware,
   documentController.updatePurchasingDocumentDeclaration
 );
+router.post(
+  "/suspendPurchasingDocument/:id",
+  authMiddleware,
+  documentController.suspendPurchasingDocument
+);
+router.post(
+  "/openPurchasingDocument/:id",
+  authMiddleware,
+  documentController.openPurchasingDocument
+);
 //// END OF PURCHASING DOCUMENT ROUTE
 
 //// PAYMENT DOCUMENT ROUTE
