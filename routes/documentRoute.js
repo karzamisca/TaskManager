@@ -10,21 +10,19 @@ const authMiddleware = require("../middlewares/authMiddleware");
 const storage = multer.memoryStorage(); // Store file in memory (buffer)
 const upload = multer({ storage: storage });
 
+//// GENERAL ROUTE
 // Main single document approval page route
 router.get("/mainDocument", authMiddleware, (req, res) => {
   res.sendFile("mainDocument.html", { root: "./views/approvals/documents" }); // Serve the submit document page
 });
-
 // Main approval page route
 router.get("/mainApproval", authMiddleware, (req, res) => {
   res.sendFile("mainApproval.html", { root: "./views/approvals" }); // Serve the submit document page
 });
-
 // Submit document route
 router.get("/submitDocument", authMiddleware, (req, res) => {
   res.sendFile("submitDocument.html", { root: "./views/approvals/documents" }); // Serve the submit document page
 });
-
 // For restricting cost center
 // Route to fetch cost centers
 router.get(
@@ -33,13 +31,11 @@ router.get(
   documentController.getCurrentUser
 );
 router.get("/costCenters", authMiddleware, documentController.getCostCenters);
-
 router.post(
   "/submitDocument",
   authMiddleware,
   documentController.submitDocument
 );
-
 // Approve document route
 router.get(
   "/approveDocument",
@@ -51,14 +47,17 @@ router.post(
   authMiddleware,
   documentController.approveDocument
 );
-
+router.get(
+  "/exportDocumentToDocx/:id",
+  authMiddleware,
+  documentController.exportDocumentToDocx
+);
 // View approved documents route
 router.get(
   "/viewApprovedDocument",
   authMiddleware,
   documentController.getApprovedDocument
 );
-
 // API routes to fetch documents
 router.get(
   "/pendingDocument",
@@ -70,57 +69,21 @@ router.get(
   authMiddleware,
   documentController.getApprovedDocumentApi
 );
-
 router.post(
   "/deleteDocument/:id",
   authMiddleware,
   documentController.deleteDocument
 );
-
 router.post(
   "/suspendDocument/:id",
   authMiddleware,
   documentController.suspendDocument
 );
-
 router.post(
   "/openDocument/:id",
   authMiddleware,
   documentController.openDocument
 );
-
-router.get(
-  "/approvedProposalDocuments",
-  authMiddleware,
-  documentController.getApprovedProposalDocuments
-);
-
-router.get(
-  "/proposalDocument/:id",
-  authMiddleware,
-  documentController.getProposalDocumentById
-);
-
-// Route to fetch all approved Purchasing Documents
-router.get(
-  "/approvedPurchasingDocuments",
-  authMiddleware,
-  documentController.getApprovedPurchasingDocuments
-);
-
-// Route to fetch a specific Purchasing Document by ID
-router.get(
-  "/purchasingDocument/:id",
-  authMiddleware,
-  documentController.getPurchasingDocumentById
-);
-
-router.get(
-  "/exportDocumentToDocx/:id",
-  authMiddleware,
-  documentController.exportDocumentToDocx
-);
-
 router.get("/getGroupDocument", authMiddleware, async (req, res) => {
   try {
     const groups = await Group.find({}, "name");
@@ -129,35 +92,19 @@ router.get("/getGroupDocument", authMiddleware, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+//// END OF GENERAL ROUTE
 
-// Routes to fetch payment documents and calculate sums
-router.get("/separatedViewPaymentDocument", authMiddleware, (req, res) => {
-  res.sendFile("separatedViewPaymentDocument.html", {
-    root: "./views/approvals/documents/separatedViewDocuments",
-  });
-});
+//// PROPOSAL DOCUMENT ROUTE
 router.get(
-  "/getPaymentDocumentForSeparatedView",
+  "/approvedProposalDocuments",
   authMiddleware,
-  documentController.getPaymentDocumentForSeparatedView
-);
-router.post(
-  "/updatePaymentDocument/:id",
-  upload.single("file"),
-  authMiddleware,
-  documentController.updatePaymentDocument
-);
-router.post(
-  "/updatePaymentDocumentDeclaration/:id",
-  authMiddleware,
-  documentController.updatePaymentDocumentDeclaration
+  documentController.getApprovedProposalDocuments
 );
 router.get(
-  "/getPaymentDocument/:id",
+  "/proposalDocument/:id",
   authMiddleware,
-  documentController.getPaymentDocument
+  documentController.getProposalDocumentById
 );
-
 router.get("/separatedViewProposalDocument", authMiddleware, (req, res) => {
   res.sendFile("separatedViewProposalDocument.html", {
     root: "./views/approvals/documents/separatedViewDocuments",
@@ -184,7 +131,21 @@ router.get(
   authMiddleware,
   documentController.getProposalDocument
 );
+//// END OF PROPOSAL DOCUMENT ROUTE
 
+//// PURCHASING DOCUMENT ROUTE
+// Route to fetch all approved Purchasing Documents
+router.get(
+  "/approvedPurchasingDocuments",
+  authMiddleware,
+  documentController.getApprovedPurchasingDocuments
+);
+// Route to fetch a specific Purchasing Document by ID
+router.get(
+  "/purchasingDocument/:id",
+  authMiddleware,
+  documentController.getPurchasingDocumentById
+);
 router.get("/separatedViewPurchasingDocument", authMiddleware, (req, res) => {
   res.sendFile("separatedViewPurchasingDocument.html", {
     root: "./views/approvals/documents/separatedViewDocuments",
@@ -214,7 +175,39 @@ router.post(
   authMiddleware,
   documentController.updatePurchasingDocumentDeclaration
 );
+//// END OF PURCHASING DOCUMENT ROUTE
 
+//// PAYMENT DOCUMENT ROUTE
+// Routes to fetch payment documents and calculate sums
+router.get("/separatedViewPaymentDocument", authMiddleware, (req, res) => {
+  res.sendFile("separatedViewPaymentDocument.html", {
+    root: "./views/approvals/documents/separatedViewDocuments",
+  });
+});
+router.get(
+  "/getPaymentDocumentForSeparatedView",
+  authMiddleware,
+  documentController.getPaymentDocumentForSeparatedView
+);
+router.post(
+  "/updatePaymentDocument/:id",
+  upload.single("file"),
+  authMiddleware,
+  documentController.updatePaymentDocument
+);
+router.post(
+  "/updatePaymentDocumentDeclaration/:id",
+  authMiddleware,
+  documentController.updatePaymentDocumentDeclaration
+);
+router.get(
+  "/getPaymentDocument/:id",
+  authMiddleware,
+  documentController.getPaymentDocument
+);
+//// END OF PAYMENT DOCUMENT ROUTE
+
+//// DELIVERY DOCUMENT ROUTE
 router.get("/separatedViewDeliveryDocument", authMiddleware, (req, res) => {
   res.sendFile("separatedViewDeliveryDocument.html", {
     root: "./views/approvals/documents/separatedViewDocuments",
@@ -236,5 +229,6 @@ router.post(
   authMiddleware,
   documentController.updateDeliveryDocument
 );
+//// END OF DELIVERY DOCUMENT ROUTE
 
 module.exports = router;

@@ -43,6 +43,7 @@ const CHATFUEL_BOT_ID = process.env.CHATFUEL_BOT_ID;
 const CHATFUEL_TOKEN = process.env.CHATFUEL_TOKEN;
 const CHATFUEL_BLOCK_ID = process.env.CHATFUEL_BLOCK_ID;
 
+//// GENERAL CONTROLLER
 async function sendChatfuelMessage(userId) {
   // Construct the full URL with required parameters
   const url = `https://api.chatfuel.com/bots/${CHATFUEL_BOT_ID}/users/${userId}/send?chatfuel_token=${CHATFUEL_TOKEN}&chatfuel_block_id=${CHATFUEL_BLOCK_ID}`;
@@ -61,7 +62,6 @@ async function sendChatfuelMessage(userId) {
     );
   }
 }
-
 exports.sendPendingApprovalChatfuelMessages = async (allDocuments) => {
   try {
     // Group documents by approver
@@ -97,7 +97,6 @@ function generateRandomString(length) {
   }
   return result;
 }
-
 // Fetch all cost centers
 exports.getCurrentUser = (req, res) => {
   if (req.user) {
@@ -125,7 +124,6 @@ exports.getCostCenters = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 exports.sendPendingApprovalEmails = async (allDocuments) => {
   try {
     // Group documents by approver
@@ -169,7 +167,6 @@ exports.sendPendingApprovalEmails = async (allDocuments) => {
     console.error("Error sending pending approval emails:", error);
   }
 };
-
 exports.exportDocumentToDocx = async (req, res) => {
   const { id } = req.params;
   try {
@@ -223,7 +220,6 @@ exports.exportDocumentToDocx = async (req, res) => {
     res.send("Lỗi xuất tài liệu/Error exporting document");
   }
 };
-
 exports.submitDocument = async (req, res) => {
   upload.single("file")(req, res, async (err) => {
     if (err) {
@@ -523,7 +519,6 @@ exports.submitDocument = async (req, res) => {
     }
   });
 };
-
 exports.getPendingDocument = async (req, res) => {
   try {
     const pendingPurchasingDocs = await PurchasingDocument.find({
@@ -556,7 +551,6 @@ exports.getPendingDocument = async (req, res) => {
     res.send("Lỗi lấy tài liệu/Error fetching pending documents");
   }
 };
-
 exports.approveDocument = async (req, res) => {
   const { id } = req.params;
   try {
@@ -647,7 +641,6 @@ exports.approveDocument = async (req, res) => {
     return res.send("Lỗi phê duyệt tài liệu/Error approving document");
   }
 };
-
 exports.getApprovedDocument = async (req, res) => {
   try {
     const approvedGenericDocs = await Document.find({
@@ -680,7 +673,6 @@ exports.getApprovedDocument = async (req, res) => {
     res.send("Lỗi lấy tài liệu đã phê duyệt/Error fetching approved documents");
   }
 };
-
 exports.getPendingDocumentApi = async (req, res) => {
   try {
     const pendingGenericDocs = await Document.find({
@@ -711,7 +703,6 @@ exports.getPendingDocumentApi = async (req, res) => {
     );
   }
 };
-
 exports.getApprovedDocumentApi = async (req, res) => {
   try {
     const approvedGenericDocs = await Document.find({
@@ -740,7 +731,6 @@ exports.getApprovedDocumentApi = async (req, res) => {
     res.send("Lỗi lấy tài liệu đã phê duyệt/Error fetching approved documents");
   }
 };
-
 exports.deleteDocument = async (req, res) => {
   const { id } = req.params;
   try {
@@ -787,7 +777,6 @@ exports.deleteDocument = async (req, res) => {
     res.send("Lỗi xóa tài liệu/Error deleting document");
   }
 };
-
 exports.suspendDocument = async (req, res) => {
   const { id } = req.params;
   const { suspendReason } = req.body;
@@ -836,7 +825,6 @@ exports.suspendDocument = async (req, res) => {
     res.status(500).send("Lỗi khi tạm dừng tài liệu/Error suspending document");
   }
 };
-
 exports.openDocument = async (req, res) => {
   const { id } = req.params;
 
@@ -882,7 +870,9 @@ exports.openDocument = async (req, res) => {
     res.status(500).send("Lỗi khi mở lại tài liệu/Error reopening document");
   }
 };
+//// END OF GENERAL CONTROLLER
 
+//// PROPOSAL DOCUMENT CONTROLLER
 exports.getApprovedProposalDocuments = async (req, res) => {
   try {
     const approvedProposals = await ProposalDocument.find({
@@ -896,7 +886,6 @@ exports.getApprovedProposalDocuments = async (req, res) => {
     );
   }
 };
-
 exports.getProposalDocumentById = async (req, res) => {
   try {
     const proposal = await ProposalDocument.findById(req.params.id);
@@ -907,203 +896,6 @@ exports.getProposalDocumentById = async (req, res) => {
     res.send("Lỗi lấy tài liệu đề xuất/Error fetching proposal document");
   }
 };
-
-exports.getApprovedPurchasingDocuments = async (req, res) => {
-  try {
-    const approvedPurchasingDocs = await PurchasingDocument.find({
-      status: "Approved",
-    });
-    res.json(approvedPurchasingDocs);
-  } catch (err) {
-    console.error("Error fetching approved purchasing documents:", err);
-    res.send(
-      "Lỗi lấy tài liệu mua hàng đã phê duyệt/Error fetching approved purchasing documents"
-    );
-  }
-};
-
-exports.getPurchasingDocumentById = async (req, res) => {
-  try {
-    const purchasingDoc = await PurchasingDocument.findById(req.params.id);
-    if (!purchasingDoc)
-      return res.send(
-        "Không tìm thấy tài liệu mua hàng/Purchasing document not found"
-      );
-    res.json(purchasingDoc);
-  } catch (err) {
-    console.error("Error fetching purchasing document:", err);
-    res.send("Lỗi lấy tài liệu mua hàng/Error fetching purchasing document");
-  }
-};
-
-exports.getPaymentDocumentForSeparatedView = async (req, res) => {
-  try {
-    const paymentDocuments = await PaymentDocument.find({});
-    // Calculate the sum of totalPayment for approved and unapproved documents
-    let approvedSum = 0; // Sum for documents with only one approver left
-    let paidSum = 0; // Sum for fully approved documents
-    let unapprovedSum = 0;
-    let approvedDocument = 0;
-    let unapprovedDocument = 0;
-
-    paymentDocuments.forEach((doc) => {
-      // Calculate paidSum based on the new logic
-      if (doc.status === "Approved") {
-        // If advance payment equals 0, then paid sum equals total payment
-        if (doc.advancePayment === 0) {
-          paidSum += doc.totalPayment;
-        }
-        // If total payment equals 0, then paid sum equals advance payment
-        else if (doc.totalPayment === 0) {
-          paidSum += doc.advancePayment;
-        }
-        // Otherwise, paid sum equals total payment minus advance payment
-        else {
-          paidSum += doc.totalPayment - doc.advancePayment;
-        }
-
-        approvedDocument += 1;
-      } else if (doc.approvers.length - doc.approvedBy.length === 1) {
-        approvedSum += doc.totalPayment; // Only one approver left
-        unapprovedDocument += 1;
-      } else {
-        unapprovedSum += doc.totalPayment; // More than one approver left
-        unapprovedDocument += 1;
-      }
-    });
-
-    res.json({
-      paymentDocuments,
-      approvedSum,
-      paidSum,
-      unapprovedSum,
-      approvedDocument,
-      unapprovedDocument,
-    });
-  } catch (err) {
-    console.error("Error fetching payment documents:", err);
-    res.status(500).send("Error fetching payment documents");
-  }
-};
-exports.getPaymentDocument = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const document = await PaymentDocument.findById(id);
-
-    if (!document) {
-      return res.status(404).json({ message: "Document not found" });
-    }
-
-    res.json(document);
-  } catch (error) {
-    console.error("Error fetching payment document:", error);
-    res.status(500).json({ message: "Error fetching document" });
-  }
-};
-exports.updatePaymentDocument = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      name,
-      content,
-      paymentMethod,
-      totalPayment,
-      advancePayment,
-      paymentDeadline,
-    } = req.body;
-    const file = req.file;
-
-    const doc = await PaymentDocument.findById(id);
-    if (!doc) {
-      return res.status(404).json({ message: "Document not found" });
-    }
-
-    // Update basic fields
-    doc.name = name;
-    doc.content = content;
-    doc.paymentMethod = paymentMethod;
-    doc.totalPayment = parseFloat(totalPayment);
-    doc.advancePayment = parseFloat(advancePayment);
-    doc.paymentDeadline = paymentDeadline;
-
-    // Handle file update if provided
-    if (file) {
-      // Delete old file from Google Drive if it exists
-      if (doc.fileMetadata?.driveFileId) {
-        try {
-          await drive.files.delete({
-            fileId: doc.fileMetadata.driveFileId,
-          });
-        } catch (error) {
-          console.error("Error deleting old file:", error);
-        }
-      }
-
-      // Upload new file
-      const fileMetadata = {
-        name: file.originalname,
-        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
-      };
-      const media = {
-        mimeType: file.mimetype,
-        body: Readable.from(file.buffer),
-      };
-      const driveResponse = await drive.files.create({
-        resource: fileMetadata,
-        media: media,
-        fields: "id, webViewLink",
-      });
-
-      // Update file permissions
-      await drive.permissions.create({
-        fileId: driveResponse.data.id,
-        requestBody: {
-          role: "reader",
-          type: "anyone",
-        },
-      });
-
-      // Update document with new file metadata
-      doc.fileMetadata = {
-        driveFileId: driveResponse.data.id,
-        name: file.originalname,
-        link: driveResponse.data.webViewLink,
-      };
-    }
-
-    await doc.save();
-    res.json({ message: "Document updated successfully" });
-  } catch (error) {
-    console.error("Error updating payment document:", error);
-    res.status(500).json({ message: "Error updating document" });
-  }
-};
-exports.updatePaymentDocumentDeclaration = async (req, res) => {
-  const { id } = req.params;
-  const { declaration } = req.body;
-
-  try {
-    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
-    }
-
-    const doc = await PaymentDocument.findById(id);
-    if (!doc) {
-      return res.status(404).json({ message: "Document not found" });
-    }
-
-    doc.declaration = declaration;
-    await doc.save();
-
-    res.send("Kê khai cập nhật thành công/Declaration updated successfully");
-  } catch (error) {
-    console.error("Error updating declaration:", error);
-    res.status(500).json({ message: "Error updating declaration" });
-  }
-};
-
 exports.updateProposalDocument = async (req, res) => {
   try {
     const { id } = req.params;
@@ -1256,7 +1048,35 @@ exports.updateProposalDocumentDeclaration = async (req, res) => {
     res.status(500).json({ message: "Error updating declaration" });
   }
 };
+//// END OF PROPOSAL DOCUMENT CONTROLLER
 
+//// PURCHASING DOCUMENT CONTROLLER
+exports.getApprovedPurchasingDocuments = async (req, res) => {
+  try {
+    const approvedPurchasingDocs = await PurchasingDocument.find({
+      status: "Approved",
+    });
+    res.json(approvedPurchasingDocs);
+  } catch (err) {
+    console.error("Error fetching approved purchasing documents:", err);
+    res.send(
+      "Lỗi lấy tài liệu mua hàng đã phê duyệt/Error fetching approved purchasing documents"
+    );
+  }
+};
+exports.getPurchasingDocumentById = async (req, res) => {
+  try {
+    const purchasingDoc = await PurchasingDocument.findById(req.params.id);
+    if (!purchasingDoc)
+      return res.send(
+        "Không tìm thấy tài liệu mua hàng/Purchasing document not found"
+      );
+    res.json(purchasingDoc);
+  } catch (err) {
+    console.error("Error fetching purchasing document:", err);
+    res.send("Lỗi lấy tài liệu mua hàng/Error fetching purchasing document");
+  }
+};
 // Fetch all Purchasing Documents
 exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
   try {
@@ -1433,7 +1253,179 @@ exports.updatePurchasingDocumentDeclaration = async (req, res) => {
     res.status(500).json({ message: "Error updating declaration" });
   }
 };
+//// END OF PURCHASING DOCUMENT CONTROLLER
 
+//// PAYMENT DOCUMENT CONTROLLER
+exports.getPaymentDocumentForSeparatedView = async (req, res) => {
+  try {
+    const paymentDocuments = await PaymentDocument.find({});
+    // Calculate the sum of totalPayment for approved and unapproved documents
+    let approvedSum = 0; // Sum for documents with only one approver left
+    let paidSum = 0; // Sum for fully approved documents
+    let unapprovedSum = 0;
+    let approvedDocument = 0;
+    let unapprovedDocument = 0;
+
+    paymentDocuments.forEach((doc) => {
+      // Calculate paidSum based on the new logic
+      if (doc.status === "Approved") {
+        // If advance payment equals 0, then paid sum equals total payment
+        if (doc.advancePayment === 0) {
+          paidSum += doc.totalPayment;
+        }
+        // If total payment equals 0, then paid sum equals advance payment
+        else if (doc.totalPayment === 0) {
+          paidSum += doc.advancePayment;
+        }
+        // Otherwise, paid sum equals total payment minus advance payment
+        else {
+          paidSum += doc.totalPayment - doc.advancePayment;
+        }
+
+        approvedDocument += 1;
+      } else if (doc.approvers.length - doc.approvedBy.length === 1) {
+        approvedSum += doc.totalPayment; // Only one approver left
+        unapprovedDocument += 1;
+      } else {
+        unapprovedSum += doc.totalPayment; // More than one approver left
+        unapprovedDocument += 1;
+      }
+    });
+
+    res.json({
+      paymentDocuments,
+      approvedSum,
+      paidSum,
+      unapprovedSum,
+      approvedDocument,
+      unapprovedDocument,
+    });
+  } catch (err) {
+    console.error("Error fetching payment documents:", err);
+    res.status(500).send("Error fetching payment documents");
+  }
+};
+exports.getPaymentDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const document = await PaymentDocument.findById(id);
+
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    res.json(document);
+  } catch (error) {
+    console.error("Error fetching payment document:", error);
+    res.status(500).json({ message: "Error fetching document" });
+  }
+};
+exports.updatePaymentDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      content,
+      paymentMethod,
+      totalPayment,
+      advancePayment,
+      paymentDeadline,
+    } = req.body;
+    const file = req.file;
+
+    const doc = await PaymentDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Update basic fields
+    doc.name = name;
+    doc.content = content;
+    doc.paymentMethod = paymentMethod;
+    doc.totalPayment = parseFloat(totalPayment);
+    doc.advancePayment = parseFloat(advancePayment);
+    doc.paymentDeadline = paymentDeadline;
+
+    // Handle file update if provided
+    if (file) {
+      // Delete old file from Google Drive if it exists
+      if (doc.fileMetadata?.driveFileId) {
+        try {
+          await drive.files.delete({
+            fileId: doc.fileMetadata.driveFileId,
+          });
+        } catch (error) {
+          console.error("Error deleting old file:", error);
+        }
+      }
+
+      // Upload new file
+      const fileMetadata = {
+        name: file.originalname,
+        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
+      };
+      const media = {
+        mimeType: file.mimetype,
+        body: Readable.from(file.buffer),
+      };
+      const driveResponse = await drive.files.create({
+        resource: fileMetadata,
+        media: media,
+        fields: "id, webViewLink",
+      });
+
+      // Update file permissions
+      await drive.permissions.create({
+        fileId: driveResponse.data.id,
+        requestBody: {
+          role: "reader",
+          type: "anyone",
+        },
+      });
+
+      // Update document with new file metadata
+      doc.fileMetadata = {
+        driveFileId: driveResponse.data.id,
+        name: file.originalname,
+        link: driveResponse.data.webViewLink,
+      };
+    }
+
+    await doc.save();
+    res.json({ message: "Document updated successfully" });
+  } catch (error) {
+    console.error("Error updating payment document:", error);
+    res.status(500).json({ message: "Error updating document" });
+  }
+};
+exports.updatePaymentDocumentDeclaration = async (req, res) => {
+  const { id } = req.params;
+  const { declaration } = req.body;
+
+  try {
+    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
+
+    const doc = await PaymentDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    doc.declaration = declaration;
+    await doc.save();
+
+    res.send("Kê khai cập nhật thành công/Declaration updated successfully");
+  } catch (error) {
+    console.error("Error updating declaration:", error);
+    res.status(500).json({ message: "Error updating declaration" });
+  }
+};
+//// END OF PAYMENT DOCUMENT CONTROLLER
+
+//// DELIVERY DOCUMENT CONTROLLER
 // Fetch all Delivery Documents
 exports.getDeliveryDocumentsForSeparatedView = async (req, res) => {
   try {
@@ -1589,3 +1581,4 @@ exports.updateDeliveryDocument = async (req, res) => {
     });
   }
 };
+//// END OF DELIVERY DOCUMENT CONTROLLER
