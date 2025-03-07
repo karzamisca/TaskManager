@@ -1624,6 +1624,18 @@ exports.updateDeliveryDocument = async (req, res) => {
       }
     }
 
+    // Parse approvers if it exists
+    let approvers;
+    if (req.body.approvers) {
+      try {
+        approvers = JSON.parse(req.body.approvers);
+      } catch (error) {
+        return res
+          .status(400)
+          .json({ message: "Invalid approvers data format" });
+      }
+    }
+
     const doc = await DeliveryDocument.findById(id);
     if (!doc) {
       return res.status(404).json({ message: "Document not found" });
@@ -1636,6 +1648,11 @@ exports.updateDeliveryDocument = async (req, res) => {
     doc.costCenter = costCenter;
     if (appendedProposals) {
       doc.appendedProposals = appendedProposals;
+    }
+
+    // Update approvers if provided
+    if (approvers) {
+      doc.approvers = approvers;
     }
 
     // Handle file update if provided
