@@ -220,293 +220,61 @@ exports.exportDocumentToDocx = async (req, res) => {
     res.send("Lỗi xuất tài liệu/Error exporting document");
   }
 };
+// Main export function that handles file upload and routes to specific document handlers
 exports.submitDocument = async (req, res) => {
   upload.single("file")(req, res, async (err) => {
     if (err) {
       return res.send("Error uploading file.");
     }
 
-    const {
-      title,
-      contentName,
-      contentText,
-      products,
-      approvers,
-      approvedDocuments,
-      approvedProposals,
-      approvedPurchasingDocument,
-    } = req.body;
+    const { title } = req.body;
 
     try {
-      // Ensure approvers is always an array
-      const approversArray = Array.isArray(approvers) ? approvers : [approvers];
+      // Process approvers data
+      const approverDetails = await processApprovers(req);
 
-      // Fetch approver details
-      const approverDetails = await Promise.all(
-        approversArray.map(async (approverId) => {
-          const approver = await User.findById(approverId);
-          return {
-            approver: approverId,
-            username: approver.username,
-            subRole: req.body[`subRole_${approverId}`],
-          };
-        })
-      );
+      // Handle file upload if present
+      const uploadedFileData = await handleFileUpload(req);
 
+      // Route to appropriate document handler based on title
       let newDocument;
 
-      // Handle file upload to Google Drive if a file is attached
-      let uploadedFileData = null;
-      if (req.file) {
-        const folderId = process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID;
-        const fileMetadata = {
-          name: req.file.originalname,
-          parents: [folderId],
-        };
-        const media = {
-          mimeType: req.file.mimetype,
-          body: fs.createReadStream(req.file.path),
-        };
-
-        const driveResponse = await drive.files.create({
-          resource: fileMetadata,
-          media,
-          fields: "id, webViewLink, name",
-        });
-
-        uploadedFileData = {
-          driveFileId: driveResponse.data.id,
-          name: driveResponse.data.name,
-          link: driveResponse.data.webViewLink,
-        };
-
-        // Cleanup: Remove the local file
-        fs.unlinkSync(req.file.path);
-      }
-
-      // Document creation logic
-      if (title === "Proposal Document") {
-        newDocument = new ProposalDocument({
-          title,
-          task: req.body.task,
-          costCenter: req.body.costCenter,
-          dateOfError: req.body.dateOfError,
-          detailsDescription: req.body.detailsDescription,
-          direction: req.body.direction,
-          groupName: req.body.groupName,
-          submittedBy: req.user.id,
-          approvers: approverDetails,
-          fileMetadata: uploadedFileData,
-          submissionDate: moment()
-            .tz("Asia/Bangkok")
-            .format("DD-MM-YYYY HH:mm:ss"),
-        });
-      } else if (title === "Purchasing Document") {
-        const productEntries = products.map((product) => ({
-          ...product,
-          note: product.note || "",
-          totalCost: parseFloat(product.costPerUnit * product.amount),
-          totalCostAfterVat: parseFloat(
-            product.costPerUnit * product.amount +
-              product.costPerUnit * product.amount * (product.vat / 100)
-          ),
-        }));
-
-        const grandTotalCost = parseFloat(
-          productEntries.reduce(
-            (acc, product) => acc + product.totalCostAfterVat,
-            0
-          )
-        );
-
-        // Handle multiple proposal documents
-        let appendedProposals = [];
-        if (approvedProposals && approvedProposals.length > 0) {
-          appendedProposals = await Promise.all(
-            approvedProposals.map(async (proposalId) => {
-              const proposal = await ProposalDocument.findById(proposalId);
-              if (proposal) {
-                const proposalFileMetadata =
-                  proposal.fileMetadata &&
-                  Object.keys(proposal.fileMetadata).length > 0
-                    ? {
-                        driveFileId: proposal.fileMetadata.driveFileId || "",
-                        name: proposal.fileMetadata.name || "",
-                        link: proposal.fileMetadata.link || "",
-                      }
-                    : undefined;
-
-                return {
-                  task: proposal.task,
-                  costCenter: proposal.costCenter,
-                  dateOfError: proposal.dateOfError,
-                  detailsDescription: proposal.detailsDescription,
-                  direction: proposal.direction,
-                  fileMetadata: proposalFileMetadata,
-                  proposalId: proposal._id,
-                };
-              }
-              return null;
-            })
+      switch (title) {
+        case "Proposal Document":
+          newDocument = await createProposalDocument(
+            req,
+            approverDetails,
+            uploadedFileData
           );
-        }
-
-        // Filter out any null values from failed lookups
-        appendedProposals = appendedProposals.filter(
-          (proposal) => proposal !== null
-        );
-
-        newDocument = new PurchasingDocument({
-          title,
-          products: productEntries,
-          grandTotalCost,
-          appendedProposals,
-          groupName: req.body.groupName,
-          submittedBy: req.user.id,
-          approvers: approverDetails,
-          fileMetadata: uploadedFileData,
-          submissionDate: moment()
-            .tz("Asia/Bangkok")
-            .format("DD-MM-YYYY HH:mm:ss"),
-        });
-      } else if (title === "Delivery Document") {
-        const productEntries = products.map((product) => ({
-          ...product,
-          note: product.note || "",
-          totalCost: parseFloat(product.costPerUnit * product.amount),
-          totalCostAfterVat: parseFloat(
-            product.costPerUnit * product.amount +
-              product.costPerUnit * product.amount * (product.vat / 100)
-          ),
-        }));
-
-        const grandTotalCost = parseFloat(
-          productEntries.reduce(
-            (acc, product) => acc + product.totalCostAfterVat,
-            0
-          )
-        );
-
-        let appendedProposals = [];
-        if (approvedProposals && approvedProposals.length > 0) {
-          appendedProposals = await Promise.all(
-            approvedProposals.map(async (proposalId) => {
-              const proposal = await ProposalDocument.findById(proposalId);
-              if (proposal) {
-                const proposalFileMetadata =
-                  proposal.fileMetadata &&
-                  Object.keys(proposal.fileMetadata).length > 0
-                    ? {
-                        driveFileId: proposal.fileMetadata.driveFileId || "",
-                        name: proposal.fileMetadata.name || "",
-                        link: proposal.fileMetadata.link || "",
-                      }
-                    : undefined;
-
-                return {
-                  task: proposal.task,
-                  costCenter: proposal.costCenter,
-                  dateOfError: proposal.dateOfError,
-                  detailsDescription: proposal.detailsDescription,
-                  direction: proposal.direction,
-                  fileMetadata: proposalFileMetadata,
-                  proposalId: proposal._id,
-                };
-              }
-              return null;
-            })
+          break;
+        case "Purchasing Document":
+          newDocument = await createPurchasingDocument(
+            req,
+            approverDetails,
+            uploadedFileData
           );
-        }
-
-        appendedProposals = appendedProposals.filter(
-          (proposal) => proposal !== null
-        );
-
-        newDocument = new DeliveryDocument({
-          title,
-          name: req.body.name,
-          costCenter: req.body.costCenter,
-          products: productEntries,
-          grandTotalCost,
-          appendedProposals,
-          groupName: req.body.groupName,
-          submittedBy: req.user.id,
-          approvers: approverDetails,
-          fileMetadata: uploadedFileData,
-          submissionDate: moment()
-            .tz("Asia/Bangkok")
-            .format("DD-MM-YYYY HH:mm:ss"),
-        });
-      } else if (title === "Payment Document") {
-        let appendedPurchasingDocuments = [];
-        if (
-          req.body.approvedPurchasingDocuments &&
-          req.body.approvedPurchasingDocuments.length > 0
-        ) {
-          appendedPurchasingDocuments = await Promise.all(
-            req.body.approvedPurchasingDocuments.map(async (docId) => {
-              const purchasingDoc = await PurchasingDocument.findById(docId);
-              return purchasingDoc ? purchasingDoc.toObject() : null;
-            })
+          break;
+        case "Delivery Document":
+          newDocument = await createDeliveryDocument(
+            req,
+            approverDetails,
+            uploadedFileData
           );
-          appendedPurchasingDocuments = appendedPurchasingDocuments.filter(
-            (doc) => doc !== null
+          break;
+        case "Payment Document":
+          newDocument = await createPaymentDocument(
+            req,
+            approverDetails,
+            uploadedFileData
           );
-        }
-
-        // Format the submission date for both display and the tag
-        const now = moment().tz("Asia/Bangkok");
-        const submissionDateForTag = now.format("DDMMYYYYHHmmss");
-        // Create the tag by combining name and formatted date
-        const tag = `${req.body.name}${submissionDateForTag}`;
-
-        newDocument = new PaymentDocument({
-          tag,
-          title,
-          name: req.body.name,
-          content: req.body.content,
-          paymentMethod: req.body.paymentMethod,
-          totalPayment: req.body.totalPayment,
-          advancePayment: req.body.advancePayment || 0,
-          paymentDeadline: req.body.paymentDeadline,
-          groupName: req.body.groupName,
-          submittedBy: req.user.id,
-          approvers: approverDetails,
-          fileMetadata: uploadedFileData,
-          appendedPurchasingDocuments,
-          submissionDate: moment()
-            .tz("Asia/Bangkok")
-            .format("DD-MM-YYYY HH:mm:ss"),
-        });
-      } else {
-        const contentArray = [];
-
-        if (Array.isArray(contentName) && Array.isArray(contentText)) {
-          contentName.forEach((name, index) => {
-            contentArray.push({ name, text: contentText[index] });
-          });
-        } else {
-          contentArray.push({ name: contentName, text: contentText });
-        }
-
-        if (approvedDocuments && approvedDocuments.length > 0) {
-          const approvedDocs = await Document.find({
-            _id: { $in: approvedDocuments },
-          });
-          approvedDocs.forEach((doc) => contentArray.push(...doc.content));
-        }
-
-        newDocument = new Document({
-          title,
-          content: contentArray,
-          groupName: req.body.groupName,
-          submittedBy: req.user.id,
-          approvers: approverDetails,
-          fileMetadata: uploadedFileData,
-          submissionDate: moment()
-            .tz("Asia/Bangkok")
-            .format("DD-MM-YYYY HH:mm:ss"),
-        });
+          break;
+        default:
+          newDocument = await createStandardDocument(
+            req,
+            approverDetails,
+            uploadedFileData
+          );
+          break;
       }
 
       await newDocument.save();
@@ -519,6 +287,262 @@ exports.submitDocument = async (req, res) => {
     }
   });
 };
+
+// Process approvers data from request
+async function processApprovers(req) {
+  const { approvers } = req.body;
+
+  // Ensure approvers is always an array
+  const approversArray = Array.isArray(approvers) ? approvers : [approvers];
+
+  // Fetch approver details
+  return Promise.all(
+    approversArray.map(async (approverId) => {
+      const approver = await User.findById(approverId);
+      return {
+        approver: approverId,
+        username: approver.username,
+        subRole: req.body[`subRole_${approverId}`],
+      };
+    })
+  );
+}
+
+// Handle file upload to Google Drive
+async function handleFileUpload(req) {
+  if (!req.file) return null;
+
+  const folderId = process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID;
+  const fileMetadata = {
+    name: req.file.originalname,
+    parents: [folderId],
+  };
+  const media = {
+    mimeType: req.file.mimetype,
+    body: fs.createReadStream(req.file.path),
+  };
+
+  const driveResponse = await drive.files.create({
+    resource: fileMetadata,
+    media,
+    fields: "id, webViewLink, name",
+  });
+
+  // Cleanup: Remove the local file
+  fs.unlinkSync(req.file.path);
+
+  return {
+    driveFileId: driveResponse.data.id,
+    name: driveResponse.data.name,
+    link: driveResponse.data.webViewLink,
+  };
+}
+
+// Create a Proposal Document
+async function createProposalDocument(req, approverDetails, uploadedFileData) {
+  return new ProposalDocument({
+    title: req.body.title,
+    task: req.body.task,
+    costCenter: req.body.costCenter,
+    dateOfError: req.body.dateOfError,
+    detailsDescription: req.body.detailsDescription,
+    direction: req.body.direction,
+    groupName: req.body.groupName,
+    submittedBy: req.user.id,
+    approvers: approverDetails,
+    fileMetadata: uploadedFileData,
+    submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+  });
+}
+
+// Create a Purchasing Document
+async function createPurchasingDocument(
+  req,
+  approverDetails,
+  uploadedFileData
+) {
+  const { products, approvedProposals } = req.body;
+
+  // Process product entries
+  const productEntries = processProducts(products);
+
+  // Calculate grand total cost
+  const grandTotalCost = parseFloat(
+    productEntries.reduce((acc, product) => acc + product.totalCostAfterVat, 0)
+  );
+
+  // Process appended proposals
+  const appendedProposals = await processAppendedProposals(approvedProposals);
+
+  return new PurchasingDocument({
+    title: req.body.title,
+    products: productEntries,
+    grandTotalCost,
+    appendedProposals,
+    groupName: req.body.groupName,
+    submittedBy: req.user.id,
+    approvers: approverDetails,
+    fileMetadata: uploadedFileData,
+    submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+  });
+}
+
+// Create a Delivery Document
+async function createDeliveryDocument(req, approverDetails, uploadedFileData) {
+  const { products, approvedProposals } = req.body;
+
+  // Process product entries
+  const productEntries = processProducts(products);
+
+  // Calculate grand total cost
+  const grandTotalCost = parseFloat(
+    productEntries.reduce((acc, product) => acc + product.totalCostAfterVat, 0)
+  );
+
+  // Process appended proposals
+  const appendedProposals = await processAppendedProposals(approvedProposals);
+
+  return new DeliveryDocument({
+    title: req.body.title,
+    name: req.body.name,
+    costCenter: req.body.costCenter,
+    products: productEntries,
+    grandTotalCost,
+    appendedProposals,
+    groupName: req.body.groupName,
+    submittedBy: req.user.id,
+    approvers: approverDetails,
+    fileMetadata: uploadedFileData,
+    submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+  });
+}
+
+// Create a Payment Document
+async function createPaymentDocument(req, approverDetails, uploadedFileData) {
+  // Process appended purchasing documents
+  let appendedPurchasingDocuments = [];
+  if (
+    req.body.approvedPurchasingDocuments &&
+    req.body.approvedPurchasingDocuments.length > 0
+  ) {
+    appendedPurchasingDocuments = await Promise.all(
+      req.body.approvedPurchasingDocuments.map(async (docId) => {
+        const purchasingDoc = await PurchasingDocument.findById(docId);
+        return purchasingDoc ? purchasingDoc.toObject() : null;
+      })
+    );
+    appendedPurchasingDocuments = appendedPurchasingDocuments.filter(
+      (doc) => doc !== null
+    );
+  }
+
+  // Format the submission date for both display and the tag
+  const now = moment().tz("Asia/Bangkok");
+  const submissionDateForTag = now.format("DDMMYYYYHHmmss");
+  // Create the tag by combining name and formatted date
+  const tag = `${req.body.name}${submissionDateForTag}`;
+
+  return new PaymentDocument({
+    tag,
+    title: req.body.title,
+    name: req.body.name,
+    content: req.body.content,
+    paymentMethod: req.body.paymentMethod,
+    totalPayment: req.body.totalPayment,
+    advancePayment: req.body.advancePayment || 0,
+    paymentDeadline: req.body.paymentDeadline,
+    groupName: req.body.groupName,
+    submittedBy: req.user.id,
+    approvers: approverDetails,
+    fileMetadata: uploadedFileData,
+    appendedPurchasingDocuments,
+    submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+  });
+}
+
+// Create a Standard Document
+async function createStandardDocument(req, approverDetails, uploadedFileData) {
+  const { contentName, contentText, approvedDocuments } = req.body;
+
+  // Process content array
+  const contentArray = [];
+
+  if (Array.isArray(contentName) && Array.isArray(contentText)) {
+    contentName.forEach((name, index) => {
+      contentArray.push({ name, text: contentText[index] });
+    });
+  } else {
+    contentArray.push({ name: contentName, text: contentText });
+  }
+
+  // Append approved documents content
+  if (approvedDocuments && approvedDocuments.length > 0) {
+    const approvedDocs = await Document.find({
+      _id: { $in: approvedDocuments },
+    });
+    approvedDocs.forEach((doc) => contentArray.push(...doc.content));
+  }
+
+  return new Document({
+    title: req.body.title,
+    content: contentArray,
+    groupName: req.body.groupName,
+    submittedBy: req.user.id,
+    approvers: approverDetails,
+    fileMetadata: uploadedFileData,
+    submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+  });
+}
+
+// Process product entries
+function processProducts(products) {
+  return products.map((product) => ({
+    ...product,
+    note: product.note || "",
+    totalCost: parseFloat(product.costPerUnit * product.amount),
+    totalCostAfterVat: parseFloat(
+      product.costPerUnit * product.amount +
+        product.costPerUnit * product.amount * (product.vat / 100)
+    ),
+  }));
+}
+
+// Process appended proposals
+async function processAppendedProposals(approvedProposals) {
+  if (!approvedProposals || approvedProposals.length === 0) {
+    return [];
+  }
+
+  const appendedProposals = await Promise.all(
+    approvedProposals.map(async (proposalId) => {
+      const proposal = await ProposalDocument.findById(proposalId);
+      if (proposal) {
+        const proposalFileMetadata =
+          proposal.fileMetadata && Object.keys(proposal.fileMetadata).length > 0
+            ? {
+                driveFileId: proposal.fileMetadata.driveFileId || "",
+                name: proposal.fileMetadata.name || "",
+                link: proposal.fileMetadata.link || "",
+              }
+            : undefined;
+
+        return {
+          task: proposal.task,
+          costCenter: proposal.costCenter,
+          dateOfError: proposal.dateOfError,
+          detailsDescription: proposal.detailsDescription,
+          direction: proposal.direction,
+          fileMetadata: proposalFileMetadata,
+          proposalId: proposal._id,
+        };
+      }
+      return null;
+    })
+  );
+
+  // Filter out any null values from failed lookups
+  return appendedProposals.filter((proposal) => proposal !== null);
+}
 exports.getPendingDocument = async (req, res) => {
   try {
     const pendingPurchasingDocs = await PurchasingDocument.find({
