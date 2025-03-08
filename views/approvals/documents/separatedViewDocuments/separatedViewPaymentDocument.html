@@ -528,6 +528,7 @@
       let currentUser = null;
       let paymentDocuments = null;
       let showOnlyPendingApprovals = false;
+      let currentApprovers = [];
 
       // Add the toggle switch creation function
       function createToggleSwitch() {
@@ -937,6 +938,25 @@
                   ">
                 </div>
 
+                <!-- Current Approvers Section -->
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label style="display: block; margin-bottom: 0.5em;">Người phê duyệt hiện tại/Current Approvers:</label>
+                  <div id="currentApproversList"></div>
+                </div>
+
+                <!-- Add New Approvers Section -->
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label style="display: block; margin-bottom: 0.5em;">Thêm người phê duyệt/Add Approvers:</label>
+                  <select id="newApproversDropdown" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
+                    <option value="">Chọn người phê duyệt/Select an approver</option>
+                    <!-- Options will be populated dynamically -->
+                  </select>
+                  <input type="text" id="newApproverSubRole" placeholder="Vai trò/Sub Role" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
+                  <button type="button" class="approve-btn" onclick="addNewApprover()" style="margin-top: 10px;">
+                    Thêm/Add
+                  </button>
+                </div>
+
                 <div style="
                   display: flex;
                   gap: clamp(8px, 1vw, 16px);
@@ -969,6 +989,107 @@
         return "";
       }
 
+      // Function to fetch all approvers
+      async function fetchApprovers() {
+        try {
+          const response = await fetch("/approvers");
+          const approvers = await response.json();
+          return approvers;
+        } catch (error) {
+          console.error("Error fetching approvers:", error);
+          return [];
+        }
+      }
+
+      // Function to render current approvers
+      function renderCurrentApprovers() {
+        const currentApproversList = document.getElementById(
+          "currentApproversList"
+        );
+        currentApproversList.innerHTML = currentApprovers
+          .map(
+            (approver) => `
+              <div class="approver-item" data-id="${approver.approver}">
+                <span>${approver.username} (${approver.subRole})</span>
+                <input type="text" value="${approver.subRole}" onchange="updateApproverSubRole('${approver.approver}', this.value)" style="width: 100px; padding: 4px;">
+                <button type="button" class="approve-btn" onclick="removeApprover('${approver.approver}')" style="background: #dc3545; padding: 4px 8px;">Xóa/Remove</button>
+              </div>
+            `
+          )
+          .join("");
+      }
+
+      // Function to update an approver's subRole
+      function updateApproverSubRole(approverId, newSubRole) {
+        const approver = currentApprovers.find(
+          (a) => a.approver === approverId
+        );
+        if (approver) {
+          approver.subRole = newSubRole;
+        }
+      }
+
+      // Function to remove an approver
+      function removeApprover(approverId) {
+        currentApprovers = currentApprovers.filter(
+          (a) => a.approver !== approverId
+        );
+        renderCurrentApprovers();
+        populateNewApproversDropdown(); // Refresh the dropdown
+      }
+
+      // Function to add a new approver
+      function addNewApprover() {
+        const newApproverId = document.getElementById(
+          "newApproversDropdown"
+        ).value;
+        const newSubRole = document.getElementById("newApproverSubRole").value;
+
+        if (!newApproverId || !newSubRole) {
+          alert(
+            "Vui lòng chọn người phê duyệt và nhập vai trò phụ/Please select an approver and enter a sub role."
+          );
+          return;
+        }
+
+        const newApprover = {
+          approver: newApproverId,
+          username: document
+            .getElementById("newApproversDropdown")
+            .selectedOptions[0].text.split(" (")[0],
+          subRole: newSubRole,
+        };
+
+        currentApprovers.push(newApprover);
+        renderCurrentApprovers();
+        populateNewApproversDropdown(); // Refresh the dropdown
+
+        // Clear the input fields
+        document.getElementById("newApproversDropdown").value = "";
+        document.getElementById("newApproverSubRole").value = "";
+      }
+
+      // Function to populate the new approvers dropdown (excluding current approvers)
+      async function populateNewApproversDropdown() {
+        const allApprovers = await fetchApprovers();
+        const availableApprovers = allApprovers.filter(
+          (approver) =>
+            !currentApprovers.some((a) => a.approver === approver._id)
+        );
+
+        const dropdown = document.getElementById("newApproversDropdown");
+        dropdown.innerHTML = `
+          <option value="">Chọn người phê duyệt/Select an approver</option>
+          ${availableApprovers
+            .map(
+              (approver) => `
+            <option value="${approver._id}">${approver.username}</option>
+          `
+            )
+            .join("")}
+        `;
+      }
+
       // Edit document function
       async function editDocument(docId) {
         try {
@@ -983,6 +1104,11 @@
           document.getElementById("editAdvancePayment").value =
             doc.advancePayment;
           document.getElementById("editDeadline").value = doc.paymentDeadline;
+          // Populate current approvers
+          currentApprovers = doc.approvers;
+          renderCurrentApprovers();
+          // Populate new approvers dropdown
+          await populateNewApproversDropdown();
           document.getElementById("editModal").style.display = "block";
         } catch (err) {
           console.error("Error fetching document details:", err);
@@ -1022,6 +1148,7 @@
           "paymentDeadline",
           document.getElementById("editDeadline").value
         );
+        formData.append("approvers", JSON.stringify(currentApprovers));
 
         const fileInput = document.getElementById("editFile");
         if (fileInput.files.length > 0) {

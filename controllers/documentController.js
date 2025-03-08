@@ -1455,6 +1455,18 @@ exports.updatePaymentDocument = async (req, res) => {
       return res.status(404).json({ message: "Document not found" });
     }
 
+    // Parse approvers if it exists
+    let approvers;
+    if (req.body.approvers) {
+      try {
+        approvers = JSON.parse(req.body.approvers);
+      } catch (error) {
+        return res
+          .status(400)
+          .json({ message: "Invalid approvers data format" });
+      }
+    }
+
     // Update basic fields
     doc.name = name;
     doc.content = content;
@@ -1462,6 +1474,11 @@ exports.updatePaymentDocument = async (req, res) => {
     doc.totalPayment = parseFloat(totalPayment);
     doc.advancePayment = parseFloat(advancePayment);
     doc.paymentDeadline = paymentDeadline;
+
+    // Update approvers if provided
+    if (approvers) {
+      doc.approvers = approvers;
+    }
 
     // Handle file update if provided
     if (file) {

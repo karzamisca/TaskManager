@@ -876,85 +876,85 @@
       // Update the edit modal to include the new fields
       function addEditModal() {
         const modalHTML = `
-<div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
-  <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-color); padding: 20px; border-radius: 8px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;">
-    <h2>Chỉnh sửa phiếu xuất kho/Edit Delivery Document</h2>
-    <form id="editForm" onsubmit="handleEditSubmit(event)">
-      <input type="hidden" id="editDocId">
+          <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+            <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-color); padding: 20px; border-radius: 8px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;">
+              <h2>Chỉnh sửa phiếu xuất kho/Edit Delivery Document</h2>
+              <form id="editForm" onsubmit="handleEditSubmit(event)">
+                <input type="hidden" id="editDocId">
 
-      <!-- Basic Fields -->
-      <div style="margin-bottom: 15px;">
-        <label for="editName">Tên/Name:</label>
-        <input type="text" id="editName" required style="width: 100%; padding: 8px;">
-      </div>
+                <!-- Basic Fields -->
+                <div style="margin-bottom: 15px;">
+                  <label for="editName">Tên/Name:</label>
+                  <input type="text" id="editName" required style="width: 100%; padding: 8px;">
+                </div>
 
-      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-        <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm/Cost Center:</label>
-        <select id="editCostCenter" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
-          <option value="">Chọn một trạm/Select a center</option>
-          <!-- Options will be populated dynamically -->
-        </select>
-      </div>
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm/Cost Center:</label>
+                  <select id="editCostCenter" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
+                    <option value="">Chọn một trạm/Select a center</option>
+                    <!-- Options will be populated dynamically -->
+                  </select>
+                </div>
 
-      <!-- Products Section -->
-      <div id="productsContainer" style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-        <label style="display: block; margin-bottom: 0.5em;">Sản phẩm/Products:</label>
-        <div id="productsList"></div>
-        <button type="button" class="approve-btn" onclick="addProductField()" style="margin-top: 10px;">
-          Thêm sản phẩm/Add Product
-        </button>
-      </div>
+                <!-- Products Section -->
+                <div id="productsContainer" style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label style="display: block; margin-bottom: 0.5em;">Sản phẩm/Products:</label>
+                  <div id="productsList"></div>
+                  <button type="button" class="approve-btn" onclick="addProductField()" style="margin-top: 10px;">
+                    Thêm sản phẩm/Add Product
+                  </button>
+                </div>
 
-      <!-- File Upload -->
-      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-          <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới/Update File:</label>
-          <input type="file" id="editFile" style="
-              width: 100%;
-              padding: clamp(6px, 1vw, 12px);
-              font-size: inherit;
-          ">
-      </div>
+                <!-- File Upload -->
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                    <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới/Update File:</label>
+                    <input type="file" id="editFile" style="
+                        width: 100%;
+                        padding: clamp(6px, 1vw, 12px);
+                        font-size: inherit;
+                    ">
+                </div>
 
-      <!-- Current Approvers Section -->
-      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-        <label style="display: block; margin-bottom: 0.5em;">Người phê duyệt hiện tại/Current Approvers:</label>
-        <div id="currentApproversList"></div>
-      </div>
+                <!-- Current Approvers Section -->
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label style="display: block; margin-bottom: 0.5em;">Người phê duyệt hiện tại/Current Approvers:</label>
+                  <div id="currentApproversList"></div>
+                </div>
 
-      <!-- Add New Approvers Section -->
-      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-        <label style="display: block; margin-bottom: 0.5em;">Thêm người phê duyệt/Add Approvers:</label>
-        <select id="newApproversDropdown" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
-          <option value="">Chọn người phê duyệt/Select an approver</option>
-          <!-- Options will be populated dynamically -->
-        </select>
-        <input type="text" id="newApproverSubRole" placeholder="Vai trò/Sub Role" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
-        <button type="button" class="approve-btn" onclick="addNewApprover()" style="margin-top: 10px;">
-          Thêm/Add
-        </button>
-      </div>
+                <!-- Add New Approvers Section -->
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label style="display: block; margin-bottom: 0.5em;">Thêm người phê duyệt/Add Approvers:</label>
+                  <select id="newApproversDropdown" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
+                    <option value="">Chọn người phê duyệt/Select an approver</option>
+                    <!-- Options will be populated dynamically -->
+                  </select>
+                  <input type="text" id="newApproverSubRole" placeholder="Vai trò/Sub Role" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
+                  <button type="button" class="approve-btn" onclick="addNewApprover()" style="margin-top: 10px;">
+                    Thêm/Add
+                  </button>
+                </div>
 
-      <!-- Save and Cancel Buttons -->
-      <div style="
-          display: flex;
-          gap: clamp(8px, 1vw, 16px);
-          margin-top: clamp(20px, 2.5vw, 32px);
-          ">
-          <button type="submit" class="approve-btn" style="
-              padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
-              font-size: inherit;
-          ">Lưu thay đổi/Save Changes</button>
-          
-          <button type="button" class="approve-btn" onclick="closeEditModal()" style="
-              background: #666;
-              padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
-              font-size: inherit;
-          ">Hủy/Cancel</button>
-      </div>
-    </form>
-  </div>
-</div>
-            `;
+                <!-- Save and Cancel Buttons -->
+                <div style="
+                    display: flex;
+                    gap: clamp(8px, 1vw, 16px);
+                    margin-top: clamp(20px, 2.5vw, 32px);
+                    ">
+                    <button type="submit" class="approve-btn" style="
+                        padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
+                        font-size: inherit;
+                    ">Lưu thay đổi/Save Changes</button>
+                    
+                    <button type="button" class="approve-btn" onclick="closeEditModal()" style="
+                        background: #666;
+                        padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
+                        font-size: inherit;
+                    ">Hủy/Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+         `;
         document.body.insertAdjacentHTML("beforeend", modalHTML);
       }
 
