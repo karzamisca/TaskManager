@@ -953,6 +953,18 @@ exports.updateProposalDocument = async (req, res) => {
       });
     }
 
+    // Parse approvers if it exists
+    let approvers;
+    if (req.body.approvers) {
+      try {
+        approvers = JSON.parse(req.body.approvers);
+      } catch (error) {
+        return res
+          .status(400)
+          .json({ message: "Invalid approvers data format" });
+      }
+    }
+
     // Update the document
     doc.task = task;
     doc.costCenter = costCenter;
@@ -1003,6 +1015,11 @@ exports.updateProposalDocument = async (req, res) => {
         name: file.originalname,
         link: driveResponse.data.webViewLink,
       };
+    }
+
+    // Update approvers if provided
+    if (approvers) {
+      doc.approvers = approvers;
     }
 
     await doc.save();
