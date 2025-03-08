@@ -1180,6 +1180,18 @@ exports.updatePurchasingDocument = async (req, res) => {
       }
     }
 
+    // Parse approvers if it exists
+    let approvers;
+    if (req.body.approvers) {
+      try {
+        approvers = JSON.parse(req.body.approvers);
+      } catch (error) {
+        return res
+          .status(400)
+          .json({ message: "Invalid approvers data format" });
+      }
+    }
+
     const doc = await PurchasingDocument.findById(id);
     if (!doc) {
       return res.status(404).json({ message: "Document not found" });
@@ -1237,6 +1249,11 @@ exports.updatePurchasingDocument = async (req, res) => {
         name: file.originalname,
         link: driveResponse.data.webViewLink,
       };
+    }
+
+    // Update approvers if provided
+    if (approvers) {
+      doc.approvers = approvers;
     }
 
     await doc.save();

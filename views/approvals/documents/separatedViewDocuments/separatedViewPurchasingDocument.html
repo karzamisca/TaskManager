@@ -417,6 +417,7 @@
       let currentUser = null;
       let purchasingDocuments = null;
       let showOnlyPendingApprovals = false;
+      let currentApprovers = [];
 
       function createToggleSwitch() {
         const toggleContainer = document.createElement("div");
@@ -699,74 +700,93 @@
 
       function addEditModal() {
         const modalHTML = `
-          <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
-            <div style="
-              position: fixed; 
-              top: 50%; 
-              left: 50%; 
-              transform: translate(-50%, -50%); 
-              background: var(--bg-color); 
-              padding: clamp(16px, 2vw, 24px);
-              width: clamp(300px, 85vw, 900px);
-              border-radius: clamp(4px, 1vw, 8px);
-              max-height: 90vh;
-              overflow-y: auto;
-              font-size: clamp(14px, 1.5vw, 16px);
-            ">
-              <span onclick="closeEditModal()" style="
-                position: sticky; 
-                float: right; 
-                top: 10px; 
-                cursor: pointer; 
-                font-size: clamp(20px, 2vw, 28px);
-                padding: clamp(4px, 0.5vw, 8px);
-              ">&times;</span>
-              
-              <h2 style="font-size: clamp(18px, 2vw, 24px); margin-bottom: clamp(16px, 2vw, 24px);">
-                Chỉnh sửa phiếu mua hàng/Edit Purchasing Document
-              </h2>
-              
-              <form id="editForm" onsubmit="handleEditSubmit(event)">
-                <input type="hidden" id="editDocId">
-                
-
-                <div id="productsContainer" style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label style="display: block; margin-bottom: 0.5em;">Sản phẩm/Products:</label>
-                  <div id="productsList"></div>
-                  <button type="button" class="approve-btn" onclick="addProductField()" style="margin-top: 10px;">
-                    Thêm sản phẩm/Add Product
-                  </button>
-                </div>
-
-                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới/Update File:</label>
-                  <input type="file" id="editFile" style="
-                    width: 100%;
-                    padding: clamp(6px, 1vw, 12px);
-                    font-size: inherit;
+                <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+                  <div style="
+                    position: fixed; 
+                    top: 50%; 
+                    left: 50%; 
+                    transform: translate(-50%, -50%); 
+                    background: var(--bg-color); 
+                    padding: clamp(16px, 2vw, 24px);
+                    width: clamp(300px, 85vw, 900px);
+                    border-radius: clamp(4px, 1vw, 8px);
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    font-size: clamp(14px, 1.5vw, 16px);
                   ">
-                </div>
+                    <span onclick="closeEditModal()" style="
+                      position: sticky; 
+                      float: right; 
+                      top: 10px; 
+                      cursor: pointer; 
+                      font-size: clamp(20px, 2vw, 28px);
+                      padding: clamp(4px, 0.5vw, 8px);
+                    ">&times;</span>
+                    
+                    <h2 style="font-size: clamp(18px, 2vw, 24px); margin-bottom: clamp(16px, 2vw, 24px);">
+                      Chỉnh sửa phiếu mua hàng/Edit Purchasing Document
+                    </h2>
+                    
+                    <form id="editForm" onsubmit="handleEditSubmit(event)">
+                      <input type="hidden" id="editDocId">
+                      
 
-                <div style="
-                  display: flex;
-                  gap: clamp(8px, 1vw, 16px);
-                  margin-top: clamp(20px, 2.5vw, 32px);
-                ">
-                  <button type="submit" class="approve-btn" style="
-                    padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
-                    font-size: inherit;
-                  ">Lưu thay đổi/Save Changes</button>
-                  
-                  <button type="button" class="approve-btn" onclick="closeEditModal()" style="
-                    background: #666;
-                    padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
-                    font-size: inherit;
-                  ">Hủy/Cancel</button>
+                      <div id="productsContainer" style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                        <label style="display: block; margin-bottom: 0.5em;">Sản phẩm/Products:</label>
+                        <div id="productsList"></div>
+                        <button type="button" class="approve-btn" onclick="addProductField()" style="margin-top: 10px;">
+                          Thêm sản phẩm/Add Product
+                        </button>
+                      </div>
+
+                      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                        <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới/Update File:</label>
+                        <input type="file" id="editFile" style="
+                          width: 100%;
+                          padding: clamp(6px, 1vw, 12px);
+                          font-size: inherit;
+                        ">
+                      </div>
+
+                      <!-- Current Approvers Section -->
+                      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                        <label style="display: block; margin-bottom: 0.5em;">Người phê duyệt hiện tại/Current Approvers:</label>
+                        <div id="currentApproversList"></div>
+                      </div>
+
+                      <!-- Add New Approvers Section -->
+                      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                        <label style="display: block; margin-bottom: 0.5em;">Thêm người phê duyệt/Add Approvers:</label>
+                        <select id="newApproversDropdown" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
+                          <option value="">Chọn người phê duyệt/Select an approver</option>
+                          <!-- Options will be populated dynamically -->
+                        </select>
+                        <input type="text" id="newApproverSubRole" placeholder="Vai trò/Sub Role" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
+                        <button type="button" class="approve-btn" onclick="addNewApprover()" style="margin-top: 10px;">
+                          Thêm/Add
+                        </button>
+                      </div>
+
+                      <div style="
+                        display: flex;
+                        gap: clamp(8px, 1vw, 16px);
+                        margin-top: clamp(20px, 2.5vw, 32px);
+                      ">
+                        <button type="submit" class="approve-btn" style="
+                          padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
+                          font-size: inherit;
+                        ">Lưu thay đổi/Save Changes</button>
+                        
+                        <button type="button" class="approve-btn" onclick="closeEditModal()" style="
+                          background: #666;
+                          padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
+                          font-size: inherit;
+                        ">Hủy/Cancel</button>
+                      </div>
+                    </form>
+                  </div>
                 </div>
-              </form>
-            </div>
-          </div>
-        `;
+              `;
 
         document.body.insertAdjacentHTML("beforeend", modalHTML);
       }
@@ -800,6 +820,107 @@
         productsList.appendChild(productDiv);
       }
 
+      // Function to fetch all approvers
+      async function fetchApprovers() {
+        try {
+          const response = await fetch("/approvers");
+          const approvers = await response.json();
+          return approvers;
+        } catch (error) {
+          console.error("Error fetching approvers:", error);
+          return [];
+        }
+      }
+
+      // Function to render current approvers
+      function renderCurrentApprovers() {
+        const currentApproversList = document.getElementById(
+          "currentApproversList"
+        );
+        currentApproversList.innerHTML = currentApprovers
+          .map(
+            (approver) => `
+              <div class="approver-item" data-id="${approver.approver}">
+                <span>${approver.username} (${approver.subRole})</span>
+                <input type="text" value="${approver.subRole}" onchange="updateApproverSubRole('${approver.approver}', this.value)" style="width: 100px; padding: 4px;">
+                <button type="button" class="approve-btn" onclick="removeApprover('${approver.approver}')" style="background: #dc3545; padding: 4px 8px;">Xóa/Remove</button>
+              </div>
+            `
+          )
+          .join("");
+      }
+
+      // Function to update an approver's subRole
+      function updateApproverSubRole(approverId, newSubRole) {
+        const approver = currentApprovers.find(
+          (a) => a.approver === approverId
+        );
+        if (approver) {
+          approver.subRole = newSubRole;
+        }
+      }
+
+      // Function to remove an approver
+      function removeApprover(approverId) {
+        currentApprovers = currentApprovers.filter(
+          (a) => a.approver !== approverId
+        );
+        renderCurrentApprovers();
+        populateNewApproversDropdown(); // Refresh the dropdown
+      }
+
+      // Function to add a new approver
+      function addNewApprover() {
+        const newApproverId = document.getElementById(
+          "newApproversDropdown"
+        ).value;
+        const newSubRole = document.getElementById("newApproverSubRole").value;
+
+        if (!newApproverId || !newSubRole) {
+          alert(
+            "Vui lòng chọn người phê duyệt và nhập vai trò phụ/Please select an approver and enter a sub role."
+          );
+          return;
+        }
+
+        const newApprover = {
+          approver: newApproverId,
+          username: document
+            .getElementById("newApproversDropdown")
+            .selectedOptions[0].text.split(" (")[0],
+          subRole: newSubRole,
+        };
+
+        currentApprovers.push(newApprover);
+        renderCurrentApprovers();
+        populateNewApproversDropdown(); // Refresh the dropdown
+
+        // Clear the input fields
+        document.getElementById("newApproversDropdown").value = "";
+        document.getElementById("newApproverSubRole").value = "";
+      }
+
+      // Function to populate the new approvers dropdown (excluding current approvers)
+      async function populateNewApproversDropdown() {
+        const allApprovers = await fetchApprovers();
+        const availableApprovers = allApprovers.filter(
+          (approver) =>
+            !currentApprovers.some((a) => a.approver === approver._id)
+        );
+
+        const dropdown = document.getElementById("newApproversDropdown");
+        dropdown.innerHTML = `
+          <option value="">Chọn người phê duyệt/Select an approver</option>
+          ${availableApprovers
+            .map(
+              (approver) => `
+            <option value="${approver._id}">${approver.username}</option>
+          `
+            )
+            .join("")}
+        `;
+      }
+
       async function editDocument(docId) {
         try {
           const response = await fetch(`/getPurchasingDocument/${docId}`);
@@ -811,7 +932,11 @@
           const productsList = document.getElementById("productsList");
           productsList.innerHTML = "";
           doc.products.forEach((product) => addProductField(product));
-
+          // Populate current approvers
+          currentApprovers = doc.approvers;
+          renderCurrentApprovers();
+          // Populate new approvers dropdown
+          await populateNewApproversDropdown();
           document.getElementById("editModal").style.display = "block";
         } catch (err) {
           console.error("Error fetching document details:", err);
@@ -868,6 +993,8 @@
         if (fileInput.files.length > 0) {
           formData.append("file", fileInput.files[0]);
         }
+
+        formData.append("approvers", JSON.stringify(currentApprovers));
 
         try {
           const response = await fetch(`/updatePurchasingDocument/${docId}`, {
