@@ -239,6 +239,62 @@
         color: yellow;
       }
 
+      .full-view-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        overflow-y: auto;
+      }
+
+      .full-view-content {
+        position: relative;
+        margin: 50px auto;
+        background: var(--bg-color);
+        padding: 30px;
+        width: 90%;
+        max-width: 1000px;
+        border-radius: 8px;
+      }
+
+      .full-view-section {
+        margin-bottom: 24px;
+        padding: 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+      }
+
+      .full-view-section h3 {
+        margin-top: 0;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .close-btn {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        cursor: pointer;
+        font-size: 24px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--border-color);
+        color: var(--text-color);
+      }
+
+      .close-btn:hover {
+        background: var(--primary-color);
+        color: var(--bg-color);
+      }
+
       @keyframes fadeIn {
         from {
           opacity: 0;
@@ -305,8 +361,6 @@
           <th>Tệp tin kèm theo/Attached File</th>
           <th>Tổng chi phí/Grand Total Cost</th>
           <th>Phiếu đề xuất kèm theo/Appended Proposals</th>
-          <th>Ngày nộp phiếu/Submission Date</th>
-          <th>Tên nhóm/Group Name</th>
           <th>Tình trạng/Status</th>
           <th>Trạng thái phê duyệt/Approval Status</th>
           <th>Hành động/Action</th>
@@ -316,6 +370,14 @@
         <!-- Delivery documents will be populated here -->
       </tbody>
     </table>
+
+    <div id="fullViewModal" class="full-view-modal">
+      <div class="full-view-content">
+        <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
+        <h2 style="margin-bottom: 24px">Chi tiết đầy đủ/Full Details</h2>
+        <div id="fullViewContent"></div>
+      </div>
+    </div>
 
     <div class="summary">
       <h2>Tóm tắt/Summary</h2>
@@ -408,24 +470,24 @@
             ${products
               .map(
                 (product) => `
-              <div class="product-item">
-                <strong>${product.productName}</strong><br>
-                Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
-                Số lượng/Amount: ${product.amount.toLocaleString()}<br>
-                Thuế/Vat (%): ${
-                  product.vat.toLocaleString() || ""
-                }<br>                
-                Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
-                Thành tiền sau thuế/Total Cost After Vat: ${
-                  product.totalCostAfterVat.toLocaleString() || ""
-                }<br>                
-                ${product.note ? `Ghi chú/Notes: ${product.note}` : ""}
-              </div>
-            `
+                  <div class="product-item">
+                    <strong>${product.productName}</strong><br>
+                    Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
+                    Số lượng/Amount: ${product.amount.toLocaleString()}<br>
+                    Thuế/Vat (%): ${
+                      product.vat.toLocaleString() || ""
+                    }<br>                
+                    Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
+                    Thành tiền sau thuế/Total Cost After Vat: ${
+                      product.totalCostAfterVat.toLocaleString() || ""
+                    }<br>                
+                    ${product.note ? `Ghi chú/Notes: ${product.note}` : ""}
+                  </div>
+                `
               )
               .join("")}
-          </div>
-        `;
+              </div>
+            `;
       }
 
       function renderProposals(proposals) {
@@ -436,24 +498,24 @@
             ${proposals
               .map(
                 (proposal) => `
-              <div class="product-item">
-                <strong>Công việc/Task:</strong> ${proposal.task}<br>
-                <strong>Trạm/Center:</strong> ${proposal.costCenter}<br>
-                <strong>Mô tả/Description:</strong> ${
-                  proposal.detailsDescription
-                }<br>
-                ${
-                  proposal.fileMetadata
-                    ? `<strong>Tệp đính kèm/File:</strong> 
-                   <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
-                    : ""
-                }
-              </div>
-            `
+                  <div class="product-item">
+                    <strong>Công việc/Task:</strong> ${proposal.task}<br>
+                    <strong>Trạm/Center:</strong> ${proposal.costCenter}<br>
+                    <strong>Mô tả/Description:</strong> ${
+                      proposal.detailsDescription
+                    }<br>
+                    ${
+                      proposal.fileMetadata
+                        ? `<strong>Tệp đính kèm/File:</strong> 
+                      <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
+                        : ""
+                    }
+                  </div>
+                `
               )
               .join("")}
-          </div>
-        `;
+              </div>
+            `;
       }
 
       // Update the fetchDeliveryDocuments function to use the new endpoint
@@ -504,11 +566,14 @@
               }</td>
               <td>${doc.grandTotalCost?.toLocaleString() || "-"}</td>
               <td>${renderProposals(doc.appendedProposals)}</td>
-              <td>${doc.submissionDate || "-"}</td>
-              <td>${doc.groupName || "-"}</td>
               <td>${renderStatus(doc.status)}</td>
               <td class="approval-status">${approvalStatus}</td>
               <td>
+                <button class="approve-btn" onclick="showFullView('${
+                  doc._id
+                }')" style="margin-right: 5px;">
+                  Xem đầy đủ/Full View
+                </button
                 <form action="/exportDocumentToDocx/${
                   doc._id
                 }" method="GET" style="display:inline;">
@@ -956,6 +1021,120 @@
           </div>
          `;
         document.body.insertAdjacentHTML("beforeend", modalHTML);
+      }
+
+      function showFullView(docId) {
+        try {
+          const doc = deliveryDocuments.find((d) => d._id === docId);
+          if (!doc) throw new Error("Document not found");
+
+          const fullViewContent = document.getElementById("fullViewContent");
+
+          // Format date strings
+          const submissionDate = doc.submissionDate || "Not specified";
+
+          fullViewContent.innerHTML = `
+            <!-- Basic Information Section -->
+            <div class="full-view-section">
+              <h3>Thông tin cơ bản/Basic Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Tên:</span>
+                  <span class="detail-value">${doc.name}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Trạm:</span>
+                  <span class="detail-value">${doc.costCenter}</span>
+                </div>                
+                <div class="detail-item">
+                  <span class="detail-label">Tên nhóm/Group Name:</span>
+                  <span class="detail-value">${
+                    doc.groupName || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Ngày nộp/Submission Date:</span>
+                  <span class="detail-value">${submissionDate}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Kê khai/Declaration:</span>
+                  <span class="detail-value">${
+                    doc.declaration || "Not specified"
+                  }</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Products Section -->
+            <div class="full-view-section">
+              <h3>Sản phẩm/Products</h3>
+              ${renderProducts(doc.products)}
+            </div>
+
+            <!-- File Attachment Section -->
+            <div class="full-view-section">
+              <h3>Tệp tin kèm theo/Attached File</h3>
+              ${
+                doc.fileMetadata
+                  ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+                  : "No file attached"
+              }
+            </div>
+
+            <!-- Proposals Section -->
+            <div class="full-view-section">
+              <h3>Phiếu đề xuất kèm theo/Appended Proposals</h3>
+              ${renderProposals(doc.appendedProposals)}
+            </div>
+
+            <!-- Status Section -->
+            <div class="full-view-section">
+              <h3>Trạng thái/Status Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Tình trạng/Status:</span>
+                  <span class="detail-value ${renderStatus(doc.status)}</span>
+                </div>
+              </div>
+              <div style="margin-top: 16px;">
+                <h4>Trạng thái phê duyệt/Approval Status:</h4>
+                <div class="approval-status">
+                  ${doc.approvers
+                    .map((approver) => {
+                      const hasApproved = doc.approvedBy.find(
+                        (a) => a.username === approver.username
+                      );
+                      return `
+                      <div class="approver-item">
+                        <span class="status-icon ${
+                          hasApproved ? "status-approved" : "status-pending"
+                        }"></span>
+                        <div>
+                          <div>${approver.username} (${approver.subRole})</div>
+                          ${
+                            hasApproved
+                              ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
+                              : '<div class="approval-date">Pending</div>'
+                          }
+                        </div>
+                      </div>
+                    `;
+                    })
+                    .join("")}
+                </div>
+              </div>
+            </div>
+          `;
+
+          document.getElementById("fullViewModal").style.display = "block";
+        } catch (err) {
+          console.error("Error showing full view:", err);
+          showMessage("Error loading full document details", true);
+        }
+      }
+
+      function closeFullViewModal() {
+        document.getElementById("fullViewModal").style.display = "none";
       }
 
       async function initializePage() {
