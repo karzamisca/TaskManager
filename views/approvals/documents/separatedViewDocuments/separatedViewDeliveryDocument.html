@@ -466,28 +466,45 @@
         if (!products || products.length === 0) return "-";
 
         return `
-          <div class="products-container">
-            ${products
-              .map(
-                (product) => `
-                  <div class="product-item">
-                    <strong>${product.productName}</strong><br>
-                    Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
-                    Số lượng/Amount: ${product.amount.toLocaleString()}<br>
-                    Thuế/Vat (%): ${
-                      product.vat.toLocaleString() || ""
-                    }<br>                
-                    Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
-                    Thành tiền sau thuế/Total Cost After Vat: ${
-                      product.totalCostAfterVat.toLocaleString() || ""
-                    }<br>                
-                    ${product.note ? `Ghi chú/Notes: ${product.note}` : ""}
-                  </div>
-                `
-              )
-              .join("")}
-              </div>
-            `;
+          <table class="products-table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr>
+                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Sản phẩm/Product</th>
+                <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Đơn giá/Cost Per Unit</th>
+                <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Số lượng/Amount</th>
+                <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Thuế/Vat (%)</th>
+                <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Thành tiền/Total Cost</th>
+                <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Thành tiền sau thuế/Total Cost After Vat</th>
+                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Ghi chú/Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${products
+                .map(
+                  (product) => `
+                <tr>
+                  <td style="text-align: left; padding: 8px; border-bottom: 1px solid #eee;"><strong>${
+                    product.productName
+                  }</strong></td>
+                  <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${product.costPerUnit.toLocaleString()}</td>
+                  <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${product.amount.toLocaleString()}</td>
+                  <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${
+                    product.vat.toLocaleString() || ""
+                  }</td>
+                  <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${product.totalCost.toLocaleString()}</td>
+                  <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${
+                    product.totalCostAfterVat.toLocaleString() || ""
+                  }</td>
+                  <td style="text-align: left; padding: 8px; border-bottom: 1px solid #eee;">${
+                    product.note || ""
+                  }</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        `;
       }
 
       function renderProposals(proposals) {
