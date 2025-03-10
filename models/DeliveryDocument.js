@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 
 const deliveryDocumentSchema = new mongoose.Schema({
   title: { type: String, default: "Delivery Document", required: true },
-  name: { type: String, required: true }, // Added name field
+  name: { type: String, required: true },
   costCenter: { type: String, required: true }, // Added costCenter field with same restrictions as ProposalDocument
   products: [
     {

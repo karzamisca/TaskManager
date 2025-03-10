@@ -376,6 +376,8 @@ async function createPurchasingDocument(
 
   return new PurchasingDocument({
     title: req.body.title,
+    name: req.body.name,
+    costCenter: req.body.costCenter,
     products: productEntries,
     grandTotalCost,
     appendedProposals,
@@ -1184,6 +1186,8 @@ exports.updatePurchasingDocument = async (req, res) => {
 
     // Parse grandTotalCost as a number
     const grandTotalCost = parseFloat(req.body.grandTotalCost);
+    const name = req.body.name;
+    const costCenter = req.body.costCenter;
 
     // Parse appendedProposals if it exists
     let appendedProposals;
@@ -1217,8 +1221,15 @@ exports.updatePurchasingDocument = async (req, res) => {
     // Update basic fields
     doc.products = products;
     doc.grandTotalCost = grandTotalCost;
+    doc.name = name;
+    doc.costCenter = costCenter;
     if (appendedProposals) {
       doc.appendedProposals = appendedProposals;
+    }
+
+    // Update approvers if provided
+    if (approvers) {
+      doc.approvers = approvers;
     }
 
     // Handle file update if provided
@@ -1268,21 +1279,16 @@ exports.updatePurchasingDocument = async (req, res) => {
       };
     }
 
-    // Update approvers if provided
-    if (approvers) {
-      doc.approvers = approvers;
-    }
-
     await doc.save();
     res.json({
       message: "Document updated successfully",
-      document: doc, // Return the updated document
+      document: doc,
     });
   } catch (error) {
     console.error("Error updating purchasing document:", error);
     res.status(500).json({
       message: "Error updating document",
-      error: error.message, // Include error message for debugging
+      error: error.message,
     });
   }
 };

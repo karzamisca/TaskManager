@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 
 const purchasingDocumentSchema = new mongoose.Schema({
   title: { type: String, default: "Purchasing Document", required: true },
+  name: { type: String, required: true },
+  costCenter: { type: String }, // Added costCenter field with same restrictions as ProposalDocument
   products: [
     {
       productName: { type: String, required: true },

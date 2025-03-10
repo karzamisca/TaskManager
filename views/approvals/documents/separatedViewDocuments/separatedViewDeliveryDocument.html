@@ -902,7 +902,7 @@
           if (productInputs.length >= 4) {
             const costPerUnit = parseFloat(productInputs[1].value) || 0;
             const amount = parseInt(productInputs[2].value) || 0;
-            const vat = parseInt(productInputs[3].value) || 0;
+            const vat = parseFloat(productInputs[3].value) || 0;
 
             const product = {
               productName: productInputs[0].value,

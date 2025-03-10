@@ -370,6 +370,8 @@
     <table>
       <thead>
         <tr>
+          <th>Tên/Name</th>
+          <th>Trạm/Center</th>
           <th>Sản phẩm/Products</th>
           <th>Tệp tin kèm theo/Attached File</th>
           <th>Tổng chi phí/Grand Total Cost</th>
@@ -614,6 +616,8 @@
 
             const row = document.createElement("tr");
             row.innerHTML = `
+              <td>${doc.name ? doc.name : ""}</td>
+              <td>${doc.costCenter ? doc.costCenter : ""}</td>              
               <td>
                 ${renderProducts(doc.products)} 
                 ${doc.declaration ? `(Kê khai: ${doc.declaration})` : ""}
@@ -778,8 +782,21 @@
                     
                     <form id="editForm" onsubmit="handleEditSubmit(event)">
                       <input type="hidden" id="editDocId">
-                      
 
+                      <!-- Basic Fields -->
+                      <div style="margin-bottom: 15px;">
+                        <label for="editName">Tên/Name:</label>
+                        <input type="text" id="editName" required style="width: 100%; padding: 8px;">
+                      </div>
+
+                      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                        <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm/Cost Center:</label>
+                        <select id="editCostCenter" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
+                          <option value="">Chọn một trạm/Select a center</option>
+                          <!-- Options will be populated dynamically -->
+                        </select>
+                      </div>
+                      
                       <div id="productsContainer" style="margin-bottom: clamp(12px, 1.5vw, 20px);">
                         <label style="display: block; margin-bottom: 0.5em;">Sản phẩm/Products:</label>
                         <div id="productsList"></div>
@@ -867,6 +884,41 @@
           </div>
         `;
         productsList.appendChild(productDiv);
+      }
+
+      async function populateCostCenterDropdown() {
+        try {
+          // Fetch the current user
+          const userResponse = await fetch("/getCurrentUser");
+          const userData = await userResponse.json();
+          const currentUser = userData.username;
+
+          // Fetch cost centers
+          const costCenterResponse = await fetch("/costCenters");
+          const costCenters = await costCenterResponse.json();
+
+          // Get the cost center dropdown in the edit modal
+          const costCenterDropdown = document.getElementById("editCostCenter");
+
+          // Clear existing options
+          costCenterDropdown.innerHTML =
+            '<option value="">Chọn một trạm/Select a center</option>';
+
+          // Populate the dropdown with allowed cost centers
+          costCenters.forEach((center) => {
+            if (
+              center.allowedUsers.length === 0 ||
+              center.allowedUsers.includes(currentUser)
+            ) {
+              const option = document.createElement("option");
+              option.value = center.name;
+              option.textContent = center.name;
+              costCenterDropdown.appendChild(option);
+            }
+          });
+        } catch (error) {
+          console.error("Error fetching cost centers:", error);
+        }
       }
 
       // Function to fetch all approvers
@@ -976,6 +1028,10 @@
           const doc = await response.json();
 
           document.getElementById("editDocId").value = docId;
+          document.getElementById("editName").value = doc.name;
+
+          await populateCostCenterDropdown();
+          document.getElementById("editCostCenter").value = doc.costCenter;
 
           // Clear and repopulate products
           const productsList = document.getElementById("productsList");
@@ -986,6 +1042,7 @@
           renderCurrentApprovers();
           // Populate new approvers dropdown
           await populateNewApproversDropdown();
+
           document.getElementById("editModal").style.display = "block";
         } catch (err) {
           console.error("Error fetching document details:", err);
@@ -1003,6 +1060,13 @@
         event.preventDefault();
         const docId = document.getElementById("editDocId").value;
         const formData = new FormData();
+
+        // Add basic fields
+        formData.append("name", document.getElementById("editName").value);
+        formData.append(
+          "costCenter",
+          document.getElementById("editCostCenter").value
+        );
 
         // Get all products
         const products = [];
@@ -1038,12 +1102,14 @@
         );
         formData.append("grandTotalCost", grandTotalCost);
 
+        // Add approvers
+        formData.append("approvers", JSON.stringify(currentApprovers));
+
+        // Add file
         const fileInput = document.getElementById("editFile");
         if (fileInput.files.length > 0) {
           formData.append("file", fileInput.files[0]);
         }
-
-        formData.append("approvers", JSON.stringify(currentApprovers));
 
         try {
           const response = await fetch(`/updatePurchasingDocument/${docId}`, {
@@ -1207,6 +1273,14 @@
             <div class="full-view-section">
               <h3>Thông tin cơ bản/Basic Information</h3>
               <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Tên:</span>
+                  <span class="detail-value">${doc.name}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Trạm:</span>
+                  <span class="detail-value">${doc.costCenter}</span>
+                </div>                
                 <div class="detail-item">
                   <span class="detail-label">Tên nhóm/Group Name:</span>
                   <span class="detail-value">${
