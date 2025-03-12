@@ -862,28 +862,85 @@
         const productDiv = document.createElement("div");
         productDiv.className = "product-item";
         productDiv.style.marginBottom = "10px";
-        productDiv.innerHTML = `
-          <div style="display: grid; gap: 10px;">
-            <input type="text" placeholder="Tên sản phẩm/Product Name" 
-                   value="${product?.productName || ""}" required
-                   style="width: 100%; padding: 8px;">
-            <input type="number" placeholder="Đơn giá/Cost Per Unit" 
-                   value="${product?.costPerUnit || ""}" required
-                   style="width: 100%; padding: 8px;">
-            <input type="number" placeholder="Số lượng/Amount" 
-                   value="${product?.amount || ""}" required
-                   style="width: 100%; padding: 8px;">
-            <input type="number" placeholder="Thuế/Vat (%)" 
-                   value="${product?.vat || ""}" required
-                   style="width: 100%; padding: 8px;">                   
-            <input type="text" placeholder="Ghi chú/Note" 
-                   value="${product?.note || ""}"
-                   style="width: 100%; padding: 8px;">
-            <button type="button" class="approve-btn" onclick="this.parentElement.parentElement.remove()" 
-                    style="background: #dc3545;">Xóa/Remove</button>
-          </div>
-        `;
+
+        // Create the div first
         productsList.appendChild(productDiv);
+
+        // Create and configure inputs directly instead of using innerHTML
+        const container = document.createElement("div");
+        container.style.display = "grid";
+        container.style.gap = "10px";
+        productDiv.appendChild(container);
+
+        // Product Name input
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.placeholder = "Tên sản phẩm/Product Name";
+        nameInput.required = true;
+        nameInput.style.width = "100%";
+        nameInput.style.padding = "8px";
+        if (product && product.productName !== undefined) {
+          nameInput.value = product.productName;
+        }
+        container.appendChild(nameInput);
+
+        // Cost Per Unit input
+        const costInput = document.createElement("input");
+        costInput.type = "number";
+        costInput.placeholder = "Đơn giá/Cost Per Unit";
+        costInput.required = true;
+        costInput.style.width = "100%";
+        costInput.style.padding = "8px";
+        if (product && product.costPerUnit !== undefined) {
+          costInput.value = product.costPerUnit;
+        }
+        container.appendChild(costInput);
+
+        // Amount input
+        const amountInput = document.createElement("input");
+        amountInput.type = "number";
+        amountInput.placeholder = "Số lượng/Amount";
+        amountInput.required = true;
+        amountInput.style.width = "100%";
+        amountInput.style.padding = "8px";
+        if (product && product.amount !== undefined) {
+          amountInput.value = product.amount;
+        }
+        container.appendChild(amountInput);
+
+        // VAT input
+        const vatInput = document.createElement("input");
+        vatInput.type = "number";
+        vatInput.placeholder = "Thuế/Vat (%)";
+        vatInput.required = true;
+        vatInput.style.width = "100%";
+        vatInput.style.padding = "8px";
+        if (product && product.vat !== undefined) {
+          vatInput.value = product.vat;
+        }
+        container.appendChild(vatInput);
+
+        // Note input
+        const noteInput = document.createElement("input");
+        noteInput.type = "text";
+        noteInput.placeholder = "Ghi chú/Note";
+        noteInput.style.width = "100%";
+        noteInput.style.padding = "8px";
+        if (product && product.note !== undefined) {
+          noteInput.value = product.note;
+        }
+        container.appendChild(noteInput);
+
+        // Remove button
+        const removeButton = document.createElement("button");
+        removeButton.type = "button";
+        removeButton.className = "approve-btn";
+        removeButton.textContent = "Xóa/Remove";
+        removeButton.style.background = "#dc3545";
+        removeButton.onclick = function () {
+          this.parentElement.parentElement.remove();
+        };
+        container.appendChild(removeButton);
       }
 
       async function populateCostCenterDropdown() {
