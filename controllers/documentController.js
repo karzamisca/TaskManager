@@ -449,6 +449,7 @@ async function createPaymentDocument(req, approverDetails, uploadedFileData) {
     title: req.body.title,
     name: req.body.name,
     content: req.body.content,
+    costCenter: req.body.costCenter,
     paymentMethod: req.body.paymentMethod,
     totalPayment: req.body.totalPayment,
     advancePayment: req.body.advancePayment || 0,
@@ -1483,6 +1484,7 @@ exports.updatePaymentDocument = async (req, res) => {
     const {
       name,
       content,
+      costCenter,
       paymentMethod,
       totalPayment,
       advancePayment,
@@ -1510,6 +1512,7 @@ exports.updatePaymentDocument = async (req, res) => {
     // Update basic fields
     doc.name = name;
     doc.content = content;
+    doc.costCenter = costCenter;
     doc.paymentMethod = paymentMethod;
     doc.totalPayment = parseFloat(totalPayment);
     doc.advancePayment = parseFloat(advancePayment);

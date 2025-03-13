@@ -5,6 +5,7 @@ const paymentDocumentSchema = new mongoose.Schema({
   tag: { type: String, required: true },
   title: { type: String, default: "Payment Document", required: true },
   name: { type: String, required: true },
+  costCenter: { type: String },
   content: { type: String, required: true },
   paymentMethod: { type: String, required: true },
   totalPayment: { type: Number, required: true },

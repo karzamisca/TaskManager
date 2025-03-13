@@ -610,6 +610,9 @@
 
                 return `
                 <div class="purchasing-doc">
+                  <p><strong>Trạm/Center:</strong> ${
+                    purchDoc.costCenter ? purchDoc.costCenter : ""
+                  }</p>
                   <p><strong>Tổng chi phí/Total Cost:</strong> ${purchDoc.grandTotalCost.toLocaleString()}</p>
                   <p><strong>Sản phẩm/Products:</strong></p>
                   <ul>${products}</ul>
@@ -824,6 +827,41 @@
         }
       }
 
+      async function populateCostCenterDropdown() {
+        try {
+          // Fetch the current user
+          const userResponse = await fetch("/getCurrentUser");
+          const userData = await userResponse.json();
+          const currentUser = userData.username;
+
+          // Fetch cost centers
+          const costCenterResponse = await fetch("/costCenters");
+          const costCenters = await costCenterResponse.json();
+
+          // Get the cost center dropdown in the edit modal
+          const costCenterDropdown = document.getElementById("editCostCenter");
+
+          // Clear existing options
+          costCenterDropdown.innerHTML =
+            '<option value="">Chọn một trạm/Select a center</option>';
+
+          // Populate the dropdown with allowed cost centers
+          costCenters.forEach((center) => {
+            if (
+              center.allowedUsers.length === 0 ||
+              center.allowedUsers.includes(currentUser)
+            ) {
+              const option = document.createElement("option");
+              option.value = center.name;
+              option.textContent = center.name;
+              costCenterDropdown.appendChild(option);
+            }
+          });
+        } catch (error) {
+          console.error("Error fetching cost centers:", error);
+        }
+      }
+
       // Add edit modal HTML at the end of the table
       function addEditModal() {
         const modalHTML = `
@@ -879,6 +917,14 @@
                     border-radius: clamp(3px, 0.5vw, 6px);
                   "></textarea>
                 </div>
+
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                    <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm/Cost Center:</label>
+                    <select id="editCostCenter" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
+                        <option value="">Chọn một trạm/Select a center</option>
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>      
 
                 <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
                   <label for="editPaymentMethod" style="display: block; margin-bottom: 0.5em;">Hình thức thanh toán/Payment Method:</label>
@@ -1098,6 +1144,9 @@
           document.getElementById("editDocId").value = docId;
           document.getElementById("editName").value = doc.name;
           document.getElementById("editContent").value = doc.content;
+          // Populate the cost center dropdown
+          await populateCostCenterDropdown();
+          document.getElementById("editCostCenter").value = doc.costCenter;
           document.getElementById("editPaymentMethod").value =
             doc.paymentMethod;
           document.getElementById("editTotalPayment").value = doc.totalPayment;
@@ -1131,6 +1180,10 @@
         formData.append(
           "content",
           document.getElementById("editContent").value
+        );
+        formData.append(
+          "costCenter",
+          document.getElementById("editCostCenter").value
         );
         formData.append(
           "paymentMethod",
@@ -1228,6 +1281,13 @@
               <h3>Nội dung/Content</h3>
               <p style="white-space: pre-wrap;">${
                 doc.content || "No content provided"
+              }</p>
+            </div>
+
+            <div class="full-view-section">
+              <h3>Trạm/Center</h3>
+              <p style="white-space: pre-wrap;">${
+                doc.costCenter || "No content provided"
               }</p>
             </div>
 

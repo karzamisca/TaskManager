@@ -527,7 +527,7 @@
               <label for="costCenter">Trạm/Center</label>
               <select name="costCenter" id="costCenter" required>
                 <option value="">Chọn một trạm/Select a center</option>
-              </select>            
+              </select>
               <div id="product-entries">
                 <label>Tên sản phẩm/Product Name</label><input type="text" name="products[0][productName]" required />
                 <label>Đơn giá/Cost per Unit</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
@@ -586,6 +586,10 @@
               <input type="text" name="name" required />
               <label for="content">Nội dung/Content</label>
               <input type="text" name="content" required />
+              <label for="costCenter">Trạm/Center</label>
+              <select name="costCenter" id="costCenter">
+                <option value="">Chọn một trạm/Select a center</option>
+              </select>
               <label for="paymentMethod">Hình thức thanh toán/Payment Method</label>
               <input type="text" name="paymentMethod" required />
               <label for="totalPayment">Tổng thanh toán/Total Payment:</label>
@@ -603,6 +607,41 @@
               dateFormat: "d-m-Y",
               defaultDate: "today",
             });
+
+            // Fetch current user information and populate cost centers
+            fetch("/getCurrentUser")
+              .then((response) => response.json())
+              .then((userData) => {
+                const currentUser = userData.username;
+
+                // Fetch cost centers
+                fetch("/costCenters")
+                  .then((response) => response.json())
+                  .then((costCenters) => {
+                    const costCenterSelect =
+                      document.getElementById("costCenter");
+                    costCenterSelect.innerHTML =
+                      '<option value="">Chọn một trạm/Select a center</option>';
+
+                    costCenters.forEach((center) => {
+                      if (
+                        center.allowedUsers.length === 0 ||
+                        center.allowedUsers.includes(currentUser)
+                      ) {
+                        const option = document.createElement("option");
+                        option.value = center.name;
+                        option.textContent = center.name;
+                        costCenterSelect.appendChild(option);
+                      }
+                    });
+                  })
+                  .catch((error) => {
+                    console.error("Error fetching cost centers:", error);
+                  });
+              })
+              .catch((error) => {
+                console.error("Error fetching current user:", error);
+              });
           } else if (selectedTitle === "Delivery Document") {
             contentFields.innerHTML = `
               <label for="name">Tên/Name</label>
@@ -825,7 +864,7 @@
           <p><strong>Hướng xử lý/Direction:</strong> ${proposal.direction}</p>
           ${
             proposal.fileMetadata
-              ? `<p><strong>Tệp đính kèm/Attached File:</strong> 
+              ? `<p><strong>Tệp đính kèm/Attached File:</strong>
             <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
               : ""
           }
@@ -895,6 +934,9 @@
                   ? "Đã phê duyệt/Approved"
                   : "Chưa phê duyệt/Pending"
               }<br>
+              <strong>Trạm/Center:</strong> ${
+                doc.costCenter ? doc.costCenter : ""
+              }<br>
               <strong>Chi phí/Grand Total Cost:</strong> ${doc.grandTotalCost.toLocaleString()}<br>
               <h3>Sản phẩm/Products:</h3>
               <ul>
@@ -934,7 +976,7 @@
                                       }<br>
                                       ${
                                         proposal.fileMetadata
-                                          ? `Tệp đính kèm phiếu đề xuất/Attached File to Proposal Document: 
+                                          ? `Tệp đính kèm phiếu đề xuất/Attached File to Proposal Document:
                                               <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
                                           : ""
                                       }<br>
@@ -946,7 +988,7 @@
               }
               ${
                 doc.fileMetadata
-                  ? `<p><strong>Tệp đính kèm phiếu thanh toán/File attaches to payment document:</strong> 
+                  ? `<p><strong>Tệp đính kèm phiếu thanh toán/File attaches to payment document:</strong>
                         <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
                   : "<p>Không có tệp đính kèm/No file attached.</p>"
               }
