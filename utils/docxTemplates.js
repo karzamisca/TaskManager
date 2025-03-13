@@ -225,6 +225,12 @@ const createPurchasingDocTemplate = async (doc) => {
               doc.submittedBy?.username || "Unknown"
             }`,
           }),
+          new Paragraph({
+            text: `Tên/Name: ${doc.name ? doc.name : ""}`,
+          }),
+          new Paragraph({
+            text: `Trạm/Center: ${doc.content ? doc.costCenter : ""}`,
+          }),
 
           // Products Table
           new Paragraph({ text: "Sản phẩm/Products:", bold: true }),
@@ -754,6 +760,9 @@ const createPaymentDocTemplate = async (doc) => {
             text: `Nội dung/Content: ${doc.content}`,
           }),
           new Paragraph({
+            text: `Trạm/Center: ${doc.costCenter ? doc.costCenter : ""}`,
+          }),
+          new Paragraph({
             text: `Phương thức thanh toán/Payment Method: ${doc.paymentMethod}`,
           }),
           new Paragraph({
@@ -802,6 +811,14 @@ const createPaymentDocTemplate = async (doc) => {
                 new Paragraph({
                   text: `Phiếu mua hàng/Purchasing Document #${index + 1}`,
                   bold: true,
+                }),
+                new Paragraph({
+                  text: `Tên/Name: ${purchDoc.name ? purchDoc.name : ""}`,
+                }),
+                new Paragraph({
+                  text: `Trạm/Center: ${
+                    purchDoc.costCenter ? purchDoc.costCenter : ""
+                  }`,
                 }),
                 purchDoc.fileMetadata
                   ? new Paragraph({
