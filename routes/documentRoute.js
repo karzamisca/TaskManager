@@ -131,6 +131,16 @@ router.get(
   authMiddleware,
   documentController.getProposalDocument
 );
+router.post(
+  "/suspendProposalDocument/:id",
+  authMiddleware,
+  documentController.suspendProposalDocument
+);
+router.post(
+  "/openProposalDocument/:id",
+  authMiddleware,
+  documentController.openProposalDocument
+);
 //// END OF PROPOSAL DOCUMENT ROUTE
 
 //// PURCHASING DOCUMENT ROUTE

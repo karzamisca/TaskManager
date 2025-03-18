@@ -253,6 +253,75 @@
         color: green;
       }
 
+      .full-view-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        overflow-y: auto;
+      }
+
+      .full-view-content {
+        position: relative;
+        margin: 50px auto;
+        background: var(--bg-color);
+        padding: 30px;
+        width: 90%;
+        max-width: 1000px;
+        border-radius: 8px;
+      }
+
+      .full-view-section {
+        margin-bottom: 24px;
+        padding: 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+      }
+
+      .full-view-section h3 {
+        margin-top: 0;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .close-btn {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        cursor: pointer;
+        font-size: 24px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--border-color);
+        color: var(--text-color);
+      }
+
+      .close-btn:hover {
+        background: var(--primary-color);
+        color: var(--bg-color);
+      }
+
+      #suspendModal .full-view-content {
+        max-width: 500px;
+      }
+
+      #suspendModal textarea {
+        width: 100%;
+        min-height: 100px;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+      }
+
       .suspended {
         color: red;
       }
@@ -366,6 +435,34 @@
         <!-- Proposal documents will be populated here -->
       </tbody>
     </table>
+
+    <div id="suspendModal" class="full-view-modal">
+      <div class="full-view-content">
+        <span class="close-btn" onclick="closeSuspendModal()">&times;</span>
+        <h2>Từ chối tài liệu/Suspend Document</h2>
+        <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
+          <div style="margin-bottom: 20px">
+            <label for="suspendReason">Lý do từ chối/Suspend Reason:</label>
+            <textarea
+              id="suspendReason"
+              required
+              style="width: 100%; padding: 10px"
+            ></textarea>
+          </div>
+          <div style="display: flex; gap: 10px">
+            <button type="submit" class="approve-btn">Từ chối/Suspend</button>
+            <button
+              type="button"
+              class="approve-btn"
+              onclick="closeSuspendModal()"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <div class="summary">
       <h2>Tóm tắt/Summary</h2>
       <p>
@@ -509,6 +606,11 @@
                               ? `(Kê khai: ${doc.declaration})`
                               : ""
                           }
+                          ${
+                            doc.suspendReason
+                              ? `(Lý do từ chối: ${doc.suspendReason})`
+                              : ""
+                          }
                         </td>
                         <td>${doc.costCenter || "-"}</td>
                         <td>${doc.dateOfError || "-"}</td>
@@ -549,12 +651,22 @@
                           ${
                             doc.status === "Approved"
                               ? `
-                            <button class="approve-btn" onclick="editDeclaration('${doc._id}')" style="margin-right: 5px;">
-                              Kê khai/Declaration
-                            </button>
-                          `
-                              : ""
-                          }
+                                <button class="approve-btn" onclick="editDeclaration('${doc._id}')" style="margin-right: 5px;">
+                                  Kê khai/Declaration
+                                </button>
+                              `
+                              : doc.status === "Suspended"
+                              ? `
+                                <button class="approve-btn" onclick="openDocument('${doc._id}')">
+                                  Mở/Open
+                                </button>
+                              `
+                              : `
+                                <button class="approve-btn" onclick="suspendDocument('${doc._id}')">
+                                  Từ chối/Suspend
+                                </button>
+                              `
+                          } 
                         </td>
                     `;
             tableBody.appendChild(row);
@@ -1081,6 +1193,72 @@
         } catch (err) {
           console.error("Error updating declaration:", err);
           showMessage("Error updating declaration", true);
+        }
+      }
+
+      // Function to show the suspend modal
+      function suspendDocument(docId) {
+        document.getElementById("suspendModal").style.display = "block";
+        document.getElementById("suspendForm").dataset.docId = docId;
+      }
+
+      // Function to close the suspend modal
+      function closeSuspendModal() {
+        document.getElementById("suspendModal").style.display = "none";
+        document.getElementById("suspendForm").reset();
+      }
+
+      // Function to handle suspend form submission
+      async function handleSuspendSubmit(event) {
+        event.preventDefault();
+        const docId = event.target.dataset.docId;
+        const suspendReason = document.getElementById("suspendReason").value;
+
+        try {
+          const response = await fetch(`/suspendProposalDocument/${docId}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ suspendReason }),
+          });
+
+          const message = await response.text(); // Get the response message
+
+          if (response.ok) {
+            showMessage(message); // Show success message
+            closeSuspendModal();
+            fetchProposalDocuments();
+          } else {
+            showMessage(message, true); // Show error message
+          }
+        } catch (err) {
+          console.error("Error suspending document:", err);
+          showMessage(
+            "Lỗi khi tạm dừng tài liệu/Error suspending document",
+            true
+          );
+        }
+      }
+
+      // Function to reopen the document
+      async function openDocument(docId) {
+        try {
+          const response = await fetch(`/openProposalDocument/${docId}`, {
+            method: "POST",
+          });
+
+          const message = await response.text(); // Get the response message
+
+          if (response.ok) {
+            showMessage(message); // Show success message
+            fetchProposalDocuments();
+          } else {
+            showMessage(message, true); // Show error message
+          }
+        } catch (err) {
+          console.error("Error reopening document:", err);
+          showMessage("Lỗi khi mở lại tài liệu/Error reopening document", true);
         }
       }
 
