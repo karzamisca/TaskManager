@@ -33,9 +33,7 @@ async function handleRefreshToken(req, res, next) {
   const refreshToken = req.cookies.refreshToken;
 
   if (!refreshToken) {
-    return res.send(
-      "Truy cập đã hết hạn. Vui lòng đăng nhập lại./Access has expired. Please login again."
-    );
+    return res.redirect("/login");
   }
 
   try {
