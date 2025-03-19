@@ -1510,6 +1510,64 @@ exports.openPurchasingDocument = async (req, res) => {
 exports.getPaymentDocumentForSeparatedView = async (req, res) => {
   try {
     const paymentDocuments = await PaymentDocument.find({});
+
+    // Sort the payment documents by status priority and approval date
+    const sortedDocuments = paymentDocuments.sort((a, b) => {
+      // First, sort by status priority: Suspended > Pending > Approved
+      const statusPriority = {
+        Suspended: 1,
+        Pending: 2,
+        Approved: 3,
+      };
+
+      const statusComparison =
+        statusPriority[a.status] - statusPriority[b.status];
+
+      // If status is the same, sort by latest approval date (for Approved documents)
+      if (statusComparison === 0 && a.status === "Approved") {
+        // Get the latest approval date for each document
+        const getLatestApprovalDate = (doc) => {
+          if (doc.approvedBy && doc.approvedBy.length > 0) {
+            // Sort approval dates in descending order
+            const sortedDates = [...doc.approvedBy].sort((x, y) => {
+              // Parse date strings in format "DD-MM-YYYY HH:MM:SS"
+              const parseCustomDate = (dateStr) => {
+                const [datePart, timePart] = dateStr.split(" ");
+                const [day, month, year] = datePart.split("-");
+                const [hour, minute, second] = timePart.split(":");
+                // Month is 0-indexed in JavaScript Date constructor
+                return new Date(year, month - 1, day, hour, minute, second);
+              };
+
+              return (
+                parseCustomDate(y.approvalDate) -
+                parseCustomDate(x.approvalDate)
+              );
+            });
+            return sortedDates[0].approvalDate;
+          }
+          return "01-01-1970 00:00:00"; // Default date if no approvals
+        };
+
+        const latestDateA = getLatestApprovalDate(a);
+        const latestDateB = getLatestApprovalDate(b);
+
+        // Parse and compare dates in the format "DD-MM-YYYY HH:MM:SS"
+        const parseCustomDate = (dateStr) => {
+          const [datePart, timePart] = dateStr.split(" ");
+          const [day, month, year] = datePart.split("-");
+          const [hour, minute, second] = timePart.split(":");
+          // Month is 0-indexed in JavaScript Date constructor
+          return new Date(year, month - 1, day, hour, minute, second);
+        };
+
+        // Sort by latest approval date (ascending order - oldest first)
+        return parseCustomDate(latestDateA) - parseCustomDate(latestDateB);
+      }
+
+      return statusComparison;
+    });
+
     // Calculate the sum of totalPayment for approved and unapproved documents
     let approvedSum = 0; // Sum for documents with only one approver left
     let paidSum = 0; // Sum for fully approved documents
@@ -1517,7 +1575,7 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
     let approvedDocument = 0;
     let unapprovedDocument = 0;
 
-    paymentDocuments.forEach((doc) => {
+    sortedDocuments.forEach((doc) => {
       // Calculate paidSum based on the new logic
       if (doc.status === "Approved") {
         // If advance payment equals 0, then paid sum equals total payment
@@ -1532,7 +1590,6 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
         else {
           paidSum += doc.totalPayment - doc.advancePayment;
         }
-
         approvedDocument += 1;
       } else if (doc.approvers.length - doc.approvedBy.length === 1) {
         approvedSum += doc.totalPayment; // Only one approver left
@@ -1544,7 +1601,7 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
     });
 
     res.json({
-      paymentDocuments,
+      paymentDocuments: sortedDocuments,
       approvedSum,
       paidSum,
       unapprovedSum,
