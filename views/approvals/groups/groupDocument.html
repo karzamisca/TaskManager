@@ -17,6 +17,8 @@
         --hover-color: #f3f4f6;
         --section-bg: #f9fafb;
         --shadow-color: rgba(0, 0, 0, 0.1);
+        --success-text: #2e7d32;
+        --table-stripe: #f9f9f9;
       }
 
       /* Dark mode colors */
@@ -29,6 +31,8 @@
           --hover-color: #374151;
           --section-bg: #111827;
           --shadow-color: rgba(0, 0, 0, 0.25);
+          --success-text: #2e7d32;
+          --table-stripe: #1e1e1e;
         }
       }
 
@@ -435,6 +439,138 @@
         margin-bottom: 0.75rem;
       }
 
+      .approval-status {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .approver-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 4px;
+        background-color: var(--table-stripe);
+      }
+
+      .status-icon {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+      }
+
+      .status-pending {
+        background-color: #ffd700;
+      }
+
+      .status-approved {
+        background-color: var(--success-text);
+      }
+
+      .approval-date {
+        font-size: 0.9em;
+        color: var(--text-color);
+        opacity: 0.8;
+      }
+
+      .full-view-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        overflow-y: auto;
+      }
+
+      .full-view-content {
+        position: relative;
+        margin: 50px auto;
+        background: var(--bg-color);
+        padding: 30px;
+        width: 90%;
+        max-width: 1000px;
+        border-radius: 8px;
+      }
+
+      .full-view-section {
+        margin-bottom: 24px;
+        padding: 16px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+      }
+
+      .full-view-section h3 {
+        margin-top: 0;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      .detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .detail-label {
+        font-weight: bold;
+        color: var(--text-color);
+        opacity: 0.8;
+      }
+
+      .detail-value {
+        color: var(--text-color);
+      }
+
+      .close-btn {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        cursor: pointer;
+        font-size: 24px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: var(--border-color);
+        color: var(--text-color);
+      }
+
+      .close-btn:hover {
+        background: var(--primary-color);
+        color: var(--bg-color);
+      }
+
+      .status {
+        font-weight: bold;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+
+      .approved {
+        color: green;
+      }
+
+      .suspended {
+        color: red;
+      }
+
+      .pending {
+        color: yellow;
+      }
+
       @media (max-width: 768px) {
         .form-grid {
           grid-template-columns: 1fr;
@@ -684,6 +820,138 @@
         });
       }
 
+      function renderPurchasingDocuments(purchDocs) {
+        if (!purchDocs || purchDocs.length === 0) return "";
+
+        return `
+          <div class="documents-container">
+            ${purchDocs
+              .map((purchDoc) => {
+                const products = purchDoc.products
+                  .map(
+                    (product) => `
+                <li>
+                  <strong>${product.productName}</strong><br>
+                  Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
+                  Số lượng/Amount: ${product.amount.toLocaleString()}<br>
+                  Thuế/Vat (%): ${(product.vat ?? 0).toLocaleString()}<br>
+                  Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
+                  Thành tiền sau thuế/Total Cost After Vat: ${(
+                    product.totalCostAfterVat ?? product.totalCost
+                  ).toLocaleString()}<br>
+                  Ghi chú/Notes: ${product.note || "None"}
+                </li>
+              `
+                  )
+                  .join("");
+
+                const fileMetadata = purchDoc.fileMetadata
+                  ? `<p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong> 
+                    <a href="${purchDoc.fileMetadata.link}" target="_blank">${purchDoc.fileMetadata.name}</a></p>`
+                  : "";
+
+                return `
+                <div class="purchasing-doc">
+                  <p><strong>Trạm/Center:</strong> ${
+                    purchDoc.costCenter ? purchDoc.costCenter : ""
+                  }</p>
+                  <p><strong>Tổng chi phí/Total Cost:</strong> ${purchDoc.grandTotalCost.toLocaleString()}</p>
+                  <p><strong>Sản phẩm/Products:</strong></p>
+                  <ul>${products}</ul>
+                  ${fileMetadata}
+                </div>`;
+              })
+              .join("")}
+          </div>`;
+      }
+
+      function renderProducts(products) {
+        if (!products || products.length === 0) return "-";
+
+        return `
+          <table class="products-table" style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr>
+                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Sản phẩm/Product</th>
+                <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Đơn giá/Cost Per Unit</th>
+                <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Số lượng/Amount</th>
+                <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Thuế/Vat (%)</th>
+                <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Thành tiền/Total Cost</th>
+                <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Thành tiền sau thuế/Total Cost After Vat</th>
+                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Ghi chú/Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${products
+                .map(
+                  (product) => `
+                <tr>
+                  <td style="text-align: left; padding: 8px; border-bottom: 1px solid #eee;"><strong>${
+                    product.productName
+                  }</strong></td>
+                  <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${product.costPerUnit.toLocaleString()}</td>
+                  <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${product.amount.toLocaleString()}</td>
+                  <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${
+                    product.vat.toLocaleString() || ""
+                  }</td>
+                  <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${product.totalCost.toLocaleString()}</td>
+                  <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${
+                    product.totalCostAfterVat.toLocaleString() || ""
+                  }</td>
+                  <td style="text-align: left; padding: 8px; border-bottom: 1px solid #eee;">${
+                    product.note || ""
+                  }</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        `;
+      }
+
+      function renderProposals(purchDocs) {
+        const allProposals = purchDocs
+          .flatMap((purchDoc) => purchDoc.appendedProposals)
+          .filter((proposal) => proposal);
+
+        if (allProposals.length === 0) return "";
+
+        return `
+          <div class="proposals-container">
+            ${allProposals
+              .map(
+                (proposal) => `
+              <div class="proposal-card">
+                <p><strong>Công việc/Task:</strong> ${proposal.task}</p>
+                <p><strong>Trạm/Center:</strong> ${proposal.costCenter}</p>
+                <p><strong>Mô tả/Description:</strong> ${
+                  proposal.detailsDescription
+                }</p>
+                ${
+                  proposal.fileMetadata
+                    ? `<p><strong>Tệp đính kèm/File:</strong> 
+                      <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
+                    : ""
+                }
+              </div>
+            `
+              )
+              .join("")}
+          </div>`;
+      }
+
+      function renderStatus(status) {
+        switch (status) {
+          case "Approved":
+            return `<span class="status approved">Approved</span>`;
+          case "Suspended":
+            return `<span class="status suspended">Suspended</span>`;
+          default:
+            return `<span class="status pending">Pending</span>`;
+        }
+      }
+
       function showDocumentDetails(docId, groupName) {
         const doc = groupedDocuments[groupName].find((d) => d._id === docId);
         if (!doc) return;
@@ -701,6 +969,8 @@
 
       function generateDocumentContent(doc) {
         let content = "";
+        const submissionDate = doc.submissionDate || "Not specified";
+        const paymentDeadline = doc.paymentDeadline || "Not specified";
 
         if (doc.type === "Chung/Generic") {
           content = doc.content
@@ -715,145 +985,250 @@
             .join("");
         } else if (doc.type === "Thanh toán/Payment") {
           content = `
-            <h2>Phiếu thanh toán/Payment Document</h2>
-            <div>
-              <strong>Mã/Document ID:</strong> ${doc._id}<br>
-              <strong>Tên/Name:</strong> ${doc.name}<br>
-              <strong>Phương thức trả tiền/Payment Method:</strong> ${
-                doc.paymentMethod
-              }<br>
-              <strong>Tổng thanh toán/Total Payment:</strong> ${
-                doc.totalPayment
-              }<br>
-              <strong>Tạm ứng/Advance Payment:</strong> ${
-                doc.advancePayment
-              }<br>
-              <strong>Hạn thanh toán/Payment Deadline:</strong> ${
-                doc.paymentDeadline
-              }<br>
-              <strong>Ngày nộp/Submission Date:</strong> ${
-                doc.submissionDate
-              }<br>
-              <strong>Tình trạng/Status:</strong> ${doc.status}<br>
+            <!-- Basic Information Section -->
+            <div class="full-view-section">
+              <h3>Thông tin cơ bản/Basic Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Mã/Tag:</span>
+                  <span class="detail-value">${
+                    doc.tag || "Not specified"
+                  }</span>
+                  <span class="detail-label">Tên/Name:</span>
+                  <span class="detail-value">${
+                    doc.name || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Tên nhóm/Group Name:</span>
+                  <span class="detail-value">${
+                    doc.groupName || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Ngày nộp/Submission Date:</span>
+                  <span class="detail-value">${doc.submissionDate}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Hạn trả/Payment Deadline:</span>
+                  <span class="detail-value">${doc.paymentDeadline}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Kê khai/Declaration:</span>
+                  <span class="detail-value">${
+                    doc.declaration || "Not specified"
+                  }</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Content Section -->
+            <div class="full-view-section">
+              <h3>Nội dung/Content</h3>
+              <p style="white-space: pre-wrap;">${
+                doc.content || "No content provided"
+              }</p>
+            </div>
+
+            <div class="full-view-section">
+              <h3>Trạm/Center</h3>
+              <p style="white-space: pre-wrap;">${
+                doc.costCenter || "No content provided"
+              }</p>
+            </div>
+
+            <!-- Payment Information Section -->
+            <div class="full-view-section">
+              <h3>Thông tin thanh toán/Payment Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Phương thức/Payment Method:</span>
+                  <span class="detail-value">${
+                    doc.paymentMethod || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Tổng thanh toán/Total Payment:</span>
+                  <span class="detail-value">${
+                    doc.totalPayment?.toLocaleString() || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Tạm ứng/Advance Payment:</span>
+                  <span class="detail-value">${
+                    doc.advancePayment?.toLocaleString() || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Bù trừ/Offset:</span>
+                  <span class="detail-value">${
+                    doc.totalPayment && doc.advancePayment
+                      ? (doc.totalPayment - doc.advancePayment).toLocaleString()
+                      : "Not calculated"
+                  }</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- File Attachment Section -->
+            <div class="full-view-section">
+              <h3>Tệp tin kèm theo/Attached File</h3>
               ${
-                doc.suspendReason
-                  ? `<strong>Lý do từ chối/Suspend Reason:</strong> ${doc.suspendReason}<br>`
-                  : ""
+                doc.fileMetadata
+                  ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+                  : "No file attached"
               }
+            </div>
+
+            <!-- Purchasing Documents Section -->
+            <div class="full-view-section">
+              <h3>Phiếu mua hàng kèm theo/Appended Purchasing Documents</h3>
               ${
-                doc.declaration
-                  ? `<strong>Kê khai/Declaration:</strong> ${doc.declaration}<br>`
-                  : ""
+                doc.appendedPurchasingDocuments?.length
+                  ? renderPurchasingDocuments(doc.appendedPurchasingDocuments)
+                  : "No purchasing documents attached"
               }
-              <strong>Phiếu mua sắm kèm theo/Appended Purchasing Documents:</strong><br>
-              ${doc.appendedPurchasingDocuments
-                .map(
-                  (purchasingDoc) => `
-                <div>
-                  <strong>Tiêu đề/Title:</strong> ${purchasingDoc.title}<br>
-                  <strong>Sản phẩm/Products:</strong><br>
-                  ${purchasingDoc.products
-                    .map(
-                      (product) => `
-                    <div>
-                      <strong>Tên sản phẩm/Product Name:</strong> ${
-                        product.productName
-                      }<br>
-                      <strong>Đơn giá/Cost Per Unit:</strong> ${
-                        product.costPerUnit
-                      }<br>
-                      <strong>Số lượng/Amount:</strong> ${product.amount}<br>
-                      <strong>Thành tiền/Total Cost:</strong> ${
-                        product.totalCost
-                      }<br>
-                      ${
-                        product.note
-                          ? `<strong>Ghi chú/Note:</strong> ${product.note}<br>`
-                          : ""
-                      }
-                    </div>
-                  `
-                    )
-                    .join("")}
-                  <strong>Tổng chi phí/Grand Total Cost:</strong> ${
-                    purchasingDoc.grandTotalCost
-                  }<br>
-                  <strong>Phiếu đề xuất kèm theo/Appended Proposals:</strong><br>
-                    ${purchasingDoc.appendedProposals
-                      .map(
-                        (proposal) => `
-                      <div style="margin-left: 20px; border-left: 2px solid #ccc; padding-left: 10px;">
-                        <strong>Công việc/Task:</strong> ${proposal.task}<br>
-                        <strong>Trạm/Center:</strong> ${proposal.costCenter}<br>
-                        <strong>Ngày xảy ra lỗi/Date of Error:</strong> ${proposal.dateOfError}<br>
-                        <strong>Mô tả chi tiết/Details Description:</strong> ${proposal.detailsDescription}<br>
-                        <strong>Hướng xử lý/Direction:</strong> ${proposal.direction}<br>
+            </div>
+
+            <!-- Proposals Section -->
+            <div class="full-view-section">
+              <h3>Phiếu đề xuất kèm theo/Appended Proposal Documents</h3>
+              ${
+                doc.appendedPurchasingDocuments?.length
+                  ? renderProposals(doc.appendedPurchasingDocuments)
+                  : "No proposal documents attached"
+              }
+            </div>
+
+            <!-- Status Section -->
+            <div class="full-view-section">
+              <h3>Trạng thái/Status Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Tình trạng/Status:</span>
+                  <span class="detail-value ${renderStatus(doc.status)}</span>
+                </div>
+              </div>
+              <div style="margin-top: 16px;">
+                <h4>Trạng thái phê duyệt/Approval Status:</h4>
+                <div class="approval-status">
+                  ${doc.approvers
+                    .map((approver) => {
+                      const hasApproved = doc.approvedBy.find(
+                        (a) => a.username === approver.username
+                      );
+                      return `
+                      <div class="approver-item">
+                        <span class="status-icon ${
+                          hasApproved ? "status-approved" : "status-pending"
+                        }"></span>
+                        <div>
+                          <div>${approver.username} (${approver.subRole})</div>
+                          ${
+                            hasApproved
+                              ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
+                              : '<div class="approval-date">Pending</div>'
+                          }
+                        </div>
                       </div>
-                    `
-                      )
-                      .join("")}
-                  </div>
-                  `
-                )
-                .join("")}
-                  </div>
-                `;
+                    `;
+                    })
+                    .join("")}
+                </div>
+              </div>
+            </div>
+          `;
         } else if (doc.type === "Mua hàng/Purchasing") {
           content = `
-            <h2>Phiếu mua hàng/Purchasing Document</h2>
-            <div>
-              <strong>Mã/Document ID:</strong> ${doc._id}<br>
-              <strong>Tiêu đề/Title:</strong> ${doc.title}<br>
-              <strong>Sản phẩm/Products:</strong><br>
-              ${doc.products
-                .map(
-                  (product) => `
-                <div>
-                  <strong>Tên sản phẩm/Product Name:</strong> ${
-                    product.productName
-                  }<br>
-                  <strong>Đơn giá/Cost Per Unit:</strong> ${
-                    product.costPerUnit
-                  }<br>
-                  <strong>Số lượng/Amount:</strong> ${product.amount}<br>
-                  <strong>Thành tiền/Total Cost:</strong> ${
-                    product.totalCost
-                  }<br>
-                  ${
-                    product.note
-                      ? `<strong>Ghi chú/Note:</strong> ${product.note}<br>`
-                      : ""
-                  }
+            <!-- Basic Information Section -->
+            <div class="full-view-section">
+              <h3>Thông tin cơ bản/Basic Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Tên:</span>
+                  <span class="detail-value">${doc.name}</span>
                 </div>
-              `
-                )
-                .join("")}
-              <strong>Tổng chi phí/Grand Total Cost:</strong> ${
-                doc.grandTotalCost
-              }<br>
-              <strong>Ngày nộp/Submission Date:</strong> ${
-                doc.submissionDate
-              }<br>
-              <strong>Tình trạng/Status:</strong> ${doc.status}<br>
+                <div class="detail-item">
+                  <span class="detail-label">Trạm:</span>
+                  <span class="detail-value">${doc.costCenter}</span>
+                </div>                
+                <div class="detail-item">
+                  <span class="detail-label">Tên nhóm/Group Name:</span>
+                  <span class="detail-value">${
+                    doc.groupName || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Ngày nộp/Submission Date:</span>
+                  <span class="detail-value">${submissionDate}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Kê khai/Declaration:</span>
+                  <span class="detail-value">${
+                    doc.declaration || "Not specified"
+                  }</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Products Section -->
+            <div class="full-view-section">
+              <h3>Sản phẩm/Products</h3>
+              ${renderProducts(doc.products)}
+            </div>
+
+            <!-- File Attachment Section -->
+            <div class="full-view-section">
+              <h3>Tệp tin kèm theo/Attached File</h3>
               ${
-                doc.suspendReason
-                  ? `<strong>Lý do từ chôi/Suspend Reason:</strong> ${doc.suspendReason}<br>`
-                  : ""
+                doc.fileMetadata
+                  ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+                  : "No file attached"
               }
-              <strong>Phiếu đề xuất kèm theo/Appended Proposals:</strong><br>
-              ${doc.appendedProposals
-                .map(
-                  (proposal) => `
-                <div>
-                  <strong>Công việc/Task:</strong> ${proposal.task}<br>
-                  <strong>Trạm/Center:</strong> ${proposal.costCenter}<br>
-                  <strong>Ngày xảy ra lỗi/Date of Error:</strong> ${proposal.dateOfError}<br>
-                  <strong>Mô tả chi tiết/Details Description:</strong> ${proposal.detailsDescription}<br>
-                  <strong>Hướng xử lý/Direction:</strong> ${proposal.direction}<br>
+            </div>
+
+            <!-- Proposals Section -->
+            <div class="full-view-section">
+              <h3>Phiếu đề xuất kèm theo/Appended Proposals</h3>
+              ${renderProposals(doc.appendedProposals)}
+            </div>
+
+            <!-- Status Section -->
+            <div class="full-view-section">
+              <h3>Trạng thái/Status Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Tình trạng/Status:</span>
+                  <span class="detail-value ${renderStatus(doc.status)}</span>
                 </div>
-              `
-                )
-                .join("")}
+              </div>
+              <div style="margin-top: 16px;">
+                <h4>Trạng thái phê duyệt/Approval Status:</h4>
+                <div class="approval-status">
+                  ${doc.approvers
+                    .map((approver) => {
+                      const hasApproved = doc.approvedBy.find(
+                        (a) => a.username === approver.username
+                      );
+                      return `
+                      <div class="approver-item">
+                        <span class="status-icon ${
+                          hasApproved ? "status-approved" : "status-pending"
+                        }"></span>
+                        <div>
+                          <div>${approver.username} (${approver.subRole})</div>
+                          ${
+                            hasApproved
+                              ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
+                              : '<div class="approval-date">Pending</div>'
+                          }
+                        </div>
+                      </div>
+                    `;
+                    })
+                    .join("")}
+                </div>
+              </div>
             </div>
           `;
         } else if (doc.type === "Đề xuất/Proposal") {
