@@ -1750,6 +1750,50 @@ exports.updatePaymentDocumentDeclaration = async (req, res) => {
     res.status(500).json({ message: "Error updating declaration" });
   }
 };
+exports.massUpdatePaymentDocumentDeclaration = async (req, res) => {
+  const { documentIds, declaration } = req.body;
+
+  try {
+    // Check user role
+    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
+      return res
+        .status(403)
+        .send(
+          "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+        );
+    }
+
+    // Validate input
+    if (
+      !documentIds ||
+      !Array.isArray(documentIds) ||
+      documentIds.length === 0
+    ) {
+      return res.status(400).json({ message: "Invalid document IDs provided" });
+    }
+
+    if (!declaration || typeof declaration !== "string") {
+      return res.status(400).json({ message: "Invalid declaration provided" });
+    }
+
+    // Update all documents
+    const result = await PaymentDocument.updateMany(
+      { _id: { $in: documentIds } }, // Filter by document IDs
+      { declaration } // Update declaration field
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: "No documents found or updated" });
+    }
+
+    res.send(
+      `Kê khai cập nhật thành công cho ${result.modifiedCount} tài liệu/Declaration updated successfully for ${result.modifiedCount} documents`
+    );
+  } catch (error) {
+    console.error("Error updating declaration:", error);
+    res.status(500).json({ message: "Error updating declaration" });
+  }
+};
 //// END OF PAYMENT DOCUMENT CONTROLLER
 
 //// DELIVERY DOCUMENT CONTROLLER

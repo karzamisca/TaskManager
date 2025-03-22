@@ -220,6 +220,11 @@ router.post(
   authMiddleware,
   documentController.updatePaymentDocumentDeclaration
 );
+router.post(
+  "/massUpdatePaymentDocumentDeclaration",
+  authMiddleware,
+  documentController.massUpdatePaymentDocumentDeclaration
+);
 router.get(
   "/getPaymentDocument/:id",
   authMiddleware,

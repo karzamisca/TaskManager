@@ -445,9 +445,17 @@
   <body>
     <h1>Phiếu thanh toán/Payment Documents</h1>
     <div id="messageContainer" class="message"></div>
+    <div>
+      <button class="approve-btn" onclick="openMassDeclarationModal()">
+        Cập nhật kê khai hàng loạt/Mass Declaration Update
+      </button>
+    </div>
     <table>
       <thead>
         <tr>
+          <th>
+            <input type="checkbox" id="selectAll" onclick="toggleSelectAll()" />
+          </th>
           <th>Mã/Tag</th>
           <th>Nội dung/Content</th>
           <th>Phương thức trả tiền/Payment Method</th>
@@ -493,6 +501,43 @@
               onclick="closeSuspendModal()"
             >
               Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="massDeclarationModal" class="full-view-modal">
+      <div class="full-view-content">
+        <span class="close-btn" onclick="closeMassDeclarationModal()"
+          >&times;</span
+        >
+        <h2>Cập nhật kê khai hàng loạt/Mass Declaration Update</h2>
+        <form
+          id="massDeclarationForm"
+          onsubmit="handleMassDeclarationSubmit(event)"
+        >
+          <div style="margin-bottom: 20px">
+            <label for="massDeclarationInput">Kê khai/Declaration:</label>
+            <textarea
+              id="massDeclarationInput"
+              required
+              style="
+                width: 100%;
+                min-height: 100px;
+                padding: 10px;
+                font-size: 16px;
+              "
+            ></textarea>
+          </div>
+          <div style="display: flex; gap: 10px">
+            <button type="submit" class="approve-btn">Cập nhật/Update</button>
+            <button
+              type="button"
+              class="approve-btn"
+              onclick="closeMassDeclarationModal()"
+            >
+              Hủy/Cancel
             </button>
           </div>
         </form>
@@ -668,6 +713,33 @@
         }
       }
 
+      // Function to toggle select all checkboxes
+      function toggleSelectAll() {
+        const selectAllCheckbox = document.getElementById("selectAll");
+        const checkboxes = document.querySelectorAll(
+          'input[type="checkbox"][name="documentCheckbox"]'
+        );
+        checkboxes.forEach((checkbox) => {
+          checkbox.checked = selectAllCheckbox.checked;
+        });
+      }
+
+      // Function to get selected document IDs
+      function getSelectedDocumentIds() {
+        const checkboxes = document.querySelectorAll(
+          'input[type="checkbox"][name="documentCheckbox"]:checked'
+        );
+        return Array.from(checkboxes).map((checkbox) => checkbox.value);
+      }
+
+      // Function to reset the "Select All" checkbox
+      function resetSelectAllCheckbox() {
+        const selectAllCheckbox = document.getElementById("selectAll");
+        if (selectAllCheckbox) {
+          selectAllCheckbox.checked = false;
+        }
+      }
+
       async function fetchPaymentDocuments() {
         try {
           const response = await fetch("/getPaymentDocumentForSeparatedView");
@@ -676,6 +748,9 @@
 
           const filteredDocuments =
             filterDocumentsForCurrentUser(paymentDocuments);
+
+          // Reset the "Select All" checkbox
+          resetSelectAllCheckbox();
 
           // Calculate total pages
           totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
@@ -725,6 +800,9 @@
 
             const row = document.createElement("tr");
             row.innerHTML = `
+              <td><input type="checkbox" name="documentCheckbox" value="${
+                doc._id
+              }"></td>
               <td>${doc.tag || "-"}</td>
               <td>${doc.content || "-"} ${
               doc.suspendReason
@@ -1671,6 +1749,70 @@
         } catch (err) {
           console.error("Error updating declaration:", err);
           showMessage("Error updating declaration", true);
+        }
+      }
+
+      // Function to open the mass declaration modal
+      function openMassDeclarationModal() {
+        const selectedIds = getSelectedDocumentIds();
+        if (selectedIds.length === 0) {
+          showMessage(
+            "Vui lòng chọn ít nhất một tài liệu để cập nhật kê khai/Please select at least one document to update declaration.",
+            true
+          );
+          return;
+        }
+        document.getElementById("massDeclarationModal").style.display = "block";
+      }
+
+      // Function to close the mass declaration modal
+      function closeMassDeclarationModal() {
+        document.getElementById("massDeclarationModal").style.display = "none";
+        document.getElementById("massDeclarationForm").reset();
+      }
+
+      // Function to handle mass declaration form submission
+      async function handleMassDeclarationSubmit(event) {
+        event.preventDefault();
+        const selectedIds = getSelectedDocumentIds();
+        const declaration = document.getElementById(
+          "massDeclarationInput"
+        ).value;
+
+        if (selectedIds.length === 0) {
+          showMessage(
+            "Vui lòng chọn ít nhất một tài liệu để cập nhật kê khai/Please select at least one document to update declaration.",
+            true
+          );
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            "/massUpdatePaymentDocumentDeclaration",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ documentIds: selectedIds, declaration }),
+            }
+          );
+
+          const message = await response.text();
+          if (response.ok) {
+            showMessage(message);
+            closeMassDeclarationModal();
+            fetchPaymentDocuments(); // Refresh the document list
+          } else {
+            showMessage(message, true);
+          }
+        } catch (err) {
+          console.error("Error updating declaration:", err);
+          showMessage(
+            "Lỗi khi cập nhật kê khai/Error updating declaration",
+            true
+          );
         }
       }
 
