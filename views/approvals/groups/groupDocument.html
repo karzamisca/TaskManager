@@ -729,13 +729,20 @@
 
       function populateGroupSelect() {
         const groupSelect = document.getElementById("group-select");
+
+        // Clear existing options except the first one (if any)
         while (groupSelect.options.length > 1) {
           groupSelect.remove(1);
         }
+
+        // Populate the dropdown with group names and descriptions
         allGroups.forEach((group) => {
           const option = document.createElement("option");
           option.value = group.name;
-          option.textContent = group.name;
+
+          // Combine group name and description for display
+          option.textContent = `${group.name} - ${group.description}`;
+
           groupSelect.appendChild(option);
         });
       }
