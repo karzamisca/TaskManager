@@ -706,6 +706,23 @@
     <section>
       <h2>Quản lý tài liệu trong nhóm/Manage Documents in Groups</h2>
 
+      <!-- Mass Update Declaration Section -->
+      <div>
+        <h3>Cập nhật kê khai hàng loạt/Mass Update Declaration</h3>
+        <div class="mass-update-container">
+          <label for="mass-declaration-input">Kê khai/Declaration:</label>
+          <textarea
+            id="mass-declaration-input"
+            class="form-control"
+            placeholder="Nhập kê khai/Enter declaration"
+          ></textarea>
+          <button id="mass-update-declaration-btn" class="action-button">
+            Cập nhật hàng loạt/Mass Update
+          </button>
+        </div>
+        <div id="mass-update-status-message" class="status-message"></div>
+      </div>
+
       <!-- Add Document to Group -->
       <div>
         <h3>Thêm tài liệu vào nhóm/Add Document to Group</h3>
@@ -833,7 +850,7 @@
           } else if (doc.documentType === "purchasing") {
             displayText += `${doc.title} (Tổng chi phí: ${doc.grandTotalCost})`;
           } else if (doc.documentType === "payment") {
-            displayText += `${doc.name} (Tổng thanh toán: ${doc.totalPayment}) ${doc.declaration}`;
+            displayText += `(Mã/Tag: ${doc.tag}) (Kê khai: ${doc.declaration})`;
           }
           option.textContent = displayText;
           documentSelect.appendChild(option);
@@ -869,7 +886,7 @@
           } else if (doc.type === "Mua hàng/Purchasing") {
             documentTitle = `${doc.title} (Tổng chi phí: ${doc.grandTotalCost})`;
           } else if (doc.type === "Thanh toán/Payment") {
-            documentTitle = `${doc.name} (Tổng thanh toán: ${doc.totalPayment}) (Kê khai: ${doc.declaration})`;
+            documentTitle = `(Mã/Tag: ${doc.tag}) (Kê khai: ${doc.declaration})`;
           }
 
           documentItem.innerHTML = `
@@ -1142,6 +1159,80 @@
 
       function cancelEdit(valueElement, editForm, container) {
         restoreOriginalView(valueElement, editForm, container);
+      }
+
+      // Function to handle mass update declaration
+      async function handleMassUpdateDeclaration() {
+        const groupSelect = document.getElementById("group-select");
+        const declarationInput = document.getElementById(
+          "mass-declaration-input"
+        );
+        const statusMessage = document.getElementById(
+          "mass-update-status-message"
+        );
+
+        const groupName = groupSelect.value;
+        const declaration = declarationInput.value.trim();
+
+        if (!groupName) {
+          statusMessage.textContent =
+            "Vui lòng chọn một nhóm/Please select a group.";
+          return;
+        }
+
+        if (!declaration) {
+          statusMessage.textContent =
+            "Vui lòng nhập kê khai/Please enter a declaration.";
+          return;
+        }
+
+        try {
+          // Get all document IDs in the selected group
+          const groupDocuments = groupedDocuments[groupName];
+          if (!groupDocuments || groupDocuments.length === 0) {
+            statusMessage.textContent =
+              "Không có tài liệu trong nhóm này/No documents in this group.";
+            return;
+          }
+
+          const documentIds = groupDocuments
+            .filter((doc) => doc.type === "Thanh toán/Payment") // Only update payment documents
+            .map((doc) => doc._id);
+
+          if (documentIds.length === 0) {
+            statusMessage.textContent =
+              "Không có tài liệu thanh toán trong nhóm này/No payment documents in this group.";
+            return;
+          }
+
+          // Send mass update request
+          const response = await fetch(
+            "/massUpdatePaymentDocumentDeclaration",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                documentIds,
+                declaration,
+              }),
+            }
+          );
+
+          if (response.ok) {
+            const result = await response.text();
+            statusMessage.textContent = result;
+            await refreshDocumentData(); // Refresh the document list
+          } else {
+            statusMessage.textContent =
+              "Lỗi khi cập nhật kê khai/Error updating declaration.";
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          statusMessage.textContent =
+            "Lỗi máy chủ/Server error. Vui lòng thử lại/Please try again.";
+        }
       }
 
       function restoreOriginalView(valueElement, editForm, container) {
@@ -1614,6 +1705,11 @@
           }
         });
       }
+
+      // Add event listener for the mass update button
+      document
+        .getElementById("mass-update-declaration-btn")
+        .addEventListener("click", handleMassUpdateDeclaration);
 
       document.addEventListener("DOMContentLoaded", () => {
         initializeDocumentManagement();

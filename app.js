@@ -160,7 +160,7 @@ cron.schedule("0 */8 * * *", async () => {
 });
 
 //Assign group name and declaration to payment document
-cron.schedule("* * * * *", async () => {
+cron.schedule("0 */12 * * *", async () => {
   try {
     // Fetch all approved documents that don't have a group assigned
     // This includes both missing groupName and empty string groupName
@@ -210,7 +210,7 @@ cron.schedule("* * * * *", async () => {
     // Process each date group
     for (const [date, documents] of Object.entries(documentsByDate)) {
       // Create a group name based on the date
-      const groupName = `Phiếu thanh toán_${date.replace(/-/g, "")}`;
+      const groupName = `PTT${date.replace(/-/g, "")}`;
       // Generate a standard declaration for the group
       const declaration = `Phiếu thanh toán phê duyệt vào ${date}`;
       // Check if the group already exists
