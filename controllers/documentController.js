@@ -1591,11 +1591,33 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
           paidSum += doc.totalPayment - doc.advancePayment;
         }
         approvedDocument += 1;
+        // Only one approver left
       } else if (doc.approvers.length - doc.approvedBy.length === 1) {
-        approvedSum += doc.totalPayment; // Only one approver left
+        if (doc.advancePayment === 0) {
+          approvedSum += doc.totalPayment;
+        }
+        // If total payment equals 0, then approved sum equals advance payment
+        else if (doc.totalPayment === 0) {
+          approvedSum += doc.advancePayment;
+        }
+        // Otherwise, approved sum equals total payment minus advance payment
+        else {
+          approvedSum += doc.totalPayment - doc.advancePayment;
+        }
         unapprovedDocument += 1;
+        // More than one approver left
       } else {
-        unapprovedSum += doc.totalPayment; // More than one approver left
+        if (doc.advancePayment === 0) {
+          unapprovedSum += doc.totalPayment;
+        }
+        // If total payment equals 0, then unapproved sum equals advance payment
+        else if (doc.totalPayment === 0) {
+          unapprovedSum += doc.advancePayment;
+        }
+        // Otherwise, unapproved sum equals total payment minus advance payment
+        else {
+          unapprovedSum += doc.totalPayment - doc.advancePayment;
+        }
         unapprovedDocument += 1;
       }
     });
