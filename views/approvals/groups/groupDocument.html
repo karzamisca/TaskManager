@@ -571,6 +571,73 @@
         color: yellow;
       }
 
+      .declaration-container {
+        position: relative;
+        display: flex;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .declaration-container .detail-label {
+        margin-right: 8px;
+      }
+
+      .declaration-container .detail-value {
+        flex: 1;
+        min-width: 200px;
+      }
+
+      .edit-declaration-btn {
+        margin-left: 8px;
+        padding: 2px 6px;
+        font-size: 12px;
+      }
+
+      .declaration-edit-form {
+        width: 100%;
+        margin-top: 10px;
+        margin-bottom: 15px;
+      }
+
+      .declaration-edit-form textarea {
+        width: 100%;
+        min-height: 80px;
+        padding: 8px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+      }
+
+      .declaration-edit-form .btn-group {
+        margin-top: 8px;
+      }
+
+      .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1050;
+        padding: 10px 20px;
+        border-radius: 5px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        animation: slide-in 0.3s ease-out;
+      }
+
+      .fade-out {
+        opacity: 0;
+        transition: opacity 0.5s ease-out;
+      }
+
+      @keyframes slide-in {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
       @media (max-width: 768px) {
         .form-grid {
           grid-template-columns: 1fr;
@@ -806,18 +873,18 @@
           }
 
           documentItem.innerHTML = `
-                    <div>
-                        <strong>${doc.type}:</strong> ${documentTitle}
-                        <button onclick="showDocumentDetails('${
-                          doc._id
-                        }', '${groupName}')">Chi tiết đầy đủ/Full Details</button>
-                        <button class="remove-btn" data-id="${
-                          doc._id
-                        }" data-type="${getDocumentType(doc.type)}">
-                            Xóa khỏi nhóm/Remove
-                        </button>
-                    </div>
-                `;
+            <div>
+                <strong>${doc.type}:</strong> ${documentTitle}
+                <button onclick="showDocumentDetails('${
+                  doc._id
+                }', '${groupName}')">Chi tiết đầy đủ/Full Details</button>
+                <button class="remove-btn" data-id="${
+                  doc._id
+                }" data-type="${getDocumentType(doc.type)}">
+                    Xóa khỏi nhóm/Remove
+                </button>
+            </div>
+        `;
 
           container.appendChild(documentItem);
         });
@@ -974,6 +1041,134 @@
         showModal(modalContent);
       }
 
+      function handleEditDeclarationClick(event) {
+        // Get container and relevant elements
+        const container = event.target.closest(".declaration-container");
+        const documentId = container.dataset.documentId;
+        const valueElement = container.querySelector(".declaration-value");
+        const currentValue = valueElement.textContent.trim();
+
+        // Create edit form
+        const editForm = document.createElement("div");
+        editForm.className = "declaration-edit-form";
+        editForm.innerHTML = `
+          <textarea class="form-control mb-2">${
+            currentValue === "Not specified" ? "" : currentValue
+          }</textarea>
+          <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-primary save-declaration-btn">Lưu/Save</button>
+            <button type="button" class="btn btn-sm btn-secondary cancel-declaration-btn">Hủy/Cancel</button>
+          </div>
+        `;
+
+        // Hide value element and button
+        valueElement.style.display = "none";
+        event.target.closest(".edit-declaration-btn").style.display = "none";
+
+        // Add form to container
+        container.appendChild(editForm);
+
+        // Focus the textarea
+        const textarea = editForm.querySelector("textarea");
+        textarea.focus();
+
+        // Add event listeners for save and cancel
+        editForm
+          .querySelector(".save-declaration-btn")
+          .addEventListener("click", function () {
+            saveDeclaration(
+              documentId,
+              textarea.value.trim(),
+              valueElement,
+              editForm,
+              container
+            );
+          });
+
+        editForm
+          .querySelector(".cancel-declaration-btn")
+          .addEventListener("click", function () {
+            cancelEdit(valueElement, editForm, container);
+          });
+      }
+
+      async function saveDeclaration(
+        documentId,
+        declaration,
+        valueElement,
+        editForm,
+        container
+      ) {
+        try {
+          const response = await fetch(
+            `/updatePaymentDocumentDeclaration/${documentId}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ declaration }),
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error("Failed to update declaration");
+          }
+
+          // Update display value
+          valueElement.textContent = declaration || "Not specified";
+
+          // Restore original elements
+          restoreOriginalView(valueElement, editForm, container);
+
+          // Show success notification
+          showNotification(
+            "Kê khai cập nhật thành công/Declaration updated successfully",
+            "success"
+          );
+        } catch (error) {
+          console.error("Error updating declaration:", error);
+          showNotification(
+            "Lỗi khi cập nhật kê khai/Error updating declaration",
+            "error"
+          );
+
+          // Restore original view even on error
+          restoreOriginalView(valueElement, editForm, container);
+        }
+      }
+
+      function cancelEdit(valueElement, editForm, container) {
+        restoreOriginalView(valueElement, editForm, container);
+      }
+
+      function restoreOriginalView(valueElement, editForm, container) {
+        // Remove edit form
+        editForm.remove();
+
+        // Show value element and edit button
+        valueElement.style.display = "";
+        container.querySelector(".edit-declaration-btn").style.display = "";
+      }
+
+      function showNotification(message, type) {
+        // Create notification element
+        const notification = document.createElement("div");
+        notification.className = `alert alert-${
+          type === "success" ? "success" : "danger"
+        } notification`;
+        notification.textContent = message;
+
+        // Add to document
+        document.body.appendChild(notification);
+
+        // Auto-dismiss after 3 seconds
+        setTimeout(() => {
+          notification.classList.add("fade-out");
+          setTimeout(() => notification.remove(), 500);
+        }, 3000);
+      }
+
       function generateDocumentContent(doc) {
         let content = "";
         const submissionDate = doc.submissionDate || "Not specified";
@@ -983,11 +1178,11 @@
           content = doc.content
             .map(
               (section) => `
-                    <div>
-                        <strong>${section.name}:</strong><br>
-                        <p>${section.text}</p>
-                    </div>
-                `
+                <div>
+                    <strong>${section.name}:</strong><br>
+                    <p>${section.text}</p>
+                </div>
+            `
             )
             .join("");
         } else if (doc.type === "Thanh toán/Payment") {
@@ -1014,17 +1209,20 @@
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">Ngày nộp/Submission Date:</span>
-                  <span class="detail-value">${doc.submissionDate}</span>
+                  <span class="detail-value">${submissionDate}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">Hạn trả/Payment Deadline:</span>
-                  <span class="detail-value">${doc.paymentDeadline}</span>
+                  <span class="detail-value">${paymentDeadline}</span>
                 </div>
-                <div class="detail-item">
+                <div class="detail-item declaration-container" data-document-id="${
+                  doc._id
+                }">
                   <span class="detail-label">Kê khai/Declaration:</span>
-                  <span class="detail-value">${
+                  <span class="detail-value declaration-value">${
                     doc.declaration || "Not specified"
                   }</span>
+                  <button class="edit-declaration-btn">Chỉnh sửa</button>
                 </div>
               </div>
             </div>
@@ -1403,9 +1601,22 @@
         }
       }
 
+      // Declaration Editor Functions
+      function initDeclarationEditor() {
+        // Add event delegation for edit declaration buttons
+        document.addEventListener("click", function (event) {
+          // Check if the clicked element or its parent is an edit button
+          const editButton = event.target.closest(".edit-declaration-btn");
+          if (editButton) {
+            handleEditDeclarationClick(event);
+          }
+        });
+      }
+
       document.addEventListener("DOMContentLoaded", () => {
         initializeDocumentManagement();
         refreshDocumentData();
+        initDeclarationEditor();
       });
 
       // Close modal when clicking outside
