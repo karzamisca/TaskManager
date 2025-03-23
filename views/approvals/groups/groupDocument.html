@@ -1121,6 +1121,8 @@
           // Restore original elements
           restoreOriginalView(valueElement, editForm, container);
 
+          await refreshDocumentData();
+
           // Show success notification
           showNotification(
             "Kê khai cập nhật thành công/Declaration updated successfully",
