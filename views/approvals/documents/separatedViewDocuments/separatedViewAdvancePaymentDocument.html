@@ -1,10 +1,10 @@
-<!-- views/approvals/documents/separatedViewDocuments/separatedViewPaymentDocument.html -->
+<!-- views/approvals/documents/separatedViewDocuments/separatedViewAdvancePaymentDocument.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Phiếu thanh toán/Payment Documents</title>
+    <title>Phiếu tạm ứng/Advance Payment Documents</title>
     <style>
       /* Base styles and CSS reset */
       :root {
@@ -443,7 +443,7 @@
     </style>
   </head>
   <body>
-    <h1>Phiếu thanh toán/Payment Documents</h1>
+    <h1>Phiếu tạm ứng/Advance Payment Documents</h1>
     <div id="messageContainer" class="message"></div>
     <div>
       <button class="approve-btn" onclick="openMassDeclarationModal()">
@@ -459,15 +459,15 @@
           <th>Mã/Tag</th>
           <th>Nội dung/Content</th>
           <th>Phương thức trả tiền/Payment Method</th>
-          <th>Tổng thanh toán/Total Payment</th>
+          <th>Tạm ứng/Advance Payment</th>
           <th>Hạn trả/Payment Deadline</th>
           <th>Tình trạng/Status</th>
           <th>Trạng thái phê duyệt/Approval Status</th>
           <th>Hành động/Action</th>
         </tr>
       </thead>
-      <tbody id="paymentDocumentsTable">
-        <!-- Payment documents will be populated here -->
+      <tbody id="advancePaymentDocumentsTable">
+        <!-- Advance Payment documents will be populated here -->
       </tbody>
     </table>
 
@@ -570,7 +570,7 @@
 
     <script>
       let currentUser = null;
-      let paymentDocuments = null;
+      let advancePaymentDocuments = null;
       let showOnlyPendingApprovals = false;
       let currentApprovers = [];
       let currentPage = 1;
@@ -739,14 +739,17 @@
         }
       }
 
-      async function fetchPaymentDocuments() {
+      async function fetchAdvancePaymentDocuments() {
         try {
-          const response = await fetch("/getPaymentDocumentForSeparatedView");
+          const response = await fetch(
+            "/getAdvancePaymentDocumentForSeparatedView"
+          );
           const data = await response.json();
-          paymentDocuments = data.paymentDocuments;
+          advancePaymentDocuments = data.advancePaymentDocuments;
 
-          const filteredDocuments =
-            filterDocumentsForCurrentUser(paymentDocuments);
+          const filteredDocuments = filterDocumentsForCurrentUser(
+            advancePaymentDocuments
+          );
 
           // Reset the "Select All" checkbox
           resetSelectAllCheckbox();
@@ -769,7 +772,9 @@
           // Get documents for current page only
           const pageDocuments = filteredDocuments.slice(startIndex, endIndex);
 
-          const tableBody = document.getElementById("paymentDocumentsTable");
+          const tableBody = document.getElementById(
+            "advancePaymentDocumentsTable"
+          );
           tableBody.innerHTML = "";
 
           pageDocuments.forEach((doc) => {
@@ -809,7 +814,7 @@
                 : ""
             }${doc.declaration ? `(Kê khai: ${doc.declaration})` : ""}</td>
               <td>${doc.paymentMethod || "-"}</td>
-              <td>${doc.totalPayment?.toLocaleString() || "-"}</td>
+              <td>${doc.advancePayment?.toLocaleString() || "-"}</td>
               <td>${doc.paymentDeadline || "-"}</td>
               <td>${renderStatus(doc.status)}</td>
               <td class="approval-status">${approvalStatus}</td>
@@ -883,8 +888,8 @@
           document.getElementById("unapprovedDocument").textContent =
             data.unapprovedDocument.toLocaleString();
         } catch (err) {
-          console.error("Error fetching payment documents:", err);
-          showMessage("Error fetching payment documents", true);
+          console.error("Error fetching advance payment documents:", err);
+          showMessage("Error fetching advance payment documents", true);
         }
       }
 
@@ -942,7 +947,7 @@
       function changePage(newPage) {
         if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
           currentPage = newPage;
-          fetchPaymentDocuments();
+          fetchAdvancePaymentDocuments();
           // Scroll to top of table for better user experience
           document
             .querySelector("table")
@@ -1015,7 +1020,7 @@
 
           if (response.ok) {
             showMessage(message);
-            fetchPaymentDocuments();
+            fetchAdvancePaymentDocuments();
           } else {
             showMessage(message, true);
           }
@@ -1035,7 +1040,7 @@
 
           if (response.ok) {
             showMessage(message);
-            fetchPaymentDocuments();
+            fetchAdvancePaymentDocuments();
           } else {
             showMessage(message, true);
           }
@@ -1107,7 +1112,7 @@
               ">&times;</span>
               
               <h2 style="font-size: clamp(18px, 2vw, 24px); margin-bottom: clamp(16px, 2vw, 24px);">
-                Chỉnh sửa phiếu thanh toán/Edit Payment Document
+                Chỉnh sửa phiếu tạm ứng/Edit Advance Payment Document
               </h2>
               
               <form id="editForm" onsubmit="handleEditSubmit(event)">
@@ -1245,7 +1250,7 @@
         document.body.insertAdjacentHTML("beforeend", modalHTML);
       }
 
-      // Add edit button to each row in the fetchPaymentDocuments function
+      // Add edit button to each row in the fetchAdvancePaymentDocuments function
       function addEditButton(doc) {
         if (!doc.approved) {
           return `<button class="approve-btn" onclick="editDocument('${doc._id}')">Chỉnh sửa/Edit</button>`;
@@ -1357,7 +1362,7 @@
       // Edit document function
       async function editDocument(docId) {
         try {
-          const response = await fetch(`/getPaymentDocument/${docId}`);
+          const response = await fetch(`/getAdvancePaymentDocument/${docId}`);
           const doc = await response.json();
           document.getElementById("editDocId").value = docId;
           document.getElementById("editName").value = doc.name;
@@ -1427,15 +1432,18 @@
         }
 
         try {
-          const response = await fetch(`/updatePaymentDocument/${docId}`, {
-            method: "POST",
-            body: formData,
-          });
+          const response = await fetch(
+            `/updateAdvancePaymentDocument/${docId}`,
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
           const result = await response.json();
           if (response.ok) {
             showMessage("Document updated successfully");
             closeEditModal();
-            fetchPaymentDocuments();
+            fetchAdvancePaymentDocuments();
           } else {
             showMessage(result.message || "Error updating document", true);
           }
@@ -1447,7 +1455,7 @@
 
       async function showFullView(docId) {
         try {
-          const doc = paymentDocuments.find((d) => d._id === docId);
+          const doc = advancePaymentDocuments.find((d) => d._id === docId);
           if (!doc) throw new Error("Document not found");
 
           const fullViewContent = document.getElementById("fullViewContent");
@@ -1654,7 +1662,7 @@
           if (response.ok) {
             showMessage(message); // Show success message
             closeSuspendModal();
-            fetchPaymentDocuments();
+            fetchAdvancePaymentDocuments();
           } else {
             showMessage(message, true); // Show error message
           }
@@ -1678,7 +1686,7 @@
 
           if (response.ok) {
             showMessage(message); // Show success message
-            fetchPaymentDocuments();
+            fetchAdvancePaymentDocuments();
           } else {
             showMessage(message, true); // Show error message
           }
@@ -1689,7 +1697,7 @@
       }
 
       function editDeclaration(docId) {
-        const doc = paymentDocuments.find((d) => d._id === docId);
+        const doc = advancePaymentDocuments.find((d) => d._id === docId);
         if (!doc) return;
 
         // Create a modal for editing the declaration
@@ -1725,7 +1733,7 @@
 
         try {
           const response = await fetch(
-            `/updatePaymentDocumentDeclaration/${docId}`,
+            `/updateAdvancePaymentDocumentDeclaration/${docId}`,
             {
               method: "POST",
               headers: {
@@ -1740,7 +1748,7 @@
           if (response.ok) {
             showMessage(message);
             closeDeclarationModal();
-            fetchPaymentDocuments(); // Refresh the document list
+            fetchAdvancePaymentDocuments(); // Refresh the document list
           } else {
             showMessage(message, true);
           }
@@ -1787,7 +1795,7 @@
 
         try {
           const response = await fetch(
-            "/massUpdatePaymentDocumentDeclaration",
+            "/massUpdateAdvancePaymentDocumentDeclaration",
             {
               method: "POST",
               headers: {
@@ -1801,7 +1809,7 @@
           if (response.ok) {
             showMessage(message);
             closeMassDeclarationModal();
-            fetchPaymentDocuments(); // Refresh the document list
+            fetchAdvancePaymentDocuments(); // Refresh the document list
           } else {
             showMessage(message, true);
           }
@@ -1840,11 +1848,11 @@
           .addEventListener("change", (e) => {
             showOnlyPendingApprovals = e.target.checked;
             currentPage = 1; // Reset to first page when filter changes
-            fetchPaymentDocuments();
+            fetchAdvancePaymentDocuments();
           });
 
         // Initial fetch of documents
-        fetchPaymentDocuments();
+        fetchAdvancePaymentDocuments();
       }
 
       // Update the DOMContentLoaded event listener

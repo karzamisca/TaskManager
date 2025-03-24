@@ -232,6 +232,45 @@ router.get(
 );
 //// END OF PAYMENT DOCUMENT ROUTE
 
+//// ADVANCE PAYMENT DOCUMENT ROUTE
+// Routes to fetch payment documents and calculate sums
+router.get(
+  "/separatedViewAdvancePaymentDocument",
+  authMiddleware,
+  (req, res) => {
+    res.sendFile("separatedViewAdvancePaymentDocument.html", {
+      root: "./views/approvals/documents/separatedViewDocuments",
+    });
+  }
+);
+router.get(
+  "/getAdvancePaymentDocumentForSeparatedView",
+  authMiddleware,
+  documentController.getAdvancePaymentDocumentForSeparatedView
+);
+router.post(
+  "/updateAdvancePaymentDocument/:id",
+  upload.single("file"),
+  authMiddleware,
+  documentController.updateAdvancePaymentDocument
+);
+router.post(
+  "/updateAdvancePaymentDocumentDeclaration/:id",
+  authMiddleware,
+  documentController.updateAdvancePaymentDocumentDeclaration
+);
+router.post(
+  "/massUpdateAdvancePaymentDocumentDeclaration",
+  authMiddleware,
+  documentController.massUpdateAdvancePaymentDocumentDeclaration
+);
+router.get(
+  "/getAdvancePaymentDocument/:id",
+  authMiddleware,
+  documentController.getAdvancePaymentDocument
+);
+//// END OF ADVANCE PAYMENT DOCUMENT ROUTE
+
 //// DELIVERY DOCUMENT ROUTE
 router.get("/separatedViewDeliveryDocument", authMiddleware, (req, res) => {
   res.sendFile("separatedViewDeliveryDocument.html", {

@@ -8,6 +8,7 @@ const ProposalDocument = require("../models/ProposalDocument");
 const PurchasingDocument = require("../models/PurchasingDocument.js");
 const DeliveryDocument = require("../models/DeliveryDocument");
 const PaymentDocument = require("../models/PaymentDocument.js");
+const AdvancePaymentDocument = require("../models/AdvancePaymentDocument.js");
 const drive = require("../middlewares/googleAuthMiddleware.js");
 const { Readable } = require("stream");
 const multer = require("multer");
@@ -268,6 +269,13 @@ exports.submitDocument = async (req, res) => {
             uploadedFileData
           );
           break;
+        case "Advance Payment Document":
+          newDocument = await createAdvancePaymentDocument(
+            req,
+            approverDetails,
+            uploadedFileData
+          );
+          break;
         default:
           newDocument = await createStandardDocument(
             req,
@@ -463,6 +471,53 @@ async function createPaymentDocument(req, approverDetails, uploadedFileData) {
   });
 }
 
+// Create a Payment Document
+async function createAdvancePaymentDocument(
+  req,
+  approverDetails,
+  uploadedFileData
+) {
+  // Process appended purchasing documents
+  let appendedPurchasingDocuments = [];
+  if (
+    req.body.approvedPurchasingDocuments &&
+    req.body.approvedPurchasingDocuments.length > 0
+  ) {
+    appendedPurchasingDocuments = await Promise.all(
+      req.body.approvedPurchasingDocuments.map(async (docId) => {
+        const purchasingDoc = await PurchasingDocument.findById(docId);
+        return purchasingDoc ? purchasingDoc.toObject() : null;
+      })
+    );
+    appendedPurchasingDocuments = appendedPurchasingDocuments.filter(
+      (doc) => doc !== null
+    );
+  }
+
+  // Format the submission date for both display and the tag
+  const now = moment().tz("Asia/Bangkok");
+  const submissionDateForTag = now.format("DDMMYYYYHHmmss");
+  // Create the tag by combining name and formatted date
+  const tag = `${req.body.name}${submissionDateForTag}`;
+
+  return new AdvancePaymentDocument({
+    tag,
+    title: req.body.title,
+    name: req.body.name,
+    content: req.body.content,
+    costCenter: req.body.costCenter,
+    paymentMethod: req.body.paymentMethod,
+    advancePayment: req.body.advancePayment || 0,
+    paymentDeadline: req.body.paymentDeadline,
+    groupName: req.body.groupName,
+    submittedBy: req.user.id,
+    approvers: approverDetails,
+    fileMetadata: uploadedFileData,
+    appendedPurchasingDocuments,
+    submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+  });
+}
+
 // Create a Standard Document
 async function createStandardDocument(req, approverDetails, uploadedFileData) {
   const { contentName, contentText, approvedDocuments } = req.body;
@@ -560,6 +615,9 @@ exports.getPendingDocument = async (req, res) => {
     const pendingPaymentDocs = await PaymentDocument.find({
       status: "Pending",
     }).populate("submittedBy", "username");
+    const pendingAdvancePaymentDocs = await AdvancePaymentDocument.find({
+      status: "Pending",
+    }).populate("submittedBy", "username");
 
     res.sendFile(
       path.join(
@@ -571,6 +629,7 @@ exports.getPendingDocument = async (req, res) => {
         pendingProposalDocs: JSON.stringify(pendingProposalDocs),
         pendingPurchasingDocs: JSON.stringify(pendingPurchasingDocs),
         pendingPaymentDocs: JSON.stringify(pendingPaymentDocs),
+        pendingAdvancePaymentDocs: JSON.stringify(pendingAdvancePaymentDocs),
       }
     );
   } catch (err) {
@@ -602,6 +661,7 @@ exports.approveDocument = async (req, res) => {
       (await ProposalDocument.findById(id)) ||
       (await PurchasingDocument.findById(id)) ||
       (await PaymentDocument.findById(id)) ||
+      (await AdvancePaymentDocument.findById(id)) ||
       (await DeliveryDocument.findById(id));
 
     if (!document) {
@@ -651,6 +711,8 @@ exports.approveDocument = async (req, res) => {
       await ProposalDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof PaymentDocument) {
       await PaymentDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof AdvancePaymentDocument) {
+      await AdvancePaymentDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof DeliveryDocument) {
       await DeliveryDocument.findByIdAndUpdate(id, document);
     } else {
@@ -682,6 +744,9 @@ exports.getApprovedDocument = async (req, res) => {
     const approvedPaymentDocs = await PaymentDocument.find({
       status: "Approved",
     }).populate("submittedBy", "username");
+    const approvedAdvancePaymentDocs = await AdvancePaymentDocument.find({
+      status: "Approved",
+    }).populate("submittedBy", "username");
 
     res.sendFile(
       path.join(
@@ -693,6 +758,7 @@ exports.getApprovedDocument = async (req, res) => {
         approvedProposalDocs: JSON.stringify(approvedProposalDocs),
         approvedPurchasingDocs: JSON.stringify(approvedPurchasingDocs),
         approvedPaymentDocs: JSON.stringify(approvedPaymentDocs),
+        approvedAdvancePaymentDocs: JSON.stringify(approvedAdvancePaymentDocs),
       }
     );
   } catch (err) {
@@ -714,12 +780,16 @@ exports.getPendingDocumentApi = async (req, res) => {
     const pendingPaymentDocs = await PaymentDocument.find({
       status: "Pending",
     }).populate("submittedBy", "username");
+    const pendingAdvancePaymentDocs = await AdvancePaymentDocument.find({
+      status: "Pending",
+    }).populate("submittedBy", "username");
 
     const pendingDocuments = [
       ...pendingGenericDocs,
       ...pendingProposalDocs,
       ...pendingPurchasingDocs,
       ...pendingPaymentDocs,
+      ...pendingAdvancePaymentDocs,
     ];
 
     res.json(pendingDocuments);
@@ -744,12 +814,16 @@ exports.getApprovedDocumentApi = async (req, res) => {
     const approvedPaymentDocs = await PaymentDocument.find({
       status: "Approved",
     }).populate("submittedBy", "username");
+    const approvedAdvancePaymentDocs = await AdvancePaymentDocument.find({
+      status: "Approved",
+    }).populate("submittedBy", "username");
 
     const approvedDocuments = [
       ...approvedGenericDocs,
       ...approvedProposalDocs,
       ...approvedPurchasingDocs,
       ...approvedPaymentDocs,
+      ...approvedAdvancePaymentDocs,
     ];
 
     res.json(approvedDocuments);
@@ -777,6 +851,10 @@ exports.deleteDocument = async (req, res) => {
       if (document) documentType = "Payment";
     }
     if (!document && documentType === "Generic") {
+      document = await AdvancePaymentDocument.findById(id);
+      if (document) documentType = "AdvancePayment";
+    }
+    if (!document && documentType === "Generic") {
       document = await DeliveryDocument.findById(id);
       if (document) documentType = "Delivery";
     }
@@ -791,6 +869,8 @@ exports.deleteDocument = async (req, res) => {
       await PurchasingDocument.findByIdAndDelete(id);
     } else if (documentType === "Payment") {
       await PaymentDocument.findByIdAndDelete(id);
+    } else if (documentType === "AdvancePayment") {
+      await AdvancePaymentDocument.findByIdAndDelete(id);
     } else if (documentType === "Delivery") {
       await DeliveryDocument.findByIdAndDelete(id);
     } else {
@@ -821,6 +901,7 @@ exports.suspendDocument = async (req, res) => {
       (await Document.findById(id)) ||
       (await ProposalDocument.findById(id)) ||
       (await PurchasingDocument.findById(id)) ||
+      (await AdvancePaymentDocument.findById(id)) ||
       (await PaymentDocument.findById(id));
 
     if (!document) {
@@ -840,6 +921,8 @@ exports.suspendDocument = async (req, res) => {
       await ProposalDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof PaymentDocument) {
       await PaymentDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof AdvancePaymentDocument) {
+      await AdvancePaymentDocument.findByIdAndUpdate(id, document);
     } else {
       await Document.findByIdAndUpdate(id, document);
     }
@@ -868,6 +951,7 @@ exports.openDocument = async (req, res) => {
       (await Document.findById(id)) ||
       (await ProposalDocument.findById(id)) ||
       (await PurchasingDocument.findById(id)) ||
+      (await AdvancePaymentDocument.findById(id)) ||
       (await PaymentDocument.findById(id));
 
     if (!document) {
@@ -885,6 +969,8 @@ exports.openDocument = async (req, res) => {
       await ProposalDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof PaymentDocument) {
       await PaymentDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof AdvancePaymentDocument) {
+      await AdvancePaymentDocument.findByIdAndUpdate(id, document);
     } else {
       await Document.findByIdAndUpdate(id, document);
     }
@@ -1817,6 +1903,285 @@ exports.massUpdatePaymentDocumentDeclaration = async (req, res) => {
   }
 };
 //// END OF PAYMENT DOCUMENT CONTROLLER
+
+//// ADVANCE PAYMENT DOCUMENT CONTROLLER
+exports.getAdvancePaymentDocumentForSeparatedView = async (req, res) => {
+  try {
+    const advancePaymentDocuments = await AdvancePaymentDocument.find({});
+
+    // Sort the payment documents by status priority and approval date
+    const sortedDocuments = advancePaymentDocuments.sort((a, b) => {
+      // First, sort by status priority: Suspended > Pending > Approved
+      const statusPriority = {
+        Suspended: 1,
+        Pending: 2,
+        Approved: 3,
+      };
+
+      const statusComparison =
+        statusPriority[a.status] - statusPriority[b.status];
+
+      // If status is the same, sort by latest approval date (for Approved documents)
+      if (statusComparison === 0 && a.status === "Approved") {
+        // Get the latest approval date for each document
+        const getLatestApprovalDate = (doc) => {
+          if (doc.approvedBy && doc.approvedBy.length > 0) {
+            // Sort approval dates in descending order
+            const sortedDates = [...doc.approvedBy].sort((x, y) => {
+              // Parse date strings in format "DD-MM-YYYY HH:MM:SS"
+              const parseCustomDate = (dateStr) => {
+                const [datePart, timePart] = dateStr.split(" ");
+                const [day, month, year] = datePart.split("-");
+                const [hour, minute, second] = timePart.split(":");
+                // Month is 0-indexed in JavaScript Date constructor
+                return new Date(year, month - 1, day, hour, minute, second);
+              };
+
+              return (
+                parseCustomDate(y.approvalDate) -
+                parseCustomDate(x.approvalDate)
+              );
+            });
+            return sortedDates[0].approvalDate;
+          }
+          return "01-01-1970 00:00:00"; // Default date if no approvals
+        };
+
+        const latestDateA = getLatestApprovalDate(a);
+        const latestDateB = getLatestApprovalDate(b);
+
+        // Parse and compare dates in the format "DD-MM-YYYY HH:MM:SS"
+        const parseCustomDate = (dateStr) => {
+          const [datePart, timePart] = dateStr.split(" ");
+          const [day, month, year] = datePart.split("-");
+          const [hour, minute, second] = timePart.split(":");
+          // Month is 0-indexed in JavaScript Date constructor
+          return new Date(year, month - 1, day, hour, minute, second);
+        };
+
+        // Sort by latest approval date (ascending order - oldest first)
+        return parseCustomDate(latestDateA) - parseCustomDate(latestDateB);
+      }
+
+      return statusComparison;
+    });
+
+    // Calculate the sum of totalPayment for approved and unapproved documents
+    let approvedSum = 0; // Sum for documents with only one approver left
+    let paidSum = 0; // Sum for fully approved documents
+    let unapprovedSum = 0;
+    let approvedDocument = 0;
+    let unapprovedDocument = 0;
+
+    sortedDocuments.forEach((doc) => {
+      // Calculate paidSum based on the new logic
+      if (doc.status === "Approved") {
+        paidSum += doc.advancePayment;
+        approvedDocument += 1;
+        // Only one approver left
+      } else if (doc.approvers.length - doc.approvedBy.length === 1) {
+        approvedSum += doc.advancePayment;
+        unapprovedDocument += 1;
+        // More than one approver left
+      } else {
+        unapprovedSum += doc.advancePayment;
+        unapprovedDocument += 1;
+      }
+    });
+
+    res.json({
+      advancePaymentDocuments: sortedDocuments,
+      approvedSum,
+      paidSum,
+      unapprovedSum,
+      approvedDocument,
+      unapprovedDocument,
+    });
+  } catch (err) {
+    console.error("Error fetching payment documents:", err);
+    res.status(500).send("Error fetching payment documents");
+  }
+};
+exports.getAdvancePaymentDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const document = await AdvancePaymentDocument.findById(id);
+
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    res.json(document);
+  } catch (error) {
+    console.error("Error fetching payment document:", error);
+    res.status(500).json({ message: "Error fetching document" });
+  }
+};
+exports.updateAdvancePaymentDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      content,
+      costCenter,
+      paymentMethod,
+      advancePayment,
+      paymentDeadline,
+    } = req.body;
+    const file = req.file;
+
+    const doc = await AdvancePaymentDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Parse approvers if it exists
+    let approvers;
+    if (req.body.approvers) {
+      try {
+        approvers = JSON.parse(req.body.approvers);
+      } catch (error) {
+        return res
+          .status(400)
+          .json({ message: "Invalid approvers data format" });
+      }
+    }
+
+    // Update basic fields
+    doc.name = name;
+    doc.content = content;
+    doc.costCenter = costCenter;
+    doc.paymentMethod = paymentMethod;
+    doc.advancePayment = parseFloat(advancePayment);
+    doc.paymentDeadline = paymentDeadline;
+
+    // Update approvers if provided
+    if (approvers) {
+      doc.approvers = approvers;
+    }
+
+    // Handle file update if provided
+    if (file) {
+      // Delete old file from Google Drive if it exists
+      if (doc.fileMetadata?.driveFileId) {
+        try {
+          await drive.files.delete({
+            fileId: doc.fileMetadata.driveFileId,
+          });
+        } catch (error) {
+          console.error("Error deleting old file:", error);
+        }
+      }
+
+      // Upload new file
+      const fileMetadata = {
+        name: file.originalname,
+        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
+      };
+      const media = {
+        mimeType: file.mimetype,
+        body: Readable.from(file.buffer),
+      };
+      const driveResponse = await drive.files.create({
+        resource: fileMetadata,
+        media: media,
+        fields: "id, webViewLink",
+      });
+
+      // Update file permissions
+      await drive.permissions.create({
+        fileId: driveResponse.data.id,
+        requestBody: {
+          role: "reader",
+          type: "anyone",
+        },
+      });
+
+      // Update document with new file metadata
+      doc.fileMetadata = {
+        driveFileId: driveResponse.data.id,
+        name: file.originalname,
+        link: driveResponse.data.webViewLink,
+      };
+    }
+
+    await doc.save();
+    res.json({ message: "Document updated successfully" });
+  } catch (error) {
+    console.error("Error updating payment document:", error);
+    res.status(500).json({ message: "Error updating document" });
+  }
+};
+exports.updateAdvancePaymentDocumentDeclaration = async (req, res) => {
+  const { id } = req.params;
+  const { declaration } = req.body;
+
+  try {
+    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
+
+    const doc = await AdvancePaymentDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    doc.declaration = declaration;
+    await doc.save();
+
+    res.send("Kê khai cập nhật thành công/Declaration updated successfully");
+  } catch (error) {
+    console.error("Error updating declaration:", error);
+    res.status(500).json({ message: "Error updating declaration" });
+  }
+};
+exports.massUpdateAdvancePaymentDocumentDeclaration = async (req, res) => {
+  const { documentIds, declaration } = req.body;
+
+  try {
+    // Check user role
+    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
+      return res
+        .status(403)
+        .send(
+          "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+        );
+    }
+
+    // Validate input
+    if (
+      !documentIds ||
+      !Array.isArray(documentIds) ||
+      documentIds.length === 0
+    ) {
+      return res.status(400).json({ message: "Invalid document IDs provided" });
+    }
+
+    if (!declaration || typeof declaration !== "string") {
+      return res.status(400).json({ message: "Invalid declaration provided" });
+    }
+
+    // Update all documents
+    const result = await AdvancePaymentDocument.updateMany(
+      { _id: { $in: documentIds } }, // Filter by document IDs
+      { declaration } // Update declaration field
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: "No documents found or updated" });
+    }
+
+    res.send(
+      `Kê khai cập nhật thành công cho ${result.modifiedCount} tài liệu/Declaration updated successfully for ${result.modifiedCount} documents`
+    );
+  } catch (error) {
+    console.error("Error updating declaration:", error);
+    res.status(500).json({ message: "Error updating declaration" });
+  }
+};
+//// END OF ADVANCE PAYMENT DOCUMENT CONTROLLER
 
 //// DELIVERY DOCUMENT CONTROLLER
 // Fetch all Delivery Documents
