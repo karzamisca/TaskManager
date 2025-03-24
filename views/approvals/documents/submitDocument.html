@@ -431,6 +431,7 @@
         defaultDate: "today",
       });
 
+      ////DOCUMENT SELECT HANDLERS
       // Function to handle Proposal Document selection
       function handleProposalDocument() {
         const contentFields = document.getElementById("content-fields");
@@ -720,6 +721,7 @@
               break;
           }
         });
+      ////END OF DOCUMENT SELECT HANDLERS
 
       function addProductEntry() {
         const productEntries = document.getElementById("product-entries");
@@ -948,16 +950,16 @@
                   ${doc.products
                     .map(
                       (product) => `
-                              <li>
-                                  <strong>${product.productName}</strong><br>
-                                  Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
-                                  Số lượng/Amount: ${product.amount.toLocaleString()}<br>
-                                  Thuế/Vat (%): ${product.vat.toLocaleString()}<br>
-                                  Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
-                                  Thành tiền sau thuế/Total Cost After Vat: ${product.totalCostAfterVat.toLocaleString()}<br>
-                                  Ghi chú/Notes: ${product.note || "None"}
-                              </li>
-                          `
+                        <li>
+                            <strong>${product.productName}</strong><br>
+                            Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
+                            Số lượng/Amount: ${product.amount.toLocaleString()}<br>
+                            Thuế/Vat (%): ${product.vat.toLocaleString()}<br>
+                            Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
+                            Thành tiền sau thuế/Total Cost After Vat: ${product.totalCostAfterVat.toLocaleString()}<br>
+                            Ghi chú/Notes: ${product.note || "None"}
+                        </li>
+                    `
                     )
                     .join("")}
               </ul>
@@ -967,26 +969,24 @@
                   ? doc.appendedProposals
                       .map(
                         (proposal) => `
-                                    <li>
-                                      <strong>${proposal.task}</strong><br>
-                                      Trạm/Center: ${proposal.costCenter}<br>
-                                      Ngày xảy ra lỗi/Date of Error: ${
-                                        proposal.dateOfError
-                                      }<br>
-                                      Mô tả chi tiết/Details Description: ${
-                                        proposal.detailsDescription
-                                      } <br>
-                                      Hướng xử lý/Direction: ${
-                                        proposal.direction
-                                      }<br>
-                                      ${
-                                        proposal.fileMetadata
-                                          ? `Tệp đính kèm phiếu đề xuất/Attached File to Proposal Document:
-                                              <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
-                                          : ""
-                                      }<br>
-                                    </li>
-                                `
+                          <li>
+                            <strong>${proposal.task}</strong><br>
+                            Trạm/Center: ${proposal.costCenter}<br>
+                            Ngày xảy ra lỗi/Date of Error: ${
+                              proposal.dateOfError
+                            }<br>
+                            Mô tả chi tiết/Details Description: ${
+                              proposal.detailsDescription
+                            } <br>
+                            Hướng xử lý/Direction: ${proposal.direction}<br>
+                            ${
+                              proposal.fileMetadata
+                                ? `Tệp đính kèm phiếu đề xuất/Attached File to Proposal Document:
+                                    <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
+                                : ""
+                            }<br>
+                          </li>
+                      `
                       )
                       .join("")
                   : "<p>Không có phiếu đề xuất đính kèm/No appended proposals.</p>"
