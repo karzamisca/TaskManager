@@ -431,6 +431,246 @@
         defaultDate: "today",
       });
 
+      // Function to handle Proposal Document selection
+      function handleProposalDocument() {
+        const contentFields = document.getElementById("content-fields");
+        const addContentButton = document.getElementById("add-content-btn");
+
+        contentFields.innerHTML = `
+          <label for="task">Công việc/Task</label>
+          <input type="text" name="task" required />
+          <label for="costCenter">Trạm/Center</label>
+          <select name="costCenter" id="costCenter" required>
+            <option value="">Chọn một trạm/Select a center</option>
+          </select>
+          <label for="dateOfError">Ngày xảy ra lỗi/Date of Error</label>
+          <input type="text" name="dateOfError" id="dateOfError" required />
+          <label for="detailsDescription">Mô tả chi tiết/Details Description</label>
+          <textarea name="detailsDescription" rows="3" required></textarea>
+          <label for="direction">Hướng xử lý/Direction</label>
+          <input type="text" name="direction" required />
+          <select name="groupName" id="groupName">
+            <option value="">Chọn nhóm/Select a group</option>
+          </select>
+        `;
+        populateGroupDropdown();
+
+        // Fetch current user and populate cost centers
+        fetchCostCenters();
+
+        flatpickr("#dateOfError", {
+          dateFormat: "d-m-Y",
+          defaultDate: "today",
+        });
+
+        addContentButton.style.display = "none";
+      }
+
+      // Function to handle Purchasing Document selection
+      function handlePurchasingDocument() {
+        const contentFields = document.getElementById("content-fields");
+        const approvedProposalSection = document.getElementById(
+          "approved-proposal-section"
+        );
+
+        contentFields.innerHTML = `
+          <label for="name">Tên/Name</label>
+          <input type="text" name="name" required />
+          <label for="costCenter">Trạm/Center</label>
+          <select name="costCenter" id="costCenter" required>
+            <option value="">Chọn một trạm/Select a center</option>
+          </select>
+          <div id="product-entries">
+            <label>Tên sản phẩm/Product Name</label><input type="text" name="products[0][productName]" required />
+            <label>Đơn giá/Cost per Unit</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
+            <label>Số lượng/Amount</label><input type="number" name="products[0][amount]" required />
+            <label>Thuế/Vat (%)</label><input type="number" name="products[0][vat]" required />
+            <label>Ghi chú/Note</label><input type="text" name="products[0][note]" />
+          </div>
+          <button type="button" onclick="addProductEntry()">Thêm sản phẩm/Add More Products</button>
+          <select name="groupName" id="groupName">
+            <option value="">Chọn nhóm/Select a group</option>
+          </select>
+        `;
+        populateGroupDropdown();
+        approvedProposalSection.style.display = "block";
+
+        // Fetch current user and populate cost centers
+        fetchCostCenters();
+      }
+
+      // Function to handle Payment Document selection
+      function handlePaymentDocument() {
+        const contentFields = document.getElementById("content-fields");
+        const appendPurchasingSection = document.getElementById(
+          "append-purchasing-documents-section"
+        );
+
+        appendPurchasingSection.style.display = "block";
+        fetchPurchasingDocuments();
+
+        contentFields.innerHTML = `
+          <label for="name">Tên/Name</label>
+          <input type="text" name="name" required />
+          <label for="content">Nội dung/Content</label>
+          <input type="text" name="content" required />
+          <label for="costCenter">Trạm/Center</label>
+          <select name="costCenter" id="costCenter">
+            <option value="">Chọn một trạm/Select a center</option>
+          </select>
+          <label for="paymentMethod">Hình thức thanh toán/Payment Method</label>
+          <input type="text" name="paymentMethod" required />
+          <label for="totalPayment">Tổng thanh toán/Total Payment:</label>
+          <input type="number" step="0.01" name="totalPayment" required />
+          <label for="paymentDeadline">Thời hạn trả/Payment Deadline</label>
+          <input type="text" name="paymentDeadline" id="paymentDeadline" required />
+          <select name="groupName" id="groupName">
+            <option value="">Chọn nhóm/Select a group</option>
+          </select>
+        `;
+        populateGroupDropdown();
+
+        flatpickr("#paymentDeadline", {
+          dateFormat: "d-m-Y",
+          defaultDate: "today",
+        });
+
+        // Fetch current user and populate cost centers
+        fetchCostCenters();
+      }
+
+      // Function to handle Advance Payment Document selection
+      function handleAdvancePaymentDocument() {
+        const contentFields = document.getElementById("content-fields");
+        const appendPurchasingSection = document.getElementById(
+          "append-purchasing-documents-section"
+        );
+
+        appendPurchasingSection.style.display = "block";
+        fetchPurchasingDocuments();
+
+        contentFields.innerHTML = `
+          <label for="name">Tên/Name</label>
+          <input type="text" name="name" required />
+          <label for="content">Nội dung/Content</label>
+          <input type="text" name="content" required />
+          <label for="costCenter">Trạm/Center</label>
+          <select name="costCenter" id="costCenter">
+            <option value="">Chọn một trạm/Select a center</option>
+          </select>
+          <label for="paymentMethod">Hình thức thanh toán/Payment Method</label>
+          <input type="text" name="paymentMethod" required />
+          <label for="advancePayment">Thanh toán trước/Advance Payment:</label>
+          <input type="number" step="0.01" name="advancePayment"/>
+          <label for="paymentDeadline">Thời hạn trả/Payment Deadline</label>
+          <input type="text" name="paymentDeadline" id="paymentDeadline" required />
+          <select name="groupName" id="groupName">
+            <option value="">Chọn nhóm/Select a group</option>
+          </select>
+        `;
+        populateGroupDropdown();
+
+        flatpickr("#paymentDeadline", {
+          dateFormat: "d-m-Y",
+          defaultDate: "today",
+        });
+
+        // Fetch current user and populate cost centers
+        fetchCostCenters();
+      }
+
+      // Function to handle Delivery Document selection
+      function handleDeliveryDocument() {
+        const contentFields = document.getElementById("content-fields");
+        const approvedProposalSection = document.getElementById(
+          "approved-proposal-section"
+        );
+
+        contentFields.innerHTML = `
+          <label for="name">Tên/Name</label>
+          <input type="text" name="name" required />
+          <label for="costCenter">Trạm/Center</label>
+          <select name="costCenter" id="costCenter" required>
+            <option value="">Chọn một trạm/Select a center</option>
+          </select>
+          <div id="product-entries">
+            <label>Tên sản phẩm/Product Name</label><input type="text" name="products[0][productName]" required />
+            <label>Đơn giá/Cost per Unit</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
+            <label>Số lượng/Amount</label><input type="number" name="products[0][amount]" required />
+            <label>Thuế/Vat (%)</label><input type="number" name="products[0][vat]" required />
+            <label>Ghi chú/Note</label><input type="text" name="products[0][note]" />
+          </div>
+          <button type="button" onclick="addProductEntry()">Thêm sản phẩm/Add More Products</button>
+          <select name="groupName" id="groupName">
+            <option value="">Chọn nhóm/Select a group</option>
+          </select>
+        `;
+
+        populateGroupDropdown();
+        approvedProposalSection.style.display = "block";
+
+        // Fetch current user and populate cost centers
+        fetchCostCenters();
+      }
+
+      // Function to handle Generic Document selection
+      function handleGenericDocument() {
+        const contentFields = document.getElementById("content-fields");
+        const addContentButton = document.getElementById("add-content-btn");
+        const appendApprovedDocumentsSection = document.getElementById(
+          "append-approved-documents-section"
+        );
+
+        contentFields.innerHTML = `
+          <label for="contentName">Tên nội dung/Content Name</label>
+          <input type="text" name="contentName" required />
+          <label for="contentText">Nội dung/Content Text</label>
+          <textarea name="contentText" rows="5" required></textarea>
+          <select name="groupName" id="groupName">
+            <option value="">Chọn nhóm/Select a group</option>
+          </select>
+        `;
+        populateGroupDropdown();
+        addContentButton.style.display = "inline-block";
+        appendApprovedDocumentsSection.style.display = "none";
+      }
+
+      // Utility function to fetch and populate cost centers
+      function fetchCostCenters() {
+        fetch("/getCurrentUser")
+          .then((response) => response.json())
+          .then((userData) => {
+            const currentUser = userData.username;
+
+            fetch("/costCenters")
+              .then((response) => response.json())
+              .then((costCenters) => {
+                const costCenterSelect = document.getElementById("costCenter");
+                costCenterSelect.innerHTML =
+                  '<option value="">Chọn một trạm/Select a center</option>';
+
+                costCenters.forEach((center) => {
+                  if (
+                    center.allowedUsers.length === 0 ||
+                    center.allowedUsers.includes(currentUser)
+                  ) {
+                    const option = document.createElement("option");
+                    option.value = center.name;
+                    option.textContent = center.name;
+                    costCenterSelect.appendChild(option);
+                  }
+                });
+              })
+              .catch((error) => {
+                console.error("Error fetching cost centers:", error);
+              });
+          })
+          .catch((error) => {
+            console.error("Error fetching current user:", error);
+          });
+      }
+
+      // Main event listener for document type dropdown
       document
         .getElementById("title-dropdown")
         .addEventListener("change", function () {
@@ -450,6 +690,7 @@
             "purchasingDocumentPreview"
           );
 
+          // Reset all sections and content fields
           contentFields.innerHTML = "";
           addContentButton.style.display = "none";
           approvedProposalSection.style.display = "none";
@@ -457,326 +698,26 @@
           appendPurchasingSection.style.display = "none";
           purchasingDocumentPreview.style.display = "none";
 
-          if (selectedTitle === "Proposal Document") {
-            // Create the base structure without the <select> options
-            contentFields.innerHTML = `
-              <label for="task">Công việc/Task</label>
-              <input type="text" name="task" required />
-              <label for="costCenter">Trạm/Center</label>
-              <select name="costCenter" id="costCenter" required>
-                <option value="">Chọn một trạm/Select a center</option>
-                <!-- Options will be added here dynamically -->
-              </select>
-              <label for="dateOfError">Ngày xảy ra lỗi/Date of Error</label>
-              <input type="text" name="dateOfError" id="dateOfError" required />
-              <label for="detailsDescription">Mô tả chi tiết/Details Description</label>
-              <textarea name="detailsDescription" rows="3" required></textarea>
-              <label for="direction">Hướng xử lý/Direction</label>
-              <input type="text" name="direction" required />
-              <select name="groupName" id="groupName">
-                <option value="">Chọn nhóm/Select a group</option>
-              </select>
-            `;
-            populateGroupDropdown();
-
-            // Fetch current user information
-            fetch("/getCurrentUser")
-              .then((response) => response.json())
-              .then((userData) => {
-                const currentUser = userData.username; // Get the current user's username
-
-                // Fetch cost centers
-                fetch("/costCenters")
-                  .then((response) => response.json())
-                  .then((costCenters) => {
-                    const costCenterSelect =
-                      document.getElementById("costCenter");
-
-                    // Clear the existing options (if any)
-                    costCenterSelect.innerHTML =
-                      '<option value="">Chọn một trạm/Select a center</option>';
-
-                    // Add options dynamically based on the allowed users
-                    costCenters.forEach((center) => {
-                      if (
-                        center.allowedUsers.length === 0 ||
-                        center.allowedUsers.includes(currentUser)
-                      ) {
-                        const option = document.createElement("option");
-                        option.value = center.name;
-                        option.textContent = center.name;
-                        costCenterSelect.appendChild(option);
-                      }
-                    });
-                  })
-                  .catch((error) => {
-                    console.error("Error fetching cost centers:", error);
-                  });
-              })
-              .catch((error) => {
-                console.error("Error fetching current user:", error);
-              });
-
-            flatpickr("#dateOfError", {
-              dateFormat: "d-m-Y",
-              defaultDate: "today",
-            });
-
-            addContentButton.style.display = "none";
-          } else if (selectedTitle === "Purchasing Document") {
-            contentFields.innerHTML = `
-              <label for="name">Tên/Name</label>
-              <input type="text" name="name" required />
-              <label for="costCenter">Trạm/Center</label>
-              <select name="costCenter" id="costCenter" required>
-                <option value="">Chọn một trạm/Select a center</option>
-              </select>
-              <div id="product-entries">
-                <label>Tên sản phẩm/Product Name</label><input type="text" name="products[0][productName]" required />
-                <label>Đơn giá/Cost per Unit</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
-                <label>Số lượng/Amount</label><input type="number" name="products[0][amount]" required />
-                <label>Thuế/Vat (%)</label><input type="number" name="products[0][vat]" required />
-                <label>Ghi chú/Note</label><input type="text" name="products[0][note]" />
-              </div>
-              <button type="button" onclick="addProductEntry()">Thêm sản phẩm/Add More Products</button>
-              <select name="groupName" id="groupName">
-                <option value="">Chọn nhóm/Select a group</option>
-              </select>
-            `;
-            populateGroupDropdown();
-            approvedProposalSection.style.display = "block";
-
-            // Fetch current user information and populate cost centers
-            fetch("/getCurrentUser")
-              .then((response) => response.json())
-              .then((userData) => {
-                const currentUser = userData.username;
-
-                // Fetch cost centers
-                fetch("/costCenters")
-                  .then((response) => response.json())
-                  .then((costCenters) => {
-                    const costCenterSelect =
-                      document.getElementById("costCenter");
-                    costCenterSelect.innerHTML =
-                      '<option value="">Chọn một trạm/Select a center</option>';
-
-                    costCenters.forEach((center) => {
-                      if (
-                        center.allowedUsers.length === 0 ||
-                        center.allowedUsers.includes(currentUser)
-                      ) {
-                        const option = document.createElement("option");
-                        option.value = center.name;
-                        option.textContent = center.name;
-                        costCenterSelect.appendChild(option);
-                      }
-                    });
-                  })
-                  .catch((error) => {
-                    console.error("Error fetching cost centers:", error);
-                  });
-              })
-              .catch((error) => {
-                console.error("Error fetching current user:", error);
-              });
-          } else if (selectedTitle === "Payment Document") {
-            appendPurchasingSection.style.display = "block"; // Show dropdown for Purchasing Document
-            fetchPurchasingDocuments(); // Fetch available Purchasing Documents
-            // Add fields for Payment Document
-            contentFields.innerHTML = `
-              <label for="name">Tên/Name</label>
-              <input type="text" name="name" required />
-              <label for="content">Nội dung/Content</label>
-              <input type="text" name="content" required />
-              <label for="costCenter">Trạm/Center</label>
-              <select name="costCenter" id="costCenter">
-                <option value="">Chọn một trạm/Select a center</option>
-              </select>
-              <label for="paymentMethod">Hình thức thanh toán/Payment Method</label>
-              <input type="text" name="paymentMethod" required />
-              <label for="totalPayment">Tổng thanh toán/Total Payment:</label>
-              <input type="number" step="0.01" name="totalPayment" required />
-              <label for="paymentDeadline">Thời hạn trả/Payment Deadline</label>
-              <input type="text" name="paymentDeadline" id="paymentDeadline" required />
-              <select name="groupName" id="groupName">
-                <option value="">Chọn nhóm/Select a group</option>
-              </select>
-            `;
-            populateGroupDropdown();
-            flatpickr("#paymentDeadline", {
-              dateFormat: "d-m-Y",
-              defaultDate: "today",
-            });
-
-            // Fetch current user information and populate cost centers
-            fetch("/getCurrentUser")
-              .then((response) => response.json())
-              .then((userData) => {
-                const currentUser = userData.username;
-
-                // Fetch cost centers
-                fetch("/costCenters")
-                  .then((response) => response.json())
-                  .then((costCenters) => {
-                    const costCenterSelect =
-                      document.getElementById("costCenter");
-                    costCenterSelect.innerHTML =
-                      '<option value="">Chọn một trạm/Select a center</option>';
-
-                    costCenters.forEach((center) => {
-                      if (
-                        center.allowedUsers.length === 0 ||
-                        center.allowedUsers.includes(currentUser)
-                      ) {
-                        const option = document.createElement("option");
-                        option.value = center.name;
-                        option.textContent = center.name;
-                        costCenterSelect.appendChild(option);
-                      }
-                    });
-                  })
-                  .catch((error) => {
-                    console.error("Error fetching cost centers:", error);
-                  });
-              })
-              .catch((error) => {
-                console.error("Error fetching current user:", error);
-              });
-          } else if (selectedTitle === "Advance Payment Document") {
-            appendPurchasingSection.style.display = "block"; // Show dropdown for Purchasing Document
-            fetchPurchasingDocuments(); // Fetch available Purchasing Documents
-            // Add fields for Payment Document
-            contentFields.innerHTML = `
-              <label for="name">Tên/Name</label>
-              <input type="text" name="name" required />
-              <label for="content">Nội dung/Content</label>
-              <input type="text" name="content" required />
-              <label for="costCenter">Trạm/Center</label>
-              <select name="costCenter" id="costCenter">
-                <option value="">Chọn một trạm/Select a center</option>
-              </select>
-              <label for="paymentMethod">Hình thức thanh toán/Payment Method</label>
-              <input type="text" name="paymentMethod" required />
-              <label for="advancePayment">Thanh toán trước/Advance Payment:</label>
-              <input type="number" step="0.01" name="advancePayment"/>
-              <label for="paymentDeadline">Thời hạn trả/Payment Deadline</label>
-              <input type="text" name="paymentDeadline" id="paymentDeadline" required />
-              <select name="groupName" id="groupName">
-                <option value="">Chọn nhóm/Select a group</option>
-              </select>
-            `;
-            populateGroupDropdown();
-            flatpickr("#paymentDeadline", {
-              dateFormat: "d-m-Y",
-              defaultDate: "today",
-            });
-
-            // Fetch current user information and populate cost centers
-            fetch("/getCurrentUser")
-              .then((response) => response.json())
-              .then((userData) => {
-                const currentUser = userData.username;
-
-                // Fetch cost centers
-                fetch("/costCenters")
-                  .then((response) => response.json())
-                  .then((costCenters) => {
-                    const costCenterSelect =
-                      document.getElementById("costCenter");
-                    costCenterSelect.innerHTML =
-                      '<option value="">Chọn một trạm/Select a center</option>';
-
-                    costCenters.forEach((center) => {
-                      if (
-                        center.allowedUsers.length === 0 ||
-                        center.allowedUsers.includes(currentUser)
-                      ) {
-                        const option = document.createElement("option");
-                        option.value = center.name;
-                        option.textContent = center.name;
-                        costCenterSelect.appendChild(option);
-                      }
-                    });
-                  })
-                  .catch((error) => {
-                    console.error("Error fetching cost centers:", error);
-                  });
-              })
-              .catch((error) => {
-                console.error("Error fetching current user:", error);
-              });
-          } else if (selectedTitle === "Delivery Document") {
-            contentFields.innerHTML = `
-              <label for="name">Tên/Name</label>
-              <input type="text" name="name" required />
-              <label for="costCenter">Trạm/Center</label>
-              <select name="costCenter" id="costCenter" required>
-                <option value="">Chọn một trạm/Select a center</option>
-              </select>
-              <div id="product-entries">
-                <label>Tên sản phẩm/Product Name</label><input type="text" name="products[0][productName]" required />
-                <label>Đơn giá/Cost per Unit</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
-                <label>Số lượng/Amount</label><input type="number" name="products[0][amount]" required />
-                <label>Thuế/Vat (%)</label><input type="number" name="products[0][vat]" required />
-                <label>Ghi chú/Note</label><input type="text" name="products[0][note]" />
-              </div>
-              <button type="button" onclick="addProductEntry()">Thêm sản phẩm/Add More Products</button>
-              <select name="groupName" id="groupName">
-                <option value="">Chọn nhóm/Select a group</option>
-              </select>
-            `;
-
-            populateGroupDropdown();
-            approvedProposalSection.style.display = "block";
-
-            // Fetch current user information and populate cost centers
-            fetch("/getCurrentUser")
-              .then((response) => response.json())
-              .then((userData) => {
-                const currentUser = userData.username;
-
-                // Fetch cost centers
-                fetch("/costCenters")
-                  .then((response) => response.json())
-                  .then((costCenters) => {
-                    const costCenterSelect =
-                      document.getElementById("costCenter");
-                    costCenterSelect.innerHTML =
-                      '<option value="">Chọn một trạm/Select a center</option>';
-
-                    costCenters.forEach((center) => {
-                      if (
-                        center.allowedUsers.length === 0 ||
-                        center.allowedUsers.includes(currentUser)
-                      ) {
-                        const option = document.createElement("option");
-                        option.value = center.name;
-                        option.textContent = center.name;
-                        costCenterSelect.appendChild(option);
-                      }
-                    });
-                  })
-                  .catch((error) => {
-                    console.error("Error fetching cost centers:", error);
-                  });
-              })
-              .catch((error) => {
-                console.error("Error fetching current user:", error);
-              });
-          } else if (selectedTitle === "Generic Document") {
-            contentFields.innerHTML = `
-              <label for="contentName">Tên nội dung/Content Name</label>
-              <input type="text" name="contentName" required />
-              <label for="contentText">Nội dung/Content Text</label>
-              <textarea name="contentText" rows="5" required></textarea>
-              <select name="groupName" id="groupName">
-                <option value="">Chọn nhóm/Select a group</option>
-              </select>
-            `;
-            populateGroupDropdown();
-            addContentButton.style.display = "inline-block";
-            appendApprovedDocumentsSection.style.display = "none";
+          // Call respective handler based on selected document type
+          switch (selectedTitle) {
+            case "Proposal Document":
+              handleProposalDocument();
+              break;
+            case "Purchasing Document":
+              handlePurchasingDocument();
+              break;
+            case "Payment Document":
+              handlePaymentDocument();
+              break;
+            case "Advance Payment Document":
+              handleAdvancePaymentDocument();
+              break;
+            case "Delivery Document":
+              handleDeliveryDocument();
+              break;
+            case "Generic Document":
+              handleGenericDocument();
+              break;
           }
         });
 
