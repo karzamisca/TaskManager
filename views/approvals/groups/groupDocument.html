@@ -850,7 +850,7 @@
           } else if (doc.documentType === "purchasing") {
             displayText += `${doc.title} (Tổng chi phí: ${doc.grandTotalCost})`;
           } else if (doc.documentType === "payment") {
-            displayText += `(Mã/Tag: ${doc.tag}) (Kê khai: ${doc.declaration})`;
+            displayText += `(Mã/Tag: ${doc.tag}) (Kê khai: ${doc.declaration}) (Tổng thanh toán: ${doc.totalPayment})`;
           }
           option.textContent = displayText;
           documentSelect.appendChild(option);
@@ -886,7 +886,7 @@
           } else if (doc.type === "Mua hàng/Purchasing") {
             documentTitle = `${doc.title} (Tổng chi phí: ${doc.grandTotalCost})`;
           } else if (doc.type === "Thanh toán/Payment") {
-            documentTitle = `(Mã/Tag: ${doc.tag}) (Kê khai: ${doc.declaration})`;
+            documentTitle = `(Mã/Tag: ${doc.tag}) (Kê khai: ${doc.declaration}) (Tổng thanh toán: ${doc.totalPayment})`;
           }
 
           documentItem.innerHTML = `
