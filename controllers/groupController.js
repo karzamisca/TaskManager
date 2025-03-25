@@ -5,6 +5,8 @@ const Document = require("../models/Document");
 const PaymentDocument = require("../models/PaymentDocument");
 const ProposalDocument = require("../models/ProposalDocument");
 const PurchasingDocument = require("../models/PurchasingDocument");
+const AdvancePaymentDocument = require("../models/AdvancePaymentDocument");
+const DeliveryDocument = require("../models/DeliveryDocument");
 const moment = require("moment-timezone");
 
 // Add a new group
@@ -59,6 +61,12 @@ exports.getGroupedDocuments = async (req, res) => {
     const purchasingDocuments = await PurchasingDocument.find({
       $and: [{ groupName: { $ne: null } }, { groupName: { $ne: "" } }],
     });
+    const advancePaymentDocuments = await AdvancePaymentDocument.find({
+      $and: [{ groupName: { $ne: null } }, { groupName: { $ne: "" } }],
+    });
+    const deliveryDocuments = await DeliveryDocument.find({
+      $and: [{ groupName: { $ne: null } }, { groupName: { $ne: "" } }],
+    });
 
     // Combine all documents into one array with a 'type' field
     const allDocuments = [
@@ -77,6 +85,14 @@ exports.getGroupedDocuments = async (req, res) => {
       ...paymentDocuments.map((doc) => ({
         ...doc.toObject(),
         type: "Thanh toán/Payment",
+      })),
+      ...advancePaymentDocuments.map((doc) => ({
+        ...doc.toObject(),
+        type: "Tạm ứng/Advance Payment",
+      })),
+      ...deliveryDocuments.map((doc) => ({
+        ...doc.toObject(),
+        type: "Xuất kho/Delivery",
       })),
     ];
 
@@ -112,7 +128,9 @@ exports.approveGroupedDocument = async (req, res) => {
       (await Document.findById(id)) ||
       (await ProposalDocument.findById(id)) ||
       (await PurchasingDocument.findById(id)) ||
-      (await PaymentDocument.findById(id));
+      (await PaymentDocument.findById(id)) ||
+      (await AdvancePaymentDocument.findById(id)) ||
+      (await DeliveryDocument.findById(id));
 
     if (!document) {
       return res.send("Không tìm thấy tài liệu/Document not found");
@@ -163,6 +181,10 @@ exports.approveGroupedDocument = async (req, res) => {
       await ProposalDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof PaymentDocument) {
       await PaymentDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof AdvancePaymentDocument) {
+      await AdvancePaymentDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof DeliveryDocument) {
+      await DeliveryDocument.findByIdAndUpdate(id, document);
     } else {
       await Document.findByIdAndUpdate(id, document);
     }
@@ -197,6 +219,16 @@ exports.deleteGroupedDocument = async (req, res) => {
       if (document) documentType = "Payment";
     }
 
+    if (!document && documentType === "Generic") {
+      document = await AdvancePaymentDocument.findById(id);
+      if (document) documentType = "AdvancePayment";
+    }
+
+    if (!document && documentType === "Generic") {
+      document = await DeliveryDocument.findById(id);
+      if (document) documentType = "Delivery";
+    }
+
     if (!document) {
       return res.send("Document not found");
     }
@@ -208,6 +240,10 @@ exports.deleteGroupedDocument = async (req, res) => {
       await PurchasingDocument.findByIdAndDelete(id);
     } else if (documentType === "Payment") {
       await PaymentDocument.findByIdAndDelete(id);
+    } else if (documentType === "AdvancePayment") {
+      await AdvancePaymentDocument.findByIdAndDelete(id);
+    } else if (documentType === "Delivery") {
+      await DeliveryDocument.findByIdAndDelete(id);
     } else {
       await Document.findByIdAndDelete(id);
     }
@@ -239,6 +275,12 @@ exports.addDocumentToGroup = async (req, res) => {
       case "payment":
         document = await PaymentDocument.findById(documentId);
         break;
+      case "advancePayment":
+        document = await AdvancePaymentDocument.findById(documentId);
+        break;
+      case "delivery":
+        document = await DeliveryDocument.findById(documentId);
+        break;
       default:
         return res.status(400).json({ message: "Invalid document type" });
     }
@@ -263,6 +305,12 @@ exports.addDocumentToGroup = async (req, res) => {
         break;
       case "payment":
         await PaymentDocument.findByIdAndUpdate(documentId, document);
+        break;
+      case "advancePayment":
+        await AdvancePaymentDocument.findByIdAndUpdate(documentId, document);
+        break;
+      case "delivery":
+        await DeliveryDocument.findByIdAndUpdate(documentId, document);
         break;
     }
 
@@ -293,6 +341,14 @@ exports.getUnassignedDocuments = async (req, res) => {
       $or: [{ groupName: null }, { groupName: "" }],
     });
 
+    const advancePaymentDocuments = await AdvancePaymentDocument.find({
+      $or: [{ groupName: null }, { groupName: "" }],
+    });
+
+    const deliveryDocuments = await DeliveryDocument.find({
+      $or: [{ groupName: null }, { groupName: "" }],
+    });
+
     // Combine all documents with type information
     const allDocuments = [
       ...genericDocuments.map((doc) => ({
@@ -314,6 +370,16 @@ exports.getUnassignedDocuments = async (req, res) => {
         ...doc.toObject(),
         documentType: "payment",
         displayType: "Thanh toán/Payment",
+      })),
+      ...advancePaymentDocuments.map((doc) => ({
+        ...doc.toObject(),
+        documentType: "advancePayment",
+        displayType: "Tạm ứng/Advance Payment",
+      })),
+      ...deliveryDocuments.map((doc) => ({
+        ...doc.toObject(),
+        documentType: "delivery",
+        displayType: "Xuất kho/Delivery",
       })),
     ];
 
@@ -344,6 +410,12 @@ exports.removeDocumentFromGroup = async (req, res) => {
       case "payment":
         document = await PaymentDocument.findById(documentId);
         break;
+      case "advancePayment":
+        document = await AdvancePaymentDocument.findById(documentId);
+        break;
+      case "delivery":
+        document = await DeliveryDocument.findById(documentId);
+        break;
       default:
         return res.status(400).json({ message: "Invalid document type" });
     }
@@ -368,6 +440,12 @@ exports.removeDocumentFromGroup = async (req, res) => {
         break;
       case "payment":
         await PaymentDocument.findByIdAndUpdate(documentId, document);
+        break;
+      case "advancePayment":
+        await AdvancePaymentDocument.findByIdAndUpdate(documentId, document);
+        break;
+      case "delivery":
+        await DeliveryDocument.findByIdAndUpdate(documentId, document);
         break;
     }
 

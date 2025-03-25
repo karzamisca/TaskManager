@@ -848,7 +848,13 @@
           } else if (doc.documentType === "proposal") {
             displayText += doc.task || "Untitled";
           } else if (doc.documentType === "purchasing") {
-            displayText += `${doc.title} (Tổng chi phí: ${doc.grandTotalCost})`;
+            displayText += `${doc.title} (Tên: ${
+              doc.name || ""
+            }) (Tổng chi phí: ${doc.grandTotalCost})`;
+          } else if (doc.documentType === "delivery") {
+            displayText += `${doc.title} (Tên: ${doc.name}) (Tổng chi phí: ${doc.grandTotalCost})`;
+          } else if (doc.documentType === "advancePayment") {
+            displayText += `(Mã/Tag: ${doc.tag}) (Kê khai: ${doc.declaration}) (Tạm ứng: ${doc.advancePayment})`;
           } else if (doc.documentType === "payment") {
             displayText += `(Mã/Tag: ${doc.tag}) (Kê khai: ${doc.declaration}) (Tổng thanh toán: ${doc.totalPayment})`;
           }
@@ -884,7 +890,13 @@
           } else if (doc.type === "Đề xuất/Proposal") {
             documentTitle = doc.task || "Untitled";
           } else if (doc.type === "Mua hàng/Purchasing") {
-            documentTitle = `${doc.title} (Tổng chi phí: ${doc.grandTotalCost})`;
+            documentTitle = `${doc.title} (Tên: ${
+              doc.name || ""
+            }) (Tổng chi phí: ${doc.grandTotalCost})`;
+          } else if (doc.type === "Xuất kho/Delivery") {
+            documentTitle = `${doc.title} (Tên: ${doc.name}) (Tổng chi phí: ${doc.grandTotalCost})`;
+          } else if (doc.type === "Tạm ứng/Advance Payment") {
+            documentTitle = `(Mã/Tag: ${doc.tag}) (Kê khai: ${doc.declaration}) (Tạm ứng: ${doc.advancePayment})`;
           } else if (doc.type === "Thanh toán/Payment") {
             documentTitle = `(Mã/Tag: ${doc.tag}) (Kê khai: ${doc.declaration}) (Tổng thanh toán: ${doc.totalPayment})`;
           }
@@ -1436,7 +1448,244 @@
               </div>
             </div>
           `;
+        } else if (doc.type === "Tạm ứng/Advance Payment") {
+          content = `
+            <!-- Basic Information Section -->
+            <div class="full-view-section">
+              <h3>Thông tin cơ bản/Basic Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Mã/Tag:</span>
+                  <span class="detail-value">${
+                    doc.tag || "Not specified"
+                  }</span>
+                  <span class="detail-label">Tên/Name:</span>
+                  <span class="detail-value">${
+                    doc.name || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Tên nhóm/Group Name:</span>
+                  <span class="detail-value">${
+                    doc.groupName || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Ngày nộp/Submission Date:</span>
+                  <span class="detail-value">${submissionDate}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Hạn trả/Payment Deadline:</span>
+                  <span class="detail-value">${paymentDeadline}</span>
+                </div>
+                <div class="detail-item declaration-container" data-document-id="${
+                  doc._id
+                }">
+                  <span class="detail-label">Kê khai/Declaration:</span>
+                  <span class="detail-value declaration-value">${
+                    doc.declaration || "Not specified"
+                  }</span>
+                  <button class="edit-declaration-btn">Chỉnh sửa</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Content Section -->
+            <div class="full-view-section">
+              <h3>Nội dung/Content</h3>
+              <p style="white-space: pre-wrap;">${
+                doc.content || "No content provided"
+              }</p>
+            </div>
+
+            <div class="full-view-section">
+              <h3>Trạm/Center</h3>
+              <p style="white-space: pre-wrap;">${
+                doc.costCenter || "No content provided"
+              }</p>
+            </div>
+
+            <!-- Payment Information Section -->
+            <div class="full-view-section">
+              <h3>Thông tin thanh toán/Payment Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Phương thức/Payment Method:</span>
+                  <span class="detail-value">${
+                    doc.paymentMethod || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Tạm ứng/Advance Payment:</span>
+                  <span class="detail-value">${
+                    doc.advancePayment?.toLocaleString() || "Not specified"
+                  }</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- File Attachment Section -->
+            <div class="full-view-section">
+              <h3>Tệp tin kèm theo/Attached File</h3>
+              ${
+                doc.fileMetadata
+                  ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+                  : "No file attached"
+              }
+            </div>
+
+            <!-- Purchasing Documents Section -->
+            <div class="full-view-section">
+              <h3>Phiếu mua hàng kèm theo/Appended Purchasing Documents</h3>
+              ${
+                doc.appendedPurchasingDocuments?.length
+                  ? renderPurchasingDocuments(doc.appendedPurchasingDocuments)
+                  : "No purchasing documents attached"
+              }
+            </div>
+
+            <!-- Proposals Section -->
+            <div class="full-view-section">
+              <h3>Phiếu đề xuất kèm theo/Appended Proposal Documents</h3>
+              ${
+                doc.appendedPurchasingDocuments?.length
+                  ? renderProposals(doc.appendedPurchasingDocuments)
+                  : "No proposal documents attached"
+              }
+            </div>
+
+            <!-- Status Section -->
+            <div class="full-view-section">
+              <h3>Trạng thái/Status Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Tình trạng/Status:</span>
+                  <span class="detail-value ${renderStatus(doc.status)}</span>
+                </div>
+              </div>
+              <div style="margin-top: 16px;">
+                <h4>Trạng thái phê duyệt/Approval Status:</h4>
+                <div class="approval-status">
+                  ${doc.approvers
+                    .map((approver) => {
+                      const hasApproved = doc.approvedBy.find(
+                        (a) => a.username === approver.username
+                      );
+                      return `
+                      <div class="approver-item">
+                        <span class="status-icon ${
+                          hasApproved ? "status-approved" : "status-pending"
+                        }"></span>
+                        <div>
+                          <div>${approver.username} (${approver.subRole})</div>
+                          ${
+                            hasApproved
+                              ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
+                              : '<div class="approval-date">Pending</div>'
+                          }
+                        </div>
+                      </div>
+                    `;
+                    })
+                    .join("")}
+                </div>
+              </div>
+            </div>
+          `;
         } else if (doc.type === "Mua hàng/Purchasing") {
+          content = `
+            <!-- Basic Information Section -->
+            <div class="full-view-section">
+              <h3>Thông tin cơ bản/Basic Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Tên:</span>
+                  <span class="detail-value">${doc.name}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Trạm:</span>
+                  <span class="detail-value">${doc.costCenter}</span>
+                </div>                
+                <div class="detail-item">
+                  <span class="detail-label">Tên nhóm/Group Name:</span>
+                  <span class="detail-value">${
+                    doc.groupName || "Not specified"
+                  }</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Ngày nộp/Submission Date:</span>
+                  <span class="detail-value">${submissionDate}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Kê khai/Declaration:</span>
+                  <span class="detail-value">${
+                    doc.declaration || "Not specified"
+                  }</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Products Section -->
+            <div class="full-view-section">
+              <h3>Sản phẩm/Products</h3>
+              ${renderProducts(doc.products)}
+            </div>
+
+            <!-- File Attachment Section -->
+            <div class="full-view-section">
+              <h3>Tệp tin kèm theo/Attached File</h3>
+              ${
+                doc.fileMetadata
+                  ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+                  : "No file attached"
+              }
+            </div>
+
+            <!-- Proposals Section -->
+            <div class="full-view-section">
+              <h3>Phiếu đề xuất kèm theo/Appended Proposals</h3>
+              ${renderProposals(doc.appendedProposals)}
+            </div>
+
+            <!-- Status Section -->
+            <div class="full-view-section">
+              <h3>Trạng thái/Status Information</h3>
+              <div class="detail-grid">
+                <div class="detail-item">
+                  <span class="detail-label">Tình trạng/Status:</span>
+                  <span class="detail-value ${renderStatus(doc.status)}</span>
+                </div>
+              </div>
+              <div style="margin-top: 16px;">
+                <h4>Trạng thái phê duyệt/Approval Status:</h4>
+                <div class="approval-status">
+                  ${doc.approvers
+                    .map((approver) => {
+                      const hasApproved = doc.approvedBy.find(
+                        (a) => a.username === approver.username
+                      );
+                      return `
+                      <div class="approver-item">
+                        <span class="status-icon ${
+                          hasApproved ? "status-approved" : "status-pending"
+                        }"></span>
+                        <div>
+                          <div>${approver.username} (${approver.subRole})</div>
+                          ${
+                            hasApproved
+                              ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
+                              : '<div class="approval-date">Pending</div>'
+                          }
+                        </div>
+                      </div>
+                    `;
+                    })
+                    .join("")}
+                </div>
+              </div>
+            </div>
+          `;
+        } else if (doc.type === "Xuất kho/Delivery") {
           content = `
             <!-- Basic Information Section -->
             <div class="full-view-section">
@@ -1565,6 +1814,8 @@
           "Chung/Generic": "generic",
           "Đề xuất/Proposal": "proposal",
           "Mua hàng/Purchasing": "purchasing",
+          "Xuất kho/Delivery": "delivery",
+          "Tạm ứng/Advance Payment": "advancePayment",
           "Thanh toán/Payment": "payment",
         };
         return typeMap[displayType] || "generic";
