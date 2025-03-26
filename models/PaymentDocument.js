@@ -50,6 +50,7 @@ const paymentDocumentSchema = new mongoose.Schema({
   suspendReason: { type: String, default: "" },
   declaration: { type: String, default: "" },
   groupName: { type: String },
+  projectName: { type: String },
 });
 
 module.exports = mongoose.model("PaymentDocument", paymentDocumentSchema);

@@ -65,6 +65,7 @@ const deliveryDocumentSchema = new mongoose.Schema({
   },
   suspendReason: { type: String, default: "" },
   groupName: { type: String },
+  projectName: { type: String },
 });
 
 module.exports = mongoose.model("DeliveryDocument", deliveryDocumentSchema);

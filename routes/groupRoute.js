@@ -34,7 +34,10 @@ router.post(
 );
 
 // Route to get unassigned documents
-router.get("/getUnassignedDocuments", groupController.getUnassignedDocuments);
+router.get(
+  "/getUnassignedDocumentsForGroup",
+  groupController.getUnassignedDocuments
+);
 
 // Routes for document group management
 router.post(

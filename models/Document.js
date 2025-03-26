@@ -37,6 +37,7 @@ const documentSchema = new mongoose.Schema({
     default: "Pending",
   },
   groupName: { type: String },
+  projectName: { type: String },
 });
 
 module.exports = mongoose.model("Document", documentSchema);

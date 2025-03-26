@@ -1,10 +1,10 @@
-<!-- views\approvals\groups\groupDocument.html -->
+<!-- views\approvals\projects\projectDocument.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Phiếu theo nhóm/Grouped Documents</title>
+    <title>Phiếu theo nhóm/Projected Documents</title>
   </head>
   <body>
     <style>
@@ -607,7 +607,7 @@
         border-radius: 4px;
       }
 
-      .declaration-edit-form .btn-group {
+      .declaration-edit-form .btn-project {
         margin-top: 8px;
       }
 
@@ -682,29 +682,29 @@
       }
     </style>
     <header>
-      <h1>Phiếu theo nhóm/Grouped Documents</h1>
+      <h1>Phiếu theo nhóm/Projected Documents</h1>
       <a href="/mainDocument">Trở về/Back</a>
     </header>
 
-    <!-- Create Group Form -->
+    <!-- Create Project Form -->
     <section class="compact-section">
-      <h2>Tạo nhóm mới/Create a New Group</h2>
-      <form action="/createGroup" method="POST" class="compact-form">
+      <h2>Tạo nhóm mới/Create a New Project</h2>
+      <form action="/createProject" method="POST" class="compact-form">
         <div>
-          <label for="name">Tên nhóm/Group Name:</label>
+          <label for="name">Tên nhóm/Project Name:</label>
           <input type="text" id="name" name="name" required />
         </div>
         <div>
           <label for="description">Mô tả/Description:</label>
           <textarea id="description" name="description" required></textarea>
         </div>
-        <button type="submit">Tạo nhóm/Create Group</button>
+        <button type="submit">Tạo nhóm/Create Project</button>
       </form>
     </section>
 
     <!-- Document Management Section -->
     <section>
-      <h2>Quản lý tài liệu trong nhóm/Manage Documents in Groups</h2>
+      <h2>Quản lý tài liệu trong nhóm/Manage Documents in Projects</h2>
 
       <!-- Mass Declaration Update Section -->
       <div>
@@ -723,14 +723,14 @@
         <div id="mass-update-status-message" class="status-message"></div>
       </div>
 
-      <!-- Add Document to Group -->
+      <!-- Add Document to Project -->
       <div>
-        <h3>Thêm tài liệu vào nhóm/Add Document to Group</h3>
+        <h3>Thêm tài liệu vào nhóm/Add Document to Project</h3>
         <div class="document-management-form">
           <div>
-            <label for="group-select">Chọn nhóm/Select Group:</label>
-            <select id="group-select" class="form-control">
-              <option value="">-- Chọn nhóm/Select Group --</option>
+            <label for="project-select">Chọn nhóm/Select Project:</label>
+            <select id="project-select" class="form-control">
+              <option value="">-- Chọn nhóm/Select Project --</option>
             </select>
           </div>
 
@@ -741,18 +741,18 @@
             </select>
           </div>
 
-          <button id="add-to-group-btn" class="action-button">
-            Thêm vào nhóm/Add to Group
+          <button id="add-to-project-btn" class="action-button">
+            Thêm vào nhóm/Add to Project
           </button>
         </div>
         <div id="add-status-message" class="status-message"></div>
       </div>
 
-      <!-- Remove Document from Group -->
+      <!-- Remove Document from Project -->
       <div>
-        <h3>Phiếu trong nhóm/Document in the Group</h3>
+        <h3>Phiếu trong nhóm/Document in the Project</h3>
         <div id="remove-document-container">
-          <p>Chọn một nhóm trước/Select a group first</p>
+          <p>Chọn một nhóm trước/Select a project first</p>
         </div>
         <div id="remove-status-message"></div>
       </div>
@@ -782,21 +782,21 @@
 
     <script>
       let currentUser = null;
-      let groupedDocuments = null;
-      let allGroups = [];
+      let projectedDocuments = null;
+      let allProjects = [];
       let unassignedDocuments = [];
 
       async function initializeDocumentManagement() {
         try {
-          const response = await fetch("/getGroup");
-          allGroups = await response.json();
-          populateGroupSelect();
+          const response = await fetch("/getProject");
+          allProjects = await response.json();
+          populateProjectSelect();
         } catch (error) {
-          console.error("Error fetching groups:", error);
+          console.error("Error fetching projects:", error);
         }
 
         try {
-          const response = await fetch("/getUnassignedDocumentsForGroup");
+          const response = await fetch("/getUnassignedDocumentsForProject");
           unassignedDocuments = await response.json();
           populateDocumentSelect();
         } catch (error) {
@@ -804,30 +804,30 @@
         }
 
         document
-          .getElementById("group-select")
-          .addEventListener("change", handleGroupChange);
+          .getElementById("project-select")
+          .addEventListener("change", handleProjectChange);
         document
-          .getElementById("add-to-group-btn")
-          .addEventListener("click", addDocumentToGroup);
+          .getElementById("add-to-project-btn")
+          .addEventListener("click", addDocumentToProject);
       }
 
-      function populateGroupSelect() {
-        const groupSelect = document.getElementById("group-select");
+      function populateProjectSelect() {
+        const projectSelect = document.getElementById("project-select");
 
         // Clear existing options except the first one (if any)
-        while (groupSelect.options.length > 1) {
-          groupSelect.remove(1);
+        while (projectSelect.options.length > 1) {
+          projectSelect.remove(1);
         }
 
-        // Populate the dropdown with group names and descriptions
-        allGroups.forEach((group) => {
+        // Populate the dropdown with project names and descriptions
+        allProjects.forEach((project) => {
           const option = document.createElement("option");
-          option.value = group.name;
+          option.value = project.name;
 
-          // Combine group name and description for display
-          option.textContent = `${group.name} - ${group.description}`;
+          // Combine project name and description for display
+          option.textContent = `${project.name} - ${project.description}`;
 
-          groupSelect.appendChild(option);
+          projectSelect.appendChild(option);
         });
       }
 
@@ -872,13 +872,13 @@
         document.getElementById("documentModal").style.display = "none";
       }
 
-      function displayGroupDocumentsForRemoval(groupName, documents) {
+      function displayProjectDocumentsForRemoval(projectName, documents) {
         const container = document.getElementById("remove-document-container");
         container.innerHTML = "";
 
         if (!documents || documents.length === 0) {
           container.innerHTML =
-            "<p>Không có tài liệu trong nhóm này/No documents in this group</p>";
+            "<p>Không có tài liệu trong nhóm này/No documents in this project</p>";
           return;
         }
 
@@ -906,7 +906,7 @@
                 <strong>${doc.type}:</strong> ${documentTitle}
                 <button onclick="showDocumentDetails('${
                   doc._id
-                }', '${groupName}')">Chi tiết đầy đủ/Full Details</button>
+                }', '${projectName}')">Chi tiết đầy đủ/Full Details</button>
                 <button class="remove-btn" data-id="${
                   doc._id
                 }" data-type="${getDocumentType(doc.type)}">
@@ -919,7 +919,7 @@
         });
 
         document.querySelectorAll(".remove-btn").forEach((button) => {
-          button.addEventListener("click", removeDocumentFromGroup);
+          button.addEventListener("click", removeDocumentFromProject);
         });
       }
 
@@ -1055,8 +1055,10 @@
         }
       }
 
-      function showDocumentDetails(docId, groupName) {
-        const doc = groupedDocuments[groupName].find((d) => d._id === docId);
+      function showDocumentDetails(docId, projectName) {
+        const doc = projectedDocuments[projectName].find(
+          (d) => d._id === docId
+        );
         if (!doc) return;
 
         let modalContent = `
@@ -1084,7 +1086,7 @@
           <textarea class="form-control mb-2">${
             currentValue === "Not specified" ? "" : currentValue
           }</textarea>
-          <div class="btn-group">
+          <div class="btn-project">
             <button type="button" class="btn btn-sm btn-primary save-declaration-btn">Lưu/Save</button>
             <button type="button" class="btn btn-sm btn-secondary cancel-declaration-btn">Hủy/Cancel</button>
           </div>
@@ -1175,7 +1177,7 @@
 
       // Function to handle mass declaration update
       async function handleMassUpdateDeclaration() {
-        const groupSelect = document.getElementById("group-select");
+        const projectSelect = document.getElementById("project-select");
         const declarationInput = document.getElementById(
           "mass-declaration-input"
         );
@@ -1183,12 +1185,12 @@
           "mass-update-status-message"
         );
 
-        const groupName = groupSelect.value;
+        const projectName = projectSelect.value;
         const declaration = declarationInput.value.trim();
 
-        if (!groupName) {
+        if (!projectName) {
           statusMessage.textContent =
-            "Vui lòng chọn một nhóm/Please select a group.";
+            "Vui lòng chọn một nhóm/Please select a project.";
           return;
         }
 
@@ -1199,21 +1201,21 @@
         }
 
         try {
-          // Get all document IDs in the selected group
-          const groupDocuments = groupedDocuments[groupName];
-          if (!groupDocuments || groupDocuments.length === 0) {
+          // Get all document IDs in the selected project
+          const projectDocuments = projectedDocuments[projectName];
+          if (!projectDocuments || projectDocuments.length === 0) {
             statusMessage.textContent =
-              "Không có tài liệu trong nhóm này/No documents in this group.";
+              "Không có tài liệu trong nhóm này/No documents in this project.";
             return;
           }
 
-          const documentIds = groupDocuments
+          const documentIds = projectDocuments
             .filter((doc) => doc.type === "Thanh toán/Payment") // Only update payment documents
             .map((doc) => doc._id);
 
           if (documentIds.length === 0) {
             statusMessage.textContent =
-              "Không có tài liệu thanh toán trong nhóm này/No payment documents in this group.";
+              "Không có tài liệu thanh toán trong nhóm này/No payment documents in this project.";
             return;
           }
 
@@ -1303,9 +1305,9 @@
                 <span class="detail-value">${doc.name || "Not specified"}</span>
               </div>
               <div class="detail-item">
-                <span class="detail-label">Tên nhóm/Group Name:</span>
+                <span class="detail-label">Tên nhóm/Project Name:</span>
                 <span class="detail-value">${
-                  doc.groupName || "Not specified"
+                  doc.projectName || "Not specified"
                 }</span>
               </div>
               <div class="detail-item">
@@ -1462,9 +1464,9 @@
                 <span class="detail-value">${doc.name || "Not specified"}</span>
               </div>
               <div class="detail-item">
-                <span class="detail-label">Tên nhóm/Group Name:</span>
+                <span class="detail-label">Tên nhóm/Project Name:</span>
                 <span class="detail-value">${
-                  doc.groupName || "Not specified"
+                  doc.projectName || "Not specified"
                 }</span>
               </div>
               <div class="detail-item">
@@ -1608,9 +1610,9 @@
                 <span class="detail-value">${doc.costCenter}</span>
               </div>                
               <div class="detail-item">
-                <span class="detail-label">Tên nhóm/Group Name:</span>
+                <span class="detail-label">Tên nhóm/Project Name:</span>
                 <span class="detail-value">${
-                  doc.groupName || "Not specified"
+                  doc.projectName || "Not specified"
                 }</span>
               </div>
               <div class="detail-item">
@@ -1705,9 +1707,9 @@
                 <span class="detail-value">${doc.costCenter}</span>
               </div>                
               <div class="detail-item">
-                <span class="detail-label">Tên nhóm/Group Name:</span>
+                <span class="detail-label">Tên nhóm/Project Name:</span>
                 <span class="detail-value">${
-                  doc.groupName || "Not specified"
+                  doc.projectName || "Not specified"
                 }</span>
               </div>
               <div class="detail-item">
@@ -1844,31 +1846,31 @@
         return typeMap[displayType] || "generic";
       }
 
-      async function addDocumentToGroup() {
-        const groupSelect = document.getElementById("group-select");
+      async function addDocumentToProject() {
+        const projectSelect = document.getElementById("project-select");
         const documentSelect = document.getElementById("document-select");
         const statusMessage = document.getElementById("add-status-message");
 
         statusMessage.textContent = "";
 
-        const groupName = groupSelect.value;
+        const projectName = projectSelect.value;
         const documentData = documentSelect.value;
 
-        if (!groupName || !documentData) {
-          statusMessage.textContent = "Please select both group and document";
+        if (!projectName || !documentData) {
+          statusMessage.textContent = "Please select both project and document";
           return;
         }
 
         const { id, type } = JSON.parse(documentData);
 
         try {
-          const response = await fetch("/addDocumentToGroup", {
+          const response = await fetch("/addDocumentToProject", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               documentId: id,
               documentType: type,
-              groupName: groupName,
+              projectName: projectName,
             }),
           });
 
@@ -1884,14 +1886,14 @@
         }
       }
 
-      async function removeDocumentFromGroup(event) {
+      async function removeDocumentFromProject(event) {
         const button = event.target;
         const documentId = button.getAttribute("data-id");
         const documentType = button.getAttribute("data-type");
         const statusMessage = document.getElementById("remove-status-message");
 
         try {
-          const response = await fetch("/removeDocumentFromGroup", {
+          const response = await fetch("/removeDocumentFromProject", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ documentId, documentType }),
@@ -1911,32 +1913,33 @@
 
       async function refreshDocumentData() {
         try {
-          const [unassignedResponse, groupedResponse] = await Promise.all([
-            fetch("/getUnassignedDocumentsForGroup"),
-            fetch("/getGroupedDocuments"),
+          const [unassignedResponse, projectedResponse] = await Promise.all([
+            fetch("/getUnassignedDocumentsForProject"),
+            fetch("/getProjectedDocuments"),
           ]);
 
           unassignedDocuments = await unassignedResponse.json();
-          groupedDocuments = await groupedResponse.json();
+          projectedDocuments = await projectedResponse.json();
 
           populateDocumentSelect();
-          const selectedGroup = document.getElementById("group-select").value;
+          const selectedProject =
+            document.getElementById("project-select").value;
 
-          // Check if selectedGroup exists and has documents
-          if (selectedGroup) {
-            // Handle case when group exists but has no documents (empty array)
+          // Check if selectedProject exists and has documents
+          if (selectedProject) {
+            // Handle case when project exists but has no documents (empty array)
             if (
-              groupedDocuments[selectedGroup] &&
-              groupedDocuments[selectedGroup].length > 0
+              projectedDocuments[selectedProject] &&
+              projectedDocuments[selectedProject].length > 0
             ) {
-              displayGroupDocumentsForRemoval(
-                selectedGroup,
-                groupedDocuments[selectedGroup]
+              displayProjectDocumentsForRemoval(
+                selectedProject,
+                projectedDocuments[selectedProject]
               );
             } else {
-              // Handle the case where the group is empty (no documents)
+              // Handle the case where the project is empty (no documents)
               document.getElementById("remove-document-container").innerHTML =
-                "<p>Không có tài liệu trong nhóm này/No documents in this group</p>";
+                "<p>Không có tài liệu trong nhóm này/No documents in this project</p>";
             }
           }
         } catch (error) {
@@ -1944,27 +1947,27 @@
         }
       }
 
-      function handleGroupChange() {
-        const selectedGroup = document.getElementById("group-select").value;
-        if (!selectedGroup) {
+      function handleProjectChange() {
+        const selectedProject = document.getElementById("project-select").value;
+        if (!selectedProject) {
           document.getElementById("remove-document-container").innerHTML =
-            "<p>Chọn một nhóm trước/Select a group first</p>";
+            "<p>Chọn một nhóm trước/Select a project first</p>";
           return;
         }
 
-        // Check if groupedDocuments exists, the selected group exists, and it has documents
+        // Check if projectedDocuments exists, the selected project exists, and it has documents
         if (
-          groupedDocuments &&
-          groupedDocuments[selectedGroup] &&
-          groupedDocuments[selectedGroup].length > 0
+          projectedDocuments &&
+          projectedDocuments[selectedProject] &&
+          projectedDocuments[selectedProject].length > 0
         ) {
-          displayGroupDocumentsForRemoval(
-            selectedGroup,
-            groupedDocuments[selectedGroup]
+          displayProjectDocumentsForRemoval(
+            selectedProject,
+            projectedDocuments[selectedProject]
           );
         } else {
           document.getElementById("remove-document-container").innerHTML =
-            "<p>Không có tài liệu trong nhóm này/No documents in this group</p>";
+            "<p>Không có tài liệu trong nhóm này/No documents in this project</p>";
         }
       }
 
