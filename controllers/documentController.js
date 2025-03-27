@@ -1889,7 +1889,6 @@ exports.updatePaymentDocument = async (req, res) => {
     doc.costCenter = costCenter;
     doc.paymentMethod = paymentMethod;
     doc.totalPayment = parseFloat(totalPayment);
-    doc.advancePayment = parseFloat(advancePayment);
     doc.paymentDeadline = paymentDeadline;
 
     // Update approvers if provided

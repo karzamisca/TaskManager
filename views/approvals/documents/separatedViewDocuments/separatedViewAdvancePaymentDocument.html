@@ -1161,17 +1161,6 @@
                 </div>
 
                 <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label for="editTotalPayment" style="display: block; margin-bottom: 0.5em;">Tổng thanh toán/Total Payment:</label>
-                  <input type="number" id="editTotalPayment" required style="
-                    width: 100%;
-                    padding: clamp(6px, 1vw, 12px);
-                    font-size: inherit;
-                    border: 1px solid var(--border-color);
-                    border-radius: clamp(3px, 0.5vw, 6px);
-                  ">
-                </div>
-
-                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
                   <label for="editAdvancePayment" style="display: block; margin-bottom: 0.5em;">Tạm ứng/Advance Payment:</label>
                   <input type="number" id="editAdvancePayment" required style="
                     width: 100%;
@@ -1372,7 +1361,6 @@
           document.getElementById("editCostCenter").value = doc.costCenter;
           document.getElementById("editPaymentMethod").value =
             doc.paymentMethod;
-          document.getElementById("editTotalPayment").value = doc.totalPayment;
           document.getElementById("editAdvancePayment").value =
             doc.advancePayment;
           document.getElementById("editDeadline").value = doc.paymentDeadline;
@@ -1412,10 +1400,6 @@
           "paymentMethod",
           document.getElementById("editPaymentMethod").value
         );
-        formData.append(
-          "totalPayment",
-          document.getElementById("editTotalPayment").value
-        ); // Changed from amountOfMoney
         formData.append(
           "advancePayment",
           document.getElementById("editAdvancePayment").value

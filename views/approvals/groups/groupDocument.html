@@ -854,9 +854,13 @@
           } else if (doc.documentType === "delivery") {
             displayText += `${doc.title} (Tên: ${doc.name}) (Tổng chi phí: ${doc.grandTotalCost})`;
           } else if (doc.documentType === "advancePayment") {
-            displayText += `(Mã/Tag: ${doc.tag}) (Kê khai: ${doc.declaration}) (Tạm ứng: ${doc.advancePayment})`;
+            displayText += `(Mã/Tag: ${doc.tag}) (Kê khai: ${
+              doc.declaration
+            }) (Tạm ứng: ${doc.advancePayment.toLocaleString()})`;
           } else if (doc.documentType === "payment") {
-            displayText += `(Mã/Tag: ${doc.tag}) (Kê khai: ${doc.declaration}) (Tổng thanh toán: ${doc.totalPayment})`;
+            displayText += `(Mã/Tag: ${doc.tag}) (Kê khai: ${
+              doc.declaration
+            }) (Tổng thanh toán: ${doc.totalPayment.toLocaleString()})`;
           }
           option.textContent = displayText;
           documentSelect.appendChild(option);
@@ -896,9 +900,13 @@
           } else if (doc.type === "Xuất kho/Delivery") {
             documentTitle = `${doc.title} (Tên: ${doc.name}) (Tổng chi phí: ${doc.grandTotalCost})`;
           } else if (doc.type === "Tạm ứng/Advance Payment") {
-            documentTitle = `(Mã/Tag: ${doc.tag}) (Kê khai: ${doc.declaration}) (Tạm ứng: ${doc.advancePayment})`;
+            documentTitle = `(Mã/Tag: ${doc.tag}) (Kê khai: ${
+              doc.declaration
+            }) (Tạm ứng: ${doc.advancePayment.toLocaleString()})`;
           } else if (doc.type === "Thanh toán/Payment") {
-            documentTitle = `(Mã/Tag: ${doc.tag}) (Kê khai: ${doc.declaration}) (Tổng thanh toán: ${doc.totalPayment})`;
+            documentTitle = `(Mã/Tag: ${doc.tag}) (Kê khai: ${
+              doc.declaration
+            }) (Tổng thanh toán: ${doc.totalPayment.toLocaleString()})`;
           }
 
           documentItem.innerHTML = `
