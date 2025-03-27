@@ -886,6 +886,26 @@
           return;
         }
 
+        // Compute the total payment sum for payment documents in this group
+        const totalPaymentSum = documents
+          .filter((doc) => doc.type === "Thanh toán/Payment")
+          .reduce((sum, doc) => {
+            if (doc.advancePayment === 0) {
+              sum += doc.totalPayment;
+            } else if (doc.totalPayment === 0) {
+              sum += doc.advancePayment;
+            } else {
+              sum += doc.totalPayment - doc.advancePayment;
+            }
+            return sum;
+          }, 0);
+
+        // Create and insert a header showing the group name and computed total payment sum
+        const header = document.createElement("h3");
+        header.textContent = `Nhóm: ${groupName} - Số tiền đã chi: ${totalPaymentSum.toLocaleString()}`;
+        container.appendChild(header);
+
+        // Iterate over each document and display its details
         documents.forEach((doc) => {
           const documentItem = document.createElement("div");
           let documentTitle = "";
@@ -911,21 +931,22 @@
 
           documentItem.innerHTML = `
             <div>
-                <strong>${doc.type}:</strong> ${documentTitle}
-                <button onclick="showDocumentDetails('${
-                  doc._id
-                }', '${groupName}')">Chi tiết đầy đủ/Full Details</button>
-                <button class="remove-btn" data-id="${
-                  doc._id
-                }" data-type="${getDocumentType(doc.type)}">
-                    Xóa khỏi nhóm/Remove
-                </button>
+              <strong>${doc.type}:</strong> ${documentTitle}
+              <button onclick="showDocumentDetails('${
+                doc._id
+              }', '${groupName}')">Chi tiết đầy đủ/Full Details</button>
+              <button class="remove-btn" data-id="${
+                doc._id
+              }" data-type="${getDocumentType(doc.type)}">
+                Xóa khỏi nhóm/Remove
+              </button>
             </div>
-        `;
+          `;
 
           container.appendChild(documentItem);
         });
 
+        // Attach event listeners to the remove buttons
         document.querySelectorAll(".remove-btn").forEach((button) => {
           button.addEventListener("click", removeDocumentFromGroup);
         });
