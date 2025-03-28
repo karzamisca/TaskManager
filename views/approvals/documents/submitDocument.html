@@ -453,8 +453,12 @@
           <select name="groupName" id="groupName">
             <option value="">Chọn nhóm/Select a group</option>
           </select>
+          <select name="projectName" id="projectName">
+            <option value="">Chọn dự án/Select a project</option>
+          </select>          
         `;
         populateGroupDropdown();
+        populateProjectDropdown();
 
         // Fetch current user and populate cost centers
         fetchCostCenters();
@@ -492,8 +496,12 @@
           <select name="groupName" id="groupName">
             <option value="">Chọn nhóm/Select a group</option>
           </select>
+          <select name="projectName" id="projectName">
+            <option value="">Chọn dự án/Select a project</option>
+          </select>     
         `;
         populateGroupDropdown();
+        populateProjectDropdown();
         approvedProposalSection.style.display = "block";
 
         // Fetch current user and populate cost centers
@@ -528,8 +536,12 @@
           <select name="groupName" id="groupName">
             <option value="">Chọn nhóm/Select a group</option>
           </select>
+          <select name="projectName" id="projectName">
+            <option value="">Chọn dự án/Select a project</option>
+          </select>             
         `;
         populateGroupDropdown();
+        populateProjectDropdown();
 
         flatpickr("#paymentDeadline", {
           dateFormat: "d-m-Y",
@@ -568,8 +580,12 @@
           <select name="groupName" id="groupName">
             <option value="">Chọn nhóm/Select a group</option>
           </select>
+          <select name="projectName" id="projectName">
+            <option value="">Chọn dự án/Select a project</option>
+          </select>             
         `;
         populateGroupDropdown();
+        populateProjectDropdown();
 
         flatpickr("#paymentDeadline", {
           dateFormat: "d-m-Y",
@@ -605,9 +621,13 @@
           <select name="groupName" id="groupName">
             <option value="">Chọn nhóm/Select a group</option>
           </select>
+          <select name="projectName" id="projectName">
+            <option value="">Chọn dự án/Select a project</option>
+          </select>             
         `;
 
         populateGroupDropdown();
+        populateProjectDropdown();
         approvedProposalSection.style.display = "block";
 
         // Fetch current user and populate cost centers
@@ -630,8 +650,12 @@
           <select name="groupName" id="groupName">
             <option value="">Chọn nhóm/Select a group</option>
           </select>
+          <select name="projectName" id="projectName">
+            <option value="">Chọn dự án/Select a project</option>
+          </select>             
         `;
         populateGroupDropdown();
+        populateProjectDropdown();
         addContentButton.style.display = "inline-block";
         appendApprovedDocumentsSection.style.display = "none";
       }
@@ -1046,6 +1070,34 @@
           option.value = group.name;
           option.textContent = group.name;
           groupSelect.appendChild(option);
+        });
+      }
+
+      async function fetchProjects() {
+        try {
+          const response = await fetch("/getProjectDocument");
+          const groups = await response.json();
+          return groups;
+        } catch (error) {
+          console.error("Error fetching groups:", error);
+          return [];
+        }
+      }
+
+      async function populateProjectDropdown() {
+        const projects = await fetchProjects();
+        const projectSelect = document.getElementById("projectName");
+
+        // Clear existing options except the first one
+        projectSelect.innerHTML =
+          '<option value="">Chọn dự án/Select a project</option>';
+
+        // Add new options
+        projects.forEach((project) => {
+          const option = document.createElement("option");
+          option.value = project.name;
+          option.textContent = project.name;
+          projectSelect.appendChild(option);
         });
       }
 

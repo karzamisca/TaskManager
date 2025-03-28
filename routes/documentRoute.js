@@ -4,6 +4,7 @@ const multer = require("multer");
 const router = express.Router();
 const documentController = require("../controllers/documentController");
 const Group = require("../models/Group");
+const Project = require("../models/Project");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 // Set up multer to handle in-memory file uploads
@@ -87,6 +88,14 @@ router.post(
 router.get("/getGroupDocument", authMiddleware, async (req, res) => {
   try {
     const groups = await Group.find({}, "name");
+    res.json(groups);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+router.get("/getProjectDocument", authMiddleware, async (req, res) => {
+  try {
+    const groups = await Project.find({}, "name");
     res.json(groups);
   } catch (error) {
     res.status(500).json({ message: error.message });
