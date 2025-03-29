@@ -22,21 +22,11 @@ router.get(
   authMiddleware,
   documentController.getPendingDocument
 );
-router.post(
-  "/approveProjectedDocument/:id",
-  authMiddleware,
-  projectController.approveProjectedDocument
-);
-router.post(
-  "/deleteProjectedDocument/:id",
-  authMiddleware,
-  projectController.deleteProjectedDocument
-);
 
 // Route to get unassigned documents
 router.get(
   "/getUnassignedDocumentsForProject",
-  projectController.getUnassignedDocuments
+  projectController.getUnassignedDocumentsForProject
 );
 
 // Routes for document project management

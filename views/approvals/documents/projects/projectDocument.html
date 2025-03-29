@@ -861,6 +861,8 @@
             displayText += `(Mã/Tag: ${doc.tag}) (Kê khai: ${
               doc.declaration
             }) (Tổng thanh toán: ${doc.totalPayment.toLocaleString()})`;
+          } else if (doc.documentType === "projectProposal") {
+            displayText += `(Tên: ${doc.name})`;
           }
           option.textContent = displayText;
           documentSelect.appendChild(option);
@@ -907,6 +909,8 @@
             documentTitle = `(Mã/Tag: ${doc.tag}) (Kê khai: ${
               doc.declaration
             }) (Tổng thanh toán: ${doc.totalPayment.toLocaleString()})`;
+          } else if (doc.type === "Đề nghị mở dự án/Project Proposal") {
+            documentTitle += `(Tên: ${doc.name})`;
           }
 
           documentItem.innerHTML = `
@@ -1295,6 +1299,113 @@
           `
           )
           .join("");
+      }
+
+      function generateProjectProposalDocumentContent(doc) {
+        const submissionDate = doc.submissionDate || "Not specified";
+
+        // Generate the content sections
+        const contentSections = doc.content
+          .map(
+            (section) => `
+              <div class="full-view-section">
+                <h3>${section.name}</h3>
+                <p style="white-space: pre-wrap;">${
+                  section.text || "No content provided"
+                }</p>
+              </div>
+            `
+          )
+          .join("");
+
+        // Generate approvers list and status
+        const approvalStatus = doc.approvers
+          .map((approver) => {
+            const hasApproved = doc.approvedBy.find(
+              (a) => a.username === approver.username
+            );
+            return `
+              <div class="approver-item">
+                <span class="status-icon ${
+                  hasApproved ? "status-approved" : "status-pending"
+                }"></span>
+                <div>
+                  <div>${approver.username} (${approver.subRole})</div>
+                  ${
+                    hasApproved
+                      ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
+                      : '<div class="approval-date">Pending</div>'
+                  }
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+
+        return `
+          <!-- Basic Information Section -->
+          <div class="full-view-section">
+            <h3>Thông tin cơ bản/Basic Information</h3>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Tiêu đề/Title:</span>
+                <span class="detail-value">${
+                  doc.title || "Not specified"
+                }</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Tên/Name:</span>
+                <span class="detail-value">${doc.name || "Not specified"}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Tên nhóm/Group Name:</span>
+                <span class="detail-value">${
+                  doc.groupName || "Not specified"
+                }</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Tên dự án/Project Name:</span>
+                <span class="detail-value">${
+                  doc.projectName || "Not specified"
+                }</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Ngày nộp/Submission Date:</span>
+                <span class="detail-value">${submissionDate}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Content Sections -->
+          ${contentSections}
+
+          <!-- File Attachment Section -->
+          <div class="full-view-section">
+            <h3>Tệp tin kèm theo/Attached File</h3>
+            ${
+              doc.fileMetadata
+                ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+                : "No file attached"
+            }
+          </div>
+
+          <!-- Status Section -->
+          <div class="full-view-section">
+            <h3>Trạng thái/Status Information</h3>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Tình trạng/Status:</span>
+                <span class="detail-value"> ${renderStatus(doc.status)}</span>
+              </div>
+            </div>
+            <div style="margin-top: 16px;">
+              <h4>Trạng thái phê duyệt/Approval Status:</h4>
+              <div class="approval-status">
+                ${approvalStatus}
+              </div>
+            </div>
+          </div>
+        `;
       }
 
       function generatePaymentDocumentContent(doc) {
@@ -1837,6 +1948,8 @@
             return generateDeliveryDocumentContent(doc);
           case "Đề xuất/Proposal":
             return generateProposalDocumentContent(doc);
+          case "Đề nghị mở dự án/Project Proposal":
+            return generateProjectProposalDocumentContent(doc);
           default:
             return "Unsupported document type";
         }
@@ -1850,6 +1963,7 @@
           "Xuất kho/Delivery": "delivery",
           "Tạm ứng/Advance Payment": "advancePayment",
           "Thanh toán/Payment": "payment",
+          "Đề nghị mở dự án/Project Proposal": "projectProposal",
         };
         return typeMap[displayType] || "generic";
       }

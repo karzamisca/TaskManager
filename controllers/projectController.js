@@ -7,6 +7,7 @@ const ProposalDocument = require("../models/ProposalDocument");
 const PurchasingDocument = require("../models/PurchasingDocument");
 const AdvancePaymentDocument = require("../models/AdvancePaymentDocument");
 const DeliveryDocument = require("../models/DeliveryDocument");
+const ProjectProposalDocument = require("../models/ProjectProposalDocument");
 const moment = require("moment-timezone");
 
 // Add a new project
@@ -67,6 +68,9 @@ exports.getProjectedDocuments = async (req, res) => {
     const deliveryDocuments = await DeliveryDocument.find({
       $and: [{ projectName: { $ne: null } }, { projectName: { $ne: "" } }],
     });
+    const projectProposalDocuments = await ProjectProposalDocument.find({
+      $and: [{ projectName: { $ne: null } }, { projectName: { $ne: "" } }],
+    });
 
     // Combine all documents into one array with a 'type' field
     const allDocuments = [
@@ -94,6 +98,10 @@ exports.getProjectedDocuments = async (req, res) => {
         ...doc.toObject(),
         type: "Xuất kho/Delivery",
       })),
+      ...projectProposalDocuments.map((doc) => ({
+        ...doc.toObject(),
+        type: "Đề nghị mở dự án/Project Proposal",
+      })),
     ];
 
     // Project by projectName
@@ -110,148 +118,6 @@ exports.getProjectedDocuments = async (req, res) => {
   } catch (error) {
     console.error("Error fetching documents:", error);
     res.status(500).send("Internal Server Error");
-  }
-};
-
-exports.approveProjectedDocument = async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    if (req.user.role !== "approver") {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền phê duyệt tài liệu./Access denied. You don't have permission to approve document."
-      );
-    }
-
-    // Check if the document is a Generic, Proposal, or Purchasing Document
-    let document =
-      (await Document.findById(id)) ||
-      (await ProposalDocument.findById(id)) ||
-      (await PurchasingDocument.findById(id)) ||
-      (await PaymentDocument.findById(id)) ||
-      (await AdvancePaymentDocument.findById(id)) ||
-      (await DeliveryDocument.findById(id));
-
-    if (!document) {
-      return res.send("Không tìm thấy tài liệu/Document not found");
-    }
-
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.send("Không tìm thấy người dùng/User not found");
-    }
-
-    const isChosenApprover = document.approvers.some(
-      (approver) => approver.approver.toString() === req.user.id
-    );
-
-    if (!isChosenApprover) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền phê duyệt tài liệu này./Access denied. You don't have permission to approve this document."
-      );
-    }
-
-    const hasApproved = document.approvedBy.some(
-      (approver) => approver.user.toString() === req.user.id
-    );
-
-    if (hasApproved) {
-      return res.send(
-        "Bạn đã phê duyệt tài liệu rồi./You have already approved this document."
-      );
-    }
-
-    // Add the current approver to the list of `approvedBy`
-    document.approvedBy.push({
-      user: user.id,
-      username: user.username,
-      role: user.role,
-      approvalDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
-    });
-
-    // If all approvers have approved, mark it as fully approved
-    if (document.approvedBy.length === document.approvers.length) {
-      document.approved = true;
-    }
-
-    // Save document in the correct collection
-    if (document instanceof PurchasingDocument) {
-      await PurchasingDocument.findByIdAndUpdate(id, document);
-    } else if (document instanceof ProposalDocument) {
-      await ProposalDocument.findByIdAndUpdate(id, document);
-    } else if (document instanceof PaymentDocument) {
-      await PaymentDocument.findByIdAndUpdate(id, document);
-    } else if (document instanceof AdvancePaymentDocument) {
-      await AdvancePaymentDocument.findByIdAndUpdate(id, document);
-    } else if (document instanceof DeliveryDocument) {
-      await DeliveryDocument.findByIdAndUpdate(id, document);
-    } else {
-      await Document.findByIdAndUpdate(id, document);
-    }
-
-    res.redirect("/projectedDocument");
-  } catch (err) {
-    console.error("Error approving document:", err);
-    res.send("Lỗi phê duyệt tài liệu/Error approving document");
-  }
-};
-
-exports.deleteProjectedDocument = async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    // Try to find the document in each collection
-    let document = await Document.findById(id);
-    let documentType = "Generic";
-
-    if (!document) {
-      document = await ProposalDocument.findById(id);
-      if (document) documentType = "Proposal";
-    }
-
-    if (!document && documentType === "Generic") {
-      document = await PurchasingDocument.findById(id);
-      if (document) documentType = "Purchasing";
-    }
-
-    if (!document && documentType === "Generic") {
-      document = await PaymentDocument.findById(id);
-      if (document) documentType = "Payment";
-    }
-
-    if (!document && documentType === "Generic") {
-      document = await AdvancePaymentDocument.findById(id);
-      if (document) documentType = "AdvancePayment";
-    }
-
-    if (!document && documentType === "Generic") {
-      document = await DeliveryDocument.findById(id);
-      if (document) documentType = "Delivery";
-    }
-
-    if (!document) {
-      return res.send("Document not found");
-    }
-
-    // Delete the document based on its type
-    if (documentType === "Proposal") {
-      await ProposalDocument.findByIdAndDelete(id);
-    } else if (documentType === "Purchasing") {
-      await PurchasingDocument.findByIdAndDelete(id);
-    } else if (documentType === "Payment") {
-      await PaymentDocument.findByIdAndDelete(id);
-    } else if (documentType === "AdvancePayment") {
-      await AdvancePaymentDocument.findByIdAndDelete(id);
-    } else if (documentType === "Delivery") {
-      await DeliveryDocument.findByIdAndDelete(id);
-    } else {
-      await Document.findByIdAndDelete(id);
-    }
-
-    res.redirect("/projectedDocument"); // Redirect after deletion
-  } catch (err) {
-    console.error("Error deleting document:", err);
-    res.send("Lỗi xóa tài liệu/Error deleting document");
   }
 };
 
@@ -280,6 +146,9 @@ exports.addDocumentToProject = async (req, res) => {
         break;
       case "delivery":
         document = await DeliveryDocument.findById(documentId);
+        break;
+      case "projectProposal":
+        document = await ProjectProposalDocument.findById(documentId);
         break;
       default:
         return res.status(400).json({ message: "Invalid document type" });
@@ -312,6 +181,9 @@ exports.addDocumentToProject = async (req, res) => {
       case "delivery":
         await DeliveryDocument.findByIdAndUpdate(documentId, document);
         break;
+      case "projectProposal":
+        await ProjectProposalDocument.findByIdAndUpdate(documentId, document);
+        break;
     }
 
     res.status(200).json({ message: "Document added to project successfully" });
@@ -322,7 +194,7 @@ exports.addDocumentToProject = async (req, res) => {
 };
 
 // Get all unassigned documents
-exports.getUnassignedDocuments = async (req, res) => {
+exports.getUnassignedDocumentsForProject = async (req, res) => {
   try {
     // Fetch documents with no project assigned
     const genericDocuments = await Document.find({
@@ -346,6 +218,10 @@ exports.getUnassignedDocuments = async (req, res) => {
     });
 
     const deliveryDocuments = await DeliveryDocument.find({
+      $or: [{ projectName: null }, { projectName: "" }],
+    });
+
+    const projectProposalDocuments = await ProjectProposalDocument.find({
       $or: [{ projectName: null }, { projectName: "" }],
     });
 
@@ -380,6 +256,11 @@ exports.getUnassignedDocuments = async (req, res) => {
         ...doc.toObject(),
         documentType: "delivery",
         displayType: "Xuất kho/Delivery",
+      })),
+      ...projectProposalDocuments.map((doc) => ({
+        ...doc.toObject(),
+        documentType: "projectProposal",
+        displayType: "Đề nghị mở dự án/Project Proposal",
       })),
     ];
 
@@ -416,6 +297,9 @@ exports.removeDocumentFromProject = async (req, res) => {
       case "delivery":
         document = await DeliveryDocument.findById(documentId);
         break;
+      case "projectProposal":
+        document = await ProjectProposalDocument.findById(documentId);
+        break;
       default:
         return res.status(400).json({ message: "Invalid document type" });
     }
@@ -446,6 +330,9 @@ exports.removeDocumentFromProject = async (req, res) => {
         break;
       case "delivery":
         await DeliveryDocument.findByIdAndUpdate(documentId, document);
+        break;
+      case "projectProposal":
+        await ProjectProposalDocument.findByIdAndUpdate(documentId, document);
         break;
     }
 
