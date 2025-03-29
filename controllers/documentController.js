@@ -9,6 +9,7 @@ const PurchasingDocument = require("../models/PurchasingDocument.js");
 const DeliveryDocument = require("../models/DeliveryDocument");
 const PaymentDocument = require("../models/PaymentDocument.js");
 const AdvancePaymentDocument = require("../models/AdvancePaymentDocument.js");
+const ProjectProposalDocument = require("../models/ProjectProposalDocument");
 const drive = require("../middlewares/googleAuthMiddleware.js");
 const { Readable } = require("stream");
 const multer = require("multer");
@@ -276,6 +277,13 @@ exports.submitDocument = async (req, res) => {
             uploadedFileData
           );
           break;
+        case "Project Proposal Document":
+          newDocument = await createProjectProposalDocument(
+            req,
+            approverDetails,
+            uploadedFileData
+          );
+          break;
         default:
           newDocument = await createStandardDocument(
             req,
@@ -519,6 +527,46 @@ async function createAdvancePaymentDocument(
     approvers: approverDetails,
     fileMetadata: uploadedFileData,
     appendedPurchasingDocuments,
+    submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+  });
+}
+
+// Create a Project Proposal Document
+async function createProjectProposalDocument(
+  req,
+  approverDetails,
+  uploadedFileData
+) {
+  const { contentName, contentText, approvedDocuments } = req.body;
+
+  // Process content array
+  const contentArray = [];
+
+  if (Array.isArray(contentName) && Array.isArray(contentText)) {
+    contentName.forEach((name, index) => {
+      contentArray.push({ name, text: contentText[index] });
+    });
+  } else {
+    contentArray.push({ name: contentName, text: contentText });
+  }
+
+  // Append approved documents content
+  if (approvedDocuments && approvedDocuments.length > 0) {
+    const approvedDocs = await Document.find({
+      _id: { $in: approvedDocuments },
+    });
+    approvedDocs.forEach((doc) => contentArray.push(...doc.content));
+  }
+
+  return new ProjectProposalDocument({
+    title: req.body.title,
+    name: req.body.name,
+    content: contentArray,
+    groupName: req.body.groupName,
+    projectName: req.body.projectName,
+    submittedBy: req.user.id,
+    approvers: approverDetails,
+    fileMetadata: uploadedFileData,
     submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
   });
 }

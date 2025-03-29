@@ -324,6 +324,9 @@
         <select name="title" id="title-dropdown" required>
           <option value="">Chọn mẫu phiếu/Select a title</option>
           <option value="Generic Document">Phiếu chung/Generic Document</option>
+          <option value="Project Proposal Document">
+            Phiếu đề nghị mở dự án/Project Proposal Document
+          </option>
           <option value="Proposal Document">
             Phiếu đề xuất/Proposal Document
           </option>
@@ -635,6 +638,34 @@
       }
 
       // Function to handle Generic Document selection
+      function handleProjectProposalDocument() {
+        const contentFields = document.getElementById("content-fields");
+        const addContentButton = document.getElementById("add-content-btn");
+        const appendApprovedDocumentsSection = document.getElementById(
+          "append-approved-documents-section"
+        );
+
+        contentFields.innerHTML = `
+          <label for="name">Tên/Name</label>
+          <input type="text" name="name" required />
+          <label for="contentName">Tên nội dung/Content Name</label>
+          <input type="text" name="contentName" required />
+          <label for="contentText">Nội dung/Content Text</label>
+          <textarea name="contentText" rows="5" required></textarea>
+          <select name="groupName" id="groupName">
+            <option value="">Chọn nhóm/Select a group</option>
+          </select>
+          <select name="projectName" id="projectName">
+            <option value="">Chọn dự án/Select a project</option>
+          </select>             
+        `;
+        populateGroupDropdown();
+        populateProjectDropdown();
+        addContentButton.style.display = "inline-block";
+        appendApprovedDocumentsSection.style.display = "none";
+      }
+
+      // Function to handle Generic Document selection
       function handleGenericDocument() {
         const contentFields = document.getElementById("content-fields");
         const addContentButton = document.getElementById("add-content-btn");
@@ -739,6 +770,9 @@
               break;
             case "Delivery Document":
               handleDeliveryDocument();
+              break;
+            case "Project Proposal Document":
+              handleProjectProposalDocument();
               break;
             case "Generic Document":
               handleGenericDocument();
