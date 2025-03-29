@@ -716,6 +716,7 @@ exports.approveDocument = async (req, res) => {
       (await PurchasingDocument.findById(id)) ||
       (await PaymentDocument.findById(id)) ||
       (await AdvancePaymentDocument.findById(id)) ||
+      (await ProjectProposalDocument.findById(id)) ||
       (await DeliveryDocument.findById(id));
 
     if (!document) {
@@ -769,6 +770,8 @@ exports.approveDocument = async (req, res) => {
       await AdvancePaymentDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof DeliveryDocument) {
       await DeliveryDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof ProjectProposalDocument) {
+      await ProjectProposalDocument.findByIdAndUpdate(id, document);
     } else {
       await Document.findByIdAndUpdate(id, document);
     }
@@ -913,6 +916,10 @@ exports.deleteDocument = async (req, res) => {
       if (document) documentType = "Delivery";
     }
     if (!document) {
+      document = await ProjectProposalDocument.findById(id);
+      if (document) documentType = "ProjectProposal";
+    }
+    if (!document) {
       return res.send("Document not found");
     }
 
@@ -927,6 +934,8 @@ exports.deleteDocument = async (req, res) => {
       await AdvancePaymentDocument.findByIdAndDelete(id);
     } else if (documentType === "Delivery") {
       await DeliveryDocument.findByIdAndDelete(id);
+    } else if (documentType === "ProjectProposal") {
+      await ProjectProposalDocument.findByIdAndDelete(id);
     } else {
       await Document.findByIdAndDelete(id);
     }
@@ -2583,3 +2592,308 @@ exports.updateDeliveryDocument = async (req, res) => {
   }
 };
 //// END OF DELIVERY DOCUMENT CONTROLLER
+
+//// PROJECT PROPOSAL DOCUMENT CONTROLLER
+// Get all approved project proposals
+exports.getApprovedProjectProposals = async (req, res) => {
+  try {
+    const approvedProposals = await ProjectProposalDocument.find({
+      status: "Approved",
+    });
+    res.json(approvedProposals);
+  } catch (err) {
+    console.error("Error fetching approved project proposals:", err);
+    res.send("Error fetching approved project proposals");
+  }
+};
+
+// Get project proposal by ID
+exports.getProjectProposalById = async (req, res) => {
+  try {
+    const proposal = await ProjectProposalDocument.findById(req.params.id);
+    if (!proposal) return res.send("Project proposal not found");
+    res.json(proposal);
+  } catch (err) {
+    console.error("Error fetching project proposal:", err);
+    res.send("Error fetching project proposal");
+  }
+};
+
+// Get project proposals for separated view
+exports.getProjectProposalsForSeparatedView = async (req, res) => {
+  try {
+    const projectProposals = await ProjectProposalDocument.find({}).populate(
+      "submittedBy",
+      "username"
+    );
+
+    // Sort the project proposals by status priority and approval date
+    const sortedDocuments = projectProposals.sort((a, b) => {
+      const statusPriority = {
+        Suspended: 1,
+        Pending: 2,
+        Approved: 3,
+      };
+      const statusComparison =
+        statusPriority[a.status] - statusPriority[b.status];
+
+      if (statusComparison === 0 && a.status === "Approved") {
+        const getLatestApprovalDate = (doc) => {
+          if (doc.approvedBy && doc.approvedBy.length > 0) {
+            const sortedDates = [...doc.approvedBy].sort((x, y) => {
+              const parseCustomDate = (dateStr) => {
+                const [datePart, timePart] = dateStr.split(" ");
+                const [day, month, year] = datePart.split("-");
+                const [hour, minute, second] = timePart.split(":");
+                return new Date(year, month - 1, day, hour, minute, second);
+              };
+              return (
+                parseCustomDate(y.approvalDate) -
+                parseCustomDate(x.approvalDate)
+              );
+            });
+            return sortedDates[0].approvalDate;
+          }
+          return "01-01-1970 00:00:00";
+        };
+
+        const latestDateA = getLatestApprovalDate(a);
+        const latestDateB = getLatestApprovalDate(b);
+
+        const parseCustomDate = (dateStr) => {
+          const [datePart, timePart] = dateStr.split(" ");
+          const [day, month, year] = datePart.split("-");
+          const [hour, minute, second] = timePart.split(":");
+          return new Date(year, month - 1, day, hour, minute, second);
+        };
+
+        return parseCustomDate(latestDateA) - parseCustomDate(latestDateB);
+      }
+      return statusComparison;
+    });
+
+    // Calculate counts for approved and unapproved documents
+    let approvedDocument = 0;
+    let unapprovedDocument = 0;
+
+    sortedDocuments.forEach((doc) => {
+      if (doc.status === "Approved") {
+        approvedDocument += 1;
+      } else {
+        unapprovedDocument += 1;
+      }
+    });
+
+    res.json({
+      projectProposals: sortedDocuments,
+      approvedDocument,
+      unapprovedDocument,
+    });
+  } catch (err) {
+    console.error("Error fetching project proposals:", err);
+    res.status(500).send("Error fetching project proposals");
+  }
+};
+
+// Get specific project proposal by ID
+exports.getProjectProposal = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const document = await ProjectProposalDocument.findById(id);
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+    res.json(document);
+  } catch (error) {
+    console.error("Error fetching project proposal:", error);
+    res.status(500).json({ message: "Error fetching document" });
+  }
+};
+
+// Update a project proposal
+exports.updateProjectProposal = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const file = req.file;
+
+    // Parse the content JSON string into an object
+    let content;
+    try {
+      content = JSON.parse(req.body.content);
+    } catch (error) {
+      return res.status(400).json({ message: "Invalid content data format" });
+    }
+
+    // Parse approvers if it exists
+    let approvers;
+    if (req.body.approvers) {
+      try {
+        approvers = JSON.parse(req.body.approvers);
+      } catch (error) {
+        return res
+          .status(400)
+          .json({ message: "Invalid approvers data format" });
+      }
+    }
+
+    const doc = await ProjectProposalDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Update basic fields
+    doc.title = req.body.title;
+    doc.name = req.body.name;
+    doc.content = content;
+    doc.groupName = req.body.groupName;
+    doc.projectName = req.body.projectName;
+
+    // Update approvers if provided
+    if (approvers) {
+      doc.approvers = approvers;
+    }
+
+    // Handle file update if provided
+    if (file) {
+      // Delete old file from Google Drive if it exists
+      if (doc.fileMetadata?.driveFileId) {
+        try {
+          await drive.files.delete({
+            fileId: doc.fileMetadata.driveFileId,
+          });
+        } catch (error) {
+          console.error("Error deleting old file:", error);
+        }
+      }
+
+      // Upload new file
+      const fileMetadata = {
+        name: file.originalname,
+        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
+      };
+
+      const media = {
+        mimeType: file.mimetype,
+        body: Readable.from(file.buffer),
+      };
+
+      const driveResponse = await drive.files.create({
+        resource: fileMetadata,
+        media: media,
+        fields: "id, webViewLink",
+      });
+
+      // Update file permissions
+      await drive.permissions.create({
+        fileId: driveResponse.data.id,
+        requestBody: {
+          role: "reader",
+          type: "anyone",
+        },
+      });
+
+      // Update document with new file metadata
+      doc.fileMetadata = {
+        driveFileId: driveResponse.data.id,
+        name: file.originalname,
+        link: driveResponse.data.webViewLink,
+      };
+    }
+
+    await doc.save();
+    res.json({
+      message: "Document updated successfully",
+      document: doc,
+    });
+  } catch (error) {
+    console.error("Error updating project proposal:", error);
+    res.status(500).json({
+      message: "Error updating document",
+      error: error.message,
+    });
+  }
+};
+
+// Update project proposal declaration
+exports.updateProjectProposalDeclaration = async (req, res) => {
+  const { id } = req.params;
+  const { declaration } = req.body;
+
+  try {
+    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
+      return res.send("Access denied. You don't have permission to access.");
+    }
+
+    const doc = await ProjectProposalDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    doc.declaration = declaration;
+    await doc.save();
+    res.send("Declaration updated successfully");
+  } catch (error) {
+    console.error("Error updating declaration:", error);
+    res.status(500).json({ message: "Error updating declaration" });
+  }
+};
+
+// Suspend project proposal
+exports.suspendProjectProposal = async (req, res) => {
+  const { id } = req.params;
+  const { suspendReason } = req.body;
+
+  try {
+    if (req.user.role !== "director") {
+      return res.send(
+        "Access denied. Only director can suspend project proposals."
+      );
+    }
+
+    const document = await ProjectProposalDocument.findById(id);
+    if (!document) {
+      return res.status(404).send("Document not found");
+    }
+
+    // Revert and lock all approval progress
+    document.approved = false;
+    document.approvedBy = [];
+    document.status = "Suspended";
+    document.suspendReason = suspendReason;
+
+    await ProjectProposalDocument.findByIdAndUpdate(id, document);
+    res.send("Document has been suspended successfully.");
+  } catch (err) {
+    console.error("Error suspending document:", err);
+    res.status(500).send("Error suspending document");
+  }
+};
+
+// Open project proposal
+exports.openProjectProposal = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    if (req.user.role !== "director") {
+      return res.send(
+        "Access denied. Only director can reopen project proposals."
+      );
+    }
+
+    const document = await ProjectProposalDocument.findById(id);
+    if (!document) {
+      return res.status(404).send("Document not found");
+    }
+
+    // Revert the suspension
+    document.status = "Pending";
+    document.suspendReason = "";
+
+    await ProjectProposalDocument.findByIdAndUpdate(id, document);
+    res.send("Document has been reopened successfully.");
+  } catch (err) {
+    console.error("Error reopening document:", err);
+    res.status(500).send("Error reopening document");
+  }
+};
+//// END OF PROJECT PROPOSAL DOCUMENT CONTROLLER

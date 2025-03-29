@@ -304,4 +304,70 @@ router.post(
 );
 //// END OF DELIVERY DOCUMENT ROUTE
 
+//// PROJECT PROPOSAL DOCUMENT ROUTE
+// Route to fetch all approved Project Proposals
+router.get(
+  "/approvedProjectProposals",
+  authMiddleware,
+  documentController.getApprovedProjectProposals
+);
+
+// Route to fetch a specific Project Proposal by ID
+router.get(
+  "/projectProposal/:id",
+  authMiddleware,
+  documentController.getProjectProposalById
+);
+
+router.get(
+  "/separatedViewProjectProposalDocument",
+  authMiddleware,
+  (req, res) => {
+    res.sendFile("separatedViewProjectProposalDocument.html", {
+      root: "./views/approvals/documents/separatedViewDocuments",
+    });
+  }
+);
+
+// Route to fetch project proposals for the separated view
+router.get(
+  "/getProjectProposalForSeparatedView",
+  authMiddleware,
+  documentController.getProjectProposalsForSeparatedView
+);
+
+// Route to fetch a specific project proposal by ID
+router.get(
+  "/getProjectProposal/:id",
+  authMiddleware,
+  documentController.getProjectProposal
+);
+
+// Route to update a project proposal
+router.post(
+  "/updateProjectProposal/:id",
+  upload.single("file"),
+  authMiddleware,
+  documentController.updateProjectProposal
+);
+
+router.post(
+  "/updateProjectProposalDeclaration/:id",
+  authMiddleware,
+  documentController.updateProjectProposalDeclaration
+);
+
+router.post(
+  "/suspendProjectProposal/:id",
+  authMiddleware,
+  documentController.suspendProjectProposal
+);
+
+router.post(
+  "/openProjectProposal/:id",
+  authMiddleware,
+  documentController.openProjectProposal
+);
+//// END OF PROJECT PROPOSAL DOCUMENT ROUTE
+
 module.exports = router;
