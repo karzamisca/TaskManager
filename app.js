@@ -34,7 +34,7 @@ connectDB();
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "views")));
 app.use(cookieParser()); // Use cookie-parser to parse cookies
 app.use(express.json());
 

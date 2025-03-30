@@ -4,6 +4,10 @@ const router = express.Router();
 const fileServerController = require("../controllers/fileServerController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
+router.get("/mainFileTransfer", authMiddleware, (req, res) => {
+  res.sendFile("mainFileTransfer.html", { root: "./views/transfer" }); // Serve the template page
+});
+
 // Serve HTML
 router.get("/fileServer", authMiddleware, fileServerController.serveHTML);
 
