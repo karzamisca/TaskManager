@@ -1,0 +1,111 @@
+<!-- views\approvals\groups\groupDocument.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phiếu theo nhóm/Document In Group</title>
+    <link rel="stylesheet" href="documentPages/documentInGroup.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Phiếu theo nhóm/Grouped Documents</h1>
+      <a href="/documentMain">Trở về/Back</a>
+    </header>
+
+    <!-- Create Group Form -->
+    <section class="compact-section">
+      <h2>Tạo nhóm mới/Create a New Group</h2>
+      <form action="/createGroup" method="POST" class="compact-form">
+        <div>
+          <label for="name">Tên nhóm/Group Name:</label>
+          <input type="text" id="name" name="name" required />
+        </div>
+        <div>
+          <label for="description">Mô tả/Description:</label>
+          <textarea id="description" name="description" required></textarea>
+        </div>
+        <button type="submit">Tạo nhóm/Create Group</button>
+      </form>
+    </section>
+
+    <!-- Document Management Section -->
+    <section>
+      <h2>Quản lý tài liệu trong nhóm/Manage Documents in Groups</h2>
+
+      <!-- Mass Declaration Update Section -->
+      <div>
+        <h3>Cập nhật kê khai hàng loạt/Mass Declaration Update</h3>
+        <div class="mass-update-container">
+          <label for="mass-declaration-input">Kê khai/Declaration:</label>
+          <textarea
+            id="mass-declaration-input"
+            class="form-control"
+            placeholder="Nhập kê khai/Enter declaration"
+          ></textarea>
+          <button id="mass-update-declaration-btn" class="action-button">
+            Cập nhật hàng loạt/Mass Update
+          </button>
+        </div>
+        <div id="mass-update-status-message" class="status-message"></div>
+      </div>
+
+      <!-- Add Document to Group -->
+      <div>
+        <h3>Thêm tài liệu vào nhóm/Add Document to Group</h3>
+        <div class="document-management-form">
+          <div>
+            <label for="group-select">Chọn nhóm/Select Group:</label>
+            <select id="group-select" class="form-control">
+              <option value="">-- Chọn nhóm/Select Group --</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="document-select">Chọn tài liệu/Select Document:</label>
+            <select id="document-select" class="form-control">
+              <option value="">-- Chọn tài liệu/Select Document --</option>
+            </select>
+          </div>
+
+          <button id="add-to-group-btn" class="action-button">
+            Thêm vào nhóm/Add to Group
+          </button>
+        </div>
+        <div id="add-status-message" class="status-message"></div>
+      </div>
+
+      <!-- Remove Document from Group -->
+      <div>
+        <h3>Phiếu trong nhóm/Document in the Group</h3>
+        <div id="remove-document-container">
+          <p>Chọn một nhóm trước/Select a group first</p>
+        </div>
+        <div id="remove-status-message"></div>
+      </div>
+    </section>
+
+    <!-- Modal -->
+    <div
+      id="documentModal"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+      "
+    >
+      <div class="modal-container">
+        <button onclick="closeModal()" class="close-button">Close</button>
+        <div id="modalContent">
+          <!-- Modal content will be dynamically inserted here based on the document type -->
+        </div>
+      </div>
+    </div>
+    <script src="documentPages/documentInGroup.js"></script>
+  </body>
+</html>

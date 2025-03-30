@@ -143,8 +143,8 @@ exports.removeFile = async (req, res) => {
 
 //Serve view
 exports.getProjectDocumentView = (req, res) => {
-  res.sendFile("projectDocument.html", {
-    root: "./views/approvals/projectDocuments",
+  res.sendFile("documentInProject.html", {
+    root: "./views/documentPages",
   });
 };
 

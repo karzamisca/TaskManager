@@ -1,0 +1,255 @@
+<!-- views/approvals/projectDocuments/projectDocument.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phiếu theo dự án/Project Document</title>
+    <link rel="stylesheet" href="documentPages/documentInProject.css" />
+  </head>
+  <body>
+    <header>
+      <a href="/documentMain">Trở về/Back</a>
+      <h1>Phiếu theo dự án/Document In Project</h1>
+    </header>
+
+    <div id="app">
+      <!-- Create New Project -->
+      <div id="create-project">
+        <h2>Tạo dự án mới/Create New Project</h2>
+        <form id="create-project-form" onsubmit="createProject(event)">
+          <label for="project-title">Tiêu đề/Title:</label>
+          <input
+            type="text"
+            id="project-title"
+            placeholder="Enter project title"
+            required
+          />
+          <label for="project-description">Mô tả/Description:</label>
+          <textarea
+            id="project-description"
+            placeholder="Enter project description"
+            required
+          ></textarea>
+          <button type="submit">Tạo dự án/Create Project</button>
+        </form>
+      </div>
+
+      <!-- List of Projects -->
+      <div id="project-list">
+        <h2>Danh sách các dự án/Projects List</h2>
+        <ul id="projects">
+          <!-- Project list items will be dynamically added here -->
+        </ul>
+      </div>
+
+      <!-- Project Details -->
+      <div id="project-details" style="display: none">
+        <h2 id="project-details-title"></h2>
+        <p id="project-details-description"></p>
+
+        <!-- Proposal Phase -->
+        <div id="phase-proposal">
+          <h3>Bước đề xuất/Proposal Phase</h3>
+          <form id="proposal-form" onsubmit="updatePhase('proposal', event)">
+            <label for="proposal-task">Công việc/Task:</label>
+            <input
+              type="text"
+              id="proposal-task"
+              placeholder="Enter task"
+              required
+            />
+            <label for="proposal-cost-center">Trạm/Center:</label>
+            <select id="proposal-cost-center" required>
+              <!-- Cost center options will be dynamically added here -->
+            </select>
+            <label for="proposal-date-of-error"
+              >Ngày xảy ra lỗi/Date of Error:</label
+            >
+            <input
+              type="text"
+              id="proposal-date-of-error"
+              placeholder="Enter date of error"
+              required
+            />
+            <label for="proposal-details-description"
+              >Mô tả chi tiết/Details Description:</label
+            >
+            <textarea
+              id="proposal-details-description"
+              placeholder="Enter details description"
+              required
+            ></textarea>
+            <label for="proposal-direction">Hướng xử lý/Direction:</label>
+            <input
+              type="text"
+              id="proposal-direction"
+              placeholder="Enter direction"
+              required
+            />
+            <div class="file-attachments">
+              <h4>Kèm theo/Attachments</h4>
+              <div id="proposal-attachments-list">
+                <!-- Attachments will be listed here -->
+              </div>
+              <div class="file-input-wrapper">
+                <input
+                  type="file"
+                  id="proposal-file-input"
+                  multiple
+                  style="display: none"
+                />
+                <button
+                  type="button"
+                  onclick="triggerFileInput('proposal')"
+                  class="attach-file-btn"
+                >
+                  Tải tệp tin kèm theo/Attach Files
+                </button>
+              </div>
+            </div>
+            <button type="submit">Nộp/Submit</button>
+            <button type="button" onclick="approvePhase('proposal')">
+              Phê duyệt/Approve
+            </button>
+          </form>
+        </div>
+
+        <!-- Purchasing Phase -->
+        <div id="phase-purchasing">
+          <h3>Bước mua hàng/Purchasing Phase</h3>
+          <form
+            id="purchasing-form"
+            onsubmit="updatePhase('purchasing', event)"
+          >
+            <label for="purchasing-title">Tiêu đề/Title:</label>
+            <input
+              type="text"
+              id="purchasing-title"
+              placeholder="Enter title"
+              required
+            />
+            <div id="purchasing-products">
+              <!-- Product fields will be dynamically added here -->
+            </div>
+            <button type="button" onclick="addProduct()">
+              Thêm sản phẩm/Add Product
+            </button>
+            <label for="purchasing-grand-total-cost"
+              >Chi phí/Grand Total Cost:</label
+            >
+            <input
+              type="number"
+              id="purchasing-grand-total-cost"
+              placeholder="Enter grand total cost"
+              readonly
+            />
+            <div class="file-attachments">
+              <h4>Kèm theo/Attachments</h4>
+              <div id="purchasing-attachments-list">
+                <!-- Attachments will be listed here -->
+              </div>
+              <div class="file-input-wrapper">
+                <input
+                  type="file"
+                  id="purchasing-file-input"
+                  multiple
+                  style="display: none"
+                />
+                <button
+                  type="button"
+                  onclick="triggerFileInput('purchasing')"
+                  class="attach-file-btn"
+                >
+                  Tải tệp tin kèm theo/Attach Files
+                </button>
+              </div>
+            </div>
+            <button type="submit">Nộp/Submit</button>
+            <button type="button" onclick="approvePhase('purchasing')">
+              Phê duyệt/Approve
+            </button>
+          </form>
+        </div>
+
+        <!-- Payment Phase -->
+        <div id="phase-payment">
+          <h3>Bước thanh toán/Payment Phase</h3>
+          <form id="payment-form" onsubmit="updatePhase('payment', event)">
+            <label for="payment-title">Tiêu đề/Title:</label>
+            <input
+              type="text"
+              id="payment-title"
+              placeholder="Enter title"
+              required
+            />
+            <label for="payment-payment-method"
+              >Phương pháp thanh toán/Payment Method:</label
+            >
+            <input
+              type="text"
+              id="payment-payment-method"
+              placeholder="Enter payment method"
+              required
+            />
+            <label for="payment-amount-of-money"
+              >Số lượng tiền/Amount of Money:</label
+            >
+            <input
+              type="number"
+              id="payment-amount-of-money"
+              placeholder="Enter amount"
+              required
+            />
+            <label for="payment-paid">Đã thanh toán/Paid:</label>
+            <input
+              type="number"
+              id="payment-paid"
+              placeholder="Enter paid amount"
+              required
+            />
+            <label for="payment-payment-deadline"
+              >Hạn thanh toán/Payment Deadline:</label
+            >
+            <input
+              type="text"
+              id="payment-payment-deadline"
+              placeholder="Enter payment deadline"
+              required
+            />
+            <div class="file-attachments">
+              <h4>Kèm theo/Attachments</h4>
+              <div id="payment-attachments-list">
+                <!-- Attachments will be listed here -->
+              </div>
+              <div class="file-input-wrapper">
+                <input
+                  type="file"
+                  id="payment-file-input"
+                  multiple
+                  style="display: none"
+                />
+                <button
+                  type="button"
+                  onclick="triggerFileInput('payment')"
+                  class="attach-file-btn"
+                >
+                  Tải tệp tin kèm theo/Attach Files
+                </button>
+              </div>
+            </div>
+            <button type="submit">Nộp/Submit</button>
+            <button type="button" onclick="approvePhase('payment')">
+              Phê duyệt/Approve
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    <footer>
+      <a href="/mainApproval">Trở về/Back</a>
+    </footer>
+
+    <script src="documentPages/documentInProject.js"></script>
+  </body>
+</html>

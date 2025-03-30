@@ -12,7 +12,7 @@ const upload = multer({
 const router = express.Router();
 
 router.get(
-  "/projectDocument",
+  "/documentInProject",
   authMiddleware,
   projectDocumentController.getProjectDocumentView
 );

@@ -6,9 +6,9 @@ const documentController = require("../controllers/documentController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 // Route to display group creation form
-router.get("/groupedDocument", authMiddleware, (req, res) => {
-  res.sendFile("groupDocument.html", {
-    root: "./views/approvals/groups",
+router.get("/documentInGroup", authMiddleware, (req, res) => {
+  res.sendFile("documentInGroup.html", {
+    root: "./views/documentPages",
   });
 });
 
