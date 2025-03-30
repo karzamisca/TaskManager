@@ -12,17 +12,15 @@ const storage = multer.memoryStorage(); // Store file in memory (buffer)
 const upload = multer({ storage: storage });
 
 //// GENERAL ROUTE
-// Main single document approval page route
-router.get("/mainDocument", authMiddleware, (req, res) => {
-  res.sendFile("mainDocument.html", { root: "./views/approvals/documents" }); // Serve the submit document page
-});
-// Main approval page route
-router.get("/mainApproval", authMiddleware, (req, res) => {
-  res.sendFile("mainApproval.html", { root: "./views/approvals" }); // Serve the submit document page
+router.get("/documentMain", authMiddleware, (req, res) => {
+  res.sendFile("documentMain.html", { root: "./views/documentPages" }); // Serve the main document page
 });
 // Submit document route
-router.get("/submitDocument", authMiddleware, (req, res) => {
-  res.sendFile("submitDocument.html", { root: "./views/approvals/documents" }); // Serve the submit document page
+router.get("/documentSubmission", authMiddleware, (req, res) => {
+  res.sendFile("documentSubmission.html", { root: "./views/documentPages" }); // Serve the submit document page
+});
+router.get("/documentSummary", authMiddleware, (req, res) => {
+  res.sendFile("documentSummary.html", { root: "./views/documentPages" }); // Serve the main document summary page
 });
 // For restricting cost center
 // Route to fetch cost centers

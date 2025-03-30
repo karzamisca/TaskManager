@@ -294,7 +294,7 @@ exports.submitDocument = async (req, res) => {
       }
 
       await newDocument.save();
-      res.redirect("/mainDocument");
+      res.redirect("/documentMain");
     } catch (err) {
       console.error("Error submitting document:", err);
       if (!res.headersSent) {
