@@ -1,3 +1,4 @@
+// utils/emailService.js
 const nodemailer = require("nodemailer");
 
 // Configure the transporter with Gmail SMTP

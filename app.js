@@ -3,6 +3,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
+const fetchAllPendingDocuments = require("./utils/fetchAllPendingDocuments");
 const authRoute = require("./routes/authRoute");
 const adminRoute = require("./routes/adminRoute");
 const documentRoute = require("./routes/documentRoute");
@@ -20,12 +21,9 @@ const multer = require("multer");
 const cron = require("node-cron");
 const axios = require("axios");
 const documentController = require("./controllers/documentController"); // Import the email notification function
-const Document = require("./models/Document");
-const ProposalDocument = require("./models/ProposalDocument");
-const PurchasingDocument = require("./models/PurchasingDocument");
 const PaymentDocument = require("./models/PaymentDocument");
-const Group = require("./models/Group");
 const ProjectProposalDocument = require("./models/ProjectProposalDocument");
+const Group = require("./models/Group");
 const Project = require("./models/Project");
 require("dotenv").config();
 
@@ -72,95 +70,44 @@ app.use((err, req, res, next) => {
 
 // Cron job to ping the server every 5 minutes to keep it warm
 cron.schedule("*/5 * * * *", async () => {
-  try {
-    const serverUrl =
-      `https://kylongtask.azurewebsites.net/login` ||
-      `http://localhost:${PORT}`;
-    await axios.get(serverUrl);
-  } catch (error) {
-    console.error("Failed to ping server:", error.message);
+  const servers = [
+    "https://kylongtask.azurewebsites.net/login",
+    "https://kylongtech.com",
+    "https://www.kylongtech.com",
+  ];
+
+  for (const serverUrl of servers) {
+    try {
+      await axios.get(serverUrl);
+      console.log(`Successfully pinged ${serverUrl}`);
+    } catch (error) {
+      console.error(`Failed to ping server ${serverUrl}:`, error.message);
+    }
   }
 });
 
-// Cron job to ping the server every 5 minutes to keep it warm
-cron.schedule("*/5 * * * *", async () => {
-  try {
-    const serverUrl = `https://kylongtech.com` || `http://localhost:${PORT}`;
-    await axios.get(serverUrl);
-  } catch (error) {
-    console.error("Failed to ping server:", error.message);
-  }
-});
-
-// Cron job to ping the server every 5 minutes to keep it warm
-cron.schedule("*/5 * * * *", async () => {
-  try {
-    const serverUrl =
-      `https://www.kylongtech.com` || `http://localhost:${PORT}`;
-    await axios.get(serverUrl);
-  } catch (error) {
-    console.error("Failed to ping server:", error.message);
-  }
-});
-
-// Send email notifications every 8 hours
+// Send notifications every 8 hours via multiple channels
 cron.schedule("0 */8 * * *", async () => {
   try {
-    // Fetch all documents that are not fully approved
-    const [
-      pendingDocuments,
-      pendingProposals,
-      pendingPurchasingDocs,
-      pendingPaymentDocs,
-    ] = await Promise.all([
-      Document.find({ status: { $ne: "Approved" } }),
-      ProposalDocument.find({ status: { $ne: "Approved" } }),
-      PurchasingDocument.find({ status: { $ne: "Approved" } }),
-      PaymentDocument.find({ status: { $ne: "Approved" } }),
-    ]);
-    // Combine all pending documents and send consolidated emails
-    const allPendingDocuments = [
-      ...pendingDocuments,
-      ...pendingProposals,
-      ...pendingPurchasingDocs,
-      ...pendingPaymentDocs,
-    ];
-    await documentController.sendPendingApprovalEmails(allPendingDocuments);
-  } catch (error) {
-    console.error("Error in pending approval email scheduler:", error);
-  }
-});
+    const allPendingDocuments =
+      await fetchAllPendingDocuments.fetchAllPendingDocuments();
 
-// Send facebook notifications every 8 hours
-cron.schedule("0 */8 * * *", async () => {
-  try {
-    // Fetch all documents that are not fully approved
-    const [
-      pendingDocuments,
-      pendingProposals,
-      pendingPurchasingDocs,
-      pendingPaymentDocs,
-    ] = await Promise.all([
-      Document.find({ status: { $ne: "Approved" } }),
-      ProposalDocument.find({ status: { $ne: "Approved" } }),
-      PurchasingDocument.find({ status: { $ne: "Approved" } }),
-      PaymentDocument.find({ status: { $ne: "Approved" } }),
+    // Send notifications through all available channels
+    await Promise.all([
+      // Email notifications
+      documentController.sendPendingApprovalEmails(allPendingDocuments),
+
+      // Facebook/Chatfuel notifications
+      documentController.sendPendingApprovalChatfuelMessages(
+        allPendingDocuments
+      ),
     ]);
 
-    // Combine all pending documents
-    const allPendingDocuments = [
-      ...pendingDocuments,
-      ...pendingProposals,
-      ...pendingPurchasingDocs,
-      ...pendingPaymentDocs,
-    ];
-
-    // Send Chatfuel messages
-    await documentController.sendPendingApprovalChatfuelMessages(
-      allPendingDocuments
+    console.log(
+      `Sent notifications for ${allPendingDocuments.length} pending documents`
     );
   } catch (error) {
-    console.error("Error in pending approval Chatfuel scheduler:", error);
+    console.error("Error in pending approval notification scheduler:", error);
   }
 });
 
