@@ -25,6 +25,8 @@ const ProposalDocument = require("./models/ProposalDocument");
 const PurchasingDocument = require("./models/PurchasingDocument");
 const PaymentDocument = require("./models/PaymentDocument");
 const Group = require("./models/Group");
+const ProjectProposalDocument = require("./models/ProjectProposalDocument");
+const Project = require("./models/Project");
 require("dotenv").config();
 
 const app = express();
@@ -101,7 +103,7 @@ cron.schedule("*/5 * * * *", async () => {
   }
 });
 
-// Cron job to send email notifications every 24 hours
+// Send email notifications every 8 hours
 cron.schedule("0 */8 * * *", async () => {
   try {
     // Fetch all documents that are not fully approved
@@ -129,6 +131,7 @@ cron.schedule("0 */8 * * *", async () => {
   }
 });
 
+// Send facebook notifications every 8 hours
 cron.schedule("0 */8 * * *", async () => {
   try {
     // Fetch all documents that are not fully approved
@@ -161,7 +164,7 @@ cron.schedule("0 */8 * * *", async () => {
   }
 });
 
-//Assign group name and declaration to payment document
+// Assign group name and declaration to approved payment document
 cron.schedule("0 */12 * * *", async () => {
   try {
     // Fetch all approved documents that don't have a group assigned
@@ -243,6 +246,62 @@ cron.schedule("0 */12 * * *", async () => {
     }
   } catch (err) {
     console.error("Error in automatic document grouping:", err);
+  }
+});
+
+// Create new project based on approved project proposal document
+cron.schedule("*/5 * * * *", async () => {
+  try {
+    // Find all project proposal documents with "Approved" status
+    const approvedProposals = await ProjectProposalDocument.find({
+      status: "Approved",
+    });
+
+    // Process each approved proposal
+    for (const proposal of approvedProposals) {
+      try {
+        // Ensure the document has a projectName field (use name if not set)
+        if (!proposal.projectName) {
+          proposal.projectName = proposal.name;
+          await proposal.save();
+        }
+
+        const projectName = proposal.projectName;
+
+        // Check if project with this name already exists
+        const existingProject = await Project.findOne({ name: projectName });
+
+        if (existingProject) {
+          continue; // Skip to next proposal
+        }
+
+        // Get the final approval date (latest approval date from approvedBy array)
+        let finalApprovalDate = "Not specified";
+        if (proposal.approvedBy && proposal.approvedBy.length > 0) {
+          // Sort by approval date (assuming dates are in a format that sorts correctly)
+          const sortedApprovals = [...proposal.approvedBy].sort(
+            (a, b) => new Date(b.approvalDate) - new Date(a.approvalDate)
+          );
+          finalApprovalDate = sortedApprovals[0].approvalDate;
+        }
+
+        // Create a new project based on the proposal
+        const newProject = new Project({
+          name: projectName,
+          description: `Dự án được phê duyệt vào ${finalApprovalDate}`,
+        });
+
+        // Save the new project
+        await newProject.save();
+      } catch (error) {
+        console.error(
+          `Error processing proposal ${proposal.name || "unknown"}:`,
+          error.message
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Error during project check:", error);
   }
 });
 
