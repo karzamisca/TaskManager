@@ -10,8 +10,8 @@ const upload = multer({
 });
 
 router.get("/message", authMiddleware, (req, res) => {
-  res.sendFile("index.html", {
-    root: "./views/messages",
+  res.sendFile("messageMain.html", {
+    root: "./views/messagePages",
   });
 });
 

@@ -1,0 +1,217 @@
+<!-- views\messagePages\messageMain.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bảng tin nhắn/Message Board</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <link rel="stylesheet" href="messagePages/messageMain.css" />
+  </head>
+  <body>
+    <div class="header">
+      <a href="/main">Trở về trang chính/Back to main</a>
+      <a href="/changePassword">Đổi mật khẩu/Change password</a>
+      <a href="/logout">Đăng xuất/Logout</a>
+    </div>
+
+    <h1>Bảng Tin Nhắn/Message Board</h1>
+
+    <!-- Room List View -->
+    <div id="rooms-view">
+      <button class="btn btn-primary" onclick="showCreateRoomModal()">
+        Tạo phòng mới/Create New Room
+      </button>
+      <div class="room-list" id="room-list"></div>
+    </div>
+
+    <!-- Room Messages View -->
+    <div id="room-messages-view" style="display: none">
+      <button class="btn btn-secondary" onclick="showRoomList()">
+        ← Trở lại danh sách phòng/Back to Rooms
+      </button>
+      <h2 id="current-room-name"></h2>
+      <div id="room-messages"></div>
+      <form id="message-form" class="message-form">
+        <textarea
+          name="content"
+          rows="4"
+          placeholder="Nhập tin nhắn/Write a message..."
+          required
+        ></textarea>
+        <div class="file-upload-container">
+          <input type="file" id="file-upload" multiple style="display: none" />
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick="document.getElementById('file-upload').click()"
+          >
+            <i class="fas fa-paperclip"></i> Đính kèm tệp tin/Attach Files
+          </button>
+          <div id="file-list"></div>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          Gửi tin nhắn/Send Message
+        </button>
+      </form>
+    </div>
+
+    <!-- Create Room Modal -->
+    <div id="create-room-modal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="hideCreateRoomModal()">&times;</span>
+        <h2>Tạo phòng mới/Create New Room</h2>
+
+        <form id="create-room-form">
+          <input
+            type="text"
+            class="search-box"
+            placeholder="Tên phòng/Room Name"
+            required
+          />
+
+          <div class="member-selection">
+            <div>
+              <input
+                type="text"
+                class="search-box"
+                placeholder="Tìm người dùng/Search users..."
+                oninput="filterAvailableUsers(this.value, 'create')"
+              />
+              <div id="create-available-users" class="members-list"></div>
+              <div class="member-count">
+                <span id="create-available-count">0</span> người dùng/users
+                available
+              </div>
+            </div>
+
+            <div class="transfer-buttons">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="transferMembers('create', 'right')"
+              >
+                →
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="transferMembers('create', 'left')"
+              >
+                ←
+              </button>
+            </div>
+
+            <div>
+              <input
+                type="text"
+                class="search-box"
+                placeholder="Tìm thành viên/Search members..."
+                oninput="filterSelectedUsers(this.value, 'create')"
+              />
+              <div id="create-selected-users" class="members-list"></div>
+              <div class="member-count">
+                <span id="create-selected-count">0</span> thành viên đã
+                chọn/members selected
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="hideCreateRoomModal()"
+            >
+              Hủy/Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">Tạo/Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add Members Modal -->
+    <div id="add-members-modal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="hideAddMembersModal()">&times;</span>
+        <h2>Quản lý phòng/Manage Room</h2>
+
+        <div class="member-selection">
+          <div>
+            <input
+              type="text"
+              class="search-box"
+              placeholder="Tìm người dùng/Search users..."
+              oninput="filterAvailableUsers(this.value, 'add')"
+            />
+            <div id="add-available-users" class="members-list"></div>
+            <div class="member-count">
+              <span id="add-available-count">0</span> người dùng/users available
+            </div>
+          </div>
+
+          <div class="transfer-buttons">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="transferMembers('add', 'right')"
+            >
+              →
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="transferMembers('add', 'left')"
+            >
+              ←
+            </button>
+          </div>
+
+          <div>
+            <input
+              type="text"
+              class="search-box"
+              placeholder="Tìm thành viên/Search members..."
+              oninput="filterSelectedUsers(this.value, 'add')"
+            />
+            <div id="add-selected-users" class="members-list"></div>
+            <div class="member-count">
+              <span id="add-selected-count">0</span> thành viên đã chọn/members
+              selected
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <div class="modal-actions-left">
+            <button type="button" class="btn delete-btn" onclick="deleteRoom()">
+              Xóa phòng/Delete Room
+            </button>
+          </div>
+          <div class="modal-actions-right">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="hideAddMembersModal()"
+            >
+              Hủy/Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              onclick="saveNewMembers()"
+            >
+              Lưu/Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="messagePages/messageMain.js"></script>
+  </body>
+</html>
