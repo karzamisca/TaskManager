@@ -1,3 +1,4 @@
+// views\documentPages\documentSummaryAdvancePayment.js
 let currentUser = null;
 let advancePaymentDocuments = null;
 let showOnlyPendingApprovals = false;

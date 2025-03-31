@@ -1,3 +1,4 @@
+// views\documentPages\documentSummaryProposal.js
 let currentUser = null;
 let proposalDocuments = null;
 let showOnlyPendingApprovals = false;
