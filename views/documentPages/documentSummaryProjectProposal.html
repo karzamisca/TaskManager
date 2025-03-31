@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Project Proposals</title>
+    <link
+      rel="stylesheet"
+      href="documentPages/documentSummaryProjectProposal.css"
+    />
+  </head>
+  <body>
+    <h1>Project Proposals</h1>
+    <div id="messageContainer" class="message"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Name</th>
+          <th>Content</th>
+          <th>Attached File</th>
+          <th>Group Name</th>
+          <th>Project Name</th>
+          <th>Status</th>
+          <th>Approval Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="projectProposalsTable">
+        <!-- Project proposals will be populated here -->
+      </tbody>
+    </table>
+    <div id="fullViewModal" class="full-view-modal">
+      <div class="full-view-content">
+        <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
+        <h2 style="margin-bottom: 24px">Full Details</h2>
+        <div id="fullViewContent"></div>
+      </div>
+    </div>
+    <div id="suspendModal" class="full-view-modal">
+      <div class="full-view-content">
+        <span class="close-btn" onclick="closeSuspendModal()">&times;</span>
+        <h2>Suspend Document</h2>
+        <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
+          <div style="margin-bottom: 20px">
+            <label for="suspendReason">Suspend Reason:</label>
+            <textarea
+              id="suspendReason"
+              required
+              style="width: 100%; padding: 10px"
+            ></textarea>
+          </div>
+          <div style="display: flex; gap: 10px">
+            <button type="submit" class="approve-btn">Suspend</button>
+            <button
+              type="button"
+              class="approve-btn"
+              onclick="closeSuspendModal()"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="summary">
+      <h2>Summary</h2>
+      <p>
+        Total Approved Proposals:
+        <span id="approvedDocument" class="approved">0</span>
+      </p>
+      <p>
+        Total Unapproved Proposals:
+        <span id="unapprovedDocument" class="unapproved">0</span>
+      </p>
+    </div>
+    <a href="/documentSummary">Back</a>
+    <script src="documentPages/documentSummaryProjectProposal.js"></script>
+  </body>
+</html>

@@ -1,0 +1,90 @@
+<!-- views/approvals/documents/separatedViewDocuments/separatedViewPurchasingDocument.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phiếu mua hàng/Purchasing Documents</title>
+    <link rel="stylesheet" href="documentPages/documentSummaryPurchasing.css" />
+  </head>
+  <body>
+    <h1>Phiếu mua hàng/Purchasing Documents</h1>
+    <div id="messageContainer" class="message"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Tên/Name</th>
+          <th>Trạm/Center</th>
+          <th>Sản phẩm/Products</th>
+          <th>Tệp tin kèm theo/Attached File</th>
+          <th>Tổng chi phí/Grand Total Cost</th>
+          <th>Phiếu đề xuất kèm theo/Appended Proposals</th>
+          <th>Tình trạng/Status</th>
+          <th>Trạng thái phê duyệt/Approval Status</th>
+          <th>Hành động/Action</th>
+        </tr>
+      </thead>
+      <tbody id="purchasingDocumentsTable">
+        <!-- Purchasing documents will be populated here -->
+      </tbody>
+    </table>
+
+    <div id="fullViewModal" class="full-view-modal">
+      <div class="full-view-content">
+        <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
+        <h2 style="margin-bottom: 24px">Chi tiết đầy đủ/Full Details</h2>
+        <div id="fullViewContent"></div>
+      </div>
+    </div>
+
+    <div id="suspendModal" class="full-view-modal">
+      <div class="full-view-content">
+        <span class="close-btn" onclick="closeSuspendModal()">&times;</span>
+        <h2>Từ chối tài liệu/Suspend Document</h2>
+        <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
+          <div style="margin-bottom: 20px">
+            <label for="suspendReason">Lý do từ chối/Suspend Reason:</label>
+            <textarea
+              id="suspendReason"
+              required
+              style="width: 100%; padding: 10px"
+            ></textarea>
+          </div>
+          <div style="display: flex; gap: 10px">
+            <button type="submit" class="approve-btn">Từ chối/Suspend</button>
+            <button
+              type="button"
+              class="approve-btn"
+              onclick="closeSuspendModal()"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="summary">
+      <h2>Tóm tắt/Summary</h2>
+      <p>
+        Tổng chi phí đã phê duyệt/Total Approved Grand Total Cost:
+        <span id="approvedSum" class="approved">0</span>
+      </p>
+      <p>
+        Tổng chi phí chưa phê duyệt/Total Unapproved Grand Total Cost:
+        <span id="unapprovedSum" class="unapproved">0</span>
+      </p>
+      <p>
+        Số phiếu đã phê duyệt/Total Approved Document:
+        <span id="approvedDocument" class="approved">0</span>
+      </p>
+      <p>
+        Số phiếu chưa phê duyệt/Total Unapproved Document:
+        <span id="unapprovedDocument" class="unapproved">0</span>
+      </p>
+    </div>
+    <a href="/documentSummary">Trở về/Back</a>
+
+    <script src="documentPages/documentSummaryPurchasing.js"></script>
+  </body>
+</html>

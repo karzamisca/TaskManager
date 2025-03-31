@@ -85,13 +85,16 @@ nav ul li a {
 a.proposal {
   background-color: #ac2099;
 }
+a.projectProposal {
+  background-color: #ac204f;
+}
 a.purchasing {
   background-color: #f39c12;
 }
 a.delivery {
   background-color: #12f3d5;
 }
-a.advancepayment {
+a.advancePayment {
   background-color: #d0f309;
 }
 a.payment {
@@ -149,6 +152,10 @@ nav ul li a:hover {
     color: #f1f1f1;
     background-color: #555;
   }
+  a.projectProposal {
+    color: #f1f1f1;
+    background-color: #555;
+  }
   a.purchasing {
     color: #f1f1f1;
     background-color: #555;
@@ -157,15 +164,11 @@ nav ul li a:hover {
     color: #f1f1f1;
     background-color: #555;
   }
-  a.advancepayment {
+  a.advancePayment {
     color: #f1f1f1;
     background-color: #555;
   }
   a.payment {
-    color: #f1f1f1;
-    background-color: #555;
-  }
-  a.back {
     color: #f1f1f1;
     background-color: #555;
   }

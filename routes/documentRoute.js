@@ -112,9 +112,9 @@ router.get(
   authMiddleware,
   documentController.getProposalDocumentById
 );
-router.get("/separatedViewProposalDocument", authMiddleware, (req, res) => {
-  res.sendFile("separatedViewProposalDocument.html", {
-    root: "./views/approvals/documents/separatedViewDocuments",
+router.get("/documentSummaryProposal", authMiddleware, (req, res) => {
+  res.sendFile("documentSummaryProposal.html", {
+    root: "./views/documentPages",
   });
 });
 router.get(
@@ -163,9 +163,9 @@ router.get(
   authMiddleware,
   documentController.getPurchasingDocumentById
 );
-router.get("/separatedViewPurchasingDocument", authMiddleware, (req, res) => {
-  res.sendFile("separatedViewPurchasingDocument.html", {
-    root: "./views/approvals/documents/separatedViewDocuments",
+router.get("/documentSummaryPurchasing", authMiddleware, (req, res) => {
+  res.sendFile("documentSummaryPurchasing.html", {
+    root: "./views/documentPages",
   });
 });
 // Route to fetch purchasing documents for the separated view
@@ -206,9 +206,9 @@ router.post(
 
 //// PAYMENT DOCUMENT ROUTE
 // Routes to fetch payment documents and calculate sums
-router.get("/separatedViewPaymentDocument", authMiddleware, (req, res) => {
-  res.sendFile("separatedViewPaymentDocument.html", {
-    root: "./views/approvals/documents/separatedViewDocuments",
+router.get("/documentSummaryPayment", authMiddleware, (req, res) => {
+  res.sendFile("documentSummaryPayment.html", {
+    root: "./views/documentPages",
   });
 });
 router.get(
@@ -313,15 +313,11 @@ router.get(
   documentController.getProjectProposalById
 );
 
-router.get(
-  "/separatedViewProjectProposalDocument",
-  authMiddleware,
-  (req, res) => {
-    res.sendFile("separatedViewProjectProposalDocument.html", {
-      root: "./views/approvals/documents/separatedViewDocuments",
-    });
-  }
-);
+router.get("/documentSummaryProjectProposal", authMiddleware, (req, res) => {
+  res.sendFile("documentSummaryProjectProposal.html", {
+    root: "./views/documentPages",
+  });
+});
 
 // Route to fetch project proposals for the separated view
 router.get(
