@@ -1,3 +1,4 @@
+// views\documentPages\documentInGroup.js
 let currentUser = null;
 let groupedDocuments = null;
 let allGroups = [];

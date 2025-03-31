@@ -1,3 +1,4 @@
+// views\documentPages\documentInProject.js
 let token = null;
 let currentProjectId = null;
 let currentUserRole = null;
