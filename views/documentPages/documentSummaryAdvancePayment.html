@@ -1,0 +1,141 @@
+<!-- views/approvals/documents/separatedViewDocuments/separatedViewAdvancePaymentDocument.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phiếu tạm ứng/Advance Payment Documents</title>
+    <link
+      rel="stylesheet"
+      href="documentPages/documentSummaryAdvancePayment.css"
+    />
+  </head>
+  <body>
+    <h1>Phiếu tạm ứng/Advance Payment Documents</h1>
+    <div id="messageContainer" class="message"></div>
+    <div>
+      <button class="approve-btn" onclick="openMassDeclarationModal()">
+        Cập nhật kê khai hàng loạt/Mass Declaration Update
+      </button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>
+            <input type="checkbox" id="selectAll" onclick="toggleSelectAll()" />
+          </th>
+          <th>Mã/Tag</th>
+          <th>Nội dung/Content</th>
+          <th>Phương thức trả tiền/Payment Method</th>
+          <th>Tạm ứng/Advance Payment</th>
+          <th>Hạn trả/Payment Deadline</th>
+          <th>Tình trạng/Status</th>
+          <th>Trạng thái phê duyệt/Approval Status</th>
+          <th>Hành động/Action</th>
+        </tr>
+      </thead>
+      <tbody id="advancePaymentDocumentsTable">
+        <!-- Advance Payment documents will be populated here -->
+      </tbody>
+    </table>
+
+    <div id="fullViewModal" class="full-view-modal">
+      <div class="full-view-content">
+        <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
+        <h2 style="margin-bottom: 24px">Chi tiết đầy đủ/Full Details</h2>
+        <div id="fullViewContent"></div>
+      </div>
+    </div>
+
+    <div id="suspendModal" class="full-view-modal">
+      <div class="full-view-content">
+        <span class="close-btn" onclick="closeSuspendModal()">&times;</span>
+        <h2>Từ chối tài liệu/Suspend Document</h2>
+        <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
+          <div style="margin-bottom: 20px">
+            <label for="suspendReason">Lý do từ chối/Suspend Reason:</label>
+            <textarea
+              id="suspendReason"
+              required
+              style="width: 100%; padding: 10px"
+            ></textarea>
+          </div>
+          <div style="display: flex; gap: 10px">
+            <button type="submit" class="approve-btn">Từ chối/Suspend</button>
+            <button
+              type="button"
+              class="approve-btn"
+              onclick="closeSuspendModal()"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="massDeclarationModal" class="full-view-modal">
+      <div class="full-view-content">
+        <span class="close-btn" onclick="closeMassDeclarationModal()"
+          >&times;</span
+        >
+        <h2>Cập nhật kê khai hàng loạt/Mass Declaration Update</h2>
+        <form
+          id="massDeclarationForm"
+          onsubmit="handleMassDeclarationSubmit(event)"
+        >
+          <div style="margin-bottom: 20px">
+            <label for="massDeclarationInput">Kê khai/Declaration:</label>
+            <textarea
+              id="massDeclarationInput"
+              required
+              style="
+                width: 100%;
+                min-height: 100px;
+                padding: 10px;
+                font-size: 16px;
+              "
+            ></textarea>
+          </div>
+          <div style="display: flex; gap: 10px">
+            <button type="submit" class="approve-btn">Cập nhật/Update</button>
+            <button
+              type="button"
+              class="approve-btn"
+              onclick="closeMassDeclarationModal()"
+            >
+              Hủy/Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="summary">
+      <h2>Tóm tắt/Summary</h2>
+      <p>
+        Số tiền đã chi/Paid Amount:
+        <span id="paidSum" class="approved">0</span>
+      </p>
+      <p>
+        Số tiền đã phê duyệt/Total Approved Amount:
+        <span id="approvedSum" class="approved">0</span>
+      </p>
+      <p>
+        Số tiền chưa phê duyệt/Total Unapproved Amount:
+        <span id="unapprovedSum" class="unapproved">0</span>
+      </p>
+      <p>
+        Số phiếu đã phê duyệt/Total Approved Document:
+        <span id="approvedDocument" class="approved">0</span>
+      </p>
+      <p>
+        Số phiếu chưa phê duyệt/Total Unapproved Document:
+        <span id="unapprovedDocument" class="unapproved">0</span>
+      </p>
+    </div>
+    <a href="/documentSummary">Trở về/Back</a>
+
+    <script src="documentPages/documentSummaryAdvancePayment.js"></script>
+  </body>
+</html>
