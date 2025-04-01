@@ -13,7 +13,9 @@ const upload = multer({ storage: storage });
 
 //// GENERAL ROUTE
 router.get("/documentMain", authMiddleware, (req, res) => {
-  res.sendFile("documentMain.html", { root: "./views/documentPages" }); // Serve the main document page
+  res.sendFile("documentMain.html", {
+    root: "./views/documentPages/documentMain",
+  }); // Serve the main document page
 });
 // Submit document route
 router.get("/documentSubmission", authMiddleware, (req, res) => {

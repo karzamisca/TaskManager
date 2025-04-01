@@ -7,8 +7,8 @@ const fetchAllPendingDocuments = require("./utils/fetchAllPendingDocuments");
 const authRoute = require("./routes/authRoute");
 const adminRoute = require("./routes/adminRoute");
 const documentRoute = require("./routes/documentRoute");
-const projectDocumentRoute = require("./routes/projectDocumentRoute");
-const groupRoute = require("./routes/groupRoute");
+const documentInProjectRoute = require("./routes/documentInProjectRoute");
+const documentInGroupRoute = require("./routes/documentInGroupRoute");
 const projectRoute = require("./routes/projectRoute");
 const authMiddleware = require("./middlewares/authMiddleware"); // JWT middleware
 const entryRoute = require("./routes/entryRoute");
@@ -50,8 +50,8 @@ app.use("/", authMiddleware, adminRoute);
 app.use("/", authMiddleware, googleDriveRoute);
 app.use("/", authMiddleware, fileServerRoute);
 app.use("/", authMiddleware, documentRoute); // Apply JWT middleware to document routes
-app.use("/", authMiddleware, projectDocumentRoute);
-app.use("/", authMiddleware, groupRoute);
+app.use("/", authMiddleware, documentInProjectRoute);
+app.use("/", authMiddleware, documentInGroupRoute);
 app.use("/", authMiddleware, projectRoute);
 app.use("/", authMiddleware, entryRoute);
 app.use("/", authMiddleware, messageRoute);

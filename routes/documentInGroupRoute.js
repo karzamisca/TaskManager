@@ -1,14 +1,14 @@
 // routes/groupRoute.js
 const express = require("express");
 const router = express.Router();
-const groupController = require("../controllers/groupController");
+const groupController = require("../controllers/documentInGroupController");
 const documentController = require("../controllers/documentController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 // Route to display group creation form
 router.get("/documentInGroup", authMiddleware, (req, res) => {
   res.sendFile("documentInGroup.html", {
-    root: "./views/documentPages",
+    root: "./views/documentPages/documentInGroup",
   });
 });
 

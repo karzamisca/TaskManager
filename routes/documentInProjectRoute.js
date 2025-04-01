@@ -1,6 +1,6 @@
 // routes/projectDocumentRoute.js
 const express = require("express");
-const projectDocumentController = require("../controllers/projectDocumentController");
+const projectDocumentController = require("../controllers/documentInProjectController");
 const authMiddleware = require("../middlewares/authMiddleware");
 // Configure multer for file uploads
 const multer = require("multer");

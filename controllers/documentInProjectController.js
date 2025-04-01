@@ -1,5 +1,5 @@
 // controllers/projectDocumentController.js
-const Project = require("../models/ProjectDocument");
+const Project = require("../models/DocumentInProject");
 const User = require("../models/User");
 const CostCenter = require("../models/CostCenter");
 const drive = require("../middlewares/googleAuthMiddleware");
@@ -144,7 +144,7 @@ exports.removeFile = async (req, res) => {
 //Serve view
 exports.getProjectDocumentView = (req, res) => {
   res.sendFile("documentInProject.html", {
-    root: "./views/documentPages",
+    root: "./views/documentPages/documentInProject",
   });
 };
 

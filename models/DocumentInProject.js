@@ -25,7 +25,7 @@ const fileAttachmentSchema = new mongoose.Schema({
   uploadedAt: { type: String, default: getCurrentGMT7Date },
 });
 
-const projectDocumentSchema = new mongoose.Schema({
+const DocumentInProjectSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
   phases: {
@@ -73,4 +73,4 @@ const projectDocumentSchema = new mongoose.Schema({
   createdAt: { type: String, default: getCurrentGMT7Date },
 });
 
-module.exports = mongoose.model("ProjectDocument", projectDocumentSchema);
+module.exports = mongoose.model("DocumentInProject", DocumentInProjectSchema);
