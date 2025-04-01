@@ -1,4 +1,4 @@
-// views\documentPages\documentSummaryProjectProposal.js
+// views\documentPages\documentSummaryProjectProposal\documentSummaryProjectProposal.js
 let currentUser = null;
 let projectProposals = null;
 let showOnlyPendingApprovals = false;

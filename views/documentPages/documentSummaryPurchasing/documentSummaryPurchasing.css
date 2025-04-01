@@ -1,4 +1,4 @@
-/* views\documentPages\documentSummaryPayment.css */
+/* views\documentPages\documentSummaryPurchasing\documentSummaryPurchasing.css */
 /* Base styles and CSS reset */
 :root {
   --primary-color: #4caf50;
@@ -52,7 +52,6 @@ body {
   min-height: 100vh;
 }
 
-/* Responsive container */
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -70,7 +69,6 @@ table {
   display: block;
 }
 
-/* Custom scrollbar */
 table::-webkit-scrollbar {
   height: 8px;
   width: 8px;
@@ -162,45 +160,33 @@ tr:hover {
   animation: fadeIn 0.3s ease-in-out;
 }
 
-.documents-container,
-.proposals-container {
-  display: flex;
-  gap: 1rem;
-  overflow: auto;
-  padding-bottom: 1rem;
+.message.error {
+  background-color: var(--error-bg);
+  color: var(--error-text);
+  border: 1px solid var(--error-border);
 }
 
-.purchasing-doc,
-.proposal-card {
-  flex: 0 0 300px;
-  max-width: 300px;
-  padding: 1rem;
+.message.success {
+  background-color: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid var(--success-border);
+}
+
+/* Products list styles */
+.products-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.product-item {
+  padding: 0.5rem;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 4px;
   background-color: var(--bg-color);
 }
 
-.purchasing-doc ul {
-  margin: 0;
-  padding-left: 1.2rem;
-  list-style-type: none;
-}
-
-.purchasing-doc li {
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.purchasing-doc li:last-child {
-  border-bottom: none;
-}
-
-/* Make table cells containing flex containers wider */
-td.documents-cell {
-  min-width: 320px;
-}
-
+/* Approval status styles */
 .approval-status {
   display: flex;
   flex-direction: column;
@@ -230,10 +216,14 @@ td.documents-cell {
   background-color: var(--success-text);
 }
 
-.approval-date {
-  font-size: 0.9em;
-  color: var(--text-color);
-  opacity: 0.8;
+.status {
+  font-weight: bold;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.approved {
+  color: green;
 }
 
 .full-view-modal {
@@ -271,29 +261,6 @@ td.documents-cell {
   border-bottom: 1px solid var(--border-color);
 }
 
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.detail-label {
-  font-weight: bold;
-  color: var(--text-color);
-  opacity: 0.8;
-}
-
-.detail-value {
-  color: var(--text-color);
-}
-
 .close-btn {
   position: absolute;
   right: 20px;
@@ -328,16 +295,6 @@ td.documents-cell {
   border-radius: 4px;
 }
 
-.status {
-  font-weight: bold;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.approved {
-  color: green;
-}
-
 .suspended {
   color: red;
 }
@@ -357,40 +314,6 @@ td.documents-cell {
   }
 }
 
-.message.error {
-  background-color: var(--error-bg);
-  color: var(--error-text);
-  border: 1px solid var(--error-border);
-}
-
-.message.success {
-  background-color: var(--success-bg);
-  color: var(--success-text);
-  border: 1px solid var(--success-border);
-}
-
-/* Link styles */
-.file-link {
-  color: var(--link-color);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.file-link:hover {
-  text-decoration: underline;
-}
-
-/* Responsive typography */
-h1 {
-  font-size: clamp(24px, 3vw, 32px);
-  margin-bottom: 20px;
-}
-
-h2 {
-  font-size: clamp(20px, 2.5vw, 28px);
-}
-
-/* Media queries for responsive layout */
 @media screen and (max-width: 768px) {
   body {
     padding: 10px;
@@ -414,7 +337,6 @@ h2 {
   }
 }
 
-/* Print styles */
 @media print {
   .approve-btn {
     display: none;

@@ -1,4 +1,4 @@
-/* views\documentPages\documentSummaryProjectProposal.css */
+/* views\documentPages\documentSummaryProposal\documentSummaryProposal.css */
 /* Base styles and CSS reset */
 :root {
   --primary-color: #4caf50;
@@ -52,6 +52,7 @@ body {
   min-height: 100vh;
 }
 
+/* Responsive container */
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -69,6 +70,7 @@ table {
   display: block;
 }
 
+/* Custom scrollbar */
 table::-webkit-scrollbar {
   height: 8px;
   width: 8px;
@@ -160,33 +162,45 @@ tr:hover {
   animation: fadeIn 0.3s ease-in-out;
 }
 
-.message.error {
-  background-color: var(--error-bg);
-  color: var(--error-text);
-  border: 1px solid var(--error-border);
-}
-
-.message.success {
-  background-color: var(--success-bg);
-  color: var(--success-text);
-  border: 1px solid var(--success-border);
-}
-
-/* Content list styles */
-.content-container {
+.documents-container,
+.proposals-container {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  gap: 1rem;
+  overflow: auto;
+  padding-bottom: 1rem;
 }
 
-.content-item {
-  padding: 0.5rem;
+.purchasing-doc,
+.proposal-card {
+  flex: 0 0 300px;
+  max-width: 300px;
+  padding: 1rem;
   border: 1px solid var(--border-color);
-  border-radius: 4px;
+  border-radius: 8px;
   background-color: var(--bg-color);
 }
 
-/* Approval status styles */
+.purchasing-doc ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  list-style-type: none;
+}
+
+.purchasing-doc li {
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.purchasing-doc li:last-child {
+  border-bottom: none;
+}
+
+/* Make table cells containing flex containers wider */
+td.documents-cell {
+  min-width: 320px;
+}
+
 .approval-status {
   display: flex;
   flex-direction: column;
@@ -214,6 +228,12 @@ tr:hover {
 
 .status-approved {
   background-color: var(--success-text);
+}
+
+.approval-date {
+  font-size: 0.9em;
+  color: var(--text-color);
+  opacity: 0.8;
 }
 
 .status {
@@ -314,42 +334,70 @@ tr:hover {
   }
 }
 
+.message.error {
+  background-color: var(--error-bg);
+  color: var(--error-text);
+  border: 1px solid var(--error-border);
+}
+
+.message.success {
+  background-color: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid var(--success-border);
+}
+
+/* Link styles */
+.file-link {
+  color: var(--link-color);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.file-link:hover {
+  text-decoration: underline;
+}
+
+/* Responsive typography */
+h1 {
+  font-size: clamp(24px, 3vw, 32px);
+  margin-bottom: 20px;
+}
+
+h2 {
+  font-size: clamp(20px, 2.5vw, 28px);
+}
+
+/* Media queries for responsive layout */
 @media screen and (max-width: 768px) {
   body {
     padding: 10px;
   }
-
   .container {
     padding: 0 10px;
   }
-
   table {
     font-size: 12px;
   }
-
   th,
   td {
     padding: 8px;
   }
-
   .approve-btn {
     padding: 6px 12px;
   }
 }
 
+/* Print styles */
 @media print {
   .approve-btn {
     display: none;
   }
-
   body {
     padding: 0;
   }
-
   table {
     page-break-inside: auto;
   }
-
   tr {
     page-break-inside: avoid;
     page-break-after: auto;

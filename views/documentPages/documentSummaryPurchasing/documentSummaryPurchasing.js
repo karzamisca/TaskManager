@@ -1,4 +1,4 @@
-// views\documentPages\documentSummaryPurchasing.js
+// views\documentPages\documentSummaryPurchasing\documentSummaryPurchasing.js
 let currentUser = null;
 let purchasingDocuments = null;
 let showOnlyPendingApprovals = false;

@@ -120,7 +120,7 @@ router.get(
 );
 router.get("/documentSummaryProposal", authMiddleware, (req, res) => {
   res.sendFile("documentSummaryProposal.html", {
-    root: "./views/documentPages",
+    root: "./views/documentPages/documentSummaryProposal",
   });
 });
 router.get(
@@ -171,7 +171,7 @@ router.get(
 );
 router.get("/documentSummaryPurchasing", authMiddleware, (req, res) => {
   res.sendFile("documentSummaryPurchasing.html", {
-    root: "./views/documentPages",
+    root: "./views/documentPages/documentSummaryPurchasing",
   });
 });
 // Route to fetch purchasing documents for the separated view
@@ -214,7 +214,7 @@ router.post(
 // Routes to fetch payment documents and calculate sums
 router.get("/documentSummaryPayment", authMiddleware, (req, res) => {
   res.sendFile("documentSummaryPayment.html", {
-    root: "./views/documentPages",
+    root: "./views/documentPages/documentSummaryPayment",
   });
 });
 router.get(
@@ -249,7 +249,7 @@ router.get(
 // Routes to fetch payment documents and calculate sums
 router.get("/documentSummaryAdvancePayment", authMiddleware, (req, res) => {
   res.sendFile("documentSummaryAdvancePayment.html", {
-    root: "./views/documentPages",
+    root: "./views/documentPages/documentSummaryAdvancePayment",
   });
 });
 router.get(
@@ -283,7 +283,7 @@ router.get(
 //// DELIVERY DOCUMENT ROUTE
 router.get("/documentSummaryDelivery", authMiddleware, (req, res) => {
   res.sendFile("documentSummaryDelivery.html", {
-    root: "./views/documentPages",
+    root: "./views/documentPages/documentSummaryDelivery",
   });
 });
 router.get(
@@ -321,7 +321,7 @@ router.get(
 
 router.get("/documentSummaryProjectProposal", authMiddleware, (req, res) => {
   res.sendFile("documentSummaryProjectProposal.html", {
-    root: "./views/documentPages",
+    root: "./views/documentPages/documentSummaryProjectProposal",
   });
 });
 

@@ -1,17 +1,17 @@
-<!-- views\documentPages\documentSummaryAdvancePayment.html -->
+<!-- views\documentPages\documentSummaryPayment\documentSummaryPayment.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Phiếu tạm ứng/Advance Payment Documents</title>
+    <title>Phiếu thanh toán/Payment Documents</title>
     <link
       rel="stylesheet"
-      href="documentPages/documentSummaryAdvancePayment.css"
+      href="documentPages/documentSummaryPayment/documentSummaryPayment.css"
     />
   </head>
   <body>
-    <h1>Phiếu tạm ứng/Advance Payment Documents</h1>
+    <h1>Phiếu thanh toán/Payment Documents</h1>
     <div id="messageContainer" class="message"></div>
     <div>
       <button class="approve-btn" onclick="openMassDeclarationModal()">
@@ -27,15 +27,15 @@
           <th>Mã/Tag</th>
           <th>Nội dung/Content</th>
           <th>Phương thức trả tiền/Payment Method</th>
-          <th>Tạm ứng/Advance Payment</th>
+          <th>Tổng thanh toán/Total Payment</th>
           <th>Hạn trả/Payment Deadline</th>
           <th>Tình trạng/Status</th>
           <th>Trạng thái phê duyệt/Approval Status</th>
           <th>Hành động/Action</th>
         </tr>
       </thead>
-      <tbody id="advancePaymentDocumentsTable">
-        <!-- Advance Payment documents will be populated here -->
+      <tbody id="paymentDocumentsTable">
+        <!-- Payment documents will be populated here -->
       </tbody>
     </table>
 
@@ -136,6 +136,6 @@
     </div>
     <a href="/documentSummary">Trở về/Back</a>
 
-    <script src="documentPages/documentSummaryAdvancePayment.js"></script>
+    <script src="documentPages/documentSummaryPayment/documentSummaryPayment.js"></script>
   </body>
 </html>

@@ -1,0 +1,78 @@
+<!-- views\documentPages\documentSummaryProposal\documentSummaryProposal.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phiếu đề xuất/Proposal Documents</title>
+    <link
+      rel="stylesheet"
+      href="documentPages/documentSummaryProposal/documentSummaryProposal.css"
+    />
+  </head>
+  <body>
+    <h1>Phiếu đề xuất/Proposal Documents</h1>
+    <div id="messageContainer" class="message"></div>
+    <table>
+      <thead>
+        <tr>
+          <th>Công việc/Task</th>
+          <th>Trạm/Cost Center</th>
+          <th>Ngày lỗi/Date of Error</th>
+          <th>Mô tả chi tiết/Details Description</th>
+          <th>Hướng xử lý/Direction</th>
+          <th>Tệp tin kèm theo/Attached File</th>
+          <th>Ngày nộp phiếu/Submission Date</th>
+          <th>Tên nhóm/Group Name</th>
+          <th>Tình trạng/Status</th>
+          <th>Trạng thái phê duyệt/Approval Status</th>
+          <th>Hành động/Action</th>
+        </tr>
+      </thead>
+      <tbody id="proposalDocumentsTable">
+        <!-- Proposal documents will be populated here -->
+      </tbody>
+    </table>
+
+    <div id="suspendModal" class="full-view-modal">
+      <div class="full-view-content">
+        <span class="close-btn" onclick="closeSuspendModal()">&times;</span>
+        <h2>Từ chối tài liệu/Suspend Document</h2>
+        <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
+          <div style="margin-bottom: 20px">
+            <label for="suspendReason">Lý do từ chối/Suspend Reason:</label>
+            <textarea
+              id="suspendReason"
+              required
+              style="width: 100%; padding: 10px"
+            ></textarea>
+          </div>
+          <div style="display: flex; gap: 10px">
+            <button type="submit" class="approve-btn">Từ chối/Suspend</button>
+            <button
+              type="button"
+              class="approve-btn"
+              onclick="closeSuspendModal()"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="summary">
+      <h2>Tóm tắt/Summary</h2>
+      <p>
+        Số phiếu đã phê duyệt/Total Approved Proposals:
+        <span id="approvedDocument" class="approved">0</span>
+      </p>
+      <p>
+        Số phiếu chưa phê duyệt/Total Unapproved Proposals:
+        <span id="unapprovedDocument" class="unapproved">0</span>
+      </p>
+    </div>
+    <a href="/documentSummary">Trở về/Back</a>
+    <script src="documentPages/documentSummaryProposal/documentSummaryProposal.js"></script>
+  </body>
+</html>

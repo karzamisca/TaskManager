@@ -1,4 +1,4 @@
-// views\documentPages\documentSummaryDelivery.js
+// views\documentPages\documentSummaryDelivery\documentSummaryDelivery.js
 let currentUser = null;
 let deliveryDocuments = null;
 let showOnlyPendingApprovals = false;
