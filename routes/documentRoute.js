@@ -19,10 +19,14 @@ router.get("/documentMain", authMiddleware, (req, res) => {
 });
 // Submit document route
 router.get("/documentSubmission", authMiddleware, (req, res) => {
-  res.sendFile("documentSubmission.html", { root: "./views/documentPages" }); // Serve the submit document page
+  res.sendFile("documentSubmission.html", {
+    root: "./views/documentPages/documentSubmission",
+  }); // Serve the submit document page
 });
 router.get("/documentSummary", authMiddleware, (req, res) => {
-  res.sendFile("documentSummary.html", { root: "./views/documentPages" }); // Serve the main document summary page
+  res.sendFile("documentSummary.html", {
+    root: "./views/documentPages/documentSummary",
+  }); // Serve the main document summary page
 });
 // For restricting cost center
 // Route to fetch cost centers

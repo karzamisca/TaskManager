@@ -1,4 +1,4 @@
-// views\documentPages\documentSubmission.js
+// views\documentPages\documentSubmission\documentSubmission.js
 flatpickr("#dateOfError", {
   dateFormat: "d-m-Y",
   defaultDate: "today",
