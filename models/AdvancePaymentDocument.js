@@ -9,7 +9,7 @@ const advancePaymentDocumentSchema = new mongoose.Schema({
   content: { type: String, required: true },
   paymentMethod: { type: String, required: true },
   advancePayment: { type: Number, required: true },
-  paymentDeadline: { type: String, required: true },
+  paymentDeadline: { type: String, default: "Not specified" },
   fileMetadata: {
     driveFileId: { type: String },
     name: { type: String },

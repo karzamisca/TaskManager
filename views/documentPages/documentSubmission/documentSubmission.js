@@ -105,7 +105,7 @@ function handlePaymentDocument() {
       <label for="totalPayment">Tổng thanh toán/Total Payment:</label>
       <input type="number" step="0.01" name="totalPayment" required />
       <label for="paymentDeadline">Thời hạn trả/Payment Deadline</label>
-      <input type="text" name="paymentDeadline" id="paymentDeadline" required />
+      <input type="text" name="paymentDeadline" id="paymentDeadline"/>
       <select name="groupName" id="groupName">
         <option value="">Chọn nhóm/Select a group</option>
       </select>
@@ -149,7 +149,7 @@ function handleAdvancePaymentDocument() {
       <label for="advancePayment">Thanh toán trước/Advance Payment:</label>
       <input type="number" step="0.01" name="advancePayment"/>
       <label for="paymentDeadline">Thời hạn trả/Payment Deadline</label>
-      <input type="text" name="paymentDeadline" id="paymentDeadline" required />
+      <input type="text" name="paymentDeadline" id="paymentDeadline"/>
       <select name="groupName" id="groupName">
         <option value="">Chọn nhóm/Select a group</option>
       </select>
