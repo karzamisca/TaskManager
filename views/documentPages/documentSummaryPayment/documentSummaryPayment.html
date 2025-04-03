@@ -13,6 +13,17 @@
   <body>
     <h1>Phiếu thanh toán/Payment Documents</h1>
     <div id="messageContainer" class="message"></div>
+    <div style="margin-bottom: 1rem">
+      <label for="groupFilter">Lọc theo nhóm/Filter by Group:</label>
+      <select
+        id="groupFilter"
+        onchange="filterByGroup()"
+        style="margin-left: 0.5rem; padding: 4px 8px"
+      >
+        <option value="">Tất cả nhóm/All Groups</option>
+        <!-- Groups will be populated dynamically -->
+      </select>
+    </div>
     <div>
       <button class="approve-btn" onclick="openMassDeclarationModal()">
         Cập nhật kê khai hàng loạt/Mass Declaration Update

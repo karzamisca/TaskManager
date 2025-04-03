@@ -346,6 +346,21 @@ td.documents-cell {
   color: yellow;
 }
 
+/* Filter for general group */
+#groupFilter {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-size: 14px;
+}
+
+#groupFilter option {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

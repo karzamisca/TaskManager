@@ -6,6 +6,7 @@ let currentApprovers = [];
 let currentPage = 1;
 const itemsPerPage = 10; // Adjust this value based on your preference
 let totalPages = 1;
+let currentGroupFilter = "";
 
 // Add the toggle switch creation function
 function createToggleSwitch() {
@@ -30,18 +31,66 @@ async function fetchCurrentUser() {
   }
 }
 
-// Add the document filter function
+async function fetchGroups() {
+  try {
+    const response = await fetch("/getGroupDocument");
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching groups:", error);
+    return [];
+  }
+}
+
+// Add this function to populate the group filter dropdown
+async function populateGroupFilter() {
+  const groups = await fetchGroups();
+  const groupFilter = document.getElementById("groupFilter");
+
+  // Clear existing options except the first one
+  while (groupFilter.options.length > 1) {
+    groupFilter.remove(1);
+  }
+
+  // Add group options
+  groups.forEach((group) => {
+    const option = document.createElement("option");
+    option.value = group.name;
+    option.textContent = group.name;
+    groupFilter.appendChild(option);
+  });
+}
+
+// Add this function to filter documents by group
+function filterByGroup() {
+  currentGroupFilter = document.getElementById("groupFilter").value;
+  currentPage = 1; // Reset to first page when filter changes
+  fetchPaymentDocuments();
+}
+
+// Document filter function
 function filterDocumentsForCurrentUser(documents) {
-  if (!currentUser || !showOnlyPendingApprovals) return documents;
+  if (!currentUser && !showOnlyPendingApprovals && !currentGroupFilter) {
+    return documents;
+  }
 
   return documents.filter((doc) => {
-    const isRequiredApprover = doc.approvers.some(
-      (approver) => approver.username === currentUser.username
-    );
-    const hasNotApprovedYet = !doc.approvedBy.some(
-      (approved) => approved.username === currentUser.username
-    );
-    return isRequiredApprover && hasNotApprovedYet;
+    // Apply group filter if selected
+    if (currentGroupFilter && doc.groupName !== currentGroupFilter) {
+      return false;
+    }
+
+    // Apply pending approvals filter if enabled
+    if (showOnlyPendingApprovals && currentUser) {
+      const isRequiredApprover = doc.approvers.some(
+        (approver) => approver.username === currentUser.username
+      );
+      const hasNotApprovedYet = !doc.approvedBy.some(
+        (approved) => approved.username === currentUser.username
+      );
+      return isRequiredApprover && hasNotApprovedYet;
+    }
+
+    return true;
   });
 }
 
@@ -1201,13 +1250,15 @@ window.onclick = function (event) {
   }
 };
 
-// Modify the initialization code
 async function initializePage() {
   await fetchCurrentUser();
 
   // Add toggle switch before the table
   const table = document.querySelector("table");
   table.parentElement.insertBefore(createToggleSwitch(), table);
+
+  // Add group filter
+  await populateGroupFilter();
 
   // Add toggle event listener
   document.getElementById("pendingToggle").addEventListener("change", (e) => {
