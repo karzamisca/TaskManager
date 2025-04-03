@@ -2,12 +2,12 @@
 const Project = require("../models/Project");
 const User = require("../models/User");
 const Document = require("../models/Document");
-const PaymentDocument = require("../models/PaymentDocument");
-const ProposalDocument = require("../models/ProposalDocument");
-const PurchasingDocument = require("../models/PurchasingDocument");
-const AdvancePaymentDocument = require("../models/AdvancePaymentDocument");
-const DeliveryDocument = require("../models/DeliveryDocument");
-const ProjectProposalDocument = require("../models/ProjectProposalDocument");
+const PaymentDocument = require("../models/DocumentPayment");
+const ProposalDocument = require("../models/DocumentProposal");
+const PurchasingDocument = require("../models/DocumentPurchasing");
+const AdvancePaymentDocument = require("../models/DocumentAdvancePayment");
+const DeliveryDocument = require("../models/DocumentDelivery");
+const ProjectProposalDocument = require("../models/DocumentProjectProposal");
 const moment = require("moment-timezone");
 
 // Add a new project

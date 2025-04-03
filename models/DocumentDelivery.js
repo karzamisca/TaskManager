@@ -69,4 +69,4 @@ const deliveryDocumentSchema = new mongoose.Schema({
   projectName: { type: String },
 });
 
-module.exports = mongoose.model("DeliveryDocument", deliveryDocumentSchema);
+module.exports = mongoose.model("DocumentDelivery", deliveryDocumentSchema);

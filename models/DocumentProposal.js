@@ -1,36 +1,25 @@
-// models/AdvancePaymentDocument.js
+// models/ProposalDocument.js
 const mongoose = require("mongoose");
 
-const advancePaymentDocumentSchema = new mongoose.Schema({
-  tag: { type: String, required: true },
-  title: { type: String, default: "Advance Payment Document", required: true },
-  name: { type: String, required: true },
-  costCenter: { type: String },
-  content: { type: String, required: true },
-  paymentMethod: { type: String, required: true },
-  advancePayment: { type: Number, required: true },
-  paymentDeadline: { type: String, default: "Not specified" },
+const proposalDocumentSchema = new mongoose.Schema({
+  title: { type: String, default: "Proposal Document", required: true },
+  task: { type: String, required: true },
+  costCenter: { type: String, required: true },
+  dateOfError: { type: String, required: true },
+  detailsDescription: { type: String, required: true },
+  direction: { type: String, required: true },
   fileMetadata: {
     driveFileId: { type: String },
     name: { type: String },
     link: { type: String },
   },
   submissionDate: { type: String, required: true },
-  submittedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
+  submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   approvers: [
     {
       approver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
       username: { type: String, required: true },
       subRole: { type: String, required: true },
-    },
-  ],
-  appendedPurchasingDocuments: [
-    {
-      type: mongoose.Schema.Types.Mixed, // Stores full Purchasing Document details
     },
   ],
   approvedBy: [
@@ -46,14 +35,11 @@ const advancePaymentDocumentSchema = new mongoose.Schema({
     enum: ["Pending", "Approved", "Suspended"], // Possible states
     default: "Pending",
   },
-  suspendReason: { type: String, default: "" },
   declaration: { type: String, default: "" },
+  suspendReason: { type: String, default: "" },
   groupName: { type: String },
   groupDeclarationName: { type: String },
   projectName: { type: String },
 });
 
-module.exports = mongoose.model(
-  "AdvancePaymentDocument",
-  advancePaymentDocumentSchema
-);
+module.exports = mongoose.model("DocumentProposal", proposalDocumentSchema);

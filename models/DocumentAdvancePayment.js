@@ -1,27 +1,36 @@
-// models/ProjectProposalDocument.js
+// models/AdvancePaymentDocument.js
 const mongoose = require("mongoose");
 
-const projectProposalDocumentSchema = new mongoose.Schema({
-  title: { type: String, required: true },
+const advancePaymentDocumentSchema = new mongoose.Schema({
+  tag: { type: String, required: true },
+  title: { type: String, default: "Advance Payment Document", required: true },
   name: { type: String, required: true },
-  content: [
-    {
-      name: { type: String, required: true }, // Name for the content
-      text: { type: String, required: true }, // Actual content
-    },
-  ],
+  costCenter: { type: String },
+  content: { type: String, required: true },
+  paymentMethod: { type: String, required: true },
+  advancePayment: { type: Number, required: true },
+  paymentDeadline: { type: String, default: "Not specified" },
   fileMetadata: {
     driveFileId: { type: String },
     name: { type: String },
     link: { type: String },
   },
   submissionDate: { type: String, required: true },
-  submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  submittedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
   approvers: [
     {
       approver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
       username: { type: String, required: true },
       subRole: { type: String, required: true },
+    },
+  ],
+  appendedPurchasingDocuments: [
+    {
+      type: mongoose.Schema.Types.Mixed, // Stores full Purchasing Document details
     },
   ],
   approvedBy: [
@@ -37,14 +46,14 @@ const projectProposalDocumentSchema = new mongoose.Schema({
     enum: ["Pending", "Approved", "Suspended"], // Possible states
     default: "Pending",
   },
-  declaration: { type: String, default: "" },
   suspendReason: { type: String, default: "" },
+  declaration: { type: String, default: "" },
   groupName: { type: String },
   groupDeclarationName: { type: String },
   projectName: { type: String },
 });
 
 module.exports = mongoose.model(
-  "ProjectProposalDocument",
-  projectProposalDocumentSchema
+  "DocumentAdvancePayment",
+  advancePaymentDocumentSchema
 );

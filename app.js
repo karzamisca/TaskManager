@@ -22,8 +22,8 @@ const multer = require("multer");
 const cron = require("node-cron");
 const axios = require("axios");
 const documentController = require("./controllers/documentController"); // Import the email notification function
-const PaymentDocument = require("./models/PaymentDocument");
-const ProjectProposalDocument = require("./models/ProjectProposalDocument");
+const PaymentDocument = require("./models/DocumentPayment");
+const ProjectProposalDocument = require("./models/DocumentProjectProposal");
 const GroupDeclaration = require("./models/GroupDeclaration");
 const Project = require("./models/Project");
 require("dotenv").config();

@@ -71,4 +71,4 @@ const purchasingDocumentSchema = new mongoose.Schema({
   projectName: { type: String },
 });
 
-module.exports = mongoose.model("PurchasingDocument", purchasingDocumentSchema);
+module.exports = mongoose.model("DocumentPurchasing", purchasingDocumentSchema);
