@@ -1924,7 +1924,6 @@ exports.updatePaymentDocument = async (req, res) => {
       costCenter,
       paymentMethod,
       totalPayment,
-      advancePayment,
       paymentDeadline,
     } = req.body;
     const file = req.file;
@@ -1944,6 +1943,15 @@ exports.updatePaymentDocument = async (req, res) => {
           .status(400)
           .json({ message: "Invalid approvers data format" });
       }
+    }
+
+    // Check if the name has changed and update the tag if needed
+    if (name && name !== doc.name) {
+      // Format the update date for the tag
+      const now = moment().tz("Asia/Bangkok");
+      const updateDateForTag = now.format("DDMMYYYYHHmmss");
+      // Create the new tag by combining name and formatted date
+      doc.tag = `${name}${updateDateForTag}`;
     }
 
     // Update basic fields
@@ -2223,6 +2231,15 @@ exports.updateAdvancePaymentDocument = async (req, res) => {
           .status(400)
           .json({ message: "Invalid approvers data format" });
       }
+    }
+
+    // Check if the name has changed and update the tag if needed
+    if (name && name !== doc.name) {
+      // Format the update date for the tag
+      const now = moment().tz("Asia/Bangkok");
+      const updateDateForTag = now.format("DDMMYYYYHHmmss");
+      // Create the new tag by combining name and formatted date
+      doc.tag = `${name}${updateDateForTag}`;
     }
 
     // Update basic fields
