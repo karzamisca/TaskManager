@@ -65,6 +65,7 @@ const deliveryDocumentSchema = new mongoose.Schema({
   },
   suspendReason: { type: String, default: "" },
   groupName: { type: String },
+  groupDeclarationName: { type: String },
   projectName: { type: String },
 });
 

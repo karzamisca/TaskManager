@@ -40,6 +40,7 @@ const projectProposalDocumentSchema = new mongoose.Schema({
   declaration: { type: String, default: "" },
   suspendReason: { type: String, default: "" },
   groupName: { type: String },
+  groupDeclarationName: { type: String },
   projectName: { type: String },
 });
 

@@ -9,6 +9,7 @@ const adminRoute = require("./routes/adminRoute");
 const documentRoute = require("./routes/documentRoute");
 const documentInProjectRoute = require("./routes/documentInProjectRoute");
 const documentInGroupRoute = require("./routes/documentInGroupRoute");
+const documentInGroupDeclarationRoute = require("./routes/documentInGroupDeclarationRoute");
 const projectRoute = require("./routes/projectRoute");
 const authMiddleware = require("./middlewares/authMiddleware"); // JWT middleware
 const entryRoute = require("./routes/entryRoute");
@@ -23,7 +24,7 @@ const axios = require("axios");
 const documentController = require("./controllers/documentController"); // Import the email notification function
 const PaymentDocument = require("./models/PaymentDocument");
 const ProjectProposalDocument = require("./models/ProjectProposalDocument");
-const Group = require("./models/Group");
+const GroupDeclaration = require("./models/GroupDeclaration");
 const Project = require("./models/Project");
 require("dotenv").config();
 
@@ -51,6 +52,7 @@ app.use("/", authMiddleware, googleDriveRoute);
 app.use("/", authMiddleware, fileServerRoute);
 app.use("/", authMiddleware, documentRoute); // Apply JWT middleware to document routes
 app.use("/", authMiddleware, documentInProjectRoute);
+app.use("/", authMiddleware, documentInGroupDeclarationRoute);
 app.use("/", authMiddleware, documentInGroupRoute);
 app.use("/", authMiddleware, projectRoute);
 app.use("/", authMiddleware, entryRoute);
@@ -111,7 +113,7 @@ cron.schedule("0 */8 * * *", async () => {
   }
 });
 
-// Assign group name and declaration to approved payment document
+// Assign declaration group name and declaration to approved payment document
 cron.schedule("0 */12 * * *", async () => {
   try {
     // Fetch all approved documents that don't have a group assigned
@@ -119,9 +121,9 @@ cron.schedule("0 */12 * * *", async () => {
     const ungroupedDocuments = await PaymentDocument.find({
       status: "Approved",
       $or: [
-        { groupName: { $exists: false } },
-        { groupName: "" },
-        { groupName: null },
+        { groupDeclarationName: { $exists: false } },
+        { groupDeclarationName: "" },
+        { groupDeclarationName: null },
       ],
     });
     if (ungroupedDocuments.length === 0) {
@@ -162,23 +164,25 @@ cron.schedule("0 */12 * * *", async () => {
     // Process each date group
     for (const [date, documents] of Object.entries(documentsByDate)) {
       // Create a group name based on the date
-      const groupName = `PTT${date.replace(/-/g, "")}`;
+      const groupDeclarationName = `PTT${date.replace(/-/g, "")}`;
       // Generate a standard declaration for the group
       const declaration = `Phiếu thanh toán phê duyệt vào ${date}`;
       // Check if the group already exists
-      let group = await Group.findOne({ name: groupName });
+      let group = await GroupDeclaration.findOne({
+        name: groupDeclarationName,
+      });
       // If group doesn't exist, create it
       if (!group) {
-        group = new Group({
-          name: groupName,
+        group = new GroupDeclaration({
+          name: groupDeclarationName,
           description: `Phiếu thanh toán phê duyệt vào ${date}`,
         });
         await group.save();
-        groupsCreated.push(groupName);
+        groupsCreated.push(groupDeclarationName);
       }
       // Assign all documents in this date group to the group
       for (const doc of documents) {
-        doc.groupName = groupName;
+        doc.groupDeclarationName = groupDeclarationName;
         // Only update declaration if it's empty, null, or doesn't exist
         if (
           !doc.declaration ||

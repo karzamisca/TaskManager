@@ -37,6 +37,7 @@ const documentSchema = new mongoose.Schema({
     default: "Pending",
   },
   groupName: { type: String },
+  groupDeclarationName: { type: String },
   projectName: { type: String },
 });
 

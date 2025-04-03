@@ -91,6 +91,9 @@ a.submit {
 a.group {
   background-color: #db34a3;
 }
+a.groupDeclaration {
+  background-color: #db346c;
+}
 
 nav ul li a:hover {
   transform: scale(1.05);
@@ -138,6 +141,10 @@ nav ul li a:hover {
     background-color: #555;
   }
   a.group {
+    color: #f1f1f1;
+    background-color: #555;
+  }
+  a.groupDeclaration {
     color: #f1f1f1;
     background-color: #555;
   }
