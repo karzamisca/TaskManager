@@ -202,7 +202,9 @@ async function fetchProjectProposals() {
   }
 }
 
+// Function to render pagination controls
 function renderPagination() {
+  // First check if pagination container exists, if not create it
   let paginationContainer = document.getElementById("paginationContainer");
   if (!paginationContainer) {
     const table = document.querySelector("table");
@@ -212,7 +214,60 @@ function renderPagination() {
     table.parentNode.insertBefore(paginationContainer, table.nextSibling);
   }
 
-  let paginationHTML = "";
+  // Generate pagination HTML
+  let paginationHTML = `
+    <style>
+      /* Pagination styles */
+      .pagination {
+        display: flex;
+        justify-content: center;
+        margin: 20px 0;
+      }
+      
+      .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      
+      .pagination-controls button {
+        background-color: var(--primary-color);
+        color: var(--bg-color);
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      
+      .pagination-controls button:hover:not([disabled]) {
+        background-color: var(--primary-hover);
+      }
+      
+      .pagination-controls button[disabled] {
+        background-color: var(--border-color);
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+      
+      .pagination-controls .page-info {
+        margin: 0 10px;
+        color: var(--text-color);
+      }
+      
+      @media screen and (max-width: 768px) {
+        .pagination-controls {
+          gap: 5px;
+        }
+        
+        .pagination-controls button {
+          padding: 6px 10px;
+          font-size: 14px;
+        }
+      }
+    </style>
+  `;
+
   if (totalPages > 1) {
     paginationHTML += `
       <div class="pagination-controls">
@@ -225,7 +280,7 @@ function renderPagination() {
           &lsaquo; Prev
         </button>
         <span class="page-info">
-          Page ${currentPage} / ${totalPages}
+          Trang/Page ${currentPage} / ${totalPages}
         </span>
         <button onclick="changePage(${currentPage + 1})" ${
       currentPage === totalPages ? "disabled" : ""
@@ -240,13 +295,16 @@ function renderPagination() {
       </div>
     `;
   }
+
   paginationContainer.innerHTML = paginationHTML;
 }
 
+// Function to change the current page
 function changePage(newPage) {
   if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
     currentPage = newPage;
     fetchProjectProposals();
+    // Scroll to top of table for better user experience
     document.querySelector("table").scrollIntoView({ behavior: "smooth" });
   }
 }

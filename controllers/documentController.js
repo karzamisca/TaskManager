@@ -1833,67 +1833,8 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
       return statusComparison;
     });
 
-    // Calculate the sum of totalPayment for approved and unapproved documents
-    let approvedSum = 0; // Sum for documents with only one approver left
-    let paidSum = 0; // Sum for fully approved documents
-    let unapprovedSum = 0;
-    let approvedDocument = 0;
-    let unapprovedDocument = 0;
-
-    sortedDocuments.forEach((doc) => {
-      // Calculate paidSum based on the new logic
-      if (doc.status === "Approved") {
-        // If advance payment equals 0, then paid sum equals total payment
-        if (doc.advancePayment === 0) {
-          paidSum += doc.totalPayment;
-        }
-        // If total payment equals 0, then paid sum equals advance payment
-        else if (doc.totalPayment === 0) {
-          paidSum += doc.advancePayment;
-        }
-        // Otherwise, paid sum equals total payment minus advance payment
-        else {
-          paidSum += doc.totalPayment - doc.advancePayment;
-        }
-        approvedDocument += 1;
-        // Only one approver left
-      } else if (doc.approvers.length - doc.approvedBy.length === 1) {
-        if (doc.advancePayment === 0) {
-          approvedSum += doc.totalPayment;
-        }
-        // If total payment equals 0, then approved sum equals advance payment
-        else if (doc.totalPayment === 0) {
-          approvedSum += doc.advancePayment;
-        }
-        // Otherwise, approved sum equals total payment minus advance payment
-        else {
-          approvedSum += doc.totalPayment - doc.advancePayment;
-        }
-        unapprovedDocument += 1;
-        // More than one approver left
-      } else {
-        if (doc.advancePayment === 0) {
-          unapprovedSum += doc.totalPayment;
-        }
-        // If total payment equals 0, then unapproved sum equals advance payment
-        else if (doc.totalPayment === 0) {
-          unapprovedSum += doc.advancePayment;
-        }
-        // Otherwise, unapproved sum equals total payment minus advance payment
-        else {
-          unapprovedSum += doc.totalPayment - doc.advancePayment;
-        }
-        unapprovedDocument += 1;
-      }
-    });
-
     res.json({
       paymentDocuments: sortedDocuments,
-      approvedSum,
-      paidSum,
-      unapprovedSum,
-      approvedDocument,
-      unapprovedDocument,
     });
   } catch (err) {
     console.error("Error fetching payment documents:", err);
@@ -2152,36 +2093,8 @@ exports.getAdvancePaymentDocumentForSeparatedView = async (req, res) => {
       return statusComparison;
     });
 
-    // Calculate the sum of totalPayment for approved and unapproved documents
-    let approvedSum = 0; // Sum for documents with only one approver left
-    let paidSum = 0; // Sum for fully approved documents
-    let unapprovedSum = 0;
-    let approvedDocument = 0;
-    let unapprovedDocument = 0;
-
-    sortedDocuments.forEach((doc) => {
-      // Calculate paidSum based on the new logic
-      if (doc.status === "Approved") {
-        paidSum += doc.advancePayment;
-        approvedDocument += 1;
-        // Only one approver left
-      } else if (doc.approvers.length - doc.approvedBy.length === 1) {
-        approvedSum += doc.advancePayment;
-        unapprovedDocument += 1;
-        // More than one approver left
-      } else {
-        unapprovedSum += doc.advancePayment;
-        unapprovedDocument += 1;
-      }
-    });
-
     res.json({
       advancePaymentDocuments: sortedDocuments,
-      approvedSum,
-      paidSum,
-      unapprovedSum,
-      approvedDocument,
-      unapprovedDocument,
     });
   } catch (err) {
     console.error("Error fetching payment documents:", err);

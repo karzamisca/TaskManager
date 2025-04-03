@@ -252,6 +252,9 @@ async function fetchAdvancePaymentDocuments() {
     const tableBody = document.getElementById("advancePaymentDocumentsTable");
     tableBody.innerHTML = "";
 
+    // Calculate summaries based on filtered documents
+    updateSummarySection(filteredDocuments);
+
     pageDocuments.forEach((doc) => {
       // Create merged approval status display
       const approvalStatus = doc.approvers
@@ -350,22 +353,66 @@ async function fetchAdvancePaymentDocuments() {
 
     // Render pagination controls
     renderPagination();
-
-    // Update summary section
-    document.getElementById("approvedSum").textContent =
-      data.approvedSum.toLocaleString();
-    document.getElementById("paidSum").textContent =
-      data.paidSum.toLocaleString();
-    document.getElementById("unapprovedSum").textContent =
-      data.unapprovedSum.toLocaleString();
-    document.getElementById("approvedDocument").textContent =
-      data.approvedDocument.toLocaleString();
-    document.getElementById("unapprovedDocument").textContent =
-      data.unapprovedDocument.toLocaleString();
   } catch (err) {
     console.error("Error fetching advance payment documents:", err);
     showMessage("Error fetching advance payment documents", true);
   }
+}
+
+function updateSummarySection(documents) {
+  let approvedSum = 0;
+  let paidSum = 0;
+  let unapprovedSum = 0;
+  let approvedDocument = 0;
+  let unapprovedDocument = 0;
+
+  documents.forEach((doc) => {
+    if (doc.status === "Approved") {
+      // If advance payment equals 0, then paid sum equals total payment
+      if (doc.advancePayment === 0) {
+        paidSum += doc.totalPayment;
+      }
+      // If total payment equals 0, then paid sum equals advance payment
+      else if (doc.totalPayment === 0) {
+        paidSum += doc.advancePayment;
+      }
+      // Otherwise, paid sum equals total payment minus advance payment
+      else {
+        paidSum += doc.totalPayment - doc.advancePayment;
+      }
+      approvedDocument += 1;
+    }
+    // Only one approver left
+    else if (doc.approvers.length - doc.approvedBy.length === 1) {
+      if (doc.advancePayment === 0) {
+        approvedSum += doc.totalPayment;
+      }
+      // If total payment equals 0, then approved sum equals advance payment
+      else if (doc.totalPayment === 0) {
+        approvedSum += doc.advancePayment;
+      }
+      // Otherwise, approved sum equals total payment minus advance payment
+      else {
+        approvedSum += doc.totalPayment - doc.advancePayment;
+      }
+      unapprovedDocument += 1;
+    }
+    // More than one approver left
+    else {
+      if (doc.advancePayment === 0) {
+        unapprovedSum += doc.totalPayment;
+      }
+      // If total payment equals 0, then unapproved sum equals advance payment
+      else if (doc.totalPayment === 0) {
+        unapprovedSum += doc.advancePayment;
+      }
+      // Otherwise, unapproved sum equals total payment minus advance payment
+      else {
+        unapprovedSum += doc.totalPayment - doc.advancePayment;
+      }
+      unapprovedDocument += 1;
+    }
+  });
 }
 
 // Function to render pagination controls
@@ -381,7 +428,58 @@ function renderPagination() {
   }
 
   // Generate pagination HTML
-  let paginationHTML = "";
+  let paginationHTML = `
+    <style>
+      /* Pagination styles */
+      .pagination {
+        display: flex;
+        justify-content: center;
+        margin: 20px 0;
+      }
+      
+      .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      
+      .pagination-controls button {
+        background-color: var(--primary-color);
+        color: var(--bg-color);
+        border: none;
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      
+      .pagination-controls button:hover:not([disabled]) {
+        background-color: var(--primary-hover);
+      }
+      
+      .pagination-controls button[disabled] {
+        background-color: var(--border-color);
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+      
+      .pagination-controls .page-info {
+        margin: 0 10px;
+        color: var(--text-color);
+      }
+      
+      @media screen and (max-width: 768px) {
+        .pagination-controls {
+          gap: 5px;
+        }
+        
+        .pagination-controls button {
+          padding: 6px 10px;
+          font-size: 14px;
+        }
+      }
+    </style>
+  `;
 
   if (totalPages > 1) {
     paginationHTML += `
@@ -423,61 +521,6 @@ function changePage(newPage) {
     document.querySelector("table").scrollIntoView({ behavior: "smooth" });
   }
 }
-
-// Add CSS for pagination to the existing <style> section
-document.addEventListener("DOMContentLoaded", function () {
-  const styleTag = document.querySelector("style");
-  styleTag.innerHTML += `
-    /* Pagination styles */
-    .pagination {
-      display: flex;
-      justify-content: center;
-      margin: 20px 0;
-    }
-    
-    .pagination-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    
-    .pagination-controls button {
-      background-color: var(--primary-color);
-      color: var(--bg-color);
-      border: none;
-      padding: 8px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    
-    .pagination-controls button:hover:not([disabled]) {
-      background-color: var(--primary-hover);
-    }
-    
-    .pagination-controls button[disabled] {
-      background-color: var(--border-color);
-      cursor: not-allowed;
-      opacity: 0.6;
-    }
-    
-    .pagination-controls .page-info {
-      margin: 0 10px;
-      color: var(--text-color);
-    }
-    
-    @media screen and (max-width: 768px) {
-      .pagination-controls {
-        gap: 5px;
-      }
-      
-      .pagination-controls button {
-        padding: 6px 10px;
-        font-size: 14px;
-      }
-    }
-  `;
-});
 
 async function approveDocument(documentId) {
   try {
