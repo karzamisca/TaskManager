@@ -114,7 +114,7 @@ cron.schedule("0 */8 * * *", async () => {
 });
 
 // Assign declaration group name and declaration to approved payment document
-cron.schedule("0 */12 * * *", async () => {
+cron.schedule("*/5 * * * *", async () => {
   try {
     // Fetch all approved documents that don't have a group assigned
     // This includes both missing groupName and empty string groupName
