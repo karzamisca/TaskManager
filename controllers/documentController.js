@@ -1183,7 +1183,21 @@ exports.updateProposalDocument = async (req, res) => {
 };
 exports.getProposalDocumentForSeparatedView = async (req, res) => {
   try {
-    const proposalDocuments = await ProposalDocument.find({});
+    // Get user info from authMiddleware
+    const userId = req._id;
+    const userRole = req.role;
+
+    // Find documents where:
+    // 1. The user is the submitter OR
+    // 2. The user is an approver OR
+    // 3. The user is headOfAccounting (based on role)
+    const proposalDocuments = await ProposalDocument.find({
+      $or: [
+        { submittedBy: userId },
+        { "approvers.approver": userId },
+        ...(userRole === "superAdmin" ? [{}] : []), // Include all if headOfAccounting
+      ],
+    }).populate("submittedBy approvers.approver approvedBy.user");
 
     // Sort the proposal documents by status priority and approval date
     const sortedDocuments = proposalDocuments.sort((a, b) => {
@@ -1425,10 +1439,21 @@ exports.getPurchasingDocumentById = async (req, res) => {
 // Fetch all Purchasing Documents
 exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
   try {
-    const purchasingDocuments = await PurchasingDocument.find({}).populate(
-      "submittedBy",
-      "username"
-    );
+    // Get user info from authMiddleware
+    const userId = req._id;
+    const userRole = req.role;
+
+    // Find documents where:
+    // 1. The user is the submitter OR
+    // 2. The user is an approver OR
+    // 3. The user is headOfAccounting (based on role)
+    const purchasingDocuments = await PurchasingDocument.find({
+      $or: [
+        { submittedBy: userId },
+        { "approvers.approver": userId },
+        ...(userRole === "headOfPurchasing" ? [{}] : []), // Include all if headOfAccounting
+      ],
+    }).populate("submittedBy approvers.approver approvedBy.user");
 
     // Sort the purchasing documents by status priority and approval date
     const sortedDocuments = purchasingDocuments.sort((a, b) => {
@@ -1774,7 +1799,21 @@ exports.openPurchasingDocument = async (req, res) => {
 //// PAYMENT DOCUMENT CONTROLLER
 exports.getPaymentDocumentForSeparatedView = async (req, res) => {
   try {
-    const paymentDocuments = await PaymentDocument.find({});
+    // Get user info from authMiddleware
+    const userId = req._id;
+    const userRole = req.role;
+
+    // Find documents where:
+    // 1. The user is the submitter OR
+    // 2. The user is an approver OR
+    // 3. The user is headOfAccounting (based on role)
+    const paymentDocuments = await PaymentDocument.find({
+      $or: [
+        { submittedBy: userId },
+        { "approvers.approver": userId },
+        ...(userRole === "headOfAccounting" ? [{}] : []), // Include all if headOfAccounting
+      ],
+    }).populate("submittedBy approvers.approver approvedBy.user");
 
     // Sort the payment documents by status priority and approval date
     const sortedDocuments = paymentDocuments.sort((a, b) => {
@@ -2034,7 +2073,21 @@ exports.massUpdatePaymentDocumentDeclaration = async (req, res) => {
 //// ADVANCE PAYMENT DOCUMENT CONTROLLER
 exports.getAdvancePaymentDocumentForSeparatedView = async (req, res) => {
   try {
-    const advancePaymentDocuments = await AdvancePaymentDocument.find({});
+    // Get user info from authMiddleware
+    const userId = req._id;
+    const userRole = req.role;
+
+    // Find documents where:
+    // 1. The user is the submitter OR
+    // 2. The user is an approver OR
+    // 3. The user is headOfAccounting (based on role)
+    const advancePaymentDocuments = await AdvancePaymentDocument.find({
+      $or: [
+        { submittedBy: userId },
+        { "approvers.approver": userId },
+        ...(userRole === "headOfAccounting" ? [{}] : []), // Include all if headOfAccounting
+      ],
+    }).populate("submittedBy approvers.approver approvedBy.user");
 
     // Sort the payment documents by status priority and approval date
     const sortedDocuments = advancePaymentDocuments.sort((a, b) => {
@@ -2295,10 +2348,21 @@ exports.massUpdateAdvancePaymentDocumentDeclaration = async (req, res) => {
 // Fetch all Delivery Documents
 exports.getDeliveryDocumentsForSeparatedView = async (req, res) => {
   try {
-    const deliveryDocuments = await DeliveryDocument.find({}).populate(
-      "submittedBy",
-      "username"
-    );
+    // Get user info from authMiddleware
+    const userId = req._id;
+    const userRole = req.role;
+
+    // Find documents where:
+    // 1. The user is the submitter OR
+    // 2. The user is an approver OR
+    // 3. The user is headOfAccounting (based on role)
+    const deliveryDocuments = await DeliveryDocument.find({
+      $or: [
+        { submittedBy: userId },
+        { "approvers.approver": userId },
+        ...(userRole === "headOfPurchasing" ? [{}] : []), // Include all if headOfAccounting
+      ],
+    }).populate("submittedBy approvers.approver approvedBy.user");
 
     // Sort the delivery documents by status priority and approval date
     const sortedDocuments = deliveryDocuments.sort((a, b) => {

@@ -14,7 +14,7 @@ const router = express.Router();
 router.get(
   "/documentInProject",
   authMiddleware,
-  projectDocumentController.getProjectDocumentView
+  projectDocumentController.getDocumentInProjectViews
 );
 router.post(
   "/createProjectDocument",

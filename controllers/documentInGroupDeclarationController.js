@@ -9,6 +9,29 @@ const AdvancePaymentDocument = require("../models/DocumentAdvancePayment");
 const DeliveryDocument = require("../models/DocumentDelivery");
 const moment = require("moment-timezone");
 
+// Serve the html file for the root route
+exports.getDocumentInGroupDeclarationViews = (req, res) => {
+  if (
+    ![
+      "approver",
+      "superAdmin",
+      "headOfMechanical",
+      "headOfAccounting",
+      "headOfPurchasing",
+      "director",
+    ].includes(req.user.role)
+  ) {
+    return res
+      .status(403)
+      .send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+  }
+  res.sendFile("documentInGroupDeclaration.html", {
+    root: "./views/documentPages/documentInGroupDeclaration",
+  });
+};
+
 // Add a new groupDeclaration
 exports.createGroupDeclaration = async (req, res) => {
   try {

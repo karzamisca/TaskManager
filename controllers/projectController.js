@@ -10,6 +10,29 @@ const DeliveryDocument = require("../models/DocumentDelivery");
 const ProjectProposalDocument = require("../models/DocumentProjectProposal");
 const moment = require("moment-timezone");
 
+// Serve the html file for the root route
+exports.getProjectDocumentViews = (req, res) => {
+  if (
+    ![
+      "approver",
+      "superAdmin",
+      "headOfMechanical",
+      "headOfAccounting",
+      "headOfPurchasing",
+      "director",
+    ].includes(req.user.role)
+  ) {
+    return res
+      .status(403)
+      .send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+  }
+  res.sendFile("projectDocument.html", {
+    root: "./views/approvals/documents/projects",
+  });
+};
+
 // Add a new project
 exports.createProject = async (req, res) => {
   try {

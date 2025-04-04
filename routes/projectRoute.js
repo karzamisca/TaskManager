@@ -6,11 +6,11 @@ const documentController = require("../controllers/documentController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 // Route to display project creation form
-router.get("/projectedDocument", authMiddleware, (req, res) => {
-  res.sendFile("projectDocument.html", {
-    root: "./views/approvals/documents/projects",
-  });
-});
+router.get(
+  "/projectedDocument",
+  authMiddleware,
+  projectController.getProjectDocumentViews
+);
 
 // Route to handle form submission
 router.post("/createProject", authMiddleware, projectController.createProject);

@@ -5,6 +5,29 @@ const CostCenter = require("../models/CostCenter");
 const drive = require("../middlewares/googleAuthMiddleware");
 const { Readable } = require("stream");
 
+// Serve the html file for the root route
+exports.getDocumentInProjectViews = (req, res) => {
+  if (
+    ![
+      "approver",
+      "superAdmin",
+      "headOfMechanical",
+      "headOfAccounting",
+      "headOfPurchasing",
+      "director",
+    ].includes(req.user.role)
+  ) {
+    return res
+      .status(403)
+      .send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+  }
+  res.sendFile("documentInProject.html", {
+    root: "./views/documentPages/documentInProject",
+  });
+};
+
 exports.uploadFiles = async (req, res) => {
   try {
     const { projectId, phase } = req.body;
@@ -139,13 +162,6 @@ exports.removeFile = async (req, res) => {
     console.error("Error in removeFile:", error);
     res.status(500).json({ message: "Error removing file" });
   }
-};
-
-//Serve view
-exports.getProjectDocumentView = (req, res) => {
-  res.sendFile("documentInProject.html", {
-    root: "./views/documentPages/documentInProject",
-  });
 };
 
 exports.createProjectDocument = async (req, res) => {

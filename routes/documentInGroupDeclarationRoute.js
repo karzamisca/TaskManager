@@ -6,11 +6,11 @@ const documentController = require("../controllers/documentController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 // Route to display groupDeclaration creation form
-router.get("/documentInGroupDeclaration", authMiddleware, (req, res) => {
-  res.sendFile("documentInGroupDeclaration.html", {
-    root: "./views/documentPages/documentInGroupDeclaration",
-  });
-});
+router.get(
+  "/documentInGroupDeclaration",
+  authMiddleware,
+  groupDeclarationController.getDocumentInGroupDeclarationViews
+);
 
 // Route to handle form submission
 router.post(

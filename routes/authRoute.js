@@ -27,6 +27,7 @@ router.get("/approvers", authMiddleware, async (req, res) => {
       role: {
         $in: [
           "approver",
+          "superAdmin",
           "captainOfMech",
           "headOfMechanical",
           "headOfAccounting",
