@@ -2616,10 +2616,21 @@ exports.getProjectProposalById = async (req, res) => {
 // Get project proposals for separated view
 exports.getProjectProposalsForSeparatedView = async (req, res) => {
   try {
-    const projectProposals = await ProjectProposalDocument.find({}).populate(
-      "submittedBy",
-      "username"
-    );
+    // Get user info from authMiddleware
+    const userId = req._id;
+    const userRole = req.role;
+
+    // Find documents where:
+    // 1. The user is the submitter OR
+    // 2. The user is an approver OR
+    // 3. The user is headOfAccounting (based on role)
+    const projectProposals = await ProjectProposalDocument.find({
+      $or: [
+        { submittedBy: userId },
+        { "approvers.approver": userId },
+        ...(userRole === "director" ? [{}] : []), // Include all if headOfAccounting
+      ],
+    }).populate("submittedBy approvers.approver approvedBy.user");
 
     // Sort the project proposals by status priority and approval date
     const sortedDocuments = projectProposals.sort((a, b) => {
