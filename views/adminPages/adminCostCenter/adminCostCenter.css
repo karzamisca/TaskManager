@@ -1,98 +1,250 @@
-/* Reset & Base Styles */
+/* CSS Variables for theming */
+:root {
+  /* Light Theme Colors */
+  --bg-color: #f5f7fa;
+  --card-bg: #fff;
+  --text-color: #333;
+  --text-muted: #666;
+  --heading-color: #2c3e50;
+  --border-color: #ddd;
+  --primary-color: #0066cc;
+  --primary-hover: #004080;
+  --danger-color: #dc3545;
+  --danger-hover: #c82333;
+  --secondary-color: #6c757d;
+  --secondary-hover: #5a6268;
+  --hover-bg: #f8f9fa;
+  --table-header-bg: #f2f2f2;
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --shadow-color-strong: rgba(0, 0, 0, 0.2);
+  --modal-overlay: rgba(0, 0, 0, 0.5);
+  --scrollbar-thumb: #c1c1c1;
+  --scrollbar-track: #f1f1f1;
+
+  /* Spacing & Layout */
+  --space-xs: 8px;
+  --space-sm: 10px;
+  --space-md: 15px;
+  --space-lg: 20px;
+  --space-xl: 25px;
+  --space-xxl: 30px;
+  --border-radius: 8px;
+  --max-width: 1200px;
+}
+
+/* Dark Theme Colors */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #121212;
+    --card-bg: #1e1e1e;
+    --text-color: #e0e0e0;
+    --text-muted: #aaa;
+    --heading-color: #e0e0e0;
+    --border-color: #444;
+    --primary-color: #4d94ff;
+    --primary-hover: #77aaff;
+    --hover-bg: #252525;
+    --table-header-bg: #2a2a2a;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --shadow-color-strong: rgba(0, 0, 0, 0.4);
+    --modal-overlay: rgba(0, 0, 0, 0.7);
+    --scrollbar-thumb: #444;
+    --scrollbar-track: #222;
+  }
+}
+
+/* Basic Reset */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
-  font-family: "Arial", sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background-color: #f9f9f9;
-  color: #333;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  line-height: 1.6;
+  padding: var(--space-lg);
+  max-width: var(--max-width);
+  margin: 0 auto;
   transition: background-color 0.3s, color 0.3s;
 }
 
+/* Navigation Links */
+.nav-links {
+  display: flex;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
 a {
-  color: #007bff;
+  color: var(--primary-color);
   text-decoration: none;
-  margin: 10px 5px;
+  transition: color 0.3s;
 }
 
 a:hover {
+  color: var(--primary-hover);
   text-decoration: underline;
 }
 
+/* Headings */
 h1,
 h2,
 h3 {
-  margin: 20px 0;
+  color: var(--heading-color);
+  margin-bottom: var(--space-md);
 }
 
-/* Form Styles */
+h1 {
+  font-size: 28px;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: var(--space-sm);
+  margin-bottom: var(--space-xl);
+}
+
+h2 {
+  font-size: 22px;
+  margin-top: var(--space-xxl);
+}
+
+h3 {
+  font-size: 16px;
+  color: var(--text-muted);
+  font-style: italic;
+  margin-bottom: var(--space-xl);
+}
+
+/* Forms */
 form {
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 400px;
+  background-color: var(--card-bg);
+  padding: var(--space-lg);
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 10px var(--shadow-color);
+  margin-bottom: var(--space-xxl);
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-weight: 500;
 }
 
 input[type="text"] {
   width: 100%;
-  padding: 10px;
-  margin-bottom: 12px;
+  padding: var(--space-sm);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  border: 1px solid #ccc;
+  margin-bottom: var(--space-md);
   font-size: 16px;
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  transition: border-color 0.3s, background-color 0.3s, color 0.3s;
+}
+
+input[type="text"]:focus {
+  border-color: var(--primary-color);
+  outline: none;
+  box-shadow: 0 0 5px rgba(77, 148, 255, 0.3);
 }
 
 button {
-  width: 100%;
-  padding: 12px;
-  background-color: #007bff;
-  color: #fff;
+  background-color: var(--primary-color);
+  color: white;
   border: none;
+  padding: var(--space-sm) var(--space-md);
   border-radius: 4px;
-  font-size: 16px;
   cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
   transition: background-color 0.3s;
 }
 
 button:hover {
-  background-color: #0056b3;
+  background-color: var(--primary-hover);
 }
 
-/* Table Styles */
-table {
-  width: 90%;
-  margin-top: 20px;
+button[type="button"] {
+  background-color: var(--secondary-color);
+}
+
+button[type="button"]:hover {
+  background-color: var(--secondary-hover);
+}
+
+/* Table Styles with scrollbars */
+#costCentersTable {
+  width: 100%;
   border-collapse: collapse;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: var(--card-bg);
+  box-shadow: 0 2px 10px var(--shadow-color);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--space-xxl);
+  transition: background-color 0.3s, box-shadow 0.3s;
+  max-height: 500px;
+  overflow: auto;
+  display: block;
+}
+
+#costCentersTable thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+#costCentersTable tbody {
+  max-height: 450px;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar styling */
+#costCentersTable::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+#costCentersTable::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 4px;
+}
+
+#costCentersTable::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+#costCentersTable::-webkit-scrollbar-thumb:hover {
+  background: var(--secondary-color);
 }
 
 th,
 td {
-  padding: 12px;
-  text-align: center;
-  border: 1px solid #ddd;
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  min-width: 150px; /* Ensure columns have a minimum width */
 }
 
 th {
-  background-color: #f4f4f4;
-  font-weight: bold;
+  background-color: var(--table-header-bg);
+  font-weight: 600;
+  color: var(--text-color);
 }
 
-/* Modal Styles */
+tr:hover {
+  background-color: var(--hover-bg);
+}
+
+/* Modal Styles - Properly centered */
 #editModal {
-  background-color: rgba(0, 0, 0, 0.5);
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--modal-overlay);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -100,102 +252,112 @@ th {
 }
 
 #editModal form {
-  background-color: #fff;
-  padding: 20px;
-  width: 500px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background-color: var(--card-bg);
+  padding: var(--space-xl);
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 20px var(--shadow-color-strong);
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  margin: 0; /* Reset margin to ensure proper centering */
 }
 
+/* Ensure modal scrollbar matches theme */
+#editModal form::-webkit-scrollbar {
+  width: 8px;
+}
+
+#editModal form::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+#editModal form::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+#editModal h2 {
+  margin-top: 0;
+  margin-bottom: var(--space-lg);
+}
+
+/* User Rows in Edit Form */
 .user-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-sm);
+  gap: var(--space-sm);
 }
 
 .user-row input {
-  width: 85%;
-  padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
+  flex-grow: 1;
+  margin-bottom: 0;
 }
 
 .user-row button {
-  width: 10%;
-  padding: 5px;
-  background-color: red;
+  background-color: var(--danger-color);
   color: white;
-  border: none;
+  width: 36px;
+  height: 36px;
   border-radius: 4px;
-  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: #121212;
-    color: #ffffff;
-  }
-
-  .header {
-    background-color: #333;
-  }
-
-  .header a {
-    color: #fff;
-  }
-
-  .header a:hover {
-    background-color: #444;
-  }
-
-  form {
-    background-color: #1e1e1e;
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
-  }
-
-  input[type="text"] {
-    background-color: #333;
-    color: #fff;
-    border: 1px solid #555;
-  }
-
-  button {
-    background-color: #1a73e8;
-  }
-
-  button:hover {
-    background-color: #1358a4;
-  }
-
-  table,
-  th,
-  td {
-    border: 1px solid #444;
-  }
-
-  th {
-    background-color: #333;
-  }
-
-  #editModal form {
-    background-color: #1e1e1e;
-  }
+.user-row button:hover {
+  background-color: var(--danger-hover);
 }
 
-/* Responsive Styles */
+#allowedUsersContainer {
+  margin-bottom: var(--space-md);
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+/* Scrollbar for allowed users container */
+#allowedUsersContainer::-webkit-scrollbar {
+  width: 8px;
+}
+
+#allowedUsersContainer::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+#allowedUsersContainer::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+/* Action Buttons */
+td button {
+  margin-right: var(--space-xs);
+}
+
+td button:last-child {
+  background-color: var(--danger-color);
+}
+
+td button:last-child:hover {
+  background-color: var(--danger-hover);
+}
+
+/* Responsive Adjustments */
 @media (max-width: 768px) {
-  form {
-    width: 90%;
+  body {
+    padding: var(--space-md);
   }
 
-  table {
-    width: 100%;
+  input[type="text"],
+  button {
+    font-size: 14px;
   }
 
   #editModal form {
-    width: 90%;
+    width: 95%;
+    padding: var(--space-md);
   }
 }
