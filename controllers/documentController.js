@@ -697,6 +697,7 @@ exports.approveDocument = async (req, res) => {
     if (
       ![
         "approver",
+        "superAdmin",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
