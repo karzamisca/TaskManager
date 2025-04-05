@@ -1,0 +1,77 @@
+<!-- views\admins\costCenterAdmins\costCenterAdmin.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phân công trạm/Centers Assignment</title>
+    <link
+      rel="stylesheet"
+      href="adminPages/adminCostCenter/adminCostCenter.css"
+    />
+  </head>
+  <body>
+    <a href="/admin">Trở về/Back</a>
+    <a href="/logout">Đăng xuất / Logout</a><br />
+
+    <h1>Phân công trạm/Centers Assignment</h1>
+
+    <!-- Add New Cost Center Form -->
+    <h2>Thêm trạm mới/Add New Center</h2>
+    <form id="addCostCenterForm">
+      <label for="name">Tên trạm/Center Name:</label>
+      <input type="text" id="name" name="name" required />
+
+      <label for="allowedUsers"
+        >Người dùng được cấp quyền (tách bằng dấu phẩy) / Allowed Users (comma
+        separated):</label
+      >
+      <input type="text" id="allowedUsers" name="allowedUsers" />
+
+      <button type="submit">Thêm trạm mới/Add New Center</button>
+    </form>
+
+    <h3>
+      Ghi chú: Để trống cấp quyền tương đương với cấp quyền cho tất cả mọi
+      người/Note: Empty space for allowed user means all users are allowed.
+    </h3>
+
+    <!-- Existing Cost Centers Table -->
+    <h2>Trạm hiện có/Existing Centers</h2>
+    <table id="costCentersTable">
+      <thead>
+        <tr>
+          <th>Tên/Name</th>
+          <th>Người dùng được cấp quyền/Allowed Users</th>
+          <th>Hành động/Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Dynamic content will be populated here via JavaScript -->
+      </tbody>
+    </table>
+
+    <!-- Edit Cost Center Modal (hidden by default) -->
+    <div id="editModal" style="display: none">
+      <h2>Sửa trạm/Edit Center</h2>
+      <form id="editForm" action="" method="POST">
+        <label for="editName">Tên trạm/Center Name:</label>
+        <input type="text" id="editName" name="name" required />
+
+        <label>Người dùng được cấp quyền/Allowed Users:</label>
+        <div id="allowedUsersContainer"></div>
+
+        <button type="button" onclick="addUserInput()">
+          Thêm người dùng/Add User
+        </button>
+        <button type="submit">Lưu thay đổi/Save Changes</button>
+        <button type="button" onclick="closeModal()">Hủy/Cancel</button>
+      </form>
+    </div>
+
+    <a href="/admin">Trở về/Back</a>
+    <a href="/logout">Đăng xuất / Logout</a><br />
+
+    <script src="adminPages/adminCostCenter/adminCostCenter.js"></script>
+  </body>
+</html>

@@ -6,6 +6,7 @@ exports.getAdminPage = (req, res) => {
     if (
       ![
         "approver",
+        "superAdmin",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
@@ -18,7 +19,9 @@ exports.getAdminPage = (req, res) => {
       );
     }
     // Serve the HTML file
-    res.sendFile(path.join(__dirname, "../views/admins/mainAdmin.html"));
+    res.sendFile("adminMain.html", {
+      root: "./views/adminPages/adminMain",
+    });
   } catch (error) {
     console.error("Error serving the cost center admin page:", error);
     res.send("Server error");
@@ -31,6 +34,7 @@ exports.getCostCenterAdminPage = (req, res) => {
     if (
       ![
         "approver",
+        "superAdmin",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
@@ -43,12 +47,9 @@ exports.getCostCenterAdminPage = (req, res) => {
       );
     }
     // Serve the HTML file
-    res.sendFile(
-      path.join(
-        __dirname,
-        "../views/admins/costCenterAdmins/costCenterAdmin.html"
-      )
-    );
+    res.sendFile("adminCostCenter.html", {
+      root: "./views/adminPages/adminCostCenter",
+    });
   } catch (error) {
     console.error("Error serving the cost center admin page:", error);
     res.send("Server error");
@@ -60,6 +61,7 @@ exports.getCostCenters = async (req, res) => {
     if (
       ![
         "approver",
+        "superAdmin",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
