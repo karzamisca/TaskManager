@@ -953,10 +953,10 @@ exports.suspendDocument = async (req, res) => {
   const { suspendReason } = req.body;
 
   try {
-    // Restrict access to only users with the role of "director"
-    if (req.user.role !== "director") {
+    // Restrict access to only users with the role of "director" or "headOfPurchasing"
+    if (req.user.role !== "director" && req.user.role !== "headOfPurchasing") {
       return res.send(
-        "Truy cập bị từ chối. Chỉ giám đốc có quyền tạm dừng tài liệu./Access denied. Only directors can suspend documents."
+        "Truy cập bị từ chối. Chỉ giám đốc hoặc trưởng phòng mua hàng có quyền mở lại tài liệu./Access denied. Only directors or heads of purchasing can reopen documents."
       );
     }
 
@@ -1003,10 +1003,10 @@ exports.openDocument = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Restrict access to only users with the role of "director"
-    if (req.user.role !== "director") {
+    // Restrict access to only users with the role of "director" or "headOfPurchasing"
+    if (req.user.role !== "director" && req.user.role !== "headOfPurchasing") {
       return res.send(
-        "Truy cập bị từ chối. Chỉ giám đốc có quyền mở lại tài liệu./Access denied. Only directors can reopen documents."
+        "Truy cập bị từ chối. Chỉ giám đốc hoặc trưởng phòng mua hàng có quyền mở lại tài liệu./Access denied. Only directors or heads of purchasing can reopen documents."
       );
     }
 
