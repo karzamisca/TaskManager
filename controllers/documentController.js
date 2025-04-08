@@ -1052,15 +1052,60 @@ exports.openDocument = async (req, res) => {
 //// PROPOSAL DOCUMENT CONTROLLER
 exports.getApprovedProposalDocuments = async (req, res) => {
   try {
+    // Fetch only approved proposal documents
     const approvedProposals = await ProposalDocument.find({
       status: "Approved",
+    }).populate("submittedBy approvers.approver approvedBy.user");
+
+    // Sort approved documents by latest approval date (newest first)
+    const sortedDocuments = approvedProposals.sort((a, b) => {
+      // Get the latest approval date for each document
+      const getLatestApprovalDate = (doc) => {
+        if (doc.approvedBy && doc.approvedBy.length > 0) {
+          // Sort approval dates in descending order
+          const sortedDates = [...doc.approvedBy].sort((x, y) => {
+            // Parse date strings in format "DD-MM-YYYY HH:MM:SS"
+            const parseCustomDate = (dateStr) => {
+              const [datePart, timePart] = dateStr.split(" ");
+              const [day, month, year] = datePart.split("-");
+              const [hour, minute, second] = timePart.split(":");
+              // Month is 0-indexed in JavaScript Date constructor
+              return new Date(year, month - 1, day, hour, minute, second);
+            };
+
+            return (
+              parseCustomDate(y.approvalDate) - parseCustomDate(x.approvalDate)
+            );
+          });
+          return sortedDates[0].approvalDate;
+        }
+        return "01-01-1970 00:00:00"; // Default date if no approvals
+      };
+
+      const latestDateA = getLatestApprovalDate(a);
+      const latestDateB = getLatestApprovalDate(b);
+
+      // Parse dates
+      const parseCustomDate = (dateStr) => {
+        const [datePart, timePart] = dateStr.split(" ");
+        const [day, month, year] = datePart.split("-");
+        const [hour, minute, second] = timePart.split(":");
+        // Month is 0-indexed in JavaScript Date constructor
+        return new Date(year, month - 1, day, hour, minute, second);
+      };
+
+      // Sort by latest approval date in descending order (newest first)
+      return parseCustomDate(latestDateB) - parseCustomDate(latestDateA);
     });
-    res.json(approvedProposals);
+
+    res.json(sortedDocuments);
   } catch (err) {
     console.error("Error fetching approved proposals:", err);
-    res.send(
-      "Lỗi lấy tài liệu đề xuất đã phê duyệt/Error fetching approved proposals"
-    );
+    res
+      .status(500)
+      .send(
+        "Lỗi lấy tài liệu đề xuất đã phê duyệt/Error fetching approved proposals"
+      );
   }
 };
 exports.getProposalDocumentById = async (req, res) => {
@@ -1413,15 +1458,60 @@ exports.openProposalDocument = async (req, res) => {
 //// PURCHASING DOCUMENT CONTROLLER
 exports.getApprovedPurchasingDocuments = async (req, res) => {
   try {
+    // Fetch only approved purchasing documents
     const approvedPurchasingDocs = await PurchasingDocument.find({
       status: "Approved",
+    }).populate("submittedBy approvers.approver approvedBy.user");
+
+    // Sort approved documents by latest approval date (newest first)
+    const sortedDocuments = approvedPurchasingDocs.sort((a, b) => {
+      // Get the latest approval date for each document
+      const getLatestApprovalDate = (doc) => {
+        if (doc.approvedBy && doc.approvedBy.length > 0) {
+          // Sort approval dates in descending order
+          const sortedDates = [...doc.approvedBy].sort((x, y) => {
+            // Parse date strings in format "DD-MM-YYYY HH:MM:SS"
+            const parseCustomDate = (dateStr) => {
+              const [datePart, timePart] = dateStr.split(" ");
+              const [day, month, year] = datePart.split("-");
+              const [hour, minute, second] = timePart.split(":");
+              // Month is 0-indexed in JavaScript Date constructor
+              return new Date(year, month - 1, day, hour, minute, second);
+            };
+
+            return (
+              parseCustomDate(y.approvalDate) - parseCustomDate(x.approvalDate)
+            );
+          });
+          return sortedDates[0].approvalDate;
+        }
+        return "01-01-1970 00:00:00"; // Default date if no approvals
+      };
+
+      const latestDateA = getLatestApprovalDate(a);
+      const latestDateB = getLatestApprovalDate(b);
+
+      // Parse dates
+      const parseCustomDate = (dateStr) => {
+        const [datePart, timePart] = dateStr.split(" ");
+        const [day, month, year] = datePart.split("-");
+        const [hour, minute, second] = timePart.split(":");
+        // Month is 0-indexed in JavaScript Date constructor
+        return new Date(year, month - 1, day, hour, minute, second);
+      };
+
+      // Sort by latest approval date in descending order (newest first)
+      return parseCustomDate(latestDateB) - parseCustomDate(latestDateA);
     });
-    res.json(approvedPurchasingDocs);
+
+    res.json(sortedDocuments);
   } catch (err) {
     console.error("Error fetching approved purchasing documents:", err);
-    res.send(
-      "Lỗi lấy tài liệu mua hàng đã phê duyệt/Error fetching approved purchasing documents"
-    );
+    res
+      .status(500)
+      .send(
+        "Lỗi lấy tài liệu mua hàng đã phê duyệt/Error fetching approved purchasing documents"
+      );
   }
 };
 exports.getPurchasingDocumentById = async (req, res) => {

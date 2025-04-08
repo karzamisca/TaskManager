@@ -485,6 +485,9 @@ async function previewProposalContent(selectElement) {
   previewDiv.className = "proposal-preview";
   previewDiv.innerHTML = `
       <h3>Xem trước phiếu đề xuất/Preview of Proposal ${documentId}</h3>
+      <p><strong>Tình trạng phê duyệt/Approval Status:</strong> ${
+        proposal.status
+      }<br></p>
       <p><strong>Công việc/Task:</strong> ${proposal.task}</p>
       <p><strong>Trạm/Center:</strong> ${proposal.costCenter}</p>
       <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
@@ -553,7 +556,7 @@ document
       listItem.innerHTML = `
           <strong>Mã/ID:</strong> ${doc._id}<br>
           <strong>Tình trạng phê duyệt/Approval Status:</strong> ${
-            doc.approved ? "Đã phê duyệt/Approved" : "Chưa phê duyệt/Pending"
+            doc.status
           }<br>
           <strong>Trạm/Center:</strong> ${
             doc.costCenter ? doc.costCenter : ""
