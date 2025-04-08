@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phân mã sản phẩm/Product Code Assignment</title>
+    <link rel="stylesheet" href="adminPages/adminProduct/adminProduct.css" />
+  </head>
+  <body>
+    <a href="/admin">Trở về/Back</a>
+
+    <h1>Phân mã sản phẩm/Product Code Assignment</h1>
+
+    <div class="container">
+      <div class="action-buttons">
+        <button id="exportBtn" class="export-btn">
+          Xuất ra Excel/Export to Excel
+        </button>
+      </div>
+      <div id="productList">
+        <table id="productsTable">
+          <thead>
+            <tr>
+              <th>Tên/Name</th>
+              <th>Mã/Code</th>
+              <th>Hành động/Actions</th>
+            </tr>
+          </thead>
+          <tbody id="productsTableBody">
+            <!-- Products will be loaded here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="container">
+      <h2 id="formTitle">Thêm sản phẩm mới/Add New Product</h2>
+      <form id="productForm">
+        <input type="hidden" id="productId" />
+        <div class="form-group">
+          <label for="name">Tên sản phẩm/Product Name:</label>
+          <input type="text" id="name" name="name" required />
+        </div>
+        <div class="form-group">
+          <label for="code">Mã sản phẩm/Product Code:</label>
+          <input type="text" id="code" name="code" required />
+        </div>
+        <button type="submit" id="submitBtn">Add Product</button>
+        <button type="button" id="cancelBtn" class="hidden">Cancel</button>
+      </form>
+      <div id="formMessage"></div>
+    </div>
+
+    <div class="container">
+      <h2>Nhập từ Excel/Import Products from Excel</h2>
+      <div class="import-container">
+        <p>
+          Tải lên tệp Excel bao gồm thông tin sản phẩm/Upload an Excel file
+          (.xlsx) containing product data
+        </p>
+        <p>
+          <small
+            >Tệp tin Excel phải có cột: name, code/File must have columns: name,
+            code</small
+          >
+        </p>
+        <form id="importForm" enctype="multipart/form-data">
+          <input
+            type="file"
+            id="excelFile"
+            name="excelFile"
+            accept=".xlsx, .xls"
+          />
+          <button type="submit" id="importBtn">
+            Nhập sản phẩm/Import Products
+          </button>
+        </form>
+      </div>
+      <div id="importMessage"></div>
+    </div>
+
+    <script src="adminPages/adminProduct/adminProduct.js"></script>
+  </body>
+</html>
