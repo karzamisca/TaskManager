@@ -10,6 +10,29 @@ const DeliveryDocument = require("../models/DocumentDelivery");
 const ProjectProposalDocument = require("../models/DocumentProjectProposal");
 const moment = require("moment-timezone");
 
+exports.getProjectMainViews = (req, res) => {
+  if (
+    ![
+      "approver",
+      "superAdmin",
+      "headOfMechanical",
+      "headOfAccounting",
+      "headOfPurchasing",
+      "director",
+    ].includes(req.user.role)
+  ) {
+    return res
+      .status(403)
+      .send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+  }
+  res.sendFile("projectMain.html", {
+    root: "./views/projectPages/projectMain",
+  });
+};
+
+////PROJECT DOCUMENT CONTROLLERS
 // Serve the html file for the root route
 exports.getProjectDocumentViews = (req, res) => {
   if (
@@ -29,7 +52,7 @@ exports.getProjectDocumentViews = (req, res) => {
       );
   }
   res.sendFile("projectDocument.html", {
-    root: "./views/approvals/documents/projects",
+    root: "./views/projectPages/projectDocument",
   });
 };
 
@@ -51,7 +74,7 @@ exports.createProject = async (req, res) => {
     });
 
     await project.save();
-    res.redirect("/projectedDocument");
+    res.redirect("/projectDocument");
   } catch (error) {
     console.error("Error creating project:", error);
     res.status(500).send("Internal Server Error");
@@ -367,3 +390,4 @@ exports.removeDocumentFromProject = async (req, res) => {
     res.status(500).send("Internal Server Error");
   }
 };
+////END OF PROJECT DOCUMENT CONTROLLERS
