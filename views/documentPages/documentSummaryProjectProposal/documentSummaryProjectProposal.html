@@ -16,15 +16,12 @@
     <table>
       <thead>
         <tr>
-          <th>Title</th>
-          <th>Name</th>
-          <th>Content</th>
-          <th>Attached File</th>
-          <th>Group Name</th>
-          <th>Project Name</th>
-          <th>Status</th>
-          <th>Approval Status</th>
-          <th>Action</th>
+          <th>Tên/Name</th>
+          <th>Nội dung/Content</th>
+          <th>Tệp tin đính kèm/Attached File</th>
+          <th>Tình trạng/Status</th>
+          <th>Trạng thái phê duyệt/Approval Status</th>
+          <th>Hành động/Action</th>
         </tr>
       </thead>
       <tbody id="projectProposalsTable">
@@ -34,7 +31,7 @@
     <div id="fullViewModal" class="full-view-modal">
       <div class="full-view-content">
         <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
-        <h2 style="margin-bottom: 24px">Full Details</h2>
+        <h2 style="margin-bottom: 24px">Thông tin đầy đủ/Full Details</h2>
         <div id="fullViewContent"></div>
       </div>
     </div>
@@ -44,7 +41,7 @@
         <h2>Suspend Document</h2>
         <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
           <div style="margin-bottom: 20px">
-            <label for="suspendReason">Suspend Reason:</label>
+            <label for="suspendReason">Lý do từ chối/Suspend Reason:</label>
             <textarea
               id="suspendReason"
               required
@@ -52,13 +49,13 @@
             ></textarea>
           </div>
           <div style="display: flex; gap: 10px">
-            <button type="submit" class="approve-btn">Suspend</button>
+            <button type="submit" class="approve-btn">Từ chối/Suspend</button>
             <button
               type="button"
               class="approve-btn"
               onclick="closeSuspendModal()"
             >
-              Cancel
+              Hủy/Cancel
             </button>
           </div>
         </form>
@@ -67,15 +64,15 @@
     <div class="summary">
       <h2>Summary</h2>
       <p>
-        Total Approved Proposals:
+        Phiếu đã phê duyệt/Total Approved Proposals:
         <span id="approvedDocument" class="approved">0</span>
       </p>
       <p>
-        Total Unapproved Proposals:
+        Phiếu chưa phê duyệt/Total Unapproved Proposals:
         <span id="unapprovedDocument" class="unapproved">0</span>
       </p>
     </div>
-    <a href="/documentSummary">Back</a>
+    <a href="/documentSummary">Trở về/Back</a>
     <script src="documentPages/documentSummaryProjectProposal/documentSummaryProjectProposal.js"></script>
   </body>
 </html>

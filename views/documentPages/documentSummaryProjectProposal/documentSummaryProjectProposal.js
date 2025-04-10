@@ -123,7 +123,6 @@ async function fetchProjectProposals() {
 
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td>${doc.title || ""}</td>
         <td>${doc.name || ""}</td>
         <td>
           ${renderContent(doc.content)}
@@ -135,8 +134,6 @@ async function fetchProjectProposals() {
             ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
             : "-"
         }</td>
-        <td>${doc.groupName || "-"}</td>
-        <td>${doc.projectName || "-"}</td>
         <td>${renderStatus(doc.status)}</td>
         <td class="approval-status">${approvalStatus}</td>
         <td>

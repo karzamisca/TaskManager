@@ -754,16 +754,30 @@ exports.approveDocument = async (req, res) => {
         (approver) => approver.approver.toString() !== req.user.id
       );
 
-      // Count total approvers and already approved
+      // Count total approvers excluding director
       const totalOtherApprovers = otherApprovers.length;
+
+      // Count how many have already approved
       const approvedCount = document.approvedBy.length;
 
-      // Director can approve if at least (total approvers - 2) have approved
-      // This allows him to be either last or second-to-last
-      if (approvedCount < totalOtherApprovers - 1) {
-        return res.send(
-          "Cảnh báo: Các bên khác vẫn chưa phê duyệt./Warning: Approval from others is still pending."
-        );
+      // Different rules based on document type
+      if (
+        document instanceof PaymentDocument ||
+        document instanceof AdvancePaymentDocument
+      ) {
+        // For Payment and Advance Payment documents, director can be second-to-last
+        if (approvedCount < totalOtherApprovers - 1) {
+          return res.send(
+            "Cảnh báo: Các bên khác vẫn chưa phê duyệt./Warning: Approval from others is still pending."
+          );
+        }
+      } else {
+        // For all other document types, director must be the last approver
+        if (approvedCount < totalOtherApprovers) {
+          return res.send(
+            "Cảnh báo: Các bên khác vẫn chưa phê duyệt./Warning: Approval from others is still pending."
+          );
+        }
       }
     }
 
