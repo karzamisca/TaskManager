@@ -1,0 +1,185 @@
+/* views\projectPages\projectMain\projectMain.css */
+/* General Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Header Styles */
+.header {
+  background-color: #fff;
+  padding: 10px 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: flex-end;
+  gap: 20px;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+.header a {
+  display: inline-block;
+  font-size: 14px;
+  color: #007bff;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.header a:hover {
+  background-color: #e6f0ff;
+}
+
+/* Light Mode Styles (Default) */
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f9;
+  color: #333;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-top: 60px; /* Added to account for fixed header */
+}
+
+.container {
+  width: 90%;
+  max-width: 800px;
+  padding: 30px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  transform: scale(1);
+  transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+}
+
+header h1 {
+  font-size: 2em;
+  color: #2c3e50;
+}
+
+nav ul {
+  list-style: none;
+}
+
+nav ul li {
+  margin: 15px 0;
+}
+
+nav ul li a {
+  display: block;
+  padding: 12px 20px;
+  text-decoration: none;
+  color: #fff;
+  font-size: 1.1em;
+  border-radius: 4px;
+  text-align: center;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+a.document {
+  background-color: #db3434;
+}
+a.expense {
+  background-color: #ae278a;
+}
+
+nav ul li a:hover {
+  transform: scale(1.05);
+}
+
+/* Dark Mode Styles */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #121212;
+    color: #f1f1f1;
+  }
+
+  .header {
+    background-color: #333;
+  }
+
+  .header a {
+    color: #fff;
+  }
+
+  .header a:hover {
+    background-color: #444;
+  }
+
+  .container {
+    background-color: #1e1e1e;
+    color: #f1f1f1;
+    box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+  }
+
+  header h1 {
+    color: #f1f1f1;
+  }
+
+  nav ul li a {
+    color: #121212;
+  }
+
+  a.document {
+    color: #f1f1f1;
+    background-color: #555;
+  }
+  a.expense {
+    color: #f1f1f1;
+    background-color: #555;
+  }
+}
+
+/* Responsive Scaling for Smaller Screens */
+@media (max-width: 768px) {
+  .container {
+    transform: scale(0.9);
+  }
+  .header {
+    padding: 8px 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    padding: 10px;
+  }
+  .container {
+    transform: scale(0.8);
+    margin-top: 80px; /* Increased to account for vertical header */
+  }
+
+  header h1 {
+    font-size: 1.5em;
+  }
+
+  nav ul li a {
+    font-size: 1em;
+    padding: 10px 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .container {
+    transform: scale(0.7);
+    margin-top: 100px; /* Increased further for smaller screens */
+  }
+
+  header h1 {
+    font-size: 1.3em;
+  }
+
+  nav ul li a {
+    font-size: 0.9em;
+    padding: 8px 14px;
+  }
+}
