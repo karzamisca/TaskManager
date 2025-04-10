@@ -1927,18 +1927,124 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
     // Get user info from authMiddleware
     const userId = req._id;
     const userRole = req.role;
+    const username = req.user.username;
 
     // Find documents where:
     // 1. The user is the submitter OR
     // 2. The user is an approver OR
     // 3. The user is headOfAccounting (based on role)
-    const paymentDocuments = await PaymentDocument.find({
+    let paymentDocuments = await PaymentDocument.find({
       $or: [
         { submittedBy: userId },
         { "approvers.approver": userId },
         ...(userRole === "headOfAccounting" ? [{}] : []), // Include all if headOfAccounting
       ],
     }).populate("submittedBy approvers.approver approvedBy.user");
+
+    // Apply special filtering ONLY for certain pending documents based on username
+    if (username === "PhongTran" || username === "HuynhDiep") {
+      // Split pending documents into categories
+      const pendingDocsToFilter = [];
+      const pendingDocsToKeep = [];
+      const nonPendingDocs = [];
+
+      // Categorize documents
+      paymentDocuments.forEach((doc) => {
+        if (doc.status !== "Pending") {
+          // Keep all non-pending documents
+          nonPendingDocs.push(doc);
+          return;
+        }
+
+        // Check if user has already approved this document
+        const userApproved = doc.approvedBy.some(
+          (approved) => approved.username === username
+        );
+
+        if (userApproved) {
+          // Keep documents the user has already approved
+          pendingDocsToKeep.push(doc);
+          return;
+        }
+
+        // These are the pending docs that need special filtering
+        pendingDocsToFilter.push(doc);
+      });
+
+      // Apply special filtering only to pending documents that need filtering
+      let filteredPendingDocs = [];
+
+      if (username === "PhongTran") {
+        // Filter for PhongTran: Only show pending documents where PhongTran and HuynhDiep are the only ones who haven't approved
+        filteredPendingDocs = pendingDocsToFilter.filter((doc) => {
+          // Check if PhongTran is an approver but hasn't approved yet
+          const isPhongApprover = doc.approvers.some(
+            (a) =>
+              a.username === "PhongTran" &&
+              !doc.approvedBy.some(
+                (approved) => approved.username === "PhongTran"
+              )
+          );
+
+          if (!isPhongApprover) return false;
+
+          // Check if HuynhDiep is an approver but hasn't approved yet
+          const isHuynhApprover = doc.approvers.some(
+            (a) =>
+              a.username === "HuynhDiep" &&
+              !doc.approvedBy.some(
+                (approved) => approved.username === "HuynhDiep"
+              )
+          );
+
+          if (!isHuynhApprover) return false;
+
+          // Check if all other approvers have already approved
+          const pendingApprovers = doc.approvers.filter(
+            (approver) =>
+              !doc.approvedBy.some(
+                (approved) =>
+                  approved.user.toString() === approver.approver.toString()
+              )
+          );
+
+          // Only show if the only pending approvers are PhongTran and HuynhDiep
+          return (
+            pendingApprovers.length === 2 &&
+            pendingApprovers.some((a) => a.username === "PhongTran") &&
+            pendingApprovers.some((a) => a.username === "HuynhDiep")
+          );
+        });
+      } else if (username === "HuynhDiep") {
+        // Filter for HuynhDiep: Only show pending documents already approved by PhongTran
+        filteredPendingDocs = pendingDocsToFilter.filter((doc) => {
+          // Check if HuynhDiep is an approver but hasn't approved yet
+          const isHuynhApprover = doc.approvers.some(
+            (a) =>
+              a.username === "HuynhDiep" &&
+              !doc.approvedBy.some(
+                (approved) => approved.username === "HuynhDiep"
+              )
+          );
+
+          if (!isHuynhApprover) return false;
+
+          // Check if PhongTran has already approved
+          const phongApproved = doc.approvedBy.some(
+            (approved) => approved.username === "PhongTran"
+          );
+
+          return phongApproved;
+        });
+      }
+
+      // Combine all document categories
+      paymentDocuments = [
+        ...filteredPendingDocs,
+        ...pendingDocsToKeep,
+        ...nonPendingDocs,
+      ];
+    }
 
     // Sort the payment documents by status priority and approval date
     const sortedDocuments = paymentDocuments.sort((a, b) => {
@@ -2201,18 +2307,124 @@ exports.getAdvancePaymentDocumentForSeparatedView = async (req, res) => {
     // Get user info from authMiddleware
     const userId = req._id;
     const userRole = req.role;
+    const username = req.user.username;
 
     // Find documents where:
     // 1. The user is the submitter OR
     // 2. The user is an approver OR
     // 3. The user is headOfAccounting (based on role)
-    const advancePaymentDocuments = await AdvancePaymentDocument.find({
+    let advancePaymentDocuments = await AdvancePaymentDocument.find({
       $or: [
         { submittedBy: userId },
         { "approvers.approver": userId },
         ...(userRole === "headOfAccounting" ? [{}] : []), // Include all if headOfAccounting
       ],
     }).populate("submittedBy approvers.approver approvedBy.user");
+
+    // Apply special filtering ONLY for certain pending documents based on username
+    if (username === "PhongTran" || username === "HuynhDiep") {
+      // Split pending documents into categories
+      const pendingDocsToFilter = [];
+      const pendingDocsToKeep = [];
+      const nonPendingDocs = [];
+
+      // Categorize documents
+      advancePaymentDocuments.forEach((doc) => {
+        if (doc.status !== "Pending") {
+          // Keep all non-pending documents
+          nonPendingDocs.push(doc);
+          return;
+        }
+
+        // Check if user has already approved this document
+        const userApproved = doc.approvedBy.some(
+          (approved) => approved.username === username
+        );
+
+        if (userApproved) {
+          // Keep documents the user has already approved
+          pendingDocsToKeep.push(doc);
+          return;
+        }
+
+        // These are the pending docs that need special filtering
+        pendingDocsToFilter.push(doc);
+      });
+
+      // Apply special filtering only to pending documents that need filtering
+      let filteredPendingDocs = [];
+
+      if (username === "PhongTran") {
+        // Filter for PhongTran: Only show pending documents where PhongTran and HuynhDiep are the only ones who haven't approved
+        filteredPendingDocs = pendingDocsToFilter.filter((doc) => {
+          // Check if PhongTran is an approver but hasn't approved yet
+          const isPhongApprover = doc.approvers.some(
+            (a) =>
+              a.username === "PhongTran" &&
+              !doc.approvedBy.some(
+                (approved) => approved.username === "PhongTran"
+              )
+          );
+
+          if (!isPhongApprover) return false;
+
+          // Check if HuynhDiep is an approver but hasn't approved yet
+          const isHuynhApprover = doc.approvers.some(
+            (a) =>
+              a.username === "HuynhDiep" &&
+              !doc.approvedBy.some(
+                (approved) => approved.username === "HuynhDiep"
+              )
+          );
+
+          if (!isHuynhApprover) return false;
+
+          // Check if all other approvers have already approved
+          const pendingApprovers = doc.approvers.filter(
+            (approver) =>
+              !doc.approvedBy.some(
+                (approved) =>
+                  approved.user.toString() === approver.approver.toString()
+              )
+          );
+
+          // Only show if the only pending approvers are PhongTran and HuynhDiep
+          return (
+            pendingApprovers.length === 2 &&
+            pendingApprovers.some((a) => a.username === "PhongTran") &&
+            pendingApprovers.some((a) => a.username === "HuynhDiep")
+          );
+        });
+      } else if (username === "HuynhDiep") {
+        // Filter for HuynhDiep: Only show pending documents already approved by PhongTran
+        filteredPendingDocs = pendingDocsToFilter.filter((doc) => {
+          // Check if HuynhDiep is an approver but hasn't approved yet
+          const isHuynhApprover = doc.approvers.some(
+            (a) =>
+              a.username === "HuynhDiep" &&
+              !doc.approvedBy.some(
+                (approved) => approved.username === "HuynhDiep"
+              )
+          );
+
+          if (!isHuynhApprover) return false;
+
+          // Check if PhongTran has already approved
+          const phongApproved = doc.approvedBy.some(
+            (approved) => approved.username === "PhongTran"
+          );
+
+          return phongApproved;
+        });
+      }
+
+      // Combine all document categories
+      advancePaymentDocuments = [
+        ...filteredPendingDocs,
+        ...pendingDocsToKeep,
+        ...nonPendingDocs,
+      ];
+    }
 
     // Sort the payment documents by status priority and approval date
     const sortedDocuments = advancePaymentDocuments.sort((a, b) => {
@@ -2275,8 +2487,8 @@ exports.getAdvancePaymentDocumentForSeparatedView = async (req, res) => {
       advancePaymentDocuments: sortedDocuments,
     });
   } catch (err) {
-    console.error("Error fetching payment documents:", err);
-    res.status(500).send("Error fetching payment documents");
+    console.error("Error fetching advance payment documents:", err);
+    res.status(500).send("Error fetching advance payment documents");
   }
 };
 exports.getAdvancePaymentDocument = async (req, res) => {
