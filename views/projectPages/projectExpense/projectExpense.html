@@ -1,0 +1,326 @@
+<!-- views/projectExpense/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
+      rel="stylesheet"
+    />
+    <title>Quản lý chi phí dự án / Project Expense Management</title>
+    <link
+      rel="stylesheet"
+      href="projectPages/projectExpense/projectExpense.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
+    />
+  </head>
+  <body>
+    <header><a href="/projectMain">Trở về/Back</a><br /></header>
+
+    <h1>Quản lý chi phí dự án / Project Expense Management</h1>
+
+    <!-- Export Button -->
+    <div>
+      <button id="exportButton">Xuất ra Excel / Export to Excel</button>
+    </div>
+
+    <h2>Theo dõi/Trackers</h2>
+    <div>
+      <div>
+        <div class="alert alert-warning">
+          <strong>Chưa thanh toán/Unpaid:</strong>
+          <span id="unpaidTracker">0</span>
+        </div>
+      </div>
+      <div>
+        <div class="alert alert-success">
+          <strong>Đã thanh toán/Paid:</strong> <span id="paidTracker">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search fields for each column -->
+    <h2>Lọc/Filter</h2>
+    <form id="filterForm">
+      <div>
+        <label for="searchTag">Tem/Tag:</label>
+        <input type="text" id="searchTag" placeholder="Search by tag" />
+      </div>
+      <div>
+        <label for="searchName">Tên dự án/Project Name:</label>
+        <input type="text" id="searchName" placeholder="Search by name" />
+      </div>
+      <div>
+        <label for="searchDescription">Mô tả/Description:</label>
+        <input
+          type="text"
+          id="searchDescription"
+          placeholder="Search by description"
+        />
+      </div>
+      <div>
+        <label for="searchPackage">Gói/Package:</label>
+        <input type="text" id="searchPackage" placeholder="Search by package" />
+      </div>
+      <div>
+        <label for="searchUnit">Đơn vị/Unit:</label>
+        <input type="text" id="searchUnit" placeholder="Search by unit" />
+      </div>
+      <div>
+        <label for="searchAmount">Số lượng/Amount:</label>
+        <input type="number" id="searchAmount" placeholder="Search by amount" />
+      </div>
+      <div>
+        <label for="searchUnitPrice">Đơn giá/Unit Price:</label>
+        <input
+          type="number"
+          id="searchUnitPrice"
+          placeholder="Search by unit price"
+        />
+      </div>
+      <div>
+        <label for="searchTotalPrice">Thành tiền /Total Price:</label>
+        <input
+          type="number"
+          id="searchTotalPrice"
+          placeholder="Search by total price"
+        />
+      </div>
+      <div>
+        <label for="searchVAT">Thuế giá trị gia tăng/VAT (%):</label>
+        <input type="number" id="searchVAT" placeholder="Search by VAT" />
+      </div>
+      <div>
+        <label for="searchVATValue">Giá trị VAT/VAT Value:</label>
+        <input
+          type="number"
+          id="searchVATValue"
+          placeholder="Search by VAT Value"
+        />
+      </div>
+      <div>
+        <label for="searchDeliveryDate">Ngày giao hàng/Delivery Date:</label>
+        <input type="date" id="searchDeliveryDate" />
+      </div>
+      <div>
+        <label for="searchTotalPriceAfterVAT"
+          >Thành tiền sau VAT/Total Price After VAT:</label
+        >
+        <input
+          type="number"
+          id="searchTotalPriceAfterVAT"
+          placeholder="Search by total after VAT"
+        />
+      </div>
+      <div>
+        <label for="searchPaid">Đã trả/Paid:</label>
+        <input type="number" id="searchPaid" />
+      </div>
+      <div>
+        <label for="searchProjectExpenseDate">Ngày nhập liệu/Entry Date:</label>
+        <input type="date" id="searchProjectExpenseDate" />
+      </div>
+      <div>
+        <label for="searchNote">Ghi chú/Note:</label>
+        <input type="text" id="searchNote" />
+      </div>
+      <div>
+        <label for="searchSubmitter">Người nhập/Submitter:</label>
+        <input type="text" id="searchSubmitter" />
+      </div>
+      <div>
+        <label for="searchConfirmedReceived"
+          >Xác nhận đã nhận hàng/Confirmed Received:</label
+        >
+        <input type="text" id="searchConfirmedReceived" />
+      </div>
+    </form>
+
+    <div>
+      <button id="deleteSelected">Xoá dữ liệu đã chọn/Delete Selected</button>
+    </div>
+
+    <h2>Bảng chi phí dự án/Project Expense Table</h2>
+    <!-- Table for displaying projectExpense -->
+    <div class="projectExpense-container">
+      <table id="projectExpenseTable">
+        <thead>
+          <tr>
+            <th onclick="sortTable(1)">Tem/Tag</th>
+            <th onclick="sortTable(2)">Tên dự án/Project name</th>
+            <th onclick="sortTable(3)">Mô tả/Description</th>
+            <th onclick="sortTable(4)">Gói/Package</th>
+            <th onclick="sortTable(5)">Đơn vị/Unit</th>
+            <th onclick="sortTable(6)">Số lượng/Amount</th>
+            <th onclick="sortTable(7)">Đơn giá/Unit Price</th>
+            <th onclick="sortTable(8)">Thành tiền /Total Price</th>
+            <th onclick="sortTable(9)">Thuế giá trị gia tăng/VAT (%)</th>
+            <th onclick="sortTable(10)">Giá trị VAT/VAT Value</th>
+            <th onclick="sortTable(11)">
+              Thành tiền sau VAT/Total Price After VAT
+            </th>
+            <th onclick="sortTable(12)">Đã trả/Paid</th>
+            <th onclick="sortTable(13)">Ngày giao hàng/Delivery Date</th>
+            <th onclick="sortTable(14)">Ghi chú/Note</th>
+            <th onclick="sortTable(15)">Ngày nhập liệu/Entry Date</th>
+            <th onclick="sortTable(16)">Người nhập liệu/Submitter</th>
+            <th onclick="sortTable(17)">
+              Xác nhận đã nhận hàng/Confirmed Received
+            </th>
+            <th>Hành động/Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Rows will be inserted dynamically by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+    <h2>Nhập liệu mới/New ProjectExpense</h2>
+    <!-- Form for adding a new projectExpense -->
+    <form id="projectExpenseForm" action="/projectExpenseNew" method="POST">
+      <div class="form-group">
+        <label for="name">Tên/Name:</label>
+        <input type="text" id="name" name="name" required />
+      </div>
+
+      <div class="form-group">
+        <label for="description">Mô tả/Description:</label>
+        <input type="text" id="description" name="description" required />
+      </div>
+
+      <div class="form-group">
+        <label for="package">Gói/Package:</label>
+        <input type="text" id="package" name="package" required />
+      </div>
+
+      <div class="form-group">
+        <label for="unit">Đơn vị/Unit:</label>
+        <input type="text" id="unit" name="unit" required />
+      </div>
+
+      <div class="form-group">
+        <label for="deliveryDate">Ngày giao hàng/Delivery Date:</label>
+        <input type="date" id="deliveryDate" name="deliveryDate" required />
+      </div>
+
+      <div class="form-group">
+        <label for="amount">Số lượng/Amount:</label>
+        <input type="number" id="amount" name="amount" required />
+      </div>
+
+      <div class="form-group">
+        <label for="unitPrice">Đơn giá/Unit Price:</label>
+        <input
+          type="number"
+          step="0.01"
+          id="unitPrice"
+          name="unitPrice"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="vat">Thuế giá trị gia tăng/VAT (%):</label>
+        <input type="number" step="0.01" id="vat" name="vat" required />
+      </div>
+
+      <div class="form-group">
+        <label for="paid">Đã trả/Paid:</label>
+        <input type="number" step="0.1" id="paid" name="paid" required />
+      </div>
+
+      <div class="form-group">
+        <label for="note">Ghi chú/Note:</label>
+        <input type="text" id="note" name="note" required />
+      </div>
+
+      <button type="submit">Nộp/Submit</button>
+    </form>
+
+    <h2>Chỉnh sửa dữ liệu/Update ProjectExpense</h2>
+    <form id="updateForm" action="/projectExpenseUpdate" method="POST">
+      <div class="form-group full-width">
+        <label for="tag">Chọn tem/Choose tag:</label>
+        <select id="tag" name="tag" required>
+          <option value="" disabled selected>
+            Hãy chọn một tem/Select a tag
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="name">Tên dự án/Project Name:</label>
+        <input type="text" id="name" name="name" />
+      </div>
+
+      <div class="form-group">
+        <label for="description">Mô tả/Description:</label>
+        <input type="text" id="description" name="description" />
+      </div>
+
+      <div class="form-group">
+        <label for="package">Gói/Package:</label>
+        <input type="text" id="package" name="package" />
+      </div>
+
+      <div class="form-group">
+        <label for="unit">Đơn vị/Unit:</label>
+        <input type="text" id="unit" name="unit" />
+      </div>
+
+      <div class="form-group">
+        <label for="deliveryDate">Ngày giao hàng/Delivery Date:</label>
+        <input type="date" id="deliveryDate" name="deliveryDate" />
+      </div>
+
+      <div class="form-group">
+        <label for="amount">Số lượng/Amount:</label>
+        <input type="number" id="amount" name="amount" />
+      </div>
+
+      <div class="form-group">
+        <label for="unitPrice">Đơn giá/Unit Price:</label>
+        <input type="number" step="0.1" id="unitPrice" name="unitPrice" />
+      </div>
+
+      <div class="form-group">
+        <label for="vat">Thuế giá trị gia tăng/VAT (%):</label>
+        <input type="number" step="0.1" id="vat" name="vat" />
+      </div>
+
+      <div class="form-group">
+        <label for="paid">Đã trả/Paid:</label>
+        <input type="number" step="0.1" id="paid" name="paid" />
+      </div>
+
+      <div class="form-group">
+        <label for="note">Ghi chú/Note:</label>
+        <input type="text" id="note" name="note" />
+      </div>
+
+      <button type="submit">Chỉnh sửa/Update</button>
+    </form>
+
+    <h2>Nhập liệu từ Excel/Import ProjectExpense from Excel</h2>
+    <!-- Form for importing Excel files -->
+    <form
+      id="importForm"
+      action="/projectExpenseImport"
+      method="POST"
+      enctype="multipart/form-data"
+    >
+      <input type="file" name="excelFile" accept=".xlsx, .xls" required />
+      <button type="submit">Nhập vào từ Excel/Import from Excel</button>
+    </form>
+
+    <footer><a href="/projectMain">Trở về/Back</a><br /></footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <script src="projectPages/projectExpense/projectExpense.js"></script>
+  </body>
+</html>
