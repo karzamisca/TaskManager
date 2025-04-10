@@ -747,6 +747,26 @@ exports.approveDocument = async (req, res) => {
       );
     }
 
+    // Special handling for director (PhongTran)
+    if (user.username === "PhongTran") {
+      // Find all other approvers who need to approve
+      const otherApprovers = document.approvers.filter(
+        (approver) => approver.approver.toString() !== req.user.id
+      );
+
+      // Count total approvers and already approved
+      const totalOtherApprovers = otherApprovers.length;
+      const approvedCount = document.approvedBy.length;
+
+      // Director can approve if at least (total approvers - 2) have approved
+      // This allows him to be either last or second-to-last
+      if (approvedCount < totalOtherApprovers - 1) {
+        return res.send(
+          "Cảnh báo: Các bên khác vẫn chưa phê duyệt./Warning: Approval from others is still pending."
+        );
+      }
+    }
+
     // Add the current approver to the list of `approvedBy`
     document.approvedBy.push({
       user: user.id,
