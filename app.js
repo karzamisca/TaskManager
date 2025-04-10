@@ -13,7 +13,6 @@ const documentInGroupDeclarationRoute = require("./routes/documentInGroupDeclara
 const projectRoute = require("./routes/projectRoute");
 const projectExpenseRoute = require("./routes/projectExpenseRoute");
 const authMiddleware = require("./middlewares/authMiddleware"); // JWT middleware
-const entryRoute = require("./routes/entryRoute");
 const googleDriveRoute = require("./routes/googleDriveRoute");
 const fileServerRoute = require("./routes/fileServerRoute");
 const messageRoute = require("./routes/messageRoute");
@@ -57,7 +56,6 @@ app.use("/", authMiddleware, documentInGroupDeclarationRoute);
 app.use("/", authMiddleware, documentInGroupRoute);
 app.use("/", authMiddleware, projectRoute);
 app.use("/", authMiddleware, projectExpenseRoute);
-app.use("/", authMiddleware, entryRoute);
 app.use("/", authMiddleware, messageRoute);
 
 // Error handling for multer
