@@ -123,9 +123,17 @@ function displayGroupDeclarationDocumentsForRemoval(
       return sum;
     }, 0);
 
+  // Compute the total advance payment sum for advance payment documents in this groupDeclaration
+  const totalAdvancePaymentSum = documents
+    .filter((doc) => doc.type === "Tạm ứng/Advance Payment")
+    .reduce((sum, doc) => {
+      sum += doc.advancePayment || 0;
+      return sum;
+    }, 0);
+
   // Create and insert a header showing the groupDeclaration name and computed total payment sum
   const header = document.createElement("h3");
-  header.textContent = `Nhóm: ${groupDeclarationName} - Số tiền đã chi: ${totalPaymentSum.toLocaleString()}`;
+  header.textContent = `Nhóm: ${groupDeclarationName} - Số tiền thanh toán: ${totalPaymentSum.toLocaleString()} - Số tiền tạm ứng: ${totalAdvancePaymentSum.toLocaleString()}`;
   container.appendChild(header);
 
   // Iterate over each document and display its details

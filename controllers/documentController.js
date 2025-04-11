@@ -1275,7 +1275,9 @@ exports.getProposalDocumentForSeparatedView = async (req, res) => {
       $or: [
         { submittedBy: userId },
         { "approvers.approver": userId },
-        ...(userRole === "superAdmin" ? [{}] : []), // Include all if headOfAccounting
+        ...(userRole === "headOfAccounting" || userRole === "superAdmin"
+          ? [{}]
+          : []), // Include all if headOfAccounting
       ],
     }).populate("submittedBy approvers.approver approvedBy.user");
 
@@ -1576,7 +1578,9 @@ exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
       $or: [
         { submittedBy: userId },
         { "approvers.approver": userId },
-        ...(userRole === "headOfPurchasing" ? [{}] : []), // Include all if headOfAccounting
+        ...(userRole === "headOfAccounting" || userRole === "superAdmin"
+          ? [{}]
+          : []), // Include all if headOfAccounting
       ],
     }).populate("submittedBy approvers.approver approvedBy.user");
 
@@ -1937,7 +1941,9 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
       $or: [
         { submittedBy: userId },
         { "approvers.approver": userId },
-        ...(userRole === "headOfAccounting" ? [{}] : []), // Include all if headOfAccounting
+        ...(userRole === "headOfAccounting" || userRole === "superAdmin"
+          ? [{}]
+          : []), // Include all if headOfAccounting
       ],
     }).populate("submittedBy approvers.approver approvedBy.user");
 
@@ -2317,7 +2323,9 @@ exports.getAdvancePaymentDocumentForSeparatedView = async (req, res) => {
       $or: [
         { submittedBy: userId },
         { "approvers.approver": userId },
-        ...(userRole === "headOfAccounting" ? [{}] : []), // Include all if headOfAccounting
+        ...(userRole === "headOfAccounting" || userRole === "superAdmin"
+          ? [{}]
+          : []), // Include all if headOfAccounting
       ],
     }).populate("submittedBy approvers.approver approvedBy.user");
 
@@ -2697,7 +2705,9 @@ exports.getDeliveryDocumentsForSeparatedView = async (req, res) => {
       $or: [
         { submittedBy: userId },
         { "approvers.approver": userId },
-        ...(userRole === "headOfPurchasing" ? [{}] : []), // Include all if headOfAccounting
+        ...(userRole === "headOfAccounting" || userRole === "superAdmin"
+          ? [{}]
+          : []), // Include all if headOfAccounting
       ],
     }).populate("submittedBy approvers.approver approvedBy.user");
 
@@ -2965,7 +2975,9 @@ exports.getProjectProposalsForSeparatedView = async (req, res) => {
       $or: [
         { submittedBy: userId },
         { "approvers.approver": userId },
-        ...(userRole === "director" ? [{}] : []), // Include all if headOfAccounting
+        ...(userRole === "headOfAccounting" || userRole === "superAdmin"
+          ? [{}]
+          : []), // Include all if headOfAccounting
       ],
     }).populate("submittedBy approvers.approver approvedBy.user");
 

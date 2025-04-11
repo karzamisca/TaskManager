@@ -23,6 +23,7 @@ const cron = require("node-cron");
 const axios = require("axios");
 const documentController = require("./controllers/documentController"); // Import the email notification function
 const PaymentDocument = require("./models/DocumentPayment");
+const AdvancePaymentDocument = require("./models/DocumentAdvancePayment");
 const ProjectProposalDocument = require("./models/DocumentProjectProposal");
 const GroupDeclaration = require("./models/GroupDeclaration");
 const Project = require("./models/Project");
@@ -113,28 +114,46 @@ cron.schedule("0 */8 * * *", async () => {
   }
 });
 
-// Assign declaration group name and declaration to approved payment document
+// Assign declaration group name and declaration to approved payment and advance payment document
 cron.schedule("*/5 * * * *", async () => {
   try {
-    // Fetch all approved documents that don't have a group assigned
     // This includes both missing groupName and empty string groupName
-    const ungroupedDocuments = await PaymentDocument.find({
-      status: "Approved",
-      $or: [
-        { groupDeclarationName: { $exists: false } },
-        { groupDeclarationName: "" },
-        { groupDeclarationName: null },
-      ],
-    });
-    if (ungroupedDocuments.length === 0) {
+    const ungroupedDocuments = await Promise.all([
+      // Regular payment documents
+      PaymentDocument.find({
+        status: "Approved",
+        $or: [
+          { groupDeclarationName: { $exists: false } },
+          { groupDeclarationName: "" },
+          { groupDeclarationName: null },
+        ],
+      }),
+      // Advance payment documents
+      AdvancePaymentDocument.find({
+        status: "Approved",
+        $or: [
+          { groupDeclarationName: { $exists: false } },
+          { groupDeclarationName: "" },
+          { groupDeclarationName: null },
+        ],
+      }),
+    ]);
+
+    // Combine both document types
+    const allDocuments = [...ungroupedDocuments[0], ...ungroupedDocuments[1]];
+
+    if (allDocuments.length === 0) {
       return;
     }
+
     // Process each document
     let documentsAssigned = 0;
     const groupsCreated = [];
+
     // Group documents by date (DD-MM-YYYY)
     const documentsByDate = {};
-    ungroupedDocuments.forEach((doc) => {
+
+    allDocuments.forEach((doc) => {
       // Get the latest approval date for the document
       if (doc.approvedBy && doc.approvedBy.length > 0) {
         // Sort approval dates in descending order
@@ -151,9 +170,11 @@ cron.schedule("*/5 * * * *", async () => {
             parseCustomDate(b.approvalDate) - parseCustomDate(a.approvalDate)
           );
         });
+
         // Get just the date part (DD-MM-YYYY) for grouping
         const latestApprovalDate = sortedApprovals[0].approvalDate;
         const datePart = latestApprovalDate.split(" ")[0];
+
         // Add document to its date group
         if (!documentsByDate[datePart]) {
           documentsByDate[datePart] = [];
@@ -161,16 +182,20 @@ cron.schedule("*/5 * * * *", async () => {
         documentsByDate[datePart].push(doc);
       }
     });
+
     // Process each date group
     for (const [date, documents] of Object.entries(documentsByDate)) {
       // Create a group name based on the date
       const groupDeclarationName = `PTT${date.replace(/-/g, "")}`;
+
       // Generate a standard declaration for the group
       const declaration = `Phiếu thanh toán phê duyệt vào ${date}`;
+
       // Check if the group already exists
       let group = await GroupDeclaration.findOne({
         name: groupDeclarationName,
       });
+
       // If group doesn't exist, create it
       if (!group) {
         group = new GroupDeclaration({
@@ -180,9 +205,11 @@ cron.schedule("*/5 * * * *", async () => {
         await group.save();
         groupsCreated.push(groupDeclarationName);
       }
+
       // Assign all documents in this date group to the group
       for (const doc of documents) {
         doc.groupDeclarationName = groupDeclarationName;
+
         // Only update declaration if it's empty, null, or doesn't exist
         if (
           !doc.declaration ||
@@ -191,6 +218,8 @@ cron.schedule("*/5 * * * *", async () => {
         ) {
           doc.declaration = declaration;
         }
+
+        // Save the document using the appropriate model
         await doc.save();
         documentsAssigned++;
       }
