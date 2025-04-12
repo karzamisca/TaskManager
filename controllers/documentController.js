@@ -747,38 +747,95 @@ exports.approveDocument = async (req, res) => {
       );
     }
 
-    // Special handling for director (PhongTran)
-    if (user.username === "PhongTran") {
-      // Find all other approvers who need to approve
-      const otherApprovers = document.approvers.filter(
-        (approver) => approver.approver.toString() !== req.user.id
-      );
-
-      // Count total approvers excluding director
-      const totalOtherApprovers = otherApprovers.length;
-
-      // Count how many have already approved
-      const approvedCount = document.approvedBy.length;
-
-      // Different rules based on document type
-      if (
-        document instanceof PaymentDocument ||
-        document instanceof AdvancePaymentDocument
-      ) {
-        // For Payment and Advance Payment documents, director can be second-to-last
-        if (approvedCount < totalOtherApprovers - 1) {
-          return res.send(
-            "Cảnh báo: Các bên khác vẫn chưa phê duyệt./Warning: Approval from others is still pending."
-          );
+    // Get all approvers with populated user details
+    const approversList = await Promise.all(
+      document.approvers.map(async (approver) => {
+        if (approver.username) {
+          return approver;
         }
-      } else {
-        // For all other document types, director must be the last approver
-        if (approvedCount < totalOtherApprovers) {
-          return res.send(
-            "Cảnh báo: Các bên khác vẫn chưa phê duyệt./Warning: Approval from others is still pending."
-          );
-        }
+        const approverUser = await User.findById(approver.approver);
+        return {
+          ...approver.toObject(),
+          username: approverUser ? approverUser.username : null,
+        };
+      })
+    );
+
+    // Check if both PhongTran and HoangNam are approvers for this document
+    const phongTranApprover = approversList.find(
+      (approver) => approver.username === "PhongTran"
+    );
+
+    const hoangNamApprover = approversList.find(
+      (approver) => approver.username === "HoangNam"
+    );
+
+    // Get all non-director approvers
+    const regularApprovers = approversList.filter(
+      (approver) =>
+        approver.username !== "PhongTran" && approver.username !== "HoangNam"
+    );
+
+    // Check if all regular approvers have approved
+    const regularApproverIds = regularApprovers.map((approver) =>
+      approver.approver ? approver.approver.toString() : ""
+    );
+
+    const allRegularApproversApproved = regularApproverIds.every((approverId) =>
+      document.approvedBy.some(
+        (approved) => approved.user.toString() === approverId
+      )
+    );
+
+    // Check if PhongTran has already approved
+    const phongTranApproved =
+      phongTranApprover &&
+      document.approvedBy.some((approver) => approver.username === "PhongTran");
+
+    // Check if HoangNam has already approved
+    const hoangNamApproved =
+      hoangNamApprover &&
+      document.approvedBy.some((approver) => approver.username === "HoangNam");
+
+    // Special handling based on user
+    if (user.username === "HoangNam") {
+      // HoangNam needs to wait for all regular approvers
+      if (!allRegularApproversApproved && regularApprovers.length > 0) {
+        return res.send(
+          "Cảnh báo: Các bên khác vẫn chưa phê duyệt./Warning: Approval from others is still pending."
+        );
       }
+
+      // If PhongTran has already approved, HoangNam can't approve after
+      if (phongTranApproved) {
+        return res.send(
+          "Cảnh báo: Lỗi 1./Warning: Approval from others is still pending."
+        );
+      }
+    } else if (user.username === "PhongTran") {
+      // PhongTran needs to wait for all regular approvers
+      if (!allRegularApproversApproved && regularApprovers.length > 0) {
+        return res.send(
+          "Cảnh báo: Các bên khác vẫn chưa phê duyệt./Warning: Approval from others is still pending."
+        );
+      }
+
+      // If HoangNam is an approver, PhongTran needs to wait for HoangNam's approval
+      if (hoangNamApprover && !hoangNamApproved) {
+        return res.send(
+          "Cảnh báo: Các bên khác vẫn chưa phê duyệt./Warning: Approval from others is still pending."
+        );
+      }
+    }
+
+    // Handle special cases for specific document types
+    if (
+      (user.username === "PhongTran" || user.username === "HoangNam") &&
+      (document instanceof PaymentDocument ||
+        document instanceof AdvancePaymentDocument)
+    ) {
+      // For Payment and Advance Payment documents, directors can be second-to-last
+      // This logic is already handled by the allRegularApproversApproved check above
     }
 
     // Add the current approver to the list of `approvedBy`
