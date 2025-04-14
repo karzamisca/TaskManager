@@ -61,13 +61,19 @@ const documentUtils = {
     };
   },
 
-  // New function to filter documents based on username constraints
+  // New function to filter documents based on username constraints with hierarchy
   filterDocumentsByUsername: (documents, username) => {
     // If username is not one of the restricted users, return all documents
     const restrictedUsers = ["HoangNam", "PhongTran", "HuynhDiep"];
     if (!restrictedUsers.includes(username)) {
       return documents;
     }
+
+    // Define the hierarchy: HoangNam must approve before PhongTran, PhongTran before HuynhDiep
+    const hierarchy = {
+      HuynhDiep: ["PhongTran"], // PhongTran must approve before HuynhDiep
+      PhongTran: ["HoangNam"], // HoangNam must approve before PhongTran
+    };
 
     // Filter documents for restricted users
     return documents.filter((doc) => {
@@ -77,14 +83,21 @@ const documentUtils = {
         username: approver.approver.username,
       }));
 
-      // Get all approved IDs
-      const approvedByIds = doc.approvedBy.map((approval) =>
-        approval.user._id.toString()
-      );
+      // Get all approved users with usernames
+      const approvedUsers = doc.approvedBy.map((approval) => ({
+        id: approval.user._id.toString(),
+        username: approval.user.username,
+      }));
+
+      const approvedUsernames = approvedUsers.map((user) => user.username);
 
       // Find pending approvers (those not in approvedBy)
       const pendingApprovers = allApproversWithUsernames.filter(
-        (approver) => !approvedByIds.includes(approver.id)
+        (approver) => !approvedUsers.some((user) => user.id === approver.id)
+      );
+
+      const pendingUsernames = pendingApprovers.map(
+        (approver) => approver.username
       );
 
       // If there are no pending approvers, document is fully approved
@@ -98,13 +111,39 @@ const documentUtils = {
       );
 
       // Check if the current restricted user is among the pending approvers
-      const currentUserIsPending = pendingApprovers.some(
-        (approver) => approver.username === username
-      );
+      const currentUserIsPending = pendingUsernames.includes(username);
 
-      // Only show document if all pending approvers are restricted users
-      // AND the current user is among the pending approvers
-      return allPendingAreRestricted && currentUserIsPending;
+      // Check hierarchical approval constraints
+      let hierarchyAllowsApproval = true;
+
+      if (hierarchy[username]) {
+        // For each user that must approve before the current user
+        for (const requiredApprover of hierarchy[username]) {
+          // Check if this user is an approver for this document
+          const isApproverForDoc = allApproversWithUsernames.some(
+            (approver) => approver.username === requiredApprover
+          );
+
+          // If they are an approver but haven't approved yet, block the current user
+          if (
+            isApproverForDoc &&
+            !approvedUsernames.includes(requiredApprover)
+          ) {
+            hierarchyAllowsApproval = false;
+            break;
+          }
+        }
+      }
+
+      // Only show document if:
+      // 1. All pending approvers are restricted users
+      // 2. The current user is among the pending approvers
+      // 3. The hierarchical approval constraints are satisfied
+      return (
+        allPendingAreRestricted &&
+        currentUserIsPending &&
+        hierarchyAllowsApproval
+      );
     });
   },
 
