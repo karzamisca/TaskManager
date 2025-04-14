@@ -374,51 +374,31 @@ function updateSummarySection(documents) {
 
   documents.forEach((doc) => {
     if (doc.status === "Approved") {
-      // If advance payment equals 0, then paid sum equals total payment
-      if (doc.advancePayment === 0) {
-        paidSum += doc.totalPayment;
-      }
-      // If total payment equals 0, then paid sum equals advance payment
-      else if (doc.totalPayment === 0) {
-        paidSum += doc.advancePayment;
-      }
-      // Otherwise, paid sum equals total payment minus advance payment
-      else {
-        paidSum += doc.totalPayment - doc.advancePayment;
-      }
+      paidSum += doc.advancePayment;
       approvedDocument += 1;
     }
     // Only one approver left
     else if (doc.approvers.length - doc.approvedBy.length === 1) {
-      if (doc.advancePayment === 0) {
-        approvedSum += doc.totalPayment;
-      }
-      // If total payment equals 0, then approved sum equals advance payment
-      else if (doc.totalPayment === 0) {
-        approvedSum += doc.advancePayment;
-      }
-      // Otherwise, approved sum equals total payment minus advance payment
-      else {
-        approvedSum += doc.totalPayment - doc.advancePayment;
-      }
+      approvedSum += doc.advancePayment;
       unapprovedDocument += 1;
     }
     // More than one approver left
     else {
-      if (doc.advancePayment === 0) {
-        unapprovedSum += doc.totalPayment;
-      }
-      // If total payment equals 0, then unapproved sum equals advance payment
-      else if (doc.totalPayment === 0) {
-        unapprovedSum += doc.advancePayment;
-      }
-      // Otherwise, unapproved sum equals total payment minus advance payment
-      else {
-        unapprovedSum += doc.totalPayment - doc.advancePayment;
-      }
+      unapprovedSum += doc.advancePayment;
       unapprovedDocument += 1;
     }
   });
+
+  // Update the summary display
+  document.getElementById("paidSum").textContent = paidSum.toLocaleString();
+  document.getElementById("approvedSum").textContent =
+    approvedSum.toLocaleString();
+  document.getElementById("unapprovedSum").textContent =
+    unapprovedSum.toLocaleString();
+  document.getElementById("approvedDocument").textContent =
+    approvedDocument.toLocaleString();
+  document.getElementById("unapprovedDocument").textContent =
+    unapprovedDocument.toLocaleString();
 }
 
 // Function to render pagination controls

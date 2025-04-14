@@ -46,6 +46,90 @@ const CHATFUEL_TOKEN = process.env.CHATFUEL_TOKEN;
 const CHATFUEL_BLOCK_ID = process.env.CHATFUEL_BLOCK_ID;
 
 //// GENERAL CONTROLLER
+// Utility functions for document filtering and sorting
+const documentUtils = {
+  // Filter documents based on user permissions
+  filterDocumentsByUserAccess: (userId, userRole) => {
+    return {
+      $or: [
+        { submittedBy: userId },
+        { "approvers.approver": userId },
+        ...(userRole === "headOfAccounting" || userRole === "superAdmin"
+          ? [{}] // Include all documents if user is headOfAccounting or superAdmin
+          : []),
+      ],
+    };
+  },
+
+  // Parse custom date strings in format "DD-MM-YYYY HH:MM:SS"
+  parseCustomDate: (dateStr) => {
+    const [datePart, timePart] = dateStr.split(" ");
+    const [day, month, year] = datePart.split("-");
+    const [hour, minute, second] = timePart.split(":");
+    // Month is 0-indexed in JavaScript Date constructor
+    return new Date(year, month - 1, day, hour, minute, second);
+  },
+
+  // Get the latest approval date for a document
+  getLatestApprovalDate: (doc) => {
+    if (doc.approvedBy && doc.approvedBy.length > 0) {
+      // Sort approval dates in descending order
+      const sortedDates = [...doc.approvedBy].sort((x, y) => {
+        return (
+          documentUtils.parseCustomDate(y.approvalDate) -
+          documentUtils.parseCustomDate(x.approvalDate)
+        );
+      });
+      return sortedDates[0].approvalDate;
+    }
+    return "01-01-1970 00:00:00"; // Default date if no approvals
+  },
+
+  // Sort documents by status priority and approval date
+  sortDocumentsByStatusAndDate: (documents) => {
+    return documents.sort((a, b) => {
+      // First, sort by status priority: Suspended > Pending > Approved
+      const statusPriority = {
+        Suspended: 1,
+        Pending: 2,
+        Approved: 3,
+      };
+
+      const statusComparison =
+        statusPriority[a.status] - statusPriority[b.status];
+
+      // If status is the same, sort by latest approval date (for Approved documents)
+      if (statusComparison === 0 && a.status === "Approved") {
+        const latestDateA = documentUtils.getLatestApprovalDate(a);
+        const latestDateB = documentUtils.getLatestApprovalDate(b);
+
+        // Sort by latest approval date (ascending order - oldest first)
+        return (
+          documentUtils.parseCustomDate(latestDateA) -
+          documentUtils.parseCustomDate(latestDateB)
+        );
+      }
+
+      return statusComparison;
+    });
+  },
+
+  // Count approved and unapproved documents
+  countDocumentsByStatus: (documents) => {
+    let approvedDocument = 0;
+    let unapprovedDocument = 0;
+
+    documents.forEach((doc) => {
+      if (doc.status === "Approved") {
+        approvedDocument += 1;
+      } else {
+        unapprovedDocument += 1;
+      }
+    });
+
+    return { approvedDocument, unapprovedDocument };
+  },
+};
 async function sendChatfuelMessage(userId) {
   // Construct the full URL with required parameters
   const url = `https://api.chatfuel.com/bots/${CHATFUEL_BOT_ID}/users/${userId}/send?chatfuel_token=${CHATFUEL_TOKEN}&chatfuel_block_id=${CHATFUEL_BLOCK_ID}`;
@@ -1324,86 +1408,18 @@ exports.getProposalDocumentForSeparatedView = async (req, res) => {
     const userId = req._id;
     const userRole = req.role;
 
-    // Find documents where:
-    // 1. The user is the submitter OR
-    // 2. The user is an approver OR
-    // 3. The user is headOfAccounting (based on role)
-    const proposalDocuments = await ProposalDocument.find({
-      $or: [
-        { submittedBy: userId },
-        { "approvers.approver": userId },
-        ...(userRole === "headOfAccounting" || userRole === "superAdmin"
-          ? [{}]
-          : []), // Include all if headOfAccounting
-      ],
-    }).populate("submittedBy approvers.approver approvedBy.user");
+    // Find documents that the user has access to
+    const proposalDocuments = await ProposalDocument.find(
+      documentUtils.filterDocumentsByUserAccess(userId, userRole)
+    ).populate("submittedBy approvers.approver approvedBy.user");
 
-    // Sort the proposal documents by status priority and approval date
-    const sortedDocuments = proposalDocuments.sort((a, b) => {
-      // First, sort by status priority: Suspended > Pending > Approved
-      const statusPriority = {
-        Suspended: 1,
-        Pending: 2,
-        Approved: 3,
-      };
+    // Sort the documents by status priority and approval date
+    const sortedDocuments =
+      documentUtils.sortDocumentsByStatusAndDate(proposalDocuments);
 
-      const statusComparison =
-        statusPriority[a.status] - statusPriority[b.status];
-
-      // If status is the same, sort by latest approval date (for Approved documents)
-      if (statusComparison === 0 && a.status === "Approved") {
-        // Get the latest approval date for each document
-        const getLatestApprovalDate = (doc) => {
-          if (doc.approvedBy && doc.approvedBy.length > 0) {
-            // Sort approval dates in descending order
-            const sortedDates = [...doc.approvedBy].sort((x, y) => {
-              // Parse date strings in format "DD-MM-YYYY HH:MM:SS"
-              const parseCustomDate = (dateStr) => {
-                const [datePart, timePart] = dateStr.split(" ");
-                const [day, month, year] = datePart.split("-");
-                const [hour, minute, second] = timePart.split(":");
-                // Month is 0-indexed in JavaScript Date constructor
-                return new Date(year, month - 1, day, hour, minute, second);
-              };
-
-              return (
-                parseCustomDate(y.approvalDate) -
-                parseCustomDate(x.approvalDate)
-              );
-            });
-            return sortedDates[0].approvalDate;
-          }
-          return "01-01-1970 00:00:00"; // Default date if no approvals
-        };
-
-        const latestDateA = getLatestApprovalDate(a);
-        const latestDateB = getLatestApprovalDate(b);
-
-        // Parse and compare dates in the format "DD-MM-YYYY HH:MM:SS"
-        const parseCustomDate = (dateStr) => {
-          const [datePart, timePart] = dateStr.split(" ");
-          const [day, month, year] = datePart.split("-");
-          const [hour, minute, second] = timePart.split(":");
-          // Month is 0-indexed in JavaScript Date constructor
-          return new Date(year, month - 1, day, hour, minute, second);
-        };
-
-        // Sort by latest approval date (ascending order - oldest first)
-        return parseCustomDate(latestDateA) - parseCustomDate(latestDateB);
-      }
-
-      return statusComparison;
-    });
-
-    let approvedDocument = 0;
-    let unapprovedDocument = 0;
-    sortedDocuments.forEach((doc) => {
-      if (doc.status === "Approved") {
-        approvedDocument += 1;
-      } else {
-        unapprovedDocument += 1;
-      }
-    });
+    // Calculate counts for approved and unapproved documents
+    const { approvedDocument, unapprovedDocument } =
+      documentUtils.countDocumentsByStatus(sortedDocuments);
 
     res.json({
       proposalDocuments: sortedDocuments,
@@ -1627,90 +1643,28 @@ exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
     const userId = req._id;
     const userRole = req.role;
 
-    // Find documents where:
-    // 1. The user is the submitter OR
-    // 2. The user is an approver OR
-    // 3. The user is headOfAccounting (based on role)
-    const purchasingDocuments = await PurchasingDocument.find({
-      $or: [
-        { submittedBy: userId },
-        { "approvers.approver": userId },
-        ...(userRole === "headOfAccounting" || userRole === "superAdmin"
-          ? [{}]
-          : []), // Include all if headOfAccounting
-      ],
-    }).populate("submittedBy approvers.approver approvedBy.user");
+    // Find documents that the user has access to
+    const purchasingDocuments = await PurchasingDocument.find(
+      documentUtils.filterDocumentsByUserAccess(userId, userRole)
+    ).populate("submittedBy approvers.approver approvedBy.user");
 
-    // Sort the purchasing documents by status priority and approval date
-    const sortedDocuments = purchasingDocuments.sort((a, b) => {
-      // First, sort by status priority: Suspended > Pending > Approved
-      const statusPriority = {
-        Suspended: 1,
-        Pending: 2,
-        Approved: 3,
-      };
+    // Sort the documents by status priority and approval date
+    const sortedDocuments =
+      documentUtils.sortDocumentsByStatusAndDate(purchasingDocuments);
 
-      const statusComparison =
-        statusPriority[a.status] - statusPriority[b.status];
-
-      // If status is the same, sort by latest approval date (for Approved documents)
-      if (statusComparison === 0 && a.status === "Approved") {
-        // Get the latest approval date for each document
-        const getLatestApprovalDate = (doc) => {
-          if (doc.approvedBy && doc.approvedBy.length > 0) {
-            // Sort approval dates in descending order
-            const sortedDates = [...doc.approvedBy].sort((x, y) => {
-              // Parse date strings in format "DD-MM-YYYY HH:MM:SS"
-              const parseCustomDate = (dateStr) => {
-                const [datePart, timePart] = dateStr.split(" ");
-                const [day, month, year] = datePart.split("-");
-                const [hour, minute, second] = timePart.split(":");
-                // Month is 0-indexed in JavaScript Date constructor
-                return new Date(year, month - 1, day, hour, minute, second);
-              };
-
-              return (
-                parseCustomDate(y.approvalDate) -
-                parseCustomDate(x.approvalDate)
-              );
-            });
-            return sortedDates[0].approvalDate;
-          }
-          return "01-01-1970 00:00:00"; // Default date if no approvals
-        };
-
-        const latestDateA = getLatestApprovalDate(a);
-        const latestDateB = getLatestApprovalDate(b);
-
-        // Parse and compare dates in the format "DD-MM-YYYY HH:MM:SS"
-        const parseCustomDate = (dateStr) => {
-          const [datePart, timePart] = dateStr.split(" ");
-          const [day, month, year] = datePart.split("-");
-          const [hour, minute, second] = timePart.split(":");
-          // Month is 0-indexed in JavaScript Date constructor
-          return new Date(year, month - 1, day, hour, minute, second);
-        };
-
-        // Sort by latest approval date (ascending order - oldest first)
-        return parseCustomDate(latestDateA) - parseCustomDate(latestDateB);
-      }
-
-      return statusComparison;
-    });
+    // Calculate counts for approved and unapproved documents
+    const { approvedDocument, unapprovedDocument } =
+      documentUtils.countDocumentsByStatus(sortedDocuments);
 
     // Calculate sums for approved and unapproved documents
     let approvedSum = 0;
     let unapprovedSum = 0;
-    let approvedDocument = 0;
-    let unapprovedDocument = 0;
 
     sortedDocuments.forEach((doc) => {
       if (doc.status === "Approved") {
         approvedSum += doc.grandTotalCost;
-        approvedDocument += 1;
       } else {
         unapprovedSum += doc.grandTotalCost;
-        unapprovedDocument += 1;
       }
     });
 
@@ -1988,183 +1942,15 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
     // Get user info from authMiddleware
     const userId = req._id;
     const userRole = req.role;
-    const username = req.user.username;
 
-    // Find documents where:
-    // 1. The user is the submitter OR
-    // 2. The user is an approver OR
-    // 3. The user is headOfAccounting (based on role)
-    let paymentDocuments = await PaymentDocument.find({
-      $or: [
-        { submittedBy: userId },
-        { "approvers.approver": userId },
-        ...(userRole === "headOfAccounting" || userRole === "superAdmin"
-          ? [{}]
-          : []), // Include all if headOfAccounting
-      ],
-    }).populate("submittedBy approvers.approver approvedBy.user");
+    // Find documents that the user has access to
+    const paymentDocuments = await PaymentDocument.find(
+      documentUtils.filterDocumentsByUserAccess(userId, userRole)
+    ).populate("submittedBy approvers.approver approvedBy.user");
 
-    // Apply special filtering ONLY for certain pending documents based on username
-    if (username === "PhongTran" || username === "HuynhDiep") {
-      // Split pending documents into categories
-      const pendingDocsToFilter = [];
-      const pendingDocsToKeep = [];
-      const nonPendingDocs = [];
-
-      // Categorize documents
-      paymentDocuments.forEach((doc) => {
-        if (doc.status !== "Pending") {
-          // Keep all non-pending documents
-          nonPendingDocs.push(doc);
-          return;
-        }
-
-        // Check if user has already approved this document
-        const userApproved = doc.approvedBy.some(
-          (approved) => approved.username === username
-        );
-
-        if (userApproved) {
-          // Keep documents the user has already approved
-          pendingDocsToKeep.push(doc);
-          return;
-        }
-
-        // These are the pending docs that need special filtering
-        pendingDocsToFilter.push(doc);
-      });
-
-      // Apply special filtering only to pending documents that need filtering
-      let filteredPendingDocs = [];
-
-      if (username === "PhongTran") {
-        // Filter for PhongTran: Only show pending documents where PhongTran and HuynhDiep are the only ones who haven't approved
-        filteredPendingDocs = pendingDocsToFilter.filter((doc) => {
-          // Check if PhongTran is an approver but hasn't approved yet
-          const isPhongApprover = doc.approvers.some(
-            (a) =>
-              a.username === "PhongTran" &&
-              !doc.approvedBy.some(
-                (approved) => approved.username === "PhongTran"
-              )
-          );
-
-          if (!isPhongApprover) return false;
-
-          // Check if HuynhDiep is an approver but hasn't approved yet
-          const isHuynhApprover = doc.approvers.some(
-            (a) =>
-              a.username === "HuynhDiep" &&
-              !doc.approvedBy.some(
-                (approved) => approved.username === "HuynhDiep"
-              )
-          );
-
-          if (!isHuynhApprover) return false;
-
-          // Check if all other approvers have already approved
-          const pendingApprovers = doc.approvers.filter(
-            (approver) =>
-              !doc.approvedBy.some(
-                (approved) =>
-                  approved.user.toString() === approver.approver.toString()
-              )
-          );
-
-          // Only show if the only pending approvers are PhongTran and HuynhDiep
-          return (
-            pendingApprovers.length === 2 &&
-            pendingApprovers.some((a) => a.username === "PhongTran") &&
-            pendingApprovers.some((a) => a.username === "HuynhDiep")
-          );
-        });
-      } else if (username === "HuynhDiep") {
-        // Filter for HuynhDiep: Only show pending documents already approved by PhongTran
-        filteredPendingDocs = pendingDocsToFilter.filter((doc) => {
-          // Check if HuynhDiep is an approver but hasn't approved yet
-          const isHuynhApprover = doc.approvers.some(
-            (a) =>
-              a.username === "HuynhDiep" &&
-              !doc.approvedBy.some(
-                (approved) => approved.username === "HuynhDiep"
-              )
-          );
-
-          if (!isHuynhApprover) return false;
-
-          // Check if PhongTran has already approved
-          const phongApproved = doc.approvedBy.some(
-            (approved) => approved.username === "PhongTran"
-          );
-
-          return phongApproved;
-        });
-      }
-
-      // Combine all document categories
-      paymentDocuments = [
-        ...filteredPendingDocs,
-        ...pendingDocsToKeep,
-        ...nonPendingDocs,
-      ];
-    }
-
-    // Sort the payment documents by status priority and approval date
-    const sortedDocuments = paymentDocuments.sort((a, b) => {
-      // First, sort by status priority: Suspended > Pending > Approved
-      const statusPriority = {
-        Suspended: 1,
-        Pending: 2,
-        Approved: 3,
-      };
-
-      const statusComparison =
-        statusPriority[a.status] - statusPriority[b.status];
-
-      // If status is the same, sort by latest approval date (for Approved documents)
-      if (statusComparison === 0 && a.status === "Approved") {
-        // Get the latest approval date for each document
-        const getLatestApprovalDate = (doc) => {
-          if (doc.approvedBy && doc.approvedBy.length > 0) {
-            // Sort approval dates in descending order
-            const sortedDates = [...doc.approvedBy].sort((x, y) => {
-              // Parse date strings in format "DD-MM-YYYY HH:MM:SS"
-              const parseCustomDate = (dateStr) => {
-                const [datePart, timePart] = dateStr.split(" ");
-                const [day, month, year] = datePart.split("-");
-                const [hour, minute, second] = timePart.split(":");
-                // Month is 0-indexed in JavaScript Date constructor
-                return new Date(year, month - 1, day, hour, minute, second);
-              };
-
-              return (
-                parseCustomDate(y.approvalDate) -
-                parseCustomDate(x.approvalDate)
-              );
-            });
-            return sortedDates[0].approvalDate;
-          }
-          return "01-01-1970 00:00:00"; // Default date if no approvals
-        };
-
-        const latestDateA = getLatestApprovalDate(a);
-        const latestDateB = getLatestApprovalDate(b);
-
-        // Parse and compare dates in the format "DD-MM-YYYY HH:MM:SS"
-        const parseCustomDate = (dateStr) => {
-          const [datePart, timePart] = dateStr.split(" ");
-          const [day, month, year] = datePart.split("-");
-          const [hour, minute, second] = timePart.split(":");
-          // Month is 0-indexed in JavaScript Date constructor
-          return new Date(year, month - 1, day, hour, minute, second);
-        };
-
-        // Sort by latest approval date (ascending order - oldest first)
-        return parseCustomDate(latestDateA) - parseCustomDate(latestDateB);
-      }
-
-      return statusComparison;
-    });
+    // Sort the documents by status priority and approval date
+    const sortedDocuments =
+      documentUtils.sortDocumentsByStatusAndDate(paymentDocuments);
 
     res.json({
       paymentDocuments: sortedDocuments,
@@ -2370,183 +2156,16 @@ exports.getAdvancePaymentDocumentForSeparatedView = async (req, res) => {
     // Get user info from authMiddleware
     const userId = req._id;
     const userRole = req.role;
-    const username = req.user.username;
 
-    // Find documents where:
-    // 1. The user is the submitter OR
-    // 2. The user is an approver OR
-    // 3. The user is headOfAccounting (based on role)
-    let advancePaymentDocuments = await AdvancePaymentDocument.find({
-      $or: [
-        { submittedBy: userId },
-        { "approvers.approver": userId },
-        ...(userRole === "headOfAccounting" || userRole === "superAdmin"
-          ? [{}]
-          : []), // Include all if headOfAccounting
-      ],
-    }).populate("submittedBy approvers.approver approvedBy.user");
+    // Find documents that the user has access to
+    const advancePaymentDocuments = await AdvancePaymentDocument.find(
+      documentUtils.filterDocumentsByUserAccess(userId, userRole)
+    ).populate("submittedBy approvers.approver approvedBy.user");
 
-    // Apply special filtering ONLY for certain pending documents based on username
-    if (username === "PhongTran" || username === "HuynhDiep") {
-      // Split pending documents into categories
-      const pendingDocsToFilter = [];
-      const pendingDocsToKeep = [];
-      const nonPendingDocs = [];
-
-      // Categorize documents
-      advancePaymentDocuments.forEach((doc) => {
-        if (doc.status !== "Pending") {
-          // Keep all non-pending documents
-          nonPendingDocs.push(doc);
-          return;
-        }
-
-        // Check if user has already approved this document
-        const userApproved = doc.approvedBy.some(
-          (approved) => approved.username === username
-        );
-
-        if (userApproved) {
-          // Keep documents the user has already approved
-          pendingDocsToKeep.push(doc);
-          return;
-        }
-
-        // These are the pending docs that need special filtering
-        pendingDocsToFilter.push(doc);
-      });
-
-      // Apply special filtering only to pending documents that need filtering
-      let filteredPendingDocs = [];
-
-      if (username === "PhongTran") {
-        // Filter for PhongTran: Only show pending documents where PhongTran and HuynhDiep are the only ones who haven't approved
-        filteredPendingDocs = pendingDocsToFilter.filter((doc) => {
-          // Check if PhongTran is an approver but hasn't approved yet
-          const isPhongApprover = doc.approvers.some(
-            (a) =>
-              a.username === "PhongTran" &&
-              !doc.approvedBy.some(
-                (approved) => approved.username === "PhongTran"
-              )
-          );
-
-          if (!isPhongApprover) return false;
-
-          // Check if HuynhDiep is an approver but hasn't approved yet
-          const isHuynhApprover = doc.approvers.some(
-            (a) =>
-              a.username === "HuynhDiep" &&
-              !doc.approvedBy.some(
-                (approved) => approved.username === "HuynhDiep"
-              )
-          );
-
-          if (!isHuynhApprover) return false;
-
-          // Check if all other approvers have already approved
-          const pendingApprovers = doc.approvers.filter(
-            (approver) =>
-              !doc.approvedBy.some(
-                (approved) =>
-                  approved.user.toString() === approver.approver.toString()
-              )
-          );
-
-          // Only show if the only pending approvers are PhongTran and HuynhDiep
-          return (
-            pendingApprovers.length === 2 &&
-            pendingApprovers.some((a) => a.username === "PhongTran") &&
-            pendingApprovers.some((a) => a.username === "HuynhDiep")
-          );
-        });
-      } else if (username === "HuynhDiep") {
-        // Filter for HuynhDiep: Only show pending documents already approved by PhongTran
-        filteredPendingDocs = pendingDocsToFilter.filter((doc) => {
-          // Check if HuynhDiep is an approver but hasn't approved yet
-          const isHuynhApprover = doc.approvers.some(
-            (a) =>
-              a.username === "HuynhDiep" &&
-              !doc.approvedBy.some(
-                (approved) => approved.username === "HuynhDiep"
-              )
-          );
-
-          if (!isHuynhApprover) return false;
-
-          // Check if PhongTran has already approved
-          const phongApproved = doc.approvedBy.some(
-            (approved) => approved.username === "PhongTran"
-          );
-
-          return phongApproved;
-        });
-      }
-
-      // Combine all document categories
-      advancePaymentDocuments = [
-        ...filteredPendingDocs,
-        ...pendingDocsToKeep,
-        ...nonPendingDocs,
-      ];
-    }
-
-    // Sort the payment documents by status priority and approval date
-    const sortedDocuments = advancePaymentDocuments.sort((a, b) => {
-      // First, sort by status priority: Suspended > Pending > Approved
-      const statusPriority = {
-        Suspended: 1,
-        Pending: 2,
-        Approved: 3,
-      };
-
-      const statusComparison =
-        statusPriority[a.status] - statusPriority[b.status];
-
-      // If status is the same, sort by latest approval date (for Approved documents)
-      if (statusComparison === 0 && a.status === "Approved") {
-        // Get the latest approval date for each document
-        const getLatestApprovalDate = (doc) => {
-          if (doc.approvedBy && doc.approvedBy.length > 0) {
-            // Sort approval dates in descending order
-            const sortedDates = [...doc.approvedBy].sort((x, y) => {
-              // Parse date strings in format "DD-MM-YYYY HH:MM:SS"
-              const parseCustomDate = (dateStr) => {
-                const [datePart, timePart] = dateStr.split(" ");
-                const [day, month, year] = datePart.split("-");
-                const [hour, minute, second] = timePart.split(":");
-                // Month is 0-indexed in JavaScript Date constructor
-                return new Date(year, month - 1, day, hour, minute, second);
-              };
-
-              return (
-                parseCustomDate(y.approvalDate) -
-                parseCustomDate(x.approvalDate)
-              );
-            });
-            return sortedDates[0].approvalDate;
-          }
-          return "01-01-1970 00:00:00"; // Default date if no approvals
-        };
-
-        const latestDateA = getLatestApprovalDate(a);
-        const latestDateB = getLatestApprovalDate(b);
-
-        // Parse and compare dates in the format "DD-MM-YYYY HH:MM:SS"
-        const parseCustomDate = (dateStr) => {
-          const [datePart, timePart] = dateStr.split(" ");
-          const [day, month, year] = datePart.split("-");
-          const [hour, minute, second] = timePart.split(":");
-          // Month is 0-indexed in JavaScript Date constructor
-          return new Date(year, month - 1, day, hour, minute, second);
-        };
-
-        // Sort by latest approval date (ascending order - oldest first)
-        return parseCustomDate(latestDateA) - parseCustomDate(latestDateB);
-      }
-
-      return statusComparison;
-    });
+    // Sort the documents by status priority and approval date
+    const sortedDocuments = documentUtils.sortDocumentsByStatusAndDate(
+      advancePaymentDocuments
+    );
 
     res.json({
       advancePaymentDocuments: sortedDocuments,
@@ -3024,76 +2643,18 @@ exports.getProjectProposalsForSeparatedView = async (req, res) => {
     const userId = req._id;
     const userRole = req.role;
 
-    // Find documents where:
-    // 1. The user is the submitter OR
-    // 2. The user is an approver OR
-    // 3. The user is headOfAccounting (based on role)
-    const projectProposals = await ProjectProposalDocument.find({
-      $or: [
-        { submittedBy: userId },
-        { "approvers.approver": userId },
-        ...(userRole === "headOfAccounting" || userRole === "superAdmin"
-          ? [{}]
-          : []), // Include all if headOfAccounting
-      ],
-    }).populate("submittedBy approvers.approver approvedBy.user");
+    // Find documents that the user has access to
+    const projectProposals = await ProjectProposalDocument.find(
+      documentUtils.filterDocumentsByUserAccess(userId, userRole)
+    ).populate("submittedBy approvers.approver approvedBy.user");
 
-    // Sort the project proposals by status priority and approval date
-    const sortedDocuments = projectProposals.sort((a, b) => {
-      const statusPriority = {
-        Suspended: 1,
-        Pending: 2,
-        Approved: 3,
-      };
-      const statusComparison =
-        statusPriority[a.status] - statusPriority[b.status];
-
-      if (statusComparison === 0 && a.status === "Approved") {
-        const getLatestApprovalDate = (doc) => {
-          if (doc.approvedBy && doc.approvedBy.length > 0) {
-            const sortedDates = [...doc.approvedBy].sort((x, y) => {
-              const parseCustomDate = (dateStr) => {
-                const [datePart, timePart] = dateStr.split(" ");
-                const [day, month, year] = datePart.split("-");
-                const [hour, minute, second] = timePart.split(":");
-                return new Date(year, month - 1, day, hour, minute, second);
-              };
-              return (
-                parseCustomDate(y.approvalDate) -
-                parseCustomDate(x.approvalDate)
-              );
-            });
-            return sortedDates[0].approvalDate;
-          }
-          return "01-01-1970 00:00:00";
-        };
-
-        const latestDateA = getLatestApprovalDate(a);
-        const latestDateB = getLatestApprovalDate(b);
-
-        const parseCustomDate = (dateStr) => {
-          const [datePart, timePart] = dateStr.split(" ");
-          const [day, month, year] = datePart.split("-");
-          const [hour, minute, second] = timePart.split(":");
-          return new Date(year, month - 1, day, hour, minute, second);
-        };
-
-        return parseCustomDate(latestDateA) - parseCustomDate(latestDateB);
-      }
-      return statusComparison;
-    });
+    // Sort the documents by status priority and approval date
+    const sortedDocuments =
+      documentUtils.sortDocumentsByStatusAndDate(projectProposals);
 
     // Calculate counts for approved and unapproved documents
-    let approvedDocument = 0;
-    let unapprovedDocument = 0;
-
-    sortedDocuments.forEach((doc) => {
-      if (doc.status === "Approved") {
-        approvedDocument += 1;
-      } else {
-        unapprovedDocument += 1;
-      }
-    });
+    const { approvedDocument, unapprovedDocument } =
+      documentUtils.countDocumentsByStatus(sortedDocuments);
 
     res.json({
       projectProposals: sortedDocuments,
