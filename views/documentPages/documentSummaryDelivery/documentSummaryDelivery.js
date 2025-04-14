@@ -45,8 +45,14 @@ function filterDocumentsForCurrentUser(documents) {
 function showMessage(message, isError = false) {
   const messageContainer = document.getElementById("messageContainer");
   messageContainer.textContent = message;
-  messageContainer.style.display = "block";
   messageContainer.className = `message ${isError ? "error" : "success"}`;
+
+  // Get the current scroll position
+  const scrollY = window.scrollY || document.documentElement.scrollTop;
+  messageContainer.style.top = `${scrollY + 20}px`; // Offset from top of viewport
+
+  messageContainer.style.display = "block";
+
   setTimeout(() => {
     messageContainer.style.display = "none";
   }, 5000);

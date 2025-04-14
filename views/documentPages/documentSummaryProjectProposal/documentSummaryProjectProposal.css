@@ -153,19 +153,21 @@ tr:hover {
 
 /* Message styles */
 .message {
-  padding: 12px;
-  margin: 10px 0;
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
   border-radius: 4px;
-  display: none;
-  animation: fadeIn 0.3s ease-in-out;
+  z-index: 1000;
+  background-color: #f0f0f0;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
-
 .message.error {
   background-color: var(--error-bg);
   color: var(--error-text);
   border: 1px solid var(--error-border);
 }
-
 .message.success {
   background-color: var(--success-bg);
   color: var(--success-text);
