@@ -54,7 +54,9 @@ const documentUtils = {
       $or: [
         { submittedBy: userId },
         { "approvers.approver": userId },
-        ...(userRole === "headOfAccounting" || userRole === "superAdmin"
+        ...(userRole === "headOfAccounting" ||
+        userRole === "superAdmin" ||
+        userRole === "headOfPurchasing"
           ? [{}] // Include all documents if user is headOfAccounting or superAdmin
           : []),
       ],
@@ -71,7 +73,7 @@ const documentUtils = {
 
     // Define the hierarchy: HoangNam must approve before PhongTran, PhongTran before HuynhDiep
     const hierarchy = {
-      HuynhDiep: ["PhongTran"], // PhongTran must approve before HuynhDiep
+      HuynhDiep: ["PhongTran", "HoangNam"], // PhongTran must approve before HuynhDiep
       PhongTran: ["HoangNam"], // HoangNam must approve before PhongTran
     };
 
@@ -90,6 +92,14 @@ const documentUtils = {
       }));
 
       const approvedUsernames = approvedUsers.map((user) => user.username);
+
+      // Check if current user has already approved this document
+      const currentUserHasApproved = approvedUsernames.includes(username);
+
+      // If the user has already approved this document, they can see it
+      if (currentUserHasApproved) {
+        return true;
+      }
 
       // Find pending approvers (those not in approvedBy)
       const pendingApprovers = allApproversWithUsernames.filter(
@@ -1451,7 +1461,11 @@ exports.updateProposalDocumentDeclaration = async (req, res) => {
   const { declaration } = req.body;
 
   try {
-    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
+    if (
+      !["approver", "headOfAccounting", "headOfPurchasing"].includes(
+        req.user.role
+      )
+    ) {
       return res.send(
         "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
       );
@@ -1830,7 +1844,11 @@ exports.updatePurchasingDocumentDeclaration = async (req, res) => {
   const { declaration } = req.body;
 
   try {
-    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
+    if (
+      !["approver", "headOfAccounting", "headOfPurchasing"].includes(
+        req.user.role
+      )
+    ) {
       return res.send(
         "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
       );
@@ -2100,7 +2118,11 @@ exports.updatePaymentDocumentDeclaration = async (req, res) => {
   const { declaration } = req.body;
 
   try {
-    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
+    if (
+      !["approver", "headOfAccounting", "headOfPurchasing"].includes(
+        req.user.role
+      )
+    ) {
       return res.send(
         "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
       );
@@ -2125,7 +2147,11 @@ exports.massUpdatePaymentDocumentDeclaration = async (req, res) => {
 
   try {
     // Check user role
-    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
+    if (
+      !["approver", "headOfAccounting", "headOfPurchasing"].includes(
+        req.user.role
+      )
+    ) {
       return res
         .status(403)
         .send(
@@ -2321,7 +2347,11 @@ exports.updateAdvancePaymentDocumentDeclaration = async (req, res) => {
   const { declaration } = req.body;
 
   try {
-    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
+    if (
+      !["approver", "headOfAccounting", "headOfPurchasing"].includes(
+        req.user.role
+      )
+    ) {
       return res.send(
         "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
       );
@@ -2346,7 +2376,11 @@ exports.massUpdateAdvancePaymentDocumentDeclaration = async (req, res) => {
 
   try {
     // Check user role
-    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
+    if (
+      !["approver", "headOfAccounting", "headOfPurchasing"].includes(
+        req.user.role
+      )
+    ) {
       return res
         .status(403)
         .send(
@@ -2752,7 +2786,11 @@ exports.updateProjectProposalDeclaration = async (req, res) => {
   const { declaration } = req.body;
 
   try {
-    if (!["approver", "headOfAccounting"].includes(req.user.role)) {
+    if (
+      !["approver", "headOfAccounting", "headOfPurchasing"].includes(
+        req.user.role
+      )
+    ) {
       return res.send("Access denied. You don't have permission to access.");
     }
 
