@@ -61,6 +61,53 @@ const documentUtils = {
     };
   },
 
+  // New function to filter documents based on username constraints
+  filterDocumentsByUsername: (documents, username) => {
+    // If username is not one of the restricted users, return all documents
+    const restrictedUsers = ["HoangNam", "PhongTran", "HuynhDiep"];
+    if (!restrictedUsers.includes(username)) {
+      return documents;
+    }
+
+    // Filter documents for restricted users
+    return documents.filter((doc) => {
+      // Get all approver objects with usernames
+      const allApproversWithUsernames = doc.approvers.map((approver) => ({
+        id: approver.approver._id.toString(),
+        username: approver.approver.username,
+      }));
+
+      // Get all approved IDs
+      const approvedByIds = doc.approvedBy.map((approval) =>
+        approval.user._id.toString()
+      );
+
+      // Find pending approvers (those not in approvedBy)
+      const pendingApprovers = allApproversWithUsernames.filter(
+        (approver) => !approvedByIds.includes(approver.id)
+      );
+
+      // If there are no pending approvers, document is fully approved
+      if (pendingApprovers.length === 0) {
+        return true;
+      }
+
+      // Check if all pending approvers are restricted users
+      const allPendingAreRestricted = pendingApprovers.every((approver) =>
+        restrictedUsers.includes(approver.username)
+      );
+
+      // Check if the current restricted user is among the pending approvers
+      const currentUserIsPending = pendingApprovers.some(
+        (approver) => approver.username === username
+      );
+
+      // Only show document if all pending approvers are restricted users
+      // AND the current user is among the pending approvers
+      return allPendingAreRestricted && currentUserIsPending;
+    });
+  },
+
   // Parse custom date strings in format "DD-MM-YYYY HH:MM:SS"
   parseCustomDate: (dateStr) => {
     const [datePart, timePart] = dateStr.split(" ");
@@ -831,97 +878,6 @@ exports.approveDocument = async (req, res) => {
       );
     }
 
-    // Get all approvers with populated user details
-    const approversList = await Promise.all(
-      document.approvers.map(async (approver) => {
-        if (approver.username) {
-          return approver;
-        }
-        const approverUser = await User.findById(approver.approver);
-        return {
-          ...approver.toObject(),
-          username: approverUser ? approverUser.username : null,
-        };
-      })
-    );
-
-    // Check if both PhongTran and HoangNam are approvers for this document
-    const phongTranApprover = approversList.find(
-      (approver) => approver.username === "PhongTran"
-    );
-
-    const hoangNamApprover = approversList.find(
-      (approver) => approver.username === "HoangNam"
-    );
-
-    // Get all non-director approvers
-    const regularApprovers = approversList.filter(
-      (approver) =>
-        approver.username !== "PhongTran" && approver.username !== "HoangNam"
-    );
-
-    // Check if all regular approvers have approved
-    const regularApproverIds = regularApprovers.map((approver) =>
-      approver.approver ? approver.approver.toString() : ""
-    );
-
-    const allRegularApproversApproved = regularApproverIds.every((approverId) =>
-      document.approvedBy.some(
-        (approved) => approved.user.toString() === approverId
-      )
-    );
-
-    // Check if PhongTran has already approved
-    const phongTranApproved =
-      phongTranApprover &&
-      document.approvedBy.some((approver) => approver.username === "PhongTran");
-
-    // Check if HoangNam has already approved
-    const hoangNamApproved =
-      hoangNamApprover &&
-      document.approvedBy.some((approver) => approver.username === "HoangNam");
-
-    // Special handling based on user
-    if (user.username === "HoangNam") {
-      // HoangNam needs to wait for all regular approvers
-      if (!allRegularApproversApproved && regularApprovers.length > 0) {
-        return res.send(
-          "Cảnh báo: Các bên khác vẫn chưa phê duyệt./Warning: Approval from others is still pending."
-        );
-      }
-
-      // If PhongTran has already approved, HoangNam can't approve after
-      if (phongTranApproved) {
-        return res.send(
-          "Cảnh báo: Lỗi 1./Warning: Approval from others is still pending."
-        );
-      }
-    } else if (user.username === "PhongTran") {
-      // PhongTran needs to wait for all regular approvers
-      if (!allRegularApproversApproved && regularApprovers.length > 0) {
-        return res.send(
-          "Cảnh báo: Các bên khác vẫn chưa phê duyệt./Warning: Approval from others is still pending."
-        );
-      }
-
-      // If HoangNam is an approver, PhongTran needs to wait for HoangNam's approval
-      if (hoangNamApprover && !hoangNamApproved) {
-        return res.send(
-          "Cảnh báo: Các bên khác vẫn chưa phê duyệt./Warning: Approval from others is still pending."
-        );
-      }
-    }
-
-    // Handle special cases for specific document types
-    if (
-      (user.username === "PhongTran" || user.username === "HoangNam") &&
-      (document instanceof PaymentDocument ||
-        document instanceof AdvancePaymentDocument)
-    ) {
-      // For Payment and Advance Payment documents, directors can be second-to-last
-      // This logic is already handled by the allRegularApproversApproved check above
-    }
-
     // Add the current approver to the list of `approvedBy`
     document.approvedBy.push({
       user: user.id,
@@ -1407,15 +1363,22 @@ exports.getProposalDocumentForSeparatedView = async (req, res) => {
     // Get user info from authMiddleware
     const userId = req._id;
     const userRole = req.role;
+    const username = req.user.username; // Get username from request
 
     // Find documents that the user has access to
     const proposalDocuments = await ProposalDocument.find(
       documentUtils.filterDocumentsByUserAccess(userId, userRole)
     ).populate("submittedBy approvers.approver approvedBy.user");
 
+    // Apply username-specific filtering for restricted users
+    const filteredDocuments = documentUtils.filterDocumentsByUsername(
+      proposalDocuments,
+      username
+    );
+
     // Sort the documents by status priority and approval date
     const sortedDocuments =
-      documentUtils.sortDocumentsByStatusAndDate(proposalDocuments);
+      documentUtils.sortDocumentsByStatusAndDate(filteredDocuments);
 
     // Calculate counts for approved and unapproved documents
     const { approvedDocument, unapprovedDocument } =
@@ -1642,15 +1605,22 @@ exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
     // Get user info from authMiddleware
     const userId = req._id;
     const userRole = req.role;
+    const username = req.user.username; // Get username from request
 
     // Find documents that the user has access to
     const purchasingDocuments = await PurchasingDocument.find(
       documentUtils.filterDocumentsByUserAccess(userId, userRole)
     ).populate("submittedBy approvers.approver approvedBy.user");
 
+    // Apply username-specific filtering for restricted users
+    const filteredDocuments = documentUtils.filterDocumentsByUsername(
+      purchasingDocuments,
+      username
+    );
+
     // Sort the documents by status priority and approval date
     const sortedDocuments =
-      documentUtils.sortDocumentsByStatusAndDate(purchasingDocuments);
+      documentUtils.sortDocumentsByStatusAndDate(filteredDocuments);
 
     // Calculate counts for approved and unapproved documents
     const { approvedDocument, unapprovedDocument } =
@@ -1942,15 +1912,22 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
     // Get user info from authMiddleware
     const userId = req._id;
     const userRole = req.role;
+    const username = req.user.username; // Get username from request
 
     // Find documents that the user has access to
     const paymentDocuments = await PaymentDocument.find(
       documentUtils.filterDocumentsByUserAccess(userId, userRole)
     ).populate("submittedBy approvers.approver approvedBy.user");
 
+    // Apply username-specific filtering for restricted users
+    const filteredDocuments = documentUtils.filterDocumentsByUsername(
+      paymentDocuments,
+      username
+    );
+
     // Sort the documents by status priority and approval date
     const sortedDocuments =
-      documentUtils.sortDocumentsByStatusAndDate(paymentDocuments);
+      documentUtils.sortDocumentsByStatusAndDate(filteredDocuments);
 
     res.json({
       paymentDocuments: sortedDocuments,
@@ -2156,16 +2133,22 @@ exports.getAdvancePaymentDocumentForSeparatedView = async (req, res) => {
     // Get user info from authMiddleware
     const userId = req._id;
     const userRole = req.role;
+    const username = req.user.username; // Get username from request
 
     // Find documents that the user has access to
     const advancePaymentDocuments = await AdvancePaymentDocument.find(
       documentUtils.filterDocumentsByUserAccess(userId, userRole)
     ).populate("submittedBy approvers.approver approvedBy.user");
 
-    // Sort the documents by status priority and approval date
-    const sortedDocuments = documentUtils.sortDocumentsByStatusAndDate(
-      advancePaymentDocuments
+    // Apply username-specific filtering for restricted users
+    const filteredDocuments = documentUtils.filterDocumentsByUsername(
+      advancePaymentDocuments,
+      username
     );
+
+    // Sort the documents by status priority and approval date
+    const sortedDocuments =
+      documentUtils.sortDocumentsByStatusAndDate(filteredDocuments);
 
     res.json({
       advancePaymentDocuments: sortedDocuments,
@@ -2372,98 +2355,29 @@ exports.getDeliveryDocumentsForSeparatedView = async (req, res) => {
     // Get user info from authMiddleware
     const userId = req._id;
     const userRole = req.role;
+    const username = req.user.username; // Get username from request
 
-    // Find documents where:
-    // 1. The user is the submitter OR
-    // 2. The user is an approver OR
-    // 3. The user is headOfAccounting (based on role)
-    const deliveryDocuments = await DeliveryDocument.find({
-      $or: [
-        { submittedBy: userId },
-        { "approvers.approver": userId },
-        ...(userRole === "headOfAccounting" || userRole === "superAdmin"
-          ? [{}]
-          : []), // Include all if headOfAccounting
-      ],
-    }).populate("submittedBy approvers.approver approvedBy.user");
+    // Find documents that the user has access to
+    const deliveryDocuments = await DeliveryDocument.find(
+      documentUtils.filterDocumentsByUserAccess(userId, userRole)
+    ).populate("submittedBy approvers.approver approvedBy.user");
 
-    // Sort the delivery documents by status priority and approval date
-    const sortedDocuments = deliveryDocuments.sort((a, b) => {
-      // First, sort by status priority: Suspended > Pending > Approved
-      const statusPriority = {
-        Suspended: 1,
-        Pending: 2,
-        Approved: 3,
-      };
+    // Apply username-specific filtering for restricted users
+    const filteredDocuments = documentUtils.filterDocumentsByUsername(
+      deliveryDocuments,
+      username
+    );
 
-      const statusComparison =
-        statusPriority[a.status] - statusPriority[b.status];
+    // Sort the documents by status priority and approval date
+    const sortedDocuments =
+      documentUtils.sortDocumentsByStatusAndDate(filteredDocuments);
 
-      // If status is the same, sort by latest approval date (for Approved documents)
-      if (statusComparison === 0 && a.status === "Approved") {
-        // Get the latest approval date for each document
-        const getLatestApprovalDate = (doc) => {
-          if (doc.approvedBy && doc.approvedBy.length > 0) {
-            // Sort approval dates in descending order
-            const sortedDates = [...doc.approvedBy].sort((x, y) => {
-              // Parse date strings in format "DD-MM-YYYY HH:MM:SS"
-              const parseCustomDate = (dateStr) => {
-                const [datePart, timePart] = dateStr.split(" ");
-                const [day, month, year] = datePart.split("-");
-                const [hour, minute, second] = timePart.split(":");
-                // Month is 0-indexed in JavaScript Date constructor
-                return new Date(year, month - 1, day, hour, minute, second);
-              };
-
-              return (
-                parseCustomDate(y.approvalDate) -
-                parseCustomDate(x.approvalDate)
-              );
-            });
-            return sortedDates[0].approvalDate;
-          }
-          return "01-01-1970 00:00:00"; // Default date if no approvals
-        };
-
-        const latestDateA = getLatestApprovalDate(a);
-        const latestDateB = getLatestApprovalDate(b);
-
-        // Parse and compare dates in the format "DD-MM-YYYY HH:MM:SS"
-        const parseCustomDate = (dateStr) => {
-          const [datePart, timePart] = dateStr.split(" ");
-          const [day, month, year] = datePart.split("-");
-          const [hour, minute, second] = timePart.split(":");
-          // Month is 0-indexed in JavaScript Date constructor
-          return new Date(year, month - 1, day, hour, minute, second);
-        };
-
-        // Sort by latest approval date (ascending order - oldest first)
-        return parseCustomDate(latestDateA) - parseCustomDate(latestDateB);
-      }
-
-      return statusComparison;
-    });
-
-    // Calculate sums for approved and unapproved documents
-    let approvedSum = 0;
-    let unapprovedSum = 0;
-    let approvedDocument = 0;
-    let unapprovedDocument = 0;
-
-    sortedDocuments.forEach((doc) => {
-      if (doc.status === "Approved") {
-        approvedSum += doc.grandTotalCost;
-        approvedDocument += 1;
-      } else {
-        unapprovedSum += doc.grandTotalCost;
-        unapprovedDocument += 1;
-      }
-    });
+    // Calculate counts for approved and unapproved documents
+    const { approvedDocument, unapprovedDocument } =
+      documentUtils.countDocumentsByStatus(sortedDocuments);
 
     res.json({
       deliveryDocuments: sortedDocuments,
-      approvedSum,
-      unapprovedSum,
       approvedDocument,
       unapprovedDocument,
     });
@@ -2642,15 +2556,22 @@ exports.getProjectProposalsForSeparatedView = async (req, res) => {
     // Get user info from authMiddleware
     const userId = req._id;
     const userRole = req.role;
+    const username = req.user.username; // Get username from request
 
     // Find documents that the user has access to
     const projectProposals = await ProjectProposalDocument.find(
       documentUtils.filterDocumentsByUserAccess(userId, userRole)
     ).populate("submittedBy approvers.approver approvedBy.user");
 
+    // Apply username-specific filtering for restricted users
+    const filteredDocuments = documentUtils.filterDocumentsByUsername(
+      projectProposals,
+      username
+    );
+
     // Sort the documents by status priority and approval date
     const sortedDocuments =
-      documentUtils.sortDocumentsByStatusAndDate(projectProposals);
+      documentUtils.sortDocumentsByStatusAndDate(filteredDocuments);
 
     // Calculate counts for approved and unapproved documents
     const { approvedDocument, unapprovedDocument } =
