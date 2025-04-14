@@ -519,7 +519,9 @@ async function fetchPurchasingDocuments() {
   purchasingDocs.forEach((doc) => {
     const option = document.createElement("option");
     option.value = doc._id;
-    option.textContent = doc.submissionDate;
+    option.textContent = `${doc.name ? doc.name + " - " : ""}${
+      doc.submissionDate
+    }`;
     dropdown.appendChild(option);
   });
 }
