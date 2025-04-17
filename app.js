@@ -22,6 +22,7 @@ const multer = require("multer");
 const cron = require("node-cron");
 const axios = require("axios");
 const documentController = require("./controllers/documentController"); // Import the email notification function
+const emailService = require("./utils/emailService"); // Import the email notification function
 const PaymentDocument = require("./models/DocumentPayment");
 const AdvancePaymentDocument = require("./models/DocumentAdvancePayment");
 const ProjectProposalDocument = require("./models/DocumentProjectProposal");
@@ -98,7 +99,7 @@ cron.schedule("0 */8 * * *", async () => {
     // Send notifications through all available channels
     await Promise.all([
       // Email notifications
-      documentController.sendPendingApprovalEmails(allPendingDocuments),
+      emailService.sendPendingApprovalEmails(allPendingDocuments),
 
       // Facebook/Chatfuel notifications
       documentController.sendPendingApprovalChatfuelMessages(

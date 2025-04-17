@@ -15,10 +15,7 @@ const { Readable } = require("stream");
 const multer = require("multer");
 const fs = require("fs");
 const path = require("path");
-const {
-  sendEmail,
-  groupDocumentsByApprover,
-} = require("../utils/emailService");
+const { groupDocumentsByApprover } = require("../utils/emailService");
 const {
   createGenericDocTemplate,
   createProposalDocTemplate,
@@ -304,49 +301,6 @@ exports.getCostCenters = async (req, res) => {
   } catch (error) {
     console.error("Error fetching cost centers:", error);
     res.status(500).json({ message: "Server error" });
-  }
-};
-exports.sendPendingApprovalEmails = async (allDocuments) => {
-  try {
-    // Group documents by approver
-    const documentsByApprover = groupDocumentsByApprover(allDocuments);
-
-    // Fetch all relevant users at once
-    const approverIds = Array.from(documentsByApprover.keys());
-    const users = await User.find({ _id: { $in: approverIds } });
-
-    // Send consolidated emails to each approver
-    for (const user of users) {
-      const userDocuments = documentsByApprover.get(user._id.toString());
-      if (!userDocuments || userDocuments.length === 0) continue;
-
-      // Create the email content
-      const subject = "Danh sách phiếu cần phê duyệt";
-      let text = `Xin chào ${user.username},\n\n`;
-      text += `Bạn có ${userDocuments.length} phiếu đang chờ phê duyệt:\n\n`;
-
-      // Group documents by type
-      const documentsByType = userDocuments.reduce((acc, doc) => {
-        if (!acc[doc.type]) acc[doc.type] = [];
-        acc[doc.type].push(doc);
-        return acc;
-      }, {});
-
-      // Add documents grouped by type to the email
-      Object.entries(documentsByType).forEach(([type, docs]) => {
-        text += `${type}:\n`;
-        docs.forEach((doc) => {
-          text += `ID: ${doc.id}\n`;
-        });
-        text += "\n";
-      });
-
-      text += `\nXin cảm ơn,\nHệ thống quản lý tác vụ tự động Kỳ Long.`;
-
-      await sendEmail(user.email, subject, text);
-    }
-  } catch (error) {
-    console.error("Error sending pending approval emails:", error);
   }
 };
 exports.exportDocumentToDocx = async (req, res) => {
