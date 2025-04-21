@@ -9,6 +9,7 @@ const PurchasingDocument = require("../models/DocumentPurchasing.js");
 const DeliveryDocument = require("../models/DocumentDelivery.js");
 const PaymentDocument = require("../models/DocumentPayment.js");
 const AdvancePaymentDocument = require("../models/DocumentAdvancePayment.js");
+const AdvancePaymentReclaimDocument = require("../models/DocumentAdvancePaymentReclaim.js");
 const ProjectProposalDocument = require("../models/DocumentProjectProposal.js");
 const drive = require("../middlewares/googleAuthMiddleware.js");
 const { Readable } = require("stream");
@@ -411,6 +412,13 @@ exports.submitDocument = async (req, res) => {
             uploadedFileData
           );
           break;
+        case "Advance Payment Reclaim Document":
+          newDocument = await createAdvancePaymentReclaimDocument(
+            req,
+            approverDetails,
+            uploadedFileData
+          );
+          break;
         case "Project Proposal Document":
           newDocument = await createProjectProposalDocument(
             req,
@@ -665,6 +673,54 @@ async function createAdvancePaymentDocument(
   });
 }
 
+// Create a Payment Document
+async function createAdvancePaymentReclaimDocument(
+  req,
+  approverDetails,
+  uploadedFileData
+) {
+  // Process appended purchasing documents
+  let appendedPurchasingDocuments = [];
+  if (
+    req.body.approvedPurchasingDocuments &&
+    req.body.approvedPurchasingDocuments.length > 0
+  ) {
+    appendedPurchasingDocuments = await Promise.all(
+      req.body.approvedPurchasingDocuments.map(async (docId) => {
+        const purchasingDoc = await PurchasingDocument.findById(docId);
+        return purchasingDoc ? purchasingDoc.toObject() : null;
+      })
+    );
+    appendedPurchasingDocuments = appendedPurchasingDocuments.filter(
+      (doc) => doc !== null
+    );
+  }
+
+  // Format the submission date for both display and the tag
+  const now = moment().tz("Asia/Bangkok");
+  const submissionDateForTag = now.format("DDMMYYYYHHmmss");
+  // Create the tag by combining name and formatted date
+  const tag = `${req.body.name}${submissionDateForTag}`;
+
+  return new AdvancePaymentReclaimDocument({
+    tag,
+    title: req.body.title,
+    name: req.body.name,
+    content: req.body.content,
+    costCenter: req.body.costCenter,
+    paymentMethod: req.body.paymentMethod,
+    advancePaymentReclaim: req.body.advancePaymentReclaim || 0,
+    paymentDeadline: req.body.paymentDeadline || "Not specified",
+    groupName: req.body.groupName,
+    projectName: req.body.projectName,
+    submittedBy: req.user.id,
+    approvers: approverDetails,
+    fileMetadata: uploadedFileData,
+    appendedPurchasingDocuments,
+    submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+  });
+}
+
 // Create a Project Proposal Document
 async function createProjectProposalDocument(
   req,
@@ -851,6 +907,7 @@ exports.approveDocument = async (req, res) => {
       (await PurchasingDocument.findById(id)) ||
       (await PaymentDocument.findById(id)) ||
       (await AdvancePaymentDocument.findById(id)) ||
+      (await AdvancePaymentReclaimDocument.findById(id)) ||
       (await ProjectProposalDocument.findById(id)) ||
       (await DeliveryDocument.findById(id));
 
@@ -903,6 +960,8 @@ exports.approveDocument = async (req, res) => {
       await PaymentDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof AdvancePaymentDocument) {
       await AdvancePaymentDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof AdvancePaymentReclaimDocument) {
+      await AdvancePaymentReclaimDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof DeliveryDocument) {
       await DeliveryDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof ProjectProposalDocument) {
@@ -1047,6 +1106,10 @@ exports.deleteDocument = async (req, res) => {
       if (document) documentType = "AdvancePayment";
     }
     if (!document && documentType === "Generic") {
+      document = await AdvancePaymentReclaimDocument.findById(id);
+      if (document) documentType = "AdvancePaymentReclaim";
+    }
+    if (!document && documentType === "Generic") {
       document = await DeliveryDocument.findById(id);
       if (document) documentType = "Delivery";
     }
@@ -1067,6 +1130,8 @@ exports.deleteDocument = async (req, res) => {
       await PaymentDocument.findByIdAndDelete(id);
     } else if (documentType === "AdvancePayment") {
       await AdvancePaymentDocument.findByIdAndDelete(id);
+    } else if (documentType === "AdvancePaymentReclaim") {
+      await AdvancePaymentReclaimDocument.findByIdAndDelete(id);
     } else if (documentType === "Delivery") {
       await DeliveryDocument.findByIdAndDelete(id);
     } else if (documentType === "ProjectProposal") {
@@ -2374,6 +2439,239 @@ exports.massUpdateAdvancePaymentDocumentDeclaration = async (req, res) => {
   }
 };
 //// END OF ADVANCE PAYMENT DOCUMENT CONTROLLER
+
+//// ADVANCE PAYMENT RECLAIM DOCUMENT CONTROLLER
+exports.getAdvancePaymentReclaimDocumentForSeparatedView = async (req, res) => {
+  try {
+    // Get user info from authMiddleware
+    const userId = req._id;
+    const userRole = req.role;
+    const username = req.user.username; // Get username from request
+
+    // Find documents that the user has access to
+    const advancePaymentReclaimDocuments =
+      await AdvancePaymentReclaimDocument.find(
+        documentUtils.filterDocumentsByUserAccess(userId, userRole)
+      ).populate("submittedBy approvers.approver approvedBy.user");
+
+    // Apply username-specific filtering for restricted users
+    const filteredDocuments = documentUtils.filterDocumentsByUsername(
+      advancePaymentReclaimDocuments,
+      username
+    );
+
+    // Sort the documents by status priority and approval date
+    const sortedDocuments =
+      documentUtils.sortDocumentsByStatusAndDate(filteredDocuments);
+
+    res.json({
+      advancePaymentReclaimDocuments: sortedDocuments,
+    });
+  } catch (err) {
+    console.error("Error fetching advance payment documents:", err);
+    res.status(500).send("Error fetching advance payment documents");
+  }
+};
+exports.getAdvancePaymentReclaimDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const document = await AdvancePaymentReclaimDocument.findById(id);
+
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    res.json(document);
+  } catch (error) {
+    console.error("Error fetching payment document:", error);
+    res.status(500).json({ message: "Error fetching document" });
+  }
+};
+exports.updateAdvancePaymentReclaimDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      content,
+      costCenter,
+      paymentMethod,
+      advancePaymentReclaim,
+      paymentDeadline,
+    } = req.body;
+    const file = req.file;
+
+    const doc = await AdvancePaymentReclaimDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Parse approvers if it exists
+    let approvers;
+    if (req.body.approvers) {
+      try {
+        approvers = JSON.parse(req.body.approvers);
+      } catch (error) {
+        return res
+          .status(400)
+          .json({ message: "Invalid approvers data format" });
+      }
+    }
+
+    // Check if the name has changed and update the tag if needed
+    if (name && name !== doc.name) {
+      // Format the update date for the tag
+      const now = moment().tz("Asia/Bangkok");
+      const updateDateForTag = now.format("DDMMYYYYHHmmss");
+      // Create the new tag by combining name and formatted date
+      doc.tag = `${name}${updateDateForTag}`;
+    }
+
+    // Update basic fields
+    doc.name = name;
+    doc.content = content;
+    doc.costCenter = costCenter;
+    doc.paymentMethod = paymentMethod;
+    doc.advancePaymentReclaim = parseFloat(advancePaymentReclaim);
+    doc.paymentDeadline = paymentDeadline;
+
+    // Update approvers if provided
+    if (approvers) {
+      doc.approvers = approvers;
+    }
+
+    // Handle file update if provided
+    if (file) {
+      // Delete old file from Google Drive if it exists
+      if (doc.fileMetadata?.driveFileId) {
+        try {
+          await drive.files.delete({
+            fileId: doc.fileMetadata.driveFileId,
+          });
+        } catch (error) {
+          console.error("Error deleting old file:", error);
+        }
+      }
+
+      // Upload new file
+      const fileMetadata = {
+        name: file.originalname,
+        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
+      };
+      const media = {
+        mimeType: file.mimetype,
+        body: Readable.from(file.buffer),
+      };
+      const driveResponse = await drive.files.create({
+        resource: fileMetadata,
+        media: media,
+        fields: "id, webViewLink",
+      });
+
+      // Update file permissions
+      await drive.permissions.create({
+        fileId: driveResponse.data.id,
+        requestBody: {
+          role: "reader",
+          type: "anyone",
+        },
+      });
+
+      // Update document with new file metadata
+      doc.fileMetadata = {
+        driveFileId: driveResponse.data.id,
+        name: file.originalname,
+        link: driveResponse.data.webViewLink,
+      };
+    }
+
+    await doc.save();
+    res.json({ message: "Document updated successfully" });
+  } catch (error) {
+    console.error("Error updating payment document:", error);
+    res.status(500).json({ message: "Error updating document" });
+  }
+};
+exports.updateAdvancePaymentReclaimDocumentDeclaration = async (req, res) => {
+  const { id } = req.params;
+  const { declaration } = req.body;
+
+  try {
+    if (
+      !["approver", "headOfAccounting", "headOfPurchasing"].includes(
+        req.user.role
+      )
+    ) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
+
+    const doc = await AdvancePaymentReclaimDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    doc.declaration = declaration;
+    await doc.save();
+
+    res.send("Kê khai cập nhật thành công/Declaration updated successfully");
+  } catch (error) {
+    console.error("Error updating declaration:", error);
+    res.status(500).json({ message: "Error updating declaration" });
+  }
+};
+exports.massUpdateAdvancePaymentReclaimDocumentDeclaration = async (
+  req,
+  res
+) => {
+  const { documentIds, declaration } = req.body;
+
+  try {
+    // Check user role
+    if (
+      !["approver", "headOfAccounting", "headOfPurchasing"].includes(
+        req.user.role
+      )
+    ) {
+      return res
+        .status(403)
+        .send(
+          "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+        );
+    }
+
+    // Validate input
+    if (
+      !documentIds ||
+      !Array.isArray(documentIds) ||
+      documentIds.length === 0
+    ) {
+      return res.status(400).json({ message: "Invalid document IDs provided" });
+    }
+
+    if (!declaration || typeof declaration !== "string") {
+      return res.status(400).json({ message: "Invalid declaration provided" });
+    }
+
+    // Update all documents
+    const result = await AdvancePaymentReclaimDocument.updateMany(
+      { _id: { $in: documentIds } }, // Filter by document IDs
+      { declaration } // Update declaration field
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: "No documents found or updated" });
+    }
+
+    res.send(
+      `Kê khai cập nhật thành công cho ${result.modifiedCount} tài liệu/Declaration updated successfully for ${result.modifiedCount} documents`
+    );
+  } catch (error) {
+    console.error("Error updating declaration:", error);
+    res.status(500).json({ message: "Error updating declaration" });
+  }
+};
+//// END OF ADVANCE PAYMENT RECLAIM DOCUMENT CONTROLLER
 
 //// DELIVERY DOCUMENT CONTROLLER
 // Fetch all Delivery Documents

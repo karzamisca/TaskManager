@@ -280,6 +280,45 @@ router.get(
 );
 //// END OF ADVANCE PAYMENT DOCUMENT ROUTE
 
+//// ADVANCE PAYMENT RECLAIM DOCUMENT ROUTE
+// Routes to fetch payment documents and calculate sums
+router.get(
+  "/documentSummaryAdvancePaymentReclaim",
+  authMiddleware,
+  (req, res) => {
+    res.sendFile("documentSummaryAdvancePaymentReclaim.html", {
+      root: "./views/documentPages/documentSummaryAdvancePaymentReclaim",
+    });
+  }
+);
+router.get(
+  "/getAdvancePaymentReclaimDocumentForSeparatedView",
+  authMiddleware,
+  documentController.getAdvancePaymentReclaimDocumentForSeparatedView
+);
+router.post(
+  "/updateAdvancePaymentReclaimDocument/:id",
+  upload.single("file"),
+  authMiddleware,
+  documentController.updateAdvancePaymentReclaimDocument
+);
+router.post(
+  "/updateAdvancePaymentReclaimDocumentDeclaration/:id",
+  authMiddleware,
+  documentController.updateAdvancePaymentReclaimDocumentDeclaration
+);
+router.post(
+  "/massUpdateAdvancePaymentReclaimDocumentDeclaration",
+  authMiddleware,
+  documentController.massUpdateAdvancePaymentReclaimDocumentDeclaration
+);
+router.get(
+  "/getAdvancePaymentReclaimDocument/:id",
+  authMiddleware,
+  documentController.getAdvancePaymentReclaimDocument
+);
+//// END OF ADVANCE PAYMENT RECLAIM DOCUMENT ROUTE
+
 //// DELIVERY DOCUMENT ROUTE
 router.get("/documentSummaryDelivery", authMiddleware, (req, res) => {
   res.sendFile("documentSummaryDelivery.html", {

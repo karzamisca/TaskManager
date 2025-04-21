@@ -169,6 +169,50 @@ function handleAdvancePaymentDocument() {
   fetchCostCenters();
 }
 
+// Function to handle Advance Payment Document selection
+function handleAdvancePaymentReclaimDocument() {
+  const contentFields = document.getElementById("content-fields");
+  const appendPurchasingSection = document.getElementById(
+    "append-purchasing-documents-section"
+  );
+
+  appendPurchasingSection.style.display = "block";
+  fetchPurchasingDocuments();
+
+  contentFields.innerHTML = `
+      <label for="name">Tên/Name</label>
+      <input type="text" name="name" required />
+      <label for="content">Nội dung/Content</label>
+      <input type="text" name="content" required />
+      <label for="costCenter">Trạm/Center</label>
+      <select name="costCenter" id="costCenter">
+        <option value="">Chọn một trạm/Select a center</option>
+      </select>
+      <label for="paymentMethod">Hình thức thanh toán/Payment Method</label>
+      <input type="text" name="paymentMethod" required />
+      <label for="advancePaymentReclaim">Số tiền thu lại/Advance Payment Reclaim:</label>
+      <input type="number" step="0.01" name="advancePaymentReclaim"/>
+      <label for="paymentDeadline">Thời hạn trả/Payment Deadline</label>
+      <input type="text" name="paymentDeadline" id="paymentDeadline"/>
+      <select name="groupName" id="groupName">
+        <option value="">Chọn nhóm/Select a group</option>
+      </select>
+      <select name="projectName" id="projectName">
+        <option value="">Chọn dự án/Select a project</option>
+      </select>             
+    `;
+  populateGroupDropdown();
+  populateProjectDropdown();
+
+  flatpickr("#paymentDeadline", {
+    dateFormat: "d-m-Y",
+    defaultDate: "today",
+  });
+
+  // Fetch current user and populate cost centers
+  fetchCostCenters();
+}
+
 // Function to handle Delivery Document selection
 function handleDeliveryDocument() {
   const contentFields = document.getElementById("content-fields");
@@ -337,6 +381,9 @@ document
         break;
       case "Advance Payment Document":
         handleAdvancePaymentDocument();
+        break;
+      case "Advance Payment Reclaim Document":
+        handleAdvancePaymentReclaimDocument();
         break;
       case "Delivery Document":
         handleDeliveryDocument();

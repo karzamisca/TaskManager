@@ -97,6 +97,9 @@ a.delivery {
 a.advancePayment {
   background-color: #d0f309;
 }
+a.advancePaymentReclaim {
+  background-color: #67f309;
+}
 a.payment {
   background-color: #f30909;
 }
@@ -165,6 +168,10 @@ nav ul li a:hover {
     background-color: #555;
   }
   a.advancePayment {
+    color: #f1f1f1;
+    background-color: #555;
+  }
+  a.advancePaymentReclaim {
     color: #f1f1f1;
     background-color: #555;
   }
