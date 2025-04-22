@@ -5,7 +5,7 @@ const router = express.Router();
 const authMiddleware = require("../middlewares/authMiddleware");
 const adminController = require("../controllers/adminController");
 
-router.get("/admin", authMiddleware, adminController.getAdminPage);
+router.get("/adminMain", authMiddleware, adminController.getAdminPage);
 
 ////COST CENTER ADMIN ROUTERS
 // Serve the Cost Center Admin page

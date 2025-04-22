@@ -57,23 +57,6 @@ router.get(
   authMiddleware,
   documentController.exportDocumentToDocx
 );
-// View approved documents route
-router.get(
-  "/viewApprovedDocument",
-  authMiddleware,
-  documentController.getApprovedDocument
-);
-// API routes to fetch documents
-router.get(
-  "/pendingDocument",
-  authMiddleware,
-  documentController.getPendingDocumentApi
-);
-router.get(
-  "/approvedDocument",
-  authMiddleware,
-  documentController.getApprovedDocumentApi
-);
 router.post(
   "/deleteDocument/:id",
   authMiddleware,
