@@ -7,6 +7,7 @@ let currentPage = 1;
 const itemsPerPage = 10; // Adjust this value based on your preference
 let totalPages = 1;
 let currentGroupFilter = "";
+let paginationEnabled = true; // Default to enabled
 
 // Add the toggle switch creation function
 function createToggleSwitch() {
@@ -254,8 +255,10 @@ async function fetchAdvancePaymentReclaimDocuments() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
 
-    // Get documents for current page only
-    const pageDocuments = filteredDocuments.slice(startIndex, endIndex);
+    // Get documents for current page only if pagination is enabled, otherwise show all
+    const pageDocuments = paginationEnabled
+      ? filteredDocuments.slice(startIndex, endIndex)
+      : filteredDocuments;
 
     const tableBody = document.getElementById(
       "advancePaymentReclaimDocumentsTable"
@@ -361,8 +364,16 @@ async function fetchAdvancePaymentReclaimDocuments() {
       tableBody.appendChild(row);
     });
 
-    // Render pagination controls
-    renderPagination();
+    // Render pagination controls if pagination is enabled
+    if (paginationEnabled) {
+      renderPagination();
+    } else {
+      // Remove pagination if disabled
+      let paginationContainer = document.getElementById("paginationContainer");
+      if (paginationContainer) {
+        paginationContainer.innerHTML = "";
+      }
+    }
   } catch (err) {
     console.error("Error fetching advance payment documents:", err);
     showMessage("Error fetching advance payment documents", true);
@@ -404,6 +415,13 @@ function updateSummarySection(documents) {
     approvedDocument.toLocaleString();
   document.getElementById("unapprovedDocument").textContent =
     unapprovedDocument.toLocaleString();
+}
+
+// Function to handle pagination toggle
+function togglePagination() {
+  paginationEnabled = document.getElementById("paginationToggle").checked;
+  currentPage = 1; // Reset to first page
+  fetchAdvancePaymentReclaimDocuments();
 }
 
 // Function to render pagination controls
@@ -1315,6 +1333,10 @@ async function initializePage() {
     currentPage = 1; // Reset to first page when filter changes
     fetchAdvancePaymentReclaimDocuments();
   });
+
+  document
+    .getElementById("paginationToggle")
+    .addEventListener("change", togglePagination);
 
   // Initial fetch of documents
   fetchAdvancePaymentReclaimDocuments();

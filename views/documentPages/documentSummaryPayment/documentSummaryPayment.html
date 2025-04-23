@@ -13,6 +13,22 @@
   <body>
     <h1>Phiếu thanh toán/Payment Documents</h1>
     <div id="messageContainer" class="message"></div>
+
+    <div style="margin-bottom: 1rem; display: inline-block; margin-left: 1rem">
+      <label
+        for="paginationToggle"
+        style="display: flex; align-items: center; cursor: pointer"
+      >
+        <input
+          type="checkbox"
+          id="paginationToggle"
+          checked
+          style="margin-right: 0.5rem"
+        />
+        <span>Hiển thị phân trang/Enable pagination</span>
+      </label>
+    </div>
+
     <div style="margin-bottom: 1rem">
       <label for="groupFilter">Lọc theo nhóm/Filter by Group:</label>
       <select
@@ -24,6 +40,7 @@
         <!-- Groups will be populated dynamically -->
       </select>
     </div>
+
     <div>
       <button class="approve-btn" onclick="openMassDeclarationModal()">
         Cập nhật kê khai hàng loạt/Mass Declaration Update

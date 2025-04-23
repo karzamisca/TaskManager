@@ -6,6 +6,7 @@ let currentApprovers = [];
 let currentPage = 1;
 const itemsPerPage = 10; // Adjust this value based on your preference
 let totalPages = 1;
+let paginationEnabled = true; // Default to enabled
 
 function createToggleSwitch() {
   const toggleContainer = document.createElement("div");
@@ -166,8 +167,10 @@ async function fetchDeliveryDocuments() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
 
-    // Get documents for current page only
-    const pageDocuments = filteredDocuments.slice(startIndex, endIndex);
+    // Get documents for current page only if pagination is enabled, otherwise show all
+    const pageDocuments = paginationEnabled
+      ? filteredDocuments.slice(startIndex, endIndex)
+      : filteredDocuments;
 
     const tableBody = document.getElementById("deliveryDocumentsTable");
     tableBody.innerHTML = "";
@@ -243,8 +246,16 @@ async function fetchDeliveryDocuments() {
       tableBody.appendChild(row);
     });
 
-    // Render pagination controls
-    renderPagination();
+    // Render pagination controls if pagination is enabled
+    if (paginationEnabled) {
+      renderPagination();
+    } else {
+      // Remove pagination if disabled
+      let paginationContainer = document.getElementById("paginationContainer");
+      if (paginationContainer) {
+        paginationContainer.innerHTML = "";
+      }
+    }
 
     // Update summary section
     const approvedSum = filteredDocuments
@@ -267,6 +278,13 @@ async function fetchDeliveryDocuments() {
     console.error("Error fetching delivery documents:", err);
     showMessage("Error fetching delivery documents", true);
   }
+}
+
+// Function to handle pagination toggle
+function togglePagination() {
+  paginationEnabled = document.getElementById("paginationToggle").checked;
+  currentPage = 1; // Reset to first page
+  fetchDeliveryDocuments();
 }
 
 // Function to render pagination controls
@@ -942,6 +960,11 @@ async function initializePage() {
 
   const table = document.querySelector("table");
   table.parentElement.insertBefore(createToggleSwitch(), table);
+
+  // Add pagination toggle event listener
+  document
+    .getElementById("paginationToggle")
+    .addEventListener("change", togglePagination);
 
   document.getElementById("pendingToggle").addEventListener("change", (e) => {
     showOnlyPendingApprovals = e.target.checked;

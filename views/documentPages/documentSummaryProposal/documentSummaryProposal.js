@@ -6,6 +6,7 @@ let currentApprovers = [];
 let currentPage = 1;
 const itemsPerPage = 10; // Adjust this value based on your preference
 let totalPages = 1;
+let paginationEnabled = true; // Default to enabled
 
 // Add the toggle switch creation function
 function createToggleSwitch() {
@@ -93,8 +94,10 @@ async function fetchProposalDocuments() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
 
-    // Get documents for current page only
-    const pageDocuments = filteredDocuments.slice(startIndex, endIndex);
+    // Get documents for current page only if pagination is enabled, otherwise show all
+    const pageDocuments = paginationEnabled
+      ? filteredDocuments.slice(startIndex, endIndex)
+      : filteredDocuments;
 
     const tableBody = document.getElementById("proposalDocumentsTable");
     tableBody.innerHTML = "";
@@ -105,99 +108,99 @@ async function fetchProposalDocuments() {
             (a) => a.username === approver.username
           );
           return `
-                          <div class="approver-item">
-                              <span class="status-icon ${
-                                hasApproved
-                                  ? "status-approved"
-                                  : "status-pending"
-                              }"></span>
-                              <div>
-                                  <div>${approver.username} (${
-            approver.subRole
-          })</div>
-                                  ${
-                                    hasApproved
-                                      ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
-                                      : '<div class="approval-date">Pending</div>'
-                                  }
-                              </div>
-                          </div>
-                      `;
+            <div class="approver-item">
+                <span class="status-icon ${
+                  hasApproved ? "status-approved" : "status-pending"
+                }"></span>
+                <div>
+                    <div>${approver.username} (${approver.subRole})</div>
+                    ${
+                      hasApproved
+                        ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
+                        : '<div class="approval-date">Pending</div>'
+                    }
+                </div>
+            </div>
+        `;
         })
         .join("");
 
       const row = document.createElement("tr");
       row.innerHTML = `
-                  <td>${doc.task || "-"} 
-                    ${doc.declaration ? `(Kê khai: ${doc.declaration})` : ""}
-                    ${
-                      doc.suspendReason
-                        ? `(Lý do từ chối: ${doc.suspendReason})`
-                        : ""
-                    }
-                  </td>
-                  <td>${doc.costCenter || "-"}</td>
-                  <td>${doc.dateOfError || "-"}</td>
-                  <td>${doc.detailsDescription || "-"}</td>
-                  <td>${doc.direction || "-"}</td>
-                  <td>${
-                    doc.fileMetadata?.link
-                      ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-                      : "-"
-                  }</td>
-                  <td>${doc.submissionDate || "-"}</td>
-                  <td>${doc.groupName || "-"}</td>
-                  <td>${renderStatus(doc.status)}</td>
-                  <td class="approval-status">${approvalStatus}</td>
-                  <td>
-                    <form action="/exportDocumentToDocx/${
-                      doc._id
-                    }" method="GET" style="display:inline;">
-                      <button class="approve-btn">Xuất ra DOCX/Export to DOCX</button>
-                    </form>
-                    ${
-                      doc.approvedBy.length === 0
-                        ? `
-                      <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa/Edit</button>
-                      <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa/Delete</button>
-                    `
-                        : ""
-                    }
-                    ${
-                      doc.status === "Pending"
-                        ? `
-                      <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
-                        Phê duyệt/Approve
-                      </button>
-                    `
-                        : ""
-                    }
-                    ${
-                      doc.status === "Approved"
-                        ? `
-                          <button class="approve-btn" onclick="editDeclaration('${doc._id}')" style="margin-right: 5px;">
-                            Kê khai/Declaration
-                          </button>
-                        `
-                        : doc.status === "Suspended"
-                        ? `
-                          <button class="approve-btn" onclick="openDocument('${doc._id}')">
-                            Mở/Open
-                          </button>
-                        `
-                        : `
-                          <button class="approve-btn" onclick="suspendDocument('${doc._id}')">
-                            Từ chối/Suspend
-                          </button>
-                        `
-                    } 
-                  </td>
-              `;
+        <td>${doc.task || "-"} 
+          ${doc.declaration ? `(Kê khai: ${doc.declaration})` : ""}
+          ${doc.suspendReason ? `(Lý do từ chối: ${doc.suspendReason})` : ""}
+        </td>
+        <td>${doc.costCenter || "-"}</td>
+        <td>${doc.dateOfError || "-"}</td>
+        <td>${doc.detailsDescription || "-"}</td>
+        <td>${doc.direction || "-"}</td>
+        <td>${
+          doc.fileMetadata?.link
+            ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+            : "-"
+        }</td>
+        <td>${doc.submissionDate || "-"}</td>
+        <td>${doc.groupName || "-"}</td>
+        <td>${renderStatus(doc.status)}</td>
+        <td class="approval-status">${approvalStatus}</td>
+        <td>
+          <form action="/exportDocumentToDocx/${
+            doc._id
+          }" method="GET" style="display:inline;">
+            <button class="approve-btn">Xuất ra DOCX/Export to DOCX</button>
+          </form>
+          ${
+            doc.approvedBy.length === 0
+              ? `
+            <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa/Edit</button>
+            <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa/Delete</button>
+          `
+              : ""
+          }
+          ${
+            doc.status === "Pending"
+              ? `
+            <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
+              Phê duyệt/Approve
+            </button>
+          `
+              : ""
+          }
+          ${
+            doc.status === "Approved"
+              ? `
+                <button class="approve-btn" onclick="editDeclaration('${doc._id}')" style="margin-right: 5px;">
+                  Kê khai/Declaration
+                </button>
+              `
+              : doc.status === "Suspended"
+              ? `
+                <button class="approve-btn" onclick="openDocument('${doc._id}')">
+                  Mở/Open
+                </button>
+              `
+              : `
+                <button class="approve-btn" onclick="suspendDocument('${doc._id}')">
+                  Từ chối/Suspend
+                </button>
+              `
+          } 
+        </td>
+    `;
       tableBody.appendChild(row);
     });
 
-    // Render pagination controls
-    renderPagination();
+    // Render pagination controls if pagination is enabled
+    if (paginationEnabled) {
+      renderPagination();
+    } else {
+      // Remove pagination if disabled
+      let paginationContainer = document.getElementById("paginationContainer");
+      if (paginationContainer) {
+        paginationContainer.innerHTML = "";
+      }
+    }
 
     // Update summary section
     document.getElementById("approvedDocument").textContent =
@@ -208,6 +211,13 @@ async function fetchProposalDocuments() {
     console.error("Error fetching proposal documents:", err);
     showMessage("Error fetching proposal documents", true);
   }
+}
+
+// Function to handle pagination toggle
+function togglePagination() {
+  paginationEnabled = document.getElementById("paginationToggle").checked;
+  currentPage = 1; // Reset to first page
+  fetchProposalDocuments();
 }
 
 // Function to render pagination controls
@@ -391,67 +401,67 @@ async function populateCostCenterDropdown() {
 // Add edit modal HTML at the end of the table
 function addEditModal() {
   const modalHTML = `
-          <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
-              <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-color); padding: clamp(16px, 2vw, 24px); width: clamp(300px, 85vw, 900px); border-radius: clamp(4px, 1vw, 8px); max-height: 90vh; overflow-y: auto; font-size: clamp(14px, 1.5vw, 16px);">
-                  <span onclick="closeEditModal()" style="position: sticky; float: right; top: 10px; cursor: pointer; font-size: clamp(20px, 2vw, 28px); padding: clamp(4px, 0.5vw, 8px);">&times;</span>
-                  <h2 style="font-size: clamp(18px, 2vw, 24px); margin-bottom: clamp(16px, 2vw, 24px);">Chỉnh sửa phiếu đề xuất/Edit Proposal Document</h2>
-                  <form id="editForm" onsubmit="handleEditSubmit(event)">
-                      <input type="hidden" id="editDocId">
-                      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                          <label for="editTask" style="display: block; margin-bottom: 0.5em;">Công việc/Task:</label>
-                          <input type="text" id="editTask" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
-                      </div>
-                      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                          <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm/Cost Center:</label>
-                          <select id="editCostCenter" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
-                              <option value="">Chọn một trạm/Select a center</option>
-                              <!-- Options will be populated dynamically -->
-                          </select>
-                      </div>
-                      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                          <label for="editDateOfError" style="display: block; margin-bottom: 0.5em;">Ngày lỗi/Date of Error:</label>
-                          <input type="text" id="editDateOfError" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
-                      </div>
-                      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                          <label for="editDetailsDescription" style="display: block; margin-bottom: 0.5em;">Mô tả chi tiết/Details Description:</label>
-                          <textarea id="editDetailsDescription" required style="width: 100%; padding: clamp(6px, 1vw, 12px); min-height: clamp(80px, 15vh, 150px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);"></textarea>
-                      </div>
-                      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                          <label for="editDirection" style="display: block; margin-bottom: 0.5em;">Hướng xử lý/Direction:</label>
-                          <textarea id="editDirection" required style="width: 100%; padding: clamp(6px, 1vw, 12px); min-height: clamp(80px, 15vh, 150px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);"></textarea>
-                      </div>
-                      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                          <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới/Update File:</label>
-                          <input type="file" id="editFile" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
-                      </div>
+    <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-color); padding: clamp(16px, 2vw, 24px); width: clamp(300px, 85vw, 900px); border-radius: clamp(4px, 1vw, 8px); max-height: 90vh; overflow-y: auto; font-size: clamp(14px, 1.5vw, 16px);">
+            <span onclick="closeEditModal()" style="position: sticky; float: right; top: 10px; cursor: pointer; font-size: clamp(20px, 2vw, 28px); padding: clamp(4px, 0.5vw, 8px);">&times;</span>
+            <h2 style="font-size: clamp(18px, 2vw, 24px); margin-bottom: clamp(16px, 2vw, 24px);">Chỉnh sửa phiếu đề xuất/Edit Proposal Document</h2>
+            <form id="editForm" onsubmit="handleEditSubmit(event)">
+                <input type="hidden" id="editDocId">
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                    <label for="editTask" style="display: block; margin-bottom: 0.5em;">Công việc/Task:</label>
+                    <input type="text" id="editTask" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
+                </div>
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                    <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm/Cost Center:</label>
+                    <select id="editCostCenter" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
+                        <option value="">Chọn một trạm/Select a center</option>
+                        <!-- Options will be populated dynamically -->
+                    </select>
+                </div>
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                    <label for="editDateOfError" style="display: block; margin-bottom: 0.5em;">Ngày lỗi/Date of Error:</label>
+                    <input type="text" id="editDateOfError" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
+                </div>
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                    <label for="editDetailsDescription" style="display: block; margin-bottom: 0.5em;">Mô tả chi tiết/Details Description:</label>
+                    <textarea id="editDetailsDescription" required style="width: 100%; padding: clamp(6px, 1vw, 12px); min-height: clamp(80px, 15vh, 150px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);"></textarea>
+                </div>
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                    <label for="editDirection" style="display: block; margin-bottom: 0.5em;">Hướng xử lý/Direction:</label>
+                    <textarea id="editDirection" required style="width: 100%; padding: clamp(6px, 1vw, 12px); min-height: clamp(80px, 15vh, 150px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);"></textarea>
+                </div>
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                    <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới/Update File:</label>
+                    <input type="file" id="editFile" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
+                </div>
 
-                      <!-- Current Approvers Section -->
-                      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                        <label style="display: block; margin-bottom: 0.5em;">Người phê duyệt hiện tại/Current Approvers:</label>
-                        <div id="currentApproversList"></div>
-                      </div>
+                <!-- Current Approvers Section -->
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label style="display: block; margin-bottom: 0.5em;">Người phê duyệt hiện tại/Current Approvers:</label>
+                  <div id="currentApproversList"></div>
+                </div>
 
-                      <!-- Add New Approvers Section -->
-                      <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                        <label style="display: block; margin-bottom: 0.5em;">Thêm người phê duyệt/Add Approvers:</label>
-                        <select id="newApproversDropdown" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
-                          <option value="">Chọn người phê duyệt/Select an approver</option>
-                          <!-- Options will be populated dynamically -->
-                        </select>
-                        <input type="text" id="newApproverSubRole" placeholder="Vai trò/Sub Role" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
-                        <button type="button" class="approve-btn" onclick="addNewApprover()" style="margin-top: 10px;">
-                          Thêm/Add
-                        </button>
-                      </div>
-                    
-                      <div style="display: flex; gap: clamp(8px, 1vw, 16px); margin-top: clamp(20px, 2.5vw, 32px);">
-                          <button type="submit" class="approve-btn" style="padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px); font-size: inherit;">Lưu thay đổi/Save Changes</button>
-                          <button type="button" class="approve-btn" onclick="closeEditModal()" style="background: #666; padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px); font-size: inherit;">Hủy/Cancel</button>
-                      </div>
-                  </form>
-              </div>
-          </div>
-        `;
+                <!-- Add New Approvers Section -->
+                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+                  <label style="display: block; margin-bottom: 0.5em;">Thêm người phê duyệt/Add Approvers:</label>
+                  <select id="newApproversDropdown" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
+                    <option value="">Chọn người phê duyệt/Select an approver</option>
+                    <!-- Options will be populated dynamically -->
+                  </select>
+                  <input type="text" id="newApproverSubRole" placeholder="Vai trò/Sub Role" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
+                  <button type="button" class="approve-btn" onclick="addNewApprover()" style="margin-top: 10px;">
+                    Thêm/Add
+                  </button>
+                </div>
+              
+                <div style="display: flex; gap: clamp(8px, 1vw, 16px); margin-top: clamp(20px, 2.5vw, 32px);">
+                    <button type="submit" class="approve-btn" style="padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px); font-size: inherit;">Lưu thay đổi/Save Changes</button>
+                    <button type="button" class="approve-btn" onclick="closeEditModal()" style="background: #666; padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px); font-size: inherit;">Hủy/Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+  `;
   document.body.insertAdjacentHTML("beforeend", modalHTML);
 }
 
@@ -785,6 +795,12 @@ async function initializePage() {
     currentPage = 1; // Reset to first page when filter changes
     fetchProposalDocuments();
   });
+
+  // Add pagination toggle event listener
+  document
+    .getElementById("paginationToggle")
+    .addEventListener("change", togglePagination);
+
   // Initial fetch of documents
   fetchProposalDocuments();
 }

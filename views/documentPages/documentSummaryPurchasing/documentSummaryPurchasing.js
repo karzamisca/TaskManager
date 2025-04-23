@@ -6,6 +6,7 @@ let currentApprovers = [];
 let currentPage = 1;
 const itemsPerPage = 10; // Adjust this value based on your preference
 let totalPages = 1;
+let paginationEnabled = true; // Default to enabled
 
 function createToggleSwitch() {
   const toggleContainer = document.createElement("div");
@@ -164,8 +165,10 @@ async function fetchPurchasingDocuments() {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
 
-    // Get documents for current page only
-    const pageDocuments = filteredDocuments.slice(startIndex, endIndex);
+    // Get documents for current page only if pagination is enabled, otherwise show all
+    const pageDocuments = paginationEnabled
+      ? filteredDocuments.slice(startIndex, endIndex)
+      : filteredDocuments;
 
     const tableBody = document.getElementById("purchasingDocumentsTable");
     tableBody.innerHTML = "";
@@ -264,8 +267,16 @@ async function fetchPurchasingDocuments() {
       tableBody.appendChild(row);
     });
 
-    // Render pagination controls
-    renderPagination();
+    // Render pagination controls if pagination is enabled
+    if (paginationEnabled) {
+      renderPagination();
+    } else {
+      // Remove pagination if disabled
+      let paginationContainer = document.getElementById("paginationContainer");
+      if (paginationContainer) {
+        paginationContainer.innerHTML = "";
+      }
+    }
 
     // Update summary section
     const approvedSum = filteredDocuments
@@ -288,6 +299,13 @@ async function fetchPurchasingDocuments() {
     console.error("Error fetching purchasing documents:", err);
     showMessage("Error fetching purchasing documents", true);
   }
+}
+
+// Function to handle pagination toggle
+function togglePagination() {
+  paginationEnabled = document.getElementById("paginationToggle").checked;
+  currentPage = 1; // Reset to first page
+  fetchPurchasingDocuments();
 }
 
 // Function to render pagination controls
@@ -439,106 +457,106 @@ async function deleteDocument(documentId) {
 
 function addEditModal() {
   const modalHTML = `
-          <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
-            <div style="
-              position: fixed; 
-              top: 50%; 
-              left: 50%; 
-              transform: translate(-50%, -50%); 
-              background: var(--bg-color); 
-              padding: clamp(16px, 2vw, 24px);
-              width: clamp(300px, 85vw, 900px);
-              border-radius: clamp(4px, 1vw, 8px);
-              max-height: 90vh;
-              overflow-y: auto;
-              font-size: clamp(14px, 1.5vw, 16px);
-            ">
-              <span onclick="closeEditModal()" style="
-                position: sticky; 
-                float: right; 
-                top: 10px; 
-                cursor: pointer; 
-                font-size: clamp(20px, 2vw, 28px);
-                padding: clamp(4px, 0.5vw, 8px);
-              ">&times;</span>
-              
-              <h2 style="font-size: clamp(18px, 2vw, 24px); margin-bottom: clamp(16px, 2vw, 24px);">
-                Chỉnh sửa phiếu mua hàng/Edit Purchasing Document
-              </h2>
-              
-              <form id="editForm" onsubmit="handleEditSubmit(event)">
-                <input type="hidden" id="editDocId">
+    <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+      <div style="
+        position: fixed; 
+        top: 50%; 
+        left: 50%; 
+        transform: translate(-50%, -50%); 
+        background: var(--bg-color); 
+        padding: clamp(16px, 2vw, 24px);
+        width: clamp(300px, 85vw, 900px);
+        border-radius: clamp(4px, 1vw, 8px);
+        max-height: 90vh;
+        overflow-y: auto;
+        font-size: clamp(14px, 1.5vw, 16px);
+      ">
+        <span onclick="closeEditModal()" style="
+          position: sticky; 
+          float: right; 
+          top: 10px; 
+          cursor: pointer; 
+          font-size: clamp(20px, 2vw, 28px);
+          padding: clamp(4px, 0.5vw, 8px);
+        ">&times;</span>
+        
+        <h2 style="font-size: clamp(18px, 2vw, 24px); margin-bottom: clamp(16px, 2vw, 24px);">
+          Chỉnh sửa phiếu mua hàng/Edit Purchasing Document
+        </h2>
+        
+        <form id="editForm" onsubmit="handleEditSubmit(event)">
+          <input type="hidden" id="editDocId">
 
-                <!-- Basic Fields -->
-                <div style="margin-bottom: 15px;">
-                  <label for="editName">Tên/Name:</label>
-                  <input type="text" id="editName" required style="width: 100%; padding: 8px;">
-                </div>
-
-                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm/Cost Center:</label>
-                  <select id="editCostCenter" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
-                    <option value="">Chọn một trạm/Select a center</option>
-                    <!-- Options will be populated dynamically -->
-                  </select>
-                </div>
-                
-                <div id="productsContainer" style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label style="display: block; margin-bottom: 0.5em;">Sản phẩm/Products:</label>
-                  <div id="productsList"></div>
-                  <button type="button" class="approve-btn" onclick="addProductField()" style="margin-top: 10px;">
-                    Thêm sản phẩm/Add Product
-                  </button>
-                </div>
-
-                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới/Update File:</label>
-                  <input type="file" id="editFile" style="
-                    width: 100%;
-                    padding: clamp(6px, 1vw, 12px);
-                    font-size: inherit;
-                  ">
-                </div>
-
-                <!-- Current Approvers Section -->
-                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label style="display: block; margin-bottom: 0.5em;">Người phê duyệt hiện tại/Current Approvers:</label>
-                  <div id="currentApproversList"></div>
-                </div>
-
-                <!-- Add New Approvers Section -->
-                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label style="display: block; margin-bottom: 0.5em;">Thêm người phê duyệt/Add Approvers:</label>
-                  <select id="newApproversDropdown" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
-                    <option value="">Chọn người phê duyệt/Select an approver</option>
-                    <!-- Options will be populated dynamically -->
-                  </select>
-                  <input type="text" id="newApproverSubRole" placeholder="Vai trò/Sub Role" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
-                  <button type="button" class="approve-btn" onclick="addNewApprover()" style="margin-top: 10px;">
-                    Thêm/Add
-                  </button>
-                </div>
-
-                <div style="
-                  display: flex;
-                  gap: clamp(8px, 1vw, 16px);
-                  margin-top: clamp(20px, 2.5vw, 32px);
-                ">
-                  <button type="submit" class="approve-btn" style="
-                    padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
-                    font-size: inherit;
-                  ">Lưu thay đổi/Save Changes</button>
-                  
-                  <button type="button" class="approve-btn" onclick="closeEditModal()" style="
-                    background: #666;
-                    padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
-                    font-size: inherit;
-                  ">Hủy/Cancel</button>
-                </div>
-              </form>
-            </div>
+          <!-- Basic Fields -->
+          <div style="margin-bottom: 15px;">
+            <label for="editName">Tên/Name:</label>
+            <input type="text" id="editName" required style="width: 100%; padding: 8px;">
           </div>
-        `;
+
+          <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+            <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm/Cost Center:</label>
+            <select id="editCostCenter" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
+              <option value="">Chọn một trạm/Select a center</option>
+              <!-- Options will be populated dynamically -->
+            </select>
+          </div>
+          
+          <div id="productsContainer" style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+            <label style="display: block; margin-bottom: 0.5em;">Sản phẩm/Products:</label>
+            <div id="productsList"></div>
+            <button type="button" class="approve-btn" onclick="addProductField()" style="margin-top: 10px;">
+              Thêm sản phẩm/Add Product
+            </button>
+          </div>
+
+          <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+            <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới/Update File:</label>
+            <input type="file" id="editFile" style="
+              width: 100%;
+              padding: clamp(6px, 1vw, 12px);
+              font-size: inherit;
+            ">
+          </div>
+
+          <!-- Current Approvers Section -->
+          <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+            <label style="display: block; margin-bottom: 0.5em;">Người phê duyệt hiện tại/Current Approvers:</label>
+            <div id="currentApproversList"></div>
+          </div>
+
+          <!-- Add New Approvers Section -->
+          <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+            <label style="display: block; margin-bottom: 0.5em;">Thêm người phê duyệt/Add Approvers:</label>
+            <select id="newApproversDropdown" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
+              <option value="">Chọn người phê duyệt/Select an approver</option>
+              <!-- Options will be populated dynamically -->
+            </select>
+            <input type="text" id="newApproverSubRole" placeholder="Vai trò/Sub Role" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
+            <button type="button" class="approve-btn" onclick="addNewApprover()" style="margin-top: 10px;">
+              Thêm/Add
+            </button>
+          </div>
+
+          <div style="
+            display: flex;
+            gap: clamp(8px, 1vw, 16px);
+            margin-top: clamp(20px, 2.5vw, 32px);
+          ">
+            <button type="submit" class="approve-btn" style="
+              padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
+              font-size: inherit;
+            ">Lưu thay đổi/Save Changes</button>
+            
+            <button type="button" class="approve-btn" onclick="closeEditModal()" style="
+              background: #666;
+              padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
+              font-size: inherit;
+            ">Hủy/Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
 
   document.body.insertAdjacentHTML("beforeend", modalHTML);
 }
@@ -1126,6 +1144,11 @@ async function initializePage() {
     currentPage = 1; // Reset to first page when filter changes
     fetchPurchasingDocuments();
   });
+
+  // Add pagination toggle event listener
+  document
+    .getElementById("paginationToggle")
+    .addEventListener("change", togglePagination);
 
   fetchPurchasingDocuments();
 }

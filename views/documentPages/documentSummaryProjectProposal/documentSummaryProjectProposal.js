@@ -6,6 +6,7 @@ let currentApprovers = [];
 let currentPage = 1;
 const itemsPerPage = 10;
 let totalPages = 1;
+let paginationEnabled = true; // Default to enabled
 
 function createToggleSwitch() {
   const toggleContainer = document.createElement("div");
@@ -96,9 +97,14 @@ async function fetchProjectProposals() {
     if (currentPage > totalPages) currentPage = totalPages;
     if (currentPage < 1) currentPage = 1;
 
+    // Calculate slice indexes for current page
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    const pageDocuments = filteredDocuments.slice(startIndex, endIndex);
+
+    // Get documents for current page only if pagination is enabled, otherwise show all
+    const pageDocuments = paginationEnabled
+      ? filteredDocuments.slice(startIndex, endIndex)
+      : filteredDocuments;
 
     const tableBody = document.getElementById("projectProposalsTable");
     tableBody.innerHTML = "";
@@ -194,7 +200,16 @@ async function fetchProjectProposals() {
       tableBody.appendChild(row);
     });
 
-    renderPagination();
+    // Render pagination controls if pagination is enabled
+    if (paginationEnabled) {
+      renderPagination();
+    } else {
+      // Remove pagination if disabled
+      let paginationContainer = document.getElementById("paginationContainer");
+      if (paginationContainer) {
+        paginationContainer.innerHTML = "";
+      }
+    }
     document.getElementById("approvedDocument").textContent =
       data.approvedDocument.toLocaleString();
     document.getElementById("unapprovedDocument").textContent =
@@ -203,6 +218,13 @@ async function fetchProjectProposals() {
     console.error("Error fetching project proposals:", err);
     showMessage("Error fetching project proposals", true);
   }
+}
+
+// Function to handle pagination toggle
+function togglePagination() {
+  paginationEnabled = document.getElementById("paginationToggle").checked;
+  currentPage = 1; // Reset to first page
+  fetchProjectProposals();
 }
 
 // Function to render pagination controls
@@ -311,60 +333,6 @@ function changePage(newPage) {
     document.querySelector("table").scrollIntoView({ behavior: "smooth" });
   }
 }
-
-document.addEventListener("DOMContentLoaded", function () {
-  const styleTag = document.querySelector("style");
-  styleTag.innerHTML += `
-    /* Pagination styles */
-    .pagination {
-      display: flex;
-      justify-content: center;
-      margin: 20px 0;
-    }
-    
-    .pagination-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    
-    .pagination-controls button {
-      background-color: var(--primary-color);
-      color: var(--bg-color);
-      border: none;
-      padding: 8px 12px;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    
-    .pagination-controls button:hover:not([disabled]) {
-      background-color: var(--primary-hover);
-    }
-    
-    .pagination-controls button[disabled] {
-      background-color: var(--border-color);
-      cursor: not-allowed;
-      opacity: 0.6;
-    }
-    
-    .pagination-controls .page-info {
-      margin: 0 10px;
-      color: var(--text-color);
-    }
-    
-    @media screen and (max-width: 768px) {
-      .pagination-controls {
-        gap: 5px;
-      }
-      
-      .pagination-controls button {
-        padding: 6px 10px;
-        font-size: 14px;
-      }
-    }
-  `;
-});
 
 async function approveDocument(documentId) {
   try {
@@ -970,6 +938,12 @@ async function initializePage() {
     currentPage = 1;
     fetchProjectProposals();
   });
+
+  // Add pagination toggle event listener
+  document
+    .getElementById("paginationToggle")
+    .addEventListener("change", togglePagination);
+
   fetchProjectProposals();
 }
 
