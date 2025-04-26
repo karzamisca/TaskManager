@@ -1,0 +1,248 @@
+<!-- views\adminPages\adminSalary\adminSalary.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Salary Tracker Admin</title>
+    <link rel="stylesheet" href="adminPages/adminSalary/adminSalary.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Salary Tracker Admin Panel</h1>
+      <div class="dashboard">
+        <div class="filter-section">
+          <h2>Filters</h2>
+          <div class="filter-form">
+            <div class="form-group">
+              <label for="employee-cost-center-filter"
+                >Employee Cost Center:</label
+              >
+              <select id="employee-cost-center-filter">
+                <option value="all">All Cost Centers</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="cost-center-select">Salary Cost Center:</label>
+              <select id="cost-center-select">
+                <option value="all">All Cost Centers</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="month-select">Month:</label>
+              <select id="month-select">
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="year-input">Year:</label>
+              <input type="number" id="year-input" min="2000" max="2100" />
+            </div>
+            <button id="filter-button" class="btn primary">
+              Apply Filters
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-button active" data-tab="employees">
+          Employees
+        </button>
+        <button class="tab-button" data-tab="salary-records">
+          Salary Records
+        </button>
+        <button class="tab-button" data-tab="add-employee">Add Employee</button>
+        <button class="tab-button" data-tab="add-salary-record">
+          Add Salary Record
+        </button>
+      </div>
+
+      <div class="tab-content">
+        <div id="employees" class="tab-pane active">
+          <h2>Employee Information</h2>
+          <div class="table-container">
+            <table id="employees-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Cost Center</th>
+                  <th>Base Salary</th>
+                  <th>Holiday Bonus</th>
+                  <th>Night Shift Bonus</th>
+                  <th>Social Insurance</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="salary-records" class="tab-pane">
+          <h2>Salary Records</h2>
+          <div class="table-container">
+            <table id="salary-records-table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Cost Center</th>
+                  <th>Month/Year</th>
+                  <th>Holiday Days</th>
+                  <th>Night Shift Days</th>
+                  <th>Holiday Bonus Rate</th>
+                  <th>Night Shift Bonus Rate</th>
+                  <th>Total Salary</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="add-employee" class="tab-pane">
+          <h2>Add New Employee</h2>
+          <form id="add-employee-form">
+            <div class="form-group">
+              <label for="new-username">Username:</label>
+              <input type="text" id="new-username" required />
+            </div>
+            <div class="form-group">
+              <label for="new-cost-center">Cost Center:</label>
+              <select id="new-cost-center" required>
+                <!-- Will be populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="new-base-salary">Base Salary:</label>
+              <input
+                type="number"
+                id="new-base-salary"
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="new-holiday-bonus">Holiday Bonus (per day):</label>
+              <input
+                type="number"
+                id="new-holiday-bonus"
+                min="0"
+                step="0.01"
+                value="0"
+              />
+            </div>
+            <div class="form-group">
+              <label for="new-night-shift-bonus"
+                >Night Shift Bonus (per day):</label
+              >
+              <input
+                type="number"
+                id="new-night-shift-bonus"
+                min="0"
+                step="0.01"
+                value="0"
+              />
+            </div>
+            <div class="form-group">
+              <label for="new-social-insurance">Social Insurance:</label>
+              <input
+                type="number"
+                id="new-social-insurance"
+                min="0"
+                step="0.01"
+                value="0"
+              />
+            </div>
+            <button type="submit" class="btn primary">Add Employee</button>
+          </form>
+        </div>
+
+        <div id="add-salary-record" class="tab-pane">
+          <h2>Add New Salary Record</h2>
+          <form id="add-salary-record-form">
+            <div class="form-group">
+              <label for="salary-employee">Employee:</label>
+              <select id="salary-employee" required>
+                <!-- Will be populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="salary-month">Month:</label>
+              <select id="salary-month" required>
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="salary-year">Year:</label>
+              <input
+                type="number"
+                id="salary-year"
+                min="2000"
+                max="2100"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="holiday-days">Holiday Days:</label>
+              <input type="number" id="holiday-days" min="0" value="0" />
+            </div>
+            <div class="form-group">
+              <label for="night-shift-days">Night Shift Days:</label>
+              <input type="number" id="night-shift-days" min="0" value="0" />
+            </div>
+            <div class="form-group">
+              <label for="holiday-bonus-rate">Holiday Bonus Rate:</label>
+              <input
+                type="number"
+                id="holiday-bonus-rate"
+                min="0"
+                step="0.01"
+                value="0"
+              />
+            </div>
+            <div class="form-group">
+              <label for="night-shift-bonus-rate"
+                >Night Shift Bonus Rate:</label
+              >
+              <input
+                type="number"
+                id="night-shift-bonus-rate"
+                min="0"
+                step="0.01"
+                value="0"
+              />
+            </div>
+            <button type="submit" class="btn primary">Add Salary Record</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="adminPages/adminSalary/adminSalary.js"></script>
+  </body>
+</html>
