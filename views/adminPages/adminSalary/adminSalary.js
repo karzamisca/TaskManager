@@ -49,7 +49,7 @@ let allSalaryRecords = [];
 
 async function loadCostCenters() {
   try {
-    const res = await fetch("/api/employees/get/cost-centers");
+    const res = await fetch("/employeesCostCenters");
     const costCenters = await res.json();
     const selects = [
       document.getElementById("cost-center-select"),
@@ -78,7 +78,7 @@ async function loadCostCenters() {
 
 async function loadEmployees() {
   try {
-    const res = await fetch("/api/employees");
+    const res = await fetch("/employees");
     allEmployees = await res.json();
     renderEmployees();
     populateEmployeeDropdown();
@@ -89,7 +89,7 @@ async function loadEmployees() {
 
 async function loadSalaryRecords() {
   try {
-    const res = await fetch("/api/salary-records");
+    const res = await fetch("/employeeSalaryRecord");
     allSalaryRecords = await res.json();
     renderSalaryRecords();
   } catch (err) {
@@ -171,7 +171,7 @@ function renderSalaryRecords() {
   const costCenterId = document.getElementById("cost-center-select").value;
   const month = parseInt(document.getElementById("month-select").value);
   const year = parseInt(document.getElementById("year-input").value);
-  const tbody = document.querySelector("#salary-records-table tbody");
+  const tbody = document.querySelector("#employeeSalaryRecord-table tbody");
   tbody.innerHTML = "";
 
   const monthNames = [
@@ -256,7 +256,7 @@ async function addEmployee(e) {
   };
 
   try {
-    const response = await fetch("/api/employees", {
+    const response = await fetch("/employees", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -329,7 +329,7 @@ async function addSalaryRecord(e) {
   };
 
   try {
-    const response = await fetch("/api/salary-records", {
+    const response = await fetch("/employeeSalaryRecord", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -355,7 +355,7 @@ async function addSalaryRecord(e) {
     loadSalaryRecords();
 
     // Switch to salary records tab
-    document.querySelector('[data-tab="salary-records"]').click();
+    document.querySelector('[data-tab="employeeSalaryRecord"]').click();
   } catch (err) {
     showError(err.message || "Error adding salary record");
   }
@@ -365,7 +365,7 @@ async function deleteEmployee(id) {
   if (!confirm("Are you sure you want to delete this employee?")) return;
 
   try {
-    const response = await fetch(`/api/employees/${id}`, {
+    const response = await fetch(`/employees/${id}`, {
       method: "DELETE",
     });
 
@@ -388,7 +388,7 @@ async function deleteSalaryRecord(id) {
   if (!confirm("Are you sure you want to delete this salary record?")) return;
 
   try {
-    const response = await fetch(`/api/salary-records/${id}`, {
+    const response = await fetch(`/employeeSalaryRecord/${id}`, {
       method: "DELETE",
     });
 

@@ -10,22 +10,22 @@ router.get(
   salaryController.getSalaryRecordPage
 );
 router.get(
-  "/api/salary-records",
+  "/employeeSalaryRecord",
   authMiddleware,
   salaryController.getAllSalaryRecords
 ); // NEW: get all
 router.get(
-  "/api/salary-records/:id",
+  "/employeeSalaryRecord/:id",
   authMiddleware,
   salaryController.getSalaryRecordById
 ); // for edit modal
 router.post(
-  "/api/salary-records",
+  "/employeeSalaryRecord",
   authMiddleware,
   salaryController.createOrUpdateSalaryRecord
 );
 router.delete(
-  "/api/salary-records/:id",
+  "/employeeSalaryRecord/:id",
   authMiddleware,
   salaryController.deleteSalaryRecord
 );
