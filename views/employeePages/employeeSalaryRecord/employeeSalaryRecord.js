@@ -1,4 +1,4 @@
-//views\adminPages\adminSalary\adminSalary.js
+//views\employeePages\employeeSalaryRecord\employeeSalaryRecord.js
 document.addEventListener("DOMContentLoaded", function () {
   const currentDate = new Date();
   document.getElementById("month-select").value = currentDate.getMonth() + 1;

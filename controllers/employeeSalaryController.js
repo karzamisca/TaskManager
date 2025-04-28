@@ -1,8 +1,8 @@
 // controllers/salaryController.js
-const SalaryRecord = require("../models/SalaryRecord");
+const EmployeeSalaryRecord = require("../models/EmployeeSalaryRecord");
 const Employee = require("../models/Employee");
 
-exports.getSalaryRecordPage = (req, res) => {
+exports.getEmployeeSalaryRecordPage = (req, res) => {
   try {
     if (
       ![
@@ -19,19 +19,33 @@ exports.getSalaryRecordPage = (req, res) => {
       );
     }
     // Serve the HTML file
-    res.sendFile("adminSalary.html", {
-      root: "./views/adminPages/adminSalary",
+    res.sendFile("employeeSalaryRecord.html", {
+      root: "./views/employeePages/employeeSalaryRecord",
     });
   } catch (error) {
-    console.error("Error serving the cost center admin page:", error);
+    console.error("Error serving the employee's salary page:", error);
     res.send("Server error");
   }
 };
 
 // Get all salary records
-exports.getAllSalaryRecords = async (req, res) => {
+exports.getAllEmployeeSalaryRecord = async (req, res) => {
   try {
-    const records = await SalaryRecord.find().populate({
+    if (
+      ![
+        "superAdmin",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+        "captainOfMech",
+      ].includes(req.user.role)
+    ) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
+    const records = await EmployeeSalaryRecord.find().populate({
       path: "employee",
       populate: { path: "costCenter" },
     });
@@ -42,9 +56,23 @@ exports.getAllSalaryRecords = async (req, res) => {
 };
 
 // Get salary record by ID
-exports.getSalaryRecordById = async (req, res) => {
+exports.getEmployeeSalaryRecordById = async (req, res) => {
   try {
-    const record = await SalaryRecord.findById(req.params.id).populate({
+    if (
+      ![
+        "superAdmin",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+        "captainOfMech",
+      ].includes(req.user.role)
+    ) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
+    const record = await EmployeeSalaryRecord.findById(req.params.id).populate({
       path: "employee",
       populate: { path: "costCenter" },
     });
@@ -60,8 +88,22 @@ exports.getSalaryRecordById = async (req, res) => {
 };
 
 // Create or update salary record - handle bonus rates
-exports.createOrUpdateSalaryRecord = async (req, res) => {
+exports.createOrUpdateEmployeeSalaryRecord = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+        "captainOfMech",
+      ].includes(req.user.role)
+    ) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
     const {
       employee,
       month,
@@ -91,7 +133,7 @@ exports.createOrUpdateSalaryRecord = async (req, res) => {
       baseSalary + holidayBonus + nightShiftBonus - socialInsurance;
 
     // Check if a record already exists for this employee/month/year
-    let record = await SalaryRecord.findOne({
+    let record = await EmployeeSalaryRecord.findOne({
       employee,
       month,
       year,
@@ -111,7 +153,7 @@ exports.createOrUpdateSalaryRecord = async (req, res) => {
       res.json(record);
     } else {
       // Create new record
-      const newRecord = new SalaryRecord({
+      const newRecord = new EmployeeSalaryRecord({
         employee,
         month,
         year,
@@ -139,9 +181,23 @@ exports.createOrUpdateSalaryRecord = async (req, res) => {
 };
 
 // Delete salary record
-exports.deleteSalaryRecord = async (req, res) => {
+exports.deleteEmployeeSalaryRecord = async (req, res) => {
   try {
-    const record = await SalaryRecord.findById(req.params.id);
+    if (
+      ![
+        "superAdmin",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+        "captainOfMech",
+      ].includes(req.user.role)
+    ) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
+    const record = await EmployeeSalaryRecord.findById(req.params.id);
 
     if (!record) {
       return res.status(404).json({ message: "Salary record not found" });

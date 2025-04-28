@@ -1,7 +1,7 @@
-// models/SalaryRecord.js
+// models\EmployeeSalaryRecord.js
 const mongoose = require("mongoose");
 
-const salaryRecordSchema = new mongoose.Schema({
+const employeeSalaryRecordSchema = new mongoose.Schema({
   employee: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Employee",
@@ -44,8 +44,14 @@ const salaryRecordSchema = new mongoose.Schema({
 });
 
 // Compound index to ensure only one record per employee per month/year
-salaryRecordSchema.index({ employee: 1, month: 1, year: 1 }, { unique: true });
+employeeSalaryRecordSchema.index(
+  { employee: 1, month: 1, year: 1 },
+  { unique: true }
+);
 
-const SalaryRecord = mongoose.model("SalaryRecord", salaryRecordSchema);
+const EmployeeSalaryRecord = mongoose.model(
+  "EmployeeSalaryRecord",
+  employeeSalaryRecordSchema
+);
 
-module.exports = SalaryRecord;
+module.exports = EmployeeSalaryRecord;

@@ -12,6 +12,8 @@ const documentInGroupRoute = require("./routes/documentInGroupRoute");
 const documentInGroupDeclarationRoute = require("./routes/documentInGroupDeclarationRoute");
 const projectRoute = require("./routes/projectRoute");
 const projectExpenseRoute = require("./routes/projectExpenseRoute");
+const employeeRoutes = require("./routes/employeeRoutes");
+const employeeSalaryRecordRoutes = require("./routes/employeeSalaryRecordRoutes");
 const authMiddleware = require("./middlewares/authMiddleware"); // JWT middleware
 const messageRoute = require("./routes/messageRoute");
 const path = require("path");
@@ -27,9 +29,6 @@ const ProjectProposalDocument = require("./models/DocumentProjectProposal");
 const GroupDeclaration = require("./models/GroupDeclaration");
 const Project = require("./models/Project");
 require("dotenv").config();
-
-const employeeRoutes = require("./routes/employeeRoutes");
-const salaryRoutes = require("./routes/salaryRoutes");
 
 const app = express();
 
@@ -58,9 +57,8 @@ app.use("/", authMiddleware, documentInGroupRoute);
 app.use("/", authMiddleware, projectRoute);
 app.use("/", authMiddleware, projectExpenseRoute);
 app.use("/", authMiddleware, messageRoute);
-
 app.use("/", authMiddleware, employeeRoutes);
-app.use("/", authMiddleware, salaryRoutes);
+app.use("/", authMiddleware, employeeSalaryRecordRoutes);
 
 // Error handling for multer
 app.use((err, req, res, next) => {

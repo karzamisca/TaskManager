@@ -2,9 +2,49 @@
 const Employee = require("../models/Employee");
 const CostCenter = require("../models/CostCenter");
 
+exports.getEmployeeMainPage = (req, res) => {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+        "captainOfMech",
+      ].includes(req.user.role)
+    ) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
+    // Serve the HTML file
+    res.sendFile("employeeMain.html", {
+      root: "./views/employeePages/employeeMain",
+    });
+  } catch (error) {
+    console.error("Error serving the employee main page:", error);
+    res.send("Server error");
+  }
+};
+
 // Get all employees
 exports.getAllEmployees = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+        "captainOfMech",
+      ].includes(req.user.role)
+    ) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
     const employees = await Employee.find().populate("costCenter");
     res.json(employees);
   } catch (err) {
@@ -15,6 +55,20 @@ exports.getAllEmployees = async (req, res) => {
 // Get employee by ID
 exports.getEmployeeById = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+        "captainOfMech",
+      ].includes(req.user.role)
+    ) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
     const employee = await Employee.findById(req.params.id).populate(
       "costCenter"
     );
@@ -32,6 +86,20 @@ exports.getEmployeeById = async (req, res) => {
 // Create new employee
 exports.createEmployee = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+        "captainOfMech",
+      ].includes(req.user.role)
+    ) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
     const {
       username,
       costCenter,
@@ -73,6 +141,20 @@ exports.createEmployee = async (req, res) => {
 // Update employee
 exports.updateEmployee = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+        "captainOfMech",
+      ].includes(req.user.role)
+    ) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
     const {
       username,
       costCenter,
@@ -124,6 +206,20 @@ exports.updateEmployee = async (req, res) => {
 // Delete employee
 exports.deleteEmployee = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+        "captainOfMech",
+      ].includes(req.user.role)
+    ) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
     const employee = await Employee.findById(req.params.id);
 
     if (!employee) {
@@ -140,6 +236,20 @@ exports.deleteEmployee = async (req, res) => {
 // Get all cost centers
 exports.getAllCostCenters = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+        "captainOfMech",
+      ].includes(req.user.role)
+    ) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
     const costCenters = await CostCenter.find();
     res.json(costCenters);
   } catch (err) {

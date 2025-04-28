@@ -4,6 +4,11 @@ const router = express.Router();
 const employeeController = require("../controllers/employeeController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
+router.get(
+  "/employeeMain",
+  authMiddleware,
+  employeeController.getEmployeeMainPage
+);
 router.get("/employees", authMiddleware, employeeController.getAllEmployees);
 router.get(
   "/employees/:id",

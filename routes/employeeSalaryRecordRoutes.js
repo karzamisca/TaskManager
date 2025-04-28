@@ -1,33 +1,33 @@
 //routes\salaryRoutes.js
 const express = require("express");
 const router = express.Router();
-const salaryController = require("../controllers/salaryController");
+const employeeSalaryController = require("../controllers/employeeSalaryController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 router.get(
-  "/adminSalary",
+  "/employeeSalaryRecordPage",
   authMiddleware,
-  salaryController.getSalaryRecordPage
+  employeeSalaryController.getEmployeeSalaryRecordPage
 );
 router.get(
   "/employeeSalaryRecord",
   authMiddleware,
-  salaryController.getAllSalaryRecords
+  employeeSalaryController.getAllEmployeeSalaryRecord
 ); // NEW: get all
 router.get(
   "/employeeSalaryRecord/:id",
   authMiddleware,
-  salaryController.getSalaryRecordById
+  employeeSalaryController.getEmployeeSalaryRecordById
 ); // for edit modal
 router.post(
   "/employeeSalaryRecord",
   authMiddleware,
-  salaryController.createOrUpdateSalaryRecord
+  employeeSalaryController.createOrUpdateEmployeeSalaryRecord
 );
 router.delete(
   "/employeeSalaryRecord/:id",
   authMiddleware,
-  salaryController.deleteSalaryRecord
+  employeeSalaryController.deleteEmployeeSalaryRecord
 );
 
 module.exports = router;
