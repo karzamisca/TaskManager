@@ -1,4 +1,3 @@
-<!-- views\employeePages\employeeSalaryRecord\employeeSalaryRecord.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -7,11 +6,11 @@
     <title>Salary Tracker Admin</title>
     <link
       rel="stylesheet"
-      href="employeePages/employeeSalaryRecord/employeeSalaryRecord.css"
+      href="userPages/userSalaryRecord/userSalaryRecord.css"
     />
   </head>
   <body>
-    <a href="/employeeMain">Trở về/Back</a>
+    <a href="/userMain">Trở về/Back</a>
     <div class="container">
       <h1>Salary Tracker Admin Panel</h1>
       <div class="dashboard">
@@ -19,10 +18,8 @@
           <h2>Filters</h2>
           <div class="filter-form">
             <div class="form-group">
-              <label for="employee-cost-center-filter"
-                >Employee Cost Center:</label
-              >
-              <select id="employee-cost-center-filter">
+              <label for="user-cost-center-filter">User Cost Center:</label>
+              <select id="user-cost-center-filter">
                 <option value="all">All Cost Centers</option>
               </select>
             </div>
@@ -59,25 +56,21 @@
           </div>
         </div>
       </div>
-
       <div class="tabs">
-        <button class="tab-button active" data-tab="employees">
-          Employees
-        </button>
-        <button class="tab-button" data-tab="employeeSalaryRecord">
+        <button class="tab-button active" data-tab="users">Users</button>
+        <button class="tab-button" data-tab="userSalaryRecords">
           Salary Records
         </button>
-        <button class="tab-button" data-tab="add-employee">Add Employee</button>
+        <button class="tab-button" data-tab="add-user">Add User</button>
         <button class="tab-button" data-tab="add-salary-record">
           Add Salary Record
         </button>
       </div>
-
       <div class="tab-content">
-        <div id="employees" class="tab-pane active">
-          <h2>Employee Information</h2>
+        <div id="users" class="tab-pane active">
+          <h2>User Information</h2>
           <div class="table-container">
-            <table id="employees-table">
+            <table id="users-table">
               <thead>
                 <tr>
                   <th>Username</th>
@@ -93,14 +86,13 @@
             </table>
           </div>
         </div>
-
-        <div id="employeeSalaryRecord" class="tab-pane">
+        <div id="userSalaryRecords" class="tab-pane">
           <h2>Salary Records</h2>
           <div class="table-container">
-            <table id="employeeSalaryRecord-table">
+            <table id="userSalaryRecords-table">
               <thead>
                 <tr>
-                  <th>Employee</th>
+                  <th>User</th>
                   <th>Cost Center</th>
                   <th>Month/Year</th>
                   <th>Holiday Days</th>
@@ -115,10 +107,9 @@
             </table>
           </div>
         </div>
-
-        <div id="add-employee" class="tab-pane">
-          <h2>Add New Employee</h2>
-          <form id="add-employee-form">
+        <div id="add-user" class="tab-pane">
+          <h2>Add New User</h2>
+          <form id="add-user-form">
             <div class="form-group">
               <label for="new-username">Username:</label>
               <input type="text" id="new-username" required />
@@ -171,16 +162,15 @@
                 value="0"
               />
             </div>
-            <button type="submit" class="btn primary">Add Employee</button>
+            <button type="submit" class="btn primary">Add User</button>
           </form>
         </div>
-
         <div id="add-salary-record" class="tab-pane">
           <h2>Add New Salary Record</h2>
           <form id="add-salary-record-form">
             <div class="form-group">
-              <label for="salary-employee">Employee:</label>
-              <select id="salary-employee" required>
+              <label for="salary-user">User:</label>
+              <select id="salary-user" required>
                 <!-- Will be populated dynamically -->
               </select>
             </div>
@@ -246,8 +236,7 @@
         </div>
       </div>
     </div>
-    <a href="/employeeMain">Trở về/Back</a>
-
-    <script src="employeePages/employeeSalaryRecord/employeeSalaryRecord.js"></script>
+    <a href="/userMain">Trở về/Back</a>
+    <script src="userPages/userSalaryRecord/userSalaryRecord.js"></script>
   </body>
 </html>

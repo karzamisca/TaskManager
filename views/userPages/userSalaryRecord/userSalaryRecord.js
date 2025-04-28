@@ -1,4 +1,3 @@
-//views\employeePages\employeeSalaryRecord\employeeSalaryRecord.js
 document.addEventListener("DOMContentLoaded", function () {
   const currentDate = new Date();
   document.getElementById("month-select").value = currentDate.getMonth() + 1;
@@ -7,7 +6,7 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("salary-year").value = currentDate.getFullYear();
 
   loadCostCenters();
-  loadEmployees();
+  loadUsers();
   loadSalaryRecords();
 
   document.querySelectorAll(".tab-button").forEach((button) => {
@@ -29,31 +28,27 @@ document.addEventListener("DOMContentLoaded", function () {
     .getElementById("filter-button")
     .addEventListener("click", applyFilters);
 
-  // Add event listeners for form submissions
-  document
-    .getElementById("add-employee-form")
-    .addEventListener("submit", addEmployee);
+  document.getElementById("add-user-form").addEventListener("submit", addUser);
 
   document
     .getElementById("add-salary-record-form")
     .addEventListener("submit", addSalaryRecord);
 
-  // Add event listener for employee selection in salary record form
   document
-    .getElementById("salary-employee")
+    .getElementById("salary-user")
     .addEventListener("change", populateBonusRates);
 });
 
-let allEmployees = [];
+let allUsers = [];
 let allSalaryRecords = [];
 
 async function loadCostCenters() {
   try {
-    const res = await fetch("/employeesCostCenters");
+    const res = await fetch("/userControlCostCenters");
     const costCenters = await res.json();
     const selects = [
       document.getElementById("cost-center-select"),
-      document.getElementById("employee-cost-center-filter"),
+      document.getElementById("user-cost-center-filter"),
       document.getElementById("new-cost-center"),
     ];
     selects.forEach((select) => {
@@ -65,8 +60,6 @@ async function loadCostCenters() {
         option.textContent = cc.name;
         select.appendChild(option);
       });
-
-      // Remove "All Cost Centers" from the new employee form
       if (select.id === "new-cost-center") {
         select.removeChild(select.querySelector('option[value="all"]'));
       }
@@ -76,20 +69,20 @@ async function loadCostCenters() {
   }
 }
 
-async function loadEmployees() {
+async function loadUsers() {
   try {
-    const res = await fetch("/employees");
-    allEmployees = await res.json();
-    renderEmployees();
-    populateEmployeeDropdown();
+    const res = await fetch("/userControl");
+    allUsers = await res.json();
+    renderUsers();
+    populateUserDropdown();
   } catch (err) {
-    showError("Failed to load employees");
+    showError("Failed to load users");
   }
 }
 
 async function loadSalaryRecords() {
   try {
-    const res = await fetch("/employeeSalaryRecord");
+    const res = await fetch("/userSalaryRecords");
     allSalaryRecords = await res.json();
     renderSalaryRecords();
   } catch (err) {
@@ -97,68 +90,62 @@ async function loadSalaryRecords() {
   }
 }
 
-function populateEmployeeDropdown() {
-  const employeeSelect = document.getElementById("salary-employee");
-  employeeSelect.innerHTML = "";
-
-  allEmployees.forEach((emp) => {
+function populateUserDropdown() {
+  const userSelect = document.getElementById("salary-user");
+  userSelect.innerHTML = "";
+  allUsers.forEach((user) => {
     const option = document.createElement("option");
-    option.value = emp._id;
-    option.textContent = emp.username;
-    employeeSelect.appendChild(option);
+    option.value = user._id;
+    option.textContent = user.username;
+    userSelect.appendChild(option);
   });
-
-  // Trigger the change event to populate initial bonus rates
-  if (allEmployees.length > 0) {
+  if (allUsers.length > 0) {
     populateBonusRates();
   }
 }
 
 function populateBonusRates() {
-  const employeeId = document.getElementById("salary-employee").value;
-  if (!employeeId) return;
-
-  const selectedEmployee = allEmployees.find((emp) => emp._id === employeeId);
-  if (selectedEmployee) {
+  const userId = document.getElementById("salary-user").value;
+  if (!userId) return;
+  const selectedUser = allUsers.find((user) => user._id === userId);
+  if (selectedUser) {
     document.getElementById("holiday-bonus-rate").value =
-      selectedEmployee.holidayBonusPerDay;
+      selectedUser.holidayBonusPerDay;
     document.getElementById("night-shift-bonus-rate").value =
-      selectedEmployee.nightShiftBonusPerDay;
+      selectedUser.nightShiftBonusPerDay;
   }
 }
 
 function applyFilters() {
-  renderEmployees();
+  renderUsers();
   renderSalaryRecords();
 }
 
-function renderEmployees() {
+function renderUsers() {
   const filterCostCenterId = document.getElementById(
-    "employee-cost-center-filter"
+    "user-cost-center-filter"
   ).value;
-  const tbody = document.querySelector("#employees-table tbody");
+  const tbody = document.querySelector("#users-table tbody");
   tbody.innerHTML = "";
-
   const filtered =
     filterCostCenterId === "all"
-      ? allEmployees
-      : allEmployees.filter(
-          (e) => e.costCenter && e.costCenter._id === filterCostCenterId
+      ? allUsers
+      : allUsers.filter(
+          (u) => u.costCenter && u.costCenter._id === filterCostCenterId
         );
-
-  filtered.forEach((emp) => {
+  filtered.forEach((user) => {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td>${emp.username}</td>
-      <td>${emp.costCenter ? emp.costCenter.name : "N/A"}</td>
-      <td>${emp.baseSalary.toFixed(2)}</td>
-      <td>${emp.holidayBonusPerDay.toFixed(2)}</td>
-      <td>${emp.nightShiftBonusPerDay.toFixed(2)}</td>
-      <td>${emp.socialInsurance.toFixed(2)}</td>
+      <td>${user.username}</td>
+      <td>${user.costCenter ? user.costCenter.name : "N/A"}</td>
+      <td>${user.baseSalary.toLocaleString()}</td>
+      <td>${user.holidayBonusPerDay.toLocaleString()}</td>
+      <td>${user.nightShiftBonusPerDay.toLocaleString()}</td>
+      <td>${user.socialInsurance.toLocaleString()}</td>
       <td>
         <div class="action-buttons">
-          <button class="btn btn-danger" onclick="deleteEmployee('${
-            emp._id
+          <button class="btn btn-danger" onclick="deleteUser('${
+            user._id
           }')">Delete</button>
         </div>
       </td>
@@ -171,9 +158,8 @@ function renderSalaryRecords() {
   const costCenterId = document.getElementById("cost-center-select").value;
   const month = parseInt(document.getElementById("month-select").value);
   const year = parseInt(document.getElementById("year-input").value);
-  const tbody = document.querySelector("#employeeSalaryRecord-table tbody");
+  const tbody = document.querySelector("#userSalaryRecords-table tbody");
   tbody.innerHTML = "";
-
   const monthNames = [
     "January",
     "February",
@@ -188,43 +174,41 @@ function renderSalaryRecords() {
     "November",
     "December",
   ];
-
   const filtered = allSalaryRecords.filter((record) => {
     const matchCostCenter =
       costCenterId === "all" ||
-      (record.employee.costCenter &&
-        record.employee.costCenter._id === costCenterId);
+      (record.user.costCenter && record.user.costCenter._id === costCenterId);
     const matchMonth = !month || record.month === month;
     const matchYear = !year || record.year === year;
     return matchCostCenter && matchMonth && matchYear;
   });
-
   if (filtered.length === 0) {
     tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;">No records found</td></tr>`;
     return;
   }
-
   filtered.forEach((record) => {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td>${record.employee ? record.employee.username : "Unknown"}</td>
+      <td>${record.user ? record.user.username : "Unknown"}</td>
       <td>${
-        record.employee && record.employee.costCenter
-          ? record.employee.costCenter.name
+        record.user && record.user.costCenter
+          ? record.user.costCenter.name
           : "N/A"
       }</td>
       <td>${monthNames[record.month - 1]} ${record.year}</td>
       <td>${record.holidayDays}</td>
       <td>${record.nightShiftDays}</td>
       <td>${
-        record.holidayBonusRate ? record.holidayBonusRate.toFixed(2) : "N/A"
+        record.holidayBonusRate
+          ? record.holidayBonusRate.toLocaleString()
+          : "N/A"
       }</td>
       <td>${
         record.nightShiftBonusRate
-          ? record.nightShiftBonusRate.toFixed(2)
+          ? record.nightShiftBonusRate.toLocaleString()
           : "N/A"
       }</td>
-      <td>${record.totalSalary.toFixed(2)}</td>
+      <td>${record.totalSalary.toLocaleString()}</td>
       <td>
         <div class="action-buttons">
           <button class="btn btn-danger" onclick="deleteSalaryRecord('${
@@ -237,10 +221,9 @@ function renderSalaryRecords() {
   });
 }
 
-async function addEmployee(e) {
+async function addUser(e) {
   e.preventDefault();
-
-  const newEmployee = {
+  const newUser = {
     username: document.getElementById("new-username").value,
     costCenter: document.getElementById("new-cost-center").value,
     baseSalary: parseFloat(document.getElementById("new-base-salary").value),
@@ -254,41 +237,30 @@ async function addEmployee(e) {
       document.getElementById("new-social-insurance").value
     ),
   };
-
   try {
-    const response = await fetch("/employees", {
+    const response = await fetch("/userControl", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(newEmployee),
+      body: JSON.stringify(newUser),
     });
-
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || "Failed to add employee");
+      throw new Error(error.message || "Failed to add user");
     }
-
-    // Reset form
-    document.getElementById("add-employee-form").reset();
-
-    // Show success message
-    showSuccess("Employee added successfully!");
-
-    // Reload employees
-    loadEmployees();
-
-    // Switch to employees tab
-    document.querySelector('[data-tab="employees"]').click();
+    document.getElementById("add-user-form").reset();
+    showSuccess("User added successfully!");
+    loadUsers();
+    document.querySelector('[data-tab="users"]').click();
   } catch (err) {
-    showError(err.message || "Error adding employee");
+    showError(err.message || "Error adding user");
   }
 }
 
 async function addSalaryRecord(e) {
   e.preventDefault();
-
-  const employeeId = document.getElementById("salary-employee").value;
+  const userId = document.getElementById("salary-user").value;
   const month = parseInt(document.getElementById("salary-month").value);
   const year = parseInt(document.getElementById("salary-year").value);
   const holidayDays = parseInt(document.getElementById("holiday-days").value);
@@ -301,24 +273,19 @@ async function addSalaryRecord(e) {
   const nightShiftBonusRate = parseFloat(
     document.getElementById("night-shift-bonus-rate").value
   );
-
-  const selectedEmployee = allEmployees.find((emp) => emp._id === employeeId);
-  if (!selectedEmployee) {
-    showError("Selected employee not found");
+  const selectedUser = allUsers.find((user) => user._id === userId);
+  if (!selectedUser) {
+    showError("Selected user not found");
     return;
   }
-
-  // Calculate total salary
-  const baseSalary = selectedEmployee.baseSalary;
+  const baseSalary = selectedUser.baseSalary;
   const holidayBonus = holidayDays * holidayBonusRate;
   const nightShiftBonus = nightShiftDays * nightShiftBonusRate;
-  const socialInsurance = selectedEmployee.socialInsurance;
-
+  const socialInsurance = selectedUser.socialInsurance;
   const totalSalary =
     baseSalary + holidayBonus + nightShiftBonus - socialInsurance;
-
   const salaryRecord = {
-    employee: employeeId,
+    user: userId,
     month,
     year,
     holidayDays,
@@ -327,58 +294,41 @@ async function addSalaryRecord(e) {
     nightShiftBonusRate,
     totalSalary,
   };
-
   try {
-    const response = await fetch("/employeeSalaryRecord", {
+    const response = await fetch("/userSalaryRecords", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(salaryRecord),
     });
-
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to add salary record");
     }
-
-    // Reset form
     document.getElementById("add-salary-record-form").reset();
-    // Re-populate default values
     document.getElementById("salary-month").value = new Date().getMonth() + 1;
     document.getElementById("salary-year").value = new Date().getFullYear();
-
-    // Show success message
     showSuccess("Salary record added successfully!");
-
-    // Reload salary records
     loadSalaryRecords();
-
-    // Switch to salary records tab
-    document.querySelector('[data-tab="employeeSalaryRecord"]').click();
+    document.querySelector('[data-tab="userSalaryRecords"]').click();
   } catch (err) {
     showError(err.message || "Error adding salary record");
   }
 }
 
-async function deleteEmployee(id) {
-  if (!confirm("Are you sure you want to delete this employee?")) return;
-
+async function deleteUser(id) {
+  if (!confirm("Are you sure you want to delete this user?")) return;
   try {
-    const response = await fetch(`/employees/${id}`, {
+    const response = await fetch(`/userControl/${id}`, {
       method: "DELETE",
     });
-
     if (!response.ok) {
-      throw new Error("Failed to delete employee");
+      throw new Error("Failed to delete user");
     }
-
-    // Reload employees
-    loadEmployees();
-    // Also reload salary records as they may reference this employee
+    loadUsers();
     loadSalaryRecords();
-
-    showSuccess("Employee deleted successfully!");
+    showSuccess("User deleted successfully!");
   } catch (err) {
     showError(err.message);
   }
@@ -386,19 +336,14 @@ async function deleteEmployee(id) {
 
 async function deleteSalaryRecord(id) {
   if (!confirm("Are you sure you want to delete this salary record?")) return;
-
   try {
-    const response = await fetch(`/employeeSalaryRecord/${id}`, {
+    const response = await fetch(`/userSalaryRecords/${id}`, {
       method: "DELETE",
     });
-
     if (!response.ok) {
       throw new Error("Failed to delete salary record");
     }
-
-    // Reload salary records
     loadSalaryRecords();
-
     showSuccess("Salary record deleted successfully!");
   } catch (err) {
     showError(err.message);
@@ -406,36 +351,28 @@ async function deleteSalaryRecord(id) {
 }
 
 function showSuccess(message) {
-  // Create success message element if it doesn't exist
   let successEl = document.querySelector(".success-message");
   if (!successEl) {
     successEl = document.createElement("div");
     successEl.className = "success-message";
     document.querySelector(".container").prepend(successEl);
   }
-
   successEl.textContent = message;
   successEl.style.display = "block";
-
-  // Hide after 3 seconds
   setTimeout(() => {
     successEl.style.display = "none";
   }, 3000);
 }
 
 function showError(message) {
-  // Create error message element if it doesn't exist
   let errorEl = document.querySelector(".error-message");
   if (!errorEl) {
     errorEl = document.createElement("div");
     errorEl.className = "error-message";
     document.querySelector(".container").prepend(errorEl);
   }
-
   errorEl.textContent = message;
   errorEl.style.display = "block";
-
-  // Hide after 3 seconds
   setTimeout(() => {
     errorEl.style.display = "none";
   }, 3000);

@@ -46,9 +46,4 @@ const userSalaryRecordSchema = new mongoose.Schema({
 // Compound index to ensure only one record per user per month/year
 userSalaryRecordSchema.index({ user: 1, month: 1, year: 1 }, { unique: true });
 
-const UserSalaryRecord = mongoose.model(
-  "UserSalaryRecord",
-  userSalaryRecordSchema
-);
-
-module.exports = UserSalaryRecord;
+module.exports = mongoose.model("UserSalaryRecord", userSalaryRecordSchema);
