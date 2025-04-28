@@ -11,7 +11,7 @@ exports.getEmployeeSalaryRecordPage = (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "director",
-        "captainOfMech",
+        "headOfHumanResources",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -38,7 +38,7 @@ exports.getAllEmployeeSalaryRecord = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "director",
-        "captainOfMech",
+        "headOfHumanResources",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -65,7 +65,7 @@ exports.getEmployeeSalaryRecordById = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "director",
-        "captainOfMech",
+        "headOfHumanResources",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -97,7 +97,7 @@ exports.createOrUpdateEmployeeSalaryRecord = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "director",
-        "captainOfMech",
+        "headOfHumanResources",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -190,7 +190,7 @@ exports.deleteEmployeeSalaryRecord = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "director",
-        "captainOfMech",
+        "headOfHumanResources",
       ].includes(req.user.role)
     ) {
       return res.send(

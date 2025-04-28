@@ -14,6 +14,7 @@ exports.getAdminPage = (req, res) => {
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
+        "headOfHumanResources",
         "director",
         "captainOfMech",
       ].includes(req.user.role)
@@ -43,6 +44,7 @@ exports.getCostCenterAdminPage = (req, res) => {
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
+        "headOfHumanResources",
         "director",
         "captainOfMech",
       ].includes(req.user.role)
@@ -70,6 +72,7 @@ exports.getCostCenters = async (req, res) => {
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
+        "headOfHumanResources",
         "director",
         "captainOfMech",
       ].includes(req.user.role)
@@ -156,6 +159,7 @@ exports.getProductAdminPage = (req, res) => {
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
+        "headOfHumanResources",
         "director",
         "captainOfMech",
       ].includes(req.user.role)

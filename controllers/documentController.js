@@ -845,42 +845,6 @@ async function processAppendedProposals(approvedProposals) {
   // Filter out any null values from failed lookups
   return appendedProposals.filter((proposal) => proposal !== null);
 }
-exports.getPendingDocument = async (req, res) => {
-  try {
-    const pendingPurchasingDocs = await PurchasingDocument.find({
-      status: "Pending",
-    }).populate("submittedBy", "username");
-    const pendingProposalDocs = await ProposalDocument.find({
-      status: "Pending",
-    }).populate("submittedBy", "username");
-    const pendingGenericDocs = await Document.find({
-      status: "Pending",
-    }).populate("submittedBy", "username");
-    const pendingPaymentDocs = await PaymentDocument.find({
-      status: "Pending",
-    }).populate("submittedBy", "username");
-    const pendingAdvancePaymentDocs = await AdvancePaymentDocument.find({
-      status: "Pending",
-    }).populate("submittedBy", "username");
-
-    res.sendFile(
-      path.join(
-        __dirname,
-        "../views/approvals/documents/unifiedViewDocuments/approveDocument.html"
-      ),
-      {
-        pendingGenericDocs: JSON.stringify(pendingGenericDocs),
-        pendingProposalDocs: JSON.stringify(pendingProposalDocs),
-        pendingPurchasingDocs: JSON.stringify(pendingPurchasingDocs),
-        pendingPaymentDocs: JSON.stringify(pendingPaymentDocs),
-        pendingAdvancePaymentDocs: JSON.stringify(pendingAdvancePaymentDocs),
-      }
-    );
-  } catch (err) {
-    console.error("Error fetching pending documents:", err);
-    res.send("Lỗi lấy tài liệu/Error fetching pending documents");
-  }
-};
 exports.approveDocument = async (req, res) => {
   const { id } = req.params;
   try {
@@ -892,6 +856,7 @@ exports.approveDocument = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "captainOfMech",
+        "headOfHumanResources",
         "director",
       ].includes(req.user.role)
     ) {

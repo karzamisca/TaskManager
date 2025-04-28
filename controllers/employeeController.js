@@ -11,7 +11,7 @@ exports.getEmployeeMainPage = (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "director",
-        "captainOfMech",
+        "headOfHumanResources",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -38,7 +38,7 @@ exports.getAllEmployees = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "director",
-        "captainOfMech",
+        "headOfHumanResources",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -62,7 +62,7 @@ exports.getEmployeeById = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "director",
-        "captainOfMech",
+        "headOfHumanResources",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -93,7 +93,7 @@ exports.createEmployee = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "director",
-        "captainOfMech",
+        "headOfHumanResources",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -148,7 +148,7 @@ exports.updateEmployee = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "director",
-        "captainOfMech",
+        "headOfHumanResources",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -213,7 +213,7 @@ exports.deleteEmployee = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "director",
-        "captainOfMech",
+        "headOfHumanResources",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -243,7 +243,7 @@ exports.getAllCostCenters = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "director",
-        "captainOfMech",
+        "headOfHumanResources",
       ].includes(req.user.role)
     ) {
       return res.send(
