@@ -7,6 +7,19 @@ const userSalaryRecordSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
+  username: {
+    type: String,
+    required: true,
+  },
+  costCenter: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "CostCenter",
+    required: true,
+  },
+  costCenterName: {
+    type: String,
+    required: true,
+  },
   month: {
     type: Number,
     required: true,

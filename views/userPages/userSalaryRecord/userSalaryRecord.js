@@ -53,7 +53,7 @@ async function loadCostCenters() {
     ];
     selects.forEach((select) => {
       if (!select) return;
-      select.innerHTML = `<option value="all">All Cost Centers</option>`;
+      select.innerHTML = `<option value="all">Tất cả trạm/All Cost Centers</option>`;
       costCenters.forEach((cc) => {
         const option = document.createElement("option");
         option.value = cc._id;
@@ -189,12 +189,10 @@ function renderSalaryRecords() {
   filtered.forEach((record) => {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td>${record.user ? record.user.username : "Unknown"}</td>
       <td>${
-        record.user && record.user.costCenter
-          ? record.user.costCenter.name
-          : "N/A"
+        record.username || (record.user ? record.user.username : "Unknown")
       }</td>
+      <td>${record.costCenterName || "N/A"}</td>
       <td>${monthNames[record.month - 1]} ${record.year}</td>
       <td>${record.holidayDays}</td>
       <td>${record.nightShiftDays}</td>
@@ -318,7 +316,7 @@ async function addSalaryRecord(e) {
 }
 
 async function deleteUser(id) {
-  if (!confirm("Are you sure you want to delete this user?")) return;
+  if (!confirm("Xóa nhân viên/Delete this user?")) return;
   try {
     const response = await fetch(`/userControl/${id}`, {
       method: "DELETE",
@@ -335,7 +333,7 @@ async function deleteUser(id) {
 }
 
 async function deleteSalaryRecord(id) {
-  if (!confirm("Are you sure you want to delete this salary record?")) return;
+  if (!confirm("Xóa bảng lương/Delete this salary record?")) return;
   try {
     const response = await fetch(`/userSalaryRecords/${id}`, {
       method: "DELETE",
