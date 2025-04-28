@@ -42,11 +42,6 @@ router.post(
   documentController.submitDocument
 );
 // Approve document route
-router.get(
-  "/approveDocument",
-  authMiddleware,
-  documentController.getPendingDocument
-);
 router.post(
   "/approveDocument/:id",
   authMiddleware,
