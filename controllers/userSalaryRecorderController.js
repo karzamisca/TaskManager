@@ -1,3 +1,4 @@
+//controllers\userSalaryRecorderController.js
 const UserSalaryRecord = require("../models/UserSalaryRecord");
 const User = require("../models/User");
 
