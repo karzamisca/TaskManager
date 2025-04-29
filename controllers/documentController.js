@@ -23,6 +23,7 @@ const {
   createPurchasingDocTemplate,
   createDeliveryDocTemplate,
   createPaymentDocTemplate,
+  createAdvancePaymentDocTemplate,
 } = require("../utils/docxTemplates");
 // Configure multer
 const storage = multer.diskStorage({
@@ -312,7 +313,8 @@ exports.exportDocumentToDocx = async (req, res) => {
       (await ProposalDocument.findById(id)) ||
       (await PurchasingDocument.findById(id)) ||
       (await DeliveryDocument.findById(id)) ||
-      (await PaymentDocument.findById(id));
+      (await PaymentDocument.findById(id)) ||
+      (await AdvancePaymentDocument.findById(id));
 
     if (!doc) {
       return res.status(404).send("Không tìm thấy tài liệu/Document not found");
@@ -335,6 +337,9 @@ exports.exportDocumentToDocx = async (req, res) => {
           break;
         case "Payment Document":
           buffer = await createPaymentDocTemplate(doc);
+          break;
+        case "Advance Payment Document":
+          buffer = await createAdvancePaymentDocTemplate(doc);
           break;
         default:
           return res.send(
