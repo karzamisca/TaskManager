@@ -14,6 +14,7 @@ exports.getDocumentInProjectViews = (req, res) => {
       "headOfMechanical",
       "headOfAccounting",
       "headOfPurchasing",
+      "captainOfPurchasing",
       "director",
     ].includes(req.user.role)
   ) {

@@ -28,12 +28,13 @@ router.get("/approvers", authMiddleware, async (req, res) => {
         $in: [
           "approver",
           "superAdmin",
-          "captainOfMech",
+          "director",
           "headOfMechanical",
           "headOfAccounting",
           "headOfPurchasing",
           "headOfHumanResources",
-          "director",
+          "captainOfMech",
+          "captainOfPurchasing",
         ],
       },
     });
