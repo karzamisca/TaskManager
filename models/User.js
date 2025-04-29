@@ -1,7 +1,7 @@
 // models/User.js
 const mongoose = require("mongoose");
 
-// Helper function to generate a random string
+// Helper function to generate a random password
 function generateRandomPassword(length = 15) {
   const chars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()";
@@ -26,6 +26,9 @@ const userSchema = new mongoose.Schema({
   holidayBonusPerDay: { type: Number, default: 0 },
   nightShiftBonusPerDay: { type: Number, default: 0 },
   socialInsurance: { type: Number, default: 0 },
+  currentHolidayDays: { type: Number, default: 0 },
+  currentNightShiftDays: { type: Number, default: 0 },
+  currentSalary: { type: Number, default: 0 },
   email: { type: String },
   facebookUserId: { type: String },
 });
@@ -35,6 +38,14 @@ userSchema.pre("save", function (next) {
   if (!this.password) {
     this.password = generateRandomPassword();
   }
+
+  // Calculate current salary whenever the user is saved
+  this.currentSalary =
+    this.baseSalary +
+    this.holidayBonusPerDay * this.currentHolidayDays +
+    this.nightShiftBonusPerDay * this.currentNightShiftDays -
+    this.socialInsurance;
+
   next();
 });
 

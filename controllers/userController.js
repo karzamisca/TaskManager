@@ -27,6 +27,31 @@ exports.getUserMainPage = (req, res) => {
   }
 };
 
+exports.getUserSalaryRecordPage = (req, res) => {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "headOfMechanical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "director",
+        "headOfHumanResources",
+      ].includes(req.user.role)
+    ) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
+    res.sendFile("userSalaryRecord.html", {
+      root: "./views/userPages/userSalaryRecord",
+    });
+  } catch (error) {
+    console.error("Error serving the user's salary page:", error);
+    res.send("Server error");
+  }
+};
+
 // Get all users except privileged roles
 exports.getAllUsers = async (req, res) => {
   try {
@@ -99,6 +124,7 @@ exports.createUser = async (req, res) => {
         "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
       );
     }
+
     const {
       username,
       costCenter,
@@ -106,6 +132,8 @@ exports.createUser = async (req, res) => {
       holidayBonusPerDay,
       nightShiftBonusPerDay,
       socialInsurance,
+      currentHolidayDays,
+      currentNightShiftDays,
     } = req.body;
 
     const existingUser = await User.findOne({ username });
@@ -125,6 +153,8 @@ exports.createUser = async (req, res) => {
       holidayBonusPerDay: holidayBonusPerDay || 0,
       nightShiftBonusPerDay: nightShiftBonusPerDay || 0,
       socialInsurance: socialInsurance || 0,
+      currentHolidayDays: currentHolidayDays || 0,
+      currentNightShiftDays: currentNightShiftDays || 0,
     });
 
     const savedUser = await newUser.save();
@@ -151,6 +181,7 @@ exports.updateUser = async (req, res) => {
         "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
       );
     }
+
     const {
       username,
       costCenter,
@@ -158,6 +189,8 @@ exports.updateUser = async (req, res) => {
       holidayBonusPerDay,
       nightShiftBonusPerDay,
       socialInsurance,
+      currentHolidayDays,
+      currentNightShiftDays,
     } = req.body;
 
     const user = await User.findById(req.params.id);
@@ -187,6 +220,10 @@ exports.updateUser = async (req, res) => {
     if (nightShiftBonusPerDay !== undefined)
       user.nightShiftBonusPerDay = nightShiftBonusPerDay;
     if (socialInsurance !== undefined) user.socialInsurance = socialInsurance;
+    if (currentHolidayDays !== undefined)
+      user.currentHolidayDays = currentHolidayDays;
+    if (currentNightShiftDays !== undefined)
+      user.currentNightShiftDays = currentNightShiftDays;
 
     const updatedUser = await user.save();
     await updatedUser.populate("costCenter");

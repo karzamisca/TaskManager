@@ -1,16 +1,8 @@
 //views\userPages\userSalaryRecord\userSalaryRecord.js
 document.addEventListener("DOMContentLoaded", function () {
-  // Initialize current date values
-  const currentDate = new Date();
-  document.getElementById("month-select").value = currentDate.getMonth() + 1;
-  document.getElementById("year-input").value = currentDate.getFullYear();
-  document.getElementById("salary-month").value = currentDate.getMonth() + 1;
-  document.getElementById("salary-year").value = currentDate.getFullYear();
-
   // Load initial data
   loadCostCenters();
   loadUsers();
-  loadSalaryRecords();
 
   // Tab functionality
   document.querySelectorAll(".tab-button").forEach((button) => {
@@ -33,12 +25,6 @@ document.addEventListener("DOMContentLoaded", function () {
     .getElementById("filter-button")
     .addEventListener("click", applyFilters);
   document.getElementById("add-user-form").addEventListener("submit", addUser);
-  document
-    .getElementById("add-salary-record-form")
-    .addEventListener("submit", addSalaryRecord);
-  document
-    .getElementById("salary-user")
-    .addEventListener("change", populateBonusRates);
 
   // Modal functionality
   document.querySelectorAll(".close-modal").forEach((btn) => {
@@ -59,14 +45,10 @@ document.addEventListener("DOMContentLoaded", function () {
   document
     .getElementById("edit-user-form")
     .addEventListener("submit", updateUser);
-  document
-    .getElementById("edit-salary-form")
-    .addEventListener("submit", updateSalaryRecord);
 });
 
 // Global variables
 let allUsers = [];
-let allSalaryRecords = [];
 
 // Data loading functions
 async function loadCostCenters() {
@@ -74,7 +56,6 @@ async function loadCostCenters() {
     const res = await fetch("/userControlCostCenters");
     const costCenters = await res.json();
     const selects = [
-      document.getElementById("cost-center-select"),
       document.getElementById("user-cost-center-filter"),
       document.getElementById("new-cost-center"),
       document.getElementById("edit-cost-center"),
@@ -104,61 +85,14 @@ async function loadUsers() {
     const res = await fetch("/userControl");
     allUsers = await res.json();
     renderUsers();
-    populateUserDropdowns();
   } catch (err) {
     showError("Failed to load users");
-  }
-}
-
-async function loadSalaryRecords() {
-  try {
-    const res = await fetch("/userSalaryRecords");
-    allSalaryRecords = await res.json();
-    renderSalaryRecords();
-  } catch (err) {
-    showError("Failed to load salary records");
-  }
-}
-
-function populateUserDropdowns() {
-  const userSelects = [
-    document.getElementById("salary-user"),
-    document.getElementById("edit-salary-user"),
-  ];
-
-  userSelects.forEach((select) => {
-    if (!select) return;
-    select.innerHTML = "";
-    allUsers.forEach((user) => {
-      const option = document.createElement("option");
-      option.value = user._id;
-      option.textContent = user.username;
-      select.appendChild(option);
-    });
-  });
-
-  if (allUsers.length > 0) {
-    populateBonusRates();
-  }
-}
-
-function populateBonusRates() {
-  const userId = document.getElementById("salary-user").value;
-  if (!userId) return;
-
-  const selectedUser = allUsers.find((user) => user._id === userId);
-  if (selectedUser) {
-    document.getElementById("holiday-bonus-rate").value =
-      selectedUser.holidayBonusPerDay;
-    document.getElementById("night-shift-bonus-rate").value =
-      selectedUser.nightShiftBonusPerDay;
   }
 }
 
 // Rendering functions
 function applyFilters() {
   renderUsers();
-  renderSalaryRecords();
 }
 
 function renderUsers() {
@@ -176,7 +110,7 @@ function renderUsers() {
         );
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">No users found</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;">No users found</td></tr>`;
     return;
   }
 
@@ -186,9 +120,12 @@ function renderUsers() {
       <td>${user.username}</td>
       <td>${user.costCenter ? user.costCenter.name : "N/A"}</td>
       <td>${user.baseSalary.toLocaleString()}</td>
+      <td>${user.currentHolidayDays}</td>
+      <td>${user.currentNightShiftDays}</td>
       <td>${user.holidayBonusPerDay.toLocaleString()}</td>
       <td>${user.nightShiftBonusPerDay.toLocaleString()}</td>
       <td>${user.socialInsurance.toLocaleString()}</td>
+      <td>${user.currentSalary.toLocaleString()}</td>
       <td>
         <div class="action-buttons">
           <button class="btn" onclick="editUser('${user._id}')">Edit</button>
@@ -202,85 +139,20 @@ function renderUsers() {
   });
 }
 
-function renderSalaryRecords() {
-  const costCenterId = document.getElementById("cost-center-select").value;
-  const month = parseInt(document.getElementById("month-select").value);
-  const year = parseInt(document.getElementById("year-input").value);
-  const tbody = document.querySelector("#userSalaryRecords-table tbody");
-  tbody.innerHTML = "";
-
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-
-  const filtered = allSalaryRecords.filter((record) => {
-    const matchCostCenter =
-      costCenterId === "all" ||
-      (record.costCenter && record.costCenter._id === costCenterId);
-    const matchMonth = !month || record.month === month;
-    const matchYear = !year || record.year === year;
-    return matchCostCenter && matchMonth && matchYear;
-  });
-
-  if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;">No records found</td></tr>`;
-    return;
-  }
-
-  filtered.forEach((record) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${
-        record.username || (record.user ? record.user.username : "Unknown")
-      }</td>
-      <td>${record.costCenterName || "N/A"}</td>
-      <td>${monthNames[record.month - 1]} ${record.year}</td>
-      <td>${record.holidayDays}</td>
-      <td>${record.nightShiftDays}</td>
-      <td>${
-        record.holidayBonusRate
-          ? record.holidayBonusRate.toLocaleString()
-          : "N/A"
-      }</td>
-      <td>${
-        record.nightShiftBonusRate
-          ? record.nightShiftBonusRate.toLocaleString()
-          : "N/A"
-      }</td>
-      <td>${record.totalSalary.toLocaleString()}</td>
-      <td>
-        <div class="action-buttons">
-          <button class="btn" onclick="editSalaryRecord('${
-            record._id
-          }')">Edit</button>
-          <button class="btn btn-danger" onclick="deleteSalaryRecord('${
-            record._id
-          }')">Delete</button>
-        </div>
-      </td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
 // CRUD Operations
 async function addUser(e) {
   e.preventDefault();
+
   const newUser = {
     username: document.getElementById("new-username").value,
     costCenter: document.getElementById("new-cost-center").value,
     baseSalary: parseFloat(document.getElementById("new-base-salary").value),
+    currentHolidayDays: parseInt(
+      document.getElementById("new-holiday-days").value
+    ),
+    currentNightShiftDays: parseInt(
+      document.getElementById("new-night-shift-days").value
+    ),
     holidayBonusPerDay: parseFloat(
       document.getElementById("new-holiday-bonus").value
     ),
@@ -312,65 +184,6 @@ async function addUser(e) {
   }
 }
 
-async function addSalaryRecord(e) {
-  e.preventDefault();
-  const userId = document.getElementById("salary-user").value;
-  const month = parseInt(document.getElementById("salary-month").value);
-  const year = parseInt(document.getElementById("salary-year").value);
-  const holidayDays = parseInt(document.getElementById("holiday-days").value);
-  const nightShiftDays = parseInt(
-    document.getElementById("night-shift-days").value
-  );
-  const holidayBonusRate = parseFloat(
-    document.getElementById("holiday-bonus-rate").value
-  );
-  const nightShiftBonusRate = parseFloat(
-    document.getElementById("night-shift-bonus-rate").value
-  );
-
-  const selectedUser = allUsers.find((user) => user._id === userId);
-  if (!selectedUser) {
-    showError("Selected user not found");
-    return;
-  }
-
-  const salaryRecord = {
-    user: userId,
-    month,
-    year,
-    holidayDays,
-    nightShiftDays,
-    holidayBonusRate,
-    nightShiftBonusRate,
-    totalSalary:
-      selectedUser.baseSalary +
-      holidayDays * holidayBonusRate +
-      nightShiftDays * nightShiftBonusRate -
-      selectedUser.socialInsurance,
-  };
-
-  try {
-    const response = await fetch("/userSalaryRecords", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(salaryRecord),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to add salary record");
-    }
-
-    document.getElementById("add-salary-record-form").reset();
-    document.getElementById("salary-month").value = new Date().getMonth() + 1;
-    document.getElementById("salary-year").value = new Date().getFullYear();
-    showSuccess("Salary record added successfully!");
-    loadSalaryRecords();
-  } catch (err) {
-    showError(err.message || "Error adding salary record");
-  }
-}
-
 async function editUser(id) {
   const user = allUsers.find((u) => u._id === id);
   if (!user) return;
@@ -378,6 +191,9 @@ async function editUser(id) {
   document.getElementById("edit-user-id").value = user._id;
   document.getElementById("edit-username").value = user.username;
   document.getElementById("edit-base-salary").value = user.baseSalary;
+  document.getElementById("edit-holiday-days").value = user.currentHolidayDays;
+  document.getElementById("edit-night-shift-days").value =
+    user.currentNightShiftDays;
   document.getElementById("edit-holiday-bonus").value = user.holidayBonusPerDay;
   document.getElementById("edit-night-shift-bonus").value =
     user.nightShiftBonusPerDay;
@@ -396,11 +212,18 @@ async function editUser(id) {
 
 async function updateUser(e) {
   e.preventDefault();
+
   const userId = document.getElementById("edit-user-id").value;
   const userData = {
     username: document.getElementById("edit-username").value,
     costCenter: document.getElementById("edit-cost-center").value,
     baseSalary: parseFloat(document.getElementById("edit-base-salary").value),
+    currentHolidayDays: parseInt(
+      document.getElementById("edit-holiday-days").value
+    ),
+    currentNightShiftDays: parseInt(
+      document.getElementById("edit-night-shift-days").value
+    ),
     holidayBonusPerDay: parseFloat(
       document.getElementById("edit-holiday-bonus").value
     ),
@@ -432,107 +255,14 @@ async function updateUser(e) {
   }
 }
 
-async function editSalaryRecord(id) {
-  const record = allSalaryRecords.find((r) => r._id === id);
-  if (!record) return;
-
-  document.getElementById("edit-salary-id").value = record._id;
-  document.getElementById("edit-salary-month").value = record.month;
-  document.getElementById("edit-salary-year").value = record.year;
-  document.getElementById("edit-holiday-days").value = record.holidayDays;
-  document.getElementById("edit-night-shift-days").value =
-    record.nightShiftDays;
-  document.getElementById("edit-holiday-bonus-rate").value =
-    record.holidayBonusRate;
-  document.getElementById("edit-night-shift-bonus-rate").value =
-    record.nightShiftBonusRate;
-
-  // Set the correct user
-  const userSelect = document.getElementById("edit-salary-user");
-  if (record.user) {
-    Array.from(userSelect.options).forEach((option) => {
-      option.selected = option.value === (record.user._id || record.user);
-    });
-  }
-
-  document.getElementById("edit-salary-modal").style.display = "block";
-}
-
-async function updateSalaryRecord(e) {
-  e.preventDefault();
-  const recordId = document.getElementById("edit-salary-id").value;
-  const salaryRecord = {
-    user: document.getElementById("edit-salary-user").value,
-    month: parseInt(document.getElementById("edit-salary-month").value),
-    year: parseInt(document.getElementById("edit-salary-year").value),
-    holidayDays: parseInt(document.getElementById("edit-holiday-days").value),
-    nightShiftDays: parseInt(
-      document.getElementById("edit-night-shift-days").value
-    ),
-    holidayBonusRate: parseFloat(
-      document.getElementById("edit-holiday-bonus-rate").value
-    ),
-    nightShiftBonusRate: parseFloat(
-      document.getElementById("edit-night-shift-bonus-rate").value
-    ),
-  };
-
-  // Calculate total salary
-  const user = allUsers.find((u) => u._id === salaryRecord.user);
-  if (user) {
-    salaryRecord.totalSalary =
-      user.baseSalary +
-      salaryRecord.holidayDays * salaryRecord.holidayBonusRate +
-      salaryRecord.nightShiftDays * salaryRecord.nightShiftBonusRate -
-      user.socialInsurance;
-  }
-
-  try {
-    const response = await fetch(`/userSalaryRecords/${recordId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(salaryRecord),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to update salary record");
-    }
-
-    document.getElementById("edit-salary-modal").style.display = "none";
-    showSuccess("Salary record updated successfully!");
-    loadSalaryRecords();
-  } catch (err) {
-    showError(err.message || "Error updating salary record");
-  }
-}
-
 async function deleteUser(id) {
   if (!confirm("Delete this user?")) return;
 
   try {
     const response = await fetch(`/userControl/${id}`, { method: "DELETE" });
     if (!response.ok) throw new Error("Failed to delete user");
-
     showSuccess("User deleted successfully!");
     loadUsers();
-    loadSalaryRecords();
-  } catch (err) {
-    showError(err.message);
-  }
-}
-
-async function deleteSalaryRecord(id) {
-  if (!confirm("Delete this salary record?")) return;
-
-  try {
-    const response = await fetch(`/userSalaryRecords/${id}`, {
-      method: "DELETE",
-    });
-    if (!response.ok) throw new Error("Failed to delete salary record");
-
-    showSuccess("Salary record deleted successfully!");
-    loadSalaryRecords();
   } catch (err) {
     showError(err.message);
   }

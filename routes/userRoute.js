@@ -5,6 +5,11 @@ const userController = require("../controllers/userController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 router.get("/userMain", authMiddleware, userController.getUserMainPage);
+router.get(
+  "/userSalaryRecord",
+  authMiddleware,
+  userController.getUserSalaryRecordPage
+);
 router.get("/userControl", authMiddleware, userController.getAllUsers);
 router.get("/userControl/:id", authMiddleware, userController.getUserById);
 router.post("/userControl", authMiddleware, userController.createUser);

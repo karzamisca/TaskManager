@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Bảng lương nhân viên/User Salary Records</title>
+    <title>User Salary Management</title>
     <link
       rel="stylesheet"
       href="userPages/userSalaryRecord/userSalaryRecord.css"
@@ -13,70 +13,36 @@
   <body>
     <a href="/userMain">Trở về/Back</a>
     <div class="container">
-      <h1>Bảng lương nhân viên/User's Salary Records</h1>
-      <div class="dashboard">
-        <div class="filter-section">
-          <h2>Lọc/Filters</h2>
-          <div class="filter-form">
-            <div class="form-group">
-              <label for="user-cost-center-filter"
-                >Nhân viên thuộc trạm/User of Cost Center:</label
-              >
-              <select id="user-cost-center-filter">
-                <option value="all">Tất cả trạm/All Cost Centers</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="cost-center-select"
-                >Bảng lương thuộc trạm/Salary Record of Cost Center:</label
-              >
-              <select id="cost-center-select">
-                <option value="all">Tất cả trạm/All Cost Centers</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="month-select">Tháng/Month:</label>
-              <select id="month-select">
-                <option value="1">Tháng 1/January</option>
-                <option value="2">Tháng 2/February</option>
-                <option value="3">Tháng 3/March</option>
-                <option value="4">Tháng 4/April</option>
-                <option value="5">Tháng 5/May</option>
-                <option value="6">Tháng 6/June</option>
-                <option value="7">Tháng 7/July</option>
-                <option value="8">Tháng 8/August</option>
-                <option value="9">Tháng 9/September</option>
-                <option value="10">Tháng 10/October</option>
-                <option value="11">Tháng 11/November</option>
-                <option value="12">Tháng 12/December</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="year-input">Năm/Year:</label>
-              <input type="number" id="year-input" min="2000" max="2100" />
-            </div>
-            <button id="filter-button" class="btn primary">
-              Áp dụng lọc/Apply Filters
-            </button>
-          </div>
-        </div>
-      </div>
+      <h1>Quản lý lương nhân viên/User Salary Management</h1>
+
       <div class="tabs">
         <button class="tab-button active" data-tab="users">
           Nhân viên/Users
         </button>
-        <button class="tab-button" data-tab="userSalaryRecords">
-          Bảng lương/Salary Records
-        </button>
         <button class="tab-button" data-tab="add-user">
           Thêm nhân viên/Add User
         </button>
-        <button class="tab-button" data-tab="add-salary-record">
-          Thêm bảng lương/Add Salary Record
-        </button>
       </div>
+
       <div class="tab-content">
         <div id="users" class="tab-pane active">
+          <div class="filter-section">
+            <h2>Lọc/Filters</h2>
+            <div class="filter-form">
+              <div class="form-group">
+                <label for="user-cost-center-filter"
+                  >Nhân viên thuộc trạm/User of Cost Center:</label
+                >
+                <select id="user-cost-center-filter">
+                  <option value="all">Tất cả trạm/All Cost Centers</option>
+                </select>
+              </div>
+              <button id="filter-button" class="btn primary">
+                Áp dụng lọc/Apply Filters
+              </button>
+            </div>
+          </div>
+
           <h2>Thông tin nhân viên/User Information</h2>
           <div class="table-container">
             <table id="users-table">
@@ -85,29 +51,11 @@
                   <th>Tên/Username</th>
                   <th>Trạm/Cost Center</th>
                   <th>Lương căn bản/Base Salary</th>
-                  <th>Thưởng ngày lễ/Holiday Bonus</th>
-                  <th>Thưởng trực đêm/Night Shift Bonus</th>
-                  <th>Bảo hiểm/Social Insurance</th>
-                  <th>Hành động/Actions</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
-        <div id="userSalaryRecords" class="tab-pane">
-          <h2>Bảng lương/Salary Records</h2>
-          <div class="table-container">
-            <table id="userSalaryRecords-table">
-              <thead>
-                <tr>
-                  <th>Tên/Username</th>
-                  <th>Trạm/Cost Center</th>
-                  <th>Tháng và năm/Month&Year</th>
                   <th>Ngày lễ/Holiday Days</th>
                   <th>Ngày trực đêm/Night Shift Days</th>
                   <th>Thưởng ngày lễ/Holiday Bonus</th>
                   <th>Thưởng trực đêm/Night Shift Bonus</th>
+                  <th>Bảo hiểm/Social Insurance</th>
                   <th>Tổng lương/Total Salary</th>
                   <th>Hành động/Actions</th>
                 </tr>
@@ -116,6 +64,7 @@
             </table>
           </div>
         </div>
+
         <div id="add-user" class="tab-pane">
           <h2>Thêm nhân viên mới/Add New User</h2>
           <form id="add-user-form">
@@ -125,9 +74,7 @@
             </div>
             <div class="form-group">
               <label for="new-cost-center">Trạm/Cost Center:</label>
-              <select id="new-cost-center" required>
-                <!-- Will be populated dynamically -->
-              </select>
+              <select id="new-cost-center" required></select>
             </div>
             <div class="form-group">
               <label for="new-base-salary">Lương căn bản/Base Salary:</label>
@@ -137,6 +84,21 @@
                 min="0"
                 step="0.01"
                 required
+              />
+            </div>
+            <div class="form-group">
+              <label for="new-holiday-days">Ngày lễ/Holiday Days:</label>
+              <input type="number" id="new-holiday-days" min="0" value="0" />
+            </div>
+            <div class="form-group">
+              <label for="new-night-shift-days"
+                >Ngày trực đêm/Night Shift Days:</label
+              >
+              <input
+                type="number"
+                id="new-night-shift-days"
+                min="0"
+                value="0"
               />
             </div>
             <div class="form-group">
@@ -180,220 +142,83 @@
             </button>
           </form>
         </div>
-        <div id="add-salary-record" class="tab-pane">
-          <h2>Thêm bảng lương mới/Add New Salary Record</h2>
-          <form id="add-salary-record-form">
+      </div>
+
+      <!-- Edit User Modal -->
+      <div id="edit-user-modal" class="modal">
+        <div class="modal-content">
+          <span class="close-modal">&times;</span>
+          <h2>Edit User</h2>
+          <form id="edit-user-form">
+            <input type="hidden" id="edit-user-id" />
             <div class="form-group">
-              <label for="salary-user">Tên/Username:</label>
-              <select id="salary-user" required>
-                <!-- Will be populated dynamically -->
-              </select>
+              <label for="edit-username">Username:</label>
+              <input type="text" id="edit-username" required />
             </div>
             <div class="form-group">
-              <label for="salary-month">Tháng/Month:</label>
-              <select id="salary-month" required>
-                <option value="1">Tháng 1/January</option>
-                <option value="2">Tháng 2/February</option>
-                <option value="3">Tháng 3/March</option>
-                <option value="4">Tháng 4/April</option>
-                <option value="5">Tháng 5/May</option>
-                <option value="6">Tháng 6/June</option>
-                <option value="7">Tháng 7/July</option>
-                <option value="8">Tháng 8/August</option>
-                <option value="9">Tháng 9/September</option>
-                <option value="10">Tháng 10/October</option>
-                <option value="11">Tháng 11/November</option>
-                <option value="12">Tháng 12/December</option>
-              </select>
+              <label for="edit-cost-center">Cost Center:</label>
+              <select id="edit-cost-center" required></select>
             </div>
             <div class="form-group">
-              <label for="salary-year">Năm/Year:</label>
+              <label for="edit-base-salary">Base Salary:</label>
               <input
                 type="number"
-                id="salary-year"
-                min="2000"
-                max="2100"
+                id="edit-base-salary"
+                min="0"
+                step="0.01"
                 required
               />
             </div>
             <div class="form-group">
-              <label for="holiday-days">Ngày lễ/Holiday Days:</label>
-              <input type="number" id="holiday-days" min="0" value="0" />
+              <label for="edit-holiday-days">Holiday Days:</label>
+              <input type="number" id="edit-holiday-days" min="0" value="0" />
             </div>
             <div class="form-group">
-              <label for="night-shift-days"
-                >Ngày trực đêm/Night Shift Days:</label
-              >
-              <input type="number" id="night-shift-days" min="0" value="0" />
-            </div>
-            <div class="form-group">
-              <label for="holiday-bonus-rate"
-                >Thưởng ngày lễ/Holiday Bonus:</label
-              >
+              <label for="edit-night-shift-days">Night Shift Days:</label>
               <input
                 type="number"
-                id="holiday-bonus-rate"
+                id="edit-night-shift-days"
+                min="0"
+                value="0"
+              />
+            </div>
+            <div class="form-group">
+              <label for="edit-holiday-bonus">Holiday Bonus:</label>
+              <input
+                type="number"
+                id="edit-holiday-bonus"
                 min="0"
                 step="0.01"
                 value="0"
               />
             </div>
             <div class="form-group">
-              <label for="night-shift-bonus-rate"
-                >Thưởng trực đêm/Night Shift Bonus:</label
-              >
+              <label for="edit-night-shift-bonus">Night Shift Bonus:</label>
               <input
                 type="number"
-                id="night-shift-bonus-rate"
+                id="edit-night-shift-bonus"
                 min="0"
                 step="0.01"
                 value="0"
               />
             </div>
-            <button type="submit" class="btn primary">
-              Thêm bảng lương/Add Salary Record
-            </button>
+            <div class="form-group">
+              <label for="edit-social-insurance">Social Insurance:</label>
+              <input
+                type="number"
+                id="edit-social-insurance"
+                min="0"
+                step="0.01"
+                value="0"
+              />
+            </div>
+            <button type="submit" class="btn primary">Update User</button>
           </form>
         </div>
       </div>
-    </div>
 
-    <!-- Edit User Modal -->
-    <div id="edit-user-modal" class="modal">
-      <div class="modal-content">
-        <span class="close-modal">&times;</span>
-        <h2>Edit User</h2>
-        <form id="edit-user-form">
-          <input type="hidden" id="edit-user-id" />
-          <div class="form-group">
-            <label for="edit-username">Username:</label>
-            <input type="text" id="edit-username" required />
-          </div>
-          <div class="form-group">
-            <label for="edit-cost-center">Cost Center:</label>
-            <select id="edit-cost-center" required></select>
-          </div>
-          <div class="form-group">
-            <label for="edit-base-salary">Base Salary:</label>
-            <input
-              type="number"
-              id="edit-base-salary"
-              min="0"
-              step="0.01"
-              required
-            />
-          </div>
-          <div class="form-group">
-            <label for="edit-holiday-bonus">Holiday Bonus:</label>
-            <input
-              type="number"
-              id="edit-holiday-bonus"
-              min="0"
-              step="0.01"
-              value="0"
-            />
-          </div>
-          <div class="form-group">
-            <label for="edit-night-shift-bonus">Night Shift Bonus:</label>
-            <input
-              type="number"
-              id="edit-night-shift-bonus"
-              min="0"
-              step="0.01"
-              value="0"
-            />
-          </div>
-          <div class="form-group">
-            <label for="edit-social-insurance">Social Insurance:</label>
-            <input
-              type="number"
-              id="edit-social-insurance"
-              min="0"
-              step="0.01"
-              value="0"
-            />
-          </div>
-          <button type="submit" class="btn primary">Update User</button>
-        </form>
-      </div>
+      <a href="/userMain">Trở về/Back</a>
+      <script src="userPages/userSalaryRecord/userSalaryRecord.js"></script>
     </div>
-
-    <!-- Edit Salary Record Modal -->
-    <div id="edit-salary-modal" class="modal">
-      <div class="modal-content">
-        <span class="close-modal">&times;</span>
-        <h2>Edit Salary Record</h2>
-        <form id="edit-salary-form">
-          <input type="hidden" id="edit-salary-id" />
-          <div class="form-group">
-            <label for="edit-salary-user">User:</label>
-            <select id="edit-salary-user" required></select>
-          </div>
-          <div class="form-group">
-            <label for="edit-salary-month">Month:</label>
-            <select id="edit-salary-month" required>
-              <option value="1">January</option>
-              <option value="2">February</option>
-              <option value="3">March</option>
-              <option value="4">April</option>
-              <option value="5">May</option>
-              <option value="6">June</option>
-              <option value="7">July</option>
-              <option value="8">August</option>
-              <option value="9">September</option>
-              <option value="10">October</option>
-              <option value="11">November</option>
-              <option value="12">December</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="edit-salary-year">Year:</label>
-            <input
-              type="number"
-              id="edit-salary-year"
-              min="2000"
-              max="2100"
-              required
-            />
-          </div>
-          <div class="form-group">
-            <label for="edit-holiday-days">Holiday Days:</label>
-            <input type="number" id="edit-holiday-days" min="0" value="0" />
-          </div>
-          <div class="form-group">
-            <label for="edit-night-shift-days">Night Shift Days:</label>
-            <input type="number" id="edit-night-shift-days" min="0" value="0" />
-          </div>
-          <div class="form-group">
-            <label for="edit-holiday-bonus-rate">Holiday Bonus Rate:</label>
-            <input
-              type="number"
-              id="edit-holiday-bonus-rate"
-              min="0"
-              step="0.01"
-              value="0"
-            />
-          </div>
-          <div class="form-group">
-            <label for="edit-night-shift-bonus-rate"
-              >Night Shift Bonus Rate:</label
-            >
-            <input
-              type="number"
-              id="edit-night-shift-bonus-rate"
-              min="0"
-              step="0.01"
-              value="0"
-            />
-          </div>
-          <button type="submit" class="btn primary">
-            Update Salary Record
-          </button>
-        </form>
-      </div>
-    </div>
-
-    <a href="/userMain">Trở về/Back</a>
-    <script src="userPages/userSalaryRecord/userSalaryRecord.js"></script>
   </body>
 </html>
