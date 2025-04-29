@@ -17,6 +17,7 @@ exports.getAdminPage = (req, res) => {
         "headOfHumanResources",
         "director",
         "captainOfMech",
+        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -47,6 +48,7 @@ exports.getCostCenterAdminPage = (req, res) => {
         "headOfHumanResources",
         "director",
         "captainOfMech",
+        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -75,6 +77,7 @@ exports.getCostCenters = async (req, res) => {
         "headOfHumanResources",
         "director",
         "captainOfMech",
+        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -162,6 +165,7 @@ exports.getProductAdminPage = (req, res) => {
         "headOfHumanResources",
         "director",
         "captainOfMech",
+        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send(

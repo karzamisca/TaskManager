@@ -55,7 +55,8 @@ const documentUtils = {
         { "approvers.approver": userId },
         ...(userRole === "headOfAccounting" ||
         userRole === "superAdmin" ||
-        userRole === "headOfPurchasing"
+        userRole === "headOfPurchasing" ||
+        userRole === "captainOfPurchasing"
           ? [{}] // Include all documents if user is headOfAccounting or superAdmin
           : []),
       ],
