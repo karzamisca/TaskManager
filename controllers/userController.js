@@ -7,10 +7,11 @@ exports.getUserMainPage = (req, res) => {
     if (
       ![
         "superAdmin",
+        "director",
+        "deputyDirector",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
-        "director",
         "headOfHumanResources",
       ].includes(req.user.role)
     ) {
@@ -32,10 +33,11 @@ exports.getUserSalaryRecordPage = (req, res) => {
     if (
       ![
         "superAdmin",
+        "director",
+        "deputyDirector",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
-        "director",
         "headOfHumanResources",
       ].includes(req.user.role)
     ) {
@@ -52,29 +54,49 @@ exports.getUserSalaryRecordPage = (req, res) => {
   }
 };
 
-// Get all users except privileged roles
-exports.getAllUsers = async (req, res) => {
+exports.getManagers = async (req, res) => {
   try {
     const privilegedRoles = [
       "superAdmin",
+      "deputyDirector",
+      "director",
       "headOfMechanical",
       "headOfAccounting",
       "headOfPurchasing",
-      "director",
       "headOfHumanResources",
     ];
 
-    // Check if requester has permission
+    const managers = await User.find({
+      role: { $in: privilegedRoles },
+    }).select("_id username role"); // Only return necessary fields
+
+    res.json(managers);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get all users except privileged roles
+exports.getAllUsers = async (req, res) => {
+  try {
+    const privilegedRoles = ["superAdmin", "deputyDirector", "director"];
+
+    // Always exclude privileged roles from results
+    const baseQuery = {
+      role: { $nin: privilegedRoles },
+    };
+
+    let finalQuery = { ...baseQuery };
+
+    // If user is not in privileged roles, only show users they manage
     if (!privilegedRoles.includes(req.user.role)) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      finalQuery.assignedManager = req._id;
     }
 
-    // Find users whose role is NOT privileged
-    const users = await User.find({
-      role: { $nin: privilegedRoles },
-    }).populate("costCenter");
+    const users = await User.find(finalQuery).populate("costCenter").populate({
+      path: "assignedManager",
+      select: "username role", // Only return these fields for manager
+    });
 
     res.json(users);
   } catch (err) {
@@ -87,10 +109,11 @@ exports.getUserById = async (req, res) => {
     if (
       ![
         "superAdmin",
+        "director",
+        "deputyDirector",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
-        "director",
         "headOfHumanResources",
       ].includes(req.user.role)
     ) {
@@ -113,10 +136,11 @@ exports.createUser = async (req, res) => {
     if (
       ![
         "superAdmin",
+        "director",
+        "deputyDirector",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
-        "director",
         "headOfHumanResources",
       ].includes(req.user.role)
     ) {
@@ -128,6 +152,7 @@ exports.createUser = async (req, res) => {
     const {
       username,
       costCenter,
+      assignedManager,
       baseSalary,
       holidayBonusPerDay,
       nightShiftBonusPerDay,
@@ -149,6 +174,7 @@ exports.createUser = async (req, res) => {
     const newUser = new User({
       username,
       costCenter,
+      assignedManager,
       baseSalary,
       holidayBonusPerDay: holidayBonusPerDay || 0,
       nightShiftBonusPerDay: nightShiftBonusPerDay || 0,
@@ -170,10 +196,11 @@ exports.updateUser = async (req, res) => {
     if (
       ![
         "superAdmin",
+        "director",
+        "deputyDirector",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
-        "director",
         "headOfHumanResources",
       ].includes(req.user.role)
     ) {
@@ -185,6 +212,7 @@ exports.updateUser = async (req, res) => {
     const {
       username,
       costCenter,
+      assignedManager,
       baseSalary,
       holidayBonusPerDay,
       nightShiftBonusPerDay,
@@ -224,6 +252,13 @@ exports.updateUser = async (req, res) => {
       user.currentHolidayDays = currentHolidayDays;
     if (currentNightShiftDays !== undefined)
       user.currentNightShiftDays = currentNightShiftDays;
+    if (assignedManager) {
+      const managerExists = await User.findById(assignedManager);
+      if (!managerExists) {
+        return res.status(404).json({ message: "Manager not found" });
+      }
+      user.assignedManager = assignedManager;
+    }
 
     const updatedUser = await user.save();
     await updatedUser.populate("costCenter");
@@ -238,10 +273,11 @@ exports.deleteUser = async (req, res) => {
     if (
       ![
         "superAdmin",
+        "director",
+        "deputyDirector",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
-        "director",
         "headOfHumanResources",
       ].includes(req.user.role)
     ) {
@@ -265,10 +301,11 @@ exports.getAllCostCenters = async (req, res) => {
     if (
       ![
         "superAdmin",
+        "director",
+        "deputyDirector",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
-        "director",
         "headOfHumanResources",
       ].includes(req.user.role)
     ) {

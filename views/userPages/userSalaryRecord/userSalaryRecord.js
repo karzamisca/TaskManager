@@ -1,7 +1,7 @@
 //views\userPages\userSalaryRecord\userSalaryRecord.js
 document.addEventListener("DOMContentLoaded", function () {
   // Load initial data
-  loadCostCenters();
+  loadCostCentersAndManagers();
   loadUsers();
 
   // Tab functionality
@@ -51,32 +51,53 @@ document.addEventListener("DOMContentLoaded", function () {
 let allUsers = [];
 
 // Data loading functions
-async function loadCostCenters() {
+async function loadCostCentersAndManagers() {
   try {
-    const res = await fetch("/userControlCostCenters");
-    const costCenters = await res.json();
-    const selects = [
+    // Load cost centers
+    const costCentersRes = await fetch("/userControlCostCenters");
+    const costCenters = await costCentersRes.json();
+
+    // Load managers
+    const managersRes = await fetch("/userControlManagers");
+    const managers = await managersRes.json();
+
+    // Update cost center dropdowns
+    const costCenterSelects = [
       document.getElementById("user-cost-center-filter"),
       document.getElementById("new-cost-center"),
       document.getElementById("edit-cost-center"),
     ];
 
-    selects.forEach((select) => {
+    costCenterSelects.forEach((select) => {
       if (!select) return;
-      select.innerHTML = `<option value="all">Tất cả trạm/All Cost Centers</option>`;
+      select.innerHTML = '<option value="all">All Cost Centers</option>';
       costCenters.forEach((cc) => {
         const option = document.createElement("option");
         option.value = cc._id;
         option.textContent = cc.name;
         select.appendChild(option);
       });
+    });
 
-      if (select.id === "new-cost-center" || select.id === "edit-cost-center") {
-        select.removeChild(select.querySelector('option[value="all"]'));
-      }
+    // Update manager dropdowns
+    const managerSelects = [
+      document.getElementById("new-assigned-manager"),
+      document.getElementById("edit-assigned-manager"),
+    ];
+
+    managerSelects.forEach((select) => {
+      if (!select) return;
+      select.innerHTML = '<option value="">None</option>';
+      managers.forEach((manager) => {
+        const option = document.createElement("option");
+        option.value = manager._id;
+        option.textContent = `${manager.username} (${manager.role})`;
+        select.appendChild(option);
+      });
     });
   } catch (err) {
-    showError("Failed to load cost centers");
+    showError("Failed to load data");
+    console.error(err);
   }
 }
 
@@ -119,6 +140,7 @@ function renderUsers() {
     row.innerHTML = `
       <td>${user.username}</td>
       <td>${user.costCenter ? user.costCenter.name : "N/A"}</td>
+      <td>${user.assignedManager ? user.assignedManager.username : "N/A"}</td>
       <td>${user.baseSalary.toLocaleString()}</td>
       <td>${user.currentHolidayDays}</td>
       <td>${user.currentNightShiftDays}</td>
@@ -146,6 +168,8 @@ async function addUser(e) {
   const newUser = {
     username: document.getElementById("new-username").value,
     costCenter: document.getElementById("new-cost-center").value,
+    assignedManager:
+      document.getElementById("new-assigned-manager").value || undefined,
     baseSalary: parseFloat(document.getElementById("new-base-salary").value),
     currentHolidayDays: parseInt(
       document.getElementById("new-holiday-days").value
@@ -207,6 +231,17 @@ async function editUser(id) {
     });
   }
 
+  const assignedManagerSelect = document.getElementById(
+    "edit-assigned-manager"
+  );
+  if (user.assignedManager) {
+    Array.from(assignedManagerSelect.options).forEach((option) => {
+      option.selected = option.value === user.assignedManager._id;
+    });
+  } else {
+    assignedManagerSelect.value = "";
+  }
+
   document.getElementById("edit-user-modal").style.display = "block";
 }
 
@@ -217,6 +252,8 @@ async function updateUser(e) {
   const userData = {
     username: document.getElementById("edit-username").value,
     costCenter: document.getElementById("edit-cost-center").value,
+    assignedManager:
+      document.getElementById("edit-assigned-manager").value || undefined,
     baseSalary: parseFloat(document.getElementById("edit-base-salary").value),
     currentHolidayDays: parseInt(
       document.getElementById("edit-holiday-days").value

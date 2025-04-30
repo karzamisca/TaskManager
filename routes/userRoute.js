@@ -20,5 +20,6 @@ router.get(
   authMiddleware,
   userController.getAllCostCenters
 );
+router.get("/userControlManagers", authMiddleware, userController.getManagers);
 
 module.exports = router;

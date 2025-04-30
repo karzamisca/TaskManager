@@ -22,6 +22,10 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "CostCenter",
   },
+  assignedManager: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
   baseSalary: { type: Number, default: 0 },
   holidayBonusPerDay: { type: Number, default: 0 },
   nightShiftBonusPerDay: { type: Number, default: 0 },
