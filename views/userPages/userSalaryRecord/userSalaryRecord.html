@@ -50,14 +50,18 @@
                 <tr>
                   <th>Tên/Username</th>
                   <th>Trạm/Cost Center</th>
-                  <th>Quản lý bởi/Assigned Manager</th>
+                  <th>Người quản lý/Assigned Manager</th>
                   <th>Lương căn bản/Base Salary</th>
                   <th>Ngày lễ/Holiday Days</th>
                   <th>Ngày trực đêm/Night Shift Days</th>
                   <th>Thưởng ngày lễ/Holiday Bonus</th>
                   <th>Thưởng trực đêm/Night Shift Bonus</th>
+                  <th>Tổng lương/Gross Salary</th>
                   <th>Bảo hiểm/Social Insurance</th>
-                  <th>Tổng lương/Total Salary</th>
+                  <th>Số người phụ thuộc/Dependant Count</th>
+                  <th>Thu nhập tính thuế /Taxable Income</th>
+                  <th>Thuế thu nhập/Income Tax</th>
+                  <th>Lương thực tế/Current Salary</th>
                   <th>Hành động/Actions</th>
                 </tr>
               </thead>
@@ -78,7 +82,9 @@
               <select id="new-cost-center" required></select>
             </div>
             <div class="form-group">
-              <label for="new-assigned-manager">Assigned Manager:</label>
+              <label for="new-assigned-manager"
+                >Người quản lý/Assigned Manager:</label
+              >
               <select id="new-assigned-manager"></select>
             </div>
             <div class="form-group">
@@ -142,6 +148,12 @@
                 value="0"
               />
             </div>
+            <div class="form-group">
+              <label for="new-dependant-count"
+                >Số người phụ thuộc/Dependant Count:</label
+              >
+              <input type="number" id="new-dependant-count" min="0" value="0" />
+            </div>
             <button type="submit" class="btn primary">
               Thêm nhân viên/Add User
             </button>
@@ -157,19 +169,21 @@
           <form id="edit-user-form">
             <input type="hidden" id="edit-user-id" />
             <div class="form-group">
-              <label for="edit-username">Username:</label>
+              <label for="edit-username">Tên/Username:</label>
               <input type="text" id="edit-username" required />
             </div>
             <div class="form-group">
-              <label for="edit-cost-center">Cost Center:</label>
+              <label for="edit-cost-center">Trạm/Cost Center:</label>
               <select id="edit-cost-center" required></select>
             </div>
             <div class="form-group">
-              <label for="edit-assigned-manager">Assigned Manager:</label>
+              <label for="edit-assigned-manager"
+                >Người quản lý/Assigned Manager:</label
+              >
               <select id="edit-assigned-manager"></select>
             </div>
             <div class="form-group">
-              <label for="edit-base-salary">Base Salary:</label>
+              <label for="edit-base-salary">Lương căn bản/Base Salary:</label>
               <input
                 type="number"
                 id="edit-base-salary"
@@ -179,11 +193,13 @@
               />
             </div>
             <div class="form-group">
-              <label for="edit-holiday-days">Holiday Days:</label>
+              <label for="edit-holiday-days">/Ngày lễ/Holiday Days:</label>
               <input type="number" id="edit-holiday-days" min="0" value="0" />
             </div>
             <div class="form-group">
-              <label for="edit-night-shift-days">Night Shift Days:</label>
+              <label for="edit-night-shift-days"
+                >Ngày trực đêm/Night Shift Days:</label
+              >
               <input
                 type="number"
                 id="edit-night-shift-days"
@@ -192,7 +208,7 @@
               />
             </div>
             <div class="form-group">
-              <label for="edit-holiday-bonus">Holiday Bonus:</label>
+              <label for="edit-holiday-bonus">Thưởng lễ/Holiday Bonus:</label>
               <input
                 type="number"
                 id="edit-holiday-bonus"
@@ -202,7 +218,9 @@
               />
             </div>
             <div class="form-group">
-              <label for="edit-night-shift-bonus">Night Shift Bonus:</label>
+              <label for="edit-night-shift-bonus"
+                >Thưởng trực đêm/Night Shift Bonus:</label
+              >
               <input
                 type="number"
                 id="edit-night-shift-bonus"
@@ -212,7 +230,9 @@
               />
             </div>
             <div class="form-group">
-              <label for="edit-social-insurance">Social Insurance:</label>
+              <label for="edit-social-insurance"
+                >Bảo hiểm/Social Insurance:</label
+              >
               <input
                 type="number"
                 id="edit-social-insurance"
@@ -221,7 +241,18 @@
                 value="0"
               />
             </div>
-            <button type="submit" class="btn primary">Update User</button>
+            <div class="form-group">
+              <label for="edit-dependant-count"
+                >Số người phụ thuộc/Dependant Count:</label
+              >
+              <input
+                type="number"
+                id="edit-dependant-count"
+                min="0"
+                value="0"
+              />
+            </div>
+            <button type="submit" class="btn primary">Cập nhật/Update</button>
           </form>
         </div>
       </div>

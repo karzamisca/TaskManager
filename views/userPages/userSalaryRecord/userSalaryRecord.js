@@ -91,7 +91,7 @@ async function loadCostCentersAndManagers() {
       managers.forEach((manager) => {
         const option = document.createElement("option");
         option.value = manager._id;
-        option.textContent = `${manager.username} (${manager.role})`;
+        option.textContent = `${manager.username}`;
         select.appendChild(option);
       });
     });
@@ -146,14 +146,20 @@ function renderUsers() {
       <td>${user.currentNightShiftDays}</td>
       <td>${user.holidayBonusPerDay.toLocaleString()}</td>
       <td>${user.nightShiftBonusPerDay.toLocaleString()}</td>
+      <td>${user.grossSalary.toLocaleString()}</td>
       <td>${user.socialInsurance.toLocaleString()}</td>
+      <td>${user.dependantCount.toLocaleString()}</td>
+      <td>${user.taxableIncome.toLocaleString()}</td>
+      <td>${user.tax.toLocaleString()}</td>
       <td>${user.currentSalary.toLocaleString()}</td>
       <td>
         <div class="action-buttons">
-          <button class="btn" onclick="editUser('${user._id}')">Edit</button>
+          <button class="btn" onclick="editUser('${
+            user._id
+          }')">Chỉnh sửa/Edit</button>
           <button class="btn btn-danger" onclick="deleteUser('${
             user._id
-          }')">Delete</button>
+          }')">Xóa/Delete</button>
         </div>
       </td>
     `;
@@ -185,6 +191,9 @@ async function addUser(e) {
     ),
     socialInsurance: parseFloat(
       document.getElementById("new-social-insurance").value
+    ),
+    dependantCount: parseInt(
+      document.getElementById("new-dependant-count").value
     ),
   };
 
@@ -222,6 +231,7 @@ async function editUser(id) {
   document.getElementById("edit-night-shift-bonus").value =
     user.nightShiftBonusPerDay;
   document.getElementById("edit-social-insurance").value = user.socialInsurance;
+  document.getElementById("edit-dependant-count").value = user.dependantCount;
 
   // Set the correct cost center
   const costCenterSelect = document.getElementById("edit-cost-center");
@@ -269,6 +279,9 @@ async function updateUser(e) {
     ),
     socialInsurance: parseFloat(
       document.getElementById("edit-social-insurance").value
+    ),
+    dependantCount: parseInt(
+      document.getElementById("edit-dependant-count").value
     ),
   };
 

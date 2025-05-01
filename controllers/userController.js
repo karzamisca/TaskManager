@@ -58,8 +58,8 @@ exports.getManagers = async (req, res) => {
   try {
     const privilegedRoles = [
       "superAdmin",
-      "deputyDirector",
       "director",
+      "deputyDirector",
       "headOfMechanical",
       "headOfAccounting",
       "headOfPurchasing",
@@ -181,6 +181,7 @@ exports.createUser = async (req, res) => {
       socialInsurance: socialInsurance || 0,
       currentHolidayDays: currentHolidayDays || 0,
       currentNightShiftDays: currentNightShiftDays || 0,
+      dependantCount: req.body.dependantCount || 0,
     });
 
     const savedUser = await newUser.save();
@@ -258,6 +259,9 @@ exports.updateUser = async (req, res) => {
         return res.status(404).json({ message: "Manager not found" });
       }
       user.assignedManager = assignedManager;
+    }
+    if (req.body.dependantCount !== undefined) {
+      user.dependantCount = req.body.dependantCount;
     }
 
     const updatedUser = await user.save();

@@ -15,11 +15,12 @@ exports.getDocumentInGroupDeclarationViews = (req, res) => {
     ![
       "approver",
       "superAdmin",
+      "director",
+      "deputyDirector",
       "headOfMechanical",
       "headOfAccounting",
       "headOfPurchasing",
       "captainOfPurchasing",
-      "director",
     ].includes(req.user.role)
   ) {
     return res

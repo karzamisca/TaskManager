@@ -894,12 +894,13 @@ exports.approveDocument = async (req, res) => {
       ![
         "approver",
         "superAdmin",
+        "director",
+        "deputyDirector",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
         "captainOfMech",
         "headOfHumanResources",
-        "director",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -1415,9 +1416,9 @@ exports.suspendProposalDocument = async (req, res) => {
 
   try {
     // Restrict access to only users with the role of "director"
-    if (req.user.role !== "headOfMechanical") {
+    if (req.user.role !== "deputyDirector") {
       return res.send(
-        "Truy cập bị từ chối. Chỉ trưởng phòng kỹ thuật có quyền tạm dừng phiếu đề xuất./Access denied. Only Head of Mechanical Department can suspend proposal documents."
+        "Truy cập bị từ chối. Chỉ phó giám đốc có quyền tạm dừng phiếu đề xuất./Access denied. Only Deputy Director can suspend proposal documents."
       );
     }
 
@@ -1462,9 +1463,9 @@ exports.openProposalDocument = async (req, res) => {
 
   try {
     // Restrict access to only users with the role of "director"
-    if (req.user.role !== "headOfMechanical") {
+    if (req.user.role !== "deputyDirector") {
       return res.send(
-        "Truy cập bị từ chối. Chỉ trưởng phòng mua hàng có quyền mở lại phiếu mua hàng./Access denied. Only Head of Purchasing Department can reopen purchasing documents."
+        "Truy cập bị từ chối. Chỉ phó giám đốc có quyền mở lại phiếu đề xuất./Access denied. Only Deputy Director can reopen proposal documents."
       );
     }
 

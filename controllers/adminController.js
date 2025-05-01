@@ -11,11 +11,12 @@ exports.getAdminPage = (req, res) => {
       ![
         "approver",
         "superAdmin",
+        "director",
+        "deputyDirector",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
         "headOfHumanResources",
-        "director",
         "captainOfMech",
         "captainOfPurchasing",
       ].includes(req.user.role)
@@ -42,11 +43,12 @@ exports.getCostCenterAdminPage = (req, res) => {
       ![
         "approver",
         "superAdmin",
+        "director",
+        "deputyDirector",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
         "headOfHumanResources",
-        "director",
         "captainOfMech",
         "captainOfPurchasing",
       ].includes(req.user.role)
@@ -71,11 +73,12 @@ exports.getCostCenters = async (req, res) => {
       ![
         "approver",
         "superAdmin",
+        "director",
+        "deputyDirector",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
         "headOfHumanResources",
-        "director",
         "captainOfMech",
         "captainOfPurchasing",
       ].includes(req.user.role)
@@ -159,11 +162,12 @@ exports.getProductAdminPage = (req, res) => {
       ![
         "approver",
         "superAdmin",
+        "director",
+        "deputyDirector",
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
         "headOfHumanResources",
-        "director",
         "captainOfMech",
         "captainOfPurchasing",
       ].includes(req.user.role)
