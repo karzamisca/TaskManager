@@ -12,6 +12,7 @@ exports.getUserMainPage = (req, res) => {
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
+        "headOfOperations",
         "headOfHumanResources",
       ].includes(req.user.role)
     ) {
@@ -38,6 +39,7 @@ exports.getUserSalaryRecordPage = (req, res) => {
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
+        "headOfOperations",
         "headOfHumanResources",
       ].includes(req.user.role)
     ) {
@@ -63,6 +65,7 @@ exports.getManagers = async (req, res) => {
       "headOfMechanical",
       "headOfAccounting",
       "headOfPurchasing",
+      "headOfOperations",
       "headOfHumanResources",
     ];
 
@@ -114,6 +117,7 @@ exports.getUserById = async (req, res) => {
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
+        "headOfOperations",
         "headOfHumanResources",
       ].includes(req.user.role)
     ) {
@@ -141,6 +145,7 @@ exports.createUser = async (req, res) => {
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
+        "headOfOperations",
         "headOfHumanResources",
       ].includes(req.user.role)
     ) {
@@ -202,6 +207,7 @@ exports.updateUser = async (req, res) => {
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
+        "headOfOperations",
         "headOfHumanResources",
       ].includes(req.user.role)
     ) {
@@ -282,6 +288,7 @@ exports.deleteUser = async (req, res) => {
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
+        "headOfOperations",
         "headOfHumanResources",
       ].includes(req.user.role)
     ) {
@@ -310,6 +317,7 @@ exports.getAllCostCenters = async (req, res) => {
         "headOfMechanical",
         "headOfAccounting",
         "headOfPurchasing",
+        "headOfOperations",
         "headOfHumanResources",
       ].includes(req.user.role)
     ) {
