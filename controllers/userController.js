@@ -13,7 +13,7 @@ exports.getUserMainPage = (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "headOfOperations",
-        "headOfHumanResources",
+        "headOfNorthernRepresentativeOffice",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -40,7 +40,7 @@ exports.getUserSalaryRecordPage = (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "headOfOperations",
-        "headOfHumanResources",
+        "headOfNorthernRepresentativeOffice",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -66,7 +66,7 @@ exports.getManagers = async (req, res) => {
       "headOfAccounting",
       "headOfPurchasing",
       "headOfOperations",
-      "headOfHumanResources",
+      "headOfNorthernRepresentativeOffice",
     ];
 
     const managers = await User.find({
@@ -118,7 +118,7 @@ exports.getUserById = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "headOfOperations",
-        "headOfHumanResources",
+        "headOfNorthernRepresentativeOffice",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -146,7 +146,7 @@ exports.createUser = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "headOfOperations",
-        "headOfHumanResources",
+        "headOfNorthernRepresentativeOffice",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -208,7 +208,7 @@ exports.updateUser = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "headOfOperations",
-        "headOfHumanResources",
+        "headOfNorthernRepresentativeOffice",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -289,7 +289,7 @@ exports.deleteUser = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "headOfOperations",
-        "headOfHumanResources",
+        "headOfNorthernRepresentativeOffice",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -318,7 +318,7 @@ exports.getAllCostCenters = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "headOfOperations",
-        "headOfHumanResources",
+        "headOfNorthernRepresentativeOffice",
       ].includes(req.user.role)
     ) {
       return res.send(
