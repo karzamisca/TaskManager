@@ -1,4 +1,51 @@
-/* views\userPages\userSalaryRecord\userSalaryRecord.css */
+:root {
+  /* Color variables */
+  --primary-color: #3498db;
+  --primary-hover: #2980b9;
+  --danger-color: #e74c3c;
+  --danger-hover: #c0392b;
+  --background-color: #f4f7f9;
+  --card-background: #fff;
+  --border-color: #ccc;
+  --text-color: #333;
+  --light-text: #aaa;
+  --header-bg: #f0f0f0;
+  --tab-inactive: #f8f9fa;
+  --success-bg: #d4edda;
+  --success-text: #155724;
+  --error-bg: #f8d7da;
+  --error-text: #721c24;
+  --modal-backdrop: rgba(0, 0, 0, 0.5);
+
+  /* Spacing variables */
+  --spacing-xs: 5px;
+  --spacing-sm: 8px;
+  --spacing-md: 10px;
+  --spacing-lg: 15px;
+  --spacing-xl: 20px;
+
+  /* Border radius */
+  --border-radius: 4px;
+  --border-radius-lg: 8px;
+
+  /* Shadow */
+  --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+  /* Scrollbar */
+  --scrollbar-width: 8px;
+  --scrollbar-track: #f1f1f1;
+  --scrollbar-thumb: #888;
+  --scrollbar-thumb-hover: #555;
+
+  /* Dimensions */
+  --max-container-width: 1200px;
+  --modal-width: 50%;
+  --modal-max-width: 600px;
+  --modal-max-height: 80vh;
+  --table-max-height: 500px;
+  --form-max-width: 600px;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -7,7 +54,8 @@
 
 body {
   font-family: Arial, sans-serif;
-  background-color: #f4f7f9;
+  background-color: var(--background-color);
+  color: var(--text-color);
 }
 
 /* Modal Styles */
@@ -19,50 +67,56 @@ body {
   top: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  overflow: auto; /* Enable scrolling for the modal background */
+  background-color: var(--modal-backdrop);
+  overflow: auto;
 }
 
 .modal-content {
-  background-color: #fefefe;
-  margin: 5% auto; /* Reduced from 10% to give more space */
-  padding: 20px;
-  border-radius: 8px;
-  width: 50%;
-  max-width: 600px;
-  max-height: 80vh; /* Limit height to 80% of viewport */
-  overflow-y: auto; /* Enable vertical scrolling */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: var(--card-background);
+  margin: 5% auto;
+  padding: var(--spacing-xl);
+  border-radius: var(--border-radius-lg);
+  width: var(--modal-width);
+  max-width: var(--modal-max-width);
+  max-height: var(--modal-max-height);
+  overflow-y: auto;
+  box-shadow: var(--box-shadow);
   position: relative;
   transform: translateY(-50%);
-  top: 50%; /* Perfect vertical centering */
+  top: 50%;
 }
 
-/* Custom scrollbar styling */
-.modal-content::-webkit-scrollbar {
-  width: 8px;
+/* Custom scrollbar styling - shared for all scrollable elements */
+.modal-content::-webkit-scrollbar,
+.table-container::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
 }
 
-.modal-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
+.modal-content::-webkit-scrollbar-track,
+.table-container::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: var(--border-radius);
 }
 
-.modal-content::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
+.modal-content::-webkit-scrollbar-thumb,
+.table-container::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--border-radius);
 }
 
-.modal-content::-webkit-scrollbar-thumb:hover {
-  background: #555;
+.modal-content::-webkit-scrollbar-thumb:hover,
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* Form group spacing adjustments */
 .modal-content .form-group {
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-md);
 }
+
 .close-modal {
-  color: #aaa;
+  color: var(--light-text);
   float: right;
   font-size: 28px;
   font-weight: bold;
@@ -70,97 +124,97 @@ body {
 }
 
 .close-modal:hover {
-  color: black;
+  color: var(--text-color);
 }
 
 .container {
-  max-width: 1200px;
+  max-width: var(--max-container-width);
   margin: auto;
-  padding: 20px;
+  padding: var(--spacing-xl);
 }
 
 h1,
 h2 {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-xl);
 }
 
 .dashboard {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-xl);
 }
 
 .filter-section {
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--card-background);
+  padding: var(--spacing-xl);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow);
 }
 
 .filter-form .form-group,
 form .form-group {
-  margin-bottom: 15px;
+  margin-bottom: var(--spacing-lg);
 }
 
 label {
   font-weight: bold;
-  margin-bottom: 5px;
+  margin-bottom: var(--spacing-xs);
   display: block;
 }
 
 input,
 select {
   width: 100%;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
 }
 
 .btn {
-  padding: 10px 15px;
-  background: #3498db;
-  color: #fff;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--primary-color);
+  color: var(--card-background);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--border-radius);
   cursor: pointer;
 }
 
 .btn:hover {
-  background: #2980b9;
+  background: var(--primary-hover);
 }
 
 .btn-danger {
-  background: #e74c3c;
+  background: var(--danger-color);
 }
 
 .btn-danger:hover {
-  background: #c0392b;
+  background: var(--danger-hover);
 }
 
 .tabs {
   display: flex;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-xl);
   flex-wrap: wrap;
 }
 
 .tab-button {
   flex: 1;
-  padding: 15px;
-  background: #f8f9fa;
+  padding: var(--spacing-lg);
+  background: var(--tab-inactive);
   border: none;
   cursor: pointer;
   min-width: 150px;
 }
 
 .tab-button.active {
-  background: #3498db;
-  color: white;
+  background: var(--primary-color);
+  color: var(--card-background);
 }
 
 .tab-content {
-  background: #fff;
-  padding: 20px;
-  border-radius: 0 0 8px 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--card-background);
+  padding: var(--spacing-xl);
+  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+  box-shadow: var(--box-shadow);
 }
 
 .tab-pane {
@@ -171,8 +225,11 @@ select {
   display: block;
 }
 
+/* Table container with vertical scrollbar */
 .table-container {
   overflow-x: auto;
+  max-height: var(--table-max-height);
+  overflow-y: auto;
 }
 
 table {
@@ -182,44 +239,47 @@ table {
 
 th,
 td {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
   text-align: left;
 }
 
 th {
-  background: #f0f0f0;
+  background: var(--header-bg);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 form {
-  max-width: 600px;
+  max-width: var(--form-max-width);
   margin: 0 auto;
 }
 
 .action-buttons {
   display: flex;
-  gap: 5px;
+  gap: var(--spacing-xs);
 }
 
 .action-buttons button {
-  padding: 5px 10px;
+  padding: var(--spacing-xs) var(--spacing-md);
   font-size: 12px;
 }
 
 .success-message {
-  background-color: #d4edda;
-  color: #155724;
-  padding: 10px;
-  margin-bottom: 15px;
-  border-radius: 4px;
+  background-color: var(--success-bg);
+  color: var(--success-text);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  border-radius: var(--border-radius);
   display: none;
 }
 
 .error-message {
-  background-color: #f8d7da;
-  color: #721c24;
-  padding: 10px;
-  margin-bottom: 15px;
-  border-radius: 4px;
+  background-color: var(--error-bg);
+  color: var(--error-text);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  border-radius: var(--border-radius);
   display: none;
 }

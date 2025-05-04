@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>User Salary Management</title>
+    <title>Bảng lương/Salary Record</title>
     <link
       rel="stylesheet"
       href="userPages/userSalaryRecord/userSalaryRecord.css"
@@ -13,14 +13,14 @@
   <body>
     <a href="/userMain">Trở về/Back</a>
     <div class="container">
-      <h1>Quản lý lương nhân viên/User Salary Management</h1>
+      <h1>Bảng lương/Salary Record</h1>
 
       <div class="tabs">
         <button class="tab-button active" data-tab="users">
-          Nhân viên/Users
+          Người dùng/Users
         </button>
         <button class="tab-button" data-tab="add-user">
-          Thêm nhân viên/Add User
+          Thêm người dùng/Add User
         </button>
       </div>
 
@@ -31,7 +31,7 @@
             <div class="filter-form">
               <div class="form-group">
                 <label for="user-cost-center-filter"
-                  >Nhân viên thuộc trạm/User of Cost Center:</label
+                  >Người dùng thuộc trạm/User of Cost Center:</label
                 >
                 <select id="user-cost-center-filter">
                   <option value="all">Tất cả trạm/All Cost Centers</option>
@@ -43,7 +43,7 @@
             </div>
           </div>
 
-          <h2>Thông tin nhân viên/User Information</h2>
+          <h2>Thông tin người dùng/User Information</h2>
           <div class="table-container">
             <table id="users-table">
               <thead>
@@ -71,7 +71,7 @@
         </div>
 
         <div id="add-user" class="tab-pane">
-          <h2>Thêm nhân viên mới/Add New User</h2>
+          <h2>Thêm người dùng mới/Add New User</h2>
           <form id="add-user-form">
             <div class="form-group">
               <label for="new-username">Tên/Username:</label>
@@ -155,7 +155,7 @@
               <input type="number" id="new-dependant-count" min="0" value="0" />
             </div>
             <button type="submit" class="btn primary">
-              Thêm nhân viên/Add User
+              Thêm người dùng/Add User
             </button>
           </form>
         </div>
