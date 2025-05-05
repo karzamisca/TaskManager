@@ -35,12 +35,12 @@ const userSchema = new mongoose.Schema({
   currentSalary: { type: Number, default: 0 },
   email: { type: String },
   facebookUserId: { type: String },
-
   // For tax calculation
   tax: { type: Number, default: 0 },
   grossSalary: { type: Number, default: 0 },
   dependantCount: { type: Number, default: 0 },
   taxableIncome: { type: Number, default: 0 },
+  socialInsuranceAmount: { type: Number, default: 0 }, // Calculated amount
 });
 
 // Pre-save hook to generate password and calculate salary/tax
@@ -56,14 +56,18 @@ userSchema.pre("save", function (next) {
     this.holidayBonusPerDay * this.currentHolidayDays +
     this.nightShiftBonusPerDay * this.currentNightShiftDays;
 
+  // Calculate social insurance as a percentage of gross salary
+  this.socialInsuranceAmount = Math.round(
+    this.grossSalary * (this.socialInsurance / 100)
+  );
+
   // Calculate taxable income according to Vietnamese law
   const standardDeduction = 11000000; // 11 million VND/month
   const dependantDeduction = 4400000 * this.dependantCount; // 4.4 million per dependant
-
   this.taxableIncome = Math.max(
     0,
     this.grossSalary -
-      this.socialInsurance -
+      this.socialInsuranceAmount -
       standardDeduction -
       dependantDeduction
   );
@@ -71,7 +75,6 @@ userSchema.pre("save", function (next) {
   // Vietnamese progressive tax rates (2023) - using official formula
   let tax = 0;
   const tn = this.taxableIncome;
-
   if (tn <= 5000000) {
     tax = tn * 0.05;
   } else if (tn <= 10000000) {
@@ -90,7 +93,9 @@ userSchema.pre("save", function (next) {
 
   // Ensure tax isn't negative (can happen with rounding errors)
   this.tax = Math.max(0, Math.round(tax));
-  this.currentSalary = this.grossSalary - this.socialInsurance - this.tax;
+
+  // Calculate net salary (after tax and social insurance)
+  this.currentSalary = this.grossSalary - this.socialInsuranceAmount - this.tax;
 
   next();
 });
