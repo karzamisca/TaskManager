@@ -161,7 +161,7 @@ exports.createUser = async (req, res) => {
       baseSalary,
       holidayBonusPerDay,
       nightShiftBonusPerDay,
-      socialInsurance,
+      insurableSalary,
       currentHolidayDays,
       currentNightShiftDays,
     } = req.body;
@@ -183,7 +183,7 @@ exports.createUser = async (req, res) => {
       baseSalary,
       holidayBonusPerDay: holidayBonusPerDay || 0,
       nightShiftBonusPerDay: nightShiftBonusPerDay || 0,
-      socialInsurance: socialInsurance || 0,
+      insurableSalary: insurableSalary || 0,
       currentHolidayDays: currentHolidayDays || 0,
       currentNightShiftDays: currentNightShiftDays || 0,
       dependantCount: req.body.dependantCount || 0,
@@ -223,7 +223,7 @@ exports.updateUser = async (req, res) => {
       baseSalary,
       holidayBonusPerDay,
       nightShiftBonusPerDay,
-      socialInsurance,
+      insurableSalary,
       currentHolidayDays,
       currentNightShiftDays,
     } = req.body;
@@ -254,7 +254,7 @@ exports.updateUser = async (req, res) => {
       user.holidayBonusPerDay = holidayBonusPerDay;
     if (nightShiftBonusPerDay !== undefined)
       user.nightShiftBonusPerDay = nightShiftBonusPerDay;
-    if (socialInsurance !== undefined) user.socialInsurance = socialInsurance;
+    if (insurableSalary !== undefined) user.insurableSalary = insurableSalary;
     if (currentHolidayDays !== undefined)
       user.currentHolidayDays = currentHolidayDays;
     if (currentNightShiftDays !== undefined)

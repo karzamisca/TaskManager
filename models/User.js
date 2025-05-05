@@ -29,7 +29,8 @@ const userSchema = new mongoose.Schema({
   baseSalary: { type: Number, default: 0 },
   holidayBonusPerDay: { type: Number, default: 0 },
   nightShiftBonusPerDay: { type: Number, default: 0 },
-  socialInsurance: { type: Number, default: 0 },
+  insurableSalary: { type: Number, default: 0 },
+  mandatoryInsurance: { type: Number, default: 0 },
   currentHolidayDays: { type: Number, default: 0 },
   currentNightShiftDays: { type: Number, default: 0 },
   currentSalary: { type: Number, default: 0 },
@@ -56,6 +57,28 @@ userSchema.pre("save", function (next) {
     this.holidayBonusPerDay * this.currentHolidayDays +
     this.nightShiftBonusPerDay * this.currentNightShiftDays;
 
+  // Calculate mandatory insurance according to Vietnamese law
+  // Social Insurance (8%), Health Insurance (1.5%), Unemployment Insurance (1%)
+  const totalInsuranceRate = 0.105; // 10.5% total for employee contribution
+
+  // Vietnam has both minimum salary and regional minimum salary
+  const minimumSalary = 2340000; // Basic minimum salary in VND
+  // Vietnam has 4 regional minimum salary levels based on location
+  // Using the highest regional minimum salary (Region I - currently 4,680,000 VND) for the cap calculation
+  const regionalMinSalary = 4960000; // Region I minimum salary in VND
+
+  // For social insurance and health insurance, cap is based on 20x basic minimum salary
+  // For unemployment insurance, cap is based on 20x regional minimum salary
+  const siHiCap = 20 * minimumSalary * 0.095; // Social Insurance (8%) + Health Insurance (1.5%)
+  const uiCap = 20 * regionalMinSalary * 0.01; // Unemployment Insurance (1%)
+
+  // Calculate each component separately to respect their different caps
+  const siHiContribution = Math.min(this.insurableSalary * 0.095, siHiCap);
+  const uiContribution = Math.min(this.insurableSalary * 0.01, uiCap);
+
+  this.mandatoryInsurance =
+    this.insurableSalary > 0 ? siHiContribution + uiContribution : 0;
+
   // Calculate taxable income according to Vietnamese law
   const standardDeduction = 11000000; // 11 million VND/month
   const dependantDeduction = 4400000 * this.dependantCount; // 4.4 million per dependant
@@ -63,7 +86,7 @@ userSchema.pre("save", function (next) {
   this.taxableIncome = Math.max(
     0,
     this.grossSalary -
-      this.socialInsurance -
+      this.mandatoryInsurance -
       standardDeduction -
       dependantDeduction
   );
@@ -90,7 +113,7 @@ userSchema.pre("save", function (next) {
 
   // Ensure tax isn't negative (can happen with rounding errors)
   this.tax = Math.max(0, Math.round(tax));
-  this.currentSalary = this.grossSalary - this.socialInsurance - this.tax;
+  this.currentSalary = this.grossSalary - this.mandatoryInsurance - this.tax;
 
   next();
 });

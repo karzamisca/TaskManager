@@ -147,7 +147,8 @@ function renderUsers() {
       <td>${user.holidayBonusPerDay.toLocaleString()}</td>
       <td>${user.nightShiftBonusPerDay.toLocaleString()}</td>
       <td>${user.grossSalary.toLocaleString()}</td>
-      <td>${user.socialInsurance.toLocaleString()}</td>
+      <td>${user.insurableSalary.toLocaleString()}</td>
+      <td>${user.mandatoryInsurance.toLocaleString()}</td>
       <td>${user.dependantCount.toLocaleString()}</td>
       <td>${user.taxableIncome.toLocaleString()}</td>
       <td>${user.tax.toLocaleString()}</td>
@@ -189,8 +190,8 @@ async function addUser(e) {
     nightShiftBonusPerDay: parseFloat(
       document.getElementById("new-night-shift-bonus").value
     ),
-    socialInsurance: parseFloat(
-      document.getElementById("new-social-insurance").value
+    insurableSalary: parseFloat(
+      document.getElementById("new-insurable-salary").value
     ),
     dependantCount: parseInt(
       document.getElementById("new-dependant-count").value
@@ -230,7 +231,7 @@ async function editUser(id) {
   document.getElementById("edit-holiday-bonus").value = user.holidayBonusPerDay;
   document.getElementById("edit-night-shift-bonus").value =
     user.nightShiftBonusPerDay;
-  document.getElementById("edit-social-insurance").value = user.socialInsurance;
+  document.getElementById("edit-insurable-salary").value = user.insurableSalary;
   document.getElementById("edit-dependant-count").value = user.dependantCount;
 
   // Set the correct cost center
@@ -277,8 +278,8 @@ async function updateUser(e) {
     nightShiftBonusPerDay: parseFloat(
       document.getElementById("edit-night-shift-bonus").value
     ),
-    socialInsurance: parseFloat(
-      document.getElementById("edit-social-insurance").value
+    insurableSalary: parseFloat(
+      document.getElementById("edit-insurable-salary").value
     ),
     dependantCount: parseInt(
       document.getElementById("edit-dependant-count").value
