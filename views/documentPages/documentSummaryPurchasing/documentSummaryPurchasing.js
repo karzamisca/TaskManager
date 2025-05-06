@@ -30,17 +30,65 @@ async function fetchCurrentUser() {
 }
 
 function filterDocumentsForCurrentUser(documents) {
-  if (!currentUser || !showOnlyPendingApprovals) return documents;
+  if (!currentUser) return documents;
 
-  return documents.filter((doc) => {
-    const isRequiredApprover = doc.approvers.some(
-      (approver) => approver.username === currentUser.username
+  let filteredDocs = [...documents];
+
+  // Apply pending approval filter if enabled
+  if (showOnlyPendingApprovals) {
+    filteredDocs = filteredDocs.filter((doc) => {
+      const isRequiredApprover = doc.approvers.some(
+        (approver) => approver.username === currentUser.username
+      );
+      const hasNotApprovedYet = !doc.approvedBy.some(
+        (approved) => approved.username === currentUser.username
+      );
+      return isRequiredApprover && hasNotApprovedYet;
+    });
+  }
+
+  // Apply cost center filter
+  const selectedCenter = document.getElementById("costCenterFilter").value;
+  if (selectedCenter) {
+    filteredDocs = filteredDocs.filter(
+      (doc) => doc.costCenter === selectedCenter
     );
-    const hasNotApprovedYet = !doc.approvedBy.some(
-      (approved) => approved.username === currentUser.username
-    );
-    return isRequiredApprover && hasNotApprovedYet;
-  });
+  }
+
+  return filteredDocs;
+}
+
+async function populateCostCenterFilter() {
+  try {
+    const response = await fetch("/userControlCostCenters");
+    const costCenters = await response.json();
+    const filterDropdown = document.getElementById("costCenterFilter");
+
+    // Clear existing options except the first one
+    while (filterDropdown.options.length > 1) {
+      filterDropdown.remove(1);
+    }
+
+    // Add new options
+    costCenters.forEach((center) => {
+      const option = document.createElement("option");
+      option.value = center.name;
+      option.textContent = center.name;
+      filterDropdown.appendChild(option);
+    });
+
+    // Add event listener for filtering
+    filterDropdown.addEventListener("change", filterByCostCenter);
+  } catch (error) {
+    console.error("Error fetching cost centers for filter:", error);
+  }
+}
+
+// Add this function to handle filtering
+function filterByCostCenter() {
+  const selectedCenter = document.getElementById("costCenterFilter").value;
+  currentPage = 1; // Reset to first page when filter changes
+  fetchPurchasingDocuments();
 }
 
 function showMessage(message, isError = false) {
@@ -139,6 +187,34 @@ function renderProposals(proposals) {
         .join("")}
     </div>
   `;
+}
+
+// Add this new function to calculate summary
+function updateSummary(filteredDocuments) {
+  const approvedDocs = filteredDocuments.filter(
+    (doc) => doc.status === "Approved"
+  );
+  const unapprovedDocs = filteredDocuments.filter(
+    (doc) => doc.status === "Pending"
+  );
+
+  const approvedSum = approvedDocs.reduce(
+    (sum, doc) => sum + (doc.grandTotalCost || 0),
+    0
+  );
+  const unapprovedSum = unapprovedDocs.reduce(
+    (sum, doc) => sum + (doc.grandTotalCost || 0),
+    0
+  );
+
+  document.getElementById("approvedSum").textContent =
+    approvedSum.toLocaleString();
+  document.getElementById("unapprovedSum").textContent =
+    unapprovedSum.toLocaleString();
+  document.getElementById("approvedDocument").textContent =
+    approvedDocs.length.toLocaleString();
+  document.getElementById("unapprovedDocument").textContent =
+    unapprovedDocs.length.toLocaleString();
 }
 
 async function fetchPurchasingDocuments() {
@@ -267,6 +343,9 @@ async function fetchPurchasingDocuments() {
       tableBody.appendChild(row);
     });
 
+    // Update summary section based on FILTERED documents
+    updateSummary(filteredDocuments);
+
     // Render pagination controls if pagination is enabled
     if (paginationEnabled) {
       renderPagination();
@@ -277,24 +356,6 @@ async function fetchPurchasingDocuments() {
         paginationContainer.innerHTML = "";
       }
     }
-
-    // Update summary section
-    const approvedSum = filteredDocuments
-      .filter((doc) => doc.status === "Approved")
-      .reduce((sum, doc) => sum + (doc.grandTotalCost || 0), 0);
-
-    const unapprovedSum = filteredDocuments
-      .filter((doc) => doc.status === "Pending")
-      .reduce((sum, doc) => sum + (doc.grandTotalCost || 0), 0);
-
-    document.getElementById("approvedSum").textContent =
-      approvedSum.toLocaleString();
-    document.getElementById("unapprovedSum").textContent =
-      unapprovedSum.toLocaleString();
-    document.getElementById("approvedDocument").textContent =
-      data.approvedDocument.toLocaleString();
-    document.getElementById("unapprovedDocument").textContent =
-      data.unapprovedDocument.toLocaleString();
   } catch (err) {
     console.error("Error fetching purchasing documents:", err);
     showMessage("Error fetching purchasing documents", true);
@@ -1149,6 +1210,9 @@ async function initializePage() {
   document
     .getElementById("paginationToggle")
     .addEventListener("change", togglePagination);
+
+  // Populate the cost center filter
+  await populateCostCenterFilter();
 
   fetchPurchasingDocuments();
 }

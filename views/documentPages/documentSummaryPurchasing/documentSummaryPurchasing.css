@@ -111,6 +111,15 @@ tr:hover {
   background-color: var(--table-hover);
 }
 
+#costCenterFilter {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-size: 14px;
+}
+
 /* Status styles */
 .approved {
   color: var(--success-text);
