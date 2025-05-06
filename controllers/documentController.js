@@ -14,6 +14,7 @@ const ProjectProposalDocument = require("../models/DocumentProjectProposal.js");
 const drive = require("../middlewares/googleAuthMiddleware.js");
 const { Readable } = require("stream");
 const multer = require("multer");
+const ExcelJS = require("exceljs");
 const fs = require("fs");
 const path = require("path");
 const { groupDocumentsByApprover } = require("../utils/emailService");
@@ -1885,6 +1886,856 @@ exports.openPurchasingDocument = async (req, res) => {
   } catch (err) {
     console.error("Lỗi khi mở lại tài liệu/Error reopening document:", err);
     res.status(500).send("Lỗi khi mở lại tài liệu/Error reopening document");
+  }
+};
+exports.exportPurchasingDocumentsToExcel = async (req, res) => {
+  try {
+    const { documentIds } = req.body;
+    const ids = JSON.parse(documentIds);
+
+    // Fetch documents with all necessary relationships
+    const documents = await PurchasingDocument.find({ _id: { $in: ids } })
+      .populate("submittedBy")
+      .populate("approvers.approver")
+      .populate("approvedBy.user")
+      .populate("appendedProposals");
+
+    // Create workbook with enhanced styling
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "Document Management System";
+    workbook.lastModifiedBy = "Document Management System";
+    workbook.created = new Date();
+    workbook.modified = new Date();
+    workbook.properties.date1904 = true;
+
+    // Add worksheet with improved page setup
+    const worksheet = workbook.addWorksheet("Purchasing Documents", {
+      pageSetup: {
+        paperSize: 9, // A4
+        orientation: "landscape",
+        horizontalCentered: true,
+        verticalCentered: true,
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0, // Auto fit to height
+        printArea: "A1:L1000", // Dynamic print area
+        margins: {
+          top: 0.7,
+          left: 0.7,
+          bottom: 0.7,
+          right: 0.7,
+          header: 0.3,
+          footer: 0.3,
+        },
+      },
+      properties: {
+        tabColor: { argb: "4F81BD" },
+      },
+    });
+
+    // Define comprehensive styling system
+    const styles = {
+      header: {
+        font: {
+          bold: true,
+          color: { argb: "FFFFFFFF" },
+          size: 11,
+          name: "Calibri",
+        },
+        fill: {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF4F81BD" },
+        },
+        border: {
+          top: { style: "thin", color: { argb: "FF000000" } },
+          left: { style: "thin", color: { argb: "FF000000" } },
+          bottom: { style: "thin", color: { argb: "FF000000" } },
+          right: { style: "thin", color: { argb: "FF000000" } },
+        },
+        alignment: {
+          vertical: "middle",
+          horizontal: "center",
+          wrapText: true,
+          shrinkToFit: false,
+        },
+      },
+      sectionHeader: {
+        font: {
+          bold: true,
+          color: { argb: "FF000000" },
+          size: 12,
+          name: "Calibri",
+        },
+        fill: {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFD9D9D9" },
+        },
+        border: {
+          top: { style: "thin", color: { argb: "FF000000" } },
+          left: { style: "thin", color: { argb: "FF000000" } },
+          bottom: { style: "thin", color: { argb: "FF000000" } },
+          right: { style: "thin", color: { argb: "FF000000" } },
+        },
+        alignment: { vertical: "middle", horizontal: "left" },
+      },
+      currency: {
+        numFmt: '"$"#,##0.00',
+        alignment: { horizontal: "right" },
+      },
+      percentage: {
+        numFmt: '0.00"%"',
+        alignment: { horizontal: "right" },
+      },
+      date: {
+        numFmt: "dd-mmm-yyyy hh:mm:ss",
+        alignment: { horizontal: "left" },
+      },
+      rowEven: {
+        fill: {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFF2F2F2" },
+        },
+      },
+      rowOdd: {
+        fill: {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFFFFFFF" },
+        },
+      },
+      cellBorder: {
+        border: {
+          top: { style: "thin", color: { argb: "FFD3D3D3" } },
+          left: { style: "thin", color: { argb: "FFD3D3D3" } },
+          bottom: { style: "thin", color: { argb: "FFD3D3D3" } },
+          right: { style: "thin", color: { argb: "FFD3D3D3" } },
+        },
+      },
+      status: {
+        approved: {
+          font: { bold: true },
+          fill: {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFC6EFCE" },
+          },
+          alignment: { horizontal: "center" },
+        },
+        suspended: {
+          font: { bold: true },
+          fill: {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFFFC7CE" },
+          },
+          alignment: { horizontal: "center" },
+        },
+        pending: {
+          font: { bold: true },
+          fill: {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFFFEB9C" },
+          },
+          alignment: { horizontal: "center" },
+        },
+      },
+      documentTitle: {
+        font: {
+          bold: true,
+          color: { argb: "FF0000" },
+          size: 14,
+          name: "Calibri",
+        },
+        alignment: { horizontal: "left" },
+      },
+    };
+
+    // Add company logo placeholder
+    // worksheet.addImage({
+    //   base64: companyLogoBase64,
+    //   extension: 'png',
+    //   tl: { col: 0, row: 0 },
+    //   ext: { width: 150, height: 50 }
+    // });
+
+    // Main document columns with auto-width settings
+    worksheet.columns = [
+      {
+        header: "Mã/ID",
+        key: "id",
+        width: 18,
+        style: { alignment: { wrapText: true } },
+      },
+      {
+        header: "Tên/Name",
+        key: "name",
+        width: 30,
+        style: { alignment: { wrapText: true } },
+      },
+      {
+        header: "Trạm/Cost Center",
+        key: "costCenter",
+        width: 15,
+        style: { alignment: { wrapText: true } },
+      },
+      {
+        header: "Nhóm/Group",
+        key: "groupName",
+        width: 15,
+        style: { alignment: { wrapText: true } },
+      },
+      {
+        header: "Dự án/Project",
+        key: "projectName",
+        width: 18,
+        style: { alignment: { wrapText: true } },
+      },
+      {
+        header: "Tổng tiền/Grand Total Cost",
+        key: "grandTotalCost",
+        width: 15,
+        style: {
+          ...styles.currency,
+          alignment: { wrapText: true, horizontal: "right" },
+        },
+      },
+      {
+        header: "Tình trạng/Status",
+        key: "status",
+        width: 12,
+        style: { alignment: { wrapText: true } },
+      },
+      {
+        header: "Submitted By",
+        key: "submittedBy",
+        width: 20,
+        style: { alignment: { wrapText: true } },
+      },
+      {
+        header: "Ngày nộp/Submission Date",
+        key: "submissionDate",
+        width: 20,
+        style: {
+          ...styles.date,
+          alignment: { wrapText: true, horizontal: "left" },
+        },
+      },
+      {
+        header: "Tệp tin đính kèm/Attached File",
+        key: "fileAttachment",
+        width: 30,
+        style: { alignment: { wrapText: true } },
+      },
+      {
+        header: "Kê khai/Declaration",
+        key: "declaration",
+        width: 30,
+        style: { alignment: { wrapText: true } },
+      },
+      {
+        header: "Lý do từ chối/Suspend Reason",
+        key: "suspendReason",
+        width: 30,
+        style: { alignment: { wrapText: true } },
+      },
+    ];
+
+    // Apply header style and adjust row height
+    worksheet.getRow(1).eachCell((cell) => {
+      cell.style = styles.header;
+    });
+    worksheet.getRow(1).height = 25; // Increase header height for better readability
+
+    // Add report title and generation timestamp
+    const titleRow = worksheet.addRow([]);
+    titleRow.height = 30;
+    const reportTitle = `Purchasing Documents Export - Generated on ${new Date().toLocaleDateString()}`;
+    worksheet.mergeCells("A1:L1");
+    worksheet.getCell("A1").value = reportTitle;
+    worksheet.getCell("A1").style = styles.documentTitle;
+
+    // Get today's date for the report title
+    const today = new Date().toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    // Add data with alternating row colors and borders
+    let currentRow = 3; // Start from row 3 due to title
+
+    // Add document main info header row
+    const docMainInfoHeaderRow = worksheet.addRow([""]);
+    worksheet.mergeCells(`A${currentRow}:L${currentRow}`);
+    docMainInfoHeaderRow.eachCell((cell) => {
+      cell.style = styles.sectionHeader;
+    });
+    docMainInfoHeaderRow.height = 22;
+    currentRow++;
+
+    // Add document columns header row
+    const docColumnsHeaderRow = worksheet.addRow([
+      "Mã/ID",
+      "Tên/Name",
+      "Trạm/Cost Center",
+      "Nhóm/Group",
+      "Dự án/Project",
+      "Tổng tiền/Grand Total Cost",
+      "Tình trạng/Status",
+      "Submitted By",
+      "Ngày nộp/Submission Date",
+      "Tệp tin đính kèm/Attached File",
+      "Kê khai/Declaration",
+      "Lý do từ chối/Suspend Reason",
+    ]);
+    docColumnsHeaderRow.eachCell((cell) => {
+      cell.style = styles.header;
+    });
+    currentRow++;
+
+    documents.forEach((doc, docIndex) => {
+      // Section header for each document
+      const docHeaderRow = worksheet.addRow([
+        `Document #${docIndex + 1}: ${doc.name} (${doc._id.toString()})`,
+      ]);
+      worksheet.mergeCells(`A${currentRow}:L${currentRow}`);
+      docHeaderRow.eachCell((cell) => {
+        cell.style = styles.documentTitle;
+      });
+      docHeaderRow.height = 25;
+      currentRow++;
+
+      // Add main document info
+      const mainRow = worksheet.addRow({
+        id: doc._id.toString(),
+        name: doc.name,
+        costCenter: doc.costCenter,
+        groupName: doc.groupName,
+        projectName: doc.projectName,
+        grandTotalCost: doc.grandTotalCost,
+        status: doc.status,
+        submittedBy: doc.submittedBy?.username || "",
+        submissionDate: doc.submissionDate,
+        fileAttachment: doc.fileMetadata?.link
+          ? {
+              text: doc.fileMetadata.name,
+              hyperlink: doc.fileMetadata.link,
+            }
+          : "None",
+        declaration: doc.declaration || "None",
+        suspendReason: doc.suspendReason || "None",
+      });
+
+      // Apply general styling
+      mainRow.eachCell((cell) => {
+        cell.style = { ...styles.cellBorder, ...styles.rowEven };
+      });
+
+      // Style status cell based on value
+      const statusCell = mainRow.getCell("status");
+      if (doc.status === "Approved") {
+        statusCell.style = { ...statusCell.style, ...styles.status.approved };
+      } else if (doc.status === "Suspended") {
+        statusCell.style = { ...statusCell.style, ...styles.status.suspended };
+      } else {
+        statusCell.style = { ...statusCell.style, ...styles.status.pending };
+      }
+
+      // Apply currency formatting
+      mainRow.getCell("grandTotalCost").style = {
+        ...mainRow.getCell("grandTotalCost").style,
+        ...styles.currency,
+      };
+
+      // Apply date formatting
+      mainRow.getCell("submissionDate").style = {
+        ...mainRow.getCell("submissionDate").style,
+        ...styles.date,
+      };
+
+      currentRow++;
+
+      // Add Products section
+      if (doc.products && doc.products.length > 0) {
+        const productSectionRow = worksheet.addRow(["PRODUCTS"]);
+        worksheet.mergeCells(`A${currentRow}:L${currentRow}`);
+        productSectionRow.eachCell((cell) => {
+          cell.style = styles.sectionHeader;
+        });
+        productSectionRow.height = 22;
+        currentRow++;
+
+        // Define product column widths and headers BEFORE using them
+        const productColumnWidths = [
+          { min: 5, max: 10 }, // No
+          { min: 20, max: 50 }, // Product Name
+          { min: 15, max: 20 }, // Cost Per Unit
+          { min: 10, max: 15 }, // Amount
+          { min: 10, max: 15 }, // VAT %
+          { min: 15, max: 20 }, // Total Cost
+          { min: 15, max: 20 }, // Total After VAT
+          { min: 15, max: 40 }, // Note
+        ];
+
+        // Product headers
+        const productHeaders = [
+          "No.",
+          "Tên/Name",
+          "Đơn giá/Cost Per Unit",
+          "Số lượng/Amount",
+          "VAT %",
+          "Thành tiền/Total Cost",
+          "Thành tiền sau VAT/Total After VAT",
+          "Ghi chú/Note",
+        ];
+
+        const productHeaderRow = worksheet.addRow(productHeaders);
+        productHeaderRow.eachCell((cell) => {
+          cell.style = styles.header;
+        });
+        currentRow++;
+
+        // Track maximum content lengths for auto-sizing
+        const contentLengths = [0, 0, 0, 0, 0, 0, 0, 0];
+
+        // Product data with alternating colors
+        doc.products.forEach((product, idx) => {
+          const productRow = worksheet.addRow([
+            idx + 1,
+            product.productName,
+            product.costPerUnit,
+            product.amount,
+            product.vat,
+            product.totalCost,
+            product.totalCostAfterVat,
+            product.note || "",
+          ]);
+
+          // Apply row styling (alternating colors)
+          const rowStyle = idx % 2 === 0 ? styles.rowEven : styles.rowOdd;
+          productRow.eachCell((cell) => {
+            cell.style = { ...styles.cellBorder, ...rowStyle };
+          });
+
+          // Apply currency formatting
+          [3, 6, 7].forEach((colIndex) => {
+            productRow.getCell(colIndex).style = {
+              ...productRow.getCell(colIndex).style,
+              ...styles.currency,
+            };
+          });
+
+          // Apply percentage formatting
+          productRow.getCell(5).style = {
+            ...productRow.getCell(5).style,
+            ...styles.percentage,
+          };
+
+          // Track content lengths for auto-sizing
+          const rowValues = [
+            String(idx + 1),
+            product.productName || "",
+            String(product.costPerUnit || ""),
+            String(product.amount || ""),
+            String(product.vat || ""),
+            String(product.totalCost || ""),
+            String(product.totalCostAfterVat || ""),
+            product.note || "",
+          ];
+
+          rowValues.forEach((value, i) => {
+            contentLengths[i] = Math.max(contentLengths[i], value.length);
+          });
+
+          currentRow++;
+        });
+
+        // Auto-adjust column widths for this product table AFTER collecting content lengths
+        for (let i = 0; i < productColumnWidths.length; i++) {
+          const columnIndex = i + 1; // 1-based index for Excel
+          const column = worksheet.getColumn(columnIndex);
+          const headerLength = productHeaders[i]?.length || 0;
+          const contentLength = Math.max(contentLengths[i], headerLength);
+          const finalWidth = Math.min(
+            Math.max(contentLength + 2, productColumnWidths[i].min),
+            productColumnWidths[i].max
+          );
+          column.width = finalWidth;
+        }
+
+        // Add totals row
+        const totalCost = doc.products.reduce(
+          (sum, product) => sum + product.totalCostAfterVat,
+          0
+        );
+        const totalsRow = worksheet.addRow([
+          "",
+          "TOTAL",
+          "",
+          "",
+          "",
+          "",
+          totalCost,
+          "",
+        ]);
+
+        totalsRow.getCell(2).style = {
+          font: { bold: true },
+          alignment: { horizontal: "right" },
+        };
+
+        totalsRow.getCell(7).style = {
+          ...styles.currency,
+          font: { bold: true },
+          border: {
+            top: { style: "double", color: { argb: "FF000000" } },
+          },
+        };
+
+        currentRow++;
+      }
+
+      // Add Appended Proposals section
+      if (doc.appendedProposals && doc.appendedProposals.length > 0) {
+        const proposalSectionRow = worksheet.addRow(["APPENDED PROPOSALS"]);
+        worksheet.mergeCells(`A${currentRow}:L${currentRow}`);
+        proposalSectionRow.eachCell((cell) => {
+          cell.style = styles.sectionHeader;
+        });
+        proposalSectionRow.height = 22;
+        currentRow++;
+
+        // Calculate column widths for proposals table based on content
+        const proposalColumnWidths = [
+          { min: 5, max: 10 }, // No
+          { min: 15, max: 40 }, // Task
+          { min: 15, max: 20 }, // Cost Center
+          { min: 15, max: 20 }, // Date of Error
+          { min: 20, max: 50 }, // Description
+          { min: 15, max: 20 }, // Direction
+          { min: 15, max: 40 }, // File
+        ];
+
+        // Proposal headers
+        const proposalHeaders = [
+          "No.",
+          "Công việc/Task",
+          "Trạm/Cost Center",
+          "Ngày xảy ra lỗi/Date of Error",
+          "Mô tả/Description",
+          "Hướng xử lý/Direction",
+          "Tệp tin đính kèm/Attached File",
+        ];
+        const proposalHeaderRow = worksheet.addRow(proposalHeaders);
+        proposalHeaderRow.eachCell((cell) => {
+          cell.style = styles.header;
+        });
+        currentRow++;
+
+        // Track maximum content lengths for auto-sizing
+        const proposalContentLengths = [0, 0, 0, 0, 0, 0, 0];
+
+        // Proposal data with improved formatting
+        doc.appendedProposals.forEach((proposal, idx) => {
+          const fileLink = proposal.fileMetadata?.link;
+          const fileName = proposal.fileMetadata?.name || "None";
+
+          const fileCellValue = fileLink
+            ? { text: fileName, hyperlink: fileLink }
+            : fileName;
+
+          const proposalRow = worksheet.addRow([
+            idx + 1,
+            proposal.task,
+            proposal.costCenter,
+            proposal.dateOfError,
+            proposal.detailsDescription,
+            proposal.direction,
+            fileCellValue,
+          ]);
+
+          // Apply row styling (alternating colors)
+          const rowStyle = idx % 2 === 0 ? styles.rowEven : styles.rowOdd;
+          proposalRow.eachCell((cell) => {
+            cell.style = { ...styles.cellBorder, ...rowStyle };
+          });
+
+          // Ensure date formatting if available
+          if (proposal.dateOfError) {
+            proposalRow.getCell(4).style = {
+              ...proposalRow.getCell(4).style,
+              ...styles.date,
+            };
+          }
+
+          // Track content lengths for auto-sizing
+          const rowValues = [
+            String(idx + 1),
+            proposal.task || "",
+            proposal.costCenter || "",
+            proposal.dateOfError
+              ? new Date(proposal.dateOfError).toLocaleDateString()
+              : "",
+            proposal.detailsDescription || "",
+            proposal.direction || "",
+            proposal.fileMetadata?.name || "None",
+          ];
+
+          rowValues.forEach((value, i) => {
+            proposalContentLengths[i] = Math.max(
+              proposalContentLengths[i],
+              value.length
+            );
+          });
+
+          currentRow++;
+        });
+
+        // Auto-adjust column widths for this proposals table
+        for (let i = 0; i < proposalColumnWidths.length; i++) {
+          const columnIndex = i + 1; // 1-based index for Excel
+          const column = worksheet.getColumn(columnIndex);
+          const headerLength = proposalHeaders[i]?.length || 0;
+          const contentLength = Math.max(
+            proposalContentLengths[i],
+            headerLength
+          );
+          const finalWidth = Math.min(
+            Math.max(contentLength + 2, proposalColumnWidths[i].min),
+            proposalColumnWidths[i].max
+          );
+          column.width = finalWidth;
+        }
+      }
+
+      // Add Approvers section with improved styling
+      if (doc.approvers && doc.approvers.length > 0) {
+        const approverSectionRow = worksheet.addRow(["APPROVERS"]);
+        worksheet.mergeCells(`A${currentRow}:L${currentRow}`);
+        approverSectionRow.eachCell((cell) => {
+          cell.style = styles.sectionHeader;
+        });
+        approverSectionRow.height = 22;
+        currentRow++;
+
+        // Calculate column widths for approvers table based on content
+        const approverColumnWidths = [
+          { min: 5, max: 10 }, // No
+          { min: 20, max: 30 }, // Approver
+          { min: 15, max: 25 }, // Sub Role
+          { min: 15, max: 20 }, // Status
+          { min: 20, max: 25 }, // Approval Date
+        ];
+
+        // Approver headers
+        const approverHeaders = [
+          "No.",
+          "Người phê duyệt/Approver",
+          "Vai trò/Role",
+          "Tình trạng/Status",
+          "Ngày phê duyệt/Approval Date",
+        ];
+        const approverHeaderRow = worksheet.addRow(approverHeaders);
+        approverHeaderRow.eachCell((cell) => {
+          cell.style = styles.header;
+        });
+        currentRow++;
+
+        // Track maximum content lengths for auto-sizing
+        const approverContentLengths = [0, 0, 0, 0, 0];
+
+        // Approver data with improved styling
+        doc.approvers.forEach((approver, idx) => {
+          const approval = doc.approvedBy.find(
+            (a) =>
+              a.user && a.user._id.toString() === approver.approver.toString()
+          );
+
+          const approverRow = worksheet.addRow([
+            idx + 1,
+            approver.username,
+            approver.subRole,
+            approval ? "Approved" : "Pending",
+            approval?.approvalDate || "",
+          ]);
+
+          // Apply row styling (alternating colors)
+          const rowStyle = idx % 2 === 0 ? styles.rowEven : styles.rowOdd;
+          approverRow.eachCell((cell) => {
+            cell.style = { ...styles.cellBorder, ...rowStyle };
+          });
+
+          // Style status cell
+          const statusCell = approverRow.getCell(4);
+          if (approval) {
+            statusCell.style = {
+              ...statusCell.style,
+              ...styles.status.approved,
+            };
+          } else {
+            statusCell.style = {
+              ...statusCell.style,
+              ...styles.status.pending,
+            };
+          }
+
+          // Apply date formatting if available
+          if (approval?.approvalDate) {
+            approverRow.getCell(5).style = {
+              ...approverRow.getCell(5).style,
+              ...styles.date,
+            };
+          }
+
+          // Track content lengths for auto-sizing
+          const rowValues = [
+            String(idx + 1),
+            approver.username || "",
+            approver.subRole || "",
+            approval ? "Approved" : "Pending",
+            approval?.approvalDate
+              ? new Date(approval.approvalDate).toLocaleDateString()
+              : "",
+          ];
+
+          rowValues.forEach((value, i) => {
+            approverContentLengths[i] = Math.max(
+              approverContentLengths[i],
+              value.length
+            );
+          });
+
+          currentRow++;
+        });
+
+        // Auto-adjust column widths for this approvers table
+        for (let i = 0; i < approverColumnWidths.length; i++) {
+          const columnIndex = i + 1; // 1-based index for Excel
+          const column = worksheet.getColumn(columnIndex);
+          const headerLength = approverHeaders[i]?.length || 0;
+          const contentLength = Math.max(
+            approverContentLengths[i],
+            headerLength
+          );
+          const finalWidth = Math.min(
+            Math.max(contentLength + 2, approverColumnWidths[i].min),
+            approverColumnWidths[i].max
+          );
+          column.width = finalWidth;
+        }
+      }
+
+      // Add separator between documents
+      if (docIndex < documents.length - 1) {
+        const spacerRow = worksheet.addRow([]);
+        spacerRow.height = 20;
+        currentRow++;
+      }
+    });
+
+    // Add summary information at the bottom
+    currentRow += 2;
+    const summaryTitleRow = worksheet.addRow(["EXPORT SUMMARY"]);
+    worksheet.mergeCells(`A${currentRow}:L${currentRow}`);
+    summaryTitleRow.eachCell((cell) => {
+      cell.style = styles.sectionHeader;
+    });
+    summaryTitleRow.height = 22;
+    currentRow++;
+
+    // Add summary data
+    worksheet.addRow(["Total Documents", documents.length]);
+    currentRow++;
+
+    const approvedCount = documents.filter(
+      (doc) => doc.status === "Approved"
+    ).length;
+    worksheet.addRow(["Approved Documents", approvedCount]);
+    currentRow++;
+
+    const pendingCount = documents.filter(
+      (doc) => doc.status !== "Approved" && doc.status !== "Suspended"
+    ).length;
+    worksheet.addRow(["Pending Documents", pendingCount]);
+    currentRow++;
+
+    const suspendedCount = documents.filter(
+      (doc) => doc.status === "Suspended"
+    ).length;
+    worksheet.addRow(["Suspended Documents", suspendedCount]);
+    currentRow++;
+
+    const totalAmount = documents.reduce(
+      (sum, doc) => sum + doc.grandTotalCost,
+      0
+    );
+    const totalRow = worksheet.addRow(["Total Amount", totalAmount]);
+    totalRow.getCell(2).style = styles.currency;
+    currentRow++;
+
+    // Add export information
+    currentRow += 2;
+    worksheet.addRow(["Generated By", "Document Management System"]);
+    currentRow++;
+    worksheet.addRow(["Date", new Date().toLocaleString()]);
+    currentRow++;
+
+    // Freeze headers for better navigation
+    worksheet.views = [
+      {
+        state: "frozen",
+        xSplit: 0,
+        ySplit: 5, // Freeze after title, main document header, and document column headers
+        activeCell: "A6",
+        showGridLines: true,
+      },
+    ];
+
+    // Auto filter
+    worksheet.autoFilter = {
+      from: "A4",
+      to: `${String.fromCharCode(64 + worksheet.columns.length)}4`,
+    };
+
+    // Set response headers
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=purchasing_documents_${
+        new Date().toISOString().split("T")[0]
+      }.xlsx`
+    );
+
+    // Auto-fit columns based on content
+    worksheet.columns.forEach((column) => {
+      let maxLength = 0;
+      column.eachCell({ includeEmpty: true }, (cell) => {
+        const columnLength = cell.value ? cell.value.toString().length : 10;
+        if (columnLength > maxLength) {
+          maxLength = columnLength;
+        }
+      });
+      // Add a buffer for padding
+      column.width = Math.min(maxLength + 2, 50); // Cap width at 50 to avoid excessive width
+    });
+
+    // Write to response
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error("Error exporting documents:", err);
+    res.status(500).json({
+      success: false,
+      message: "Error exporting documents",
+      error: err.message,
+    });
   }
 };
 //// END OF PURCHASING DOCUMENT CONTROLLER

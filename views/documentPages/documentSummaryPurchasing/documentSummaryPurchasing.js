@@ -91,6 +91,96 @@ function filterByCostCenter() {
   fetchPurchasingDocuments();
 }
 
+// Export to Excel
+async function exportSelectedToExcel() {
+  const selectedDocs = Array.from(
+    document.querySelectorAll(".doc-checkbox:checked")
+  ).map((checkbox) => checkbox.dataset.docId);
+
+  if (selectedDocs.length === 0) {
+    showMessage("Please select at least one document to export", true);
+    return;
+  }
+
+  try {
+    // Show loading state
+    const exportBtn = document.getElementById("exportSelectedBtn");
+    const originalText = exportBtn.textContent;
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Exporting...';
+
+    // Create form and submit
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "/exportPurchasingDocumentsToExcel";
+
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = "documentIds";
+    input.value = JSON.stringify(selectedDocs);
+    form.appendChild(input);
+
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  } catch (err) {
+    console.error("Error exporting documents:", err);
+    showMessage("Error exporting documents: " + err.message, true);
+  } finally {
+    // Reset button state after a delay to ensure form submission completes
+    setTimeout(() => {
+      const exportBtn = document.getElementById("exportSelectedBtn");
+      if (exportBtn) {
+        exportBtn.disabled = false;
+        exportBtn.textContent = originalText;
+      }
+    }, 2000);
+  }
+}
+
+// Add this function to handle select all/deselect all
+function toggleSelectAll() {
+  const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+  const checkboxes = document.querySelectorAll(".doc-checkbox");
+
+  checkboxes.forEach((checkbox) => {
+    checkbox.checked = selectAllCheckbox.checked;
+  });
+}
+
+// Add this function to update the select all checkbox state
+function updateSelectAllCheckbox() {
+  const checkboxes = document.querySelectorAll(".doc-checkbox");
+  const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+
+  if (checkboxes.length === 0) {
+    selectAllCheckbox.checked = false;
+    selectAllCheckbox.disabled = true;
+    return;
+  }
+
+  selectAllCheckbox.disabled = false;
+  const allChecked = Array.from(checkboxes).every(
+    (checkbox) => checkbox.checked
+  );
+  selectAllCheckbox.checked = allChecked;
+}
+
+// Add event listeners in the initializePage function:
+document
+  .getElementById("exportSelectedBtn")
+  .addEventListener("click", exportSelectedToExcel);
+document
+  .getElementById("selectAllCheckbox")
+  .addEventListener("change", toggleSelectAll);
+
+// Add this to update the select all checkbox when checkboxes change
+document.addEventListener("change", (e) => {
+  if (e.target.classList.contains("doc-checkbox")) {
+    updateSelectAllCheckbox();
+  }
+});
+
 function showMessage(message, isError = false) {
   const messageContainer = document.getElementById("messageContainer");
   messageContainer.textContent = message;
@@ -219,6 +309,9 @@ function updateSummary(filteredDocuments) {
 
 async function fetchPurchasingDocuments() {
   try {
+    // Reset the select all checkbox
+    document.getElementById("selectAllCheckbox").checked = false;
+
     const response = await fetch("/getPurchasingDocumentForSeparatedView");
     const data = await response.json();
     purchasingDocuments = data.purchasingDocuments;
@@ -275,6 +368,9 @@ async function fetchPurchasingDocuments() {
 
       const row = document.createElement("tr");
       row.innerHTML = `
+        <td><input type="checkbox" class="doc-checkbox" data-doc-id="${
+          doc._id
+        }"></td>
         <td>${doc.name ? doc.name : ""}</td>
         <td>${doc.costCenter ? doc.costCenter : ""}</td>              
         <td>
