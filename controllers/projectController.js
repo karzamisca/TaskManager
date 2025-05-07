@@ -24,6 +24,7 @@ exports.getProjectMainViews = (req, res) => {
       "headOfOperations",
       "headOfNorthernRepresentativeOffice",
       "captainOfMechanical",
+      "captainOfTechnical",
       "captainOfPurchasing",
     ].includes(req.user.role)
   ) {
@@ -54,6 +55,7 @@ exports.getProjectDocumentViews = (req, res) => {
       "headOfOperations",
       "headOfNorthernRepresentativeOffice",
       "captainOfMechanical",
+      "captainOfTechnical",
       "captainOfPurchasing",
     ].includes(req.user.role)
   ) {
