@@ -898,6 +898,7 @@ exports.approveDocument = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfMechanical",
+        "headOfTechnical",
         "headOfAccounting",
         "headOfPurchasing",
         "headOfOperations",

@@ -18,6 +18,7 @@ exports.getDocumentInGroupViews = (req, res) => {
       "director",
       "deputyDirector",
       "headOfMechanical",
+      "headOfTechnical",
       "headOfAccounting",
       "headOfPurchasing",
       "headOfOperations",
