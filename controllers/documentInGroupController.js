@@ -20,6 +20,9 @@ exports.getDocumentInGroupViews = (req, res) => {
       "headOfMechanical",
       "headOfAccounting",
       "headOfPurchasing",
+      "headOfOperations",
+      "headOfNorthernRepresentativeOffice",
+      "captainOfMechanical",
       "captainOfPurchasing",
     ].includes(req.user.role)
   ) {

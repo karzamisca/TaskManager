@@ -20,11 +20,9 @@ function generateRandomString(length) {
 exports.getFormAndProjectExpense = (req, res) => {
   if (
     ![
-      "approver",
       "superAdmin",
       "director",
       "deputyDirector",
-      "headOfMechanical",
       "headOfAccounting",
       "headOfPurchasing",
       "captainOfPurchasing",

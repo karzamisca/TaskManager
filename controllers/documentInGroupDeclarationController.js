@@ -13,11 +13,9 @@ const moment = require("moment-timezone");
 exports.getDocumentInGroupDeclarationViews = (req, res) => {
   if (
     ![
-      "approver",
       "superAdmin",
       "director",
       "deputyDirector",
-      "headOfMechanical",
       "headOfAccounting",
       "headOfPurchasing",
       "captainOfPurchasing",
