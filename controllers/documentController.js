@@ -902,7 +902,7 @@ exports.approveDocument = async (req, res) => {
         "headOfPurchasing",
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
-        "captainOfMech",
+        "captainOfMechanical",
       ].includes(req.user.role)
     ) {
       return res.send(
