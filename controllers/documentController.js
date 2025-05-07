@@ -300,8 +300,14 @@ exports.getCostCenters = async (req, res) => {
       ],
     });
 
-    // Send the list of allowed cost centers as a response
-    res.json(costCenters);
+    // Sort the cost centers alphabetically by name
+    // Assuming each cost center has a 'name' field - adjust if your field is named differently
+    const sortedCostCenters = costCenters.sort((a, b) => {
+      return a.name.localeCompare(b.name);
+    });
+
+    // Send the sorted list of allowed cost centers as a response
+    res.json(sortedCostCenters);
   } catch (error) {
     console.error("Error fetching cost centers:", error);
     res.status(500).json({ message: "Server error" });

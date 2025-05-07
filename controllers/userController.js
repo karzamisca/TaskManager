@@ -333,8 +333,17 @@ exports.getAllCostCenters = async (req, res) => {
         "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
       );
     }
+
+    // Fetch all cost centers
     const costCenters = await CostCenter.find();
-    res.json(costCenters);
+
+    // Sort the cost centers alphabetically by name
+    // Assuming each cost center has a 'name' field - adjust if your field is named differently
+    const sortedCostCenters = costCenters.sort((a, b) => {
+      return a.name.localeCompare(b.name);
+    });
+
+    res.json(sortedCostCenters);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
