@@ -1168,13 +1168,34 @@ exports.openDocument = async (req, res) => {
 //// PROPOSAL DOCUMENT CONTROLLER
 exports.getApprovedProposalDocuments = async (req, res) => {
   try {
-    // Fetch only approved proposal documents
+    // Fetch all approved proposal documents
     const approvedProposals = await ProposalDocument.find({
       status: "Approved",
     }).populate("submittedBy approvers.approver approvedBy.user");
 
+    // Fetch all purchasing documents to check which proposals are already attached
+    const PurchasingDocument = require("../models/DocumentPurchasing.js");
+    const purchasingDocuments = await PurchasingDocument.find({});
+
+    // Extract all proposal IDs that are already attached to purchasing documents
+    const attachedProposalIds = new Set();
+    purchasingDocuments.forEach((doc) => {
+      if (doc.appendedProposals && doc.appendedProposals.length > 0) {
+        doc.appendedProposals.forEach((proposal) => {
+          if (proposal.proposalId) {
+            attachedProposalIds.add(proposal.proposalId.toString());
+          }
+        });
+      }
+    });
+
+    // Filter out proposals that are already attached to purchasing documents
+    const unattachedProposals = approvedProposals.filter(
+      (proposal) => !attachedProposalIds.has(proposal._id.toString())
+    );
+
     // Sort approved documents by latest approval date (newest first)
-    const sortedDocuments = approvedProposals.sort((a, b) => {
+    const sortedDocuments = unattachedProposals.sort((a, b) => {
       // Get the latest approval date for each document
       const getLatestApprovalDate = (doc) => {
         if (doc.approvedBy && doc.approvedBy.length > 0) {
@@ -1188,7 +1209,6 @@ exports.getApprovedProposalDocuments = async (req, res) => {
               // Month is 0-indexed in JavaScript Date constructor
               return new Date(year, month - 1, day, hour, minute, second);
             };
-
             return (
               parseCustomDate(y.approvalDate) - parseCustomDate(x.approvalDate)
             );
@@ -1197,10 +1217,8 @@ exports.getApprovedProposalDocuments = async (req, res) => {
         }
         return "01-01-1970 00:00:00"; // Default date if no approvals
       };
-
       const latestDateA = getLatestApprovalDate(a);
       const latestDateB = getLatestApprovalDate(b);
-
       // Parse dates
       const parseCustomDate = (dateStr) => {
         const [datePart, timePart] = dateStr.split(" ");
@@ -1209,18 +1227,17 @@ exports.getApprovedProposalDocuments = async (req, res) => {
         // Month is 0-indexed in JavaScript Date constructor
         return new Date(year, month - 1, day, hour, minute, second);
       };
-
       // Sort by latest approval date in descending order (newest first)
       return parseCustomDate(latestDateB) - parseCustomDate(latestDateA);
     });
 
     res.json(sortedDocuments);
   } catch (err) {
-    console.error("Error fetching approved proposals:", err);
+    console.error("Error fetching unattached approved proposals:", err);
     res
       .status(500)
       .send(
-        "Lỗi lấy tài liệu đề xuất đã phê duyệt/Error fetching approved proposals"
+        "Lỗi lấy tài liệu đề xuất đã phê duyệt chưa được gắn/Error fetching unattached approved proposals"
       );
   }
 };
@@ -1519,13 +1536,40 @@ exports.openProposalDocument = async (req, res) => {
 //// PURCHASING DOCUMENT CONTROLLER
 exports.getApprovedPurchasingDocuments = async (req, res) => {
   try {
-    // Fetch only approved purchasing documents
+    // First get all approved purchasing documents
     const approvedPurchasingDocs = await PurchasingDocument.find({
       status: "Approved",
     }).populate("submittedBy approvers.approver approvedBy.user");
 
-    // Sort approved documents by latest approval date (newest first)
-    const sortedDocuments = approvedPurchasingDocs.sort((a, b) => {
+    // Then get all payment documents to check which purchasing documents are attached
+    const paymentDocuments = await PaymentDocument.find({});
+
+    // Create a Set of all purchasing document IDs that are attached to payment documents
+    const attachedPurchasingDocIds = new Set();
+
+    paymentDocuments.forEach((paymentDoc) => {
+      if (
+        paymentDoc.appendedPurchasingDocuments &&
+        paymentDoc.appendedPurchasingDocuments.length > 0
+      ) {
+        paymentDoc.appendedPurchasingDocuments.forEach((purchDoc) => {
+          // Check if the purchasing document is stored as an ID or as an object with _id
+          if (typeof purchDoc === "string") {
+            attachedPurchasingDocIds.add(purchDoc);
+          } else if (purchDoc._id) {
+            attachedPurchasingDocIds.add(purchDoc._id.toString());
+          }
+        });
+      }
+    });
+
+    // Filter out purchasing documents that are already attached to payment documents
+    const unattachedPurchasingDocs = approvedPurchasingDocs.filter(
+      (doc) => !attachedPurchasingDocIds.has(doc._id.toString())
+    );
+
+    // Sort unattached documents by latest approval date (newest first)
+    const sortedDocuments = unattachedPurchasingDocs.sort((a, b) => {
       // Get the latest approval date for each document
       const getLatestApprovalDate = (doc) => {
         if (doc.approvedBy && doc.approvedBy.length > 0) {
@@ -1539,7 +1583,6 @@ exports.getApprovedPurchasingDocuments = async (req, res) => {
               // Month is 0-indexed in JavaScript Date constructor
               return new Date(year, month - 1, day, hour, minute, second);
             };
-
             return (
               parseCustomDate(y.approvalDate) - parseCustomDate(x.approvalDate)
             );
@@ -1567,11 +1610,11 @@ exports.getApprovedPurchasingDocuments = async (req, res) => {
 
     res.json(sortedDocuments);
   } catch (err) {
-    console.error("Error fetching approved purchasing documents:", err);
+    console.error("Error fetching unattached purchasing documents:", err);
     res
       .status(500)
       .send(
-        "Lỗi lấy tài liệu mua hàng đã phê duyệt/Error fetching approved purchasing documents"
+        "Lỗi lấy tài liệu mua hàng chưa gắn với thanh toán/Error fetching unattached purchasing documents"
       );
   }
 };

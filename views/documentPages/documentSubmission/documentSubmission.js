@@ -445,21 +445,6 @@ async function fetchApprovers() {
   });
 }
 
-async function fetchApprovedDocuments() {
-  const response = await fetch("/approvedDocument");
-  const approvedDocs = await response.json();
-  const approvedDocsDropdown = document.getElementById(
-    "approvedDocumentsDropdown"
-  );
-
-  approvedDocs.forEach((doc) => {
-    const option = document.createElement("option");
-    option.value = doc._id;
-    option.textContent = doc._id;
-    approvedDocsDropdown.appendChild(option);
-  });
-}
-
 function addProposalEntry() {
   const container = document.getElementById("proposal-selections");
   const newEntry = document.createElement("div");
@@ -742,7 +727,6 @@ async function populateProjectDropdown() {
   });
 }
 
-fetchApprovedDocuments();
 fetchApprovers();
 fetchApprovedProposals();
 fetchPurchasingDocuments();
