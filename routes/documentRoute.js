@@ -142,9 +142,19 @@ router.post(
 //// PURCHASING DOCUMENT ROUTE
 // Route to fetch all approved Purchasing Documents
 router.get(
-  "/approvedPurchasingDocuments",
+  "/approvedPurchasingDocumentsForPayment",
   authMiddleware,
-  documentController.getApprovedPurchasingDocuments
+  documentController.getApprovedPurchasingDocumentsForPayment
+);
+router.get(
+  "/approvedPurchasingDocumentsForAdvancePayment",
+  authMiddleware,
+  documentController.getApprovedPurchasingDocumentsForAdvancePayment
+);
+router.get(
+  "/approvedPurchasingDocumentsForAdvancePaymentReclaim",
+  authMiddleware,
+  documentController.getApprovedPurchasingDocumentsForAdvancePaymentReclaim
 );
 // Route to fetch a specific Purchasing Document by ID
 router.get(

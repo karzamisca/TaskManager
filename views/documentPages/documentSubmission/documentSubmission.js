@@ -92,7 +92,7 @@ function handlePaymentDocument() {
   );
 
   appendPurchasingSection.style.display = "block";
-  fetchPurchasingDocuments();
+  fetchPurchasingDocumentsForPayment(); // Changed to specialized function
 
   contentFields.innerHTML = `
       <label for="name">Tên/Name</label>
@@ -136,7 +136,7 @@ function handleAdvancePaymentDocument() {
   );
 
   appendPurchasingSection.style.display = "block";
-  fetchPurchasingDocuments();
+  fetchPurchasingDocumentsForAdvancePayment(); // Changed to specialized function
 
   contentFields.innerHTML = `
       <label for="name">Tên/Name</label>
@@ -180,7 +180,7 @@ function handleAdvancePaymentReclaimDocument() {
   );
 
   appendPurchasingSection.style.display = "block";
-  fetchPurchasingDocuments();
+  fetchPurchasingDocumentsForAdvancePaymentReclaim(); // Changed to specialized function
 
   contentFields.innerHTML = `
       <label for="name">Tên/Name</label>
@@ -572,9 +572,31 @@ async function previewProposalContent(selectElement) {
   selectContainer.appendChild(previewDiv);
 }
 
-async function fetchPurchasingDocuments() {
-  const response = await fetch("/approvedPurchasingDocuments");
+// Function to fetch purchasing documents for payment documents
+async function fetchPurchasingDocumentsForPayment() {
+  const response = await fetch("/approvedPurchasingDocumentsForPayment");
   const purchasingDocs = await response.json();
+  populatePurchasingDocumentsDropdown(purchasingDocs);
+}
+
+// Function to fetch purchasing documents for advance payment documents
+async function fetchPurchasingDocumentsForAdvancePayment() {
+  const response = await fetch("/approvedPurchasingDocumentsForAdvancePayment");
+  const purchasingDocs = await response.json();
+  populatePurchasingDocumentsDropdown(purchasingDocs);
+}
+
+// Function to fetch purchasing documents for advance payment reclaim documents
+async function fetchPurchasingDocumentsForAdvancePaymentReclaim() {
+  const response = await fetch(
+    "/approvedPurchasingDocumentsForAdvancePaymentReclaim"
+  );
+  const purchasingDocs = await response.json();
+  populatePurchasingDocumentsDropdown(purchasingDocs);
+}
+
+// Shared function to populate the dropdown with purchasing documents
+function populatePurchasingDocumentsDropdown(purchasingDocs) {
   const dropdown = document.getElementById("purchasingDocumentsDropdown");
 
   // Populate dropdown options
@@ -760,8 +782,6 @@ async function populateProjectDropdown() {
 }
 
 fetchApprovers();
-fetchApprovedProposals();
-fetchPurchasingDocuments();
 
 document
   .getElementById("submit-form")

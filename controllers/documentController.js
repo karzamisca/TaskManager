@@ -1609,7 +1609,7 @@ exports.openProposalDocument = async (req, res) => {
 //// END OF PROPOSAL DOCUMENT CONTROLLER
 
 //// PURCHASING DOCUMENT CONTROLLER
-exports.getApprovedPurchasingDocuments = async (req, res) => {
+exports.getApprovedPurchasingDocumentsForPayment = async (req, res) => {
   try {
     // First get all approved purchasing documents
     const approvedPurchasingDocs = await PurchasingDocument.find({
@@ -1635,6 +1635,180 @@ exports.getApprovedPurchasingDocuments = async (req, res) => {
             attachedPurchasingDocIds.add(purchDoc._id.toString());
           }
         });
+      }
+    });
+
+    // Filter out purchasing documents that are already attached to payment documents
+    const unattachedPurchasingDocs = approvedPurchasingDocs.filter(
+      (doc) => !attachedPurchasingDocIds.has(doc._id.toString())
+    );
+
+    // Sort unattached documents by latest approval date (newest first)
+    const sortedDocuments = unattachedPurchasingDocs.sort((a, b) => {
+      // Get the latest approval date for each document
+      const getLatestApprovalDate = (doc) => {
+        if (doc.approvedBy && doc.approvedBy.length > 0) {
+          // Sort approval dates in descending order
+          const sortedDates = [...doc.approvedBy].sort((x, y) => {
+            // Parse date strings in format "DD-MM-YYYY HH:MM:SS"
+            const parseCustomDate = (dateStr) => {
+              const [datePart, timePart] = dateStr.split(" ");
+              const [day, month, year] = datePart.split("-");
+              const [hour, minute, second] = timePart.split(":");
+              // Month is 0-indexed in JavaScript Date constructor
+              return new Date(year, month - 1, day, hour, minute, second);
+            };
+            return (
+              parseCustomDate(y.approvalDate) - parseCustomDate(x.approvalDate)
+            );
+          });
+          return sortedDates[0].approvalDate;
+        }
+        return "01-01-1970 00:00:00"; // Default date if no approvals
+      };
+
+      const latestDateA = getLatestApprovalDate(a);
+      const latestDateB = getLatestApprovalDate(b);
+
+      // Parse dates
+      const parseCustomDate = (dateStr) => {
+        const [datePart, timePart] = dateStr.split(" ");
+        const [day, month, year] = datePart.split("-");
+        const [hour, minute, second] = timePart.split(":");
+        // Month is 0-indexed in JavaScript Date constructor
+        return new Date(year, month - 1, day, hour, minute, second);
+      };
+
+      // Sort by latest approval date in descending order (newest first)
+      return parseCustomDate(latestDateB) - parseCustomDate(latestDateA);
+    });
+
+    res.json(sortedDocuments);
+  } catch (err) {
+    console.error("Error fetching unattached purchasing documents:", err);
+    res
+      .status(500)
+      .send(
+        "Lỗi lấy tài liệu mua hàng chưa gắn với thanh toán/Error fetching unattached purchasing documents"
+      );
+  }
+};
+exports.getApprovedPurchasingDocumentsForAdvancePayment = async (req, res) => {
+  try {
+    // First get all approved purchasing documents
+    const approvedPurchasingDocs = await PurchasingDocument.find({
+      status: "Approved",
+    }).populate("submittedBy approvers.approver approvedBy.user");
+
+    // Then get all payment documents to check which purchasing documents are attached
+    const advancePaymentDocuments = await AdvancePaymentDocument.find({});
+
+    // Create a Set of all purchasing document IDs that are attached to payment documents
+    const attachedPurchasingDocIds = new Set();
+
+    advancePaymentDocuments.forEach((advancePaymentDoc) => {
+      if (
+        advancePaymentDoc.appendedPurchasingDocuments &&
+        advancePaymentDoc.appendedPurchasingDocuments.length > 0
+      ) {
+        advancePaymentDoc.appendedPurchasingDocuments.forEach((purchDoc) => {
+          // Check if the purchasing document is stored as an ID or as an object with _id
+          if (typeof purchDoc === "string") {
+            attachedPurchasingDocIds.add(purchDoc);
+          } else if (purchDoc._id) {
+            attachedPurchasingDocIds.add(purchDoc._id.toString());
+          }
+        });
+      }
+    });
+
+    // Filter out purchasing documents that are already attached to payment documents
+    const unattachedPurchasingDocs = approvedPurchasingDocs.filter(
+      (doc) => !attachedPurchasingDocIds.has(doc._id.toString())
+    );
+
+    // Sort unattached documents by latest approval date (newest first)
+    const sortedDocuments = unattachedPurchasingDocs.sort((a, b) => {
+      // Get the latest approval date for each document
+      const getLatestApprovalDate = (doc) => {
+        if (doc.approvedBy && doc.approvedBy.length > 0) {
+          // Sort approval dates in descending order
+          const sortedDates = [...doc.approvedBy].sort((x, y) => {
+            // Parse date strings in format "DD-MM-YYYY HH:MM:SS"
+            const parseCustomDate = (dateStr) => {
+              const [datePart, timePart] = dateStr.split(" ");
+              const [day, month, year] = datePart.split("-");
+              const [hour, minute, second] = timePart.split(":");
+              // Month is 0-indexed in JavaScript Date constructor
+              return new Date(year, month - 1, day, hour, minute, second);
+            };
+            return (
+              parseCustomDate(y.approvalDate) - parseCustomDate(x.approvalDate)
+            );
+          });
+          return sortedDates[0].approvalDate;
+        }
+        return "01-01-1970 00:00:00"; // Default date if no approvals
+      };
+
+      const latestDateA = getLatestApprovalDate(a);
+      const latestDateB = getLatestApprovalDate(b);
+
+      // Parse dates
+      const parseCustomDate = (dateStr) => {
+        const [datePart, timePart] = dateStr.split(" ");
+        const [day, month, year] = datePart.split("-");
+        const [hour, minute, second] = timePart.split(":");
+        // Month is 0-indexed in JavaScript Date constructor
+        return new Date(year, month - 1, day, hour, minute, second);
+      };
+
+      // Sort by latest approval date in descending order (newest first)
+      return parseCustomDate(latestDateB) - parseCustomDate(latestDateA);
+    });
+
+    res.json(sortedDocuments);
+  } catch (err) {
+    console.error("Error fetching unattached purchasing documents:", err);
+    res
+      .status(500)
+      .send(
+        "Lỗi lấy tài liệu mua hàng chưa gắn với thanh toán/Error fetching unattached purchasing documents"
+      );
+  }
+};
+exports.getApprovedPurchasingDocumentsForAdvancePaymentReclaim = async (
+  req,
+  res
+) => {
+  try {
+    // First get all approved purchasing documents
+    const approvedPurchasingDocs = await PurchasingDocument.find({
+      status: "Approved",
+    }).populate("submittedBy approvers.approver approvedBy.user");
+
+    // Then get all payment documents to check which purchasing documents are attached
+    const advancePaymentReclaimDocuments =
+      await AdvancePaymentReclaimDocument.find({});
+
+    // Create a Set of all purchasing document IDs that are attached to payment documents
+    const attachedPurchasingDocIds = new Set();
+
+    advancePaymentReclaimDocuments.forEach((advancePaymentReclaimDoc) => {
+      if (
+        advancePaymentReclaimDoc.appendedPurchasingDocuments &&
+        advancePaymentReclaimDoc.appendedPurchasingDocuments.length > 0
+      ) {
+        advancePaymentReclaimDoc.appendedPurchasingDocuments.forEach(
+          (purchDoc) => {
+            // Check if the purchasing document is stored as an ID or as an object with _id
+            if (typeof purchDoc === "string") {
+              attachedPurchasingDocIds.add(purchDoc);
+            } else if (purchDoc._id) {
+              attachedPurchasingDocIds.add(purchDoc._id.toString());
+            }
+          }
+        );
       }
     });
 
