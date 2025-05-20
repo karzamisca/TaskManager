@@ -77,6 +77,9 @@ function handlePurchasingDocument() {
   populateProjectDropdown();
   approvedProposalSection.style.display = "block";
 
+  // Get proposal documents for Purchasing Document
+  fetchApprovedProposalsForPurchasing();
+
   // Fetch current user and populate cost centers
   fetchCostCenters();
 }
@@ -246,6 +249,9 @@ function handleDeliveryDocument() {
   populateGroupDropdown();
   populateProjectDropdown();
   approvedProposalSection.style.display = "block";
+
+  // Get proposal documents for Delivery Document
+  fetchApprovedProposalsForDelivery();
 
   // Fetch current user and populate cost centers
   fetchCostCenters();
@@ -456,8 +462,16 @@ function addProposalEntry() {
       <button type="button" class="remove-proposal" onclick="removeProposalEntry(this)">Xóa/Remove</button>
     `;
   container.appendChild(newEntry);
-  // Populate the new dropdown
-  fetchApprovedProposals(newEntry.querySelector("select"));
+
+  // Check which document type is currently selected to determine which proposals to fetch
+  const selectedTitle = document.getElementById("title-dropdown").value;
+  if (selectedTitle === "Purchasing Document") {
+    // Populate the new dropdown for purchasing document
+    fetchApprovedProposalsForPurchasing(newEntry.querySelector("select"));
+  } else if (selectedTitle === "Delivery Document") {
+    // Populate the new dropdown for delivery document
+    fetchApprovedProposalsForDelivery(newEntry.querySelector("select"));
+  }
 }
 
 function removeProposalEntry(button) {
@@ -470,8 +484,26 @@ function removeProposalEntry(button) {
   entry.remove();
 }
 
-async function fetchApprovedProposals(dropdown = null) {
-  const response = await fetch("/approvedProposalDocuments");
+// Function to fetch proposals for purchasing documents
+async function fetchApprovedProposalsForPurchasing(dropdown = null) {
+  const response = await fetch("/approvedProposalsForPurchasing");
+  const approvedProposals = await response.json();
+
+  if (!dropdown) {
+    // If no specific dropdown provided, populate all dropdowns
+    document
+      .querySelectorAll(".approved-proposal-dropdown")
+      .forEach((select) => {
+        populateDropdown(select, approvedProposals);
+      });
+  } else {
+    populateDropdown(dropdown, approvedProposals);
+  }
+}
+
+// Function to fetch proposals for delivery documents
+async function fetchApprovedProposalsForDelivery(dropdown = null) {
+  const response = await fetch("/approvedProposalsForDelivery");
   const approvedProposals = await response.json();
 
   if (!dropdown) {

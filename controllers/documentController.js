@@ -1166,7 +1166,7 @@ exports.openDocument = async (req, res) => {
 //// END OF GENERAL CONTROLLER
 
 //// PROPOSAL DOCUMENT CONTROLLER
-exports.getApprovedProposalDocuments = async (req, res) => {
+exports.getApprovedProposalsForPurchasing = async (req, res) => {
   try {
     // Fetch all approved proposal documents
     const approvedProposals = await ProposalDocument.find({
@@ -1190,6 +1190,81 @@ exports.getApprovedProposalDocuments = async (req, res) => {
     });
 
     // Filter out proposals that are already attached to purchasing documents
+    const unattachedProposals = approvedProposals.filter(
+      (proposal) => !attachedProposalIds.has(proposal._id.toString())
+    );
+
+    // Sort approved documents by latest approval date (newest first)
+    const sortedDocuments = unattachedProposals.sort((a, b) => {
+      // Get the latest approval date for each document
+      const getLatestApprovalDate = (doc) => {
+        if (doc.approvedBy && doc.approvedBy.length > 0) {
+          // Sort approval dates in descending order
+          const sortedDates = [...doc.approvedBy].sort((x, y) => {
+            // Parse date strings in format "DD-MM-YYYY HH:MM:SS"
+            const parseCustomDate = (dateStr) => {
+              const [datePart, timePart] = dateStr.split(" ");
+              const [day, month, year] = datePart.split("-");
+              const [hour, minute, second] = timePart.split(":");
+              // Month is 0-indexed in JavaScript Date constructor
+              return new Date(year, month - 1, day, hour, minute, second);
+            };
+            return (
+              parseCustomDate(y.approvalDate) - parseCustomDate(x.approvalDate)
+            );
+          });
+          return sortedDates[0].approvalDate;
+        }
+        return "01-01-1970 00:00:00"; // Default date if no approvals
+      };
+      const latestDateA = getLatestApprovalDate(a);
+      const latestDateB = getLatestApprovalDate(b);
+      // Parse dates
+      const parseCustomDate = (dateStr) => {
+        const [datePart, timePart] = dateStr.split(" ");
+        const [day, month, year] = datePart.split("-");
+        const [hour, minute, second] = timePart.split(":");
+        // Month is 0-indexed in JavaScript Date constructor
+        return new Date(year, month - 1, day, hour, minute, second);
+      };
+      // Sort by latest approval date in descending order (newest first)
+      return parseCustomDate(latestDateB) - parseCustomDate(latestDateA);
+    });
+
+    res.json(sortedDocuments);
+  } catch (err) {
+    console.error("Error fetching unattached approved proposals:", err);
+    res
+      .status(500)
+      .send(
+        "Lỗi lấy tài liệu đề xuất đã phê duyệt chưa được gắn/Error fetching unattached approved proposals"
+      );
+  }
+};
+exports.getApprovedProposalsForDelivery = async (req, res) => {
+  try {
+    // Fetch all approved proposal documents
+    const approvedProposals = await ProposalDocument.find({
+      status: "Approved",
+    }).populate("submittedBy approvers.approver approvedBy.user");
+
+    // Fetch all purchasing documents to check which proposals are already attached
+    const DeliveryDocument = require("../models/DocumentDelivery.js");
+    const deliveryDocuments = await DeliveryDocument.find({});
+
+    // Extract all proposal IDs that are already attached to delivery documents
+    const attachedProposalIds = new Set();
+    deliveryDocuments.forEach((doc) => {
+      if (doc.appendedProposals && doc.appendedProposals.length > 0) {
+        doc.appendedProposals.forEach((proposal) => {
+          if (proposal.proposalId) {
+            attachedProposalIds.add(proposal.proposalId.toString());
+          }
+        });
+      }
+    });
+
+    // Filter out proposals that are already attached to delivery documents
     const unattachedProposals = approvedProposals.filter(
       (proposal) => !attachedProposalIds.has(proposal._id.toString())
     );

@@ -87,9 +87,14 @@ router.get("/getProjectDocument", authMiddleware, async (req, res) => {
 
 //// PROPOSAL DOCUMENT ROUTE
 router.get(
-  "/approvedProposalDocuments",
+  "/approvedProposalsForPurchasing",
   authMiddleware,
-  documentController.getApprovedProposalDocuments
+  documentController.getApprovedProposalsForPurchasing
+);
+router.get(
+  "/approvedProposalsForDelivery",
+  authMiddleware,
+  documentController.getApprovedProposalsForDelivery
 );
 router.get(
   "/proposalDocument/:id",
