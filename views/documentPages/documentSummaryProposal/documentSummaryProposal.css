@@ -180,34 +180,54 @@ tr:hover {
 .proposals-container {
   display: flex;
   gap: 1rem;
-  overflow: auto;
+  overflow-x: auto;
   padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .purchasing-doc,
 .proposal-card {
-  flex: 0 0 300px;
-  max-width: 300px;
-  padding: 1rem;
+  flex: 0 0 350px;
+  padding: 16px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background-color: var(--bg-color);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.purchasing-doc h4 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .purchasing-doc ul {
-  margin: 0;
-  padding-left: 1.2rem;
   list-style-type: none;
+  padding-left: 0;
+  margin: 0;
 }
 
 .purchasing-doc li {
-  margin-bottom: 1rem;
-  padding: 0.5rem;
-  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border-color);
 }
 
 .purchasing-doc li:last-child {
   border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.products-table {
+  font-size: 14px;
+}
+
+.products-table th {
+  background-color: var(--table-header);
+  position: sticky;
+  top: 0;
 }
 
 /* Make table cells containing flex containers wider */

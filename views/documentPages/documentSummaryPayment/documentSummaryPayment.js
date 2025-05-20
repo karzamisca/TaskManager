@@ -143,6 +143,9 @@ function renderPurchasingDocuments(purchDocs) {
 
           return `
           <div class="purchasing-doc">
+            <p><strong>Tên/Name:</strong> ${
+              purchDoc.name ? purchDoc.name : ""
+            }</p>
             <p><strong>Trạm/Center:</strong> ${
               purchDoc.costCenter ? purchDoc.costCenter : ""
             }</p>

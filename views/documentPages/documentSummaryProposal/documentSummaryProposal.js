@@ -61,6 +61,238 @@ function showMessage(message, isError = false) {
   }, 5000);
 }
 
+//SHOWING DOCUMENTS CONTAINING PROPOSALS SECTIONS
+function renderDocumentStatus(status) {
+  switch (status) {
+    case "Approved":
+      return `<span class="status approved">Approved</span>`;
+    case "Suspended":
+      return `<span class="status suspended">Suspended</span>`;
+    default:
+      return `<span class="status pending">Pending</span>`;
+  }
+}
+
+function renderDocumentProducts(products) {
+  if (!products || products.length === 0) return "-";
+
+  return `
+    <table class="products-table" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+      <thead>
+        <tr>
+          <th style="text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color);">Sản phẩm/Product</th>
+          <th style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">Đơn giá/Cost Per Unit</th>
+          <th style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">Số lượng/Amount</th>
+          <th style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">Thuế/Vat (%)</th>
+          <th style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">Thành tiền/Total Cost</th>
+          <th style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">Thành tiền sau thuế/Total Cost After Vat</th>
+          <th style="text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color);">Ghi chú/Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${products
+          .map(
+            (product) => `
+          <tr>
+            <td style="text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color);"><strong>${
+              product.productName
+            }</strong></td>
+            <td style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">${product.costPerUnit.toLocaleString()}</td>
+            <td style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">${product.amount.toLocaleString()}</td>
+            <td style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">${
+              product.vat.toLocaleString() || "-"
+            }</td>
+            <td style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">${product.totalCost.toLocaleString()}</td>
+            <td style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">${
+              product.totalCostAfterVat.toLocaleString() || "-"
+            }</td>
+            <td style="text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color);">${
+              product.note || "-"
+            }</td>
+          </tr>
+        `
+          )
+          .join("")}
+      </tbody>
+    </table>
+  `;
+}
+
+function renderDocumentApprovalStatus(approvers, approvedBy) {
+  return approvers
+    .map((approver) => {
+      const hasApproved = approvedBy.find(
+        (a) => a.username === approver.username
+      );
+      return `
+        <div class="approver-item">
+          <span class="status-icon ${
+            hasApproved ? "status-approved" : "status-pending"
+          }"></span>
+          <div>
+            <div>${approver.username} (${approver.subRole})</div>
+            ${
+              hasApproved
+                ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
+                : '<div class="approval-date">Pending</div>'
+            }
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+}
+async function showDocumentsContainingProposal(proposalId) {
+  try {
+    const response = await fetch(`/documentsContainingProposal/${proposalId}`);
+    const data = await response.json();
+
+    if (data.success) {
+      // Create a modal to display the results
+      const modalHTML = `
+        <div id="containingDocsModal" class="full-view-modal" style="display: block;">
+          <div class="full-view-content">
+            <span class="close-btn" onclick="closeContainingDocsModal()">&times;</span>
+            <h2>Tài liệu chứa đề xuất này/Documents Containing This Proposal</h2>
+            
+            <h3>Phiếu mua hàng/Purchasing Documents</h3>
+            <div class="documents-container">
+              ${
+                data.purchasingDocuments.length > 0
+                  ? data.purchasingDocuments
+                      .map(
+                        (doc) => `
+                  <div class="purchasing-doc">
+                    <h4>${
+                      doc.title || "Phiếu mua hàng/Purchasing Document"
+                    }</h4>
+                    <div class="full-view-section">
+                      <h5>Thông tin cơ bản/Basic Information</h5>
+                      <ul>
+                        <li><strong>Trạm/Cost Center:</strong> ${
+                          doc.costCenter || "-"
+                        }</li>
+                        <li><strong>Ngày nộp/Submission Date:</strong> ${
+                          doc.submissionDate || "-"
+                        }</li>
+                        <li><strong>Tình trạng/Status:</strong> ${renderDocumentStatus(
+                          doc.status
+                        )}</li>
+                        <li><strong>Tổng chi phí/Grand Total:</strong> ${
+                          doc.grandTotalCost?.toLocaleString() || "-"
+                        }</li>
+                        <li><strong>Tệp tin/File:</strong> ${
+                          doc.fileMetadata?.link
+                            ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+                            : "-"
+                        }</li>
+                      </ul>
+                    </div>
+                    
+                    <div class="full-view-section">
+                      <h5>Sản phẩm/Products</h5>
+                      ${renderDocumentProducts(doc.products)}
+                    </div>
+                    
+                    <div class="full-view-section">
+                      <h5>Trạng thái phê duyệt/Approval Status</h5>
+                      <div class="approval-status">
+                        ${renderDocumentApprovalStatus(
+                          doc.approvers,
+                          doc.approvedBy
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                `
+                      )
+                      .join("")
+                  : "<p>Không có phiếu mua hàng nào chứa đề xuất này/Not appended to any purchasing documents</p>"
+              }
+            </div>
+            
+            <h3>Phiếu xuất kho/Delivery Documents</h3>
+            <div class="documents-container">
+              ${
+                data.deliveryDocuments.length > 0
+                  ? data.deliveryDocuments
+                      .map(
+                        (doc) => `
+                  <div class="purchasing-doc">
+                    <h4>${doc.title || "Phiếu xuất kho/Delivery Document"}</h4>
+                    <div class="full-view-section">
+                      <h5>Thông tin cơ bản/Basic Information</h5>
+                      <ul>
+                        <li><strong>Trạm/Cost Center:</strong> ${
+                          doc.costCenter || "-"
+                        }</li>
+                        <li><strong>Ngày nộp/Submission Date:</strong> ${
+                          doc.submissionDate || "-"
+                        }</li>
+                        <li><strong>Tình trạng/Status:</strong> ${renderDocumentStatus(
+                          doc.status
+                        )}</li>
+                        <li><strong>Tổng chi phí/Grand Total:</strong> ${
+                          doc.grandTotalCost?.toLocaleString() || "-"
+                        }</li>
+                        <li><strong>Tệp tin/File:</strong> ${
+                          doc.fileMetadata?.link
+                            ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+                            : "-"
+                        }</li>
+                      </ul>
+                    </div>
+                    
+                    <div class="full-view-section">
+                      <h5>Sản phẩm/Products</h5>
+                      ${renderDocumentProducts(doc.products)}
+                    </div>
+                    
+                    <div class="full-view-section">
+                      <h5>Trạng thái phê duyệt/Approval Status</h5>
+                      <div class="approval-status">
+                        ${renderDocumentApprovalStatus(
+                          doc.approvers,
+                          doc.approvedBy
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                `
+                      )
+                      .join("")
+                  : "<p>Không có Phiếu xuất kho nào chứa đề xuất này/Not appended to any delivery documents</p>"
+              }
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Add the modal to the page
+      document.body.insertAdjacentHTML("beforeend", modalHTML);
+    } else {
+      showMessage(
+        "Lỗi khi tìm tài liệu chứa đề xuất này/Error fetching documents containing this proposal",
+        true
+      );
+    }
+  } catch (error) {
+    console.error("Error fetching documents containing proposal:", error);
+    showMessage(
+      "Lỗi khi tìm tài liệu chứa đề xuất này/Error fetching documents containing this proposal",
+      true
+    );
+  }
+}
+
+function closeContainingDocsModal() {
+  const modal = document.getElementById("containingDocsModal");
+  if (modal) {
+    modal.remove();
+  }
+}
+//END OF SHOWING DOCUMENTS CONTAINING PROPOSALS SECTIONS
+
 function renderStatus(status) {
   switch (status) {
     case "Approved":
@@ -185,7 +417,12 @@ async function fetchProposalDocuments() {
                   Từ chối/Suspend
                 </button>
               `
-          } 
+          }
+          <button class="approve-btn" onclick="showDocumentsContainingProposal('${
+            doc._id
+          }')" style="margin-top: 5px;">
+            Xem tài liệu chứa/View Containing Docs
+          </button>
         </td>
     `;
       tableBody.appendChild(row);

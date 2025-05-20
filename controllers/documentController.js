@@ -1316,6 +1316,33 @@ exports.getApprovedProposalsForDelivery = async (req, res) => {
       );
   }
 };
+exports.getDocumentsContainingProposal = async (req, res) => {
+  try {
+    const proposalId = req.params.proposalId;
+
+    // Find all purchasing documents that reference this proposal
+    const purchasingDocs = await PurchasingDocument.find({
+      "appendedProposals.proposalId": proposalId,
+    }).lean();
+
+    // Find all delivery documents that reference this proposal
+    const deliveryDocs = await DeliveryDocument.find({
+      "appendedProposals.proposalId": proposalId,
+    }).lean();
+
+    res.json({
+      success: true,
+      purchasingDocuments: purchasingDocs,
+      deliveryDocuments: deliveryDocs,
+    });
+  } catch (error) {
+    console.error("Error finding documents containing proposal:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error finding documents containing proposal",
+    });
+  }
+};
 exports.getProposalDocumentById = async (req, res) => {
   try {
     const proposal = await ProposalDocument.findById(req.params.id);
@@ -1865,6 +1892,64 @@ exports.getApprovedPurchasingDocumentsForAdvancePaymentReclaim = async (
       .send(
         "Lỗi lấy tài liệu mua hàng chưa gắn với thanh toán/Error fetching unattached purchasing documents"
       );
+  }
+};
+exports.getDocumentsContainingPurchasing = async (req, res) => {
+  try {
+    const purchasingId = req.params.purchasingId;
+
+    // Handle both ObjectId format and string format
+    const mongoose = require("mongoose");
+    let purchasingObjectId;
+
+    // Check if the ID is a valid ObjectId
+    try {
+      purchasingObjectId = new mongoose.Types.ObjectId(purchasingId);
+    } catch (err) {
+      // ID is not in valid ObjectId format, continue with string ID
+    }
+
+    // Create a query that handles multiple formats of IDs
+    const query = {
+      $or: [
+        // Case 1: ID is stored as ObjectId directly
+        { "appendedPurchasingDocuments._id": purchasingObjectId },
+
+        // Case 2: ID is stored in Extended JSON format with $oid
+        { "appendedPurchasingDocuments._id.$oid": purchasingId },
+
+        // Case 3: ID is stored as a string
+        { "appendedPurchasingDocuments._id": purchasingId },
+
+        // Case 4: ID is stored in a nested object with id property
+        { "appendedPurchasingDocuments.id": purchasingId },
+
+        // Case 5: ID might be stored in the document field of purchasing document
+        { "appendedPurchasingDocuments._doc._id": purchasingObjectId },
+        { "appendedPurchasingDocuments._doc._id": purchasingId },
+      ],
+    };
+
+    // Find all payment documents that reference this purchasing document
+    const paymentDocs = await PaymentDocument.find(query).lean();
+
+    // Find all advance payment documents that reference this purchasing document
+    const advancePaymentDocs = await AdvancePaymentDocument.find(query).lean();
+
+    // Find all advance payment reclaim documents that reference this purchasing document
+    const reclaimDocs = await AdvancePaymentReclaimDocument.find(query).lean();
+
+    res.json({
+      success: true,
+      paymentDocuments: paymentDocs,
+      advancePaymentDocuments: advancePaymentDocs,
+      advancePaymentReclaimDocuments: reclaimDocs,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error finding related financial documents",
+    });
   }
 };
 exports.getPurchasingDocumentById = async (req, res) => {

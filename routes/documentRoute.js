@@ -97,6 +97,10 @@ router.get(
   documentController.getApprovedProposalsForDelivery
 );
 router.get(
+  "/documentsContainingProposal/:proposalId",
+  documentController.getDocumentsContainingProposal
+);
+router.get(
   "/proposalDocument/:id",
   authMiddleware,
   documentController.getProposalDocumentById
@@ -155,6 +159,10 @@ router.get(
   "/approvedPurchasingDocumentsForAdvancePaymentReclaim",
   authMiddleware,
   documentController.getApprovedPurchasingDocumentsForAdvancePaymentReclaim
+);
+router.get(
+  "/documentsContainingPurchasing/:purchasingId",
+  documentController.getDocumentsContainingPurchasing
 );
 // Route to fetch a specific Purchasing Document by ID
 router.get(

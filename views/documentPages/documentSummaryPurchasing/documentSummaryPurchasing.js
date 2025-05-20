@@ -58,6 +58,205 @@ function filterDocumentsForCurrentUser(documents) {
   return filteredDocs;
 }
 
+//SHOWING DOCUMENTS CONTAINING PURCHASING SECTIONS
+function renderPaymentDocuments(paymentDocs) {
+  if (!paymentDocs || paymentDocs.length === 0) return "-";
+
+  return `
+    <div class="documents-container">
+      ${paymentDocs
+        .map(
+          (doc) => `
+        <div class="purchasing-doc">
+          <h4>${doc.title || "Payment Document"}</h4>
+          <div class="full-view-section">
+            <h5>Thông tin cơ bản/Basic Information</h5>
+            <ul>
+              <li><strong>Tag:</strong> ${doc.tag}</li>
+              <li><strong>Tên/Name:</strong> ${doc.name}</li>
+              <li><strong>Trạm/Cost Center:</strong> ${
+                doc.costCenter || "-"
+              }</li>
+              <li><strong>Phương thức thanh toán/Payment Method:</strong> ${
+                doc.paymentMethod
+              }</li>
+              <li><strong>Tổng thanh toán/Total Payment:</strong> ${
+                doc.totalPayment?.toLocaleString() || "-"
+              }</li>
+              <li><strong>Thanh toán trước/Advance Payment:</strong> ${
+                doc.advancePayment?.toLocaleString() || "-"
+              }</li>
+              <li><strong>Hạn thanh toán/Payment Deadline:</strong> ${
+                doc.paymentDeadline
+              }</li>
+              <li><strong>Tệp tin/File:</strong> ${
+                doc.fileMetadata?.link
+                  ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+                  : "-"
+              }</li>
+              <li><strong>Tình trạng/Status:</strong> ${renderStatus(
+                doc.status
+              )}</li>
+            </ul>
+          </div>
+        </div>
+      `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderAdvancePaymentDocuments(advancePaymentDocs) {
+  if (!advancePaymentDocs || advancePaymentDocs.length === 0) return "-";
+
+  return `
+    <div class="documents-container">
+      ${advancePaymentDocs
+        .map(
+          (doc) => `
+        <div class="purchasing-doc">
+          <h4>${doc.title || "Advance Payment Document"}</h4>
+          <div class="full-view-section">
+            <h5>Thông tin cơ bản/Basic Information</h5>
+            <ul>
+              <li><strong>Tag:</strong> ${doc.tag}</li>
+              <li><strong>Tên/Name:</strong> ${doc.name}</li>
+              <li><strong>Trạm/Cost Center:</strong> ${
+                doc.costCenter || "-"
+              }</li>
+              <li><strong>Phương thức thanh toán/Payment Method:</strong> ${
+                doc.paymentMethod
+              }</li>
+              <li><strong>Thanh toán trước/Advance Payment:</strong> ${
+                doc.advancePayment?.toLocaleString() || "-"
+              }</li>
+              <li><strong>Hạn thanh toán/Payment Deadline:</strong> ${
+                doc.paymentDeadline
+              }</li>
+              <li><strong>Tệp tin/File:</strong> ${
+                doc.fileMetadata?.link
+                  ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+                  : "-"
+              }</li>
+              <li><strong>Tình trạng/Status:</strong> ${renderStatus(
+                doc.status
+              )}</li>
+            </ul>
+          </div>
+        </div>
+      `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderAdvancePaymentReclaimDocuments(reclaimDocs) {
+  if (!reclaimDocs || reclaimDocs.length === 0) return "-";
+
+  return `
+    <div class="documents-container">
+      ${reclaimDocs
+        .map(
+          (doc) => `
+        <div class="purchasing-doc">
+          <h4>${doc.title || "Advance Payment Reclaim Document"}</h4>
+          <div class="full-view-section">
+            <h5>Thông tin cơ bản/Basic Information</h5>
+            <ul>
+              <li><strong>Tag:</strong> ${doc.tag}</li>
+              <li><strong>Tên/Name:</strong> ${doc.name}</li>
+              <li><strong>Trạm/Cost Center:</strong> ${
+                doc.costCenter || "-"
+              }</li>
+              <li><strong>Phương thức thanh toán/Payment Method:</strong> ${
+                doc.paymentMethod
+              }</li>
+              <li><strong>Hoàn ứng/Advance Payment Reclaim:</strong> ${
+                doc.advancePaymentReclaim?.toLocaleString() || "-"
+              }</li>
+              <li><strong>Hạn thanh toán/Payment Deadline:</strong> ${
+                doc.paymentDeadline
+              }</li>
+              <li><strong>Tệp tin/File:</strong> ${
+                doc.fileMetadata?.link
+                  ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+                  : "-"
+              }</li>
+              <li><strong>Tình trạng/Status:</strong> ${renderStatus(
+                doc.status
+              )}</li>
+            </ul>
+          </div>
+        </div>
+      `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+async function showDocumentsContainingPurchasing(purchasingId) {
+  try {
+    const response = await fetch(
+      `/documentsContainingPurchasing/${purchasingId}`
+    );
+    const data = await response.json();
+
+    if (data.success) {
+      // Create a modal to display the results
+      const modalHTML = `
+        <div id="containingDocsModal" class="full-view-modal" style="display: block;">
+          <div class="full-view-content">
+            <span class="close-btn" onclick="closeContainingDocsModal()">&times;</span>
+            <h2>Tài liệu liên quan/Related Documents</h2>
+            
+            <h3>Thanh toán/Payment Documents</h3>
+            ${
+              data.paymentDocuments.length > 0
+                ? renderPaymentDocuments(data.paymentDocuments)
+                : "<p>Không có tài liệu thanh toán nào liên quan/No related payment documents</p>"
+            }
+            
+            <h3>Thanh toán trước/Advance Payment Documents</h3>
+            ${
+              data.advancePaymentDocuments.length > 0
+                ? renderAdvancePaymentDocuments(data.advancePaymentDocuments)
+                : "<p>Không có tài liệu thanh toán trước nào liên quan/No related advance payment documents</p>"
+            }
+            
+            <h3>Hoàn ứng/Advance Payment Reclaim Documents</h3>
+            ${
+              data.advancePaymentReclaimDocuments.length > 0
+                ? renderAdvancePaymentReclaimDocuments(
+                    data.advancePaymentReclaimDocuments
+                  )
+                : "<p>Không có tài liệu hoàn ứng nào liên quan/No related advance payment reclaim documents</p>"
+            }
+          </div>
+        </div>
+      `;
+
+      // Add the modal to the page
+      document.body.insertAdjacentHTML("beforeend", modalHTML);
+    } else {
+      showMessage("Error fetching related documents", true);
+    }
+  } catch (error) {
+    console.error("Error fetching related documents:", error);
+    showMessage("Error fetching related documents", true);
+  }
+}
+
+function closeContainingDocsModal() {
+  const modal = document.getElementById("containingDocsModal");
+  if (modal) {
+    modal.remove();
+  }
+}
+//END OF SHOWING DOCUMENTS CONTAINING PURCHASING SECTIONS
+
 async function populateCostCenterFilter() {
   try {
     const response = await fetch("/userControlCostCenters");
@@ -433,7 +632,12 @@ async function fetchPurchasingDocuments() {
                   Từ chối/Suspend
                 </button>
               `
-          }                    
+          }
+          <button class="approve-btn" onclick="showDocumentsContainingPurchasing('${
+            doc._id
+          }')" style="margin-top: 5px;">
+            Xem tài liệu chứa/View Containing Docs
+          </button>                    
         </td>
       `;
       tableBody.appendChild(row);
