@@ -125,7 +125,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <tr>
                         <td>${item.task}</td>
                         <td class="status-${item.status}">${
-                      item.status ? "Completed" : "Pending"
+                      item.status ? "Có/Yes" : "Không/No"
                     }</td>
                         <td>${item.notes || "-"}</td>
                     </tr>

@@ -1,17 +1,21 @@
 ////views/reportPages/reportSubmission/reportSubmission.js
 const dailyTasks = [
-  "Kiểm tra hệ thống điện",
-  "Kiểm tra hệ thống nước",
-  "Kiểm tra thiết bị an toàn",
-  "Kiểm tra vệ sinh khu vực",
+  "Oring đầu đực, cái có bị đứt hoặc trật khỏi rãnh không?",
+  "Có bị kẹt vòng bi lúc xoay không?",
+  "Chỉ số đồng hồ trợ nạp và đồng hồ bơm có giống nhau không?",
+  "Các chỉ số đồng hồ có vận tốc đo giống nhau không?",
+  "Lúc vận hành áp suất cấp 1 và cấp 2 có giữ được ổn định không?",
+  "Điện trở đốt có bật tắt theo yêu cầu không?",
+  "Nhiệt độ nước có nằm trong khoảng 55-75 độ không?",
+  "Nhiệt độ khí có nằm trong khoảng 10-40 độ không?",
 ];
 
 const weeklyTasks = [
-  "Toàn hệ thống có điểm nào bị xỉ không? (Thứ xã)",
-  "Xả dầu lọc thấp áp, cao áp theo đời dầu có cận bận không? (Kèm hình ảnh)",
-  "Vạn 1 chiều, vạn tay có bị lòn khí hay không?",
+  "Toàn hệ thống có điểm nào bị xỉ không? (Thử xì)",
+  "Xả dầu lọc thấp áp, cao áp theo đời dầu có cặn bẩn không?",
+  "Van 1 chiều, van tay có bị lòn khí hay không?",
   "Đồng hồ trụ nạp còn dầu hay không, kim có gãy không?",
-  "Các dây lấy tính hiệu nhiệt độ, áp suất, xung của DHLL có bị đứt gãy, chạm chập, vỏ nước mưa không?",
+  "Các dây lấy tính hiệu nhiệt độ, áp suất, xung của ĐHLL có bị đứt gãy, chạm chập, vô nước mưa không?",
 ];
 
 // Initialize the page
