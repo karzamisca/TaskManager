@@ -13,8 +13,9 @@ const documentInGroupDeclarationRoute = require("./routes/documentInGroupDeclara
 const projectRoute = require("./routes/projectRoute");
 const projectExpenseRoute = require("./routes/projectExpenseRoute");
 const userRoute = require("./routes/userRoute");
-const authMiddleware = require("./middlewares/authMiddleware"); // JWT middleware
 const messageRoute = require("./routes/messageRoute");
+const reportRoute = require("./routes/reportRoute");
+const authMiddleware = require("./middlewares/authMiddleware"); // JWT middleware
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
@@ -57,6 +58,7 @@ app.use("/", authMiddleware, projectRoute);
 app.use("/", authMiddleware, projectExpenseRoute);
 app.use("/", authMiddleware, messageRoute);
 app.use("/", authMiddleware, userRoute);
+app.use("/", authMiddleware, reportRoute);
 
 // Error handling for multer
 app.use((err, req, res, next) => {

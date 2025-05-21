@@ -1,0 +1,60 @@
+/* views/reportPages/reportSubmission/reportSubmission.css */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+}
+.report-container {
+  max-width: 800px;
+  margin: 0 auto;
+  border: 1px solid #ccc;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+.report-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.report-title {
+  font-weight: bold;
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+.report-table th,
+.report-table td {
+  border: 1px solid #000;
+  padding: 8px;
+  text-align: left;
+}
+.report-table th {
+  background-color: #f2f2f2;
+}
+.form-group {
+  margin-bottom: 15px;
+}
+label {
+  display: block;
+  margin-bottom: 5px;
+}
+select,
+input,
+textarea {
+  width: 100%;
+  padding: 8px;
+  box-sizing: border-box;
+}
+button {
+  padding: 10px 15px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+button:hover {
+  background-color: #45a049;
+}

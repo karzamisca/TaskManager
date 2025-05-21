@@ -1,0 +1,40 @@
+<!-- views/reportPages/reportSummary/reportSummary.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tóm tắt báo cáo / Report Summary</title>
+    <link rel="stylesheet" href="reportPages/reportSummary/reportSummary.css" />
+  </head>
+  <body>
+    <header><a href="/reportMain">Trở về/Back</a><br /></header>
+    <div class="container">
+      <h1>Tóm tắt báo cáo / Report Summary</h1>
+
+      <div class="search-form">
+        <select id="reportType">
+          <option value="">Tất cả loại báo cáo/All Report Types</option>
+          <option value="daily">Hàng ngày/Daily</option>
+          <option value="weekly">Hàng tuần/Weekly</option>
+        </select>
+        <input
+          type="text"
+          id="costCenterSearch"
+          placeholder="Cost Center Name"
+        />
+        <input type="date" id="dateSearch" placeholder="Submission Date" />
+        <button id="searchButton">Tìm kiếm/Search</button>
+      </div>
+
+      <div id="errorMessage" class="error" style="display: none"></div>
+
+      <div id="reportContainer">
+        <div id="loadingMessage" class="loading">Loading reports...</div>
+        <div id="reportList" class="report-list"></div>
+      </div>
+    </div>
+
+    <script src="reportPages/reportSummary/reportSummary.js"></script>
+  </body>
+</html>

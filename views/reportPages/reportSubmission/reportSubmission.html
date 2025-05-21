@@ -1,0 +1,85 @@
+<!-- views/reportPages/reportSubmission/reportSubmission.html -->
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nộp báo cáo/Report Submission</title>
+    <link
+      rel="stylesheet"
+      href="reportPages/reportSubmission/reportSubmission.css"
+    />
+  </head>
+  <body>
+    <header><a href="/reportMain">Trở về/Back</a><br /></header>
+    <div class="report-container">
+      <h1>Nộp báo cáo/Report Submission</h1>
+
+      <div class="form-group">
+        <label for="reportType">Loại báo cáo/Report Type:</label>
+        <select id="reportType">
+          <option value="daily">Hàng ngày/Daily</option>
+          <option value="weekly">Hàng tuần/Weekly</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="inspectionTime">Giờ kiểm tra/Inspection Time:</label>
+        <input type="time" id="inspectionTime" required />
+      </div>
+
+      <div id="dailyReport" class="report-form">
+        <div class="report-header">
+          <div class="report-title">HÀNG NGÀY/DAILY REPORT</div>
+          <div id="dailyDate"></div>
+        </div>
+
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Công việc/Task</th>
+              <th>Có/Yes</th>
+              <th>Ghi chú/Notes</th>
+              <th>Không/No</th>
+              <th>Ghi chú/Notes</th>
+            </tr>
+          </thead>
+          <tbody id="dailyTasks">
+            <!-- Tasks will be added here -->
+          </tbody>
+        </table>
+      </div>
+
+      <div id="weeklyReport" class="report-form" style="display: none">
+        <div class="report-header">
+          <div class="report-title">BÁO CÁO HÀNG TUẦN/WEEKLY REPORT</div>
+          <div id="weeklyDate"></div>
+        </div>
+
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Công việc/Task</th>
+              <th>Có/Yes</th>
+              <th>Ghi chú/Notes</th>
+              <th>Không/No</th>
+              <th>Ghi chú/Notes</th>
+            </tr>
+          </thead>
+          <tbody id="weeklyTasks">
+            <!-- Tasks will be added here -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="inspector-info">
+        <p><strong>NGƯỜI KIỂM TRA/INSPECTOR</strong></p>
+        <p id="inspectorName"></p>
+      </div>
+
+      <button id="submitReport">Gửi báo cáo/Send report</button>
+    </div>
+
+    <script src="reportPages/reportSubmission/reportSubmission.js"></script>
+  </body>
+</html>
