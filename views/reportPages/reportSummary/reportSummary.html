@@ -8,31 +8,126 @@
     <link rel="stylesheet" href="reportPages/reportSummary/reportSummary.css" />
   </head>
   <body>
-    <header><a href="/reportMain">Trở về/Back</a><br /></header>
-    <div class="container">
-      <h1>Tóm tắt báo cáo / Report Summary</h1>
+    <div class="app-container">
+      <header class="header">
+        <div class="header-content">
+          <a href="/reportMain" class="back-button"> Trở về / Back </a>
+          <div style="font-weight: 600">Report Management System</div>
+        </div>
+      </header>
 
-      <div class="search-form">
-        <select id="reportType">
-          <option value="">Tất cả loại báo cáo/All Report Types</option>
-          <option value="daily">Hàng ngày/Daily</option>
-          <option value="weekly">Hàng tuần/Weekly</option>
-        </select>
-        <input
-          type="text"
-          id="costCenterSearch"
-          placeholder="Cost Center Name"
-        />
-        <input type="date" id="dateSearch" placeholder="Submission Date" />
-        <button id="searchButton">Tìm kiếm/Search</button>
-      </div>
+      <main class="main-content">
+        <h1 class="page-title">Tóm tắt báo cáo / Report Summary</h1>
 
-      <div id="errorMessage" class="error" style="display: none"></div>
+        <div class="search-card">
+          <div class="search-form">
+            <div class="form-group">
+              <label class="form-label" for="reportType"
+                >Loại báo cáo / Report Type</label
+              >
+              <select id="reportType" class="form-select">
+                <option value="">Tất cả loại báo cáo / All Report Types</option>
+                <option value="daily">Hàng ngày / Daily</option>
+                <option value="weekly">Hàng tuần / Weekly</option>
+                <option value="monthly">Hàng tháng / Monthly</option>
+              </select>
+            </div>
 
-      <div id="reportContainer">
-        <div id="loadingMessage" class="loading">Loading reports...</div>
+            <div class="form-group">
+              <label class="form-label" for="costCenterSearch"
+                >Trạm / Cost Center</label
+              >
+              <input
+                type="text"
+                id="costCenterSearch"
+                class="form-input"
+                placeholder="Nhập tên trạm / Enter center name"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="dateSearch"
+                >Ngày nộp / Submission Date</label
+              >
+              <input type="date" id="dateSearch" class="form-input" />
+            </div>
+
+            <div class="form-group">
+              <button id="searchButton" class="search-button">
+                <span
+                  class="spinner"
+                  id="searchSpinner"
+                  style="display: none"
+                ></span>
+                <span id="searchText">🔍 Tìm kiếm / Search</span>
+              </button>
+            </div>
+
+            <div class="form-group">
+              <button id="clearButton" class="search-button clear-button">
+                🗑️ Xóa / Clear
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div
+          id="errorMessage"
+          class="status-message error-message"
+          style="display: none"
+        >
+          <span>⚠️</span>
+          <span id="errorText"></span>
+        </div>
+
+        <div
+          id="loadingMessage"
+          class="status-message loading-message"
+          style="display: none"
+        >
+          <div class="spinner"></div>
+          <span>Đang tải báo cáo... / Loading reports...</span>
+        </div>
+
+        <div id="resultsContainer" style="display: none">
+          <div class="results-summary">
+            <div class="results-count" id="resultsCount">
+              Tìm thấy 0 báo cáo / Found 0 reports
+            </div>
+            <div class="export-buttons">
+              <button class="export-button" id="exportCsv">
+                📊 Export CSV
+              </button>
+              <button class="export-button" id="printReports">🖨️ Print</button>
+            </div>
+          </div>
+        </div>
+
         <div id="reportList" class="report-list"></div>
-      </div>
+
+        <div id="noReports" class="no-reports" style="display: none">
+          <div
+            style="
+              font-size: var(--font-size-2xl);
+              margin-bottom: var(--spacing-4);
+            "
+          >
+            📋
+          </div>
+          <div
+            style="
+              font-size: var(--font-size-lg);
+              font-weight: 600;
+              margin-bottom: var(--spacing-2);
+            "
+          >
+            Không tìm thấy báo cáo / No Reports Found
+          </div>
+          <div style="color: var(--color-gray-500)">
+            Thử thay đổi bộ lọc tìm kiếm / Try adjusting your search filters
+          </div>
+        </div>
+      </main>
     </div>
 
     <script src="reportPages/reportSummary/reportSummary.js"></script>
