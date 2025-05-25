@@ -1,4 +1,4 @@
-<!-- views\documentPages\documentSummaryProposal\documentSummaryProposal.html -->
+<!-- views/documentPages/documentSummaryProposal/documentSummaryProposal.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -11,84 +11,202 @@
     />
   </head>
   <body>
-    <h1>Phiếu đề xuất/Proposal Documents</h1>
-    <div id="messageContainer" class="message"></div>
+    <div class="container">
+      <header class="page-header">
+        <h1>Phiếu đề xuất/Proposal Documents</h1>
+        <div class="header-controls">
+          <div class="toggle-switch">
+            <input type="checkbox" id="pendingToggle" />
+            <label for="pendingToggle"
+              >Chỉ hiện phiếu tôi cần phê duyệt/Show pending my approval</label
+            >
+          </div>
+          <div class="toggle-switch">
+            <input type="checkbox" id="paginationToggle" checked />
+            <label for="paginationToggle"
+              >Hiển thị phân trang/Enable pagination</label
+            >
+          </div>
+        </div>
+      </header>
 
-    <div style="margin-bottom: 1rem; display: inline-block; margin-left: 1rem">
-      <label
-        for="paginationToggle"
-        style="display: flex; align-items: center; cursor: pointer"
-      >
-        <input
-          type="checkbox"
-          id="paginationToggle"
-          checked
-          style="margin-right: 0.5rem"
-        />
-        <span>Hiển thị phân trang/Enable pagination</span>
-      </label>
+      <div id="messageContainer" class="message"></div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Công việc/Task</th>
+              <th>Trạm/Cost Center</th>
+              <th>Ngày lỗi/Date of Error</th>
+              <th>Mô tả chi tiết/Details Description</th>
+              <th>Hướng xử lý/Direction</th>
+              <th>Tệp tin kèm theo/Attached File</th>
+              <th>Ngày nộp phiếu/Submission Date</th>
+              <th>Tên nhóm/Group Name</th>
+              <th>Tình trạng/Status</th>
+              <th>Trạng thái phê duyệt/Approval Status</th>
+              <th>Hành động/Action</th>
+            </tr>
+          </thead>
+          <tbody id="proposalDocumentsTable">
+            <!-- Proposal documents will be populated here -->
+          </tbody>
+        </table>
+        <div id="paginationContainer" class="pagination"></div>
+      </div>
+
+      <div class="summary">
+        <h2>Tóm tắt/Summary</h2>
+        <div class="summary-stats">
+          <div class="stat-card approved">
+            <span class="stat-label">Đã phê duyệt/Approved:</span>
+            <span id="approvedDocument" class="stat-value">0</span>
+          </div>
+          <div class="stat-card unapproved">
+            <span class="stat-label">Chưa phê duyệt/Unapproved:</span>
+            <span id="unapprovedDocument" class="stat-value">0</span>
+          </div>
+        </div>
+      </div>
+
+      <footer class="page-footer">
+        <a href="/documentSummary" class="back-link">Trở về/Back</a>
+      </footer>
     </div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Công việc/Task</th>
-          <th>Trạm/Cost Center</th>
-          <th>Ngày lỗi/Date of Error</th>
-          <th>Mô tả chi tiết/Details Description</th>
-          <th>Hướng xử lý/Direction</th>
-          <th>Tệp tin kèm theo/Attached File</th>
-          <th>Ngày nộp phiếu/Submission Date</th>
-          <th>Tên nhóm/Group Name</th>
-          <th>Tình trạng/Status</th>
-          <th>Trạng thái phê duyệt/Approval Status</th>
-          <th>Hành động/Action</th>
-        </tr>
-      </thead>
-      <tbody id="proposalDocumentsTable">
-        <!-- Proposal documents will be populated here -->
-      </tbody>
-    </table>
-
-    <div id="suspendModal" class="full-view-modal">
-      <div class="full-view-content">
+    <!-- Modals -->
+    <div id="suspendModal" class="modal">
+      <div class="modal-content">
         <span class="close-btn" onclick="closeSuspendModal()">&times;</span>
         <h2>Từ chối tài liệu/Suspend Document</h2>
-        <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
-          <div style="margin-bottom: 20px">
+        <form
+          id="suspendForm"
+          onsubmit="proposalManager.handleSuspendSubmit(event)"
+        >
+          <span class="close-btn" onclick="proposalManager.closeSuspendModal()"
+            >&times;</span
+          >
+          <div class="form-group">
             <label for="suspendReason">Lý do từ chối/Suspend Reason:</label>
-            <textarea
-              id="suspendReason"
-              required
-              style="width: 100%; padding: 10px"
-            ></textarea>
+            <textarea id="suspendReason" required></textarea>
           </div>
-          <div style="display: flex; gap: 10px">
-            <button type="submit" class="approve-btn">Từ chối/Suspend</button>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-danger">
+              Từ chối/Suspend
+            </button>
             <button
               type="button"
-              class="approve-btn"
+              class="btn btn-secondary"
               onclick="closeSuspendModal()"
             >
-              Cancel
+              Hủy/Cancel
             </button>
           </div>
         </form>
       </div>
     </div>
 
-    <div class="summary">
-      <h2>Tóm tắt/Summary</h2>
-      <p>
-        Số phiếu đã phê duyệt/Total Approved Proposals:
-        <span id="approvedDocument" class="approved">0</span>
-      </p>
-      <p>
-        Số phiếu chưa phê duyệt/Total Unapproved Proposals:
-        <span id="unapprovedDocument" class="unapproved">0</span>
-      </p>
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" onclick="closeEditModal()">&times;</span>
+        <h2>Chỉnh sửa phiếu đề xuất/Edit Proposal Document</h2>
+        <span class="close-btn" onclick="proposalManager.closeEditModal()"
+          >&times;</span
+        >
+        <form id="editForm" onsubmit="proposalManager.handleEditSubmit(event)">
+          <input type="hidden" id="editDocId" />
+          <div class="form-group">
+            <label for="editTask">Công việc/Task:</label>
+            <input type="text" id="editTask" required />
+          </div>
+          <div class="form-group">
+            <label for="editCostCenter">Trạm/Cost Center:</label>
+            <select id="editCostCenter" required>
+              <option value="">Chọn một trạm/Select a center</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="editDateOfError">Ngày lỗi/Date of Error:</label>
+            <input type="text" id="editDateOfError" required />
+          </div>
+          <div class="form-group">
+            <label for="editDetailsDescription"
+              >Mô tả chi tiết/Details Description:</label
+            >
+            <textarea id="editDetailsDescription" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="editDirection">Hướng xử lý/Direction:</label>
+            <textarea id="editDirection" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="editFile">Thay tệp tin mới/Update File:</label>
+            <input type="file" id="editFile" />
+          </div>
+          <div class="form-group">
+            <label>Người phê duyệt hiện tại/Current Approvers:</label>
+            <div id="currentApproversList" class="approvers-list"></div>
+          </div>
+          <div class="form-group">
+            <label>Thêm người phê duyệt/Add Approvers:</label>
+            <div class="add-approver">
+              <select id="newApproversDropdown">
+                <option value="">
+                  Chọn người phê duyệt/Select an approver
+                </option>
+              </select>
+              <input
+                type="text"
+                id="newApproverSubRole"
+                placeholder="Vai trò/Sub Role"
+              />
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="proposalManager.addNewApprover()"
+              >
+                Thêm/Add
+              </button>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+              Lưu thay đổi/Save Changes
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeEditModal()"
+            >
+              Hủy/Cancel
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
-    <a href="/documentSummary">Trở về/Back</a>
+
+    <div id="declarationModal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" onclick="closeDeclarationModal()">&times;</span>
+        <h2>Kê Khai/Declaration</h2>
+        <textarea id="declarationInput"></textarea>
+        <div class="form-actions">
+          <button
+            onclick="proposalManager.saveDeclaration()"
+            class="btn btn-primary"
+          >
+            Lưu kê khai/Save Declaration
+          </button>
+          <span
+            class="close-btn"
+            onclick="proposalManager.closeDeclarationModal()"
+            >&times;</span
+          >
+        </div>
+      </div>
+    </div>
+
     <script src="documentPages/documentSummaryProposal/documentSummaryProposal.js"></script>
   </body>
 </html>

@@ -1,130 +1,106 @@
-// views\documentPages\documentSummaryProposal\documentSummaryProposal.js
-let currentUser = null;
-let proposalDocuments = null;
-let showOnlyPendingApprovals = false;
-let currentApprovers = [];
-let currentPage = 1;
-const itemsPerPage = 10; // Adjust this value based on your preference
-let totalPages = 1;
-let paginationEnabled = true; // Default to enabled
+// views/documentPages/documentSummaryProposal/documentSummaryProposal.js
+class ProposalDocumentManager {
+  constructor() {
+    this.currentUser = null;
+    this.proposalDocuments = [];
+    this.filteredDocuments = [];
+    this.showOnlyPendingApprovals = false;
+    this.currentApprovers = [];
+    this.currentPage = 1;
+    this.itemsPerPage = 10;
+    this.totalPages = 1;
+    this.paginationEnabled = true;
+    this.currentDocumentId = null;
 
-// Add the toggle switch creation function
-function createToggleSwitch() {
-  const toggleContainer = document.createElement("div");
-  toggleContainer.style.marginBottom = "1rem";
-  toggleContainer.innerHTML = `
-          <label class="toggle-switch" style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" id="pendingToggle" style="margin-right: 0.5rem;">
-              <span>Chỉ hiện phiếu tôi cần phê duyệt/Show only documents pending my approval</span>
-          </label>
-      `;
-  return toggleContainer;
-}
-
-// Add the current user fetch function
-async function fetchCurrentUser() {
-  try {
-    const response = await fetch("/getCurrentUser");
-    currentUser = await response.json();
-  } catch (error) {
-    console.error("Error fetching current user:", error);
+    this.init();
   }
-}
 
-// Add the document filter function
-function filterDocumentsForCurrentUser(documents) {
-  if (!currentUser || !showOnlyPendingApprovals) return documents;
-  return documents.filter((doc) => {
-    const isRequiredApprover = doc.approvers.some(
-      (approver) => approver.username === currentUser.username
-    );
-    const hasNotApprovedYet = !doc.approvedBy.some(
-      (approved) => approved.username === currentUser.username
-    );
-    return isRequiredApprover && hasNotApprovedYet;
-  });
-}
-
-function showMessage(message, isError = false) {
-  const messageContainer = document.getElementById("messageContainer");
-  messageContainer.textContent = message;
-  messageContainer.className = `message ${isError ? "error" : "success"}`;
-
-  // Get the current scroll position
-  const scrollY = window.scrollY || document.documentElement.scrollTop;
-  messageContainer.style.top = `${scrollY + 20}px`; // Offset from top of viewport
-
-  messageContainer.style.display = "block";
-
-  setTimeout(() => {
-    messageContainer.style.display = "none";
-  }, 5000);
-}
-
-//SHOWING DOCUMENTS CONTAINING PROPOSALS SECTIONS
-function renderDocumentStatus(status) {
-  switch (status) {
-    case "Approved":
-      return `<span class="status approved">Approved</span>`;
-    case "Suspended":
-      return `<span class="status suspended">Suspended</span>`;
-    default:
-      return `<span class="status pending">Pending</span>`;
+  async init() {
+    await this.fetchCurrentUser();
+    this.setupEventListeners();
+    this.fetchProposalDocuments();
   }
-}
 
-function renderDocumentProducts(products) {
-  if (!products || products.length === 0) return "-";
+  async fetchCurrentUser() {
+    try {
+      const response = await fetch("/getCurrentUser");
+      this.currentUser = await response.json();
+    } catch (error) {
+      console.error("Error fetching current user:", error);
+    }
+  }
 
-  return `
-    <table class="products-table" style="width: 100%; border-collapse: collapse; margin-top: 10px;">
-      <thead>
-        <tr>
-          <th style="text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color);">Sản phẩm/Product</th>
-          <th style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">Đơn giá/Cost Per Unit</th>
-          <th style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">Số lượng/Amount</th>
-          <th style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">Thuế/Vat (%)</th>
-          <th style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">Thành tiền/Total Cost</th>
-          <th style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">Thành tiền sau thuế/Total Cost After Vat</th>
-          <th style="text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color);">Ghi chú/Notes</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${products
-          .map(
-            (product) => `
-          <tr>
-            <td style="text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color);"><strong>${
-              product.productName
-            }</strong></td>
-            <td style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">${product.costPerUnit.toLocaleString()}</td>
-            <td style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">${product.amount.toLocaleString()}</td>
-            <td style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">${
-              product.vat.toLocaleString() || "-"
-            }</td>
-            <td style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">${product.totalCost.toLocaleString()}</td>
-            <td style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">${
-              product.totalCostAfterVat.toLocaleString() || "-"
-            }</td>
-            <td style="text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color);">${
-              product.note || "-"
-            }</td>
-          </tr>
-        `
-          )
-          .join("")}
-      </tbody>
-    </table>
-  `;
-}
+  setupEventListeners() {
+    document.getElementById("pendingToggle").addEventListener("change", (e) => {
+      this.showOnlyPendingApprovals = e.target.checked;
+      this.currentPage = 1;
+      this.fetchProposalDocuments();
+    });
 
-function renderDocumentApprovalStatus(approvers, approvedBy) {
-  return approvers
-    .map((approver) => {
-      const hasApproved = approvedBy.find(
-        (a) => a.username === approver.username
+    document
+      .getElementById("paginationToggle")
+      .addEventListener("change", () => {
+        this.paginationEnabled =
+          document.getElementById("paginationToggle").checked;
+        this.currentPage = 1;
+        this.fetchProposalDocuments();
+      });
+
+    window.addEventListener("click", (event) => {
+      if (event.target.classList.contains("modal")) {
+        event.target.style.display = "none";
+      }
+    });
+  }
+
+  filterDocumentsForCurrentUser(documents) {
+    if (!this.currentUser || !this.showOnlyPendingApprovals) return documents;
+
+    return documents.filter((doc) => {
+      const isRequiredApprover = doc.approvers.some(
+        (approver) => approver.username === this.currentUser.username
       );
-      return `
+      const hasNotApprovedYet = !doc.approvedBy.some(
+        (approved) => approved.username === this.currentUser.username
+      );
+      return isRequiredApprover && hasNotApprovedYet;
+    });
+  }
+
+  showMessage(message, isError = false) {
+    const messageContainer = document.getElementById("messageContainer");
+    messageContainer.textContent = message;
+    messageContainer.className = `message ${isError ? "error" : "success"}`;
+    messageContainer.style.display = "block";
+
+    // Position message below header
+    const header = document.querySelector(".page-header");
+    const headerBottom = header.getBoundingClientRect().bottom + window.scrollY;
+    messageContainer.style.top = `${headerBottom + 10}px`;
+
+    setTimeout(() => {
+      messageContainer.style.display = "none";
+    }, 5000);
+  }
+
+  renderStatus(status) {
+    switch (status) {
+      case "Approved":
+        return `<span class="status approved">Approved</span>`;
+      case "Suspended":
+        return `<span class="status suspended">Suspended</span>`;
+      default:
+        return `<span class="status pending">Pending</span>`;
+    }
+  }
+
+  renderApprovalStatus(approvers, approvedBy) {
+    return approvers
+      .map((approver) => {
+        const hasApproved = approvedBy.find(
+          (a) => a.username === approver.username
+        );
+        return `
         <div class="approver-item">
           <span class="status-icon ${
             hasApproved ? "status-approved" : "status-pending"
@@ -139,229 +115,69 @@ function renderDocumentApprovalStatus(approvers, approvedBy) {
           </div>
         </div>
       `;
-    })
-    .join("");
-}
-async function showDocumentsContainingProposal(proposalId) {
-  try {
-    const response = await fetch(`/documentsContainingProposal/${proposalId}`);
-    const data = await response.json();
+      })
+      .join("");
+  }
 
-    if (data.success) {
-      // Create a modal to display the results
-      const modalHTML = `
-        <div id="containingDocsModal" class="full-view-modal" style="display: block;">
-          <div class="full-view-content">
-            <span class="close-btn" onclick="closeContainingDocsModal()">&times;</span>
-            <h2>Tài liệu chứa đề xuất này/Documents Containing This Proposal</h2>
-            
-            <h3>Phiếu mua hàng/Purchasing Documents</h3>
-            <div class="documents-container">
-              ${
-                data.purchasingDocuments.length > 0
-                  ? data.purchasingDocuments
-                      .map(
-                        (doc) => `
-                  <div class="purchasing-doc">
-                    <h4>${
-                      doc.title || "Phiếu mua hàng/Purchasing Document"
-                    }</h4>
-                    <div class="full-view-section">
-                      <h5>Thông tin cơ bản/Basic Information</h5>
-                      <ul>
-                        <li><strong>Trạm/Cost Center:</strong> ${
-                          doc.costCenter || "-"
-                        }</li>
-                        <li><strong>Ngày nộp/Submission Date:</strong> ${
-                          doc.submissionDate || "-"
-                        }</li>
-                        <li><strong>Tình trạng/Status:</strong> ${renderDocumentStatus(
-                          doc.status
-                        )}</li>
-                        <li><strong>Tổng chi phí/Grand Total:</strong> ${
-                          doc.grandTotalCost?.toLocaleString() || "-"
-                        }</li>
-                        <li><strong>Tệp tin/File:</strong> ${
-                          doc.fileMetadata?.link
-                            ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-                            : "-"
-                        }</li>
-                      </ul>
-                    </div>
-                    
-                    <div class="full-view-section">
-                      <h5>Sản phẩm/Products</h5>
-                      ${renderDocumentProducts(doc.products)}
-                    </div>
-                    
-                    <div class="full-view-section">
-                      <h5>Trạng thái phê duyệt/Approval Status</h5>
-                      <div class="approval-status">
-                        ${renderDocumentApprovalStatus(
-                          doc.approvers,
-                          doc.approvedBy
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                `
-                      )
-                      .join("")
-                  : "<p>Không có phiếu mua hàng nào chứa đề xuất này/Not appended to any purchasing documents</p>"
-              }
-            </div>
-            
-            <h3>Phiếu xuất kho/Delivery Documents</h3>
-            <div class="documents-container">
-              ${
-                data.deliveryDocuments.length > 0
-                  ? data.deliveryDocuments
-                      .map(
-                        (doc) => `
-                  <div class="purchasing-doc">
-                    <h4>${doc.title || "Phiếu xuất kho/Delivery Document"}</h4>
-                    <div class="full-view-section">
-                      <h5>Thông tin cơ bản/Basic Information</h5>
-                      <ul>
-                        <li><strong>Trạm/Cost Center:</strong> ${
-                          doc.costCenter || "-"
-                        }</li>
-                        <li><strong>Ngày nộp/Submission Date:</strong> ${
-                          doc.submissionDate || "-"
-                        }</li>
-                        <li><strong>Tình trạng/Status:</strong> ${renderDocumentStatus(
-                          doc.status
-                        )}</li>
-                        <li><strong>Tổng chi phí/Grand Total:</strong> ${
-                          doc.grandTotalCost?.toLocaleString() || "-"
-                        }</li>
-                        <li><strong>Tệp tin/File:</strong> ${
-                          doc.fileMetadata?.link
-                            ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-                            : "-"
-                        }</li>
-                      </ul>
-                    </div>
-                    
-                    <div class="full-view-section">
-                      <h5>Sản phẩm/Products</h5>
-                      ${renderDocumentProducts(doc.products)}
-                    </div>
-                    
-                    <div class="full-view-section">
-                      <h5>Trạng thái phê duyệt/Approval Status</h5>
-                      <div class="approval-status">
-                        ${renderDocumentApprovalStatus(
-                          doc.approvers,
-                          doc.approvedBy
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                `
-                      )
-                      .join("")
-                  : "<p>Không có Phiếu xuất kho nào chứa đề xuất này/Not appended to any delivery documents</p>"
-              }
-            </div>
-          </div>
-        </div>
-      `;
-
-      // Add the modal to the page
-      document.body.insertAdjacentHTML("beforeend", modalHTML);
-    } else {
-      showMessage(
-        "Lỗi khi tìm tài liệu chứa đề xuất này/Error fetching documents containing this proposal",
-        true
+  async fetchProposalDocuments() {
+    try {
+      const response = await fetch("/getProposalDocumentForSeparatedView");
+      const data = await response.json();
+      this.proposalDocuments = data.proposalDocuments;
+      this.filteredDocuments = this.filterDocumentsForCurrentUser(
+        this.proposalDocuments
       );
+
+      // Calculate pagination
+      this.totalPages = Math.ceil(
+        this.filteredDocuments.length / this.itemsPerPage
+      );
+      this.currentPage = Math.max(
+        1,
+        Math.min(this.currentPage, this.totalPages)
+      );
+
+      // Get documents for current page
+      const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+      const endIndex = startIndex + this.itemsPerPage;
+      const pageDocuments = this.paginationEnabled
+        ? this.filteredDocuments.slice(startIndex, endIndex)
+        : this.filteredDocuments;
+
+      this.renderDocumentsTable(pageDocuments);
+      this.renderPagination();
+      this.updateSummary(data.approvedDocument, data.unapprovedDocument);
+    } catch (err) {
+      console.error("Error fetching proposal documents:", err);
+      this.showMessage("Error fetching proposal documents", true);
     }
-  } catch (error) {
-    console.error("Error fetching documents containing proposal:", error);
-    showMessage(
-      "Lỗi khi tìm tài liệu chứa đề xuất này/Error fetching documents containing this proposal",
-      true
-    );
   }
-}
 
-function closeContainingDocsModal() {
-  const modal = document.getElementById("containingDocsModal");
-  if (modal) {
-    modal.remove();
-  }
-}
-//END OF SHOWING DOCUMENTS CONTAINING PROPOSALS SECTIONS
-
-function renderStatus(status) {
-  switch (status) {
-    case "Approved":
-      return `<span class="status approved">Approved</span>`;
-    case "Suspended":
-      return `<span class="status suspended">Suspended</span>`;
-    default:
-      return `<span class="status pending">Pending</span>`;
-  }
-}
-
-async function fetchProposalDocuments() {
-  try {
-    const response = await fetch("/getProposalDocumentForSeparatedView");
-    const data = await response.json();
-    proposalDocuments = data.proposalDocuments;
-    const filteredDocuments = filterDocumentsForCurrentUser(proposalDocuments);
-
-    // Calculate total pages
-    totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
-
-    // Make sure current page is in valid range
-    if (currentPage > totalPages) {
-      currentPage = totalPages;
-    }
-    if (currentPage < 1) {
-      currentPage = 1;
-    }
-
-    // Calculate slice indexes for current page
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-
-    // Get documents for current page only if pagination is enabled, otherwise show all
-    const pageDocuments = paginationEnabled
-      ? filteredDocuments.slice(startIndex, endIndex)
-      : filteredDocuments;
-
+  renderDocumentsTable(documents) {
     const tableBody = document.getElementById("proposalDocumentsTable");
     tableBody.innerHTML = "";
-    pageDocuments.forEach((doc) => {
-      const approvalStatus = doc.approvers
-        .map((approver) => {
-          const hasApproved = doc.approvedBy.find(
-            (a) => a.username === approver.username
-          );
-          return `
-            <div class="approver-item">
-                <span class="status-icon ${
-                  hasApproved ? "status-approved" : "status-pending"
-                }"></span>
-                <div>
-                    <div>${approver.username} (${approver.subRole})</div>
-                    ${
-                      hasApproved
-                        ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
-                        : '<div class="approval-date">Pending</div>'
-                    }
-                </div>
-            </div>
-        `;
-        })
-        .join("");
 
+    if (documents.length === 0) {
+      const row = document.createElement("tr");
+      row.innerHTML = `<td colspan="11" style="text-align: center;">No documents found</td>`;
+      tableBody.appendChild(row);
+      return;
+    }
+
+    documents.forEach((doc) => {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td>${doc.task || "-"} 
-          ${doc.declaration ? `(Kê khai: ${doc.declaration})` : ""}
-          ${doc.suspendReason ? `(Lý do từ chối: ${doc.suspendReason})` : ""}
+          ${
+            doc.declaration
+              ? `<small>(Kê khai: ${doc.declaration})</small>`
+              : ""
+          }
+          ${
+            doc.suspendReason
+              ? `<small>(Lý do từ chối: ${doc.suspendReason})</small>`
+              : ""
+          }
         </td>
         <td>${doc.costCenter || "-"}</td>
         <td>${doc.dateOfError || "-"}</td>
@@ -374,176 +190,96 @@ async function fetchProposalDocuments() {
         }</td>
         <td>${doc.submissionDate || "-"}</td>
         <td>${doc.groupName || "-"}</td>
-        <td>${renderStatus(doc.status)}</td>
-        <td class="approval-status">${approvalStatus}</td>
+        <td>${this.renderStatus(doc.status)}</td>
+        <td class="approval-status">${this.renderApprovalStatus(
+          doc.approvers,
+          doc.approvedBy
+        )}</td>
         <td>
-          <form action="/exportDocumentToDocx/${
-            doc._id
-          }" method="GET" style="display:inline;">
-            <button class="approve-btn">Xuất ra DOCX/Export to DOCX</button>
-          </form>
-          ${
-            doc.approvedBy.length === 0
-              ? `
-            <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa/Edit</button>
-            <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa/Delete</button>
-          `
-              : ""
-          }
-          ${
-            doc.status === "Pending"
-              ? `
-            <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
-              Phê duyệt/Approve
+          <div class="action-buttons">
+            <form action="/exportDocumentToDocx/${
+              doc._id
+            }" method="GET" target="_blank">
+              <button type="submit" class="btn btn-primary btn-sm">Xuất DOCX</button>
+            </form>
+            ${
+              doc.approvedBy.length === 0
+                ? `
+              <button class="btn btn-primary btn-sm" onclick="proposalManager.editDocument('${doc._id}')">Sửa</button>
+              <button class="btn btn-danger btn-sm" onclick="proposalManager.deleteDocument('${doc._id}')">Xóa</button>
+            `
+                : ""
+            }
+            ${
+              doc.status === "Pending"
+                ? `
+              <button class="btn btn-primary btn-sm" onclick="proposalManager.approveDocument('${doc._id}')">
+                Phê duyệt
+              </button>
+            `
+                : ""
+            }
+            ${
+              doc.status === "Approved"
+                ? `
+              <button class="btn btn-primary btn-sm" onclick="proposalManager.editDeclaration('${doc._id}')">
+                Kê khai
+              </button>
+            `
+                : doc.status === "Suspended"
+                ? `
+              <button class="btn btn-primary btn-sm" onclick="proposalManager.openDocument('${doc._id}')">
+                Mở lại
+              </button>
+            `
+                : `
+              <button class="btn btn-danger btn-sm" onclick="proposalManager.suspendDocument('${doc._id}')">
+                Từ chối
+              </button>
+            `
+            }
+            <button class="btn btn-primary btn-sm" onclick="proposalManager.showDocumentsContainingProposal('${
+              doc._id
+            }')">
+              Xem tài liệu
             </button>
-          `
-              : ""
-          }
-          ${
-            doc.status === "Approved"
-              ? `
-                <button class="approve-btn" onclick="editDeclaration('${doc._id}')" style="margin-right: 5px;">
-                  Kê khai/Declaration
-                </button>
-              `
-              : doc.status === "Suspended"
-              ? `
-                <button class="approve-btn" onclick="openDocument('${doc._id}')">
-                  Mở/Open
-                </button>
-              `
-              : `
-                <button class="approve-btn" onclick="suspendDocument('${doc._id}')">
-                  Từ chối/Suspend
-                </button>
-              `
-          }
-          <button class="approve-btn" onclick="showDocumentsContainingProposal('${
-            doc._id
-          }')" style="margin-top: 5px;">
-            Xem tài liệu chứa/View Containing Docs
-          </button>
+          </div>
         </td>
-    `;
+      `;
       tableBody.appendChild(row);
     });
+  }
 
-    // Render pagination controls if pagination is enabled
-    if (paginationEnabled) {
-      renderPagination();
-    } else {
-      // Remove pagination if disabled
-      let paginationContainer = document.getElementById("paginationContainer");
-      if (paginationContainer) {
-        paginationContainer.innerHTML = "";
-      }
+  renderPagination() {
+    const paginationContainer = document.getElementById("paginationContainer");
+
+    if (!this.paginationEnabled || this.totalPages <= 1) {
+      paginationContainer.innerHTML = "";
+      return;
     }
 
-    // Update summary section
-    document.getElementById("approvedDocument").textContent =
-      data.approvedDocument.toLocaleString();
-    document.getElementById("unapprovedDocument").textContent =
-      data.unapprovedDocument.toLocaleString();
-  } catch (err) {
-    console.error("Error fetching proposal documents:", err);
-    showMessage("Error fetching proposal documents", true);
-  }
-}
-
-// Function to handle pagination toggle
-function togglePagination() {
-  paginationEnabled = document.getElementById("paginationToggle").checked;
-  currentPage = 1; // Reset to first page
-  fetchProposalDocuments();
-}
-
-// Function to render pagination controls
-function renderPagination() {
-  // First check if pagination container exists, if not create it
-  let paginationContainer = document.getElementById("paginationContainer");
-  if (!paginationContainer) {
-    const table = document.querySelector("table");
-    paginationContainer = document.createElement("div");
-    paginationContainer.id = "paginationContainer";
-    paginationContainer.className = "pagination";
-    table.parentNode.insertBefore(paginationContainer, table.nextSibling);
-  }
-
-  // Generate pagination HTML
-  let paginationHTML = `
-    <style>
-      /* Pagination styles */
-      .pagination {
-        display: flex;
-        justify-content: center;
-        margin: 20px 0;
-      }
-      
-      .pagination-controls {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      
-      .pagination-controls button {
-        background-color: var(--primary-color);
-        color: var(--bg-color);
-        border: none;
-        padding: 8px 12px;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-      }
-      
-      .pagination-controls button:hover:not([disabled]) {
-        background-color: var(--primary-hover);
-      }
-      
-      .pagination-controls button[disabled] {
-        background-color: var(--border-color);
-        cursor: not-allowed;
-        opacity: 0.6;
-      }
-      
-      .pagination-controls .page-info {
-        margin: 0 10px;
-        color: var(--text-color);
-      }
-      
-      @media screen and (max-width: 768px) {
-        .pagination-controls {
-          gap: 5px;
-        }
-        
-        .pagination-controls button {
-          padding: 6px 10px;
-          font-size: 14px;
-        }
-      }
-    </style>
-  `;
-
-  if (totalPages > 1) {
-    paginationHTML += `
+    paginationContainer.innerHTML = `
       <div class="pagination-controls">
-        <button onclick="changePage(1)" ${currentPage === 1 ? "disabled" : ""}>
+        <button onclick="proposalManager.changePage(1)" ${
+          this.currentPage === 1 ? "disabled" : ""
+        }>
           &laquo; First
         </button>
-        <button onclick="changePage(${currentPage - 1})" ${
-      currentPage === 1 ? "disabled" : ""
+        <button onclick="proposalManager.changePage(${this.currentPage - 1})" ${
+      this.currentPage === 1 ? "disabled" : ""
     }>
           &lsaquo; Prev
         </button>
         <span class="page-info">
-          Trang/Page ${currentPage} / ${totalPages}
+          Trang ${this.currentPage} / ${this.totalPages}
         </span>
-        <button onclick="changePage(${currentPage + 1})" ${
-      currentPage === totalPages ? "disabled" : ""
+        <button onclick="proposalManager.changePage(${this.currentPage + 1})" ${
+      this.currentPage === this.totalPages ? "disabled" : ""
     }>
           Next &rsaquo;
         </button>
-        <button onclick="changePage(${totalPages})" ${
-      currentPage === totalPages ? "disabled" : ""
+        <button onclick="proposalManager.changePage(${this.totalPages})" ${
+      this.currentPage === this.totalPages ? "disabled" : ""
     }>
           Last &raquo;
         </button>
@@ -551,499 +287,460 @@ function renderPagination() {
     `;
   }
 
-  paginationContainer.innerHTML = paginationHTML;
-}
-
-// Function to change the current page
-function changePage(newPage) {
-  if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
-    currentPage = newPage;
-    fetchProposalDocuments();
-    // Scroll to top of table for better user experience
-    document.querySelector("table").scrollIntoView({ behavior: "smooth" });
-  }
-}
-
-async function approveDocument(documentId) {
-  try {
-    const response = await fetch(`/approveDocument/${documentId}`, {
-      method: "POST",
-    });
-    const message = await response.text();
-    if (response.ok) {
-      showMessage(message);
-      fetchProposalDocuments();
-    } else {
-      showMessage(message, true);
+  changePage(newPage) {
+    if (
+      newPage >= 1 &&
+      newPage <= this.totalPages &&
+      newPage !== this.currentPage
+    ) {
+      this.currentPage = newPage;
+      this.fetchProposalDocuments();
+      document
+        .querySelector(".table-container")
+        .scrollIntoView({ behavior: "smooth" });
     }
-  } catch (err) {
-    console.error("Error approving document:", err);
-    showMessage("Error approving document", true);
   }
-}
 
-async function deleteDocument(documentId) {
-  try {
-    const response = await fetch(`/deleteDocument/${documentId}`, {
-      method: "POST",
-    });
-    const message = await response.text();
-    if (response.ok) {
-      showMessage(message);
-      fetchProposalDocuments();
-    } else {
-      showMessage(message, true);
-    }
-  } catch (err) {
-    console.error("Error deleting document:", err);
-    showMessage("Error deleting document", true);
+  updateSummary(approvedCount, unapprovedCount) {
+    document.getElementById("approvedDocument").textContent =
+      approvedCount.toLocaleString();
+    document.getElementById("unapprovedDocument").textContent =
+      unapprovedCount.toLocaleString();
   }
-}
 
-async function populateCostCenterDropdown() {
-  try {
-    // Fetch the current user
-    const userResponse = await fetch("/getCurrentUser");
-    const userData = await userResponse.json();
-    const currentUser = userData.username;
+  async approveDocument(documentId) {
+    try {
+      const response = await fetch(`/approveDocument/${documentId}`, {
+        method: "POST",
+      });
+      const message = await response.text();
 
-    // Fetch cost centers
-    const costCenterResponse = await fetch("/costCenters");
-    const costCenters = await costCenterResponse.json();
-
-    // Get the cost center dropdown in the edit modal
-    const costCenterDropdown = document.getElementById("editCostCenter");
-
-    // Clear existing options
-    costCenterDropdown.innerHTML =
-      '<option value="">Chọn một trạm/Select a center</option>';
-
-    // Populate the dropdown with allowed cost centers
-    costCenters.forEach((center) => {
-      if (
-        center.allowedUsers.length === 0 ||
-        center.allowedUsers.includes(currentUser)
-      ) {
-        const option = document.createElement("option");
-        option.value = center.name;
-        option.textContent = center.name;
-        costCenterDropdown.appendChild(option);
+      if (response.ok) {
+        this.showMessage(message);
+        this.fetchProposalDocuments();
+      } else {
+        this.showMessage(message, true);
       }
-    });
-  } catch (error) {
-    console.error("Error fetching cost centers:", error);
-  }
-}
-
-// Add edit modal HTML at the end of the table
-function addEditModal() {
-  const modalHTML = `
-    <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
-        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-color); padding: clamp(16px, 2vw, 24px); width: clamp(300px, 85vw, 900px); border-radius: clamp(4px, 1vw, 8px); max-height: 90vh; overflow-y: auto; font-size: clamp(14px, 1.5vw, 16px);">
-            <span onclick="closeEditModal()" style="position: sticky; float: right; top: 10px; cursor: pointer; font-size: clamp(20px, 2vw, 28px); padding: clamp(4px, 0.5vw, 8px);">&times;</span>
-            <h2 style="font-size: clamp(18px, 2vw, 24px); margin-bottom: clamp(16px, 2vw, 24px);">Chỉnh sửa phiếu đề xuất/Edit Proposal Document</h2>
-            <form id="editForm" onsubmit="handleEditSubmit(event)">
-                <input type="hidden" id="editDocId">
-                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                    <label for="editTask" style="display: block; margin-bottom: 0.5em;">Công việc/Task:</label>
-                    <input type="text" id="editTask" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
-                </div>
-                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                    <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm/Cost Center:</label>
-                    <select id="editCostCenter" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
-                        <option value="">Chọn một trạm/Select a center</option>
-                        <!-- Options will be populated dynamically -->
-                    </select>
-                </div>
-                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                    <label for="editDateOfError" style="display: block; margin-bottom: 0.5em;">Ngày lỗi/Date of Error:</label>
-                    <input type="text" id="editDateOfError" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
-                </div>
-                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                    <label for="editDetailsDescription" style="display: block; margin-bottom: 0.5em;">Mô tả chi tiết/Details Description:</label>
-                    <textarea id="editDetailsDescription" required style="width: 100%; padding: clamp(6px, 1vw, 12px); min-height: clamp(80px, 15vh, 150px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);"></textarea>
-                </div>
-                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                    <label for="editDirection" style="display: block; margin-bottom: 0.5em;">Hướng xử lý/Direction:</label>
-                    <textarea id="editDirection" required style="width: 100%; padding: clamp(6px, 1vw, 12px); min-height: clamp(80px, 15vh, 150px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);"></textarea>
-                </div>
-                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                    <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới/Update File:</label>
-                    <input type="file" id="editFile" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
-                </div>
-
-                <!-- Current Approvers Section -->
-                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label style="display: block; margin-bottom: 0.5em;">Người phê duyệt hiện tại/Current Approvers:</label>
-                  <div id="currentApproversList"></div>
-                </div>
-
-                <!-- Add New Approvers Section -->
-                <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label style="display: block; margin-bottom: 0.5em;">Thêm người phê duyệt/Add Approvers:</label>
-                  <select id="newApproversDropdown" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
-                    <option value="">Chọn người phê duyệt/Select an approver</option>
-                    <!-- Options will be populated dynamically -->
-                  </select>
-                  <input type="text" id="newApproverSubRole" placeholder="Vai trò/Sub Role" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
-                  <button type="button" class="approve-btn" onclick="addNewApprover()" style="margin-top: 10px;">
-                    Thêm/Add
-                  </button>
-                </div>
-              
-                <div style="display: flex; gap: clamp(8px, 1vw, 16px); margin-top: clamp(20px, 2.5vw, 32px);">
-                    <button type="submit" class="approve-btn" style="padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px); font-size: inherit;">Lưu thay đổi/Save Changes</button>
-                    <button type="button" class="approve-btn" onclick="closeEditModal()" style="background: #666; padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px); font-size: inherit;">Hủy/Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-  `;
-  document.body.insertAdjacentHTML("beforeend", modalHTML);
-}
-
-// Add edit button to each row in the fetchProposalDocuments function
-function addEditButton(doc) {
-  if (!doc.approved) {
-    return `<button class="approve-btn" onclick="editDocument('${doc._id}')">Chỉnh sửa/Edit</button>`;
-  }
-  return "";
-}
-
-// Function to fetch all approvers
-async function fetchApprovers() {
-  try {
-    const response = await fetch("/approvers");
-    const approvers = await response.json();
-    return approvers;
-  } catch (error) {
-    console.error("Error fetching approvers:", error);
-    return [];
-  }
-}
-
-// Function to render current approvers
-function renderCurrentApprovers() {
-  const currentApproversList = document.getElementById("currentApproversList");
-  currentApproversList.innerHTML = currentApprovers
-    .map(
-      (approver) => `
-        <div class="approver-item" data-id="${approver.approver}">
-          <span>${approver.username} (${approver.subRole})</span>
-          <input type="text" value="${approver.subRole}" onchange="updateApproverSubRole('${approver.approver}', this.value)" style="width: 100px; padding: 4px;">
-          <button type="button" class="approve-btn" onclick="removeApprover('${approver.approver}')" style="background: #dc3545; padding: 4px 8px;">Xóa/Remove</button>
-        </div>
-      `
-    )
-    .join("");
-}
-
-// Function to update an approver's subRole
-function updateApproverSubRole(approverId, newSubRole) {
-  const approver = currentApprovers.find((a) => a.approver === approverId);
-  if (approver) {
-    approver.subRole = newSubRole;
-  }
-}
-
-// Function to remove an approver
-function removeApprover(approverId) {
-  currentApprovers = currentApprovers.filter((a) => a.approver !== approverId);
-  renderCurrentApprovers();
-  populateNewApproversDropdown(); // Refresh the dropdown
-}
-
-// Function to add a new approver
-function addNewApprover() {
-  const newApproverId = document.getElementById("newApproversDropdown").value;
-  const newSubRole = document.getElementById("newApproverSubRole").value;
-
-  if (!newApproverId || !newSubRole) {
-    alert(
-      "Vui lòng chọn người phê duyệt và nhập vai trò phụ/Please select an approver and enter a sub role."
-    );
-    return;
+    } catch (err) {
+      console.error("Error approving document:", err);
+      this.showMessage("Error approving document", true);
+    }
   }
 
-  const newApprover = {
-    approver: newApproverId,
-    username: document
-      .getElementById("newApproversDropdown")
-      .selectedOptions[0].text.split(" (")[0],
-    subRole: newSubRole,
-  };
+  async deleteDocument(documentId) {
+    if (!confirm("Bạn có chắc chắn muốn xóa phiếu đề xuất này?")) return;
 
-  currentApprovers.push(newApprover);
-  renderCurrentApprovers();
-  populateNewApproversDropdown(); // Refresh the dropdown
+    try {
+      const response = await fetch(`/deleteDocument/${documentId}`, {
+        method: "POST",
+      });
+      const message = await response.text();
 
-  // Clear the input fields
-  document.getElementById("newApproversDropdown").value = "";
-  document.getElementById("newApproverSubRole").value = "";
-}
+      if (response.ok) {
+        this.showMessage(message);
+        this.fetchProposalDocuments();
+      } else {
+        this.showMessage(message, true);
+      }
+    } catch (err) {
+      console.error("Error deleting document:", err);
+      this.showMessage("Error deleting document", true);
+    }
+  }
 
-// Function to populate the new approvers dropdown (excluding current approvers)
-async function populateNewApproversDropdown() {
-  const allApprovers = await fetchApprovers();
-  const availableApprovers = allApprovers.filter(
-    (approver) => !currentApprovers.some((a) => a.approver === approver._id)
-  );
+  async editDocument(docId) {
+    try {
+      const response = await fetch(`/getProposalDocument/${docId}`);
+      const doc = await response.json();
 
-  const dropdown = document.getElementById("newApproversDropdown");
-  dropdown.innerHTML = `
-    <option value="">Chọn người phê duyệt/Select an approver</option>
-    ${availableApprovers
+      // Populate form
+      document.getElementById("editDocId").value = docId;
+      document.getElementById("editTask").value = doc.task;
+      document.getElementById("editDateOfError").value = doc.dateOfError;
+      document.getElementById("editDetailsDescription").value =
+        doc.detailsDescription;
+      document.getElementById("editDirection").value = doc.direction;
+
+      // Populate cost center dropdown
+      await this.populateCostCenterDropdown();
+      document.getElementById("editCostCenter").value = doc.costCenter;
+
+      // Populate approvers
+      this.currentApprovers = doc.approvers;
+      this.renderCurrentApprovers();
+      await this.populateNewApproversDropdown();
+
+      // Show modal
+      document.getElementById("editModal").style.display = "block";
+    } catch (err) {
+      console.error("Error fetching document details:", err);
+      this.showMessage("Error loading document details", true);
+    }
+  }
+
+  async populateCostCenterDropdown() {
+    try {
+      const userResponse = await fetch("/getCurrentUser");
+      const userData = await userResponse.json();
+      const currentUser = userData.username;
+
+      const costCenterResponse = await fetch("/costCenters");
+      const costCenters = await costCenterResponse.json();
+
+      const dropdown = document.getElementById("editCostCenter");
+      dropdown.innerHTML =
+        '<option value="">Chọn một trạm/Select a center</option>';
+
+      costCenters.forEach((center) => {
+        if (
+          center.allowedUsers.length === 0 ||
+          center.allowedUsers.includes(currentUser)
+        ) {
+          const option = document.createElement("option");
+          option.value = center.name;
+          option.textContent = center.name;
+          dropdown.appendChild(option);
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching cost centers:", error);
+    }
+  }
+
+  renderCurrentApprovers() {
+    const container = document.getElementById("currentApproversList");
+    container.innerHTML = this.currentApprovers
       .map(
         (approver) => `
-      <option value="${approver._id}">${approver.username}</option>
+      <div class="approver-item">
+        <span>${approver.username} (${approver.subRole})</span>
+        <input type="text" value="${approver.subRole}" 
+          onchange="proposalManager.updateApproverSubRole('${approver.approver}', this.value)">
+        <button type="button" class="btn btn-danger btn-sm" 
+          onclick="proposalManager.removeApprover('${approver.approver}')">Xóa</button>
+      </div>
     `
       )
-      .join("")}
-  `;
-}
-
-// Edit document function
-async function editDocument(docId) {
-  try {
-    const response = await fetch(`/getProposalDocument/${docId}`);
-    const doc = await response.json();
-
-    // Populate the form fields
-    document.getElementById("editDocId").value = docId;
-    document.getElementById("editTask").value = doc.task;
-    document.getElementById("editDateOfError").value = doc.dateOfError;
-    document.getElementById("editDetailsDescription").value =
-      doc.detailsDescription;
-    document.getElementById("editDirection").value = doc.direction;
-
-    // Populate the cost center dropdown
-    await populateCostCenterDropdown();
-    document.getElementById("editCostCenter").value = doc.costCenter;
-
-    // Populate current approvers
-    currentApprovers = doc.approvers;
-    renderCurrentApprovers();
-    // Populate new approvers dropdown
-    await populateNewApproversDropdown();
-
-    // Show the modal
-    document.getElementById("editModal").style.display = "block";
-  } catch (err) {
-    console.error("Error fetching document details:", err);
-    showMessage("Error loading document details", true);
+      .join("");
   }
-}
 
-// Close edit modal
-function closeEditModal() {
-  document.getElementById("editModal").style.display = "none";
-  document.getElementById("editForm").reset();
-}
-
-// Handle edit form submission
-async function handleEditSubmit(event) {
-  event.preventDefault();
-  const docId = document.getElementById("editDocId").value;
-  const formData = new FormData();
-  formData.append("task", document.getElementById("editTask").value);
-  formData.append(
-    "costCenter",
-    document.getElementById("editCostCenter").value
-  );
-  formData.append(
-    "dateOfError",
-    document.getElementById("editDateOfError").value
-  );
-  formData.append(
-    "detailsDescription",
-    document.getElementById("editDetailsDescription").value
-  );
-  formData.append("direction", document.getElementById("editDirection").value);
-  const fileInput = document.getElementById("editFile");
-  if (fileInput.files.length > 0) {
-    formData.append("file", fileInput.files[0]);
+  updateApproverSubRole(approverId, newSubRole) {
+    const approver = this.currentApprovers.find(
+      (a) => a.approver === approverId
+    );
+    if (approver) approver.subRole = newSubRole;
   }
-  formData.append("approvers", JSON.stringify(currentApprovers));
-  try {
-    const response = await fetch(`/updateProposalDocument/${docId}`, {
-      method: "POST",
-      body: formData,
-    });
-    const result = await response.json();
-    if (response.ok) {
-      showMessage("Document updated successfully");
-      closeEditModal();
-      fetchProposalDocuments();
-    } else {
-      showMessage(result.message || "Error updating document", true);
+
+  removeApprover(approverId) {
+    this.currentApprovers = this.currentApprovers.filter(
+      (a) => a.approver !== approverId
+    );
+    this.renderCurrentApprovers();
+    this.populateNewApproversDropdown();
+  }
+
+  async populateNewApproversDropdown() {
+    try {
+      const response = await fetch("/approvers");
+      const allApprovers = await response.json();
+
+      const availableApprovers = allApprovers.filter(
+        (approver) =>
+          !this.currentApprovers.some((a) => a.approver === approver._id)
+      );
+
+      const dropdown = document.getElementById("newApproversDropdown");
+      dropdown.innerHTML = `
+        <option value="">Chọn người phê duyệt/Select an approver</option>
+        ${availableApprovers
+          .map(
+            (approver) => `
+          <option value="${approver._id}">${approver.username}</option>
+        `
+          )
+          .join("")}
+      `;
+    } catch (error) {
+      console.error("Error fetching approvers:", error);
     }
-  } catch (err) {
-    console.error("Error updating document:", err);
-    showMessage("Error updating document", true);
   }
-}
 
-function editDeclaration(docId) {
-  const doc = proposalDocuments.find((d) => d._id === docId);
-  if (!doc) return;
+  addNewApprover() {
+    const dropdown = document.getElementById("newApproversDropdown");
+    const subRoleInput = document.getElementById("newApproverSubRole");
+    const approverId = dropdown.value;
+    const subRole = subRoleInput.value;
 
-  // Create a modal for editing the declaration
-  const modalHTML = `
-    <div id="declarationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
-      <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-color); padding: 20px; width: 90%; max-width: 500px; border-radius: 8px;">
-        <span onclick="closeDeclarationModal()" style="position: absolute; right: 10px; top: 10px; cursor: pointer; font-size: 24px;">&times;</span>
-        <h2>Kê Khai/Declaration</h2>
-        <textarea id="declarationInput" style="width: 100%; height: 150px; padding: 10px; font-size: 16px;">${
-          doc.declaration || ""
-        }</textarea>
-        <button onclick="saveDeclaration('${docId}')" class="approve-btn" style="margin-top: 10px;">Lưu kê khai/Save Declaration</button>
-      </div>
-    </div>
-  `;
+    if (!approverId || !subRole) {
+      this.showMessage(
+        "Vui lòng chọn người phê duyệt và nhập vai trò phụ",
+        true
+      );
+      return;
+    }
 
-  // Append the modal to the body
-  document.body.insertAdjacentHTML("beforeend", modalHTML);
+    const newApprover = {
+      approver: approverId,
+      username: dropdown.selectedOptions[0].text,
+      subRole: subRole,
+    };
 
-  // Show the modal
-  document.getElementById("declarationModal").style.display = "block";
-}
+    this.currentApprovers.push(newApprover);
+    this.renderCurrentApprovers();
+    this.populateNewApproversDropdown();
 
-function closeDeclarationModal() {
-  const modal = document.getElementById("declarationModal");
-  if (modal) {
-    modal.remove(); // Remove the modal from the DOM
+    // Clear inputs
+    dropdown.value = "";
+    subRoleInput.value = "";
   }
-}
 
-async function saveDeclaration(docId) {
-  const declaration = document.getElementById("declarationInput").value;
+  async handleEditSubmit(event) {
+    event.preventDefault();
+    const docId = document.getElementById("editDocId").value;
+    const formData = new FormData();
 
-  try {
-    const response = await fetch(
-      `/updateProposalDocumentDeclaration/${docId}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ declaration }),
-      }
+    formData.append("task", document.getElementById("editTask").value);
+    formData.append(
+      "costCenter",
+      document.getElementById("editCostCenter").value
+    );
+    formData.append(
+      "dateOfError",
+      document.getElementById("editDateOfError").value
+    );
+    formData.append(
+      "detailsDescription",
+      document.getElementById("editDetailsDescription").value
+    );
+    formData.append(
+      "direction",
+      document.getElementById("editDirection").value
     );
 
-    const message = await response.text();
-
-    if (response.ok) {
-      showMessage(message);
-      closeDeclarationModal();
-      fetchProposalDocuments(); // Refresh the document list
-    } else {
-      showMessage(message, true);
+    const fileInput = document.getElementById("editFile");
+    if (fileInput.files.length > 0) {
+      formData.append("file", fileInput.files[0]);
     }
-  } catch (err) {
-    console.error("Error updating declaration:", err);
-    showMessage("Error updating declaration", true);
-  }
-}
 
-// Function to show the suspend modal
-function suspendDocument(docId) {
-  document.getElementById("suspendModal").style.display = "block";
-  document.getElementById("suspendForm").dataset.docId = docId;
-}
+    formData.append("approvers", JSON.stringify(this.currentApprovers));
 
-// Function to close the suspend modal
-function closeSuspendModal() {
-  document.getElementById("suspendModal").style.display = "none";
-  document.getElementById("suspendForm").reset();
-}
+    try {
+      const response = await fetch(`/updateProposalDocument/${docId}`, {
+        method: "POST",
+        body: formData,
+      });
 
-// Function to handle suspend form submission
-async function handleSuspendSubmit(event) {
-  event.preventDefault();
-  const docId = event.target.dataset.docId;
-  const suspendReason = document.getElementById("suspendReason").value;
+      const result = await response.json();
 
-  try {
-    const response = await fetch(`/suspendProposalDocument/${docId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ suspendReason }),
-    });
-
-    const message = await response.text(); // Get the response message
-
-    if (response.ok) {
-      showMessage(message); // Show success message
-      closeSuspendModal();
-      fetchProposalDocuments();
-    } else {
-      showMessage(message, true); // Show error message
+      if (response.ok) {
+        this.showMessage("Document updated successfully");
+        document.getElementById("editModal").style.display = "none";
+        this.fetchProposalDocuments();
+      } else {
+        this.showMessage(result.message || "Error updating document", true);
+      }
+    } catch (err) {
+      console.error("Error updating document:", err);
+      this.showMessage("Error updating document", true);
     }
-  } catch (err) {
-    console.error("Error suspending document:", err);
-    showMessage("Lỗi khi tạm dừng tài liệu/Error suspending document", true);
   }
-}
 
-// Function to reopen the document
-async function openDocument(docId) {
-  try {
-    const response = await fetch(`/openProposalDocument/${docId}`, {
-      method: "POST",
-    });
+  editDeclaration(docId) {
+    const doc = this.proposalDocuments.find((d) => d._id === docId);
+    if (!doc) return;
 
-    const message = await response.text(); // Get the response message
+    this.currentDocumentId = docId;
+    document.getElementById("declarationInput").value = doc.declaration || "";
+    document.getElementById("declarationModal").style.display = "block";
+  }
 
-    if (response.ok) {
-      showMessage(message); // Show success message
-      fetchProposalDocuments();
-    } else {
-      showMessage(message, true); // Show error message
+  async saveDeclaration() {
+    const declaration = document.getElementById("declarationInput").value;
+
+    try {
+      const response = await fetch(
+        `/updateProposalDocumentDeclaration/${this.currentDocumentId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ declaration }),
+        }
+      );
+
+      const message = await response.text();
+
+      if (response.ok) {
+        this.showMessage(message);
+        document.getElementById("declarationModal").style.display = "none";
+        this.fetchProposalDocuments();
+      } else {
+        this.showMessage(message, true);
+      }
+    } catch (err) {
+      console.error("Error updating declaration:", err);
+      this.showMessage("Error updating declaration", true);
     }
-  } catch (err) {
-    console.error("Error reopening document:", err);
-    showMessage("Lỗi khi mở lại tài liệu/Error reopening document", true);
+  }
+
+  suspendDocument(docId) {
+    this.currentDocumentId = docId;
+    document.getElementById("suspendForm").reset();
+    document.getElementById("suspendModal").style.display = "block";
+  }
+
+  async handleSuspendSubmit(event) {
+    event.preventDefault();
+    const suspendReason = document.getElementById("suspendReason").value;
+
+    try {
+      const response = await fetch(
+        `/suspendProposalDocument/${this.currentDocumentId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ suspendReason }),
+        }
+      );
+
+      const message = await response.text();
+
+      if (response.ok) {
+        this.showMessage(message);
+        document.getElementById("suspendModal").style.display = "none";
+        this.fetchProposalDocuments();
+      } else {
+        this.showMessage(message, true);
+      }
+    } catch (err) {
+      console.error("Error suspending document:", err);
+      this.showMessage("Error suspending document", true);
+    }
+  }
+
+  async openDocument(docId) {
+    try {
+      const response = await fetch(`/openProposalDocument/${docId}`, {
+        method: "POST",
+      });
+
+      const message = await response.text();
+
+      if (response.ok) {
+        this.showMessage(message);
+        this.fetchProposalDocuments();
+      } else {
+        this.showMessage(message, true);
+      }
+    } catch (err) {
+      console.error("Error reopening document:", err);
+      this.showMessage("Error reopening document", true);
+    }
+  }
+
+  async showDocumentsContainingProposal(proposalId) {
+    try {
+      const response = await fetch(
+        `/documentsContainingProposal/${proposalId}`
+      );
+      const data = await response.json();
+
+      if (data.success) {
+        this.renderDocumentsContainingModal(data);
+      } else {
+        this.showMessage(
+          "Error fetching documents containing this proposal",
+          true
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching documents containing proposal:", error);
+      this.showMessage(
+        "Error fetching documents containing this proposal",
+        true
+      );
+    }
+  }
+
+  renderDocumentsContainingModal(data) {
+    const modalHTML = `
+      <div id="containingDocsModal" class="modal" style="display: block;">
+        <div class="modal-content" style="max-width: 1200px;">
+          <span class="close-btn" onclick="document.getElementById('containingDocsModal').remove()">&times;</span>
+          <h2>Tài liệu chứa đề xuất này/Documents Containing This Proposal</h2>
+          
+          <h3>Phiếu mua hàng/Purchasing Documents</h3>
+          <div class="documents-container">
+            ${
+              data.purchasingDocuments.length > 0
+                ? data.purchasingDocuments
+                    .map((doc) => this.renderDocumentCard(doc))
+                    .join("")
+                : "<p>Không có phiếu mua hàng nào chứa đề xuất này/Not appended to any purchasing documents</p>"
+            }
+          </div>
+          
+          <h3>Phiếu xuất kho/Delivery Documents</h3>
+          <div class="documents-container">
+            ${
+              data.deliveryDocuments.length > 0
+                ? data.deliveryDocuments
+                    .map((doc) => this.renderDocumentCard(doc))
+                    .join("")
+                : "<p>Không có Phiếu xuất kho nào chứa đề xuất này/Not appended to any delivery documents</p>"
+            }
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML("beforeend", modalHTML);
+  }
+
+  renderDocumentCard(doc) {
+    return `
+      <div class="document-card">
+        <h4>${
+          doc.title ||
+          (doc.type === "purchasing" ? "Phiếu mua hàng" : "Phiếu xuất kho")
+        }</h4>
+        <div class="document-details">
+          <div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div>
+          <div><strong>Ngày nộp:</strong> ${doc.submissionDate || "-"}</div>
+          <div><strong>Tình trạng:</strong> ${this.renderStatus(
+            doc.status
+          )}</div>
+          <div><strong>Tổng chi phí:</strong> ${
+            doc.grandTotalCost?.toLocaleString() || "-"
+          }</div>
+          <div><strong>Tệp tin:</strong> ${
+            doc.fileMetadata?.link
+              ? `<a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a>`
+              : "-"
+          }</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="window.open('/documentView/${
+          doc._id
+        }', '_blank')">
+          Xem chi tiết
+        </button>
+      </div>
+    `;
+  }
+
+  closeDeclarationModal() {
+    document.getElementById("declarationModal").style.display = "none";
+  }
+
+  closeSuspendModal() {
+    document.getElementById("suspendModal").style.display = "none";
+  }
+
+  closeEditModal() {
+    document.getElementById("editModal").style.display = "none";
   }
 }
 
-// Update window click event to close modals
-window.onclick = function (event) {
-  const fullViewModal = document.getElementById("fullViewModal");
-  const editModal = document.getElementById("editModal");
-  if (event.target === fullViewModal) {
-    closeFullViewModal();
-  }
-  if (event.target === editModal) {
-    closeEditModal();
-  }
-};
-
-// Modify the initialization code
-async function initializePage() {
-  await fetchCurrentUser();
-  // Add toggle switch before the table
-  const table = document.querySelector("table");
-  table.parentElement.insertBefore(createToggleSwitch(), table);
-  // Add toggle event listener
-  document.getElementById("pendingToggle").addEventListener("change", (e) => {
-    showOnlyPendingApprovals = e.target.checked;
-    currentPage = 1; // Reset to first page when filter changes
-    fetchProposalDocuments();
-  });
-
-  // Add pagination toggle event listener
-  document
-    .getElementById("paginationToggle")
-    .addEventListener("change", togglePagination);
-
-  // Initial fetch of documents
-  fetchProposalDocuments();
-}
-
-// Update the DOMContentLoaded event listener
+// Initialize the manager when DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
-  addEditModal();
-  initializePage();
+  window.proposalManager = new ProposalDocumentManager();
 });
