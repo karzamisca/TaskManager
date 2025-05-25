@@ -9,124 +9,170 @@
       rel="stylesheet"
       href="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.css"
     />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
   </head>
   <body>
-    <h1>Phiếu mua hàng/Purchasing Documents</h1>
+    <header class="page-header">
+      <h1>
+        <i class="fas fa-file-invoice-dollar"></i> Phiếu mua hàng/Purchasing
+        Documents
+      </h1>
+      <div class="header-actions">
+        <a href="/documentSummary" class="back-btn">
+          <i class="fas fa-arrow-left"></i> Trở về/Back
+        </a>
+      </div>
+    </header>
+
     <div id="messageContainer" class="message"></div>
 
-    <div style="margin-bottom: 1rem; display: inline-block; margin-left: 1rem">
-      <label
-        for="paginationToggle"
-        style="display: flex; align-items: center; cursor: pointer"
-      >
-        <input
-          type="checkbox"
-          id="paginationToggle"
-          checked
-          style="margin-right: 0.5rem"
-        />
-        <span>Hiển thị phân trang/Enable pagination</span>
-      </label>
-    </div>
+    <div class="control-panel">
+      <div class="control-group">
+        <label class="toggle-switch">
+          <input type="checkbox" id="paginationToggle" checked />
+          <span class="toggle-slider"></span>
+          <span class="toggle-label"
+            >Hiển thị phân trang/Enable pagination</span
+          >
+        </label>
+      </div>
 
-    <div style="margin-bottom: 1rem; display: inline-block; margin-left: 1rem">
-      <label for="costCenterFilter" style="display: flex; align-items: center">
-        <span style="margin-right: 0.5rem"
-          >Lọc theo trạm/Filter by Center:</span
-        >
-        <select id="costCenterFilter" style="padding: 5px">
-          <option value="">Tất cả/All</option>
-          <!-- Options will be populated dynamically -->
-        </select>
-      </label>
-    </div>
+      <div class="control-group">
+        <label for="costCenterFilter">
+          <span>Lọc theo trạm/Filter by Center:</span>
+          <select id="costCenterFilter" class="filter-select">
+            <option value="">Tất cả/All</option>
+            <!-- Options will be populated dynamically -->
+          </select>
+        </label>
+      </div>
 
-    <!-- Add this near the top of the HTML, below the existing filter controls -->
-    <div>
-      <button id="exportSelectedBtn" class="approve-btn">
-        Export Selected to Excel
-      </button>
-      <label>
-        <input type="checkbox" id="selectAllCheckbox" />
-        Chọn tất cả/Select All
-      </label>
-    </div>
-
-    <table>
-      <thead>
-        <tr>
-          <th>Chọn/Select</th>
-          <th>Tên/Name</th>
-          <th>Trạm/Center</th>
-          <th>Sản phẩm/Products</th>
-          <th>Tệp tin kèm theo/Attached File</th>
-          <th>Tổng chi phí/Grand Total Cost</th>
-          <th>Phiếu đề xuất kèm theo/Appended Proposals</th>
-          <th>Tình trạng/Status</th>
-          <th>Trạng thái phê duyệt/Approval Status</th>
-          <th>Hành động/Action</th>
-        </tr>
-      </thead>
-      <tbody id="purchasingDocumentsTable">
-        <!-- Purchasing documents will be populated here -->
-      </tbody>
-    </table>
-
-    <div id="fullViewModal" class="full-view-modal">
-      <div class="full-view-content">
-        <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
-        <h2 style="margin-bottom: 24px">Chi tiết đầy đủ/Full Details</h2>
-        <div id="fullViewContent"></div>
+      <div class="control-group">
+        <label class="toggle-switch">
+          <input type="checkbox" id="pendingToggle" />
+          <span class="toggle-slider"></span>
+          <span class="toggle-label"
+            >Chỉ hiện phiếu tôi cần phê duyệt/Show pending my approval</span
+          >
+        </label>
       </div>
     </div>
 
-    <div id="suspendModal" class="full-view-modal">
-      <div class="full-view-content">
-        <span class="close-btn" onclick="closeSuspendModal()">&times;</span>
-        <h2>Từ chối tài liệu/Suspend Document</h2>
-        <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
-          <div style="margin-bottom: 20px">
+    <div class="export-panel">
+      <button id="exportSelectedBtn" class="btn btn-export">
+        <i class="fas fa-file-excel"></i> Export Selected to Excel
+      </button>
+      <label class="select-all">
+        <input type="checkbox" id="selectAllCheckbox" />
+        <span>Chọn tất cả/Select All</span>
+      </label>
+    </div>
+
+    <div class="table-container">
+      <table id="purchasingDocumentsTable">
+        <thead>
+          <tr>
+            <th width="40px">Chọn/Select</th>
+            <th>Tên/Name</th>
+            <th>Trạm/Center</th>
+            <th>Sản phẩm/Products</th>
+            <th>Tệp tin kèm theo/Attached File</th>
+            <th>Tổng chi phí/Grand Total Cost</th>
+            <th>Phiếu đề xuất kèm theo/Appended Proposals</th>
+            <th>Tình trạng/Status</th>
+            <th>Trạng thái phê duyệt/Approval Status</th>
+            <th>Hành động/Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Purchasing documents will be populated here -->
+        </tbody>
+      </table>
+      <div id="paginationContainer" class="pagination-container"></div>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Đang tải dữ liệu/Loading data...</div>
+    </div>
+
+    <!-- Full View Modal -->
+    <div id="fullViewModal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h2 class="modal-title">
+          <i class="fas fa-file-alt"></i> Chi tiết đầy đủ/Full Details
+        </h2>
+        <div id="fullViewContent" class="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Suspend Modal -->
+    <div id="suspendModal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h2 class="modal-title">
+          <i class="fas fa-ban"></i> Từ chối tài liệu/Suspend Document
+        </h2>
+        <form id="suspendForm" class="modal-form">
+          <div class="form-group">
             <label for="suspendReason">Lý do từ chối/Suspend Reason:</label>
             <textarea
               id="suspendReason"
               required
-              style="width: 100%; padding: 10px"
+              class="form-textarea"
             ></textarea>
           </div>
-          <div style="display: flex; gap: 10px">
-            <button type="submit" class="approve-btn">Từ chối/Suspend</button>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-danger">
+              <i class="fas fa-ban"></i> Từ chối/Suspend
+            </button>
             <button
               type="button"
-              class="approve-btn"
+              class="btn btn-secondary"
               onclick="closeSuspendModal()"
             >
-              Cancel
+              <i class="fas fa-times"></i> Cancel
             </button>
           </div>
         </form>
       </div>
     </div>
 
-    <div class="summary">
-      <h2>Tóm tắt/Summary</h2>
-      <p>
-        Tổng chi phí đã phê duyệt/Total Approved Grand Total Cost:
-        <span id="approvedSum" class="approved">0</span>
-      </p>
-      <p>
-        Tổng chi phí chưa phê duyệt/Total Unapproved Grand Total Cost:
-        <span id="unapprovedSum" class="unapproved">0</span>
-      </p>
-      <p>
-        Số phiếu đã phê duyệt/Total Approved Document:
-        <span id="approvedDocument" class="approved">0</span>
-      </p>
-      <p>
-        Số phiếu chưa phê duyệt/Total Unapproved Document:
-        <span id="unapprovedDocument" class="unapproved">0</span>
-      </p>
+    <!-- Edit Modal (will be added dynamically) -->
+    <!-- Declaration Modal (will be added dynamically) -->
+    <!-- Containing Docs Modal (will be added dynamically) -->
+
+    <div class="summary-panel">
+      <h2><i class="fas fa-chart-pie"></i> Tóm tắt/Summary</h2>
+      <div class="summary-grid">
+        <div class="summary-card approved">
+          <div class="summary-value" id="approvedSum">0</div>
+          <div class="summary-label">
+            Tổng chi phí đã phê duyệt/Total Approved
+          </div>
+        </div>
+        <div class="summary-card unapproved">
+          <div class="summary-value" id="unapprovedSum">0</div>
+          <div class="summary-label">
+            Tổng chi phí chưa phê duyệt/Total Unapproved
+          </div>
+        </div>
+        <div class="summary-card approved">
+          <div class="summary-value" id="approvedDocument">0</div>
+          <div class="summary-label">Số phiếu đã phê duyệt/Total Approved</div>
+        </div>
+        <div class="summary-card unapproved">
+          <div class="summary-value" id="unapprovedDocument">0</div>
+          <div class="summary-label">
+            Số phiếu chưa phê duyệt/Total Unapproved
+          </div>
+        </div>
+      </div>
     </div>
-    <a href="/documentSummary">Trở về/Back</a>
 
     <script src="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.js"></script>
   </body>

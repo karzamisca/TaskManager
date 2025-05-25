@@ -23,6 +23,7 @@ const cron = require("node-cron");
 const axios = require("axios");
 const documentController = require("./controllers/documentController"); // Import the email notification function
 const emailService = require("./utils/emailService"); // Import the email notification function
+const { performDatabaseBackup } = require("./config/dbBackup"); // Import backup functions
 const PaymentDocument = require("./models/DocumentPayment");
 const AdvancePaymentDocument = require("./models/DocumentAdvancePayment");
 const ProjectProposalDocument = require("./models/DocumentProjectProposal");
@@ -69,6 +70,16 @@ app.use((err, req, res, next) => {
     res.send(err.message);
   } else {
     next(err);
+  }
+});
+
+// Database backup cron job
+cron.schedule("0 */8 * * *", async () => {
+  try {
+    await performDatabaseBackup();
+    console.log("Database backup completed successfully");
+  } catch (error) {
+    console.error("Database backup failed:", error.message);
   }
 });
 
