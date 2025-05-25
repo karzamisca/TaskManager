@@ -575,6 +575,35 @@ tr:hover {
   margin-right: 5px;
 }
 
+.message {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 25px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  color: white;
+  z-index: 10000;
+  display: none;
+  max-width: 400px;
+  transform: translateX(0);
+  opacity: 1;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.message.hidden {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.message.error {
+  background-color: var(--danger-color);
+}
+
+.message.success {
+  background-color: var(--primary-color);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .control-panel {

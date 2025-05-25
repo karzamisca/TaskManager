@@ -16,16 +16,31 @@ const state = {
 // Utility functions
 const showMessage = (message, isError = false) => {
   const messageContainer = document.getElementById("messageContainer");
-  messageContainer.textContent = message;
+
+  // Clear any existing timeouts to prevent multiple messages interfering
+  if (messageContainer.timeoutId) {
+    clearTimeout(messageContainer.timeoutId);
+  }
+
+  // Reset the message container
   messageContainer.className = `message ${isError ? "error" : "success"}`;
-
-  const scrollY = window.scrollY || document.documentElement.scrollTop;
-  messageContainer.style.top = `${scrollY + 20}px`;
-
+  messageContainer.textContent = message;
   messageContainer.style.display = "block";
 
-  setTimeout(() => {
-    messageContainer.style.display = "none";
+  // Force reflow to ensure the element is visible before starting animation
+  void messageContainer.offsetWidth;
+
+  // Show with animation
+  messageContainer.classList.remove("hidden");
+
+  // Set timeout to hide after 5 seconds
+  messageContainer.timeoutId = setTimeout(() => {
+    messageContainer.classList.add("hidden");
+
+    // Remove completely after animation completes
+    setTimeout(() => {
+      messageContainer.style.display = "none";
+    }, 300); // Match this with your transition duration
   }, 5000);
 };
 
