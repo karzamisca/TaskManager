@@ -169,6 +169,7 @@ exports.createUser = async (req, res) => {
       insurableSalary,
       currentHolidayDays,
       currentNightShiftDays,
+      travelExpense,
     } = req.body;
 
     const existingUser = await User.findOne({ username });
@@ -192,6 +193,7 @@ exports.createUser = async (req, res) => {
       currentHolidayDays: currentHolidayDays || 0,
       currentNightShiftDays: currentNightShiftDays || 0,
       dependantCount: req.body.dependantCount || 0,
+      travelExpense: travelExpense || 0,
     });
 
     const savedUser = await newUser.save();
@@ -232,6 +234,7 @@ exports.updateUser = async (req, res) => {
       insurableSalary,
       currentHolidayDays,
       currentNightShiftDays,
+      travelExpense,
     } = req.body;
 
     const user = await User.findById(req.params.id);
@@ -265,6 +268,7 @@ exports.updateUser = async (req, res) => {
       user.currentHolidayDays = currentHolidayDays;
     if (currentNightShiftDays !== undefined)
       user.currentNightShiftDays = currentNightShiftDays;
+    if (travelExpense !== undefined) user.travelExpense = travelExpense;
     if (assignedManager) {
       const managerExists = await User.findById(assignedManager);
       if (!managerExists) {

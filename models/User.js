@@ -36,12 +36,14 @@ const userSchema = new mongoose.Schema({
   currentSalary: { type: Number, default: 0 },
   email: { type: String },
   facebookUserId: { type: String },
-
   // For tax calculation
   tax: { type: Number, default: 0 },
   grossSalary: { type: Number, default: 0 },
   dependantCount: { type: Number, default: 0 },
   taxableIncome: { type: Number, default: 0 },
+
+  // Travel Expense Fields
+  travelExpense: { type: Number, default: 0 },
 });
 
 // Pre-save hook to generate password and calculate salary/tax
@@ -55,7 +57,8 @@ userSchema.pre("save", function (next) {
   this.grossSalary =
     this.baseSalary +
     this.holidayBonusPerDay * this.currentHolidayDays +
-    this.nightShiftBonusPerDay * this.currentNightShiftDays;
+    this.nightShiftBonusPerDay * this.currentNightShiftDays +
+    this.travelExpense; // Add travel expense to gross salary
 
   // Calculate mandatory insurance according to Vietnamese law
   // Social Insurance (8%), Health Insurance (1.5%), Unemployment Insurance (1%)
@@ -63,6 +66,7 @@ userSchema.pre("save", function (next) {
 
   // Vietnam has both minimum salary and regional minimum salary
   const minimumSalary = 2340000; // Basic minimum salary in VND
+
   // Vietnam has 4 regional minimum salary levels based on location
   // Using the highest regional minimum salary (Region I - currently 4,680,000 VND) for the cap calculation
   const regionalMinSalary = 4960000; // Region I minimum salary in VND
@@ -113,6 +117,7 @@ userSchema.pre("save", function (next) {
 
   // Ensure tax isn't negative (can happen with rounding errors)
   this.tax = Math.max(0, Math.round(tax));
+
   this.currentSalary = this.grossSalary - this.mandatoryInsurance - this.tax;
 
   next();

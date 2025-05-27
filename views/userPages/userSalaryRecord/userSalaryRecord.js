@@ -131,7 +131,7 @@ function renderUsers() {
         );
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;">No users found</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="17" style="text-align:center;">No users found</td></tr>`;
     return;
   }
 
@@ -146,6 +146,7 @@ function renderUsers() {
       <td>${user.currentNightShiftDays}</td>
       <td>${user.holidayBonusPerDay.toLocaleString()}</td>
       <td>${user.nightShiftBonusPerDay.toLocaleString()}</td>
+      <td>${user.travelExpense.toLocaleString()}</td>
       <td>${user.grossSalary.toLocaleString()}</td>
       <td>${user.insurableSalary.toLocaleString()}</td>
       <td>${user.mandatoryInsurance.toLocaleString()}</td>
@@ -190,6 +191,9 @@ async function addUser(e) {
     nightShiftBonusPerDay: parseFloat(
       document.getElementById("new-night-shift-bonus").value
     ),
+    travelExpense: parseFloat(
+      document.getElementById("new-travel-expense").value
+    ),
     insurableSalary: parseFloat(
       document.getElementById("new-insurable-salary").value
     ),
@@ -231,6 +235,7 @@ async function editUser(id) {
   document.getElementById("edit-holiday-bonus").value = user.holidayBonusPerDay;
   document.getElementById("edit-night-shift-bonus").value =
     user.nightShiftBonusPerDay;
+  document.getElementById("edit-travel-expense").value = user.travelExpense;
   document.getElementById("edit-insurable-salary").value = user.insurableSalary;
   document.getElementById("edit-dependant-count").value = user.dependantCount;
 
@@ -277,6 +282,9 @@ async function updateUser(e) {
     ),
     nightShiftBonusPerDay: parseFloat(
       document.getElementById("edit-night-shift-bonus").value
+    ),
+    travelExpense: parseFloat(
+      document.getElementById("edit-travel-expense").value
     ),
     insurableSalary: parseFloat(
       document.getElementById("edit-insurable-salary").value
