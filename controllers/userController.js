@@ -85,7 +85,7 @@ exports.getManagers = async (req, res) => {
 // Get all users except privileged roles
 exports.getAllUsers = async (req, res) => {
   try {
-    const privilegedRoles = ["superAdmin", "deputyDirector", "director"];
+    const privilegedRoles = ["superAdmin", "director"];
 
     // Always exclude privileged roles from results
     const baseQuery = {
