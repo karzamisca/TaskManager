@@ -1,0 +1,158 @@
+// utils/userMonthlyRecord.js
+const User = require("../models/User");
+const MonthlyUserRecord = require("../models/UserMonthlyRecord");
+
+/**
+ * Create monthly records for all users
+ * @param {Date} recordDate - The date for which to create records (defaults to current date)
+ * @returns {Object} Summary of the operation
+ */
+async function createMonthlyUserRecords(recordDate = new Date()) {
+  try {
+    const month = recordDate.getMonth() + 1; // JavaScript months are 0-indexed
+    const year = recordDate.getFullYear();
+
+    // Get all users
+    const users = await User.find({}).populate("costCenter assignedManager");
+
+    if (users.length === 0) {
+      return {
+        success: true,
+        message: "No users found",
+        recordsCreated: 0,
+        recordsSkipped: 0,
+        errors: [],
+      };
+    }
+
+    let recordsCreated = 0;
+    let recordsSkipped = 0;
+    const errors = [];
+
+    // Process each user
+    for (const user of users) {
+      try {
+        // Check if record already exists for this user/month/year
+        const existingRecord = await MonthlyUserRecord.findOne({
+          userId: user._id,
+          recordMonth: month,
+          recordYear: year,
+        });
+
+        if (existingRecord) {
+          recordsSkipped++;
+          continue;
+        }
+
+        // Create new monthly record
+        const monthlyRecord = new MonthlyUserRecord({
+          userId: user._id,
+          recordDate: recordDate,
+          recordMonth: month,
+          recordYear: year,
+
+          // Copy user data
+          username: user.username,
+          role: user.role,
+          department: user.department,
+          email: user.email,
+          costCenter: user.costCenter,
+          assignedManager: user.assignedManager,
+
+          // Copy salary data
+          baseSalary: user.baseSalary,
+          holidayBonusPerDay: user.holidayBonusPerDay,
+          nightShiftBonusPerDay: user.nightShiftBonusPerDay,
+          insurableSalary: user.insurableSalary,
+          mandatoryInsurance: user.mandatoryInsurance,
+          currentHolidayDays: user.currentHolidayDays,
+          currentNightShiftDays: user.currentNightShiftDays,
+          currentSalary: user.currentSalary,
+          grossSalary: user.grossSalary,
+
+          // Copy tax data
+          tax: user.tax,
+          dependantCount: user.dependantCount,
+          taxableIncome: user.taxableIncome,
+
+          // Copy travel expenses
+          travelExpense: user.travelExpense,
+        });
+
+        await monthlyRecord.save();
+        recordsCreated++;
+      } catch (userError) {
+        errors.push({
+          username: user.username,
+          error: userError.message,
+        });
+      }
+    }
+
+    const summary = {
+      success: true,
+      message: `Monthly user records creation completed for ${month}/${year}`,
+      recordsCreated,
+      recordsSkipped,
+      totalUsers: users.length,
+      errors,
+    };
+
+    return summary;
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message,
+      recordsCreated: 0,
+      recordsSkipped: 0,
+      errors: [{ general: error.message }],
+    };
+  }
+}
+
+/**
+ * Get monthly records for a specific month and year
+ * @param {number} month - Month (1-12)
+ * @param {number} year - Year
+ * @returns {Array} Array of monthly user records
+ */
+async function getMonthlyRecords(month, year) {
+  try {
+    const records = await MonthlyUserRecord.find({
+      recordMonth: month,
+      recordYear: year,
+    })
+      .populate("userId", "username email")
+      .populate("costCenter", "name")
+      .populate("assignedManager", "username")
+      .sort({ username: 1 });
+
+    return records;
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
+ * Get all records for a specific user
+ * @param {string} userId - User ID
+ * @returns {Array} Array of monthly records for the user
+ */
+async function getUserMonthlyHistory(userId) {
+  try {
+    const records = await MonthlyUserRecord.find({ userId })
+      .populate("costCenter", "name")
+      .populate("assignedManager", "username")
+      .sort({ recordYear: -1, recordMonth: -1 });
+
+    return records;
+  } catch (error) {
+    throw error;
+  }
+}
+
+module.exports = {
+  createMonthlyUserRecords,
+  getMonthlyRecords,
+  getUserMonthlyHistory,
+};

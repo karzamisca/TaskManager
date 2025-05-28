@@ -24,6 +24,7 @@ const axios = require("axios");
 const documentController = require("./controllers/documentController"); // Import the email notification function
 const emailService = require("./utils/emailService"); // Import the email notification function
 const { performDatabaseBackup } = require("./config/dbBackup"); // Import backup functions
+const { createMonthlyUserRecords } = require("./utils/userMonthlyRecord"); // Import monthly record functions
 const PaymentDocument = require("./models/DocumentPayment");
 const AdvancePaymentDocument = require("./models/DocumentAdvancePayment");
 const ProjectProposalDocument = require("./models/DocumentProjectProposal");
@@ -70,6 +71,16 @@ app.use((err, req, res, next) => {
     res.send(err.message);
   } else {
     next(err);
+  }
+});
+
+// Monthly user records cron job - runs on the 1st day of every month at 2:00 AM
+cron.schedule("0 2 1 * *", async () => {
+  try {
+    const result = await createMonthlyUserRecords();
+    // Silent execution - results are captured in the returned object
+  } catch (error) {
+    // Silent error handling - could log to a file or external service if needed
   }
 });
 
