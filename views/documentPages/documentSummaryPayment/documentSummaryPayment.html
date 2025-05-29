@@ -1,4 +1,4 @@
-<!-- views\documentPages\documentSummaryPayment\documentSummaryPayment.html -->
+<!-- views/documentPages/documentSummaryPayment/documentSummaryPayment.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -9,160 +9,282 @@
       rel="stylesheet"
       href="documentPages/documentSummaryPayment/documentSummaryPayment.css"
     />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
   </head>
   <body>
-    <h1>Phiếu thanh toán/Payment Documents</h1>
-    <div id="messageContainer" class="message"></div>
-
-    <div style="margin-bottom: 1rem; display: inline-block; margin-left: 1rem">
-      <label
-        for="paginationToggle"
-        style="display: flex; align-items: center; cursor: pointer"
-      >
-        <input
-          type="checkbox"
-          id="paginationToggle"
-          checked
-          style="margin-right: 0.5rem"
-        />
-        <span>Hiển thị phân trang/Enable pagination</span>
-      </label>
-    </div>
-
-    <div style="margin-bottom: 1rem">
-      <label for="groupFilter">Lọc theo nhóm/Filter by Group:</label>
-      <select
-        id="groupFilter"
-        onchange="filterByGroup()"
-        style="margin-left: 0.5rem; padding: 4px 8px"
-      >
-        <option value="">Tất cả nhóm/All Groups</option>
-        <!-- Groups will be populated dynamically -->
-      </select>
-    </div>
-
-    <div>
-      <button class="approve-btn" onclick="openMassDeclarationModal()">
-        Cập nhật kê khai hàng loạt/Mass Declaration Update
-      </button>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th>
-            <input type="checkbox" id="selectAll" onclick="toggleSelectAll()" />
-          </th>
-          <th>Mã/Tag</th>
-          <th>Nội dung/Content</th>
-          <th>Phương thức trả tiền/Payment Method</th>
-          <th>Tổng thanh toán/Total Payment</th>
-          <th>Hạn trả/Payment Deadline</th>
-          <th>Tình trạng/Status</th>
-          <th>Trạng thái phê duyệt/Approval Status</th>
-          <th>Hành động/Action</th>
-        </tr>
-      </thead>
-      <tbody id="paymentDocumentsTable">
-        <!-- Payment documents will be populated here -->
-      </tbody>
-    </table>
-
-    <div id="fullViewModal" class="full-view-modal">
-      <div class="full-view-content">
-        <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
-        <h2 style="margin-bottom: 24px">Chi tiết đầy đủ/Full Details</h2>
-        <div id="fullViewContent"></div>
-      </div>
-    </div>
-
-    <div id="suspendModal" class="full-view-modal">
-      <div class="full-view-content">
-        <span class="close-btn" onclick="closeSuspendModal()">&times;</span>
-        <h2>Từ chối tài liệu/Suspend Document</h2>
-        <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
-          <div style="margin-bottom: 20px">
-            <label for="suspendReason">Lý do từ chối/Suspend Reason:</label>
-            <textarea
-              id="suspendReason"
-              required
-              style="width: 100%; padding: 10px"
-            ></textarea>
+    <div class="page-container">
+      <header class="page-header">
+        <h1>
+          <i class="fas fa-file-invoice-dollar"></i> Phiếu thanh toán/Payment
+          Documents
+        </h1>
+        <div class="header-controls">
+          <div class="pagination-toggle">
+            <label for="paginationToggle">
+              <input type="checkbox" id="paginationToggle" checked />
+              <span>Hiển thị phân trang/Enable pagination</span>
+            </label>
           </div>
-          <div style="display: flex; gap: 10px">
-            <button type="submit" class="approve-btn">Từ chối/Suspend</button>
-            <button
-              type="button"
-              class="approve-btn"
-              onclick="closeSuspendModal()"
+          <div class="group-filter">
+            <label for="groupFilter">Lọc theo nhóm/Filter by Group:</label>
+            <select id="groupFilter" onchange="filterByGroup()">
+              <option value="">Tất cả nhóm/All Groups</option>
+              <!-- Groups will be populated dynamically -->
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="openMassDeclarationModal()">
+            <i class="fas fa-clipboard-list"></i> Cập nhật kê khai hàng
+            loạt/Mass Declaration
+          </button>
+        </div>
+      </header>
+
+      <div id="messageContainer" class="message"></div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>
+                <input
+                  type="checkbox"
+                  id="selectAll"
+                  onclick="toggleSelectAll()"
+                />
+              </th>
+              <th>Mã/Tag</th>
+              <th>Nội dung/Content</th>
+              <th>Phương thức trả tiền/Payment Method</th>
+              <th>Tổng thanh toán/Total Payment</th>
+              <th>Hạn trả/Payment Deadline</th>
+              <th>Tình trạng/Status</th>
+              <th>Trạng thái phê duyệt/Approval Status</th>
+              <th>Hành động/Action</th>
+            </tr>
+          </thead>
+          <tbody id="paymentDocumentsTable">
+            <!-- Payment documents will be populated here -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Full View Modal -->
+      <div id="fullViewModal" class="modal">
+        <div class="modal-content">
+          <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
+          <h2><i class="fas fa-file-alt"></i> Chi tiết đầy đủ/Full Details</h2>
+          <div id="fullViewContent"></div>
+        </div>
+      </div>
+
+      <!-- Suspend Modal -->
+      <div id="suspendModal" class="modal">
+        <div class="modal-content narrow">
+          <span class="close-btn" onclick="closeSuspendModal()">&times;</span>
+          <h2><i class="fas fa-ban"></i> Từ chối tài liệu/Suspend Document</h2>
+          <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
+            <div class="form-group">
+              <label for="suspendReason">Lý do từ chối/Suspend Reason:</label>
+              <textarea id="suspendReason" required></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-danger">
+                <i class="fas fa-ban"></i> Từ chối/Suspend
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="closeSuspendModal()"
+              >
+                <i class="fas fa-times"></i> Hủy/Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Mass Declaration Modal -->
+      <div id="massDeclarationModal" class="modal">
+        <div class="modal-content narrow">
+          <span class="close-btn" onclick="closeMassDeclarationModal()"
+            >&times;</span
+          >
+          <h2>
+            <i class="fas fa-clipboard-list"></i> Cập nhật kê khai hàng
+            loạt/Mass Declaration Update
+          </h2>
+          <form
+            id="massDeclarationForm"
+            onsubmit="handleMassDeclarationSubmit(event)"
+          >
+            <div class="form-group">
+              <label for="massDeclarationInput">Kê khai/Declaration:</label>
+              <textarea id="massDeclarationInput" required></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Cập nhật/Update
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="closeMassDeclarationModal()"
+              >
+                <i class="fas fa-times"></i> Hủy/Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Summary Section -->
+      <div class="summary-card">
+        <h2><i class="fas fa-chart-pie"></i> Tóm tắt/Summary</h2>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <span class="summary-label">Số tiền đã chi/Paid Amount:</span>
+            <span id="paidSum" class="summary-value approved">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label"
+              >Số tiền đã phê duyệt/Total Approved Amount:</span
             >
-              Cancel
-            </button>
+            <span id="approvedSum" class="summary-value approved">0</span>
           </div>
-        </form>
-      </div>
-    </div>
-
-    <div id="massDeclarationModal" class="full-view-modal">
-      <div class="full-view-content">
-        <span class="close-btn" onclick="closeMassDeclarationModal()"
-          >&times;</span
-        >
-        <h2>Cập nhật kê khai hàng loạt/Mass Declaration Update</h2>
-        <form
-          id="massDeclarationForm"
-          onsubmit="handleMassDeclarationSubmit(event)"
-        >
-          <div style="margin-bottom: 20px">
-            <label for="massDeclarationInput">Kê khai/Declaration:</label>
-            <textarea
-              id="massDeclarationInput"
-              required
-              style="
-                width: 100%;
-                min-height: 100px;
-                padding: 10px;
-                font-size: 16px;
-              "
-            ></textarea>
-          </div>
-          <div style="display: flex; gap: 10px">
-            <button type="submit" class="approve-btn">Cập nhật/Update</button>
-            <button
-              type="button"
-              class="approve-btn"
-              onclick="closeMassDeclarationModal()"
+          <div class="summary-item">
+            <span class="summary-label"
+              >Số tiền chưa phê duyệt/Total Unapproved Amount:</span
             >
-              Hủy/Cancel
-            </button>
+            <span id="unapprovedSum" class="summary-value unapproved">0</span>
           </div>
-        </form>
+          <div class="summary-item">
+            <span class="summary-label"
+              >Số phiếu đã phê duyệt/Total Approved Document:</span
+            >
+            <span id="approvedDocument" class="summary-value approved">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label"
+              >Số phiếu chưa phê duyệt/Total Unapproved Document:</span
+            >
+            <span id="unapprovedDocument" class="summary-value unapproved"
+              >0</span
+            >
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="summary">
-      <h2>Tóm tắt/Summary</h2>
-      <p>
-        Số tiền đã chi/Paid Amount:
-        <span id="paidSum" class="approved">0</span>
-      </p>
-      <p>
-        Số tiền đã phê duyệt/Total Approved Amount:
-        <span id="approvedSum" class="approved">0</span>
-      </p>
-      <p>
-        Số tiền chưa phê duyệt/Total Unapproved Amount:
-        <span id="unapprovedSum" class="unapproved">0</span>
-      </p>
-      <p>
-        Số phiếu đã phê duyệt/Total Approved Document:
-        <span id="approvedDocument" class="approved">0</span>
-      </p>
-      <p>
-        Số phiếu chưa phê duyệt/Total Unapproved Document:
-        <span id="unapprovedDocument" class="unapproved">0</span>
-      </p>
+      <!-- Edit Modal -->
+      <div id="editModal" class="modal">
+        <div class="modal-content">
+          <span class="close-btn" onclick="closeEditModal()">&times;</span>
+          <h2>
+            <i class="fas fa-edit"></i> Chỉnh sửa phiếu thanh toán/Edit Payment
+            Document
+          </h2>
+          <form id="editForm" onsubmit="handleEditSubmit(event)">
+            <input type="hidden" id="editDocId" />
+
+            <div class="form-group">
+              <label for="editName">Tên/Name:</label>
+              <input type="text" id="editName" required />
+            </div>
+
+            <div class="form-group">
+              <label for="editContent">Nội dung/Content:</label>
+              <textarea id="editContent" required></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="editCostCenter">Trạm/Cost Center:</label>
+              <select id="editCostCenter">
+                <option value="">Chọn một trạm/Select a center</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="editPaymentMethod"
+                >Hình thức thanh toán/Payment Method:</label
+              >
+              <input type="text" id="editPaymentMethod" required />
+            </div>
+
+            <div class="form-group">
+              <label for="editTotalPayment"
+                >Tổng thanh toán/Total Payment:</label
+              >
+              <input type="number" id="editTotalPayment" required />
+            </div>
+
+            <div class="form-group">
+              <label for="editDeadline"
+                >Hạn thanh toán/Payment Deadline (DD-MM-YYYY):</label
+              >
+              <input
+                type="text"
+                id="editDeadline"
+                required
+                placeholder="DD/MM/YYYY"
+                pattern="(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[012])-[0-9]{4}"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="editFile">Thay tệp tin mới/Update File:</label>
+              <input type="file" id="editFile" />
+            </div>
+
+            <div class="form-group">
+              <label>Người phê duyệt hiện tại/Current Approvers:</label>
+              <div id="currentApproversList"></div>
+            </div>
+
+            <div class="form-group">
+              <label>Thêm người phê duyệt/Add Approvers:</label>
+              <select id="newApproversDropdown">
+                <option value="">
+                  Chọn người phê duyệt/Select an approver
+                </option>
+              </select>
+              <input
+                type="text"
+                id="newApproverSubRole"
+                placeholder="Vai trò/Sub Role"
+              />
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="addNewApprover()"
+              >
+                <i class="fas fa-plus"></i> Thêm/Add
+              </button>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Lưu thay đổi/Save Changes
+              </button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="closeEditModal()"
+              >
+                <i class="fas fa-times"></i> Hủy/Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <footer class="page-footer">
+        <a href="/documentSummary" class="btn btn-back">
+          <i class="fas fa-arrow-left"></i> Trở về/Back
+        </a>
+      </footer>
     </div>
-    <a href="/documentSummary">Trở về/Back</a>
 
     <script src="documentPages/documentSummaryPayment/documentSummaryPayment.js"></script>
   </body>
