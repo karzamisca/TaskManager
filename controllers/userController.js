@@ -1,5 +1,6 @@
 //controllers\userController.js
 const User = require("../models/User");
+const UserMonthlyRecord = require("../models/UserMonthlyRecord");
 const CostCenter = require("../models/CostCenter");
 
 exports.getUserMainPage = (req, res) => {
@@ -30,7 +31,7 @@ exports.getUserMainPage = (req, res) => {
   }
 };
 
-exports.getUserSalaryRecordPage = (req, res) => {
+exports.getUserSalaryCalculationPage = (req, res) => {
   try {
     if (
       ![
@@ -49,8 +50,8 @@ exports.getUserSalaryRecordPage = (req, res) => {
         "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
       );
     }
-    res.sendFile("userSalaryRecord.html", {
-      root: "./views/userPages/userSalaryRecord",
+    res.sendFile("userSalaryCalculation.html", {
+      root: "./views/userPages/userSalaryCalculation",
     });
   } catch (error) {
     console.error("Error serving the user's salary page:", error);
@@ -356,5 +357,46 @@ exports.getAllCostCenters = async (req, res) => {
     res.json(sortedCostCenters);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getUserMonthlyRecordPage = (req, res) => {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+        "headOfNorthernRepresentativeOffice",
+      ].includes(req.user.role)
+    ) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+      );
+    }
+    res.sendFile("userMonthlyRecord.html", {
+      root: "./views/userPages/userMonthlyRecord",
+    });
+  } catch (error) {
+    console.error("Error serving the user main page:", error);
+    res.send("Server error");
+  }
+};
+exports.getAllUserMonthlyRecord = async (req, res) => {
+  try {
+    const records = await UserMonthlyRecord.find()
+      .populate("userId", "username")
+      .populate("costCenter", "name")
+      .populate("assignedManager", "username")
+      .sort({ recordYear: -1, recordMonth: -1 });
+
+    res.json(records);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

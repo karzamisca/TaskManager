@@ -6,9 +6,9 @@ const authMiddleware = require("../middlewares/authMiddleware");
 
 router.get("/userMain", authMiddleware, userController.getUserMainPage);
 router.get(
-  "/userSalaryRecord",
+  "/userSalaryCalculation",
   authMiddleware,
-  userController.getUserSalaryRecordPage
+  userController.getUserSalaryCalculationPage
 );
 router.get("/userControl", authMiddleware, userController.getAllUsers);
 router.get("/userControl/:id", authMiddleware, userController.getUserById);
@@ -21,5 +21,16 @@ router.get(
   userController.getAllCostCenters
 );
 router.get("/userControlManagers", authMiddleware, userController.getManagers);
+
+router.get(
+  "/userMonthlyRecord",
+  authMiddleware,
+  userController.getUserMonthlyRecordPage
+);
+router.get(
+  "/userMonthlyRecordGet",
+  authMiddleware,
+  userController.getAllUserMonthlyRecord
+);
 
 module.exports = router;

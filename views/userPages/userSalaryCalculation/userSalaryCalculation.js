@@ -1,4 +1,4 @@
-//views\userPages\userSalaryRecord\userSalaryRecord.js
+//views\userPages\userSalaryCalculation\userSalaryCalculation.js
 document.addEventListener("DOMContentLoaded", function () {
   // Load initial data
   loadCostCentersAndManagers();

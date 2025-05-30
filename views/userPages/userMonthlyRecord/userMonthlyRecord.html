@@ -1,0 +1,83 @@
+<!-- views\userPages\userMonthlyRecord\userMonthlyRecord.html -->
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Xem Bản Ghi Hàng Tháng</title>
+    <link
+      rel="stylesheet"
+      href="userPages/userMonthlyRecord/userMonthlyRecord.css"
+    />
+  </head>
+  <body>
+    <a href="/userMain">Trở về/Back</a>
+    <div class="container">
+      <h1>Xem Bản Ghi Lương Hàng Tháng</h1>
+
+      <div class="filters">
+        <div>
+          <label for="yearFilter">Năm:</label>
+          <select id="yearFilter">
+            <option value="">Tất cả năm</option>
+          </select>
+        </div>
+        <div>
+          <label for="monthFilter">Tháng:</label>
+          <select id="monthFilter">
+            <option value="">Tất cả tháng</option>
+            <option value="1">Tháng 1</option>
+            <option value="2">Tháng 2</option>
+            <option value="3">Tháng 3</option>
+            <option value="4">Tháng 4</option>
+            <option value="5">Tháng 5</option>
+            <option value="6">Tháng 6</option>
+            <option value="7">Tháng 7</option>
+            <option value="8">Tháng 8</option>
+            <option value="9">Tháng 9</option>
+            <option value="10">Tháng 10</option>
+            <option value="11">Tháng 11</option>
+            <option value="12">Tháng 12</option>
+          </select>
+        </div>
+        <div>
+          <label for="costCenterFilter">Trung tâm chi phí:</label>
+          <select id="costCenterFilter">
+            <option value="">Tất cả trung tâm</option>
+          </select>
+        </div>
+        <button id="applyFilters">Áp dụng</button>
+        <button id="resetFilters">Đặt lại</button>
+      </div>
+
+      <div id="loading" class="loading">Đang tải dữ liệu...</div>
+
+      <table id="recordsTable">
+        <thead>
+          <tr>
+            <th>Nhân viên</th>
+            <th>Tháng/Năm</th>
+            <th>Lương cơ bản</th>
+            <th>Tổng lương</th>
+            <th>Thuế</th>
+            <th>Trung tâm chi phí</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="recordsBody"></tbody>
+      </table>
+
+      <div class="pagination" id="pagination"></div>
+    </div>
+
+    <!-- Modal for record details -->
+    <div id="recordModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="modalContent"></div>
+      </div>
+    </div>
+
+    <script src="userPages/userMonthlyRecord/userMonthlyRecord.js"></script>
+  </body>
+</html>

@@ -85,6 +85,9 @@ nav ul li a {
 a.salary {
   background-color: #3498db;
 }
+a.record {
+  background-color: #b434db;
+}
 
 nav ul li a:hover {
   transform: scale(1.05);
@@ -124,6 +127,10 @@ nav ul li a:hover {
   }
 
   a.salary {
+    color: #f1f1f1;
+    background-color: #555;
+  }
+  a.record {
     color: #f1f1f1;
     background-color: #555;
   }
