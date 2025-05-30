@@ -164,6 +164,7 @@ exports.createUser = async (req, res) => {
       costCenter,
       assignedManager,
       baseSalary,
+      commissionBonus,
       holidayBonusPerDay,
       nightShiftBonusPerDay,
       insurableSalary,
@@ -187,6 +188,7 @@ exports.createUser = async (req, res) => {
       costCenter,
       assignedManager,
       baseSalary,
+      commissionBonus: commissionBonus || 0,
       holidayBonusPerDay: holidayBonusPerDay || 0,
       nightShiftBonusPerDay: nightShiftBonusPerDay || 0,
       insurableSalary: insurableSalary || 0,
@@ -229,6 +231,7 @@ exports.updateUser = async (req, res) => {
       costCenter,
       assignedManager,
       baseSalary,
+      commissionBonus,
       holidayBonusPerDay,
       nightShiftBonusPerDay,
       insurableSalary,
@@ -259,6 +262,9 @@ exports.updateUser = async (req, res) => {
     }
 
     if (baseSalary !== undefined) user.baseSalary = baseSalary;
+    if (commissionBonus !== undefined) {
+      user.commissionBonus = commissionBonus;
+    }
     if (holidayBonusPerDay !== undefined)
       user.holidayBonusPerDay = holidayBonusPerDay;
     if (nightShiftBonusPerDay !== undefined)

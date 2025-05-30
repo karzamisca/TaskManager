@@ -27,6 +27,7 @@ const userSchema = new mongoose.Schema({
     ref: "User",
   },
   baseSalary: { type: Number, default: 0 },
+  commissionBonus: { type: Number, default: 0 },
   holidayBonusPerDay: { type: Number, default: 0 },
   nightShiftBonusPerDay: { type: Number, default: 0 },
   insurableSalary: { type: Number, default: 0 },
@@ -58,7 +59,8 @@ userSchema.pre("save", function (next) {
     this.baseSalary +
     this.holidayBonusPerDay * this.currentHolidayDays +
     this.nightShiftBonusPerDay * this.currentNightShiftDays +
-    this.travelExpense; // Add travel expense to gross salary
+    this.travelExpense +
+    this.commissionBonus;
 
   // Calculate mandatory insurance according to Vietnamese law
   // Social Insurance (8%), Health Insurance (1.5%), Unemployment Insurance (1%)

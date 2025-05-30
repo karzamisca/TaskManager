@@ -43,6 +43,7 @@ const monthlyUserRecordSchema = new mongoose.Schema(
 
     // Salary information
     baseSalary: { type: Number, default: 0 },
+    commissionBonus: { type: Number, default: 0 },
     holidayBonusPerDay: { type: Number, default: 0 },
     nightShiftBonusPerDay: { type: Number, default: 0 },
     insurableSalary: { type: Number, default: 0 },

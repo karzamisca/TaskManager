@@ -142,6 +142,7 @@ function renderUsers() {
       <td>${user.costCenter ? user.costCenter.name : "N/A"}</td>
       <td>${user.assignedManager ? user.assignedManager.username : "N/A"}</td>
       <td>${user.baseSalary.toLocaleString()}</td>
+      <td>${user.commissionBonus.toLocaleString()}</td>
       <td>${user.currentHolidayDays}</td>
       <td>${user.currentNightShiftDays}</td>
       <td>${user.holidayBonusPerDay.toLocaleString()}</td>
@@ -179,6 +180,9 @@ async function addUser(e) {
     assignedManager:
       document.getElementById("new-assigned-manager").value || undefined,
     baseSalary: parseFloat(document.getElementById("new-base-salary").value),
+    commissionBonus: parseFloat(
+      document.getElementById("new-commission-bonus").value
+    ),
     currentHolidayDays: parseInt(
       document.getElementById("new-holiday-days").value
     ),
@@ -229,6 +233,7 @@ async function editUser(id) {
   document.getElementById("edit-user-id").value = user._id;
   document.getElementById("edit-username").value = user.username;
   document.getElementById("edit-base-salary").value = user.baseSalary;
+  document.getElementById("edit-commission-bonus").value = user.commissionBonus;
   document.getElementById("edit-holiday-days").value = user.currentHolidayDays;
   document.getElementById("edit-night-shift-days").value =
     user.currentNightShiftDays;
@@ -271,6 +276,9 @@ async function updateUser(e) {
     assignedManager:
       document.getElementById("edit-assigned-manager").value || undefined,
     baseSalary: parseFloat(document.getElementById("edit-base-salary").value),
+    commissionBonus: parseFloat(
+      document.getElementById("edit-commission-bonus").value
+    ),
     currentHolidayDays: parseInt(
       document.getElementById("edit-holiday-days").value
     ),
