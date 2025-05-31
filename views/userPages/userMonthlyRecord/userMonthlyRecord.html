@@ -4,27 +4,50 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Xem Bản Ghi Hàng Tháng</title>
+    <meta
+      name="description"
+      content="Xem và quản lý bản ghi lương hàng tháng của nhân viên"
+    />
+    <title>Bản Ghi Hàng Tháng</title>
     <link
       rel="stylesheet"
       href="userPages/userMonthlyRecord/userMonthlyRecord.css"
     />
+
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
   </head>
   <body>
-    <a href="/userMain">Trở về/Back</a>
-    <div class="container">
-      <h1>Xem Bản Ghi Lương Hàng Tháng</h1>
+    <!-- Navigation -->
+    <nav>
+      <a href="/userMain" class="nav-back" aria-label="Quay lại trang chủ">
+        ← Trở về/Back
+      </a>
+    </nav>
 
-      <div class="filters">
-        <div>
+    <!-- Main Container -->
+    <div class="container">
+      <!-- Page Header -->
+      <header>
+        <h1>Xem Bản Ghi Lương Hàng Tháng</h1>
+      </header>
+
+      <!-- Filters Section -->
+      <section class="filters" role="search" aria-label="Bộ lọc tìm kiếm">
+        <div class="filter-group">
           <label for="yearFilter">Năm:</label>
-          <select id="yearFilter">
+          <select id="yearFilter" aria-describedby="year-help">
             <option value="">Tất cả năm</option>
           </select>
+          <small id="year-help" class="sr-only">Chọn năm để lọc bản ghi</small>
         </div>
-        <div>
+
+        <div class="filter-group">
           <label for="monthFilter">Tháng:</label>
-          <select id="monthFilter">
+          <select id="monthFilter" aria-describedby="month-help">
             <option value="">Tất cả tháng</option>
             <option value="1">Tháng 1</option>
             <option value="2">Tháng 2</option>
@@ -39,45 +62,148 @@
             <option value="11">Tháng 11</option>
             <option value="12">Tháng 12</option>
           </select>
+          <small id="month-help" class="sr-only"
+            >Chọn tháng để lọc bản ghi</small
+          >
         </div>
-        <div>
+
+        <div class="filter-group">
           <label for="costCenterFilter">Trung tâm chi phí:</label>
-          <select id="costCenterFilter">
+          <select id="costCenterFilter" aria-describedby="cost-center-help">
             <option value="">Tất cả trung tâm</option>
           </select>
+          <small id="cost-center-help" class="sr-only"
+            >Chọn trung tâm chi phí để lọc bản ghi</small
+          >
         </div>
-        <button id="applyFilters">Áp dụng</button>
-        <button id="resetFilters">Đặt lại</button>
+
+        <div class="filter-group">
+          <button id="applyFilters" type="button" aria-describedby="apply-help">
+            Áp dụng
+          </button>
+          <small id="apply-help" class="sr-only"
+            >Áp dụng các bộ lọc đã chọn</small
+          >
+        </div>
+
+        <div class="filter-group">
+          <button
+            id="resetFilters"
+            type="button"
+            class="btn-secondary"
+            aria-describedby="reset-help"
+          >
+            Đặt lại
+          </button>
+          <small id="reset-help" class="sr-only">Xóa tất cả bộ lọc</small>
+        </div>
+      </section>
+
+      <!-- Loading Indicator -->
+      <div id="loading" class="loading" role="status" aria-live="polite">
+        Đang tải dữ liệu...
       </div>
 
-      <div id="loading" class="loading">Đang tải dữ liệu...</div>
+      <!-- Data Table -->
+      <main>
+        <div class="table-container">
+          <table
+            id="recordsTable"
+            role="table"
+            aria-label="Bảng bản ghi lương hàng tháng"
+          >
+            <thead>
+              <tr role="row">
+                <th scope="col" role="columnheader">Nhân viên</th>
+                <th scope="col" role="columnheader">Tháng/Năm</th>
+                <th scope="col" role="columnheader">Lương cơ bản</th>
+                <th scope="col" role="columnheader">Tổng lương</th>
+                <th scope="col" role="columnheader">Thuế</th>
+                <th scope="col" role="columnheader">Trung tâm chi phí</th>
+                <th scope="col" role="columnheader">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="recordsBody" role="rowgroup">
+              <!-- Table rows will be populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
 
-      <table id="recordsTable">
-        <thead>
-          <tr>
-            <th>Nhân viên</th>
-            <th>Tháng/Năm</th>
-            <th>Lương cơ bản</th>
-            <th>Tổng lương</th>
-            <th>Thuế</th>
-            <th>Trung tâm chi phí</th>
-            <th>Thao tác</th>
-          </tr>
-        </thead>
-        <tbody id="recordsBody"></tbody>
-      </table>
-
-      <div class="pagination" id="pagination"></div>
+        <!-- Pagination -->
+        <nav
+          class="pagination"
+          role="navigation"
+          aria-label="Phân trang"
+          id="pagination"
+        >
+          <!-- Pagination buttons will be populated by JavaScript -->
+        </nav>
+      </main>
     </div>
 
-    <!-- Modal for record details -->
-    <div id="recordModal" class="modal">
+    <!-- Modal for Record Details -->
+    <div
+      id="recordModal"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      aria-hidden="true"
+    >
       <div class="modal-content">
-        <span class="close">&times;</span>
-        <div id="modalContent"></div>
+        <button
+          class="close"
+          type="button"
+          aria-label="Đóng hộp thoại"
+          title="Đóng"
+        >
+          &times;
+        </button>
+        <div id="modalContent" role="document">
+          <!-- Modal content will be populated by JavaScript -->
+        </div>
       </div>
     </div>
 
+    <!-- Screen Reader Only Text -->
+    <div class="sr-only" aria-live="polite" id="announcements"></div>
+
+    <!-- JavaScript -->
     <script src="userPages/userMonthlyRecord/userMonthlyRecord.js"></script>
+
+    <!-- Additional CSS for screen readers -->
+    <style>
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      /* Skip links for keyboard navigation */
+      .skip-link {
+        position: absolute;
+        top: -40px;
+        left: 6px;
+        background: var(--primary-color);
+        color: white;
+        padding: 8px;
+        text-decoration: none;
+        border-radius: 4px;
+        z-index: 1001;
+      }
+
+      .skip-link:focus {
+        top: 6px;
+      }
+    </style>
+
+    <!-- Skip navigation for accessibility -->
+    <a href="#recordsTable" class="skip-link">Bỏ qua đến bảng dữ liệu</a>
   </body>
 </html>
