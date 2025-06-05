@@ -141,6 +141,9 @@ function renderUsers() {
       <td>${user.username}</td>
       <td>${user.costCenter ? user.costCenter.name : "N/A"}</td>
       <td>${user.assignedManager ? user.assignedManager.username : "N/A"}</td>
+      <td>${user.beneficiaryBank ? user.beneficiaryBank : "N/A"}</td>
+      <td>${user.bankAccountNumber ? user.bankAccountNumber : "N/A"}</td>
+      <td>${user.citizenID ? user.citizenID : "N/A"}</td>
       <td>${user.baseSalary.toLocaleString()}</td>
       <td>${user.commissionBonus.toLocaleString()}</td>
       <td>${user.currentHolidayDays}</td>
@@ -179,6 +182,11 @@ async function addUser(e) {
     costCenter: document.getElementById("new-cost-center").value,
     assignedManager:
       document.getElementById("new-assigned-manager").value || undefined,
+    beneficiaryBank: document.getElementById("new-beneficiary-bank").value,
+    bankAccountNumber: parseFloat(
+      document.getElementById("new-bank-account-number").value
+    ),
+    citizenID: parseFloat(document.getElementById("new-citizen-id").value),
     baseSalary: parseFloat(document.getElementById("new-base-salary").value),
     commissionBonus: parseFloat(
       document.getElementById("new-commission-bonus").value
@@ -276,6 +284,11 @@ async function updateUser(e) {
     assignedManager:
       document.getElementById("edit-assigned-manager").value || undefined,
     baseSalary: parseFloat(document.getElementById("edit-base-salary").value),
+    beneficiaryBank: document.getElementById("edit-beneficiary-bank").value,
+    bankAccountNumber: parseFloat(
+      document.getElementById("edit-bank-account-number").value
+    ),
+    citizenID: parseFloat(document.getElementById("edit-citizen-id").value),
     commissionBonus: parseFloat(
       document.getElementById("edit-commission-bonus").value
     ),

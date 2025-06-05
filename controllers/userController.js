@@ -164,6 +164,9 @@ exports.createUser = async (req, res) => {
       username,
       costCenter,
       assignedManager,
+      beneficiaryBank,
+      bankAccountNumber,
+      citizenID,
       baseSalary,
       commissionBonus,
       holidayBonusPerDay,
@@ -188,6 +191,9 @@ exports.createUser = async (req, res) => {
       username,
       costCenter,
       assignedManager,
+      beneficiaryBank,
+      bankAccountNumber,
+      citizenID,
       baseSalary,
       commissionBonus: commissionBonus || 0,
       holidayBonusPerDay: holidayBonusPerDay || 0,
@@ -232,6 +238,9 @@ exports.updateUser = async (req, res) => {
       costCenter,
       assignedManager,
       baseSalary,
+      beneficiaryBank,
+      bankAccountNumber,
+      citizenID,
       commissionBonus,
       holidayBonusPerDay,
       nightShiftBonusPerDay,
@@ -262,6 +271,10 @@ exports.updateUser = async (req, res) => {
       user.costCenter = costCenter;
     }
 
+    if (beneficiaryBank !== undefined) user.beneficiaryBank = beneficiaryBank;
+    if (bankAccountNumber !== undefined)
+      user.bankAccountNumber = bankAccountNumber;
+    if (citizenID !== undefined) user.citizenID = citizenID;
     if (baseSalary !== undefined) user.baseSalary = baseSalary;
     if (commissionBonus !== undefined) {
       user.commissionBonus = commissionBonus;
