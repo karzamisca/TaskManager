@@ -21,6 +21,9 @@ const fs = require("fs");
 const multer = require("multer");
 const cron = require("node-cron");
 const axios = require("axios");
+const sftpController = require("./controllers/sftpController");
+const sftpConfig = require("./config/sftpConfig");
+const sftpRoutes = require("./routes/sftpRoutes");
 const documentController = require("./controllers/documentController"); // Import the email notification function
 const emailService = require("./utils/emailService"); // Import the email notification function
 const { performDatabaseBackup } = require("./config/dbBackup"); // Import backup functions
@@ -61,6 +64,7 @@ app.use("/", authMiddleware, projectExpenseRoute);
 app.use("/", authMiddleware, messageRoute);
 app.use("/", authMiddleware, userRoute);
 app.use("/", authMiddleware, reportRoute);
+app.use("/", authMiddleware, sftpRoutes);
 
 // Error handling for multer
 app.use((err, req, res, next) => {
@@ -311,4 +315,61 @@ cron.schedule("*/5 * * * *", async () => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+async function initializeSFTP() {
+  try {
+    // Check if required environment variables are set
+    if (
+      !process.env.FILE_SERVER_HOST ||
+      !process.env.FILE_SERVER_USER ||
+      !process.env.FILE_SERVER_PASS
+    ) {
+      console.log(
+        "SFTP configuration missing in environment variables. Skipping SFTP initialization."
+      );
+      return;
+    }
+
+    // Get the sftpManager from the controller exports
+    const sftpManager = sftpController.sftpManager;
+
+    if (!sftpManager) {
+      throw new Error("SFTP Manager not found in controller exports");
+    }
+
+    // Disconnect any existing connection
+    if (sftpManager.isConnected()) {
+      await sftpManager.disconnect();
+    }
+
+    // Connect using the configuration
+    await sftpManager.connect(sftpConfig.connection);
+
+    console.log("SFTP connection established successfully");
+  } catch (error) {
+    console.error(
+      "Failed to establish SFTP connection on startup:",
+      error.message
+    );
+    // Don't throw the error to prevent app from crashing
+  }
+}
+
+app.listen(PORT, async () => {
+  // Initialize SFTP connection
+  await initializeSFTP();
+});
+
+// Graceful shutdown
+process.on("SIGTERM", async () => {
+  console.log("SIGTERM received, shutting down gracefully...");
+  await sftpController.cleanup();
+  process.exit(0);
+});
+
+process.on("SIGINT", async () => {
+  console.log("SIGINT received, shutting down gracefully...");
+  await sftpController.cleanup();
+  process.exit(0);
 });
