@@ -249,11 +249,11 @@ function renderFileList(files) {
                     <td class="file-actions">
                         ${
                           file.type === "file"
-                            ? '<button class="btn btn-success btn-sm download-btn">Download</button>'
+                            ? '<button class="btn btn-success btn-sm download-btn">Tải xuông</button>'
                             : ""
                         }
-                        <button class="btn btn-sm rename-btn">Rename</button>
-                        <button class="btn btn-danger btn-sm delete-btn">Delete</button>
+                        <button class="btn btn-sm rename-btn">Đổi tên</button>
+                        <button class="btn btn-danger btn-sm delete-btn">Xóa</button>
                     </td>
                 `;
 

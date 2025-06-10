@@ -1,5 +1,13 @@
 // config/sftpConfig.js
-const sftpController = require("../controllers/sftpController");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+
+// Ensure upload directory exists
+const uploadDir = path.join(__dirname, "..", "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 const sftpConfig = {
   connection: {
@@ -10,7 +18,16 @@ const sftpConfig = {
     readyTimeout: 30000,
   },
   upload: {
-    dest: "uploads/",
+    storage: multer.diskStorage({
+      destination: function (req, file, cb) {
+        cb(null, uploadDir);
+      },
+      filename: function (req, file, cb) {
+        // Keep original filename with timestamp to avoid conflicts
+        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+        cb(null, uniqueSuffix + "-" + file.originalname);
+      },
+    }),
     limits: {
       fileSize: 100 * 1024 * 1024, // 100MB limit
     },
@@ -23,6 +40,9 @@ const sftpConfig = {
 
 async function initializeSFTP() {
   try {
+    // Import here to avoid circular dependency
+    const sftpController = require("../controllers/sftpController");
+
     // Get the sftpManager from the controller exports
     const sftpManager = sftpController.sftpManager;
     if (!sftpManager) {

@@ -202,15 +202,38 @@ exports.uploadFiles = async function (req, res) {
       return res.status(400).json({ error: "No files uploaded" });
     }
 
+    // Validate that all files have the required properties
+    const invalidFiles = files.filter(
+      (file) => !file.path || !file.originalname
+    );
+    if (invalidFiles.length > 0) {
+      console.error("Invalid files detected:", invalidFiles);
+      return res.status(400).json({
+        error: "Some files are missing required properties",
+        details: invalidFiles.map((f) => ({
+          filename: f.originalname,
+          hasPath: !!f.path,
+        })),
+      });
+    }
+
     const uploadPromises = files.map(async (file) => {
       const remoteFilePath = path.posix.join(remotePath, file.originalname);
 
       try {
+        // Verify local file exists
+        if (!fs.existsSync(file.path)) {
+          throw new Error(`Local file not found: ${file.path}`);
+        }
+
         await sftpManager.uploadFile(file.path, remoteFilePath);
         cleanupTempFile(file.path);
       } catch (error) {
+        console.error(`Failed to upload ${file.originalname}:`, error);
         cleanupTempFile(file.path);
-        throw error;
+        throw new Error(
+          `Failed to upload ${file.originalname}: ${error.message}`
+        );
       }
     });
 
@@ -220,7 +243,11 @@ exports.uploadFiles = async function (req, res) {
     console.error("Upload error:", error);
     // Cleanup any remaining temp files
     if (req.files) {
-      req.files.forEach((file) => cleanupTempFile(file.path));
+      req.files.forEach((file) => {
+        if (file.path) {
+          cleanupTempFile(file.path);
+        }
+      });
     }
     res.status(500).json({ error: error.message });
   }
