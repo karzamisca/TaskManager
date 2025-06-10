@@ -332,7 +332,6 @@ async function initializeSFTP() {
 
     // Connect using the configuration
     await sftpManager.connect(sftpConfig.connection);
-    console.log("SFTP connection established successfully");
   } catch (error) {
     console.error(
       "Failed to establish SFTP connection on startup:",
@@ -345,17 +344,4 @@ async function initializeSFTP() {
 app.listen(PORT, async () => {
   // Initialize SFTP connection
   await initializeSFTP();
-});
-
-// Graceful shutdown
-process.on("SIGTERM", async () => {
-  console.log("SIGTERM received, shutting down gracefully...");
-  await sftpController.cleanup();
-  process.exit(0);
-});
-
-process.on("SIGINT", async () => {
-  console.log("SIGINT received, shutting down gracefully...");
-  await sftpController.cleanup();
-  process.exit(0);
 });
