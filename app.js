@@ -319,21 +319,8 @@ app.listen(PORT, () => {
 
 async function initializeSFTP() {
   try {
-    // Check if required environment variables are set
-    if (
-      !process.env.FILE_SERVER_HOST ||
-      !process.env.FILE_SERVER_USER ||
-      !process.env.FILE_SERVER_PASS
-    ) {
-      console.log(
-        "SFTP configuration missing in environment variables. Skipping SFTP initialization."
-      );
-      return;
-    }
-
     // Get the sftpManager from the controller exports
     const sftpManager = sftpController.sftpManager;
-
     if (!sftpManager) {
       throw new Error("SFTP Manager not found in controller exports");
     }
@@ -345,7 +332,6 @@ async function initializeSFTP() {
 
     // Connect using the configuration
     await sftpManager.connect(sftpConfig.connection);
-
     console.log("SFTP connection established successfully");
   } catch (error) {
     console.error(
