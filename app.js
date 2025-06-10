@@ -22,7 +22,7 @@ const multer = require("multer");
 const cron = require("node-cron");
 const axios = require("axios");
 const sftpController = require("./controllers/sftpController");
-const sftpConfig = require("./config/sftpConfig");
+const { sftpConfig, initializeSFTP } = require("./config/sftpConfig");
 const sftpRoutes = require("./routes/sftpRoutes");
 const documentController = require("./controllers/documentController"); // Import the email notification function
 const emailService = require("./utils/emailService"); // Import the email notification function
@@ -313,35 +313,8 @@ cron.schedule("*/5 * * * *", async () => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-async function initializeSFTP() {
-  try {
-    // Get the sftpManager from the controller exports
-    const sftpManager = sftpController.sftpManager;
-    if (!sftpManager) {
-      throw new Error("SFTP Manager not found in controller exports");
-    }
-
-    // Disconnect any existing connection
-    if (sftpManager.isConnected()) {
-      await sftpManager.disconnect();
-    }
-
-    // Connect using the configuration
-    await sftpManager.connect(sftpConfig.connection);
-  } catch (error) {
-    console.error(
-      "Failed to establish SFTP connection on startup:",
-      error.message
-    );
-    // Don't throw the error to prevent app from crashing
-  }
-}
-
 app.listen(PORT, async () => {
+  console.log(`Server running on port ${PORT}`);
   // Initialize SFTP connection
   await initializeSFTP();
 });
