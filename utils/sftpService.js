@@ -9,73 +9,137 @@ class SFTPManager {
     this.autoReconnect = true;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
-    this.config = null; // Store config for reconnection
+    this.reconnectInterval = 5000; // 5 seconds
+    this.config = null;
+    this.connectionPromise = null;
+    this.connectionListeners = [];
   }
 
   async connect(config) {
-    this.config = config; // Store config for reconnection
-    return new Promise((resolve, reject) => {
+    // If already connecting, return the existing promise
+    if (this.connectionPromise) {
+      return this.connectionPromise;
+    }
+
+    this.config = config;
+    this.connectionPromise = new Promise((resolve, reject) => {
       this.client = new Client();
+
+      const cleanup = () => {
+        this.connectionPromise = null;
+      };
 
       this.client.on("ready", () => {
         this.client.sftp((err, sftp) => {
           if (err) {
+            cleanup();
             reject(err);
             return;
           }
 
           this.sftp = sftp;
           this.connected = true;
-          this.reconnectAttempts = 0; // Reset on successful connection
+          this.reconnectAttempts = 0;
+          cleanup();
+          this.notifyConnectionListeners(true);
           resolve();
         });
       });
 
       this.client.on("error", (err) => {
         console.error("SSH connection error:", err);
-        this.connected = false;
-        if (
-          this.autoReconnect &&
-          this.reconnectAttempts < this.maxReconnectAttempts
-        ) {
-          this.reconnectAttempts++;
-          console.log(
-            `Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`
-          );
-          setTimeout(() => this.connect(this.config), 5000); // Retry after 5 seconds
-        } else {
-          reject(err);
-        }
+        this.handleConnectionError(err);
+        cleanup();
+        reject(err);
       });
 
       this.client.on("close", () => {
         console.log("SSH connection closed");
-        this.connected = false;
-        this.sftp = null;
-        if (
-          this.autoReconnect &&
-          this.reconnectAttempts < this.maxReconnectAttempts
-        ) {
-          this.reconnectAttempts++;
-          console.log(
-            `Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`
-          );
-          setTimeout(() => this.connect(this.config), 5000); // Retry after 5 seconds
-        }
+        this.handleConnectionClose();
+        cleanup();
       });
 
       this.client.connect(config);
     });
+
+    return this.connectionPromise;
+  }
+
+  handleConnectionError(err) {
+    this.connected = false;
+    this.sftp = null;
+    this.notifyConnectionListeners(false, err);
+
+    if (
+      this.autoReconnect &&
+      this.reconnectAttempts < this.maxReconnectAttempts
+    ) {
+      this.scheduleReconnect();
+    }
+  }
+
+  handleConnectionClose() {
+    this.connected = false;
+    this.sftp = null;
+    this.notifyConnectionListeners(false);
+
+    if (
+      this.autoReconnect &&
+      this.reconnectAttempts < this.maxReconnectAttempts
+    ) {
+      this.scheduleReconnect();
+    }
+  }
+
+  scheduleReconnect() {
+    this.reconnectAttempts++;
+    console.log(
+      `Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts}) in ${this.reconnectInterval}ms...`
+    );
+
+    setTimeout(() => {
+      if (this.autoReconnect) {
+        this.connect(this.config).catch((err) => {
+          console.error("Reconnect attempt failed:", err);
+        });
+      }
+    }, this.reconnectInterval);
   }
 
   async disconnect() {
-    this.autoReconnect = false; // Disable auto-reconnect when manually disconnecting
+    this.autoReconnect = false;
     if (this.client) {
-      this.client.end();
-      this.connected = false;
-      this.sftp = null;
-      this.reconnectAttempts = 0;
+      return new Promise((resolve) => {
+        this.client.on("close", () => {
+          this.connected = false;
+          this.sftp = null;
+          this.reconnectAttempts = 0;
+          this.notifyConnectionListeners(false);
+          resolve();
+        });
+        this.client.end();
+      });
     }
+    return Promise.resolve();
+  }
+
+  addConnectionListener(callback) {
+    this.connectionListeners.push(callback);
+    return () => {
+      this.connectionListeners = this.connectionListeners.filter(
+        (cb) => cb !== callback
+      );
+    };
+  }
+
+  notifyConnectionListeners(connected, error = null) {
+    this.connectionListeners.forEach((callback) => {
+      try {
+        callback(connected, error);
+      } catch (err) {
+        console.error("Connection listener error:", err);
+      }
+    });
   }
 
   async listFiles(remotePath) {

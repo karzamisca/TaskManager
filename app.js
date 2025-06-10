@@ -312,9 +312,55 @@ cron.schedule("*/5 * * * *", async () => {
   }
 });
 
+const connectionMonitor = {
+  isActive: false,
+  checkInterval: 30000, // 30 seconds
+  timer: null,
+  start: function (sftpManager) {
+    if (this.isActive) return;
+
+    this.isActive = true;
+    this.timer = setInterval(async () => {
+      try {
+        if (!sftpManager.isConnected()) {
+          console.log(
+            "Connection monitor: SFTP connection lost, attempting to reconnect..."
+          );
+          await sftpManager.connect(sftpConfig.connection);
+        }
+      } catch (error) {
+        console.error("Connection monitor error:", error);
+      }
+    }, this.checkInterval);
+  },
+  stop: function () {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.isActive = false;
+    }
+  },
+};
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
-  // Initialize SFTP connection
-  await initializeSFTP();
+
+  try {
+    // Initialize SFTP connection
+    await initializeSFTP();
+
+    // Start connection monitor
+    connectionMonitor.start(sftpController.sftpManager);
+
+    // Add listener for connection changes
+    sftpController.sftpManager.addConnectionListener((connected, error) => {
+      if (connected) {
+        console.log("SFTP connection established");
+      } else {
+        console.log("SFTP connection lost", error ? `: ${error.message}` : "");
+      }
+    });
+  } catch (error) {
+    console.error("Failed to initialize SFTP connection:", error);
+  }
 });

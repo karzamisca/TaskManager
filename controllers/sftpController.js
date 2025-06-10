@@ -89,6 +89,35 @@ exports.getSftpPurchasingViews = (req, res) => {
   });
 };
 
+const connectionMonitor = {
+  isActive: false,
+  checkInterval: 30000, // 30 seconds
+  timer: null,
+  start: function (sftpManager) {
+    if (this.isActive) return;
+
+    this.isActive = true;
+    this.timer = setInterval(async () => {
+      try {
+        if (!sftpManager.isConnected()) {
+          console.log(
+            "Connection monitor: SFTP connection lost, attempting to reconnect..."
+          );
+          await sftpManager.connect(sftpConfig.connection);
+        }
+      } catch (error) {
+        console.error("Connection monitor error:", error);
+      }
+    }, this.checkInterval);
+  },
+  stop: function () {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.isActive = false;
+    }
+  },
+};
+
 // Connect to SFTP server using environment variables
 exports.connect = async function (req, res, next) {
   try {
@@ -98,27 +127,20 @@ exports.connect = async function (req, res, next) {
       !process.env.FILE_SERVER_USER ||
       !process.env.FILE_SERVER_PASS
     ) {
-      if (res.json) {
-        return res.status(400).json({
-          error: "SFTP server configuration missing in environment variables",
-        });
-      } else {
-        throw new Error(
-          "SFTP server configuration missing in environment variables"
-        );
-      }
+      return res.status(400).json({
+        error: "SFTP server configuration missing in environment variables",
+      });
     }
 
-    // Disconnect existing connection if any
+    // Start connection monitor if not already active
+    if (!connectionMonitor.isActive) {
+      connectionMonitor.start(sftpManager);
+    }
+
+    // If already connected, return current status
     if (sftpManager.isConnected()) {
-      await sftpManager.disconnect();
-    }
-
-    await sftpManager.connect(sftpConfig.connection);
-
-    if (res.json) {
-      res.json({
-        status: "connected",
+      return res.json({
+        status: "already_connected",
         config: {
           host: process.env.FILE_SERVER_HOST,
           port: process.env.FILE_SERVER_PORT || 22,
@@ -126,19 +148,27 @@ exports.connect = async function (req, res, next) {
         },
       });
     }
+
+    await sftpManager.connect(sftpConfig.connection);
+
+    res.json({
+      status: "connected",
+      config: {
+        host: process.env.FILE_SERVER_HOST,
+        port: process.env.FILE_SERVER_PORT || 22,
+        username: process.env.FILE_SERVER_USER,
+      },
+    });
   } catch (error) {
     console.error("Connection error:", error);
-    if (res.json) {
-      res.status(500).json({ error: error.message });
-    } else {
-      throw error;
-    }
+    res.status(500).json({ error: error.message });
   }
 };
 
 // Disconnect from SFTP server
 exports.disconnect = async function (req, res) {
   try {
+    connectionMonitor.stop();
     await sftpManager.disconnect();
     res.json({ status: "disconnected" });
   } catch (error) {
@@ -147,12 +177,27 @@ exports.disconnect = async function (req, res) {
   }
 };
 
+// Add connection monitoring to all operations
+function ensureConnected() {
+  return new Promise(async (resolve, reject) => {
+    if (sftpManager.isConnected()) {
+      return resolve();
+    }
+
+    // Try to reconnect automatically
+    try {
+      await sftpManager.connect(sftpConfig.connection);
+      resolve();
+    } catch (error) {
+      reject(new Error("Unable to establish SFTP connection"));
+    }
+  });
+}
+
 // List files in directory
 exports.listFiles = async function (req, res) {
   try {
-    if (!sftpManager.isConnected()) {
-      return res.status(400).json({ error: "Not connected to SFTP server" });
-    }
+    await ensureConnected();
 
     const remotePath = sanitizePath(req.query.path || "/");
     const files = await sftpManager.listFiles(remotePath);
@@ -163,7 +208,6 @@ exports.listFiles = async function (req, res) {
     res.status(500).json({ error: error.message });
   }
 };
-
 // Create directory
 exports.createDirectory = async function (req, res) {
   try {
