@@ -312,6 +312,72 @@ cron.schedule("*/5 * * * *", async () => {
   }
 });
 
+// SFTP connection refresh cron job - runs every 5 minutes
+cron.schedule("*/5 * * * *", async () => {
+  try {
+    // Check if SFTP manager exists and attempt to refresh connection
+    if (sftpController && sftpController.sftpManager) {
+      const isConnected = sftpController.sftpManager.isConnected();
+      const statusInfo = sftpController.sftpManager.getStatusInfo();
+
+      if (!isConnected) {
+        console.log("SFTP Cron: Connection lost, attempting to reconnect...");
+        console.log("SFTP Cron: Status -", statusInfo);
+
+        // Reset auto-reconnect in case it was disabled
+        sftpController.sftpManager.autoReconnect = true;
+        sftpController.sftpManager.reconnectAttempts = 0;
+
+        await sftpController.sftpManager.connect(sftpConfig.connection);
+        console.log("SFTP Cron: Successfully reconnected to SFTP server");
+      } else {
+        // Even if connected, perform a health check by testing the connection
+        try {
+          // Test connection with a simple operation using your SFTPManager's method
+          await sftpController.sftpManager.listFiles("/");
+          console.log("SFTP Cron: Connection healthy");
+        } catch (testError) {
+          console.log("SFTP Cron: Connection test failed, reconnecting...");
+          console.log("SFTP Cron: Test error:", testError.message);
+
+          // Disconnect and reconnect
+          await sftpController.sftpManager.disconnect();
+
+          // Reset reconnect settings
+          sftpController.sftpManager.autoReconnect = true;
+          sftpController.sftpManager.reconnectAttempts = 0;
+
+          await sftpController.sftpManager.connect(sftpConfig.connection);
+          console.log("SFTP Cron: Successfully refreshed SFTP connection");
+        }
+      }
+    } else {
+      console.log(
+        "SFTP Cron: SFTP manager not available, attempting initialization..."
+      );
+      await initializeSFTP();
+      console.log("SFTP Cron: SFTP initialized successfully");
+    }
+  } catch (error) {
+    console.error(
+      "SFTP Cron: Failed to refresh SFTP connection:",
+      error.message
+    );
+
+    // Attempt to reinitialize if connection refresh fails
+    try {
+      console.log("SFTP Cron: Attempting to reinitialize SFTP...");
+      await initializeSFTP();
+      console.log("SFTP Cron: SFTP reinitialized successfully");
+    } catch (reinitError) {
+      console.error(
+        "SFTP Cron: Failed to reinitialize SFTP:",
+        reinitError.message
+      );
+    }
+  }
+});
+
 const connectionMonitor = {
   isActive: false,
   checkInterval: 30000, // 30 seconds
@@ -342,48 +408,12 @@ const connectionMonitor = {
 };
 
 const PORT = process.env.PORT || 3000;
-
-// Store the reconnection interval ID for cleanup if needed
-let reconnectionInterval = null;
-
-// Function to initialize SFTP with error handling
-async function initializeSFTPWithRetry() {
-  try {
-    console.log("Initializing SFTP connection...");
-    await initializeSFTP();
-    console.log("SFTP connection initialized successfully");
-  } catch (error) {
-    console.error("Failed to initialize SFTP connection:", error);
-    // Optionally, you could implement exponential backoff here
-  }
-}
-
-// Function to start periodic SFTP reinitialization
-function startPeriodicSFTPReinitialization() {
-  // Clear any existing interval
-  if (reconnectionInterval) {
-    clearInterval(reconnectionInterval);
-  }
-
-  // Set up interval to check and reinitialize only if connection is down
-  reconnectionInterval = setInterval(async () => {
-    if (!sftpController.sftpManager.isConnected()) {
-      console.log("SFTP connection down, reinitializing...");
-      await initializeSFTPWithRetry();
-    } else {
-      console.log("SFTP connection healthy, skipping reinitialization");
-    }
-  }, 5 * 60 * 1000); // 5 minutes
-
-  console.log("Periodic SFTP connection check scheduled every 5 minutes");
-}
-
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
 
   try {
-    // Initial SFTP connection
-    await initializeSFTPWithRetry();
+    // Initialize SFTP connection
+    await initializeSFTP();
 
     // Start connection monitor
     connectionMonitor.start(sftpController.sftpManager);
@@ -396,9 +426,6 @@ app.listen(PORT, async () => {
         console.log("SFTP connection lost", error ? `: ${error.message}` : "");
       }
     });
-
-    // Start periodic SFTP reinitialization
-    startPeriodicSFTPReinitialization();
   } catch (error) {
     console.error("Failed to initialize SFTP connection:", error);
   }
