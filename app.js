@@ -342,12 +342,48 @@ const connectionMonitor = {
 };
 
 const PORT = process.env.PORT || 3000;
+
+// Store the reconnection interval ID for cleanup if needed
+let reconnectionInterval = null;
+
+// Function to initialize SFTP with error handling
+async function initializeSFTPWithRetry() {
+  try {
+    console.log("Initializing SFTP connection...");
+    await initializeSFTP();
+    console.log("SFTP connection initialized successfully");
+  } catch (error) {
+    console.error("Failed to initialize SFTP connection:", error);
+    // Optionally, you could implement exponential backoff here
+  }
+}
+
+// Function to start periodic SFTP reinitialization
+function startPeriodicSFTPReinitialization() {
+  // Clear any existing interval
+  if (reconnectionInterval) {
+    clearInterval(reconnectionInterval);
+  }
+
+  // Set up interval to check and reinitialize only if connection is down
+  reconnectionInterval = setInterval(async () => {
+    if (!sftpController.sftpManager.isConnected()) {
+      console.log("SFTP connection down, reinitializing...");
+      await initializeSFTPWithRetry();
+    } else {
+      console.log("SFTP connection healthy, skipping reinitialization");
+    }
+  }, 5 * 60 * 1000); // 5 minutes
+
+  console.log("Periodic SFTP connection check scheduled every 5 minutes");
+}
+
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
 
   try {
-    // Initialize SFTP connection
-    await initializeSFTP();
+    // Initial SFTP connection
+    await initializeSFTPWithRetry();
 
     // Start connection monitor
     connectionMonitor.start(sftpController.sftpManager);
@@ -360,6 +396,9 @@ app.listen(PORT, async () => {
         console.log("SFTP connection lost", error ? `: ${error.message}` : "");
       }
     });
+
+    // Start periodic SFTP reinitialization
+    startPeriodicSFTPReinitialization();
   } catch (error) {
     console.error("Failed to initialize SFTP connection:", error);
   }
