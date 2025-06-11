@@ -28,9 +28,7 @@ const sftpConfig = {
         cb(null, uniqueSuffix + "-" + file.originalname);
       },
     }),
-    limits: {
-      fileSize: 100 * 1024 * 1024, // 100MB limit
-    },
+    // No file size limits
   },
   paths: {
     tempDir: "temp",

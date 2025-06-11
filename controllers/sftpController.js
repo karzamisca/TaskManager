@@ -2,7 +2,7 @@
 const fs = require("fs");
 const path = require("path");
 const { SFTPManager } = require("../utils/sftpService");
-const sftpConfig = require("../config/sftpConfig");
+const { sftpConfig } = require("../config/sftpConfig"); // Fixed import
 
 // Initialize SFTP manager
 const sftpManager = new SFTPManager();
