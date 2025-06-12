@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bảng tin nhắn/Message Board</title>
+    <title>Bảng tin nhắn</title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
@@ -13,17 +13,17 @@
   </head>
   <body>
     <div class="header">
-      <a href="/main">Trở về trang chính/Back to main</a>
-      <a href="/changePassword">Đổi mật khẩu/Change password</a>
-      <a href="/logout">Đăng xuất/Logout</a>
+      <a href="/main">Trở về trang chính</a>
+      <a href="/changePassword">Đổi mật khẩu</a>
+      <a href="/logout">Đăng xuất</a>
     </div>
 
-    <h1>Bảng Tin Nhắn/Message Board</h1>
+    <h1>Bảng Tin Nhắn</h1>
 
     <!-- Room List View -->
     <div id="rooms-view">
       <button class="btn btn-primary" onclick="showCreateRoomModal()">
-        Tạo phòng mới/Create New Room
+        Tạo phòng mới
       </button>
       <div class="room-list" id="room-list"></div>
     </div>
@@ -31,7 +31,7 @@
     <!-- Room Messages View -->
     <div id="room-messages-view" style="display: none">
       <button class="btn btn-secondary" onclick="showRoomList()">
-        ← Trở lại danh sách phòng/Back to Rooms
+        ← Trở lại danh sách phòng
       </button>
       <h2 id="current-room-name"></h2>
       <div id="room-messages"></div>
@@ -49,13 +49,11 @@
             class="btn btn-secondary"
             onclick="document.getElementById('file-upload').click()"
           >
-            <i class="fas fa-paperclip"></i> Đính kèm tệp tin/Attach Files
+            <i class="fas fa-paperclip"></i> Đính kèm tệp tin
           </button>
           <div id="file-list"></div>
         </div>
-        <button type="submit" class="btn btn-primary">
-          Gửi tin nhắn/Send Message
-        </button>
+        <button type="submit" class="btn btn-primary">Gửi tin nhắn</button>
       </form>
     </div>
 
@@ -63,13 +61,13 @@
     <div id="create-room-modal" class="modal">
       <div class="modal-content">
         <span class="close" onclick="hideCreateRoomModal()">&times;</span>
-        <h2>Tạo phòng mới/Create New Room</h2>
+        <h2>Tạo phòng mới</h2>
 
         <form id="create-room-form">
           <input
             type="text"
             class="search-box"
-            placeholder="Tên phòng/Room Name"
+            placeholder="Tên phòng"
             required
           />
 
@@ -78,13 +76,12 @@
               <input
                 type="text"
                 class="search-box"
-                placeholder="Tìm người dùng/Search users..."
+                placeholder="Tìm người dùng..."
                 oninput="filterAvailableUsers(this.value, 'create')"
               />
               <div id="create-available-users" class="members-list"></div>
               <div class="member-count">
-                <span id="create-available-count">0</span> người dùng/users
-                available
+                <span id="create-available-count">0</span> người dùng
               </div>
             </div>
 
@@ -109,13 +106,12 @@
               <input
                 type="text"
                 class="search-box"
-                placeholder="Tìm thành viên/Search members..."
+                placeholder="Tìm thành viên..."
                 oninput="filterSelectedUsers(this.value, 'create')"
               />
               <div id="create-selected-users" class="members-list"></div>
               <div class="member-count">
-                <span id="create-selected-count">0</span> thành viên đã
-                chọn/members selected
+                <span id="create-selected-count">0</span> thành viên đã chọn
               </div>
             </div>
           </div>
@@ -126,9 +122,9 @@
               class="btn btn-secondary"
               onclick="hideCreateRoomModal()"
             >
-              Hủy/Cancel
+              Hủy
             </button>
-            <button type="submit" class="btn btn-primary">Tạo/Create</button>
+            <button type="submit" class="btn btn-primary">Tạo</button>
           </div>
         </form>
       </div>
@@ -138,7 +134,7 @@
     <div id="add-members-modal" class="modal">
       <div class="modal-content">
         <span class="close" onclick="hideAddMembersModal()">&times;</span>
-        <h2>Quản lý phòng/Manage Room</h2>
+        <h2>Quản lý phòng</h2>
 
         <div class="member-selection">
           <div>
@@ -150,7 +146,7 @@
             />
             <div id="add-available-users" class="members-list"></div>
             <div class="member-count">
-              <span id="add-available-count">0</span> người dùng/users available
+              <span id="add-available-count">0</span> người dùng
             </div>
           </div>
 
@@ -180,8 +176,7 @@
             />
             <div id="add-selected-users" class="members-list"></div>
             <div class="member-count">
-              <span id="add-selected-count">0</span> thành viên đã chọn/members
-              selected
+              <span id="add-selected-count">0</span> thành viên đã chọn
             </div>
           </div>
         </div>
@@ -189,7 +184,7 @@
         <div class="modal-actions">
           <div class="modal-actions-left">
             <button type="button" class="btn delete-btn" onclick="deleteRoom()">
-              Xóa phòng/Delete Room
+              Xóa phòng
             </button>
           </div>
           <div class="modal-actions-right">
@@ -198,14 +193,14 @@
               class="btn btn-secondary"
               onclick="hideAddMembersModal()"
             >
-              Hủy/Cancel
+              Hủy
             </button>
             <button
               type="button"
               class="btn btn-primary"
               onclick="saveNewMembers()"
             >
-              Lưu/Save
+              Lưu
             </button>
           </div>
         </div>

@@ -290,10 +290,8 @@ function displayCurrentMembers(room) {
     const isCreator = member._id === room.creator._id;
 
     memberDiv.innerHTML = `
-      <span>${member.username}${
-      member.department ? ` (${member.department})` : ""
-    }
-  ${isCreator ? '<span class="creator-badge">Creator</span>' : ""}
+      <span>${member.username}
+  ${isCreator ? '<span class="creator-badge">Người tạo phòng</span>' : ""}
     </span>
     ${
       !isCreator
@@ -367,10 +365,8 @@ function removeMember(memberId) {
 }
 
 function filterAvailableUsers(query, modalType) {
-  const filteredUsers = users[modalType].available.filter(
-    (user) =>
-      user.username.toLowerCase().includes(query.toLowerCase()) ||
-      user.department?.toLowerCase().includes(query.toLowerCase())
+  const filteredUsers = users[modalType].available.filter((user) =>
+    user.username.toLowerCase().includes(query.toLowerCase())
   );
   displayUserList(
     `${modalType}-available-users`,
@@ -381,10 +377,8 @@ function filterAvailableUsers(query, modalType) {
 }
 
 function filterSelectedUsers(query, modalType) {
-  const filteredUsers = users[modalType].selected.filter(
-    (user) =>
-      user.username.toLowerCase().includes(query.toLowerCase()) ||
-      user.department?.toLowerCase().includes(query.toLowerCase())
+  const filteredUsers = users[modalType].selected.filter((user) =>
+    user.username.toLowerCase().includes(query.toLowerCase())
   );
   displayUserList(
     `${modalType}-selected-users`,
@@ -400,9 +394,7 @@ function displayUserList(containerId, userList, modalType, listType) {
 
   userList.forEach((user) => {
     const div = document.createElement("div");
-    div.textContent = `${user.username}${
-      user.department ? ` (${user.department})` : ""
-    }`;
+    div.textContent = `${user.username}`;
     div.onclick = () => toggleUserSelection(div, user, modalType, listType);
     container.appendChild(div);
   });
@@ -422,9 +414,7 @@ function transferMembers(modalType, direction) {
 
   selectedElements.forEach((element) => {
     const user = users[modalType][sourceList].find(
-      (u) =>
-        element.textContent ===
-        `${u.username}${u.department ? ` (${u.department})` : ""}`
+      (u) => element.textContent === `${u.username}`
     );
 
     if (user) {
