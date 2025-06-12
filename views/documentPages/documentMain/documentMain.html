@@ -4,38 +4,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tài liệu</title>
+    <title>Hệ thống phê duyệt</title>
     <link rel="stylesheet" href="documentPages/documentMain/documentMain.css" />
   </head>
   <body>
-    <div class="header">
-      <a href="/main">Trở về trang chính</a>
-      <a href="/message">Bảng tin nhắn</a>
-      <a href="/changePassword">Đổi mật khẩu</a>
-      <a href="/logout">Đăng xuất</a>
-    </div>
-    <div class="container">
-      <header>
-        <h1>Hệ thống phê duyệt</h1>
-      </header>
-      <nav>
-        <ul class="document-links">
-          <li>
-            <a href="/documentSubmission" class="submit">Nộp phiếu mới</a>
-          </li>
-          <li>
-            <a href="/documentSummary" class="document">Tóm tắt phiếu</a>
-          </li>
-          <li>
-            <a href="/documentInGroup" class="group">Phiếu theo nhóm chung</a>
-          </li>
-          <li>
-            <a href="/documentInGroupDeclaration" class="groupDeclaration"
-              >Phiếu theo nhóm kê khai</a
-            >
-          </li>
-        </ul>
+    <header class="app-header">
+      <nav class="header-nav">
+        <a href="/main" class="nav-link">← Quay lại</a>
+        <a href="/main" class="nav-link">Trang chính</a>
+        <a href="/message" class="nav-link">Bảng tin nhắn</a>
+        <a href="/changePassword" class="nav-link">Đổi mật khẩu</a>
+        <a href="/logout" class="nav-link">Đăng xuất</a>
       </nav>
-    </div>
+    </header>
+
+    <main class="document-container">
+      <h1 class="document-title">Hệ thống phê duyệt</h1>
+
+      <div class="document-grid">
+        <a href="/documentSubmission" class="document-card">Nộp phiếu mới</a>
+        <a href="/documentSummary" class="document-card">Tóm tắt phiếu</a>
+        <a href="/documentInGroup" class="document-card"
+          >Phiếu theo nhóm chung</a
+        >
+        <a href="/documentInGroupDeclaration" class="document-card"
+          >Phiếu theo nhóm kê khai</a
+        >
+      </div>
+    </main>
   </body>
 </html>

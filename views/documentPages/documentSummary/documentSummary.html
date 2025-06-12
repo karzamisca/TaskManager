@@ -4,65 +4,49 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tài liệu/Document</title>
+    <title>Tóm tắt phiếu</title>
     <link
       rel="stylesheet"
       href="documentPages/documentSummary/documentSummary.css"
     />
   </head>
   <body>
-    <div class="header">
-      <a href="/documentMain">Trở về</a>
-      <a href="/main">Trở về trang chính</a>
-      <a href="/message">Bảng tin nhắn</a>
-      <a href="/changePassword">Đổi mật khẩu</a>
-      <a href="/logout">Đăng xuất</a>
-    </div>
-    <div class="container">
-      <header>
-        <h1>Tóm tắt phiếu</h1>
-      </header>
-      <nav>
-        <ul class="document-links">
-          <li>
-            <a href="/documentSummaryProposal" class="proposal"
-              >Tóm tắt phiếu đề xuất</a
-            >
-          </li>
-          <li>
-            <a href="/documentSummaryProjectProposal" class="projectProposal"
-              >Tóm tắt phiếu đề nghị mở dự án</a
-            >
-          </li>
-          <li>
-            <a href="/documentSummaryPurchasing" class="purchasing"
-              >Tóm tắt phiếu mua hàng</a
-            >
-          </li>
-          <li>
-            <a href="/documentSummaryDelivery" class="delivery"
-              >Tóm tắt phiếu xuất kho</a
-            >
-          </li>
-          <li>
-            <a href="/documentSummaryAdvancePayment" class="advancePayment"
-              >Tóm tắt phiếu tạm ứng</a
-            >
-          </li>
-          <li>
-            <a
-              href="/documentSummaryAdvancePaymentReclaim"
-              class="advancePaymentReclaim"
-              >Tóm tắt phiếu thu lại tạm ứng</a
-            >
-          </li>
-          <li>
-            <a href="/documentSummaryPayment" class="payment"
-              >Tóm tắt phiếu thanh toán</a
-            >
-          </li>
-        </ul>
+    <header class="app-header">
+      <nav class="header-nav">
+        <a href="/documentMain" class="nav-link">← Quay lại</a>
+        <a href="/main" class="nav-link">Trang chính</a>
+        <a href="/message" class="nav-link">Bảng tin nhắn</a>
+        <a href="/changePassword" class="nav-link">Đổi mật khẩu</a>
+        <a href="/logout" class="nav-link">Đăng xuất</a>
       </nav>
-    </div>
+    </header>
+
+    <main class="summary-container">
+      <h1 class="summary-title">Tóm tắt phiếu</h1>
+
+      <div class="summary-grid">
+        <a href="/documentSummaryProposal" class="summary-card"
+          >Phiếu đề xuất</a
+        >
+        <a href="/documentSummaryProjectProposal" class="summary-card"
+          >Phiếu đề nghị mở dự án</a
+        >
+        <a href="/documentSummaryPurchasing" class="summary-card"
+          >Phiếu mua hàng</a
+        >
+        <a href="/documentSummaryDelivery" class="summary-card"
+          >Phiếu xuất kho</a
+        >
+        <a href="/documentSummaryAdvancePayment" class="summary-card"
+          >Phiếu tạm ứng</a
+        >
+        <a href="/documentSummaryAdvancePaymentReclaim" class="summary-card"
+          >Phiếu thu lại tạm ứng</a
+        >
+        <a href="/documentSummaryPayment" class="summary-card"
+          >Phiếu thanh toán</a
+        >
+      </div>
+    </main>
   </body>
 </html>

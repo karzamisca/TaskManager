@@ -1,234 +1,205 @@
 /* views\documentPages\documentSummary\documentSummary.css */
-/* General Reset */
+/* Base Variables */
+:root {
+  /* Light Mode */
+  --bg-color: #f8fafc;
+  --surface-color: #ffffff;
+  --text-color: #1e293b;
+  --text-light: #64748b;
+  --primary-color: #2563eb;
+  --primary-hover: #1d4ed8;
+  --border-color: #e2e8f0;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  /* Dark Mode */
+  --dark-bg: #0f172a;
+  --dark-surface: #1e293b;
+  --dark-text: #f8fafc;
+  --dark-border: #334155;
+  --dark-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Base Styles */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* Header Styles */
-.header {
-  background-color: #fff;
-  padding: 10px 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  display: flex;
-  justify-content: flex-end;
-  gap: 20px;
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* Header */
+.app-header {
   position: fixed;
   top: 0;
   width: 100%;
+  padding: 1rem 2rem;
+  background-color: var(--surface-color);
+  box-shadow: var(--shadow);
   z-index: 1000;
 }
 
-.header a {
-  display: inline-block;
-  font-size: 14px;
-  color: #007bff;
-  text-decoration: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  transition: all 0.3s ease;
-}
-
-.header a:hover {
-  background-color: #e6f0ff;
-}
-
-/* Light Mode Styles (Default) */
-body {
-  font-family: Arial, sans-serif;
-  background-color: #f4f4f9;
-  color: #333;
-  min-height: 100vh;
+.header-nav {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  padding-top: 60px; /* Added to account for fixed header */
+  justify-content: flex-end;
+  gap: 1rem;
 }
 
-.container {
-  width: 90%;
-  max-width: 800px;
-  padding: 30px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  transform: scale(1);
-  transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease;
-}
-
-header h1 {
-  font-size: 2em;
-  color: #2c3e50;
-}
-
-nav ul {
-  list-style: none;
-}
-
-nav ul li {
-  margin: 15px 0;
-}
-
-nav ul li a {
-  display: block;
-  padding: 12px 20px;
+.nav-link {
+  color: var(--primary-color);
   text-decoration: none;
-  color: #fff;
-  font-size: 1.1em;
-  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.nav-link:hover {
+  color: var(--primary-hover);
+  background-color: rgba(37, 99, 235, 0.1);
+}
+
+.nav-link:first-child {
+  margin-right: auto;
+  color: var(--text-light);
+}
+
+/* Main Content */
+.summary-container {
+  max-width: 1200px;
+  margin: 5rem auto 2rem;
+  padding: 0 2rem;
+}
+
+.summary-title {
+  font-size: 1.75rem;
+  font-weight: 600;
   text-align: center;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  margin-bottom: 2.5rem;
+  color: var(--text-color);
 }
 
-a.proposal {
-  background-color: #ac2099;
-}
-a.projectProposal {
-  background-color: #ac204f;
-}
-a.purchasing {
-  background-color: #f39c12;
-}
-a.delivery {
-  background-color: #12f3d5;
-}
-a.advancePayment {
-  background-color: #d0f309;
-}
-a.advancePaymentReclaim {
-  background-color: #67f309;
-}
-a.payment {
-  background-color: #f30909;
-}
-a.back {
-  background-color: #8e44ad;
-}
-a.logout {
-  background-color: #e74c3c;
+/* Summary Grid */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.25rem;
 }
 
-nav ul li a:hover {
-  transform: scale(1.05);
+.summary-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.75rem 1rem;
+  background-color: var(--surface-color);
+  color: var(--text-color);
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+  text-align: center;
+  height: 100%;
 }
 
-/* Dark Mode Styles */
+.summary-card:hover {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Dark Mode */
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #121212;
-    color: #f1f1f1;
+    background-color: var(--dark-bg);
+    color: var(--dark-text);
   }
 
-  .header {
-    background-color: #333;
+  .app-header {
+    background-color: var(--dark-surface);
   }
 
-  .header a {
-    color: #fff;
+  .nav-link {
+    color: var(--dark-text);
   }
 
-  .header a:hover {
-    background-color: #444;
+  .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
   }
 
-  .container {
-    background-color: #1e1e1e;
-    color: #f1f1f1;
-    box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+  .nav-link:first-child {
+    color: var(--dark-text-light);
   }
 
-  header h1 {
-    color: #f1f1f1;
+  .summary-title {
+    color: var(--dark-text);
   }
 
-  nav ul li a {
-    color: #121212;
+  .summary-card {
+    background-color: var(--dark-surface);
+    color: var(--dark-text);
+    border-color: var(--dark-border);
+    box-shadow: var(--dark-shadow);
   }
 
-  a.submit {
-    color: #f1f1f1;
-    background-color: #555;
-  }
-  a.proposal {
-    color: #f1f1f1;
-    background-color: #555;
-  }
-  a.projectProposal {
-    color: #f1f1f1;
-    background-color: #555;
-  }
-  a.purchasing {
-    color: #f1f1f1;
-    background-color: #555;
-  }
-  a.delivery {
-    color: #f1f1f1;
-    background-color: #555;
-  }
-  a.advancePayment {
-    color: #f1f1f1;
-    background-color: #555;
-  }
-  a.advancePaymentReclaim {
-    color: #f1f1f1;
-    background-color: #555;
-  }
-  a.payment {
-    color: #f1f1f1;
-    background-color: #555;
-  }
-  a.logout {
-    color: #f1f1f1;
-    background-color: #555;
+  .summary-card:hover {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
   }
 }
 
-/* Responsive Scaling for Smaller Screens */
+/* Responsive */
 @media (max-width: 768px) {
-  .container {
-    transform: scale(0.9);
+  .summary-container {
+    padding: 0 1.5rem;
+    margin-top: 4.5rem;
   }
-  .header {
-    padding: 8px 15px;
+
+  .summary-title {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .header-nav {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .nav-link {
+    font-size: 0.8125rem;
+    padding: 0.375rem;
   }
 }
 
 @media (max-width: 480px) {
-  .header {
-    flex-direction: column;
-    gap: 10px;
-    align-items: center;
-    padding: 10px;
-  }
-  .container {
-    transform: scale(0.8);
-    margin-top: 80px; /* Increased to account for vertical header */
+  .app-header {
+    padding: 0.75rem 1rem;
   }
 
-  header h1 {
-    font-size: 1.5em;
+  .summary-grid {
+    grid-template-columns: 1fr;
   }
 
-  nav ul li a {
-    font-size: 1em;
-    padding: 10px 16px;
-  }
-}
-
-@media (max-width: 360px) {
-  .container {
-    transform: scale(0.7);
-    margin-top: 100px; /* Increased further for smaller screens */
+  .summary-card {
+    padding: 1.5rem 1rem;
   }
 
-  header h1 {
-    font-size: 1.3em;
-  }
-
-  nav ul li a {
-    font-size: 0.9em;
-    padding: 8px 14px;
+  .nav-link:first-child {
+    order: 1;
+    margin-right: 0;
   }
 }
