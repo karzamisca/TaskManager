@@ -2,12 +2,18 @@
 // Helper functions
 const fetchData = async (url, options = {}) => {
   try {
+    // Show loading screen
+    document.getElementById("loadingScreen").style.display = "flex";
+
     const response = await fetch(url, options);
     if (!response.ok) throw new Error(response.statusText);
     return await response.json();
   } catch (error) {
     console.error(`Error fetching ${url}:`, error);
     throw error;
+  } finally {
+    // Hide loading screen when done
+    document.getElementById("loadingScreen").style.display = "none";
   }
 };
 
