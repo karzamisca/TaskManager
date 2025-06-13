@@ -101,7 +101,7 @@ cron.schedule("0 */8 * * *", async () => {
 // Cron job to ping the server every 5 minutes to keep it warm
 cron.schedule("*/5 * * * *", async () => {
   const servers = [
-    "https://kylongtask.azurewebsites.net/login",
+    "https://kylongtask.onrender.com/login",
     "https://kylongtech.com",
     "https://www.kylongtech.com",
   ];
