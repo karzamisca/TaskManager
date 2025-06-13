@@ -1197,47 +1197,57 @@ const createToggleSwitch = () => {
 };
 
 const loadPaymentDocuments = async () => {
-  await API.fetchPaymentDocuments();
-  const filteredDocuments = DocumentFilters.filterByCurrentUser(
-    STATE.paymentDocuments
-  );
+  try {
+    // Show loading when fetching documents
+    document.getElementById("loadingScreen").style.display = "flex";
 
-  // Calculate total pages
-  STATE.totalPages = Math.ceil(filteredDocuments.length / STATE.itemsPerPage);
+    await API.fetchPaymentDocuments();
+    const filteredDocuments = DocumentFilters.filterByCurrentUser(
+      STATE.paymentDocuments
+    );
 
-  // Make sure current page is in valid range
-  if (STATE.currentPage > STATE.totalPages) {
-    STATE.currentPage = STATE.totalPages;
-  }
-  if (STATE.currentPage < 1) {
-    STATE.currentPage = 1;
-  }
+    // Calculate total pages
+    STATE.totalPages = Math.ceil(filteredDocuments.length / STATE.itemsPerPage);
 
-  // Calculate slice indexes for current page
-  const startIndex = (STATE.currentPage - 1) * STATE.itemsPerPage;
-  const endIndex = startIndex + STATE.itemsPerPage;
-
-  // Get documents for current page only if pagination is enabled, otherwise show all
-  const pageDocuments = STATE.paginationEnabled
-    ? filteredDocuments.slice(startIndex, endIndex)
-    : filteredDocuments;
-
-  // Reset the "Select All" checkbox
-  Utils.resetSelectAllCheckbox();
-
-  // Update UI
-  TableManager.renderTable(pageDocuments);
-  SummaryManager.updateSummary(filteredDocuments);
-
-  // Render pagination controls if pagination is enabled
-  if (STATE.paginationEnabled) {
-    PaginationManager.renderPagination();
-  } else {
-    // Remove pagination if disabled
-    let paginationContainer = document.getElementById("paginationContainer");
-    if (paginationContainer) {
-      paginationContainer.innerHTML = "";
+    // Make sure current page is in valid range
+    if (STATE.currentPage > STATE.totalPages) {
+      STATE.currentPage = STATE.totalPages;
     }
+    if (STATE.currentPage < 1) {
+      STATE.currentPage = 1;
+    }
+
+    // Calculate slice indexes for current page
+    const startIndex = (STATE.currentPage - 1) * STATE.itemsPerPage;
+    const endIndex = startIndex + STATE.itemsPerPage;
+
+    // Get documents for current page only if pagination is enabled, otherwise show all
+    const pageDocuments = STATE.paginationEnabled
+      ? filteredDocuments.slice(startIndex, endIndex)
+      : filteredDocuments;
+
+    // Reset the "Select All" checkbox
+    Utils.resetSelectAllCheckbox();
+
+    // Update UI
+    TableManager.renderTable(pageDocuments);
+    SummaryManager.updateSummary(filteredDocuments);
+
+    // Render pagination controls if pagination is enabled
+    if (STATE.paginationEnabled) {
+      PaginationManager.renderPagination();
+    } else {
+      // Remove pagination if disabled
+      let paginationContainer = document.getElementById("paginationContainer");
+      if (paginationContainer) {
+        paginationContainer.innerHTML = "";
+      }
+    }
+  } catch (error) {
+    console.error("Error loading documents:", error);
+    Utils.showMessage("Error loading documents", true);
+  } finally {
+    document.getElementById("loadingScreen").style.display = "none";
   }
 };
 
