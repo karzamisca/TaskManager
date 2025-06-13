@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Phiếu đề xuất/Proposal Documents</title>
+    <title>Phiếu đề xuất</title>
     <link
       rel="stylesheet"
       href="documentPages/documentSummaryProposal/documentSummaryProposal.css"
@@ -13,20 +13,16 @@
   <body>
     <div class="container">
       <header class="page-header">
-        <a href="/documentSummary" class="back-link">Trở về/Back</a>
-        <h1>Phiếu đề xuất/Proposal Documents</h1>
+        <a href="/documentSummary" class="back-link">Trở về</a>
+        <h1>Phiếu đề xuất</h1>
         <div class="header-controls">
           <div class="toggle-switch">
             <input type="checkbox" id="pendingToggle" />
-            <label for="pendingToggle"
-              >Chỉ hiện phiếu tôi cần phê duyệt/Show pending my approval</label
-            >
+            <label for="pendingToggle">Chỉ hiện phiếu tôi cần phê duyệt</label>
           </div>
           <div class="toggle-switch">
             <input type="checkbox" id="paginationToggle" checked />
-            <label for="paginationToggle"
-              >Hiển thị phân trang/Enable pagination</label
-            >
+            <label for="paginationToggle">Hiển thị phân trang</label>
           </div>
         </div>
       </header>
@@ -37,17 +33,17 @@
         <table>
           <thead>
             <tr>
-              <th>Công việc/Task</th>
-              <th>Trạm/Cost Center</th>
-              <th>Ngày lỗi/Date of Error</th>
-              <th>Mô tả chi tiết/Details Description</th>
-              <th>Hướng xử lý/Direction</th>
-              <th>Tệp tin kèm theo/Attached File</th>
-              <th>Ngày nộp phiếu/Submission Date</th>
-              <th>Tên nhóm/Group Name</th>
-              <th>Tình trạng/Status</th>
-              <th>Trạng thái phê duyệt/Approval Status</th>
-              <th>Hành động/Action</th>
+              <th>Công việc</th>
+              <th>Trạm</th>
+              <th>Ngày lỗi</th>
+              <th>Mô tả chi tiết</th>
+              <th>Hướng xử lý</th>
+              <th>Tệp tin kèm theo</th>
+              <th>Ngày nộp phiếu</th>
+              <th>Tên nhóm</th>
+              <th>Tình trạng</th>
+              <th>Trạng thái phê duyệt</th>
+              <th>Hành động</th>
             </tr>
           </thead>
           <tbody id="proposalDocumentsTable">
@@ -61,18 +57,18 @@
         <h2>Tóm tắt/Summary</h2>
         <div class="summary-stats">
           <div class="stat-card approved">
-            <span class="stat-label">Đã phê duyệt/Approved:</span>
+            <span class="stat-label">Đã phê duyệt:</span>
             <span id="approvedDocument" class="stat-value">0</span>
           </div>
           <div class="stat-card unapproved">
-            <span class="stat-label">Chưa phê duyệt/Unapproved:</span>
+            <span class="stat-label">Chưa phê duyệt:</span>
             <span id="unapprovedDocument" class="stat-value">0</span>
           </div>
         </div>
       </div>
 
       <footer class="page-footer">
-        <a href="/documentSummary" class="back-link">Trở về/Back</a>
+        <a href="/documentSummary" class="back-link">Trở về</a>
       </footer>
     </div>
 
@@ -80,7 +76,7 @@
     <div id="suspendModal" class="modal">
       <div class="modal-content">
         <span class="close-btn" onclick="closeSuspendModal()">&times;</span>
-        <h2>Từ chối tài liệu/Suspend Document</h2>
+        <h2>Từ chối tài liệu</h2>
         <form
           id="suspendForm"
           onsubmit="proposalManager.handleSuspendSubmit(event)"
@@ -89,19 +85,17 @@
             >&times;</span
           >
           <div class="form-group">
-            <label for="suspendReason">Lý do từ chối/Suspend Reason:</label>
+            <label for="suspendReason">Lý do từ chối:</label>
             <textarea id="suspendReason" required></textarea>
           </div>
           <div class="form-actions">
-            <button type="submit" class="btn btn-danger">
-              Từ chối/Suspend
-            </button>
+            <button type="submit" class="btn btn-danger">Từ chối</button>
             <button
               type="button"
               class="btn btn-secondary"
               onclick="closeSuspendModal()"
             >
-              Hủy/Cancel
+              Hủy
             </button>
           </div>
         </form>
@@ -111,51 +105,47 @@
     <div id="editModal" class="modal">
       <div class="modal-content">
         <span class="close-btn" onclick="closeEditModal()">&times;</span>
-        <h2>Chỉnh sửa phiếu đề xuất/Edit Proposal Document</h2>
+        <h2>Chỉnh sửa phiếu đề xuất</h2>
         <span class="close-btn" onclick="proposalManager.closeEditModal()"
           >&times;</span
         >
         <form id="editForm" onsubmit="proposalManager.handleEditSubmit(event)">
           <input type="hidden" id="editDocId" />
           <div class="form-group">
-            <label for="editTask">Công việc/Task:</label>
+            <label for="editTask">Công việc:</label>
             <input type="text" id="editTask" required />
           </div>
           <div class="form-group">
-            <label for="editCostCenter">Trạm/Cost Center:</label>
+            <label for="editCostCenter">Trạm:</label>
             <select id="editCostCenter" required>
-              <option value="">Chọn một trạm/Select a center</option>
+              <option value="">Chọn một trạm</option>
             </select>
           </div>
           <div class="form-group">
-            <label for="editDateOfError">Ngày lỗi/Date of Error:</label>
+            <label for="editDateOfError">Ngày lỗi:</label>
             <input type="text" id="editDateOfError" required />
           </div>
           <div class="form-group">
-            <label for="editDetailsDescription"
-              >Mô tả chi tiết/Details Description:</label
-            >
+            <label for="editDetailsDescription">Mô tả chi tiết:</label>
             <textarea id="editDetailsDescription" required></textarea>
           </div>
           <div class="form-group">
-            <label for="editDirection">Hướng xử lý/Direction:</label>
+            <label for="editDirection">Hướng xử lý:</label>
             <textarea id="editDirection" required></textarea>
           </div>
           <div class="form-group">
-            <label for="editFile">Thay tệp tin mới/Update File:</label>
+            <label for="editFile">Thay tệp tin mới:</label>
             <input type="file" id="editFile" />
           </div>
           <div class="form-group">
-            <label>Người phê duyệt hiện tại/Current Approvers:</label>
+            <label>Người phê duyệt hiện tại:</label>
             <div id="currentApproversList" class="approvers-list"></div>
           </div>
           <div class="form-group">
-            <label>Thêm người phê duyệt/Add Approvers:</label>
+            <label>Thêm người phê duyệt:</label>
             <div class="add-approver">
               <select id="newApproversDropdown">
-                <option value="">
-                  Chọn người phê duyệt/Select an approver
-                </option>
+                <option value="">Chọn người phê duyệt</option>
               </select>
               <input
                 type="text"
@@ -167,20 +157,18 @@
                 class="btn btn-primary"
                 onclick="proposalManager.addNewApprover()"
               >
-                Thêm/Add
+                Thêm
               </button>
             </div>
           </div>
           <div class="form-actions">
-            <button type="submit" class="btn btn-primary">
-              Lưu thay đổi/Save Changes
-            </button>
+            <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
             <button
               type="button"
               class="btn btn-secondary"
               onclick="closeEditModal()"
             >
-              Hủy/Cancel
+              Hủy
             </button>
           </div>
         </form>
@@ -190,14 +178,14 @@
     <div id="declarationModal" class="modal">
       <div class="modal-content">
         <span class="close-btn" onclick="closeDeclarationModal()">&times;</span>
-        <h2>Kê Khai/Declaration</h2>
+        <h2>Kê Khai</h2>
         <textarea id="declarationInput"></textarea>
         <div class="form-actions">
           <button
             onclick="proposalManager.saveDeclaration()"
             class="btn btn-primary"
           >
-            Lưu kê khai/Save Declaration
+            Lưu kê khai
           </button>
           <span
             class="close-btn"

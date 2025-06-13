@@ -679,27 +679,27 @@ const createProposalManager = () => {
         <div id="containingDocsModal" class="modal" style="display: block;">
           <div class="modal-content" style="max-width: 1200px;">
             <span class="close-btn" onclick="document.getElementById('containingDocsModal').remove()">&times;</span>
-            <h2>Tài liệu chứa đề xuất này/Documents Containing This Proposal</h2>
+            <h2>Tài liệu chứa đề xuất này</h2>
             
-            <h3>Phiếu mua hàng/Purchasing Documents</h3>
+            <h3>Phiếu mua hàng</h3>
             <div class="documents-container">
               ${
                 data.purchasingDocuments.length > 0
                   ? data.purchasingDocuments
                       .map((doc) => proposalManager.renderDocumentCard(doc))
                       .join("")
-                  : "<p>Không có phiếu mua hàng nào chứa đề xuất này/Not appended to any purchasing documents</p>"
+                  : "<p>Không có phiếu mua hàng nào chứa đề xuất này</p>"
               }
             </div>
             
-            <h3>Phiếu xuất kho/Delivery Documents</h3>
+            <h3>Phiếu xuất kho</h3>
             <div class="documents-container">
               ${
                 data.deliveryDocuments.length > 0
                   ? data.deliveryDocuments
                       .map((doc) => proposalManager.renderDocumentCard(doc))
                       .join("")
-                  : "<p>Không có Phiếu xuất kho nào chứa đề xuất này/Not appended to any delivery documents</p>"
+                  : "<p>Không có Phiếu xuất kho nào chứa đề xuất này</p>"
               }
             </div>
           </div>
