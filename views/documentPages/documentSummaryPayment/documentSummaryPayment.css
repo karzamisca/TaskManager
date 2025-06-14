@@ -23,6 +23,10 @@
   --modal-bg: rgba(0, 0, 0, 0.5);
   --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   --transition: all 0.3s ease;
+  --loading-bg: rgba(255, 255, 255, 0.8);
+  --loading-spinner-border: #f3f3f3;
+  --loading-spinner-top: var(--primary-color);
+  --loading-text-color: var(--text-color);
 }
 
 /* Dark mode colors */
@@ -50,6 +54,8 @@
     --summary-bg: #1e1e1e;
     --modal-bg: rgba(0, 0, 0, 0.7);
     --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    --loading-bg: rgba(0, 0, 0, 0.8);
+    --loading-spinner-border: var(--border-color);
   }
 }
 
@@ -592,8 +598,8 @@ tr:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(255, 255, 255, 0.8);
-  display: none; /* Hidden by default */
+  background-color: var(--loading-bg);
+  display: none;
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -604,8 +610,8 @@ tr:hover {
 .loading-spinner {
   width: 50px;
   height: 50px;
-  border: 5px solid #f3f3f3;
-  border-top: 5px solid var(--primary-color);
+  border: 5px solid var(--loading-spinner-border);
+  border-top: 5px solid var(--loading-spinner-top);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 15px;
@@ -613,8 +619,17 @@ tr:hover {
 
 .loading-text {
   font-size: 1.2rem;
-  color: var(--text-color);
+  color: var(--loading-text-color);
   font-weight: 500;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes spin {
