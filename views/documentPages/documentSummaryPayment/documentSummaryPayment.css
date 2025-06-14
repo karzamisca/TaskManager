@@ -632,15 +632,6 @@ tr:hover {
   }
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
 /* Responsive styles */
 @media screen and (max-width: 768px) {
   body {
