@@ -591,15 +591,21 @@ tr:hover {
   color: white;
 }
 
-/* Enhanced Footer Styles */
+/* Footer Styles */
 .page-footer {
   margin-top: var(--space-xl);
   padding: var(--space-lg) 0;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border-radius: var(--radius-lg);
   border-top: 3px solid var(--primary-color);
   position: relative;
   overflow: hidden;
+  margin-bottom: var(--space-xl);
+  background: linear-gradient(
+    135deg,
+    var(--primary-color) 0%,
+    rgba(76, 175, 80, 0.8) 100%
+  );
+  box-shadow: var(--card-shadow);
 }
 
 .page-footer::before {
