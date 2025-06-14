@@ -325,7 +325,7 @@ exports.exportDocumentToDocx = async (req, res) => {
       (await AdvancePaymentDocument.findById(id));
 
     if (!doc) {
-      return res.status(404).send("Không tìm thấy tài liệu/Document not found");
+      return res.status(404).send("Không tìm thấy phiếu.");
     }
 
     let buffer;
@@ -350,13 +350,11 @@ exports.exportDocumentToDocx = async (req, res) => {
           buffer = await createAdvancePaymentDocTemplate(doc);
           break;
         default:
-          return res.send(
-            "Tài liệu chưa được hỗ trợ/Unsupported document type"
-          );
+          return res.send("Phiếu chưa được hỗ trợ.");
       }
     } catch (err) {
       console.error("Error creating document template:", err);
-      return res.send("Lỗi tạo mẫu tài liệu/Error creating document template");
+      return res.send("Lỗi tạo mẫu phiếu.");
     }
 
     res.set({
@@ -367,7 +365,7 @@ exports.exportDocumentToDocx = async (req, res) => {
     res.send(buffer);
   } catch (err) {
     console.error("Error in exportDocumentToDocx:", err);
-    res.send("Lỗi xuất tài liệu/Error exporting document");
+    res.send("Lỗi xuất phiếu.");
   }
 };
 // Main export function that handles file upload and routes to specific document handlers
@@ -453,7 +451,7 @@ exports.submitDocument = async (req, res) => {
     } catch (err) {
       console.error("Error submitting document:", err);
       if (!res.headersSent) {
-        res.send("Lỗi nộp tài liệu/Error submitting document");
+        res.send("Lỗi nộp phiếu.");
       }
     }
   });
@@ -891,7 +889,7 @@ exports.getPendingDocument = async (req, res) => {
     );
   } catch (err) {
     console.error("Error fetching pending documents:", err);
-    res.send("Lỗi lấy tài liệu/Error fetching pending documents");
+    res.send("Lỗi lấy phiếu.");
   }
 };
 exports.approveDocument = async (req, res) => {
@@ -914,9 +912,7 @@ exports.approveDocument = async (req, res) => {
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Check if the document is a Generic, Proposal, or Purchasing Document
@@ -931,7 +927,7 @@ exports.approveDocument = async (req, res) => {
       (await DeliveryDocument.findById(id));
 
     if (!document) {
-      return res.send("Không tìm thấy tài liệu/Document not found");
+      return res.send("Không tìm thấy phiếu.");
     }
 
     const user = await User.findById(req.user.id);
@@ -944,7 +940,7 @@ exports.approveDocument = async (req, res) => {
     );
     if (!isChosenApprover) {
       return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền phê duyệt tài liệu này./Access denied. You don't have permission to approve this document."
+        "Truy cập bị từ chối. Bạn không có quyền phê duyệt phiếu này."
       );
     }
 
@@ -952,9 +948,7 @@ exports.approveDocument = async (req, res) => {
       (approver) => approver.user.toString() === req.user.id
     );
     if (hasApproved) {
-      return res.send(
-        "Bạn đã phê duyệt tài liệu rồi./You have already approved this document."
-      );
+      return res.send("Bạn đã phê duyệt phiếu rồi.");
     }
 
     // Add the current approver to the list of `approvedBy`
@@ -991,13 +985,13 @@ exports.approveDocument = async (req, res) => {
 
     const successMessage =
       document.status === "Approved"
-        ? "Tài liệu đã được phê duyệt hoàn toàn./Document has been fully approved."
-        : "Tài liệu đã được phê duyệt thành công./Document has been successfully approved.";
+        ? "Phiếu đã được phê duyệt hoàn toàn."
+        : "Phiếu đã được phê duyệt thành công.";
 
     return res.send(successMessage);
   } catch (err) {
     console.error("Error approving document:", err);
-    return res.send("Lỗi phê duyệt tài liệu/Error approving document");
+    return res.send("Lỗi phê duyệt phiếu.");
   }
 };
 exports.deleteDocument = async (req, res) => {
@@ -1058,10 +1052,10 @@ exports.deleteDocument = async (req, res) => {
     }
 
     // Send success message after deletion
-    res.send(`Document of type ${documentType} has been successfully deleted`);
+    res.send(`Phiếu đã xóa thành công.`);
   } catch (err) {
     console.error("Error deleting document:", err);
-    res.send("Lỗi xóa tài liệu/Error deleting document");
+    res.send("Lỗi xóa phiếu.");
   }
 };
 exports.suspendDocument = async (req, res) => {
@@ -1072,7 +1066,7 @@ exports.suspendDocument = async (req, res) => {
     // Restrict access to only users with the role of "director" or "headOfPurchasing"
     if (req.user.role !== "director" && req.user.role !== "headOfPurchasing") {
       return res.send(
-        "Truy cập bị từ chối. Chỉ giám đốc hoặc trưởng phòng mua hàng có quyền mở lại tài liệu./Access denied. Only directors or heads of purchasing can reopen documents."
+        "Truy cập bị từ chối. Chỉ giám đốc hoặc trưởng phòng mua hàng có quyền mở lại phiếu."
       );
     }
 
@@ -1085,7 +1079,7 @@ exports.suspendDocument = async (req, res) => {
       (await PaymentDocument.findById(id));
 
     if (!document) {
-      return res.status(404).send("Không tìm thấy tài liệu/Document not found");
+      return res.status(404).send("Không tìm thấy phiếu.");
     }
 
     // Revert and lock all approval progress
@@ -1107,12 +1101,10 @@ exports.suspendDocument = async (req, res) => {
       await Document.findByIdAndUpdate(id, document);
     }
 
-    res.send(
-      "Tài liệu đã được tạm dừng thành công./Document has been suspended successfully."
-    );
+    res.send("Phiếu đã được tạm dừng thành công.");
   } catch (err) {
-    console.error("Lỗi khi tạm dừng tài liệu/Error suspending document:", err);
-    res.status(500).send("Lỗi khi tạm dừng tài liệu/Error suspending document");
+    console.error("Lỗi khi tạm dừng phiếu:", err);
+    res.status(500).send("Lỗi khi tạm dừng phiếu.");
   }
 };
 exports.openDocument = async (req, res) => {
@@ -1122,7 +1114,7 @@ exports.openDocument = async (req, res) => {
     // Restrict access to only users with the role of "director" or "headOfPurchasing"
     if (req.user.role !== "director" && req.user.role !== "headOfPurchasing") {
       return res.send(
-        "Truy cập bị từ chối. Chỉ giám đốc hoặc trưởng phòng mua hàng có quyền mở lại tài liệu./Access denied. Only directors or heads of purchasing can reopen documents."
+        "Truy cập bị từ chối. Chỉ giám đốc hoặc trưởng phòng mua hàng có quyền mở lại phiếu."
       );
     }
 
@@ -1135,7 +1127,7 @@ exports.openDocument = async (req, res) => {
       (await PaymentDocument.findById(id));
 
     if (!document) {
-      return res.status(404).send("Không tìm thấy tài liệu/Document not found");
+      return res.status(404).send("Không tìm thấy phiếu.");
     }
 
     // Revert the suspension
@@ -1155,12 +1147,10 @@ exports.openDocument = async (req, res) => {
       await Document.findByIdAndUpdate(id, document);
     }
 
-    res.send(
-      "Tài liệu đã được mở lại thành công./Document has been reopened successfully."
-    );
+    res.send("Phiếu đã được mở lại thành công.");
   } catch (err) {
-    console.error("Lỗi khi mở lại tài liệu/Error reopening document:", err);
-    res.status(500).send("Lỗi khi mở lại tài liệu/Error reopening document");
+    console.error("Lỗi khi mở lại phiếu:", err);
+    res.status(500).send("Lỗi khi mở lại phiếu.");
   }
 };
 //// END OF GENERAL CONTROLLER
@@ -1234,11 +1224,7 @@ exports.getApprovedProposalsForPurchasing = async (req, res) => {
     res.json(sortedDocuments);
   } catch (err) {
     console.error("Error fetching unattached approved proposals:", err);
-    res
-      .status(500)
-      .send(
-        "Lỗi lấy tài liệu đề xuất đã phê duyệt chưa được gắn/Error fetching unattached approved proposals"
-      );
+    res.status(500).send("Lỗi lấy phiếu đề xuất đã phê duyệt chưa được gắn.");
   }
 };
 exports.getApprovedProposalsForDelivery = async (req, res) => {
@@ -1309,11 +1295,7 @@ exports.getApprovedProposalsForDelivery = async (req, res) => {
     res.json(sortedDocuments);
   } catch (err) {
     console.error("Error fetching unattached approved proposals:", err);
-    res
-      .status(500)
-      .send(
-        "Lỗi lấy tài liệu đề xuất đã phê duyệt chưa được gắn/Error fetching unattached approved proposals"
-      );
+    res.status(500).send("Lỗi lấy phiếu đề xuất đã phê duyệt chưa được gắn.");
   }
 };
 exports.getDocumentsContainingProposal = async (req, res) => {
@@ -1350,7 +1332,7 @@ exports.getProposalDocumentById = async (req, res) => {
     res.json(proposal);
   } catch (err) {
     console.error("Error fetching proposal document:", err);
-    res.send("Lỗi lấy tài liệu đề xuất/Error fetching proposal document");
+    res.send("Lỗi lấy phiếu đề xuất.");
   }
 };
 exports.updateProposalDocument = async (req, res) => {
@@ -1521,9 +1503,7 @@ exports.updateProposalDocumentDeclaration = async (req, res) => {
         req.user.role
       )
     ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     const doc = await ProposalDocument.findById(id);
@@ -1534,7 +1514,7 @@ exports.updateProposalDocumentDeclaration = async (req, res) => {
     doc.declaration = declaration;
     await doc.save();
 
-    res.send("Kê khai cập nhật thành công/Declaration updated successfully");
+    res.send("Kê khai cập nhật thành công.");
   } catch (error) {
     console.error("Error updating declaration:", error);
     res.status(500).json({ message: "Error updating declaration" });
@@ -1548,7 +1528,7 @@ exports.suspendProposalDocument = async (req, res) => {
     // Restrict access to only users with the role of "director"
     if (req.user.role !== "deputyDirector") {
       return res.send(
-        "Truy cập bị từ chối. Chỉ phó giám đốc có quyền tạm dừng phiếu đề xuất./Access denied. Only Deputy Director can suspend proposal documents."
+        "Truy cập bị từ chối. Chỉ phó giám đốc có quyền tạm dừng phiếu đề xuất."
       );
     }
 
@@ -1560,7 +1540,7 @@ exports.suspendProposalDocument = async (req, res) => {
       (await PaymentDocument.findById(id));
 
     if (!document) {
-      return res.status(404).send("Không tìm thấy tài liệu/Document not found");
+      return res.status(404).send("Không tìm thấy phiếu.");
     }
 
     // Revert and lock all approval progress
@@ -1580,12 +1560,10 @@ exports.suspendProposalDocument = async (req, res) => {
       await Document.findByIdAndUpdate(id, document);
     }
 
-    res.send(
-      "Tài liệu đã được tạm dừng thành công./Document has been suspended successfully."
-    );
+    res.send("Phiếu đã được tạm dừng thành công.");
   } catch (err) {
-    console.error("Lỗi khi tạm dừng tài liệu/Error suspending document:", err);
-    res.status(500).send("Lỗi khi tạm dừng tài liệu/Error suspending document");
+    console.error("Lỗi khi tạm dừng phiếu:", err);
+    res.status(500).send("Lỗi khi tạm dừng phiếu.");
   }
 };
 exports.openProposalDocument = async (req, res) => {
@@ -1595,7 +1573,7 @@ exports.openProposalDocument = async (req, res) => {
     // Restrict access to only users with the role of "director"
     if (req.user.role !== "deputyDirector") {
       return res.send(
-        "Truy cập bị từ chối. Chỉ phó giám đốc có quyền mở lại phiếu đề xuất./Access denied. Only Deputy Director can reopen proposal documents."
+        "Truy cập bị từ chối. Chỉ phó giám đốc có quyền mở lại phiếu đề xuất."
       );
     }
 
@@ -1607,7 +1585,7 @@ exports.openProposalDocument = async (req, res) => {
       (await PaymentDocument.findById(id));
 
     if (!document) {
-      return res.status(404).send("Không tìm thấy tài liệu/Document not found");
+      return res.status(404).send("Không tìm thấy phiếu.");
     }
 
     // Revert the suspension
@@ -1625,12 +1603,10 @@ exports.openProposalDocument = async (req, res) => {
       await Document.findByIdAndUpdate(id, document);
     }
 
-    res.send(
-      "Tài liệu đã được mở lại thành công./Document has been reopened successfully."
-    );
+    res.send("Phiếu đã được mở lại thành công.");
   } catch (err) {
-    console.error("Lỗi khi mở lại tài liệu/Error reopening document:", err);
-    res.status(500).send("Lỗi khi mở lại tài liệu/Error reopening document");
+    console.error("Lỗi khi mở lại phiếu:", err);
+    res.status(500).send("Lỗi khi mở lại phiếu.");
   }
 };
 //// END OF PROPOSAL DOCUMENT CONTROLLER
@@ -1713,11 +1689,7 @@ exports.getApprovedPurchasingDocumentsForPayment = async (req, res) => {
     res.json(sortedDocuments);
   } catch (err) {
     console.error("Error fetching unattached purchasing documents:", err);
-    res
-      .status(500)
-      .send(
-        "Lỗi lấy tài liệu mua hàng chưa gắn với thanh toán/Error fetching unattached purchasing documents"
-      );
+    res.status(500).send("Lỗi lấy phiếu mua hàng chưa gắn với thanh toán.");
   }
 };
 exports.getApprovedPurchasingDocumentsForAdvancePayment = async (req, res) => {
@@ -1797,11 +1769,7 @@ exports.getApprovedPurchasingDocumentsForAdvancePayment = async (req, res) => {
     res.json(sortedDocuments);
   } catch (err) {
     console.error("Error fetching unattached purchasing documents:", err);
-    res
-      .status(500)
-      .send(
-        "Lỗi lấy tài liệu mua hàng chưa gắn với thanh toán/Error fetching unattached purchasing documents"
-      );
+    res.status(500).send("Lỗi lấy phiếu mua hàng chưa gắn với thanh toán.");
   }
 };
 exports.getApprovedPurchasingDocumentsForAdvancePaymentReclaim = async (
@@ -1887,11 +1855,7 @@ exports.getApprovedPurchasingDocumentsForAdvancePaymentReclaim = async (
     res.json(sortedDocuments);
   } catch (err) {
     console.error("Error fetching unattached purchasing documents:", err);
-    res
-      .status(500)
-      .send(
-        "Lỗi lấy tài liệu mua hàng chưa gắn với thanh toán/Error fetching unattached purchasing documents"
-      );
+    res.status(500).send("Lỗi lấy phiếu mua hàng chưa gắn với thanh toán.");
   }
 };
 exports.getDocumentsContainingPurchasing = async (req, res) => {
@@ -1955,14 +1919,11 @@ exports.getDocumentsContainingPurchasing = async (req, res) => {
 exports.getPurchasingDocumentById = async (req, res) => {
   try {
     const purchasingDoc = await PurchasingDocument.findById(req.params.id);
-    if (!purchasingDoc)
-      return res.send(
-        "Không tìm thấy tài liệu mua hàng/Purchasing document not found"
-      );
+    if (!purchasingDoc) return res.send("Không tìm thấy phiếu mua hàng.");
     res.json(purchasingDoc);
   } catch (err) {
     console.error("Error fetching purchasing document:", err);
-    res.send("Lỗi lấy tài liệu mua hàng/Error fetching purchasing document");
+    res.send("Lỗi lấy phiếu mua hàng/Error fetching purchasing document");
   }
 };
 // Fetch all Purchasing Documents
@@ -2162,9 +2123,7 @@ exports.updatePurchasingDocumentDeclaration = async (req, res) => {
         req.user.role
       )
     ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     const doc = await PurchasingDocument.findById(id);
@@ -2175,7 +2134,7 @@ exports.updatePurchasingDocumentDeclaration = async (req, res) => {
     doc.declaration = declaration;
     await doc.save();
 
-    res.send("Kê khai cập nhật thành công/Declaration updated successfully");
+    res.send("Kê khai cập nhật thành công.");
   } catch (error) {
     console.error("Error updating declaration:", error);
     res.status(500).json({ message: "Error updating declaration" });
@@ -2189,7 +2148,7 @@ exports.suspendPurchasingDocument = async (req, res) => {
     // Restrict access to only users with the role of "director"
     if (req.user.role !== "headOfPurchasing") {
       return res.send(
-        "Truy cập bị từ chối. Chỉ trưởng phòng mua hàng có quyền tạm dừng phiếu mua hàng./Access denied. Only Head of Purchasing Department can suspend purchasing documents."
+        "Truy cập bị từ chối. Chỉ trưởng phòng mua hàng có quyền tạm dừng phiếu mua hàng."
       );
     }
 
@@ -2201,7 +2160,7 @@ exports.suspendPurchasingDocument = async (req, res) => {
       (await PaymentDocument.findById(id));
 
     if (!document) {
-      return res.status(404).send("Không tìm thấy tài liệu/Document not found");
+      return res.status(404).send("Không tìm thấy phiếu.");
     }
 
     // Revert and lock all approval progress
@@ -2221,12 +2180,10 @@ exports.suspendPurchasingDocument = async (req, res) => {
       await Document.findByIdAndUpdate(id, document);
     }
 
-    res.send(
-      "Tài liệu đã được tạm dừng thành công./Document has been suspended successfully."
-    );
+    res.send("Phiếu đã được tạm dừng thành công.");
   } catch (err) {
-    console.error("Lỗi khi tạm dừng tài liệu/Error suspending document:", err);
-    res.status(500).send("Lỗi khi tạm dừng tài liệu/Error suspending document");
+    console.error("Lỗi khi tạm dừng phiếu:", err);
+    res.status(500).send("Lỗi khi tạm dừng phiếu.");
   }
 };
 exports.openPurchasingDocument = async (req, res) => {
@@ -2236,7 +2193,7 @@ exports.openPurchasingDocument = async (req, res) => {
     // Restrict access to only users with the role of "director"
     if (req.user.role !== "headOfPurchasing") {
       return res.send(
-        "Truy cập bị từ chối. Chỉ trưởng phòng mua hàng có quyền mở lại phiếu mua hàng./Access denied. Only Head of Purchasing Department can reopen purchasing documents."
+        "Truy cập bị từ chối. Chỉ trưởng phòng mua hàng có quyền mở lại phiếu mua hàng."
       );
     }
 
@@ -2248,7 +2205,7 @@ exports.openPurchasingDocument = async (req, res) => {
       (await PaymentDocument.findById(id));
 
     if (!document) {
-      return res.status(404).send("Không tìm thấy tài liệu/Document not found");
+      return res.status(404).send("Không tìm thấy phiếu.");
     }
 
     // Revert the suspension
@@ -2266,12 +2223,10 @@ exports.openPurchasingDocument = async (req, res) => {
       await Document.findByIdAndUpdate(id, document);
     }
 
-    res.send(
-      "Tài liệu đã được mở lại thành công./Document has been reopened successfully."
-    );
+    res.send("Phiếu đã được mở lại thành công.");
   } catch (err) {
-    console.error("Lỗi khi mở lại tài liệu/Error reopening document:", err);
-    res.status(500).send("Lỗi khi mở lại tài liệu/Error reopening document");
+    console.error("Lỗi khi mở lại phiếu:", err);
+    res.status(500).send("Lỗi khi mở lại phiếu.");
   }
 };
 exports.exportPurchasingDocumentsToExcel = async (req, res) => {
@@ -2451,37 +2406,37 @@ exports.exportPurchasingDocumentsToExcel = async (req, res) => {
     // Main document columns with auto-width settings
     worksheet.columns = [
       {
-        header: "Mã/ID",
+        header: "Mã",
         key: "id",
         width: 18,
         style: { alignment: { wrapText: true } },
       },
       {
-        header: "Tên/Name",
+        header: "Tên",
         key: "name",
         width: 30,
         style: { alignment: { wrapText: true } },
       },
       {
-        header: "Trạm/Cost Center",
+        header: "Trạm",
         key: "costCenter",
         width: 15,
         style: { alignment: { wrapText: true } },
       },
       {
-        header: "Nhóm/Group",
+        header: "Nhóm",
         key: "groupName",
         width: 15,
         style: { alignment: { wrapText: true } },
       },
       {
-        header: "Dự án/Project",
+        header: "Dự án",
         key: "projectName",
         width: 18,
         style: { alignment: { wrapText: true } },
       },
       {
-        header: "Tổng tiền/Grand Total Cost",
+        header: "Tổng tiền",
         key: "grandTotalCost",
         width: 15,
         style: {
@@ -2490,19 +2445,19 @@ exports.exportPurchasingDocumentsToExcel = async (req, res) => {
         },
       },
       {
-        header: "Tình trạng/Status",
+        header: "Tình trạng",
         key: "status",
         width: 12,
         style: { alignment: { wrapText: true } },
       },
       {
-        header: "Submitted By",
+        header: "Nộp bởi",
         key: "submittedBy",
         width: 20,
         style: { alignment: { wrapText: true } },
       },
       {
-        header: "Ngày nộp/Submission Date",
+        header: "Ngày nộp",
         key: "submissionDate",
         width: 20,
         style: {
@@ -2511,19 +2466,19 @@ exports.exportPurchasingDocumentsToExcel = async (req, res) => {
         },
       },
       {
-        header: "Tệp tin đính kèm/Attached File",
+        header: "Tệp tin đính kèm",
         key: "fileAttachment",
         width: 30,
         style: { alignment: { wrapText: true } },
       },
       {
-        header: "Kê khai/Declaration",
+        header: "Kê khai",
         key: "declaration",
         width: 30,
         style: { alignment: { wrapText: true } },
       },
       {
-        header: "Lý do từ chối/Suspend Reason",
+        header: "Lý do từ chối",
         key: "suspendReason",
         width: 30,
         style: { alignment: { wrapText: true } },
@@ -2565,18 +2520,18 @@ exports.exportPurchasingDocumentsToExcel = async (req, res) => {
 
     // Add document columns header row
     const docColumnsHeaderRow = worksheet.addRow([
-      "Mã/ID",
-      "Tên/Name",
-      "Trạm/Cost Center",
-      "Nhóm/Group",
-      "Dự án/Project",
-      "Tổng tiền/Grand Total Cost",
-      "Tình trạng/Status",
-      "Submitted By",
-      "Ngày nộp/Submission Date",
-      "Tệp tin đính kèm/Attached File",
-      "Kê khai/Declaration",
-      "Lý do từ chối/Suspend Reason",
+      "Mã",
+      "Tên",
+      "Trạm",
+      "Nhóm",
+      "Dự án",
+      "Tổng tiền",
+      "Tình trạng",
+      "Nộp bởi",
+      "Ngày nộp",
+      "Tệp tin đính kèm",
+      "Kê khai",
+      "Lý do từ chối",
     ]);
     docColumnsHeaderRow.eachCell((cell) => {
       cell.style = styles.header;
@@ -2670,13 +2625,13 @@ exports.exportPurchasingDocumentsToExcel = async (req, res) => {
         // Product headers
         const productHeaders = [
           "No.",
-          "Tên/Name",
-          "Đơn giá/Cost Per Unit",
-          "Số lượng/Amount",
+          "Tên",
+          "Đơn giá",
+          "Số lượng",
           "VAT %",
-          "Thành tiền/Total Cost",
-          "Thành tiền sau VAT/Total After VAT",
-          "Ghi chú/Note",
+          "Thành tiền",
+          "Thành tiền sau VAT",
+          "Ghi chú",
         ];
 
         const productHeaderRow = worksheet.addRow(productHeaders);
@@ -2809,12 +2764,12 @@ exports.exportPurchasingDocumentsToExcel = async (req, res) => {
         // Proposal headers
         const proposalHeaders = [
           "No.",
-          "Công việc/Task",
-          "Trạm/Cost Center",
-          "Ngày xảy ra lỗi/Date of Error",
-          "Mô tả/Description",
-          "Hướng xử lý/Direction",
-          "Tệp tin đính kèm/Attached File",
+          "Công việc",
+          "Trạm",
+          "Ngày xảy ra lỗi",
+          "Mô tả",
+          "Hướng xử lý",
+          "Tệp tin đính kèm",
         ];
         const proposalHeaderRow = worksheet.addRow(proposalHeaders);
         proposalHeaderRow.eachCell((cell) => {
@@ -2920,10 +2875,10 @@ exports.exportPurchasingDocumentsToExcel = async (req, res) => {
         // Approver headers
         const approverHeaders = [
           "No.",
-          "Người phê duyệt/Approver",
-          "Vai trò/Role",
-          "Tình trạng/Status",
-          "Ngày phê duyệt/Approval Date",
+          "Người phê duyệt",
+          "Vai trò",
+          "Tình trạng",
+          "Ngày phê duyệt",
         ];
         const approverHeaderRow = worksheet.addRow(approverHeaders);
         approverHeaderRow.eachCell((cell) => {
@@ -3286,9 +3241,7 @@ exports.updatePaymentDocumentDeclaration = async (req, res) => {
         req.user.role
       )
     ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     const doc = await PaymentDocument.findById(id);
@@ -3299,7 +3252,7 @@ exports.updatePaymentDocumentDeclaration = async (req, res) => {
     doc.declaration = declaration;
     await doc.save();
 
-    res.send("Kê khai cập nhật thành công/Declaration updated successfully");
+    res.send("Kê khai cập nhật thành công.");
   } catch (error) {
     console.error("Error updating declaration:", error);
     res.status(500).json({ message: "Error updating declaration" });
@@ -3317,9 +3270,7 @@ exports.massUpdatePaymentDocumentDeclaration = async (req, res) => {
     ) {
       return res
         .status(403)
-        .send(
-          "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-        );
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Validate input
@@ -3345,9 +3296,7 @@ exports.massUpdatePaymentDocumentDeclaration = async (req, res) => {
       return res.status(404).json({ message: "No documents found or updated" });
     }
 
-    res.send(
-      `Kê khai cập nhật thành công cho ${result.modifiedCount} tài liệu/Declaration updated successfully for ${result.modifiedCount} documents`
-    );
+    res.send(`Kê khai cập nhật thành công cho ${result.modifiedCount} phiếu.`);
   } catch (error) {
     console.error("Error updating declaration:", error);
     res.status(500).json({ message: "Error updating declaration" });
@@ -3515,9 +3464,7 @@ exports.updateAdvancePaymentDocumentDeclaration = async (req, res) => {
         req.user.role
       )
     ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     const doc = await AdvancePaymentDocument.findById(id);
@@ -3528,7 +3475,7 @@ exports.updateAdvancePaymentDocumentDeclaration = async (req, res) => {
     doc.declaration = declaration;
     await doc.save();
 
-    res.send("Kê khai cập nhật thành công/Declaration updated successfully");
+    res.send("Kê khai cập nhật thành công.");
   } catch (error) {
     console.error("Error updating declaration:", error);
     res.status(500).json({ message: "Error updating declaration" });
@@ -3546,9 +3493,7 @@ exports.massUpdateAdvancePaymentDocumentDeclaration = async (req, res) => {
     ) {
       return res
         .status(403)
-        .send(
-          "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-        );
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Validate input
@@ -3574,9 +3519,7 @@ exports.massUpdateAdvancePaymentDocumentDeclaration = async (req, res) => {
       return res.status(404).json({ message: "No documents found or updated" });
     }
 
-    res.send(
-      `Kê khai cập nhật thành công cho ${result.modifiedCount} tài liệu/Declaration updated successfully for ${result.modifiedCount} documents`
-    );
+    res.send(`Kê khai cập nhật thành công cho ${result.modifiedCount} phiếu.`);
   } catch (error) {
     console.error("Error updating declaration:", error);
     res.status(500).json({ message: "Error updating declaration" });
@@ -3745,9 +3688,7 @@ exports.updateAdvancePaymentReclaimDocumentDeclaration = async (req, res) => {
         req.user.role
       )
     ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     const doc = await AdvancePaymentReclaimDocument.findById(id);
@@ -3758,7 +3699,7 @@ exports.updateAdvancePaymentReclaimDocumentDeclaration = async (req, res) => {
     doc.declaration = declaration;
     await doc.save();
 
-    res.send("Kê khai cập nhật thành công/Declaration updated successfully");
+    res.send("Kê khai cập nhật thành công.");
   } catch (error) {
     console.error("Error updating declaration:", error);
     res.status(500).json({ message: "Error updating declaration" });
@@ -3779,9 +3720,7 @@ exports.massUpdateAdvancePaymentReclaimDocumentDeclaration = async (
     ) {
       return res
         .status(403)
-        .send(
-          "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-        );
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Validate input
@@ -3807,9 +3746,7 @@ exports.massUpdateAdvancePaymentReclaimDocumentDeclaration = async (
       return res.status(404).json({ message: "No documents found or updated" });
     }
 
-    res.send(
-      `Kê khai cập nhật thành công cho ${result.modifiedCount} tài liệu/Declaration updated successfully for ${result.modifiedCount} documents`
-    );
+    res.send(`Kê khai cập nhật thành công cho ${result.modifiedCount} phiếu.`);
   } catch (error) {
     console.error("Error updating declaration:", error);
     res.status(500).json({ message: "Error updating declaration" });

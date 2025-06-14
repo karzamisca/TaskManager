@@ -151,9 +151,7 @@ const createProposalManager = () => {
         )}</td>
         <td>
           <div class="action-buttons">
-            <form action="/exportDocumentToDocx/${
-              doc._id
-            }" method="GET" target="_blank">
+            <form action="/exportDocumentToDocx/${doc._id}" method="GET">
               <button type="submit" class="btn btn-primary btn-sm">Xuất DOCX</button>
             </form>
             ${
