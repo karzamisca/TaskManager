@@ -215,12 +215,12 @@ const createProposalManager = () => {
         <button onclick="proposalManager.changePage(1)" ${
           state.currentPage === 1 ? "disabled" : ""
         }>
-          &laquo; First
+          &laquo; Trang đầu
         </button>
         <button onclick="proposalManager.changePage(${
           state.currentPage - 1
         })" ${state.currentPage === 1 ? "disabled" : ""}>
-          &lsaquo; Prev
+          &lsaquo; Trang trước
         </button>
         <span class="page-info">
           Trang ${state.currentPage} / ${state.totalPages}
@@ -228,12 +228,12 @@ const createProposalManager = () => {
         <button onclick="proposalManager.changePage(${
           state.currentPage + 1
         })" ${state.currentPage === state.totalPages ? "disabled" : ""}>
-          Next &rsaquo;
+          Trang tiếp &rsaquo;
         </button>
         <button onclick="proposalManager.changePage(${state.totalPages})" ${
       state.currentPage === state.totalPages ? "disabled" : ""
     }>
-          Last &raquo;
+          Trang cuối &raquo;
         </button>
       </div>
     `;
@@ -683,7 +683,7 @@ const createProposalManager = () => {
         <div id="containingDocsModal" class="modal" style="display: block;">
           <div class="modal-content" style="max-width: 1200px;">
             <span class="close-btn" onclick="document.getElementById('containingDocsModal').remove()">&times;</span>
-            <h2>Tài liệu chứa đề xuất này</h2>
+            <h2>Phiếu chứa đề xuất này</h2>
             
             <h3>Phiếu mua hàng</h3>
             <div class="documents-container">
@@ -703,7 +703,7 @@ const createProposalManager = () => {
                   ? data.deliveryDocuments
                       .map((doc) => proposalManager.renderDocumentCard(doc))
                       .join("")
-                  : "<p>Không có Phiếu xuất kho nào chứa đề xuất này</p>"
+                  : "<p>Không có phiếu xuất kho nào chứa đề xuất này</p>"
               }
             </div>
           </div>

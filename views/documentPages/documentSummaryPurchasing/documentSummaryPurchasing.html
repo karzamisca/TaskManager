@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Phiếu mua hàng/Purchasing Documents</title>
+    <title>Phiếu mua hàng</title>
     <link
       rel="stylesheet"
       href="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.css"
@@ -16,13 +16,10 @@
   </head>
   <body>
     <header class="page-header">
-      <h1>
-        <i class="fas fa-file-invoice-dollar"></i> Phiếu mua hàng/Purchasing
-        Documents
-      </h1>
+      <h1><i class="fas fa-file-invoice-dollar"></i> Phiếu mua hàng</h1>
       <div class="header-actions">
         <a href="/documentSummary" class="back-btn">
-          <i class="fas fa-arrow-left"></i> Trở về/Back
+          <i class="fas fa-arrow-left"></i> Trở về
         </a>
       </div>
     </header>
@@ -34,17 +31,15 @@
         <label class="toggle-switch">
           <input type="checkbox" id="paginationToggle" checked />
           <span class="toggle-slider"></span>
-          <span class="toggle-label"
-            >Hiển thị phân trang/Enable pagination</span
-          >
+          <span class="toggle-label">Hiển thị phân trang</span>
         </label>
       </div>
 
       <div class="control-group">
         <label for="costCenterFilter">
-          <span>Lọc theo trạm/Filter by Center:</span>
+          <span>Lọc theo trạm:</span>
           <select id="costCenterFilter" class="filter-select">
-            <option value="">Tất cả/All</option>
+            <option value="">Tất cả</option>
             <!-- Options will be populated dynamically -->
           </select>
         </label>
@@ -54,21 +49,18 @@
         <label class="toggle-switch">
           <input type="checkbox" id="pendingToggle" />
           <span class="toggle-slider"></span>
-          <span class="toggle-label"
-            >Chỉ hiện phiếu tôi cần phê duyệt/Show pending my approval</span
-          >
+          <span class="toggle-label">Chỉ hiện phiếu tôi cần phê duyệt</span>
         </label>
       </div>
     </div>
 
     <div class="export-panel">
       <button id="exportSelectedBtn" class="btn btn-export">
-        <i class="fas fa-file-excel"></i> Xuất đã chọn ra Excel/Export Selected
-        to Excel
+        <i class="fas fa-file-excel"></i> Xuất đã chọn ra Excel
       </button>
       <label class="select-all">
         <input type="checkbox" id="selectAllCheckbox" />
-        <span>Chọn tất cả/Select All</span>
+        <span>Chọn tất cả</span>
       </label>
     </div>
 
@@ -76,16 +68,16 @@
       <table id="purchasingDocumentsTable">
         <thead>
           <tr>
-            <th width="40px">Chọn/Select</th>
-            <th>Tên/Name</th>
-            <th>Trạm/Center</th>
-            <th>Sản phẩm/Products</th>
-            <th>Tệp tin kèm theo/Attached File</th>
-            <th>Tổng chi phí/Grand Total Cost</th>
-            <th>Phiếu đề xuất kèm theo/Appended Proposals</th>
-            <th>Tình trạng/Status</th>
-            <th>Trạng thái phê duyệt/Approval Status</th>
-            <th>Hành động/Action</th>
+            <th width="40px">Chọn</th>
+            <th>Tên</th>
+            <th>Trạm</th>
+            <th>Sản phẩm</th>
+            <th>Tệp tin kèm theo</th>
+            <th>Tổng chi phí</th>
+            <th>Phiếu đề xuất kèm theo</th>
+            <th>Tình trạng</th>
+            <th>Trạng thái phê duyệt</th>
+            <th>Hành động</th>
           </tr>
         </thead>
         <tbody>
@@ -97,7 +89,7 @@
 
     <div id="loadingOverlay" class="loading-overlay">
       <div class="loading-spinner"></div>
-      <div class="loading-text">Đang tải dữ liệu/Loading data...</div>
+      <div class="loading-text">Đang tải dữ liệu...</div>
     </div>
 
     <!-- Full View Modal -->
@@ -105,7 +97,7 @@
       <div class="modal-content">
         <span class="modal-close">&times;</span>
         <h2 class="modal-title">
-          <i class="fas fa-file-alt"></i> Chi tiết đầy đủ/Full Details
+          <i class="fas fa-file-alt"></i> Chi tiết đầy đủ
         </h2>
         <div id="fullViewContent" class="modal-body"></div>
       </div>
@@ -115,12 +107,10 @@
     <div id="suspendModal" class="modal">
       <div class="modal-content">
         <span class="modal-close">&times;</span>
-        <h2 class="modal-title">
-          <i class="fas fa-ban"></i> Từ chối tài liệu/Suspend Document
-        </h2>
+        <h2 class="modal-title"><i class="fas fa-ban"></i> Từ chối tài liệu</h2>
         <form id="suspendForm" class="modal-form">
           <div class="form-group">
-            <label for="suspendReason">Lý do từ chối/Suspend Reason:</label>
+            <label for="suspendReason">Lý do từ chối:</label>
             <textarea
               id="suspendReason"
               required
@@ -129,14 +119,14 @@
           </div>
           <div class="form-actions">
             <button type="submit" class="btn btn-danger">
-              <i class="fas fa-ban"></i> Từ chối/Suspend
+              <i class="fas fa-ban"></i> Từ chối
             </button>
             <button
               type="button"
               class="btn btn-secondary"
               onclick="closeSuspendModal()"
             >
-              <i class="fas fa-times"></i> Cancel
+              <i class="fas fa-times"></i> Hủy
             </button>
           </div>
         </form>
@@ -148,29 +138,23 @@
     <!-- Containing Docs Modal (will be added dynamically) -->
 
     <div class="summary-panel">
-      <h2><i class="fas fa-chart-pie"></i> Tóm tắt/Summary</h2>
+      <h2><i class="fas fa-chart-pie"></i> Tóm tắt</h2>
       <div class="summary-grid">
         <div class="summary-card approved">
           <div class="summary-value" id="approvedSum">0</div>
-          <div class="summary-label">
-            Tổng chi phí đã phê duyệt/Total Approved
-          </div>
+          <div class="summary-label">Tổng chi phí đã phê duyệt</div>
         </div>
         <div class="summary-card unapproved">
           <div class="summary-value" id="unapprovedSum">0</div>
-          <div class="summary-label">
-            Tổng chi phí chưa phê duyệt/Total Unapproved
-          </div>
+          <div class="summary-label">Tổng chi phí chưa phê duyệt</div>
         </div>
         <div class="summary-card approved">
           <div class="summary-value" id="approvedDocument">0</div>
-          <div class="summary-label">Số phiếu đã phê duyệt/Total Approved</div>
+          <div class="summary-label">Số phiếu đã phê duyệt</div>
         </div>
         <div class="summary-card unapproved">
           <div class="summary-value" id="unapprovedDocument">0</div>
-          <div class="summary-label">
-            Số phiếu chưa phê duyệt/Total Unapproved
-          </div>
+          <div class="summary-label">Số phiếu chưa phê duyệt</div>
         </div>
       </div>
     </div>

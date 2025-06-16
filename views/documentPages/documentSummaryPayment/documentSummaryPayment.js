@@ -419,7 +419,7 @@ const TableManager = {
           doc._id
         }" method="GET" style="display:inline;">
           <button class="btn btn-secondary">
-            <i class="fas fa-file-export"></i> Xuất
+            <i class="fas fa-file-export"></i> Xuất DOCX
           </button>
         </form>
         ${
@@ -566,12 +566,12 @@ const PaginationManager = {
           <button onclick="changePage(1)" ${
             STATE.currentPage === 1 ? "disabled" : ""
           }>
-            <i class="fas fa-angle-double-left"></i> First
+            <i class="fas fa-angle-double-left"></i> Trang đầu
           </button>
           <button onclick="changePage(${STATE.currentPage - 1})" ${
         STATE.currentPage === 1 ? "disabled" : ""
       }>
-            <i class="fas fa-angle-left"></i> Prev
+            <i class="fas fa-angle-left"></i> Trang trước
           </button>
           <span class="page-info">
             Trang/Page ${STATE.currentPage} / ${STATE.totalPages}
@@ -579,12 +579,12 @@ const PaginationManager = {
           <button onclick="changePage(${STATE.currentPage + 1})" ${
         STATE.currentPage === STATE.totalPages ? "disabled" : ""
       }>
-            Next <i class="fas fa-angle-right"></i>
+            Trang tiếp <i class="fas fa-angle-right"></i>
           </button>
           <button onclick="changePage(${STATE.totalPages})" ${
         STATE.currentPage === STATE.totalPages ? "disabled" : ""
       }>
-            Last <i class="fas fa-angle-double-right"></i>
+            Trang cuối <i class="fas fa-angle-double-right"></i>
           </button>
         </div>
       `;

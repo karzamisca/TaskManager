@@ -52,11 +52,11 @@ const showLoading = (show) => {
 const renderStatus = (status) => {
   switch (status) {
     case "Approved":
-      return `<span class="status approved"><i class="fas fa-check-circle"></i> Approved</span>`;
+      return `<span class="status approved"><i class="fas fa-check-circle"></i> Đã phê duyệt</span>`;
     case "Suspended":
-      return `<span class="status suspended"><i class="fas fa-ban"></i> Suspended</span>`;
+      return `<span class="status suspended"><i class="fas fa-ban"></i> Từ chối</span>`;
     default:
-      return `<span class="status pending"><i class="fas fa-clock"></i> Pending</span>`;
+      return `<span class="status pending"><i class="fas fa-clock"></i> Chưa phê duyệt</span>`;
   }
 };
 
@@ -68,12 +68,12 @@ const renderProducts = (products) => {
       <table class="products-table">
         <thead>
           <tr>
-            <th>Sản phẩm/Product</th>
-            <th class="text-right">Đơn giá/Cost</th>
-            <th class="text-right">Số lượng/Qty</th>
-            <th class="text-right">Thuế/VAT (%)</th>
-            <th class="text-right">Thành tiền/Total</th>
-            <th class="text-right">Sau thuế/After VAT</th>
+            <th>Sản phẩm</th>
+            <th class="text-right">Đơn giá</th>
+            <th class="text-right">Số lượng</th>
+            <th class="text-right">VAT (%)</th>
+            <th class="text-right">Thành tiền</th>
+            <th class="text-right">Sau VAT</th>
             <th>Ghi chú/Notes</th>
           </tr>
         </thead>
@@ -110,14 +110,12 @@ const renderProposals = (proposals) => {
         .map(
           (proposal) => `
           <div class="proposal-item">
-            <div><strong>Công việc/Task:</strong> ${proposal.task}</div>
-            <div><strong>Trạм/Center:</strong> ${proposal.costCenter}</div>
-            <div><strong>Mô tả/Description:</strong> ${
-              proposal.detailsDescription
-            }</div>
+            <div><strong>Công việc:</strong> ${proposal.task}</div>
+            <div><strong>Trạм:</strong> ${proposal.costCenter}</div>
+            <div><strong>Mô tả:</strong> ${proposal.detailsDescription}</div>
             ${
               proposal.fileMetadata
-                ? `<div><strong>Tệp đính kèm/File:</strong> 
+                ? `<div><strong>Tệp đính kèm:</strong> 
                  <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></div>`
                 : ""
             }
@@ -265,8 +263,8 @@ const renderDocumentsTable = (documents) => {
               <div>${approver.username} (${approver.subRole})</div>
               ${
                 hasApproved
-                  ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
-                  : '<div class="approval-date">Pending</div>'
+                  ? `<div class="approval-date">Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
+                  : '<div class="approval-date">Chưa phê duyệt</div>'
               }
             </div>
           </div>
@@ -308,23 +306,23 @@ const renderDocumentsTable = (documents) => {
           <button class="btn btn-primary btn-sm" onclick="showFullView('${
             doc._id
           }')">
-            <i class="fas fa-eye"></i> Xem/View
+            <i class="fas fa-eye"></i> Xem
           </button>
           <form action="/exportDocumentToDocx/${
             doc._id
           }" method="GET" style="display:inline;">
               <button class="btn btn-primary btn-sm">
-                <i class="fas fa-file-word"></i> DOCX
+                <i class="fas fa-file-word"></i> Xuất DOCX
               </button>
           </form>
           ${
             doc.approvedBy.length === 0
               ? `
             <button class="btn btn-primary btn-sm" onclick="editDocument('${doc._id}')">
-              <i class="fas fa-edit"></i> Sửa/Edit
+              <i class="fas fa-edit"></i> Sửa
             </button>
             <button class="btn btn-danger btn-sm" onclick="deleteDocument('${doc._id}')">
-              <i class="fas fa-trash"></i> Xóa/Delete
+              <i class="fas fa-trash"></i> Xóa
             </button>
           `
               : ""
@@ -333,7 +331,7 @@ const renderDocumentsTable = (documents) => {
             doc.status === "Pending"
               ? `
             <button class="btn btn-primary btn-sm" onclick="approveDocument('${doc._id}')">
-              <i class="fas fa-check"></i> Duyệt/Approve
+              <i class="fas fa-check"></i> Phê duyệt
             </button>
           `
               : ""
@@ -342,25 +340,25 @@ const renderDocumentsTable = (documents) => {
             doc.status === "Approved"
               ? `
                 <button class="btn btn-primary btn-sm" onclick="editDeclaration('${doc._id}')">
-                  <i class="fas fa-edit"></i> Kê khai/Declaration
+                  <i class="fas fa-edit"></i> Kê khai
                 </button>
               `
               : doc.status === "Suspended"
               ? `
                 <button class="btn btn-primary btn-sm" onclick="openDocument('${doc._id}')">
-                  <i class="fas fa-lock-open"></i> Mở/Open
+                  <i class="fas fa-lock-open"></i> Mở
                 </button>
               `
               : `
                 <button class="btn btn-danger btn-sm" onclick="suspendDocument('${doc._id}')">
-                  <i class="fas fa-ban"></i> Từ chối/Suspend
+                  <i class="fas fa-ban"></i> Từ chối
                 </button>
               `
           }
           <button class="btn btn-secondary btn-sm" onclick="showDocumentsContainingPurchasing('${
             doc._id
           }')">
-            <i class="fas fa-link"></i> Liên quan/Related
+            <i class="fas fa-link"></i> Liên quan
           </button>                    
         </div>
       </td>
@@ -412,12 +410,12 @@ const renderPagination = () => {
         <button onclick="changePage(1)" ${
           state.currentPage === 1 ? "disabled" : ""
         }>
-          <i class="fas fa-angle-double-left"></i> First
+          <i class="fas fa-angle-double-left"></i> Trang đầu
         </button>
         <button onclick="changePage(${state.currentPage - 1})" ${
       state.currentPage === 1 ? "disabled" : ""
     }>
-          <i class="fas fa-angle-left"></i> Prev
+          <i class="fas fa-angle-left"></i> Trang trước
         </button>
         <span class="page-info">
           Trang/Page ${state.currentPage} / ${state.totalPages}
@@ -425,12 +423,12 @@ const renderPagination = () => {
         <button onclick="changePage(${state.currentPage + 1})" ${
       state.currentPage === state.totalPages ? "disabled" : ""
     }>
-          Next <i class="fas fa-angle-right"></i>
+          Trang tiếp <i class="fas fa-angle-right"></i>
         </button>
         <button onclick="changePage(${state.totalPages})" ${
       state.currentPage === state.totalPages ? "disabled" : ""
     }>
-          Last <i class="fas fa-angle-double-right"></i>
+          Trang cuối <i class="fas fa-angle-double-right"></i>
         </button>
       </div>
     `;
@@ -480,11 +478,7 @@ const approveDocument = async (documentId) => {
 };
 
 const deleteDocument = async (documentId) => {
-  if (
-    !confirm(
-      "Bạn có chắc chắn muốn xóa tài liệu này?/Are you sure you want to delete this document?"
-    )
-  ) {
+  if (!confirm("Bạn có chắc chắn muốn xóa tài liệu này?")) {
     return;
   }
 
@@ -542,7 +536,7 @@ const handleSuspendSubmit = async (event) => {
     }
   } catch (err) {
     console.error("Error suspending document:", err);
-    showMessage("Lỗi khi tạm dừng tài liệu/Error suspending document", true);
+    showMessage("Lỗi khi tạm dừng tài liệu.", true);
   }
 };
 
@@ -562,7 +556,7 @@ const openDocument = async (docId) => {
     }
   } catch (err) {
     console.error("Error reopening document:", err);
-    showMessage("Lỗi khi mở lại tài liệu/Error reopening document", true);
+    showMessage("Lỗi khi mở lại tài liệu.", true);
   }
 };
 
@@ -575,7 +569,7 @@ const editDeclaration = (docId) => {
     <div id="declarationModal" class="modal">
       <div class="modal-content">
         <span class="modal-close" onclick="closeDeclarationModal()">&times;</span>
-        <h2 class="modal-title"><i class="fas fa-edit"></i> Kê Khai/Declaration</h2>
+        <h2 class="modal-title"><i class="fas fa-edit"></i> Kê Khai</h2>
         <div class="modal-body">
           <div class="form-group">
             <textarea id="declarationInput" class="form-textarea">${
@@ -584,10 +578,10 @@ const editDeclaration = (docId) => {
           </div>
           <div class="form-actions">
             <button onclick="saveDeclaration('${docId}')" class="btn btn-primary">
-              <i class="fas fa-save"></i> Lưu kê khai/Save
+              <i class="fas fa-save"></i> Lưu kê khai
             </button>
             <button onclick="closeDeclarationModal()" class="btn btn-secondary">
-              <i class="fas fa-times"></i> Hủy/Cancel
+              <i class="fas fa-times"></i> Hủy
             </button>
           </div>
         </div>
@@ -647,12 +641,12 @@ const showFullView = (docId) => {
     const fullViewContent = document.getElementById("fullViewContent");
 
     // Format date strings
-    const submissionDate = doc.submissionDate || "Not specified";
+    const submissionDate = doc.submissionDate || "Không có";
 
     fullViewContent.innerHTML = `
       <!-- Basic Information Section -->
       <div class="full-view-section">
-        <h3><i class="fas fa-info-circle"></i> Thông tin cơ bản/Basic Information</h3>
+        <h3><i class="fas fa-info-circle"></i> Thông tin cơ bản</h3>
         <div class="detail-grid">
           <div class="detail-item">
             <span class="detail-label">Tên:</span>
@@ -663,57 +657,53 @@ const showFullView = (docId) => {
             <span class="detail-value">${doc.costCenter}</span>
           </div>                
           <div class="detail-item">
-            <span class="detail-label">Tên nhóm/Group Name:</span>
-            <span class="detail-value">${
-              doc.groupName || "Not specified"
-            }</span>
+            <span class="detail-label">Tên nhóm:</span>
+            <span class="detail-value">${doc.groupName || "Không có"}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Ngày nộp/Submission Date:</span>
+            <span class="detail-label">Ngày nộp:</span>
             <span class="detail-value">${submissionDate}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Kê khai/Declaration:</span>
-            <span class="detail-value">${
-              doc.declaration || "Not specified"
-            }</span>
+            <span class="detail-label">Kê khai:</span>
+            <span class="detail-value">${doc.declaration || "Không có"}</span>
           </div>
         </div>
       </div>
       
       <!-- Products Section -->
       <div class="full-view-section">
-        <h3><i class="fas fa-boxes"></i> Sản phẩm/Products</h3>
+        <h3><i class="fas fa-boxes"></i> Sản phẩm</h3>
         ${renderProducts(doc.products)}
       </div>
       
       <!-- File Attachment Section -->
       <div class="full-view-section">
-        <h3><i class="fas fa-paperclip"></i> Tệp tin kèm theo/Attached File</h3>
+        <h3><i class="fas fa-paperclip"></i> Tệp tin kèm theo</h3>
         ${
           doc.fileMetadata
             ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-            : "No file attached"
+            : "Không có tệp tin đính kèm"
         }
       </div>
       
       <!-- Proposals Section -->
       <div class="full-view-section">
-        <h3><i class="fas fa-file-alt"></i> Phiếu đề xuất kèm theo/Appended Proposals</h3>
+        <h3><i class="fas fa-file-alt"></i> Phiếu đề xuất kèm theo</h3>
         ${renderProposals(doc.appendedProposals)}
       </div>
       
       <!-- Status Section -->
       <div class="full-view-section">
-        <h3><i class="fas fa-tasks"></i> Trạng thái/Status Information</h3>
+        <h3><i class="fas fa-tasks"></i> Trạng thái</h3>
         <div class="detail-grid">
           <div class="detail-item">
-            <span class="detail-label">Tình trạng/Status:</span>
+            <span class="detail-label">Tình trạng:</span>
             <span class="detail-value ${renderStatus(doc.status)}</span>
           </div>
         </div>
         <div class="approval-section">
-          <h4><i class="fas fa-user-check"></i> Trạng thái phê duyệt/Approval Status:</h4>
+          <h4><i class="fas fa-user-check"></i> Trạng thái phê duyệt:</h4>
           <div class="approval-status">
             ${doc.approvers
               .map((approver) => {
@@ -729,8 +719,8 @@ const showFullView = (docId) => {
                     <div>${approver.username} (${approver.subRole})</div>
                     ${
                       hasApproved
-                        ? `<div class="approval-date"><i class="fas fa-calendar-check"></i> Approved on: ${hasApproved.approvalDate}</div>`
-                        : '<div class="approval-date"><i class="fas fa-clock"></i> Pending</div>'
+                        ? `<div class="approval-date"><i class="fas fa-calendar-check"></i> Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
+                        : '<div class="approval-date"><i class="fas fa-clock"></i> Chưa phê duyệt</div>'
                     }
                   </div>
                 </div>
@@ -759,63 +749,63 @@ const addEditModal = () => {
     <div id="editModal" class="modal">
       <div class="modal-content">
         <span class="modal-close" onclick="closeEditModal()">&times;</span>
-        <h2 class="modal-title"><i class="fas fa-edit"></i> Chỉnh sửa phiếu mua hàng/Edit Purchasing Document</h2>
+        <h2 class="modal-title"><i class="fas fa-edit"></i> Chỉnh sửa phiếu mua hàng</h2>
         <div class="modal-body">
           <form id="editForm" onsubmit="handleEditSubmit(event)" class="modal-form">
             <input type="hidden" id="editDocId">
             
             <!-- Basic Fields -->
             <div class="form-group">
-              <label for="editName" class="form-label">Tên/Name:</label>
+              <label for="editName" class="form-label">Tên:</label>
               <input type="text" id="editName" required class="form-input">
             </div>
             
             <div class="form-group">
-              <label for="editCostCenter" class="form-label">Trạm/Cost Center:</label>
+              <label for="editCostCenter" class="form-label">Trạm:</label>
               <select id="editCostCenter" required class="form-select">
-                <option value="">Chọn một trạm/Select a center</option>
+                <option value="">Chọn một trạm</option>
                 <!-- Options will be populated dynamically -->
               </select>
             </div>
             
             <div class="form-group">
-              <label class="form-label">Sản phẩm/Products:</label>
+              <label class="form-label">Sản phẩm:</label>
               <div id="productsList" class="products-list"></div>
               <button type="button" class="btn btn-primary" onclick="addProductField()">
-                <i class="fas fa-plus"></i> Thêm sản phẩм/Add Product
+                <i class="fas fa-plus"></i> Thêm sản phẩм
               </button>
             </div>
             
             <div class="form-group">
-              <label for="editFile" class="form-label">Thay tệp tin mới/Update File:</label>
+              <label for="editFile" class="form-label">Thay tệp tin mới:</label>
               <input type="file" id="editFile" class="form-input">
             </div>
             
             <!-- Current Approvers Section -->
             <div class="form-group">
-              <label class="form-label">Người phê duyệt hiện tại/Current Approvers:</label>
+              <label class="form-label">Người phê duyệt hiện tại:</label>
               <div id="currentApproversList" class="approvers-list"></div>
             </div>
             
             <!-- Add New Approvers Section -->
             <div class="form-group">
-              <label class="form-label">Thêm người phê duyệt/Add Approvers:</label>
+              <label class="form-label">Thêm người phê duyệt:</label>
               <select id="newApproversDropdown" class="form-select">
-                <option value="">Chọn người phê duyệt/Select an approver</option>
+                <option value="">Chọn người phê duyệt</option>
                 <!-- Options will be populated dynamically -->
               </select>
-              <input type="text" id="newApproverSubRole" placeholder="Vai trò/Sub Role" class="form-input" style="margin-top: var(--space-sm);">
+              <input type="text" id="newApproverSubRole" placeholder="Vai trò" class="form-input" style="margin-top: var(--space-sm);">
               <button type="button" class="btn btn-primary" onclick="addNewApprover()" style="margin-top: var(--space-sm);">
-                <i class="fas fa-plus"></i> Thêm/Add
+                <i class="fas fa-plus"></i> Thêm
               </button>
             </div>
             
             <div class="form-actions">
               <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save"></i> Lưu thay đổi/Save
+                <i class="fas fa-save"></i> Lưu thay đổi
               </button>
               <button type="button" class="btn btn-secondary" onclick="closeEditModal()">
-                <i class="fas fa-times"></i> Hủy/Cancel
+                <i class="fas fa-times"></i> Hủy
               </button>
             </div>
           </form>
@@ -834,23 +824,21 @@ const addProductField = (product = null) => {
 
   productDiv.innerHTML = `
     <div class="product-fields">
-      <input type="text" placeholder="Tên sản phẩm/Product Name" value="${
+      <input type="text" placeholder="Tên sản phẩm" value="${
         product?.productName || ""
       }" required>
-      <input type="number" placeholder="Đơn giá/Cost Per Unit" value="${
+      <input type="number" placeholder="Đơn giá" value="${
         product?.costPerUnit || ""
       }" required step="0.01">
-      <input type="number" placeholder="Số lượng/Amount" value="${
+      <input type="number" placeholder="Số lượng" value="${
         product?.amount || ""
       }" required>
-      <input type="number" placeholder="Thuế/Vat (%)" value="${
+      <input type="number" placeholder="VAT(%)" value="${
         product?.vat || ""
       }" required step="0.01">
-      <input type="text" placeholder="Ghi chú/Note" value="${
-        product?.note || ""
-      }">
+      <input type="text" placeholder="Ghi chú" value="${product?.note || ""}">
       <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.parentElement.remove()">
-        <i class="fas fa-trash"></i> Xóa/Remove
+        <i class="fas fa-trash"></i> Xóa
       </button>
     </div>
   `;
@@ -865,8 +853,7 @@ const populateCostCenterDropdown = async () => {
     const dropdown = document.getElementById("editCostCenter");
 
     // Clear existing options except the first one
-    dropdown.innerHTML =
-      '<option value="">Chọn một trạm/Select a center</option>';
+    dropdown.innerHTML = '<option value="">Chọn một trạm</option>';
 
     // Add new options
     costCenters.forEach((center) => {
@@ -902,7 +889,7 @@ const renderCurrentApprovers = () => {
                  class="form-input" style="width: 120px;">
           <button type="button" class="btn btn-danger btn-sm" 
                   onclick="removeApprover('${approver.approver}')">
-            <i class="fas fa-trash"></i> Xóa/Remove
+            <i class="fas fa-trash"></i> Xóa
           </button>
         </div>
       `
@@ -936,7 +923,7 @@ const populateNewApproversDropdown = async () => {
 
   const dropdown = document.getElementById("newApproversDropdown");
   dropdown.innerHTML = `
-    <option value="">Chọn người phê duyệt/Select an approver</option>
+    <option value="">Chọn người phê duyệt</option>
     ${availableApprovers
       .map(
         (approver) => `
@@ -952,10 +939,7 @@ const addNewApprover = () => {
   const newSubRole = document.getElementById("newApproverSubRole").value;
 
   if (!newApproverId || !newSubRole) {
-    showMessage(
-      "Vui lòng chọn người phê duyệt và nhập vai trò phụ/Please select an approver and enter a sub role.",
-      true
-    );
+    showMessage("Vui lòng chọn người phê duyệt và nhập vai trò phụ.", true);
     return;
   }
 
@@ -1074,7 +1058,7 @@ const handleEditSubmit = async (event) => {
     });
     const result = await response.json();
     if (response.ok) {
-      showMessage("Document updated successfully");
+      showMessage("Phiếu cập nhật thành công.");
       closeEditModal();
       fetchPurchasingDocuments();
     } else {
@@ -1099,36 +1083,36 @@ const showDocumentsContainingPurchasing = async (purchasingId) => {
         <div id="containingDocsModal" class="modal" style="display: block;">
           <div class="modal-content">
             <span class="modal-close" onclick="closeContainingDocsModal()">&times;</span>
-            <h2 class="modal-title"><i class="fas fa-link"></i> Tài liệu liên quan/Related Documents</h2>
+            <h2 class="modal-title"><i class="fas fa-link"></i> Phiếu liên quan</h2>
             <div class="modal-body">
               <div class="related-docs-section">
-                <h3><i class="fas fa-money-bill-wave"></i> Thanh toán/Payment Documents</h3>
+                <h3><i class="fas fa-money-bill-wave"></i> Thanh toán</h3>
                 ${
                   data.paymentDocuments.length > 0
                     ? renderPaymentDocuments(data.paymentDocuments)
-                    : "<p>Không có tài liệu thanh toán nào liên quan/No related payment documents</p>"
+                    : "<p>Không có phiếu thanh toán nào liên quan</p>"
                 }
               </div>
               
               <div class="related-docs-section">
-                <h3><i class="fas fa-hand-holding-usd"></i> Thanh toán trước/Advance Payment Documents</h3>
+                <h3><i class="fas fa-hand-holding-usd"></i> Tạm ứng</h3>
                 ${
                   data.advancePaymentDocuments.length > 0
                     ? renderAdvancePaymentDocuments(
                         data.advancePaymentDocuments
                       )
-                    : "<p>Không có tài liệu thanh toán trước nào liên quan/No related advance payment documents</p>"
+                    : "<p>Không có phiếu tạm ứng nào liên quan</p>"
                 }
               </div>
               
               <div class="related-docs-section">
-                <h3><i class="fas fa-exchange-alt"></i> Hoàn ứng/Advance Payment Reclaim Documents</h3>
+                <h3><i class="fas fa-exchange-alt"></i> Thu lại tạm ứng</h3>
                 ${
                   data.advancePaymentReclaimDocuments.length > 0
                     ? renderAdvancePaymentReclaimDocuments(
                         data.advancePaymentReclaimDocuments
                       )
-                    : "<p>Không có tài liệu hoàn ứng nào liên quan/No related advance payment reclaim documents</p>"
+                    : "<p>Không có phiếu thu lại tạm ứng nào liên quan</p>"
                 }
               </div>
             </div>
@@ -1157,29 +1141,25 @@ const renderPaymentDocuments = (paymentDocs) => {
           <div class="document-card">
             <h4>${doc.title || "Payment Document"}</h4>
             <div class="document-details">
-              <div><strong>Tag:</strong> ${doc.tag}</div>
-              <div><strong>Tên/Name:</strong> ${doc.name}</div>
-              <div><strong>Trạm/Cost Center:</strong> ${
-                doc.costCenter || "-"
-              }</div>
-              <div><strong>Phương thức thanh toán/Payment Method:</strong> ${
+              <div><strong>Tem:</strong> ${doc.tag}</div>
+              <div><strong>Tên:</strong> ${doc.name}</div>
+              <div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div>
+              <div><strong>Phương thức thanh toán:</strong> ${
                 doc.paymentMethod
               }</div>
-              <div><strong>Tổng thanh toán/Total Payment:</strong> ${
+              <div><strong>Tổng thanh toán:</strong> ${
                 doc.totalPayment?.toLocaleString() || "-"
               }</div>
-              <div><strong>Thanh toán trước/Advance Payment:</strong> ${
+              <div><strong>Tạm ứng:</strong> ${
                 doc.advancePayment?.toLocaleString() || "-"
               }</div>
-              <div><strong>Hạn thanh toán/Payment Deadline:</strong> ${
-                doc.paymentDeadline
-              }</div>
-              <div><strong>Tệp tin/File:</strong> ${
+              <div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div>
+              <div><strong>Tệp tin:</strong> ${
                 doc.fileMetadata?.link
                   ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
                   : "-"
               }</div>
-              <div><strong>Tình trạng/Status:</strong> ${renderStatus(
+              <div><strong>Tình trạng:</strong> ${renderStatus(
                 doc.status
               )}</div>
             </div>
@@ -1200,28 +1180,24 @@ const renderAdvancePaymentDocuments = (advancePaymentDocs) => {
         .map(
           (doc) => `
           <div class="document-card">
-            <h4>${doc.title || "Advance Payment Document"}</h4>
+            <h4>Phiếu tạm ứng</h4>
             <div class="document-details">
-              <div><strong>Tag:</strong> ${doc.tag}</div>
-              <div><strong>Tên/Name:</strong> ${doc.name}</div>
-              <div><strong>Trạm/Cost Center:</strong> ${
-                doc.costCenter || "-"
-              }</div>
-              <div><strong>Phương thức thanh toán/Payment Method:</strong> ${
+              <div><strong>Tem:</strong> ${doc.tag}</div>
+              <div><strong>Tên:</strong> ${doc.name}</div>
+              <div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div>
+              <div><strong>Phương thức thanh toán:</strong> ${
                 doc.paymentMethod
               }</div>
-              <div><strong>Thanh toán trước/Advance Payment:</strong> ${
+              <div><strong>Tạm ứng:</strong> ${
                 doc.advancePayment?.toLocaleString() || "-"
               }</div>
-              <div><strong>Hạn thanh toán/Payment Deadline:</strong> ${
-                doc.paymentDeadline
-              }</div>
-              <div><strong>Tệp tin/File:</strong> ${
+              <div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div>
+              <div><strong>Tệp tin:</strong> ${
                 doc.fileMetadata?.link
                   ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
                   : "-"
               }</div>
-              <div><strong>Tình trạng/Status:</strong> ${renderStatus(
+              <div><strong>Tình trạng:</strong> ${renderStatus(
                 doc.status
               )}</div>
             </div>
@@ -1242,28 +1218,24 @@ const renderAdvancePaymentReclaimDocuments = (reclaimDocs) => {
         .map(
           (doc) => `
           <div class="document-card">
-            <h4>${doc.title || "Advance Payment Reclaim Document"}</h4>
+            <h4>Phiếu thu lại tạm ứng</h4>
             <div class="document-details">
-              <div><strong>Tag:</strong> ${doc.tag}</div>
-              <div><strong>Tên/Name:</strong> ${doc.name}</div>
-              <div><strong>Trạm/Cost Center:</strong> ${
-                doc.costCenter || "-"
-              }</div>
-              <div><strong>Phương thức thanh toán/Payment Method:</strong> ${
+              <div><strong>Tem:</strong> ${doc.tag}</div>
+              <div><strong>Tên:</strong> ${doc.name}</div>
+              <div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div>
+              <div><strong>Phương thức thanh toán:</strong> ${
                 doc.paymentMethod
               }</div>
-              <div><strong>Hoàn ứng/Advance Payment Reclaim:</strong> ${
+              <div><strong>Thu lại tạm ứng:</strong> ${
                 doc.advancePaymentReclaim?.toLocaleString() || "-"
               }</div>
-              <div><strong>Hạn thanh toán/Payment Deadline:</strong> ${
-                doc.paymentDeadline
-              }</div>
-              <div><strong>Tệp tin/File:</strong> ${
+              <div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div>
+              <div><strong>Tệp tin:</strong> ${
                 doc.fileMetadata?.link
                   ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
                   : "-"
               }</div>
-              <div><strong>Tình trạng/Status:</strong> ${renderStatus(
+              <div><strong>Tình trạng:</strong> ${renderStatus(
                 doc.status
               )}</div>
             </div>
@@ -1287,7 +1259,7 @@ const exportSelectedToExcel = async () => {
   const selectedDocs = Array.from(state.selectedDocuments);
 
   if (selectedDocs.length === 0) {
-    showMessage("Please select at least one document to export", true);
+    showMessage("Xin hãy chọn ít nhất một phiếu để xuất.", true);
     return;
   }
 
@@ -1296,7 +1268,7 @@ const exportSelectedToExcel = async () => {
     const exportBtn = document.getElementById("exportSelectedBtn");
     const originalText = exportBtn.innerHTML;
     exportBtn.disabled = true;
-    exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+    exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xuất...';
 
     // Create form and submit
     const form = document.createElement("form");
