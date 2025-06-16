@@ -1,7 +1,6 @@
 // views/documentPages/documentSummaryPayment/documentSummaryPayment.js
-
-// Constants and state variables
-const STATE = {
+// State management
+const state = {
   currentUser: null,
   paymentDocuments: [],
   showOnlyPendingApprovals: false,
@@ -9,623 +8,897 @@ const STATE = {
   currentPage: 1,
   itemsPerPage: 10,
   totalPages: 1,
-  currentGroupFilter: "",
   paginationEnabled: true,
+  selectedDocuments: new Set(),
+  currentEditDoc: null,
+  currentGroupFilter: "",
 };
 
-// DOM Elements
-const DOM = {
-  messageContainer: document.getElementById("messageContainer"),
-  paymentDocumentsTable: document.getElementById("paymentDocumentsTable"),
-  fullViewModal: document.getElementById("fullViewModal"),
-  fullViewContent: document.getElementById("fullViewContent"),
-  suspendModal: document.getElementById("suspendModal"),
-  suspendForm: document.getElementById("suspendForm"),
-  massDeclarationModal: document.getElementById("massDeclarationModal"),
-  massDeclarationForm: document.getElementById("massDeclarationForm"),
-  editModal: document.getElementById("editModal"),
-  editForm: document.getElementById("editForm"),
-};
+// Utility functions
+const showMessage = (message, isError = false) => {
+  const messageContainer = document.getElementById("messageContainer");
 
-// Utility Functions
-const Utils = {
-  showMessage: (message, isError = false) => {
-    DOM.messageContainer.textContent = message;
-    DOM.messageContainer.className = `message ${isError ? "error" : "success"}`;
-    DOM.messageContainer.style.top = `${window.scrollY + 20}px`;
-    DOM.messageContainer.style.display = "block";
+  // Clear any existing timeouts to prevent multiple messages interfering
+  if (messageContainer.timeoutId) {
+    clearTimeout(messageContainer.timeoutId);
+  }
 
+  // Reset the message container
+  messageContainer.className = `message ${isError ? "error" : "success"}`;
+  messageContainer.textContent = message;
+  messageContainer.style.display = "block";
+
+  // Force reflow to ensure the element is visible before starting animation
+  void messageContainer.offsetWidth;
+
+  // Show with animation
+  messageContainer.classList.remove("hidden");
+
+  // Set timeout to hide after 5 seconds
+  messageContainer.timeoutId = setTimeout(() => {
+    messageContainer.classList.add("hidden");
+
+    // Remove completely after animation completes
     setTimeout(() => {
-      DOM.messageContainer.style.display = "none";
-    }, 5000);
-  },
-
-  formatCurrency: (amount) => {
-    return amount?.toLocaleString() || "-";
-  },
-
-  resetSelectAllCheckbox: () => {
-    const selectAllCheckbox = document.getElementById("selectAll");
-    if (selectAllCheckbox) {
-      selectAllCheckbox.checked = false;
-    }
-  },
-
-  getSelectedDocumentIds: () => {
-    const checkboxes = document.querySelectorAll(
-      'input[type="checkbox"][name="documentCheckbox"]:checked'
-    );
-    return Array.from(checkboxes).map((checkbox) => checkbox.value);
-  },
+      messageContainer.style.display = "none";
+    }, 300); // Match this with your transition duration
+  }, 5000);
 };
 
-// API Functions
-const API = {
-  fetchCurrentUser: async () => {
-    try {
-      const response = await fetch("/getCurrentUser");
-      STATE.currentUser = await response.json();
-    } catch (error) {
-      console.error("Error fetching current user:", error);
-    }
-  },
+const showLoading = (show) => {
+  const loadingOverlay = document.getElementById("loadingOverlay");
+  loadingOverlay.style.display = show ? "flex" : "none";
+};
 
-  fetchGroups: async () => {
-    try {
-      const response = await fetch("/getGroupDocument");
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching groups:", error);
-      return [];
-    }
-  },
+const formatCurrency = (amount) => {
+  return amount?.toLocaleString() || "-";
+};
 
-  fetchPaymentDocuments: async () => {
-    try {
-      const response = await fetch("/getPaymentDocumentForSeparatedView");
-      const data = await response.json();
-      STATE.paymentDocuments = data.paymentDocuments;
-      return data.paymentDocuments;
-    } catch (err) {
-      console.error("Error fetching payment documents:", err);
-      Utils.showMessage("Error fetching payment documents", true);
-      return [];
-    }
-  },
+const renderStatus = (status) => {
+  switch (status) {
+    case "Approved":
+      return `<span class="status approved"><i class="fas fa-check-circle"></i> Đã phê duyệt</span>`;
+    case "Suspended":
+      return `<span class="status suspended"><i class="fas fa-ban"></i> Từ chối</span>`;
+    default:
+      return `<span class="status pending"><i class="fas fa-clock"></i> Chưa phê duyệt</span>`;
+  }
+};
 
-  fetchDocumentDetails: async (documentId) => {
-    try {
-      const response = await fetch(`/getPaymentDocument/${documentId}`);
-      return await response.json();
-    } catch (err) {
-      console.error("Error fetching document details:", err);
-      throw err;
-    }
-  },
+const renderPaymentMethod = (method) => {
+  if (!method) return "-";
+  return `<span class="payment-method">${method}</span>`;
+};
 
-  fetchCostCenters: async () => {
-    try {
-      const response = await fetch("/costCenters");
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching cost centers:", error);
-      return [];
-    }
-  },
+const renderPaymentDetails = (doc) => {
+  let html = `<div class="payment-details">`;
 
-  fetchApprovers: async () => {
-    try {
-      const response = await fetch("/approvers");
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching approvers:", error);
-      return [];
-    }
-  },
+  if (doc.totalPayment) {
+    html += `<span>Tổng thanh toán: <span class="payment-amount">${formatCurrency(
+      doc.totalPayment
+    )}</span></span>`;
+  }
 
-  approveDocument: async (documentId) => {
-    try {
-      const response = await fetch(`/approveDocument/${documentId}`, {
-        method: "POST",
-      });
-      const message = await response.text();
-      return { success: response.ok, message };
-    } catch (err) {
-      console.error("Error approving document:", err);
-      return { success: false, message: "Error approving document" };
-    }
-  },
+  if (doc.advancePayment) {
+    html += `<span>Tạm ứng: <span class="payment-amount">${formatCurrency(
+      doc.advancePayment
+    )}</span></span>`;
+  }
 
-  deleteDocument: async (documentId) => {
-    try {
-      const response = await fetch(`/deleteDocument/${documentId}`, {
-        method: "POST",
-      });
-      const message = await response.text();
-      return { success: response.ok, message };
-    } catch (err) {
-      console.error("Error deleting document:", err);
-      return { success: false, message: "Error deleting document" };
-    }
-  },
+  if (doc.paymentDeadline) {
+    html += `<span>Hạn trả: <span class="payment-deadline">${doc.paymentDeadline}</span></span>`;
+  }
 
-  suspendDocument: async (documentId, suspendReason) => {
-    try {
-      const response = await fetch(`/suspendDocument/${documentId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ suspendReason }),
-      });
-      const message = await response.text();
-      return { success: response.ok, message };
-    } catch (err) {
-      console.error("Error suspending document:", err);
-      return { success: false, message: "Error suspending document" };
-    }
-  },
+  if (doc.fileMetadata?.link) {
+    html += `<a href="${doc.fileMetadata.link}" class="payment-file-link" target="_blank">
+      <i class="fas fa-paperclip"></i> ${doc.fileMetadata.name}
+    </a>`;
+  }
 
-  openDocument: async (documentId) => {
-    try {
-      const response = await fetch(`/openDocument/${documentId}`, {
-        method: "POST",
-      });
-      const message = await response.text();
-      return { success: response.ok, message };
-    } catch (err) {
-      console.error("Error reopening document:", err);
-      return { success: false, message: "Error reopening document" };
-    }
-  },
+  html += `</div>`;
+  return html;
+};
 
-  updateDeclaration: async (documentId, declaration) => {
-    try {
-      const response = await fetch(
-        `/updatePaymentDocumentDeclaration/${documentId}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ declaration }),
-        }
+const renderApprovalStatus = (approvers, approvedBy) => {
+  return approvers
+    .map((approver) => {
+      const hasApproved = approvedBy.find(
+        (a) => a.username === approver.username
       );
-      const message = await response.text();
-      return { success: response.ok, message };
-    } catch (err) {
-      console.error("Error updating declaration:", err);
-      return { success: false, message: "Error updating declaration" };
-    }
-  },
-
-  massUpdateDeclaration: async (documentIds, declaration) => {
-    try {
-      const response = await fetch("/massUpdatePaymentDocumentDeclaration", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ documentIds, declaration }),
-      });
-      const message = await response.text();
-      return { success: response.ok, message };
-    } catch (err) {
-      console.error("Error updating declaration:", err);
-      return { success: false, message: "Error updating declaration" };
-    }
-  },
-
-  updatePaymentDocument: async (documentId, formData) => {
-    try {
-      const response = await fetch(`/updatePaymentDocument/${documentId}`, {
-        method: "POST",
-        body: formData,
-      });
-      const result = await response.json();
-      return { success: response.ok, result };
-    } catch (err) {
-      console.error("Error updating document:", err);
-      return { success: false, result: { message: "Error updating document" } };
-    }
-  },
-};
-
-// Document Filtering
-const DocumentFilters = {
-  filterByCurrentUser: (documents) => {
-    if (
-      !STATE.currentUser &&
-      !STATE.showOnlyPendingApprovals &&
-      !STATE.currentGroupFilter
-    ) {
-      return documents;
-    }
-
-    return documents.filter((doc) => {
-      // Apply group filter if selected
-      if (
-        STATE.currentGroupFilter &&
-        doc.groupName !== STATE.currentGroupFilter
-      ) {
-        return false;
-      }
-
-      // Apply pending approvals filter if enabled
-      if (STATE.showOnlyPendingApprovals && STATE.currentUser) {
-        const isRequiredApprover = doc.approvers.some(
-          (approver) => approver.username === STATE.currentUser.username
-        );
-        const hasNotApprovedYet = !doc.approvedBy.some(
-          (approved) => approved.username === STATE.currentUser.username
-        );
-        return isRequiredApprover && hasNotApprovedYet;
-      }
-
-      return true;
-    });
-  },
-};
-
-// Document Rendering
-const DocumentRenderer = {
-  renderPurchasingDocuments: (purchDocs) => {
-    if (!purchDocs || purchDocs.length === 0) return "";
-
-    return `
-      <div class="documents-container">
-        ${purchDocs
-          .map((purchDoc) => {
-            const products = purchDoc.products
-              .map(
-                (product) => `
-            <li>
-              <strong>${product.productName}</strong><br>
-              Đơn giá: ${Utils.formatCurrency(product.costPerUnit)}<br>
-              Số lượng: ${Utils.formatCurrency(product.amount)}<br>
-              VAT (%): ${(product.vat ?? 0).toLocaleString()}<br>
-              Thành tiền: ${Utils.formatCurrency(product.totalCost)}<br>
-              Thành tiền sau VAT: ${Utils.formatCurrency(
-                product.totalCostAfterVat ?? product.totalCost
-              )}<br>
-              Ghi chú: ${product.note || "None"}
-            </li>
-          `
-              )
-              .join("");
-
-            const fileMetadata = purchDoc.fileMetadata
-              ? `<p><strong>Tệp đính kèm phiếu mua hàng:</strong> 
-              <a href="${purchDoc.fileMetadata.link}" target="_blank" class="file-link">${purchDoc.fileMetadata.name}</a></p>`
-              : "";
-
-            return `
-            <div class="purchasing-doc">
-              <p><strong>Tên:</strong> ${purchDoc.name || ""}</p>
-              <p><strong>Trạm:</strong> ${purchDoc.costCenter || ""}</p>
-              <p><strong>Tổng chi phí:</strong> ${Utils.formatCurrency(
-                purchDoc.grandTotalCost
-              )}</p>
-              <p><strong>Sản phẩm:</strong></p>
-              <ul>${products}</ul>
-              ${fileMetadata}
-            </div>`;
-          })
-          .join("")}
-      </div>`;
-  },
-
-  renderProposals: (purchDocs) => {
-    const allProposals = purchDocs
-      .flatMap((purchDoc) => purchDoc.appendedProposals)
-      .filter((proposal) => proposal);
-
-    if (allProposals.length === 0) return "";
-
-    return `
-      <div class="proposals-container">
-        ${allProposals
-          .map(
-            (proposal) => `
-            <div class="proposal-card">
-              <p><strong>Công việc:</strong> ${proposal.task}</p>
-              <p><strong>Trạm:</strong> ${proposal.costCenter}</p>
-              <p><strong>Mô tả:</strong> ${proposal.detailsDescription}</p>
-              ${
-                proposal.fileMetadata
-                  ? `<p><strong>Tệp đính kèm:</strong> 
-                    <a href="${proposal.fileMetadata.link}" target="_blank" class="file-link">${proposal.fileMetadata.name}</a></p>`
-                  : ""
-              }
-            </div>
-          `
-          )
-          .join("")}
-      </div>`;
-  },
-
-  renderStatus: (status) => {
-    switch (status) {
-      case "Approved":
-        return `<span class="status approved">Đã phê duyệt</span>`;
-      case "Suspended":
-        return `<span class="status suspended">Tạm dừng</span>`;
-      default:
-        return `<span class="status pending">Chưa phê duyệt</span>`;
-    }
-  },
-
-  renderApprovalStatus: (approvers, approvedBy) => {
-    return approvers
-      .map((approver) => {
-        const hasApproved = approvedBy.find(
-          (a) => a.username === approver.username
-        );
-        return `
-          <div class="approver-item">
-            <span class="status-icon ${
-              hasApproved ? "status-approved" : "status-pending"
-            }"></span>
-            <div>
-              <div>${approver.username} (${approver.subRole})</div>
-              ${
-                hasApproved
-                  ? `<div class="approval-date">Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
-                  : '<div class="approval-date">Chưa phê duyệt</div>'
-              }
-            </div>
+      return `
+        <div class="approver-item">
+          <span class="status-icon ${
+            hasApproved ? "status-approved" : "status-pending"
+          }"></span>
+          <div>
+            <div>${approver.username} (${approver.subRole})</div>
+            ${
+              hasApproved
+                ? `<div class="approval-date">Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
+                : '<div class="approval-date">Chưa phê duyệt</div>'
+            }
           </div>
-        `;
-      })
-      .join("");
-  },
-};
-
-// Table Management
-const TableManager = {
-  renderTable: (documents) => {
-    DOM.paymentDocumentsTable.innerHTML = "";
-    documents.forEach((doc) => {
-      const row = document.createElement("tr");
-      row.innerHTML = TableManager.getTableRowHTML(doc);
-      DOM.paymentDocumentsTable.appendChild(row);
-    });
-  },
-
-  getTableRowHTML: (doc) => {
-    const approvalStatus = DocumentRenderer.renderApprovalStatus(
-      doc.approvers,
-      doc.approvedBy
-    );
-
-    return `
-      <td><input type="checkbox" name="documentCheckbox" value="${
-        doc._id
-      }"></td>
-      <td>${doc.tag || "-"}</td>
-      <td>${doc.content || "-"} ${
-      doc.suspendReason ? `(Lý do từ chối tài liệu: ${doc.suspendReason})` : ""
-    }${doc.declaration ? `(Kê khai: ${doc.declaration})` : ""}</td>
-      <td>${doc.paymentMethod || "-"}</td>
-      <td>${Utils.formatCurrency(doc.totalPayment)}</td>
-      <td>${doc.paymentDeadline || "-"}</td>
-      <td>${DocumentRenderer.renderStatus(doc.status)}</td>
-      <td class="approval-status">${approvalStatus}</td>
-      <td>
-        <button class="btn btn-primary" onclick="showFullView('${doc._id}')">
-          <i class="fas fa-eye"></i> Xem
-        </button>
-        <form action="/exportDocumentToDocx/${
-          doc._id
-        }" method="GET" style="display:inline;">
-          <button class="btn btn-secondary">
-            <i class="fas fa-file-export"></i> Xuất DOCX
-          </button>
-        </form>
-        ${
-          doc.approvedBy.length === 0
-            ? `
-              <button class="btn btn-secondary" onclick="editDocument('${doc._id}')">
-                <i class="fas fa-edit"></i> Sửa
-              </button>
-              <button class="btn btn-danger" onclick="deleteDocument('${doc._id}')">
-                <i class="fas fa-trash"></i> Xóa
-              </button>
-            `
-            : ""
-        }
-        ${
-          doc.status === "Pending"
-            ? `
-              <button class="btn btn-primary" onclick="approveDocument('${doc._id}')">
-                <i class="fas fa-check"></i> Duyệt
-              </button>
-            `
-            : ""
-        }
-        ${
-          doc.status === "Approved"
-            ? `
-              <button class="btn btn-secondary" onclick="editDeclaration('${doc._id}')">
-                <i class="fas fa-edit"></i> Kê khai
-              </button>
-              <button class="btn btn-danger" onclick="suspendDocument('${doc._id}')">
-                <i class="fas fa-ban"></i> Từ chối
-              </button>
-            `
-            : doc.status === "Suspended"
-            ? `
-              <button class="btn btn-primary" onclick="openDocument('${doc._id}')">
-                <i class="fas fa-lock-open"></i> Mở
-              </button>
-            `
-            : `
-              <button class="btn btn-danger" onclick="suspendDocument('${doc._id}')">
-                <i class="fas fa-ban"></i> Từ chối
-              </button>
-            `
-        }
-      </td>
-    `;
-  },
-};
-
-// Summary Management
-const SummaryManager = {
-  updateSummary: (documents) => {
-    const summary = documents.reduce(
-      (acc, doc) => {
-        if (doc.status === "Approved") {
-          // If advance payment equals 0, then paid sum equals total payment
-          if (doc.advancePayment === 0) {
-            acc.paidSum += doc.totalPayment;
-          }
-          // If total payment equals 0, then paid sum equals advance payment
-          else if (doc.totalPayment === 0) {
-            acc.paidSum += doc.advancePayment;
-          }
-          // Otherwise, paid sum equals total payment minus advance payment
-          else {
-            acc.paidSum += doc.totalPayment - doc.advancePayment;
-          }
-          acc.approvedDocument += 1;
-        }
-        // Only one approver left
-        else if (doc.approvers.length - doc.approvedBy.length === 1) {
-          if (doc.advancePayment === 0) {
-            acc.approvedSum += doc.totalPayment;
-          }
-          // If total payment equals 0, then approved sum equals advance payment
-          else if (doc.totalPayment === 0) {
-            acc.approvedSum += doc.advancePayment;
-          }
-          // Otherwise, approved sum equals total payment minus advance payment
-          else {
-            acc.approvedSum += doc.totalPayment - doc.advancePayment;
-          }
-          acc.unapprovedDocument += 1;
-        }
-        // More than one approver left
-        else {
-          if (doc.advancePayment === 0) {
-            acc.unapprovedSum += doc.totalPayment;
-          }
-          // If total payment equals 0, then unapproved sum equals advance payment
-          else if (doc.totalPayment === 0) {
-            acc.unapprovedSum += doc.advancePayment;
-          }
-          // Otherwise, unapproved sum equals total payment minus advance payment
-          else {
-            acc.unapprovedSum += doc.totalPayment - doc.advancePayment;
-          }
-          acc.unapprovedDocument += 1;
-        }
-        return acc;
-      },
-      {
-        paidSum: 0,
-        approvedSum: 0,
-        unapprovedSum: 0,
-        approvedDocument: 0,
-        unapprovedDocument: 0,
-      }
-    );
-
-    // Update the summary display
-    document.getElementById("paidSum").textContent = Utils.formatCurrency(
-      summary.paidSum
-    );
-    document.getElementById("approvedSum").textContent = Utils.formatCurrency(
-      summary.approvedSum
-    );
-    document.getElementById("unapprovedSum").textContent = Utils.formatCurrency(
-      summary.unapprovedSum
-    );
-    document.getElementById("approvedDocument").textContent =
-      summary.approvedDocument.toLocaleString();
-    document.getElementById("unapprovedDocument").textContent =
-      summary.unapprovedDocument.toLocaleString();
-  },
-};
-
-// Pagination Management
-const PaginationManager = {
-  renderPagination: () => {
-    let paginationContainer = document.getElementById("paginationContainer");
-    if (!paginationContainer) {
-      const table = document.querySelector("table");
-      paginationContainer = document.createElement("div");
-      paginationContainer.id = "paginationContainer";
-      paginationContainer.className = "pagination";
-      table.parentNode.insertBefore(paginationContainer, table.nextSibling);
-    }
-
-    if (STATE.totalPages > 1) {
-      paginationContainer.innerHTML = `
-        <div class="pagination-controls">
-          <button onclick="changePage(1)" ${
-            STATE.currentPage === 1 ? "disabled" : ""
-          }>
-            <i class="fas fa-angle-double-left"></i> Trang đầu
-          </button>
-          <button onclick="changePage(${STATE.currentPage - 1})" ${
-        STATE.currentPage === 1 ? "disabled" : ""
-      }>
-            <i class="fas fa-angle-left"></i> Trang trước
-          </button>
-          <span class="page-info">
-            Trang/Page ${STATE.currentPage} / ${STATE.totalPages}
-          </span>
-          <button onclick="changePage(${STATE.currentPage + 1})" ${
-        STATE.currentPage === STATE.totalPages ? "disabled" : ""
-      }>
-            Trang tiếp <i class="fas fa-angle-right"></i>
-          </button>
-          <button onclick="changePage(${STATE.totalPages})" ${
-        STATE.currentPage === STATE.totalPages ? "disabled" : ""
-      }>
-            Trang cuối <i class="fas fa-angle-double-right"></i>
-          </button>
         </div>
       `;
-    } else {
-      paginationContainer.innerHTML = "";
-    }
-  },
-
-  changePage: (newPage) => {
-    if (
-      newPage >= 1 &&
-      newPage <= STATE.totalPages &&
-      newPage !== STATE.currentPage
-    ) {
-      STATE.currentPage = newPage;
-      loadPaymentDocuments();
-      document.querySelector("table").scrollIntoView({ behavior: "smooth" });
-    }
-  },
+    })
+    .join("");
 };
 
-// Modal Management
-const ModalManager = {
-  showFullView: async (docId) => {
-    try {
-      const doc = STATE.paymentDocuments.find((d) => d._id === docId);
-      if (!doc) throw new Error("Document not found");
+// Data fetching
+const fetchCurrentUser = async () => {
+  try {
+    const response = await fetch("/getCurrentUser");
+    state.currentUser = await response.json();
+  } catch (error) {
+    console.error("Error fetching current user:", error);
+  }
+};
 
-      DOM.fullViewContent.innerHTML = ModalManager.getFullViewHTML(doc);
-      DOM.fullViewModal.style.display = "block";
-    } catch (err) {
-      console.error("Error showing full view:", err);
-      Utils.showMessage("Error loading full document details", true);
+const fetchGroups = async () => {
+  try {
+    const response = await fetch("/getGroupDocument");
+    const groups = await response.json();
+    const filterDropdown = document.getElementById("groupFilter");
+
+    // Clear existing options except the first one
+    while (filterDropdown.options.length > 1) {
+      filterDropdown.remove(1);
     }
-  },
 
-  getFullViewHTML: (doc) => {
+    // Add new options
+    groups.forEach((group) => {
+      const option = document.createElement("option");
+      option.value = group.name;
+      option.textContent = group.name;
+      filterDropdown.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error fetching groups:", error);
+  }
+};
+
+const fetchPaymentDocuments = async () => {
+  showLoading(true);
+
+  try {
+    const response = await fetch("/getPaymentDocumentForSeparatedView");
+    const data = await response.json();
+    state.paymentDocuments = data.paymentDocuments;
+
+    const filteredDocuments = filterDocumentsForCurrentUser(
+      state.paymentDocuments
+    );
+
+    // Calculate total pages
+    state.totalPages = Math.ceil(filteredDocuments.length / state.itemsPerPage);
+
+    // Make sure current page is in valid range
+    if (state.currentPage > state.totalPages) {
+      state.currentPage = state.totalPages;
+    }
+    if (state.currentPage < 1) {
+      state.currentPage = 1;
+    }
+
+    // Calculate slice indexes for current page
+    const startIndex = (state.currentPage - 1) * state.itemsPerPage;
+    const endIndex = startIndex + state.itemsPerPage;
+
+    // Get documents for current page only if pagination is enabled, otherwise show all
+    const pageDocuments = state.paginationEnabled
+      ? filteredDocuments.slice(startIndex, endIndex)
+      : filteredDocuments;
+
+    renderDocumentsTable(pageDocuments);
+    updateSummary(filteredDocuments);
+
+    if (state.paginationEnabled) {
+      renderPagination();
+    } else {
+      removePagination();
+    }
+  } catch (err) {
+    console.error("Error fetching payment documents:", err);
+    showMessage("Error fetching payment documents", true);
+  } finally {
+    showLoading(false);
+  }
+};
+
+const filterDocumentsForCurrentUser = (documents) => {
+  let filteredDocs = [...documents];
+
+  // Apply group filter if selected
+  if (state.currentGroupFilter) {
+    filteredDocs = filteredDocs.filter(
+      (doc) => doc.groupName === state.currentGroupFilter
+    );
+  }
+
+  // Apply pending approval filter if enabled
+  if (state.showOnlyPendingApprovals && state.currentUser) {
+    filteredDocs = filteredDocs.filter((doc) => {
+      const isRequiredApprover = doc.approvers.some(
+        (approver) => approver.username === state.currentUser.username
+      );
+      const hasNotApprovedYet = !doc.approvedBy.some(
+        (approved) => approved.username === state.currentUser.username
+      );
+      return isRequiredApprover && hasNotApprovedYet;
+    });
+  }
+
+  return filteredDocs;
+};
+
+// Rendering functions
+const renderDocumentsTable = (documents) => {
+  const tableBody = document
+    .getElementById("paymentDocumentsTable")
+    .querySelector("tbody");
+  tableBody.innerHTML = "";
+
+  documents.forEach((doc) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td><input type="checkbox" class="doc-checkbox" data-doc-id="${
+        doc._id
+      }" ${state.selectedDocuments.has(doc._id) ? "checked" : ""}></td>
+      <td>${doc.tag || "-"}</td>
+      <td>
+        <div>${doc.content || "-"}</div>
+        ${
+          doc.declaration
+            ? `<div class="declaration"><strong>Kê khai:</strong> ${doc.declaration}</div>`
+            : ""
+        }
+        ${
+          doc.suspendReason
+            ? `<div class="suspend-reason"><strong>Lý do từ chối:</strong> ${doc.suspendReason}</div>`
+            : ""
+        }
+      </td>
+      <td>${renderPaymentMethod(doc.paymentMethod)}</td>
+      <td>${formatCurrency(doc.totalPayment)}</td>
+      <td>${doc.paymentDeadline || "-"}</td>
+      <td>${renderStatus(doc.status)}</td>
+      <td class="approval-status">${renderApprovalStatus(
+        doc.approvers,
+        doc.approvedBy
+      )}</td>
+      <td>
+        <div class="action-buttons">
+          <button class="btn btn-primary btn-sm" onclick="showFullView('${
+            doc._id
+          }')">
+            <i class="fas fa-eye"></i> Xem
+          </button>
+          <form action="/exportDocumentToDocx/${
+            doc._id
+          }" method="GET" style="display:inline;">
+              <button class="btn btn-primary btn-sm">
+                <i class="fas fa-file-word"></i> Xuất DOCX
+              </button>
+          </form>
+          ${
+            doc.approvedBy.length === 0
+              ? `
+            <button class="btn btn-primary btn-sm" onclick="editDocument('${doc._id}')">
+              <i class="fas fa-edit"></i> Sửa
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteDocument('${doc._id}')">
+              <i class="fas fa-trash"></i> Xóa
+            </button>
+          `
+              : ""
+          }
+          ${
+            doc.status === "Pending"
+              ? `
+            <button class="btn btn-primary btn-sm" onclick="approveDocument('${doc._id}')">
+              <i class="fas fa-check"></i> Phê duyệt
+            </button>
+          `
+              : ""
+          }
+          ${
+            doc.status === "Approved"
+              ? `
+                <button class="btn btn-primary btn-sm" onclick="editDeclaration('${doc._id}')">
+                  <i class="fas fa-edit"></i> Kê khai
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="suspendDocument('${doc._id}')">
+                  <i class="fas fa-ban"></i> Từ chối
+                </button>
+              `
+              : doc.status === "Suspended"
+              ? `
+                <button class="btn btn-primary btn-sm" onclick="openDocument('${doc._id}')">
+                  <i class="fas fa-lock-open"></i> Mở
+                </button>
+              `
+              : `
+                <button class="btn btn-danger btn-sm" onclick="suspendDocument('${doc._id}')">
+                  <i class="fas fa-ban"></i> Từ chối
+                </button>
+              `
+          }
+        </div>
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+
+  updateSelectAllCheckbox();
+};
+
+const updateSummary = (filteredDocuments) => {
+  const summary = filteredDocuments.reduce(
+    (acc, doc) => {
+      if (doc.status === "Approved") {
+        // If advance payment equals 0, then paid sum equals total payment
+        if (doc.advancePayment === 0) {
+          acc.paidSum += doc.totalPayment;
+        }
+        // If total payment equals 0, then paid sum equals advance payment
+        else if (doc.totalPayment === 0) {
+          acc.paidSum += doc.advancePayment;
+        }
+        // Otherwise, paid sum equals total payment minus advance payment
+        else {
+          acc.paidSum += doc.totalPayment - doc.advancePayment;
+        }
+        acc.approvedDocument += 1;
+      }
+      // Only one approver left
+      else if (doc.approvers.length - doc.approvedBy.length === 1) {
+        if (doc.advancePayment === 0) {
+          acc.approvedSum += doc.totalPayment;
+        }
+        // If total payment equals 0, then approved sum equals advance payment
+        else if (doc.totalPayment === 0) {
+          acc.approvedSum += doc.advancePayment;
+        }
+        // Otherwise, approved sum equals total payment minus advance payment
+        else {
+          acc.approvedSum += doc.totalPayment - doc.advancePayment;
+        }
+        acc.unapprovedDocument += 1;
+      }
+      // More than one approver left
+      else {
+        if (doc.advancePayment === 0) {
+          acc.unapprovedSum += doc.totalPayment;
+        }
+        // If total payment equals 0, then unapproved sum equals advance payment
+        else if (doc.totalPayment === 0) {
+          acc.unapprovedSum += doc.advancePayment;
+        }
+        // Otherwise, unapproved sum equals total payment minus advance payment
+        else {
+          acc.unapprovedSum += doc.totalPayment - doc.advancePayment;
+        }
+        acc.unapprovedDocument += 1;
+      }
+      return acc;
+    },
+    {
+      paidSum: 0,
+      approvedSum: 0,
+      unapprovedSum: 0,
+      approvedDocument: 0,
+      unapprovedDocument: 0,
+    }
+  );
+
+  // Update the summary display
+  document.getElementById("paidSum").textContent = formatCurrency(
+    summary.paidSum
+  );
+  document.getElementById("approvedSum").textContent = formatCurrency(
+    summary.approvedSum
+  );
+  document.getElementById("unapprovedSum").textContent = formatCurrency(
+    summary.unapprovedSum
+  );
+  document.getElementById("approvedDocument").textContent =
+    summary.approvedDocument.toLocaleString();
+  document.getElementById("unapprovedDocument").textContent =
+    summary.unapprovedDocument.toLocaleString();
+};
+
+const renderPagination = () => {
+  let paginationContainer = document.getElementById("paginationContainer");
+  if (!paginationContainer) {
+    const table = document.querySelector("table");
+    paginationContainer = document.createElement("div");
+    paginationContainer.id = "paginationContainer";
+    paginationContainer.className = "pagination-container";
+    table.parentNode.insertBefore(paginationContainer, table.nextSibling);
+  }
+
+  if (state.totalPages > 1) {
+    paginationContainer.innerHTML = `
+      <div class="pagination">
+        <button onclick="changePage(1)" ${
+          state.currentPage === 1 ? "disabled" : ""
+        }>
+          <i class="fas fa-angle-double-left"></i> Trang đầu
+        </button>
+        <button onclick="changePage(${state.currentPage - 1})" ${
+      state.currentPage === 1 ? "disabled" : ""
+    }>
+          <i class="fas fa-angle-left"></i> Trang trước
+        </button>
+        <span class="page-info">
+          Trang/Page ${state.currentPage} / ${state.totalPages}
+        </span>
+        <button onclick="changePage(${state.currentPage + 1})" ${
+      state.currentPage === state.totalPages ? "disabled" : ""
+    }>
+          Trang tiếp <i class="fas fa-angle-right"></i>
+        </button>
+        <button onclick="changePage(${state.totalPages})" ${
+      state.currentPage === state.totalPages ? "disabled" : ""
+    }>
+          Trang cuối <i class="fas fa-angle-double-right"></i>
+        </button>
+      </div>
+    `;
+  } else {
+    paginationContainer.innerHTML = "";
+  }
+};
+
+const removePagination = () => {
+  const paginationContainer = document.getElementById("paginationContainer");
+  if (paginationContainer) {
+    paginationContainer.innerHTML = "";
+  }
+};
+
+const changePage = (newPage) => {
+  if (
+    newPage >= 1 &&
+    newPage <= state.totalPages &&
+    newPage !== state.currentPage
+  ) {
+    state.currentPage = newPage;
+    fetchPaymentDocuments();
+    document.querySelector("table").scrollIntoView({ behavior: "smooth" });
+  }
+};
+
+// Document actions
+const approveDocument = async (documentId) => {
+  try {
+    const response = await fetch(`/approveDocument/${documentId}`, {
+      method: "POST",
+    });
+
+    const message = await response.text();
+
+    if (response.ok) {
+      showMessage(message);
+      fetchPaymentDocuments();
+    } else {
+      showMessage(message, true);
+    }
+  } catch (err) {
+    console.error("Error approving document:", err);
+    showMessage("Error approving document", true);
+  }
+};
+
+const deleteDocument = async (documentId) => {
+  if (!confirm("Bạn có chắc chắn muốn xóa tài liệu này?")) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/deleteDocument/${documentId}`, {
+      method: "POST",
+    });
+
+    const message = await response.text();
+
+    if (response.ok) {
+      showMessage(message);
+      fetchPaymentDocuments();
+    } else {
+      showMessage(message, true);
+    }
+  } catch (err) {
+    console.error("Error deleting document:", err);
+    showMessage("Error deleting document", true);
+  }
+};
+
+const suspendDocument = (docId) => {
+  document.getElementById("suspendModal").style.display = "block";
+  document.getElementById("suspendForm").dataset.docId = docId;
+};
+
+const closeSuspendModal = () => {
+  document.getElementById("suspendModal").style.display = "none";
+  document.getElementById("suspendForm").reset();
+};
+
+const handleSuspendSubmit = async (event) => {
+  event.preventDefault();
+  const docId = event.target.dataset.docId;
+  const suspendReason = document.getElementById("suspendReason").value;
+
+  try {
+    const response = await fetch(`/suspendDocument/${docId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ suspendReason }),
+    });
+
+    const message = await response.text();
+
+    if (response.ok) {
+      showMessage(message);
+      closeSuspendModal();
+      fetchPaymentDocuments();
+    } else {
+      showMessage(message, true);
+    }
+  } catch (err) {
+    console.error("Error suspending document:", err);
+    showMessage("Lỗi khi tạm dừng tài liệu.", true);
+  }
+};
+
+const openDocument = async (docId) => {
+  try {
+    const response = await fetch(`/openDocument/${docId}`, {
+      method: "POST",
+    });
+
+    const message = await response.text();
+
+    if (response.ok) {
+      showMessage(message);
+      fetchPaymentDocuments();
+    } else {
+      showMessage(message, true);
+    }
+  } catch (err) {
+    console.error("Error reopening document:", err);
+    showMessage("Lỗi khi mở lại tài liệu.", true);
+  }
+};
+
+const editDeclaration = (docId) => {
+  const doc = state.paymentDocuments.find((d) => d._id === docId);
+  if (!doc) return;
+
+  // Create a modal for editing the declaration
+  const modalHTML = `
+    <div id="declarationModal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close" onclick="closeDeclarationModal()">&times;</span>
+        <h2 class="modal-title"><i class="fas fa-edit"></i> Kê Khai</h2>
+        <div class="modal-body">
+          <div class="form-group">
+            <textarea id="declarationInput" class="form-textarea">${
+              doc.declaration || ""
+            }</textarea>
+          </div>
+          <div class="form-actions">
+            <button onclick="saveDeclaration('${docId}')" class="btn btn-primary">
+              <i class="fas fa-save"></i> Lưu kê khai
+            </button>
+            <button onclick="closeDeclarationModal()" class="btn btn-secondary">
+              <i class="fas fa-times"></i> Hủy
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Append the modal to the body
+  document.body.insertAdjacentHTML("beforeend", modalHTML);
+
+  // Show the modal
+  document.getElementById("declarationModal").style.display = "block";
+};
+
+const closeDeclarationModal = () => {
+  const modal = document.getElementById("declarationModal");
+  if (modal) {
+    modal.remove();
+  }
+};
+
+const saveDeclaration = async (docId) => {
+  const declaration = document.getElementById("declarationInput").value;
+
+  try {
+    const response = await fetch(`/updatePaymentDocumentDeclaration/${docId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ declaration }),
+    });
+
+    const message = await response.text();
+
+    if (response.ok) {
+      showMessage(message);
+      closeDeclarationModal();
+      fetchPaymentDocuments();
+    } else {
+      showMessage(message, true);
+    }
+  } catch (err) {
+    console.error("Error updating declaration:", err);
+    showMessage("Error updating declaration", true);
+  }
+};
+
+const openMassDeclarationModal = () => {
+  if (state.selectedDocuments.size === 0) {
+    showMessage("Xin hãy chọn ít nhất một phiếu để cập nhật kê khai.", true);
+    return;
+  }
+
+  document.getElementById("massDeclarationModal").style.display = "block";
+};
+
+const closeMassDeclarationModal = () => {
+  document.getElementById("massDeclarationModal").style.display = "none";
+  document.getElementById("massDeclarationInput").value = "";
+};
+
+const handleMassDeclarationSubmit = async (event) => {
+  event.preventDefault();
+  const declaration = document.getElementById("massDeclarationInput").value;
+  const selectedDocs = Array.from(state.selectedDocuments);
+
+  try {
+    const response = await fetch("/massUpdatePaymentDocumentDeclaration", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ documentIds: selectedDocs, declaration }),
+    });
+
+    const message = await response.text();
+
+    if (response.ok) {
+      showMessage(message);
+      closeMassDeclarationModal();
+      fetchPaymentDocuments();
+    } else {
+      showMessage(message, true);
+    }
+  } catch (err) {
+    console.error("Error updating mass declaration:", err);
+    showMessage("Error updating mass declaration", true);
+  }
+};
+
+// Edit Document Functions
+const editDocument = async (docId) => {
+  try {
+    const response = await fetch(`/getPaymentDocument/${docId}`);
+    const doc = await response.json();
+
+    document.getElementById("editDocId").value = docId;
+    document.getElementById("editName").value = doc.name || "";
+    document.getElementById("editContent").value = doc.content || "";
+    document.getElementById("editPaymentMethod").value =
+      doc.paymentMethod || "";
+    document.getElementById("editTotalPayment").value = doc.totalPayment || "";
+    document.getElementById("editDeadline").value = doc.paymentDeadline || "";
+
+    await populateCostCenterDropdown();
+    document.getElementById("editCostCenter").value = doc.costCenter || "";
+
+    state.currentApprovers = doc.approvers;
+    renderCurrentApprovers();
+    await populateNewApproversDropdown();
+
+    document.getElementById("editModal").style.display = "block";
+  } catch (err) {
+    console.error("Error fetching document details:", err);
+    showMessage("Error loading document details", true);
+  }
+};
+
+const closeEditModal = () => {
+  document.getElementById("editModal").style.display = "none";
+  document.getElementById("editForm").reset();
+};
+
+const populateCostCenterDropdown = async () => {
+  try {
+    const response = await fetch("/costCenters");
+    const costCenters = await response.json();
+    const dropdown = document.getElementById("editCostCenter");
+
+    // Clear existing options except the first one
+    dropdown.innerHTML = '<option value="">Chọn một trạm</option>';
+
+    // Add new options
+    costCenters.forEach((center) => {
+      const option = document.createElement("option");
+      option.value = center.name;
+      option.textContent = center.name;
+      dropdown.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error fetching cost centers:", error);
+  }
+};
+
+const fetchApprovers = async () => {
+  try {
+    const response = await fetch("/approvers");
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching approvers:", error);
+    return [];
+  }
+};
+
+const renderCurrentApprovers = () => {
+  const currentApproversList = document.getElementById("currentApproversList");
+  currentApproversList.innerHTML = state.currentApprovers
+    .map(
+      (approver) => `
+        <div class="approver-item" data-id="${approver.approver}">
+          <span>${approver.username}</span>
+          <input type="text" value="${approver.subRole}" 
+                 onchange="updateApproverSubRole('${approver.approver}', this.value)" 
+                 class="form-input" style="width: 120px;">
+          <button type="button" class="btn btn-danger btn-sm" 
+                  onclick="removeApprover('${approver.approver}')">
+            <i class="fas fa-trash"></i> Xóa
+          </button>
+        </div>
+      `
+    )
+    .join("");
+};
+
+const updateApproverSubRole = (approverId, newSubRole) => {
+  const approver = state.currentApprovers.find(
+    (a) => a.approver === approverId
+  );
+  if (approver) {
+    approver.subRole = newSubRole;
+  }
+};
+
+const removeApprover = (approverId) => {
+  state.currentApprovers = state.currentApprovers.filter(
+    (a) => a.approver !== approverId
+  );
+  renderCurrentApprovers();
+  populateNewApproversDropdown();
+};
+
+const populateNewApproversDropdown = async () => {
+  const allApprovers = await fetchApprovers();
+  const availableApprovers = allApprovers.filter(
+    (approver) =>
+      !state.currentApprovers.some((a) => a.approver === approver._id)
+  );
+
+  const dropdown = document.getElementById("newApproversDropdown");
+  dropdown.innerHTML = `
+    <option value="">Chọn người phê duyệt</option>
+    ${availableApprovers
+      .map(
+        (approver) => `
+      <option value="${approver._id}">${approver.username}</option>
+    `
+      )
+      .join("")}
+  `;
+};
+
+const addNewApprover = () => {
+  const newApproverId = document.getElementById("newApproversDropdown").value;
+  const newSubRole = document.getElementById("newApproverSubRole").value;
+
+  if (!newApproverId || !newSubRole) {
+    showMessage("Vui lòng chọn người phê duyệt và nhập vai trò phụ.", true);
+    return;
+  }
+
+  const newApprover = {
+    approver: newApproverId,
+    username: document
+      .getElementById("newApproversDropdown")
+      .selectedOptions[0].text.split(" (")[0],
+    subRole: newSubRole,
+  };
+
+  state.currentApprovers.push(newApprover);
+  renderCurrentApprovers();
+  populateNewApproversDropdown();
+
+  // Clear the input fields
+  document.getElementById("newApproversDropdown").value = "";
+  document.getElementById("newApproverSubRole").value = "";
+};
+
+const handleEditSubmit = async (event) => {
+  event.preventDefault();
+  const docId = document.getElementById("editDocId").value;
+  const formData = new FormData();
+
+  // Add basic fields
+  formData.append("name", document.getElementById("editName").value);
+  formData.append("content", document.getElementById("editContent").value);
+  formData.append(
+    "costCenter",
+    document.getElementById("editCostCenter").value
+  );
+  formData.append(
+    "paymentMethod",
+    document.getElementById("editPaymentMethod").value
+  );
+  formData.append(
+    "totalPayment",
+    document.getElementById("editTotalPayment").value
+  );
+  formData.append(
+    "paymentDeadline",
+    document.getElementById("editDeadline").value
+  );
+
+  // Add approvers
+  formData.append("approvers", JSON.stringify(state.currentApprovers));
+
+  // Add file
+  const fileInput = document.getElementById("editFile");
+  if (fileInput.files.length > 0) {
+    formData.append("file", fileInput.files[0]);
+  }
+
+  try {
+    const response = await fetch(`/updatePaymentDocument/${docId}`, {
+      method: "POST",
+      body: formData,
+    });
+    const result = await response.json();
+    if (response.ok) {
+      showMessage("Phiếu cập nhật thành công.");
+      closeEditModal();
+      fetchPaymentDocuments();
+    } else {
+      showMessage(result.message || "Error updating document", true);
+    }
+  } catch (err) {
+    console.error("Error updating document:", err);
+    showMessage("Error updating document", true);
+  }
+};
+
+// Full View Functions
+const showFullView = async (docId) => {
+  try {
+    const doc = state.paymentDocuments.find((d) => d._id === docId);
+    if (!doc) throw new Error("Document not found");
+
+    const fullViewContent = document.getElementById("fullViewContent");
+
+    // Format date strings
     const submissionDate = doc.submissionDate || "Không có";
     const paymentDeadline = doc.paymentDeadline || "Không có";
 
-    return `
+    fullViewContent.innerHTML = `
       <!-- Basic Information Section -->
       <div class="full-view-section">
         <h3><i class="fas fa-info-circle"></i> Thông tin cơ bản</h3>
@@ -656,7 +929,7 @@ const ModalManager = {
           </div>
         </div>
       </div>
-
+      
       <!-- Content Section -->
       <div class="full-view-section">
         <h3><i class="fas fa-align-left"></i> Nội dung</h3>
@@ -664,14 +937,7 @@ const ModalManager = {
           doc.content || "No content provided"
         }</p>
       </div>
-
-      <div class="full-view-section">
-        <h3><i class="fas fa-building"></i> Trạm</h3>
-        <p style="white-space: pre-wrap;">${
-          doc.costCenter || "No content provided"
-        }</p>
-      </div>
-
+      
       <!-- Payment Information Section -->
       <div class="full-view-section">
         <h3><i class="fas fa-money-bill-wave"></i> Thông tin thanh toán</h3>
@@ -682,13 +948,13 @@ const ModalManager = {
           </div>
           <div class="detail-item">
             <span class="detail-label">Tổng thanh toán:</span>
-            <span class="detail-value">${Utils.formatCurrency(
+            <span class="detail-value">${formatCurrency(
               doc.totalPayment
             )}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Tạm ứng:</span>
-            <span class="detail-value">${Utils.formatCurrency(
+            <span class="detail-value">${formatCurrency(
               doc.advancePayment
             )}</span>
           </div>
@@ -696,585 +962,403 @@ const ModalManager = {
             <span class="detail-label">Bù trừ:</span>
             <span class="detail-value">${
               doc.totalPayment && doc.advancePayment
-                ? Utils.formatCurrency(doc.totalPayment - doc.advancePayment)
+                ? formatCurrency(doc.totalPayment - doc.advancePayment)
                 : "Không có"
             }</span>
           </div>
         </div>
       </div>
-
+      
       <!-- File Attachment Section -->
       <div class="full-view-section">
         <h3><i class="fas fa-paperclip"></i> Tệp tin kèm theo</h3>
         ${
           doc.fileMetadata
             ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-            : "Không có tệp kèm theo"
+            : "Không có tệp tin đính kèm"
         }
       </div>
-
+      
       <!-- Purchasing Documents Section -->
       <div class="full-view-section">
         <h3><i class="fas fa-shopping-cart"></i> Phiếu mua hàng kèm theo</h3>
         ${
           doc.appendedPurchasingDocuments?.length
-            ? DocumentRenderer.renderPurchasingDocuments(
-                doc.appendedPurchasingDocuments
-              )
+            ? renderPurchasingDocuments(doc.appendedPurchasingDocuments)
             : "Không có phiếu mua hàng kèm theo"
         }
       </div>
-
-      <!-- Proposals Section -->
-      <div class="full-view-section">
-        <h3><i class="fas fa-lightbulb"></i> Phiếu đề xuất kèm theo</h3>
-        ${
-          doc.appendedPurchasingDocuments?.length
-            ? DocumentRenderer.renderProposals(doc.appendedPurchasingDocuments)
-            : "Không có phiếu đề xuất kèm theo"
-        }
-      </div>
-
+      
       <!-- Status Section -->
       <div class="full-view-section">
-        <h3><i class="fas fa-info-circle"></i> Trạng thái</h3>
+        <h3><i class="fas fa-tasks"></i> Trạng thái</h3>
         <div class="detail-grid">
           <div class="detail-item">
             <span class="detail-label">Tình trạng:</span>
-            <span class="detail-value ${DocumentRenderer.renderStatus(
-              doc.status
-            )}</span>
+            <span class="detail-value">${renderStatus(doc.status)}</span>
           </div>
         </div>
-        <div style="margin-top: 16px;">
+        <div class="approval-section">
           <h4><i class="fas fa-user-check"></i> Trạng thái phê duyệt:</h4>
           <div class="approval-status">
-            ${DocumentRenderer.renderApprovalStatus(
-              doc.approvers,
-              doc.approvedBy
-            )}
-          </div>
-        </div>
-      </div>
-    `;
-  },
-
-  closeFullViewModal: () => {
-    DOM.fullViewModal.style.display = "none";
-  },
-
-  suspendDocument: (docId) => {
-    DOM.suspendForm.dataset.docId = docId;
-    DOM.suspendModal.style.display = "block";
-  },
-
-  closeSuspendModal: () => {
-    DOM.suspendModal.style.display = "none";
-    DOM.suspendForm.reset();
-  },
-
-  handleSuspendSubmit: async (event) => {
-    event.preventDefault();
-    const docId = event.target.dataset.docId;
-    const suspendReason = document.getElementById("suspendReason").value;
-
-    const { success, message } = await API.suspendDocument(
-      docId,
-      suspendReason
-    );
-    Utils.showMessage(message, !success);
-
-    if (success) {
-      ModalManager.closeSuspendModal();
-      loadPaymentDocuments();
-    }
-  },
-
-  openMassDeclarationModal: () => {
-    const selectedIds = Utils.getSelectedDocumentIds();
-    if (selectedIds.length === 0) {
-      Utils.showMessage(
-        "Vui lòng chọn ít nhất một tài liệu để cập nhật kê khai.",
-        true
-      );
-      return;
-    }
-    DOM.massDeclarationModal.style.display = "block";
-  },
-
-  closeMassDeclarationModal: () => {
-    DOM.massDeclarationModal.style.display = "none";
-    DOM.massDeclarationForm.reset();
-  },
-
-  handleMassDeclarationSubmit: async (event) => {
-    event.preventDefault();
-    const selectedIds = Utils.getSelectedDocumentIds();
-    const declaration = document.getElementById("massDeclarationInput").value;
-
-    if (selectedIds.length === 0) {
-      Utils.showMessage(
-        "Vui lòng chọn ít nhất một tài liệu để cập nhật kê khai.",
-        true
-      );
-      return;
-    }
-
-    const { success, message } = await API.massUpdateDeclaration(
-      selectedIds,
-      declaration
-    );
-    Utils.showMessage(message, !success);
-
-    if (success) {
-      ModalManager.closeMassDeclarationModal();
-      loadPaymentDocuments();
-    }
-  },
-
-  editDocument: async (docId) => {
-    try {
-      // Ensure modal exists
-      if (!DOM.editModal) {
-        throw new Error("Edit modal not found in DOM");
-      }
-
-      const doc = await API.fetchDocumentDetails(docId);
-
-      // Set form values
-      document.getElementById("editDocId").value = docId;
-      document.getElementById("editName").value = doc.name || "";
-      document.getElementById("editContent").value = doc.content || "";
-      document.getElementById("editPaymentMethod").value =
-        doc.paymentMethod || "";
-      document.getElementById("editTotalPayment").value =
-        doc.totalPayment || "";
-      document.getElementById("editDeadline").value = doc.paymentDeadline || "";
-
-      // Populate dropdowns
-      await ModalManager.populateCostCenterDropdown();
-      document.getElementById("editCostCenter").value = doc.costCenter || "";
-
-      // Set approvers
-      STATE.currentApprovers = doc.approvers || [];
-      ModalManager.renderCurrentApprovers();
-      await ModalManager.populateNewApproversDropdown();
-
-      // Show modal
-      DOM.editModal.style.display = "block";
-    } catch (err) {
-      console.error("Error in editDocument:", err);
-      Utils.showMessage("Error loading document details: " + err.message, true);
-    }
-  },
-
-  closeEditModal: () => {
-    DOM.editModal.style.display = "none";
-    DOM.editForm.reset();
-  },
-
-  handleEditSubmit: async (event) => {
-    event.preventDefault();
-    const docId = document.getElementById("editDocId").value;
-    const formData = new FormData();
-    formData.append("name", document.getElementById("editName").value);
-    formData.append("content", document.getElementById("editContent").value);
-    formData.append(
-      "costCenter",
-      document.getElementById("editCostCenter").value
-    );
-    formData.append(
-      "paymentMethod",
-      document.getElementById("editPaymentMethod").value
-    );
-    formData.append(
-      "totalPayment",
-      document.getElementById("editTotalPayment").value
-    );
-    formData.append(
-      "paymentDeadline",
-      document.getElementById("editDeadline").value
-    );
-    formData.append("approvers", JSON.stringify(STATE.currentApprovers));
-
-    const fileInput = document.getElementById("editFile");
-    if (fileInput.files.length > 0) {
-      formData.append("file", fileInput.files[0]);
-    }
-
-    const { success, result } = await API.updatePaymentDocument(
-      docId,
-      formData
-    );
-    if (success) {
-      Utils.showMessage("Phiếu cập nhật thành công.");
-      ModalManager.closeEditModal();
-      loadPaymentDocuments();
-    } else {
-      Utils.showMessage(result.message || "Error updating document", true);
-    }
-  },
-
-  populateCostCenterDropdown: async () => {
-    try {
-      const costCenters = await API.fetchCostCenters();
-      const dropdown = document.getElementById("editCostCenter");
-
-      // Clear existing options except the first one
-      while (dropdown.options.length > 1) {
-        dropdown.remove(1);
-      }
-
-      // Add options
-      costCenters.forEach((center) => {
-        const option = document.createElement("option");
-        option.value = center.name;
-        option.textContent = center.name;
-        dropdown.appendChild(option);
-      });
-    } catch (error) {
-      console.error("Error loading cost centers:", error);
-    }
-  },
-
-  renderCurrentApprovers: () => {
-    const container = document.getElementById("currentApproversList");
-    container.innerHTML = STATE.currentApprovers
-      .map(
-        (approver) => `
-      <div class="approver-item" data-id="${approver.approver}">
-        <span>${approver.username} (${approver.subRole})</span>
-        <input type="text" value="${approver.subRole}" 
-               onchange="updateApproverSubRole('${approver.approver}', this.value)">
-        <button type="button" class="btn btn-danger" onclick="removeApprover('${approver.approver}')">
-          <i class="fas fa-trash"></i> Xóa
-        </button>
-      </div>
-    `
-      )
-      .join("");
-  },
-
-  populateNewApproversDropdown: async () => {
-    try {
-      const approvers = await API.fetchApprovers();
-      const dropdown = document.getElementById("newApproversDropdown");
-
-      // Clear existing options except the first one
-      while (dropdown.options.length > 1) {
-        dropdown.remove(1);
-      }
-
-      // Add options, excluding current approvers
-      approvers.forEach((approver) => {
-        if (!STATE.currentApprovers.some((a) => a.approver === approver._id)) {
-          const option = document.createElement("option");
-          option.value = approver._id;
-          option.textContent = approver.username;
-          dropdown.appendChild(option);
-        }
-      });
-    } catch (error) {
-      console.error("Error loading approvers:", error);
-    }
-  },
-
-  addNewApprover: () => {
-    const dropdown = document.getElementById("newApproversDropdown");
-    const subRoleInput = document.getElementById("newApproverSubRole");
-
-    if (!dropdown.value || !subRoleInput.value) {
-      Utils.showMessage("Xin hãy chọn người phê duyệt và nhập vai trò", true);
-      return;
-    }
-
-    const newApprover = {
-      approver: dropdown.value,
-      username: dropdown.options[dropdown.selectedIndex].text,
-      subRole: subRoleInput.value,
-    };
-
-    STATE.currentApprovers.push(newApprover);
-    ModalManager.renderCurrentApprovers();
-    ModalManager.populateNewApproversDropdown();
-
-    // Clear inputs
-    dropdown.value = "";
-    subRoleInput.value = "";
-  },
-
-  removeApprover: (approverId) => {
-    STATE.currentApprovers = STATE.currentApprovers.filter(
-      (a) => a.approver !== approverId
-    );
-    ModalManager.renderCurrentApprovers();
-    ModalManager.populateNewApproversDropdown();
-  },
-
-  updateApproverSubRole: (approverId, newSubRole) => {
-    const approver = STATE.currentApprovers.find(
-      (a) => a.approver === approverId
-    );
-    if (approver) {
-      approver.subRole = newSubRole;
-    }
-  },
-};
-
-// Document Actions
-const DocumentActions = {
-  toggleSelectAll: () => {
-    const selectAllCheckbox = document.getElementById("selectAll");
-    const checkboxes = document.querySelectorAll(
-      'input[type="checkbox"][name="documentCheckbox"]'
-    );
-    checkboxes.forEach((checkbox) => {
-      checkbox.checked = selectAllCheckbox.checked;
-    });
-  },
-
-  approveDocument: async (documentId) => {
-    const { success, message } = await API.approveDocument(documentId);
-    Utils.showMessage(message, !success);
-    if (success) {
-      loadPaymentDocuments();
-    }
-  },
-
-  deleteDocument: async (documentId) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa tài liệu này?")) {
-      return;
-    }
-
-    const { success, message } = await API.deleteDocument(documentId);
-    Utils.showMessage(message, !success);
-    if (success) {
-      loadPaymentDocuments();
-    }
-  },
-
-  openDocument: async (documentId) => {
-    const { success, message } = await API.openDocument(documentId);
-    Utils.showMessage(message, !success);
-    if (success) {
-      loadPaymentDocuments();
-    }
-  },
-
-  editDeclaration: (documentId) => {
-    const doc = STATE.paymentDocuments.find((d) => d._id === documentId);
-    if (!doc) return;
-
-    const modalHTML = `
-      <div id="declarationModal" class="modal">
-        <div class="modal-content narrow">
-          <span onclick="closeDeclarationModal()" class="close-btn">&times;</span>
-          <h2><i class="fas fa-edit"></i> Kê Khai</h2>
-          <textarea id="declarationInput" style="width: 100%; height: 150px; padding: 10px; font-size: 16px;">${
-            doc.declaration || ""
-          }</textarea>
-          <div class="form-actions">
-            <button onclick="saveDeclaration('${documentId}')" class="btn btn-primary">
-              <i class="fas fa-save"></i> Lưu
-            </button>
-            <button onclick="closeDeclarationModal()" class="btn btn-secondary">
-              <i class="fas fa-times"></i> Hủy
-            </button>
+            ${renderApprovalStatus(doc.approvers, doc.approvedBy)}
           </div>
         </div>
       </div>
     `;
 
-    document.body.insertAdjacentHTML("beforeend", modalHTML);
-    document.getElementById("declarationModal").style.display = "block";
-  },
+    document.getElementById("fullViewModal").style.display = "block";
+  } catch (err) {
+    console.error("Error showing full view:", err);
+    showMessage("Error loading full document details", true);
+  }
+};
 
-  closeDeclarationModal: () => {
-    const modal = document.getElementById("declarationModal");
-    if (modal) {
-      modal.remove();
-    }
-  },
+const renderPurchasingDocuments = (purchDocs) => {
+  if (!purchDocs || purchDocs.length === 0) return "";
 
-  saveDeclaration: async (documentId) => {
-    const declaration = document.getElementById("declarationInput").value;
+  return `
+    <div class="documents-container">
+      ${purchDocs
+        .map((purchDoc) => {
+          const products = purchDoc.products
+            ? purchDoc.products
+                .map(
+                  (product) => `
+              <div class="payment-product-item">
+                <span class="payment-product-name">${product.productName}</span>
+                <span class="payment-product-amount">${product.amount} x</span>
+                <span class="payment-product-price">${formatCurrency(
+                  product.costPerUnit
+                )}</span>
+                <span class="payment-product-total">${formatCurrency(
+                  product.totalCost
+                )}</span>
+              </div>
+            `
+                )
+                .join("")
+            : "";
 
-    const { success, message } = await API.updateDeclaration(
-      documentId,
-      declaration
+          const fileMetadata = purchDoc.fileMetadata
+            ? `<div><strong>Tệp đính kèm:</strong> 
+              <a href="${purchDoc.fileMetadata.link}" target="_blank" class="file-link">${purchDoc.fileMetadata.name}</a></div>`
+            : "";
+
+          // Render appended proposals
+          const proposals = purchDoc.appendedProposals
+            ? purchDoc.appendedProposals
+                .map(
+                  (proposal) => `
+                <div class="proposal-item" style="margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                  <div><strong>Công việc:</strong> ${proposal.task}</div>
+                  <div><strong>Trạm:</strong> ${proposal.costCenter}</div>
+                  <div><strong>Mô tả:</strong> ${
+                    proposal.detailsDescription
+                  }</div>
+                  ${
+                    proposal.fileMetadata?.link
+                      ? `<div><strong>Tệp đính kèm:</strong> 
+                         <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></div>`
+                      : ""
+                  }
+                </div>
+              `
+                )
+                .join("")
+            : "";
+
+          return `
+            <div class="payment-document" style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">
+              <div><strong>Tên:</strong> ${purchDoc.name || ""}</div>
+              <div><strong>Trạm:</strong> ${purchDoc.costCenter || ""}</div>
+              <div><strong>Tổng chi phí:</strong> ${formatCurrency(
+                purchDoc.grandTotalCost
+              )}</div>
+              <div style="margin-top: 10px;"><strong>Sản phẩm:</strong></div>
+              <div class="payment-products">${products}</div>
+              ${fileMetadata}
+              
+              <div style="margin-top: 15px;">
+                <strong>Phiếu đề xuất kèm theo:</strong>
+                ${proposals || "Không có phiếu đề xuất kèm theo"}
+              </div>
+            </div>`;
+        })
+        .join("")}
+    </div>`;
+};
+
+const closeFullViewModal = () => {
+  document.getElementById("fullViewModal").style.display = "none";
+};
+
+// Export functions
+const exportSelectedToExcel = () => {
+  const selectedDocs = Array.from(state.selectedDocuments);
+
+  if (selectedDocs.length === 0) {
+    showMessage("Xin hãy chọn ít nhất một phiếu để xuất.", true);
+    return;
+  }
+
+  try {
+    // Filter the selected documents from the state
+    const documentsToExport = state.paymentDocuments.filter((doc) =>
+      selectedDocs.includes(doc._id)
     );
-    Utils.showMessage(message, !success);
 
-    if (success) {
-      DocumentActions.closeDeclarationModal();
-      loadPaymentDocuments();
-    }
-  },
-};
+    // Prepare the data for Excel
+    const excelData = documentsToExport.map((doc) => {
+      // Base document info
+      const baseData = {
+        "Mã phiếu thanh toán": doc.tag || "",
+        "Nội dung": doc.content || "",
+        "Phương thức thanh toán": doc.paymentMethod || "",
+        "Tổng thanh toán": doc.totalPayment || 0,
+        "Tạm ứng": doc.advancePayment || 0,
+        "Hạn trả": doc.paymentDeadline || "",
+        "Tình trạng":
+          doc.status === "Approved"
+            ? "Đã phê duyệt"
+            : doc.status === "Suspended"
+            ? "Từ chối"
+            : "Chưa phê duyệt",
+        "Kê khai": doc.declaration || "",
+        "Lý do từ chối": doc.suspendReason || "",
+        "Người phê duyệt": doc.approvers.map((a) => a.username).join(", "),
+        "Người đã phê duyệt": doc.approvedBy.map((a) => a.username).join(", "),
+        "Ngày tạo": doc.submissionDate || "",
+      };
 
-// Group Filter Management
-const GroupFilterManager = {
-  populateGroupFilter: async () => {
-    const groups = await API.fetchGroups();
-    const groupFilter = document.getElementById("groupFilter");
+      // Process appended purchasing documents
+      if (
+        doc.appendedPurchasingDocuments &&
+        doc.appendedPurchasingDocuments.length > 0
+      ) {
+        doc.appendedPurchasingDocuments.forEach((purchDoc, index) => {
+          const prefix = `Phiếu mua hàng ${index + 1} - `;
 
-    // Clear existing options except the first one
-    while (groupFilter.options.length > 1) {
-      groupFilter.remove(1);
-    }
+          // Purchasing document info
+          baseData[`${prefix}Tên`] = purchDoc.name || "";
+          baseData[`${prefix}Trạm`] = purchDoc.costCenter || "";
+          baseData[`${prefix}Tổng chi phí`] = purchDoc.grandTotalCost || 0;
 
-    // Add group options
-    groups.forEach((group) => {
-      const option = document.createElement("option");
-      option.value = group.name;
-      option.textContent = group.name;
-      groupFilter.appendChild(option);
+          // Process products in purchasing document
+          if (purchDoc.products && purchDoc.products.length > 0) {
+            purchDoc.products.forEach((product, pIndex) => {
+              const productPrefix = `${prefix}Sản phẩm ${pIndex + 1} - `;
+              baseData[`${productPrefix}Tên`] = product.productName || "";
+              baseData[`${productPrefix}Số lượng`] = product.amount || 0;
+              baseData[`${productPrefix}Đơn giá`] = product.costPerUnit || 0;
+              baseData[`${productPrefix}Thành tiền`] = product.totalCost || 0;
+            });
+          }
+
+          // Process appended proposals
+          if (
+            purchDoc.appendedProposals &&
+            purchDoc.appendedProposals.length > 0
+          ) {
+            purchDoc.appendedProposals.forEach((proposal, propIndex) => {
+              const propPrefix = `${prefix}Đề xuất ${propIndex + 1} - `;
+              baseData[`${propPrefix}Công việc`] = proposal.task || "";
+              baseData[`${propPrefix}Trạm`] = proposal.costCenter || "";
+              baseData[`${propPrefix}Mô tả`] =
+                proposal.detailsDescription || "";
+              baseData[`${propPrefix}Ngày tạo`] = proposal.submissionDate || "";
+            });
+          }
+        });
+      }
+
+      return baseData;
     });
-  },
 
-  filterByGroup: () => {
-    STATE.currentGroupFilter = document.getElementById("groupFilter").value;
-    STATE.currentPage = 1;
-    loadPaymentDocuments();
-  },
+    // Create a new workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Set column widths (adjust as needed)
+    const wscols = [
+      { wch: 20 }, // Mã phiếu thanh toán
+      { wch: 30 }, // Nội dung
+      { wch: 20 }, // Phương thức thanh toán
+      { wch: 15 }, // Tổng thanh toán
+      { wch: 15 }, // Tạm ứng
+      { wch: 15 }, // Hạn trả
+      { wch: 15 }, // Tình trạng
+      { wch: 30 }, // Kê khai
+      { wch: 30 }, // Lý do từ chối
+      { wch: 25 }, // Người phê duyệt
+      { wch: 25 }, // Người đã phê duyệt
+      { wch: 15 }, // Ngày tạo
+      // Additional columns for purchasing docs will auto-size
+    ];
+    ws["!cols"] = wscols;
+
+    // Add the worksheet to the workbook
+    XLSX.utils.book_append_sheet(wb, ws, "Phiếu thanh toán");
+
+    // Generate the Excel file and trigger download
+    XLSX.writeFile(
+      wb,
+      `Phiếu_thanh_toán_${new Date().toISOString().slice(0, 10)}.xlsx`
+    );
+
+    showMessage(`Đã xuất ${selectedDocs.length} phiếu thanh toán thành công.`);
+  } catch (err) {
+    console.error("Error exporting documents:", err);
+    showMessage("Lỗi khi xuất dữ liệu: " + err.message, true);
+  }
 };
 
-// Initialization
-const initializePage = async () => {
-  await API.fetchCurrentUser();
+// Selection functions
+const updateDocumentSelection = (checkbox) => {
+  const docId = checkbox.dataset.docId;
+  if (checkbox.checked) {
+    state.selectedDocuments.add(docId);
+  } else {
+    state.selectedDocuments.delete(docId);
+  }
+};
 
-  // Add toggle switch before the table
-  const table = document.querySelector("table");
-  table.parentElement.insertBefore(createToggleSwitch(), table);
+const toggleSelectAll = () => {
+  const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+  const checkboxes = document.querySelectorAll(".doc-checkbox");
 
-  // Add group filter
-  await GroupFilterManager.populateGroupFilter();
+  checkboxes.forEach((checkbox) => {
+    checkbox.checked = selectAllCheckbox.checked;
+    updateDocumentSelection(checkbox);
+  });
+};
 
-  // Add event listeners
+const updateSelectAllCheckbox = () => {
+  const checkboxes = document.querySelectorAll(".doc-checkbox");
+  const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+
+  if (checkboxes.length === 0) {
+    selectAllCheckbox.checked = false;
+    selectAllCheckbox.disabled = true;
+    return;
+  }
+
+  selectAllCheckbox.disabled = false;
+  const allChecked = Array.from(checkboxes).every(
+    (checkbox) => checkbox.checked
+  );
+  selectAllCheckbox.checked = allChecked;
+};
+
+// Filter functions
+const filterByGroup = () => {
+  state.currentGroupFilter = document.getElementById("groupFilter").value;
+  state.currentPage = 1;
+  fetchPaymentDocuments();
+};
+
+// Event listeners
+const setupEventListeners = () => {
+  // Toggle switches
   document.getElementById("pendingToggle").addEventListener("change", (e) => {
-    STATE.showOnlyPendingApprovals = e.target.checked;
-    STATE.currentPage = 1;
-    loadPaymentDocuments();
+    state.showOnlyPendingApprovals = e.target.checked;
+    state.currentPage = 1;
+    fetchPaymentDocuments();
   });
 
   document.getElementById("paginationToggle").addEventListener("change", () => {
-    STATE.paginationEnabled =
+    state.paginationEnabled =
       document.getElementById("paginationToggle").checked;
-    STATE.currentPage = 1;
-    loadPaymentDocuments();
+    state.currentPage = 1;
+    fetchPaymentDocuments();
   });
 
-  // Initial load of documents
-  loadPaymentDocuments();
+  // Export and selection
+  document
+    .getElementById("exportSelectedBtn")
+    .addEventListener("click", () => exportSelectedToExcel());
+  document
+    .getElementById("selectAllCheckbox")
+    .addEventListener("change", () => toggleSelectAll());
+
+  // Table checkboxes
+  document.addEventListener("change", (e) => {
+    if (e.target.classList.contains("doc-checkbox")) {
+      updateDocumentSelection(e.target);
+      updateSelectAllCheckbox();
+    }
+  });
+
+  document.getElementById("suspendForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    handleSuspendSubmit(e);
+  });
+
+  document
+    .querySelector("#fullViewModal .modal-close")
+    .addEventListener("click", () => {
+      closeFullViewModal();
+    });
+
+  // Group filter
+  document
+    .getElementById("groupFilter")
+    .addEventListener("change", filterByGroup);
+
+  // Mass declaration form
+  document
+    .getElementById("massDeclarationForm")
+    .addEventListener("submit", (e) => {
+      e.preventDefault();
+      handleMassDeclarationSubmit(e);
+    });
+
+  // Edit form
+  document.getElementById("editForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    handleEditSubmit(e);
+  });
 };
 
-const createToggleSwitch = () => {
-  const toggleContainer = document.createElement("div");
-  toggleContainer.style.marginBottom = "1rem";
-  toggleContainer.innerHTML = `
-    <label class="toggle-switch" style="display: flex; align-items: center; cursor: pointer;">
-      <input type="checkbox" id="pendingToggle" style="margin-right: 0.5rem;">
-      <span>Chỉ hiện phiếu tôi cần phê duyệt</span>
-    </label>
-  `;
-  return toggleContainer;
+// Initialize the application
+const initialize = async () => {
+  await fetchCurrentUser();
+  await fetchGroups();
+  setupEventListeners();
+  await fetchPaymentDocuments();
 };
 
-const loadPaymentDocuments = async () => {
-  try {
-    // Show loading when fetching documents
-    document.getElementById("loadingScreen").style.display = "flex";
-
-    await API.fetchPaymentDocuments();
-    const filteredDocuments = DocumentFilters.filterByCurrentUser(
-      STATE.paymentDocuments
-    );
-
-    // Calculate total pages
-    STATE.totalPages = Math.ceil(filteredDocuments.length / STATE.itemsPerPage);
-
-    // Make sure current page is in valid range
-    if (STATE.currentPage > STATE.totalPages) {
-      STATE.currentPage = STATE.totalPages;
-    }
-    if (STATE.currentPage < 1) {
-      STATE.currentPage = 1;
-    }
-
-    // Calculate slice indexes for current page
-    const startIndex = (STATE.currentPage - 1) * STATE.itemsPerPage;
-    const endIndex = startIndex + STATE.itemsPerPage;
-
-    // Get documents for current page only if pagination is enabled, otherwise show all
-    const pageDocuments = STATE.paginationEnabled
-      ? filteredDocuments.slice(startIndex, endIndex)
-      : filteredDocuments;
-
-    // Reset the "Select All" checkbox
-    Utils.resetSelectAllCheckbox();
-
-    // Update UI
-    TableManager.renderTable(pageDocuments);
-    SummaryManager.updateSummary(filteredDocuments);
-
-    // Render pagination controls if pagination is enabled
-    if (STATE.paginationEnabled) {
-      PaginationManager.renderPagination();
-    } else {
-      // Remove pagination if disabled
-      let paginationContainer = document.getElementById("paginationContainer");
-      if (paginationContainer) {
-        paginationContainer.innerHTML = "";
-      }
-    }
-  } catch (error) {
-    console.error("Error loading documents:", error);
-    Utils.showMessage("Error loading documents", true);
-  } finally {
-    document.getElementById("loadingScreen").style.display = "none";
-  }
-};
-
-// Global functions for HTML event handlers
-window.toggleSelectAll = DocumentActions.toggleSelectAll;
-window.filterByGroup = GroupFilterManager.filterByGroup;
-window.changePage = PaginationManager.changePage;
-window.showFullView = ModalManager.showFullView;
-window.closeFullViewModal = ModalManager.closeFullViewModal;
-window.approveDocument = DocumentActions.approveDocument;
-window.deleteDocument = DocumentActions.deleteDocument;
-window.suspendDocument = ModalManager.suspendDocument;
-window.closeSuspendModal = ModalManager.closeSuspendModal;
-window.handleSuspendSubmit = ModalManager.handleSuspendSubmit;
-window.openDocument = DocumentActions.openDocument;
-window.editDocument = ModalManager.editDocument;
-window.closeEditModal = ModalManager.closeEditModal;
-window.handleEditSubmit = ModalManager.handleEditSubmit;
-window.editDeclaration = DocumentActions.editDeclaration;
-window.closeDeclarationModal = DocumentActions.closeDeclarationModal;
-window.saveDeclaration = DocumentActions.saveDeclaration;
-window.openMassDeclarationModal = ModalManager.openMassDeclarationModal;
-window.closeMassDeclarationModal = ModalManager.closeMassDeclarationModal;
-window.handleMassDeclarationSubmit = ModalManager.handleMassDeclarationSubmit;
-window.addNewApprover = ModalManager.addNewApprover;
-window.removeApprover = ModalManager.removeApprover;
-window.updateApproverSubRole = ModalManager.updateApproverSubRole;
-
-// Initialize the page when DOM is loaded
-document.addEventListener("DOMContentLoaded", initializePage);
+// Initialize when DOM is loaded
+document.addEventListener("DOMContentLoaded", initialize);
 
 // Close modals when clicking outside
 window.onclick = function (event) {
-  if (event.target === DOM.fullViewModal) {
-    ModalManager.closeFullViewModal();
-  }
-  if (event.target === DOM.suspendModal) {
-    ModalManager.closeSuspendModal();
-  }
-  if (event.target === DOM.massDeclarationModal) {
-    ModalManager.closeMassDeclarationModal();
-  }
-  if (event.target === DOM.editModal) {
-    ModalManager.closeEditModal();
-  }
+  const modals = document.querySelectorAll(".modal");
+  modals.forEach((modal) => {
+    if (event.target === modal) {
+      modal.style.display = "none";
+    }
+  });
 };
+
+// Global functions for HTML event handlers
+window.changePage = changePage;
+window.showFullView = showFullView;
+window.closeFullViewModal = closeFullViewModal;
+window.approveDocument = approveDocument;
+window.deleteDocument = deleteDocument;
+window.suspendDocument = suspendDocument;
+window.closeSuspendModal = closeSuspendModal;
+window.openDocument = openDocument;
+window.editDocument = editDocument;
+window.closeEditModal = closeEditModal;
+window.editDeclaration = editDeclaration;
+window.closeDeclarationModal = closeDeclarationModal;
+window.saveDeclaration = saveDeclaration;
+window.openMassDeclarationModal = openMassDeclarationModal;
+window.closeMassDeclarationModal = closeMassDeclarationModal;
+window.addNewApprover = addNewApprover;
+window.removeApprover = removeApprover;
+window.updateApproverSubRole = updateApproverSubRole;
+window.toggleSelectAll = toggleSelectAll;
+window.filterByGroup = filterByGroup;

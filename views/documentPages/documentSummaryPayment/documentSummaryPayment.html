@@ -15,261 +15,332 @@
     />
   </head>
   <body>
-    <div class="page-container">
-      <header class="page-header">
-        <a href="/documentSummary" class="btn btn-back">
+    <header class="page-header">
+      <h1><i class="fas fa-file-invoice-dollar"></i> Phiếu thanh toán</h1>
+      <div class="header-actions">
+        <a href="/documentSummary" class="btn btn-secondary">
           <i class="fas fa-arrow-left"></i> Trở về
         </a>
-        <h1><i class="fas fa-file-invoice-dollar"></i> Phiếu thanh toán</h1>
-        <div class="header-controls">
-          <div class="pagination-toggle">
-            <label for="paginationToggle">
-              <input type="checkbox" id="paginationToggle" checked />
-              <span>Hiển thị phân trang</span>
-            </label>
-          </div>
-          <div class="group-filter">
-            <label for="groupFilter">Lọc theo nhóm:</label>
-            <select id="groupFilter" onchange="filterByGroup()">
-              <option value="">Tất cả nhóm</option>
-              <!-- Groups will be populated dynamically -->
-            </select>
-          </div>
-          <button class="btn btn-primary" onclick="openMassDeclarationModal()">
-            <i class="fas fa-clipboard-list"></i> Cập nhật kê khai hàng loạt
-          </button>
-        </div>
-      </header>
+      </div>
+    </header>
 
-      <div id="messageContainer" class="message"></div>
+    <div id="messageContainer" class="message"></div>
 
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>
-                <input
-                  type="checkbox"
-                  id="selectAll"
-                  onclick="toggleSelectAll()"
-                />
-              </th>
-              <th>Mã</th>
-              <th>Nội dung</th>
-              <th>Phương thức trả tiền</th>
-              <th>Tổng thanh toán</th>
-              <th>Hạn trả</th>
-              <th>Tình trạng</th>
-              <th>Trạng thái phê duyệt</th>
-              <th>Hành động</th>
-            </tr>
-          </thead>
-          <tbody id="paymentDocumentsTable">
-            <!-- Payment documents will be populated here -->
-          </tbody>
-        </table>
+    <div class="control-panel">
+      <div class="control-group">
+        <label class="toggle-switch">
+          <input type="checkbox" id="paginationToggle" checked />
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">Hiển thị phân trang</span>
+        </label>
       </div>
 
-      <!-- Full View Modal -->
-      <div id="fullViewModal" class="modal">
-        <div class="modal-content">
-          <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
-          <h2><i class="fas fa-file-alt"></i> Chi tiết đầy đủ</h2>
-          <div id="fullViewContent"></div>
-        </div>
+      <div class="control-group">
+        <label for="groupFilter">
+          <span>Lọc theo nhóm:</span>
+          <select id="groupFilter" class="filter-select">
+            <option value="">Tất cả</option>
+            <!-- Options will be populated dynamically -->
+          </select>
+        </label>
       </div>
 
-      <!-- Suspend Modal -->
-      <div id="suspendModal" class="modal">
-        <div class="modal-content narrow">
-          <span class="close-btn" onclick="closeSuspendModal()">&times;</span>
-          <h2><i class="fas fa-ban"></i> Từ chối tài liệu</h2>
-          <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
-            <div class="form-group">
-              <label for="suspendReason">Lý do từ chối:</label>
-              <textarea id="suspendReason" required></textarea>
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="btn btn-danger">
-                <i class="fas fa-ban"></i> Từ chối
-              </button>
-              <button
-                type="button"
-                class="btn btn-secondary"
-                onclick="closeSuspendModal()"
-              >
-                <i class="fas fa-times"></i> Hủy
-              </button>
-            </div>
-          </form>
-        </div>
+      <div class="control-group">
+        <label class="toggle-switch">
+          <input type="checkbox" id="pendingToggle" />
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">Chỉ hiện phiếu tôi cần phê duyệt</span>
+        </label>
       </div>
-
-      <!-- Mass Declaration Modal -->
-      <div id="massDeclarationModal" class="modal">
-        <div class="modal-content narrow">
-          <span class="close-btn" onclick="closeMassDeclarationModal()"
-            >&times;</span
-          >
-          <h2>
-            <i class="fas fa-clipboard-list"></i> Cập nhật kê khai hàng loạt
-          </h2>
-          <form
-            id="massDeclarationForm"
-            onsubmit="handleMassDeclarationSubmit(event)"
-          >
-            <div class="form-group">
-              <label for="massDeclarationInput">Kê khai:</label>
-              <textarea id="massDeclarationInput" required></textarea>
-            </div>
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save"></i> Cập nhật
-              </button>
-              <button
-                type="button"
-                class="btn btn-secondary"
-                onclick="closeMassDeclarationModal()"
-              >
-                <i class="fas fa-times"></i> Hủy
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- Summary Section -->
-      <div class="summary-card">
-        <h2><i class="fas fa-chart-pie"></i> Tóm tắt</h2>
-        <div class="summary-grid">
-          <div class="summary-item">
-            <span class="summary-label">Số tiền đã chi:</span>
-            <span id="paidSum" class="summary-value approved">0</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Số tiền đã phê duyệt:</span>
-            <span id="approvedSum" class="summary-value approved">0</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Số tiền chưa phê duyệt:</span>
-            <span id="unapprovedSum" class="summary-value unapproved">0</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Số phiếu đã phê duyệt:</span>
-            <span id="approvedDocument" class="summary-value approved">0</span>
-          </div>
-          <div class="summary-item">
-            <span class="summary-label">Số phiếu chưa phê duyệt:</span>
-            <span id="unapprovedDocument" class="summary-value unapproved"
-              >0</span
-            >
-          </div>
-        </div>
-      </div>
-
-      <!-- Edit Modal -->
-      <div id="editModal" class="modal">
-        <div class="modal-content">
-          <span class="close-btn" onclick="closeEditModal()">&times;</span>
-          <h2><i class="fas fa-edit"></i> Chỉnh sửa phiếu thanh toán</h2>
-          <form id="editForm" onsubmit="handleEditSubmit(event)">
-            <input type="hidden" id="editDocId" />
-
-            <div class="form-group">
-              <label for="editName">Tên:</label>
-              <input type="text" id="editName" required />
-            </div>
-
-            <div class="form-group">
-              <label for="editContent">Nội dung:</label>
-              <textarea id="editContent" required></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="editCostCenter">Trạm:</label>
-              <select id="editCostCenter">
-                <option value="">Chọn một trạm</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="editPaymentMethod">Hình thức thanh toán:</label>
-              <input type="text" id="editPaymentMethod" required />
-            </div>
-
-            <div class="form-group">
-              <label for="editTotalPayment">Tổng thanh toán:</label>
-              <input type="number" id="editTotalPayment" required />
-            </div>
-
-            <div class="form-group">
-              <label for="editDeadline">Hạn thanh toán:</label>
-              <input
-                type="text"
-                id="editDeadline"
-                required
-                placeholder="DD/MM/YYYY"
-                pattern="(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[012])-[0-9]{4}"
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="editFile">Thay tệp tin mới:</label>
-              <input type="file" id="editFile" />
-            </div>
-
-            <div class="form-group">
-              <label>Người phê duyệt hiện tại:</label>
-              <div id="currentApproversList"></div>
-            </div>
-
-            <div class="form-group">
-              <label>Thêm người phê duyệt:</label>
-              <select id="newApproversDropdown">
-                <option value="">Chọn người phê duyệt</option>
-              </select>
-              <input
-                type="text"
-                id="newApproverSubRole"
-                placeholder="Vai trò/Sub Role"
-              />
-              <button
-                type="button"
-                class="btn btn-primary"
-                onclick="addNewApprover()"
-              >
-                <i class="fas fa-plus"></i> Thêm
-              </button>
-            </div>
-
-            <div class="form-actions">
-              <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save"></i> Lưu thay đổi
-              </button>
-              <button
-                type="button"
-                class="btn btn-secondary"
-                onclick="closeEditModal()"
-              >
-                <i class="fas fa-times"></i> Hủy
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <footer class="page-footer">
-        <a href="/documentSummary" class="btn btn-back">
-          <i class="fas fa-arrow-left"></i> Trở về
-        </a>
-      </footer>
     </div>
 
+    <div class="export-panel">
+      <button id="exportSelectedBtn" class="btn btn-export">
+        <i class="fas fa-file-excel"></i> Xuất đã chọn ra Excel
+      </button>
+      <label class="select-all">
+        <input type="checkbox" id="selectAllCheckbox" />
+        <span>Chọn tất cả</span>
+      </label>
+    </div>
+
+    <div class="table-container">
+      <table id="paymentDocumentsTable">
+        <thead>
+          <tr>
+            <th width="40px">Chọn</th>
+            <th>Mã</th>
+            <th>Nội dung</th>
+            <th>Phương thức thanh toán</th>
+            <th>Tổng thanh toán</th>
+            <th>Hạn trả</th>
+            <th>Tình trạng</th>
+            <th>Trạng thái phê duyệt</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Payment documents will be populated here -->
+        </tbody>
+      </table>
+      <div id="paginationContainer" class="pagination-container"></div>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Đang tải dữ liệu...</div>
+    </div>
+
+    <!-- Full View Modal -->
+    <div id="fullViewModal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h2 class="modal-title">
+          <i class="fas fa-file-alt"></i> Chi tiết đầy đủ
+        </h2>
+        <div id="fullViewContent" class="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Suspend Modal -->
+    <div id="suspendModal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h2 class="modal-title"><i class="fas fa-ban"></i> Từ chối tài liệu</h2>
+        <form id="suspendForm" class="modal-form">
+          <div class="form-group">
+            <label for="suspendReason">Lý do từ chối:</label>
+            <textarea
+              id="suspendReason"
+              required
+              class="form-textarea"
+            ></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-danger">
+              <i class="fas fa-ban"></i> Từ chối
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeSuspendModal()"
+            >
+              <i class="fas fa-times"></i> Hủy
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Mass Declaration Modal -->
+    <div id="massDeclarationModal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close" onclick="closeMassDeclarationModal()"
+          >&times;</span
+        >
+        <h2 class="modal-title">
+          <i class="fas fa-clipboard-list"></i> Cập nhật kê khai hàng loạt
+        </h2>
+        <form id="massDeclarationForm" class="modal-form">
+          <div class="form-group">
+            <label for="massDeclarationInput">Kê khai:</label>
+            <textarea
+              id="massDeclarationInput"
+              required
+              class="form-textarea"
+            ></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i> Cập nhật
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeMassDeclarationModal()"
+            >
+              <i class="fas fa-times"></i> Hủy
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close" onclick="closeEditModal()">&times;</span>
+        <h2 class="modal-title">
+          <i class="fas fa-edit"></i> Chỉnh sửa phiếu thanh toán
+        </h2>
+        <form id="editForm" class="modal-form">
+          <input type="hidden" id="editDocId" />
+
+          <div class="form-group">
+            <label for="editName" class="form-label">Tên:</label>
+            <input type="text" id="editName" required class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label for="editContent" class="form-label">Nội dung:</label>
+            <textarea
+              id="editContent"
+              required
+              class="form-textarea"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="editCostCenter" class="form-label">Trạm:</label>
+            <select id="editCostCenter" required class="form-select">
+              <option value="">Chọn một trạm</option>
+              <!-- Options will be populated dynamically -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="editPaymentMethod" class="form-label"
+              >Hình thức thanh toán:</label
+            >
+            <input
+              type="text"
+              id="editPaymentMethod"
+              required
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="editTotalPayment" class="form-label"
+              >Tổng thanh toán:</label
+            >
+            <input
+              type="number"
+              id="editTotalPayment"
+              required
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="editDeadline" class="form-label">Hạn thanh toán:</label>
+            <input
+              type="text"
+              id="editDeadline"
+              required
+              class="form-input"
+              placeholder="DD/MM/YYYY"
+              pattern="(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[012])-[0-9]{4}"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="editFile" class="form-label">Thay tệp tin mới:</label>
+            <input type="file" id="editFile" class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Người phê duyệt hiện tại:</label>
+            <div id="currentApproversList" class="approvers-list"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Thêm người phê duyệt:</label>
+            <select id="newApproversDropdown" class="form-select">
+              <option value="">Chọn người phê duyệt</option>
+              <!-- Options will be populated dynamically -->
+            </select>
+            <input
+              type="text"
+              id="newApproverSubRole"
+              placeholder="Vai trò/Sub Role"
+              class="form-input"
+              style="margin-top: var(--space-sm)"
+            />
+            <button
+              type="button"
+              class="btn btn-primary"
+              onclick="addNewApprover()"
+              style="margin-top: var(--space-sm)"
+            >
+              <i class="fas fa-plus"></i> Thêm
+            </button>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i> Lưu thay đổi
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeEditModal()"
+            >
+              <i class="fas fa-times"></i> Hủy
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Declaration Modal -->
+    <div id="declarationModal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close" onclick="closeDeclarationModal()"
+          >&times;</span
+        >
+        <h2 class="modal-title"><i class="fas fa-edit"></i> Kê Khai</h2>
+        <div class="modal-body">
+          <div class="form-group">
+            <textarea
+              id="declarationInput"
+              class="form-textarea"
+              style="min-height: 150px"
+            ></textarea>
+          </div>
+          <div class="form-actions">
+            <button
+              onclick="saveDeclaration()"
+              class="btn btn-primary"
+              id="saveDeclarationBtn"
+            >
+              <i class="fas fa-save"></i> Lưu
+            </button>
+            <button onclick="closeDeclarationModal()" class="btn btn-secondary">
+              <i class="fas fa-times"></i> Hủy
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-panel">
+      <h2><i class="fas fa-chart-pie"></i> Tóm tắt</h2>
+      <div class="summary-grid">
+        <div class="summary-card approved">
+          <div class="summary-value" id="paidSum">0</div>
+          <div class="summary-label">Số tiền đã chi</div>
+        </div>
+        <div class="summary-card approved">
+          <div class="summary-value" id="approvedSum">0</div>
+          <div class="summary-label">Số tiền đã phê duyệt</div>
+        </div>
+        <div class="summary-card unapproved">
+          <div class="summary-value" id="unapprovedSum">0</div>
+          <div class="summary-label">Số tiền chưa phê duyệt</div>
+        </div>
+        <div class="summary-card approved">
+          <div class="summary-value" id="approvedDocument">0</div>
+          <div class="summary-label">Số phiếu đã phê duyệt</div>
+        </div>
+        <div class="summary-card unapproved">
+          <div class="summary-value" id="unapprovedDocument">0</div>
+          <div class="summary-label">Số phiếu chưa phê duyệt</div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="documentPages/documentSummaryPayment/documentSummaryPayment.js"></script>
   </body>
-
-  <div id="loadingScreen" class="loading-screen">
-    <div class="loading-spinner"></div>
-    <div class="loading-text">Đang tải dữ liệu...</div>
-  </div>
 </html>

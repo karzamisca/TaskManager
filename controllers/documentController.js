@@ -1066,7 +1066,7 @@ exports.suspendDocument = async (req, res) => {
     // Restrict access to only users with the role of "director" or "headOfPurchasing"
     if (req.user.role !== "director" && req.user.role !== "headOfPurchasing") {
       return res.send(
-        "Truy cập bị từ chối. Chỉ giám đốc hoặc trưởng phòng mua hàng có quyền mở lại phiếu."
+        "Truy cập bị từ chối. Chỉ giám đốc mới có quyền từ chối phiếu."
       );
     }
 
@@ -1114,7 +1114,7 @@ exports.openDocument = async (req, res) => {
     // Restrict access to only users with the role of "director" or "headOfPurchasing"
     if (req.user.role !== "director" && req.user.role !== "headOfPurchasing") {
       return res.send(
-        "Truy cập bị từ chối. Chỉ giám đốc hoặc trưởng phòng mua hàng có quyền mở lại phiếu."
+        "Truy cập bị từ chối. Chỉ giám đốc mới có quyền mở lại phiếu."
       );
     }
 

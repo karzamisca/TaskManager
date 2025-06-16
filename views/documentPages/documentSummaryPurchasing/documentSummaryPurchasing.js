@@ -109,6 +109,7 @@ const renderProposals = (proposals) => {
       ${proposals
         .map(
           (proposal) => `
+          <div>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
           <div class="proposal-item">
             <div><strong>Công việc:</strong> ${proposal.task}</div>
             <div><strong>Trạм:</strong> ${proposal.costCenter}</div>
