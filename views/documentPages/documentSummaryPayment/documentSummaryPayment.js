@@ -1108,105 +1108,456 @@ const exportSelectedToExcel = () => {
       selectedDocs.includes(doc._id)
     );
 
-    // Prepare the data for Excel
-    const excelData = documentsToExport.map((doc) => {
-      // Base document info
-      const baseData = {
-        "Mã phiếu thanh toán": doc.tag || "",
-        "Nội dung": doc.content || "",
-        "Phương thức thanh toán": doc.paymentMethod || "",
-        "Tổng thanh toán": doc.totalPayment || 0,
-        "Tạm ứng": doc.advancePayment || 0,
-        "Hạn trả": doc.paymentDeadline || "",
-        "Tình trạng":
-          doc.status === "Approved"
-            ? "Đã phê duyệt"
-            : doc.status === "Suspended"
-            ? "Từ chối"
-            : "Chưa phê duyệt",
-        "Kê khai": doc.declaration || "",
-        "Lý do từ chối": doc.suspendReason || "",
-        "Người phê duyệt": doc.approvers.map((a) => a.username).join(", "),
-        "Người đã phê duyệt": doc.approvedBy.map((a) => a.username).join(", "),
-        "Ngày tạo": doc.submissionDate || "",
-      };
+    // Create multiple sheets for comprehensive export
+    const wb = XLSX.utils.book_new();
 
-      // Process appended purchasing documents
-      if (
-        doc.appendedPurchasingDocuments &&
-        doc.appendedPurchasingDocuments.length > 0
-      ) {
-        doc.appendedPurchasingDocuments.forEach((purchDoc, index) => {
-          const prefix = `Phiếu mua hàng ${index + 1} - `;
+    // Sheet 1: Document Overview
+    const overviewData = documentsToExport.map((doc, index) => ({
+      STT: index + 1,
+      "Mã phiếu": doc.tag || "Không có",
+      "Tên phiếu": doc.name || "Không có",
+      Nhóm: doc.groupName || "Không có",
+      "Ngày nộp": doc.submissionDate || "Không có",
+      "Hạn thanh toán": doc.paymentDeadline || "Không có",
+      "Tổng thanh toán": doc.totalPayment || 0,
+      "Tạm ứng": doc.advancePayment || 0,
+      "Bù trừ":
+        doc.totalPayment && doc.advancePayment
+          ? doc.totalPayment - doc.advancePayment
+          : 0,
+      "Trạng thái":
+        doc.status === "Approved"
+          ? "Đã phê duyệt"
+          : doc.status === "Suspended"
+          ? "Từ chối"
+          : "Chưa phê duyệt",
+      "Phương thức thanh toán": doc.paymentMethod || "Không có",
+    }));
 
-          // Purchasing document info
-          baseData[`${prefix}Tên`] = purchDoc.name || "";
-          baseData[`${prefix}Trạm`] = purchDoc.costCenter || "";
-          baseData[`${prefix}Tổng chi phí`] = purchDoc.grandTotalCost || 0;
+    const overviewWs = XLSX.utils.json_to_sheet(overviewData);
+    overviewWs["!cols"] = [
+      { wch: 5 },
+      { wch: 15 },
+      { wch: 30 },
+      { wch: 20 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 20 },
+    ];
+    XLSX.utils.book_append_sheet(wb, overviewWs, "Tổng quan");
 
-          // Process products in purchasing document
-          if (purchDoc.products && purchDoc.products.length > 0) {
-            purchDoc.products.forEach((product, pIndex) => {
-              const productPrefix = `${prefix}Sản phẩm ${pIndex + 1} - `;
-              baseData[`${productPrefix}Tên`] = product.productName || "";
-              baseData[`${productPrefix}Số lượng`] = product.amount || 0;
-              baseData[`${productPrefix}Đơn giá`] = product.costPerUnit || 0;
-              baseData[`${productPrefix}Thành tiền`] = product.totalCost || 0;
+    // Sheet 2: Detailed Information (Multiple rows per document)
+    const detailedData = [];
+
+    documentsToExport.forEach((doc, docIndex) => {
+      // Header row for each document
+      detailedData.push({
+        STT: docIndex + 1,
+        "Mã phiếu": doc.tag || "Không có",
+        "Loại thông tin": "=== THÔNG TIN CƠ BẢN ===",
+        "Chi tiết": "",
+        "Giá trị": "",
+        "Ghi chú": "",
+      });
+
+      // Basic information rows
+      const basicInfo = [
+        ["Tên phiếu", doc.name || "Không có"],
+        ["Nhóm", doc.groupName || "Không có"],
+        ["Ngày nộp", doc.submissionDate || "Không có"],
+        ["Hạn thanh toán", doc.paymentDeadline || "Không có"],
+        ["Kê khai", doc.declaration || "Không có"],
+        ["Lý do từ chối", doc.suspendReason || "Không có"],
+      ];
+
+      basicInfo.forEach(([label, value]) => {
+        detailedData.push({
+          STT: "",
+          "Mã phiếu": "",
+          "Loại thông tin": label,
+          "Chi tiết": value,
+          "Giá trị": "",
+          "Ghi chú": "",
+        });
+      });
+
+      // Content section
+      detailedData.push({
+        STT: "",
+        "Mã phiếu": "",
+        "Loại thông tin": "=== NỘI DUNG ===",
+        "Chi tiết": "",
+        "Giá trị": "",
+        "Ghi chú": "",
+      });
+
+      detailedData.push({
+        STT: "",
+        "Mã phiếu": "",
+        "Loại thông tin": "Nội dung chi tiết",
+        "Chi tiết": doc.content || "Không có nội dung",
+        "Giá trị": "",
+        "Ghi chú": "",
+      });
+
+      // Payment information
+      detailedData.push({
+        STT: "",
+        "Mã phiếu": "",
+        "Loại thông tin": "=== THÔNG TIN THANH TOÁN ===",
+        "Chi tiết": "",
+        "Giá trị": "",
+        "Ghi chú": "",
+      });
+
+      const paymentInfo = [
+        ["Phương thức thanh toán", doc.paymentMethod || "Không có", ""],
+        ["Tổng thanh toán", "", doc.totalPayment || 0],
+        ["Tạm ứng", "", doc.advancePayment || 0],
+        [
+          "Bù trừ",
+          "",
+          doc.totalPayment && doc.advancePayment
+            ? doc.totalPayment - doc.advancePayment
+            : 0,
+        ],
+      ];
+
+      paymentInfo.forEach(([label, detail, value]) => {
+        detailedData.push({
+          STT: "",
+          "Mã phiếu": "",
+          "Loại thông tin": label,
+          "Chi tiết": detail,
+          "Giá trị": value,
+          "Ghi chú": "",
+        });
+      });
+
+      // File attachment
+      detailedData.push({
+        STT: "",
+        "Mã phiếu": "",
+        "Loại thông tin": "=== TỆP TIN ĐÍNH KÈM ===",
+        "Chi tiết": "",
+        "Giá trị": "",
+        "Ghi chú": "",
+      });
+
+      detailedData.push({
+        STT: "",
+        "Mã phiếu": "",
+        "Loại thông tin": "Tệp đính kèm",
+        "Chi tiết": doc.fileMetadata
+          ? doc.fileMetadata.name
+          : "Không có tệp tin",
+        "Giá trị": "",
+        "Ghi chú": doc.fileMetadata ? doc.fileMetadata.link : "",
+      });
+
+      // Purchasing documents
+      if (doc.appendedPurchasingDocuments?.length) {
+        detailedData.push({
+          STT: "",
+          "Mã phiếu": "",
+          "Loại thông tin": "=== PHIẾU MUA HÀNG KÈM THEO ===",
+          "Chi tiết": "",
+          "Giá trị": "",
+          "Ghi chú": "",
+        });
+
+        doc.appendedPurchasingDocuments.forEach((purchDoc, purchIndex) => {
+          detailedData.push({
+            STT: "",
+            "Mã phiếu": "",
+            "Loại thông tin": `Phiếu mua hàng ${purchIndex + 1}`,
+            "Chi tiết": purchDoc.name || "",
+            "Giá trị": purchDoc.grandTotalCost || 0,
+            "Ghi chú": `Trạm: ${purchDoc.costCenter || ""}`,
+          });
+
+          // Products in purchasing document
+          if (purchDoc.products?.length) {
+            purchDoc.products.forEach((product, productIndex) => {
+              detailedData.push({
+                STT: "",
+                "Mã phiếu": "",
+                "Loại thông tin": `  └ Sản phẩm ${productIndex + 1}`,
+                "Chi tiết": product.productName || "",
+                "Giá trị": product.totalCost || 0,
+                "Ghi chú": `${product.amount || 0} x ${formatCurrency(
+                  product.costPerUnit || 0
+                )}`,
+              });
             });
           }
 
-          // Process appended proposals
-          if (
-            purchDoc.appendedProposals &&
-            purchDoc.appendedProposals.length > 0
-          ) {
+          // Proposals in purchasing document
+          if (purchDoc.appendedProposals?.length) {
             purchDoc.appendedProposals.forEach((proposal, propIndex) => {
-              const propPrefix = `${prefix}Đề xuất ${propIndex + 1} - `;
-              baseData[`${propPrefix}Công việc`] = proposal.task || "";
-              baseData[`${propPrefix}Trạm`] = proposal.costCenter || "";
-              baseData[`${propPrefix}Mô tả`] =
-                proposal.detailsDescription || "";
-              baseData[`${propPrefix}Ngày tạo`] = proposal.submissionDate || "";
+              detailedData.push({
+                STT: "",
+                "Mã phiếu": "",
+                "Loại thông tin": `  └ Đề xuất ${propIndex + 1}`,
+                "Chi tiết": proposal.task || "",
+                "Giá trị": "",
+                "Ghi chú": `Trạm: ${proposal.costCenter || ""} | Mô tả: ${
+                  proposal.detailsDescription || ""
+                }`,
+              });
+
+              // Add proposal file link if exists
+              if (proposal.fileMetadata?.link) {
+                detailedData.push({
+                  STT: "",
+                  "Mã phiếu": "",
+                  "Loại thông tin": `    └ Tệp đề xuất`,
+                  "Chi tiết": proposal.fileMetadata.name || "",
+                  "Giá trị": "",
+                  "Ghi chú": proposal.fileMetadata.link || "",
+                });
+              }
+            });
+          }
+
+          // Add purchasing document file link if exists
+          if (purchDoc.fileMetadata?.link) {
+            detailedData.push({
+              STT: "",
+              "Mã phiếu": "",
+              "Loại thông tin": `  └ Tệp phiếu mua hàng`,
+              "Chi tiết": purchDoc.fileMetadata.name || "",
+              "Giá trị": "",
+              "Ghi chú": purchDoc.fileMetadata.link || "",
             });
           }
         });
       }
 
-      return baseData;
+      // Approval status
+      detailedData.push({
+        STT: "",
+        "Mã phiếu": "",
+        "Loại thông tin": "=== TRẠNG THÁI PHÊ DUYỆT ===",
+        "Chi tiết": "",
+        "Giá trị": "",
+        "Ghi chú": "",
+      });
+
+      detailedData.push({
+        STT: "",
+        "Mã phiếu": "",
+        "Loại thông tin": "Tình trạng hiện tại",
+        "Chi tiết":
+          doc.status === "Approved"
+            ? "Đã phê duyệt"
+            : doc.status === "Suspended"
+            ? "Từ chối"
+            : "Chưa phê duyệt",
+        "Giá trị": "",
+        "Ghi chú": "",
+      });
+
+      // Individual approvers
+      if (doc.approvers?.length) {
+        doc.approvers.forEach((approver, approverIndex) => {
+          const hasApproved = doc.approvedBy.find(
+            (a) => a.username === approver.username
+          );
+          detailedData.push({
+            STT: "",
+            "Mã phiếu": "",
+            "Loại thông tin": `Người phê duyệt ${approverIndex + 1}`,
+            "Chi tiết": `${approver.username} (${approver.subRole})`,
+            "Giá trị": "",
+            "Ghi chú": hasApproved
+              ? `Đã phê duyệt vào: ${hasApproved.approvalDate}`
+              : "Chưa phê duyệt",
+          });
+        });
+      }
+
+      // Add separator row
+      detailedData.push({
+        STT: "",
+        "Mã phiếu": "",
+        "Loại thông tin": "=" + "=".repeat(50),
+        "Chi tiết": "",
+        "Giá trị": "",
+        "Ghi chú": "",
+      });
     });
 
-    // Create a new workbook
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(excelData);
-
-    // Set column widths (adjust as needed)
-    const wscols = [
-      { wch: 20 }, // Mã phiếu thanh toán
-      { wch: 30 }, // Nội dung
-      { wch: 20 }, // Phương thức thanh toán
-      { wch: 15 }, // Tổng thanh toán
-      { wch: 15 }, // Tạm ứng
-      { wch: 15 }, // Hạn trả
-      { wch: 15 }, // Tình trạng
-      { wch: 30 }, // Kê khai
-      { wch: 30 }, // Lý do từ chối
-      { wch: 25 }, // Người phê duyệt
-      { wch: 25 }, // Người đã phê duyệt
-      { wch: 15 }, // Ngày tạo
-      // Additional columns for purchasing docs will auto-size
+    const detailedWs = XLSX.utils.json_to_sheet(detailedData);
+    detailedWs["!cols"] = [
+      { wch: 5 }, // STT
+      { wch: 15 }, // Mã phiếu
+      { wch: 25 }, // Loại thông tin
+      { wch: 40 }, // Chi tiết
+      { wch: 15 }, // Giá trị
+      { wch: 50 }, // Ghi chú
     ];
-    ws["!cols"] = wscols;
+    XLSX.utils.book_append_sheet(wb, detailedWs, "Chi tiết đầy đủ");
 
-    // Add the worksheet to the workbook
-    XLSX.utils.book_append_sheet(wb, ws, "Phiếu thanh toán");
+    // Sheet 3: Approval Tracking
+    const approvalData = [];
+    documentsToExport.forEach((doc, docIndex) => {
+      if (doc.approvers?.length) {
+        doc.approvers.forEach((approver, approverIndex) => {
+          const hasApproved = doc.approvedBy.find(
+            (a) => a.username === approver.username
+          );
+          approvalData.push({
+            STT: docIndex + 1,
+            "Mã phiếu": doc.tag || "Không có",
+            "Tên phiếu": doc.name || "Không có",
+            "Người phê duyệt": approver.username,
+            "Vai trò": approver.subRole,
+            "Trạng thái": hasApproved ? "Đã phê duyệt" : "Chưa phê duyệt",
+            "Ngày phê duyệt": hasApproved ? hasApproved.approvalDate : "",
+            "Thứ tự": approverIndex + 1,
+            "Tổng số người PD": doc.approvers.length,
+            "Đã PD": doc.approvedBy.length,
+          });
+        });
+      }
+    });
+
+    if (approvalData.length > 0) {
+      const approvalWs = XLSX.utils.json_to_sheet(approvalData);
+      approvalWs["!cols"] = [
+        { wch: 5 },
+        { wch: 15 },
+        { wch: 25 },
+        { wch: 20 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 8 },
+        { wch: 12 },
+        { wch: 8 },
+      ];
+      XLSX.utils.book_append_sheet(wb, approvalWs, "Theo dõi phê duyệt");
+    }
+
+    // Sheet 4: Financial Summary
+    const financialData = [];
+    let totalApproved = 0,
+      totalPending = 0,
+      totalSuspended = 0;
+
+    documentsToExport.forEach((doc, docIndex) => {
+      const paymentAmount =
+        doc.totalPayment && doc.advancePayment
+          ? doc.totalPayment - doc.advancePayment
+          : doc.totalPayment || doc.advancePayment || 0;
+
+      if (doc.status === "Approved") totalApproved += paymentAmount;
+      else if (doc.status === "Suspended") totalSuspended += paymentAmount;
+      else totalPending += paymentAmount;
+
+      financialData.push({
+        STT: docIndex + 1,
+        "Mã phiếu": doc.tag || "Không có",
+        "Tên phiếu": doc.name || "Không có",
+        "Phương thức thanh toán": doc.paymentMethod || "",
+        "Tổng thanh toán": doc.totalPayment || 0,
+        "Tạm ứng": doc.advancePayment || 0,
+        "Số tiền thực tế": paymentAmount,
+        "Trạng thái":
+          doc.status === "Approved"
+            ? "Đã phê duyệt"
+            : doc.status === "Suspended"
+            ? "Từ chối"
+            : "Chưa phê duyệt",
+        "Hạn thanh toán": doc.paymentDeadline || "",
+        "Ghi chú": doc.suspendReason || doc.declaration || "",
+      });
+    });
+
+    // Add summary rows
+    financialData.push(
+      {},
+      {
+        STT: "",
+        "Mã phiếu": "TỔNG KẾT",
+        "Tên phiếu": "",
+        "Phương thức thanh toán": "",
+        "Tổng thanh toán": "",
+        "Tạm ứng": "",
+        "Số tiền thực tế": "",
+        "Trạng thái": "",
+        "Hạn thanh toán": "",
+        "Ghi chú": "",
+      },
+      {
+        STT: "",
+        "Mã phiếu": "Đã phê duyệt",
+        "Tên phiếu": "",
+        "Phương thức thanh toán": "",
+        "Tổng thanh toán": "",
+        "Tạm ứng": "",
+        "Số tiền thực tế": totalApproved,
+        "Trạng thái": "",
+        "Hạn thanh toán": "",
+        "Ghi chú": "",
+      },
+      {
+        STT: "",
+        "Mã phiếu": "Chưa phê duyệt",
+        "Tên phiếu": "",
+        "Phương thức thanh toán": "",
+        "Tổng thanh toán": "",
+        "Tạm ứng": "",
+        "Số tiền thực tế": totalPending,
+        "Trạng thái": "",
+        "Hạn thanh toán": "",
+        "Ghi chú": "",
+      },
+      {
+        STT: "",
+        "Mã phiếu": "Từ chối",
+        "Tên phiếu": "",
+        "Phương thức thanh toán": "",
+        "Tổng thanh toán": "",
+        "Tạm ứng": "",
+        "Số tiền thực tế": totalSuspended,
+        "Trạng thái": "",
+        "Hạn thanh toán": "",
+        "Ghi chú": "",
+      }
+    );
+
+    const financialWs = XLSX.utils.json_to_sheet(financialData);
+    financialWs["!cols"] = [
+      { wch: 5 },
+      { wch: 15 },
+      { wch: 25 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 30 },
+    ];
+    XLSX.utils.book_append_sheet(wb, financialWs, "Tổng hợp tài chính");
 
     // Generate the Excel file and trigger download
     XLSX.writeFile(
       wb,
-      `Phiếu_thanh_toán_${new Date().toISOString().slice(0, 10)}.xlsx`
+      `Bao_cao_chi_tiet_phieu_thanh_toan_${new Date()
+        .toISOString()
+        .slice(0, 10)}.xlsx`
     );
 
-    showMessage(`Đã xuất ${selectedDocs.length} phiếu thanh toán thành công.`);
+    showMessage(
+      `Đã xuất báo cáo chi tiết ${selectedDocs.length} phiếu thanh toán với ${wb.SheetNames.length} bảng tính.`
+    );
   } catch (err) {
     console.error("Error exporting documents:", err);
     showMessage("Lỗi khi xuất dữ liệu: " + err.message, true);
