@@ -83,7 +83,7 @@ exports.logout = async (req, res) => {
   }
 };
 
-// Refresh access token function with token rotation
+// Refresh access token function
 exports.refreshToken = async (req, res) => {
   const { refreshToken } = req.cookies;
 
@@ -102,7 +102,7 @@ exports.refreshToken = async (req, res) => {
     }
 
     // Generate a new access token
-    const newAccessToken = jwt.sign(
+    const accessToken = jwt.sign(
       {
         id: user._id,
         username: user.username,
@@ -113,34 +113,15 @@ exports.refreshToken = async (req, res) => {
       { expiresIn: "15m" }
     );
 
-    // Generate a new refresh token (TOKEN ROTATION)
-    const newRefreshToken = jwt.sign(
-      { id: user._id },
-      process.env.JWT_REFRESH_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    // Update the refresh token in the database
-    user.refreshToken = newRefreshToken;
-    await user.save();
-
     // Set the new access token in a secure cookie
-    res.cookie("accessToken", newAccessToken, {
+    res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
-    // Set the new refresh token in a secure cookie
-    res.cookie("refreshToken", newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
-    res.status(200).send("Tokens refreshed successfully.");
+    res.status(200).send("Access token refreshed.");
   } catch (err) {
     console.error(err);
     res.status(403).send("Invalid refresh token.");
@@ -164,9 +145,6 @@ exports.changePassword = async (req, res) => {
 
     // Update password
     user.password = newPassword;
-
-    // Clear refresh token from database (force re-login on all devices)
-    user.refreshToken = null;
     await user.save();
 
     // Clear the JWT cookies to log the user out

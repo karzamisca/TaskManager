@@ -28,7 +28,7 @@ module.exports = async (req, res, next) => {
   }
 };
 
-// Helper function to handle refresh tokens with rotation
+// Helper function to handle refresh tokens
 async function handleRefreshToken(req, res, next) {
   const refreshToken = req.cookies.refreshToken;
 
@@ -43,10 +43,7 @@ async function handleRefreshToken(req, res, next) {
     // Find the user in the database
     const user = await User.findById(decoded.id);
     if (!user || user.refreshToken !== refreshToken) {
-      // Invalid refresh token - clear cookies and redirect to login
-      res.clearCookie("accessToken");
-      res.clearCookie("refreshToken");
-      return res.redirect("/login");
+      return res.status(403).send("Invalid refresh token.");
     }
 
     // Generate a new access token
@@ -61,17 +58,6 @@ async function handleRefreshToken(req, res, next) {
       { expiresIn: "15m" } // Short expiration time
     );
 
-    // Generate a new refresh token (TOKEN ROTATION)
-    const newRefreshToken = jwt.sign(
-      { id: user._id },
-      process.env.JWT_REFRESH_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    // Update the refresh token in the database
-    user.refreshToken = newRefreshToken;
-    await user.save();
-
     // Set the new access token in a secure cookie
     res.cookie("accessToken", newAccessToken, {
       httpOnly: true,
@@ -80,31 +66,14 @@ async function handleRefreshToken(req, res, next) {
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
-    // Set the new refresh token in a secure cookie
-    res.cookie("refreshToken", newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    // Attach the new access token's payload to the request
+    req.user = decoded;
+    req._id = decoded.id;
+    req.role = decoded.role;
 
-    // Attach the user data to the request (using the original decoded data)
-    const userPayload = {
-      id: user._id,
-      username: user.username,
-      role: user.role,
-      department: user.department,
-    };
-
-    req.user = userPayload;
-    req._id = user._id;
-    req.role = user.role;
     next();
   } catch (err) {
     console.error(err);
-    // Clear cookies and redirect to login on any error
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
-    return res.redirect("/login");
+    return res.send("Invalid refresh token.");
   }
 }
