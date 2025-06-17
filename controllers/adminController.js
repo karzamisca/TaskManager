@@ -21,12 +21,9 @@ exports.getAdminPage = (req, res) => {
         "headOfNorthernRepresentativeOffice",
         "captainOfMechanical",
         "captainOfTechnical",
-        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
     // Serve the HTML file
     res.sendFile("adminMain.html", {
@@ -56,12 +53,9 @@ exports.getCostCenterAdminPage = (req, res) => {
         "headOfNorthernRepresentativeOffice",
         "captainOfMechanical",
         "captainOfTechnical",
-        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
     // Serve the HTML file
     res.sendFile("adminCostCenter.html", {
@@ -89,12 +83,9 @@ exports.getCostCenters = async (req, res) => {
         "headOfNorthernRepresentativeOffice",
         "captainOfMechanical",
         "captainOfTechnical",
-        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Fetch all cost centers
@@ -117,6 +108,24 @@ exports.addCostCenter = async (req, res) => {
   const { name, allowedUsers } = req.body;
 
   try {
+    if (
+      ![
+        "approver",
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+        "headOfNorthernRepresentativeOffice",
+        "captainOfMechanical",
+        "captainOfTechnical",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     const newCostCenter = new CostCenter({
       name,
       allowedUsers: allowedUsers ? allowedUsers.split(",") : [],
@@ -132,6 +141,24 @@ exports.addCostCenter = async (req, res) => {
 // Edit an existing cost center
 exports.editCostCenter = async (req, res) => {
   try {
+    if (
+      ![
+        "approver",
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+        "headOfNorthernRepresentativeOffice",
+        "captainOfMechanical",
+        "captainOfTechnical",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     const { id } = req.params;
     const { name, allowedUsers } = req.body;
 
@@ -163,6 +190,24 @@ exports.editCostCenter = async (req, res) => {
 // Delete a cost center
 exports.deleteCostCenter = async (req, res) => {
   try {
+    if (
+      ![
+        "approver",
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+        "headOfNorthernRepresentativeOffice",
+        "captainOfMechanical",
+        "captainOfTechnical",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     const { id } = req.params;
     await CostCenter.findByIdAndDelete(id);
     res.json({ message: "Cost Center deleted successfully" });
@@ -190,12 +235,9 @@ exports.getProductAdminPage = (req, res) => {
         "headOfNorthernRepresentativeOffice",
         "captainOfMechanical",
         "captainOfTechnical",
-        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
     // Serve the HTML file
     res.sendFile("adminProduct.html", {
@@ -210,6 +252,24 @@ exports.getProductAdminPage = (req, res) => {
 // Get all products
 exports.getProducts = async (req, res) => {
   try {
+    if (
+      ![
+        "approver",
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+        "headOfNorthernRepresentativeOffice",
+        "captainOfMechanical",
+        "captainOfTechnical",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     const products = await Product.find();
     res.status(200).json(products);
   } catch (error) {
@@ -220,6 +280,24 @@ exports.getProducts = async (req, res) => {
 // Get a single product by ID
 exports.getProductById = async (req, res) => {
   try {
+    if (
+      ![
+        "approver",
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+        "headOfNorthernRepresentativeOffice",
+        "captainOfMechanical",
+        "captainOfTechnical",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     const product = await Product.findById(req.params.id);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
@@ -233,6 +311,24 @@ exports.getProductById = async (req, res) => {
 // Create a new product
 exports.createProduct = async (req, res) => {
   try {
+    if (
+      ![
+        "approver",
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+        "headOfNorthernRepresentativeOffice",
+        "captainOfMechanical",
+        "captainOfTechnical",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     const { name, code } = req.body;
 
     // Check if product with the same code already exists
@@ -258,6 +354,24 @@ exports.createProduct = async (req, res) => {
 // Update a product
 exports.updateProduct = async (req, res) => {
   try {
+    if (
+      ![
+        "approver",
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+        "headOfNorthernRepresentativeOffice",
+        "captainOfMechanical",
+        "captainOfTechnical",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     const { name, code } = req.body;
 
     // Check if another product with the same code already exists
@@ -291,6 +405,24 @@ exports.updateProduct = async (req, res) => {
 // Delete a product
 exports.deleteProduct = async (req, res) => {
   try {
+    if (
+      ![
+        "approver",
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+        "headOfNorthernRepresentativeOffice",
+        "captainOfMechanical",
+        "captainOfTechnical",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     const deletedProduct = await Product.findByIdAndDelete(req.params.id);
 
     if (!deletedProduct) {
@@ -306,6 +438,24 @@ exports.deleteProduct = async (req, res) => {
 // Import products from Excel (JSON data)
 exports.importProducts = async (req, res) => {
   try {
+    if (
+      ![
+        "approver",
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+        "headOfNorthernRepresentativeOffice",
+        "captainOfMechanical",
+        "captainOfTechnical",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     const { products } = req.body;
 
     if (!products || !Array.isArray(products) || products.length === 0) {
@@ -367,6 +517,24 @@ exports.importProductsFromFile = async (req, res) => {
   let filePath = null;
 
   try {
+    if (
+      ![
+        "approver",
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+        "headOfNorthernRepresentativeOffice",
+        "captainOfMechanical",
+        "captainOfTechnical",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
@@ -480,6 +648,24 @@ exports.importProductsFromFile = async (req, res) => {
 // Export products to Excel
 exports.exportProducts = async (req, res) => {
   try {
+    if (
+      ![
+        "approver",
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+        "headOfNorthernRepresentativeOffice",
+        "captainOfMechanical",
+        "captainOfTechnical",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     // Get all products
     const products = await Product.find();
 
