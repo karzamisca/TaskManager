@@ -531,6 +531,34 @@ tr:hover {
   cursor: not-allowed;
 }
 
+.page-input {
+  width: 50px;
+  padding: var(--space-sm);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  text-align: center;
+  margin: 0 var(--space-sm);
+}
+
+.page-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.go-to-page {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.go-to-page button {
+  padding: var(--space-xs) var(--space-sm);
+}
+
 .page-info {
   margin: 0 var(--space-md);
 }

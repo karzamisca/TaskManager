@@ -421,6 +421,12 @@ const renderPagination = () => {
         <span class="page-info">
           Trang/Page ${state.currentPage} / ${state.totalPages}
         </span>
+        <div class="go-to-page">
+          <span>Đến trang:</span>
+          <input type="number" class="page-input" id="pageInput" 
+                 min="1" max="${state.totalPages}" value="${state.currentPage}">
+          <button onclick="goToPage()">Đi</button>
+        </div>
         <button onclick="changePage(${state.currentPage + 1})" ${
       state.currentPage === state.totalPages ? "disabled" : ""
     }>
@@ -442,6 +448,24 @@ const removePagination = () => {
   const paginationContainer = document.getElementById("paginationContainer");
   if (paginationContainer) {
     paginationContainer.innerHTML = "";
+  }
+};
+
+const goToPage = () => {
+  const pageInput = document.getElementById("pageInput");
+  if (!pageInput) return;
+
+  const pageNumber = parseInt(pageInput.value);
+  if (
+    !isNaN(pageNumber) &&
+    pageNumber >= 1 &&
+    pageNumber <= state.totalPages &&
+    pageNumber !== state.currentPage
+  ) {
+    changePage(pageNumber);
+  } else {
+    // Reset to current page if input is invalid
+    pageInput.value = state.currentPage;
   }
 };
 
@@ -1701,6 +1725,12 @@ const setupEventListeners = () => {
       document.getElementById("paginationToggle").checked;
     state.currentPage = 1;
     fetchPurchasingDocuments();
+  });
+
+  document.addEventListener("keypress", (e) => {
+    if (e.target.id === "pageInput" && e.key === "Enter") {
+      goToPage();
+    }
   });
 
   // Export and selection
