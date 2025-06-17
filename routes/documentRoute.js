@@ -209,12 +209,6 @@ router.post(
   authMiddleware,
   documentController.openPurchasingDocument
 );
-// Add this route to handle the export
-router.post(
-  "/exportPurchasingDocumentsToExcel",
-  authMiddleware,
-  documentController.exportPurchasingDocumentsToExcel
-);
 //// END OF PURCHASING DOCUMENT ROUTE
 
 //// PAYMENT DOCUMENT ROUTE
