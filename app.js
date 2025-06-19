@@ -98,24 +98,6 @@ cron.schedule("0 */8 * * *", async () => {
   }
 });
 
-// Cron job to ping the server every 5 minutes to keep it warm
-cron.schedule("*/5 * * * *", async () => {
-  const servers = [
-    "https://kylongtask.onrender.com/login",
-    "https://kylongtech.com",
-    "https://www.kylongtech.com",
-  ];
-
-  for (const serverUrl of servers) {
-    try {
-      await axios.get(serverUrl);
-      console.log(`Successfully pinged ${serverUrl}`);
-    } catch (error) {
-      console.error(`Failed to ping server ${serverUrl}:`, error.message);
-    }
-  }
-});
-
 // Send notifications every 8 hours via multiple channels
 cron.schedule("0 */8 * * *", async () => {
   try {
