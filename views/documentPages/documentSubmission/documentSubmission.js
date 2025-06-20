@@ -104,7 +104,10 @@ function handlePaymentDocument() {
         <option value="">Chọn một trạm</option>
       </select>
       <label for="paymentMethod">Hình thức thanh toán</label>
-      <input type="text" name="paymentMethod" required />
+      <select name="paymentMethod">
+        <option value="Tiền mặt">Tiền mặt</option>
+        <option value="Chuyển khoản">Chuyển khoản</option>
+      </select>
       <label for="totalPayment">Tổng thanh toán:</label>
       <input type="number" step="0.01" name="totalPayment" required />
       <label for="paymentDeadline">Thời hạn trả</label>
