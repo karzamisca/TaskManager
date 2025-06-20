@@ -48,13 +48,19 @@ const getDocumentTypeName = (document) => {
 // Enhanced filtering function that works with the specific document structure
 const filterDocumentsByUsername = (documents, username) => {
   // If username is not one of the restricted users, return all documents
-  const restrictedUsers = ["HoangNam", "PhongTran", "HuynhDiep"];
+  const restrictedUsers = [
+    "NguyenHongNhuThuy",
+    "HoangNam",
+    "PhongTran",
+    "HuynhDiep",
+  ];
   if (!restrictedUsers.includes(username)) {
     return documents;
   }
 
   // Define the hierarchy: HoangNam must approve before PhongTran, PhongTran before HuynhDiep
   const hierarchy = {
+    NguyenHongNhuThuy: ["HuynhDiep", "PhongTran", "HoangNam"],
     HuynhDiep: ["PhongTran", "HoangNam"],
     PhongTran: ["HoangNam"],
   };

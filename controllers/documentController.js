@@ -67,13 +67,19 @@ const documentUtils = {
   // New function to filter documents based on username constraints with hierarchy
   filterDocumentsByUsername: (documents, username) => {
     // If username is not one of the restricted users, return all documents
-    const restrictedUsers = ["HoangNam", "PhongTran", "HuynhDiep"];
+    const restrictedUsers = [
+      "NguyenHongNhuThuy",
+      "HoangNam",
+      "PhongTran",
+      "HuynhDiep",
+    ];
     if (!restrictedUsers.includes(username)) {
       return documents;
     }
 
     // Define the hierarchy: HoangNam must approve before PhongTran, PhongTran before HuynhDiep
     const hierarchy = {
+      NguyenHongNhuThuy: ["HuynhDiep", "PhongTran", "HoangNam"],
       HuynhDiep: ["PhongTran", "HoangNam"], // PhongTran must approve before HuynhDiep
       PhongTran: ["HoangNam"], // HoangNam must approve before PhongTran
     };
