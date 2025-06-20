@@ -1,4 +1,4 @@
-// models\DeliveryDocument.js
+// models/DocumentDelivery.js
 const mongoose = require("mongoose");
 
 const deliveryDocumentSchema = new mongoose.Schema({

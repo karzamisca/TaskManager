@@ -1,4 +1,4 @@
-// models/PurchasingDocument.js
+// models/DocumentPurchasing.js
 
 const mongoose = require("mongoose");
 

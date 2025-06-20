@@ -1,4 +1,4 @@
-// models/Group.js
+// models/GroupDeclaration.js
 const mongoose = require("mongoose");
 
 const groupDeclarationSchema = new mongoose.Schema({

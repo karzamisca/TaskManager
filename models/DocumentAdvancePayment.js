@@ -1,4 +1,4 @@
-// models/AdvancePaymentDocument.js
+// models/DocumentAdvancePayment.js
 const mongoose = require("mongoose");
 
 const advancePaymentDocumentSchema = new mongoose.Schema({

@@ -1,4 +1,4 @@
-// models/ProjectDocument.js
+// models/DocumentInProject.js
 const mongoose = require("mongoose");
 
 // Helper function to format dates in GMT+7

@@ -1,4 +1,4 @@
-// models/PaymentDocument.js
+// models/DocumentPayment.js
 const mongoose = require("mongoose");
 
 const paymentDocumentSchema = new mongoose.Schema({

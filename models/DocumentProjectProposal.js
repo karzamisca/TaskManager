@@ -1,4 +1,4 @@
-// models/ProjectProposalDocument.js
+// models/DocumentProjectProposal.js
 const mongoose = require("mongoose");
 
 const projectProposalDocumentSchema = new mongoose.Schema({
