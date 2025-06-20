@@ -162,7 +162,21 @@ const fetchPaymentDocuments = async () => {
   showLoading(true);
 
   try {
-    const response = await fetch("/getPaymentDocumentForSeparatedView");
+    const cacheBuster = `?_cache=${Date.now()}`;
+    const response = await fetch(
+      `/getPaymentDocumentForSeparatedView${cacheBuster}`,
+      {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+        credentials: "include", // if using cookies
+      }
+    );
+
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
     const data = await response.json();
     state.paymentDocuments = data.paymentDocuments;
 
