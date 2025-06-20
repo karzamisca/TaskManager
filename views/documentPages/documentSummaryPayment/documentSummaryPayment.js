@@ -162,7 +162,7 @@ const fetchPaymentDocuments = async () => {
   showLoading(true);
 
   try {
-    const response = await fetch("/getPaymentDocumentForSeparatedView");
+    const response = await fetch("/test");
     const data = await response.json();
     state.paymentDocuments = data.paymentDocuments;
 
