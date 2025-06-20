@@ -162,63 +162,14 @@ const fetchPaymentDocuments = async () => {
   showLoading(true);
 
   try {
-    const cacheBuster = `?_cache=${Date.now()}`;
-    const response = await fetch(
-      `/getPaymentDocumentForSeparatedView${cacheBuster}`,
-      {
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          Pragma: "no-cache",
-          Expires: "0",
-          "X-Requested-With": "XMLHttpRequest",
-        },
-        credentials: "include", // if using cookies
-      }
-    );
-
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
+    const response = await fetch("/getPaymentDocumentForSeparatedView");
     const data = await response.json();
     state.paymentDocuments = data.paymentDocuments;
-
-    // Preserve the currently selected payment method
-    const paymentMethodFilter = document.getElementById("paymentMethodFilter");
-    const currentlySelectedMethod = paymentMethodFilter.value;
-
-    // Populate payment method filter
-    const uniqueMethods = extractUniquePaymentMethods(state.paymentDocuments);
-
-    // Clear existing options except the first one
-    while (paymentMethodFilter.options.length > 1) {
-      paymentMethodFilter.remove(1);
-    }
-
-    // Add new options
-    uniqueMethods.forEach((method) => {
-      const option = document.createElement("option");
-      option.value = method;
-      option.textContent = method;
-      paymentMethodFilter.appendChild(option);
-    });
-
-    // Restore the selected value if it still exists in the options
-    if (
-      currentlySelectedMethod &&
-      Array.from(paymentMethodFilter.options).some(
-        (opt) => opt.value === currentlySelectedMethod
-      )
-    ) {
-      paymentMethodFilter.value = currentlySelectedMethod;
-      state.currentPaymentMethodFilter = currentlySelectedMethod;
-    } else {
-      // Reset to "All" if the previously selected method no longer exists
-      paymentMethodFilter.value = "";
-      state.currentPaymentMethodFilter = "";
-    }
 
     const filteredDocuments = filterDocumentsForCurrentUser(
       state.paymentDocuments
     );
+
     // Calculate total pages
     state.totalPages = Math.ceil(filteredDocuments.length / state.itemsPerPage);
 
@@ -288,45 +239,12 @@ const filterDocumentsForCurrentUser = (documents) => {
   return filteredDocs;
 };
 
-const extractUniquePaymentMethods = (documents) => {
-  const methods = new Set();
-  documents.forEach((doc) => {
-    if (doc.paymentMethod) {
-      methods.add(doc.paymentMethod);
-    }
-  });
-  return Array.from(methods).sort();
-};
-
 const filterByPaymentMethod = () => {
   state.currentPaymentMethodFilter = document.getElementById(
     "paymentMethodFilter"
   ).value;
   state.currentPage = 1;
-
-  // Instead of calling fetchPaymentDocuments(), just filter the existing data
-  const filteredDocuments = filterDocumentsForCurrentUser(
-    state.paymentDocuments
-  );
-
-  // Calculate total pages
-  state.totalPages = Math.ceil(filteredDocuments.length / state.itemsPerPage);
-
-  // Get documents for current page
-  const startIndex = (state.currentPage - 1) * state.itemsPerPage;
-  const endIndex = startIndex + state.itemsPerPage;
-  const pageDocuments = state.paginationEnabled
-    ? filteredDocuments.slice(startIndex, endIndex)
-    : filteredDocuments;
-
-  renderDocumentsTable(pageDocuments);
-  updateSummary(filteredDocuments);
-
-  if (state.paginationEnabled) {
-    renderPagination();
-  } else {
-    removePagination();
-  }
+  fetchPaymentDocuments();
 };
 
 // Rendering functions
