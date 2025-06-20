@@ -39,6 +39,7 @@ router.get("/approvers", authMiddleware, async (req, res) => {
           "captainOfMechanical",
           "captainOfTechnical",
           "captainOfPurchasing",
+          "captainOfAccounting",
         ],
       },
     });

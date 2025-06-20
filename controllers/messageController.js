@@ -1,5 +1,4 @@
 // controllers/messageController.js
-const Message = require("../models/Message");
 const moment = require("moment-timezone");
 const Room = require("../models/Room");
 const RoomMessage = require("../models/RoomMessage");
