@@ -114,7 +114,7 @@ const renderApprovalStatus = (approvers, approvedBy) => {
             <div>${approver.username} (${approver.subRole})</div>
             ${
               hasApproved
-                ? `<div class="approval-date">Đã thanh toán vào: ${hasApproved.approvalDate}</div>`
+                ? `<div class="approval-date">Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
                 : '<div class="approval-date">Chưa phê duyệt</div>'
             }
           </div>
@@ -1151,7 +1151,7 @@ const exportSelectedToExcel = () => {
           : 0,
       "Trạng thái":
         doc.status === "Approved"
-          ? "Đã thanh toán"
+          ? "Đã phê duyệt"
           : doc.status === "Suspended"
           ? "Từ chối"
           : "Chưa phê duyệt",
@@ -1378,7 +1378,7 @@ const exportSelectedToExcel = () => {
         "Loại thông tin": "Tình trạng hiện tại",
         "Chi tiết":
           doc.status === "Approved"
-            ? "Đã thanh toán"
+            ? "Đã phê duyệt"
             : doc.status === "Suspended"
             ? "Từ chối"
             : "Chưa phê duyệt",
@@ -1399,7 +1399,7 @@ const exportSelectedToExcel = () => {
             "Chi tiết": `${approver.username} (${approver.subRole})`,
             "Giá trị": "",
             "Ghi chú": hasApproved
-              ? `Đã thanh toán vào: ${hasApproved.approvalDate}`
+              ? `Đã phê duyệt vào: ${hasApproved.approvalDate}`
               : "Chưa phê duyệt",
           });
         });
@@ -1441,7 +1441,7 @@ const exportSelectedToExcel = () => {
             "Tên phiếu": doc.name || "Không có",
             "Người phê duyệt": approver.username,
             "Vai trò": approver.subRole,
-            "Trạng thái": hasApproved ? "Đã thanh toán" : "Chưa phê duyệt",
+            "Trạng thái": hasApproved ? "Đã phê duyệt" : "Chưa phê duyệt",
             "Ngày phê duyệt": hasApproved ? hasApproved.approvalDate : "",
             "Thứ tự": approverIndex + 1,
             "Tổng số người PD": doc.approvers.length,
@@ -1494,7 +1494,7 @@ const exportSelectedToExcel = () => {
         "Số tiền thực tế": paymentAmount,
         "Trạng thái":
           doc.status === "Approved"
-            ? "Đã thanh toán"
+            ? "Đã phê duyệt"
             : doc.status === "Suspended"
             ? "Từ chối"
             : "Chưa phê duyệt",
@@ -1520,7 +1520,7 @@ const exportSelectedToExcel = () => {
       },
       {
         STT: "",
-        "Mã phiếu": "Đã thanh toán",
+        "Mã phiếu": "Đã phê duyệt",
         "Tên phiếu": "",
         "Phương thức thanh toán": "",
         "Tổng thanh toán": "",
