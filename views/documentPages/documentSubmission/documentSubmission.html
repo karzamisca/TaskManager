@@ -1,13 +1,13 @@
 <!-- views\documentPages\documentSubmission\documentSubmission.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Nộp phiếu/Submit Document</title>
+    <title>Nộp phiếu</title>
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
@@ -19,77 +19,58 @@
   </head>
   <body>
     <div class="container">
-      <h2>Nộp phiếu mới/Submit New Document</h2>
+      <h2>Nộp phiếu mới</h2>
       <form
         id="submit-form"
         action="/submitDocument"
         method="POST"
         enctype="multipart/form-data"
       >
-        <label for="title">Title</label>
+        <label for="title">Loại phiếu</label>
         <select name="title" id="title-dropdown" required>
-          <option value="">Chọn mẫu phiếu/Select a title</option>
+          <option value="">Chọn mẫu phiếu</option>
           <option value="Project Proposal Document">
-            Phiếu đề nghị mở dự án/Project Proposal Document
+            Phiếu đề nghị mở dự án
           </option>
-          <option value="Proposal Document">
-            Phiếu đề xuất/Proposal Document
-          </option>
-          <option value="Purchasing Document">
-            Phiếu mua hàng/Purchasing Document
-          </option>
-          <option value="Delivery Document">
-            Phiếu xuất kho/Delivery Document
-          </option>
-          <option value="Payment Document">
-            Phiếu thanh toán/Payment Document
-          </option>
-          <option value="Advance Payment Document">
-            Phiếu tạm ứng/Advance Payment Document
-          </option>
+          <option value="Proposal Document">Phiếu đề xuất</option>
+          <option value="Purchasing Document">Phiếu mua hàng</option>
+          <option value="Delivery Document">Phiếu xuất kho</option>
+          <option value="Payment Document">Phiếu thanh toán</option>
+          <option value="Advance Payment Document">Phiếu tạm ứng</option>
           <option value="Advance Payment Reclaim Document">
-            Phiếu thu lại tạm ứng/Advance Payment Reclaim Document
+            Phiếu thu lại tạm ứng
           </option>
         </select>
 
         <!-- Content fields for Generic Document -->
         <div id="content-fields">
-          <label for="contentName">Tên nội dung/Content Name</label>
+          <label for="contentName">Tên nội dung</label>
           <input type="text" name="contentName" required />
-          <label for="contentText">Nội dung/Content Text</label>
+          <label for="contentText">Nội dung</label>
           <textarea name="contentText" rows="5" required></textarea>
         </div>
 
-        <button type="button" id="add-content-btn">
-          Thêm nội dung/Add More Content</button
-        ><br />
+        <button type="button" id="add-content-btn">Thêm nội dung</button><br />
 
-        <label for="file">Đính kèm tệp/Attach File:</label>
+        <label for="file">Đính kèm tệp:</label>
         <input type="file" name="file" id="file" />
 
         <!-- Dropdown for appending approved documents, only visible for Generic Document -->
         <div id="append-approved-documents-section" style="display: none">
-          <label for="approvedDocumentsDropdown"
-            >Kèm phiếu đã duyệt/Append Approved Document</label
-          >
+          <label for="approvedDocumentsDropdown">Kèm phiếu đã duyệt</label>
           <select id="approvedDocumentsDropdown" name="approvedDocuments">
-            <option value="">
-              Chọn một phiếu đã duyệt/Select an approved document
-            </option>
+            <option value="">Chọn một phiếu đã duyệt</option>
           </select>
         </div>
 
         <!-- Fields for selecting and previewing approved proposal document -->
         <div id="approved-proposal-section" style="display: none">
-          <label for="approvedProposals"
-            >Chọn phiếu đề xuất đã duyệt/Select Approved Proposal
-            Documents</label
-          >
+          <label for="approvedProposals">Chọn phiếu đề xuất đã duyệt</label>
           <div id="proposal-selections">
             <div class="proposal-entry"></div>
           </div>
           <button type="button" onclick="addProposalEntry()">
-            Thêm phiếu đề xuất/Add Another Proposal
+            Thêm phiếu đề xuất
           </button>
           <div id="proposalPreviews"></div>
         </div>
@@ -97,17 +78,14 @@
         <!-- Dropdown for selecting Purchasing Document to append -->
         <div id="append-purchasing-documents-section" style="display: none">
           <label for="purchasingDocumentsDropdown">
-            Chọn phiếu mua hàng để kèm theo/Select a Purchasing Document to
-            Append
+            Chọn phiếu mua hàng để kèm theo
           </label>
           <select id="purchasingDocumentsDropdown">
-            <option value="">
-              Chọn phiếu mua hàng để kèm theo/Select a purchasing document
-            </option>
+            <option value="">Chọn phiếu mua hàng để kèm theo</option>
             <!-- Options populated dynamically -->
           </select>
           <button type="button" id="add-purchasing-document-btn">
-            Thêm phiếu mua hàng kèm theo /Append purchasing document
+            Thêm phiếu mua hàng kèm theo
           </button>
         </div>
 
@@ -118,20 +96,18 @@
 
         <!-- Preview of the selected Purchasing Document -->
         <div id="purchasingDocumentPreview" style="display: none">
-          <h3>
-            Xem trước phiếu mua hàng đi kèm/Preview of Purchasing Document
-          </h3>
-          <p><strong>Thông tin sản phẩm/Product Details:</strong></p>
+          <h3>Xem trước phiếu mua hàng đi kèm</h3>
+          <p><strong>Thông tin sản phẩm:</strong></p>
           <div id="productDetails"></div>
           <div id="appendedContentDetails"></div>
         </div>
 
         <!-- Approvers selection -->
-        <label for="approvers">Chọn người phê duyệt/Select Approvers</label>
+        <label for="approvers">Chọn người phê duyệt</label>
         <div id="approver-selection"></div>
 
-        <button type="submit">Nộp phiếu/Submit Document</button><br />
-        <a href="/documentMain">Trở về/Back</a><br />
+        <button type="submit">Nộp phiếu</button><br />
+        <a href="/documentMain">Trở về</a><br />
       </form>
     </div>
 

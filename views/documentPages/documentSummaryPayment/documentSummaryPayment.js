@@ -57,7 +57,7 @@ const formatCurrency = (amount) => {
 const renderStatus = (status) => {
   switch (status) {
     case "Approved":
-      return `<span class="status approved"><i class="fas fa-check-circle"></i> Đã phê duyệt</span>`;
+      return `<span class="status approved"><i class="fas fa-check-circle"></i> Đã thanh toán</span>`;
     case "Suspended":
       return `<span class="status suspended"><i class="fas fa-ban"></i> Từ chối</span>`;
     default:
@@ -114,7 +114,7 @@ const renderApprovalStatus = (approvers, approvedBy) => {
             <div>${approver.username} (${approver.subRole})</div>
             ${
               hasApproved
-                ? `<div class="approval-date">Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
+                ? `<div class="approval-date">Đã thanh toán vào: ${hasApproved.approvalDate}</div>`
                 : '<div class="approval-date">Chưa phê duyệt</div>'
             }
           </div>
@@ -1151,7 +1151,7 @@ const exportSelectedToExcel = () => {
           : 0,
       "Trạng thái":
         doc.status === "Approved"
-          ? "Đã phê duyệt"
+          ? "Đã thanh toán"
           : doc.status === "Suspended"
           ? "Từ chối"
           : "Chưa phê duyệt",
@@ -1378,7 +1378,7 @@ const exportSelectedToExcel = () => {
         "Loại thông tin": "Tình trạng hiện tại",
         "Chi tiết":
           doc.status === "Approved"
-            ? "Đã phê duyệt"
+            ? "Đã thanh toán"
             : doc.status === "Suspended"
             ? "Từ chối"
             : "Chưa phê duyệt",
@@ -1399,7 +1399,7 @@ const exportSelectedToExcel = () => {
             "Chi tiết": `${approver.username} (${approver.subRole})`,
             "Giá trị": "",
             "Ghi chú": hasApproved
-              ? `Đã phê duyệt vào: ${hasApproved.approvalDate}`
+              ? `Đã thanh toán vào: ${hasApproved.approvalDate}`
               : "Chưa phê duyệt",
           });
         });
@@ -1441,7 +1441,7 @@ const exportSelectedToExcel = () => {
             "Tên phiếu": doc.name || "Không có",
             "Người phê duyệt": approver.username,
             "Vai trò": approver.subRole,
-            "Trạng thái": hasApproved ? "Đã phê duyệt" : "Chưa phê duyệt",
+            "Trạng thái": hasApproved ? "Đã thanh toán" : "Chưa phê duyệt",
             "Ngày phê duyệt": hasApproved ? hasApproved.approvalDate : "",
             "Thứ tự": approverIndex + 1,
             "Tổng số người PD": doc.approvers.length,
@@ -1494,7 +1494,7 @@ const exportSelectedToExcel = () => {
         "Số tiền thực tế": paymentAmount,
         "Trạng thái":
           doc.status === "Approved"
-            ? "Đã phê duyệt"
+            ? "Đã thanh toán"
             : doc.status === "Suspended"
             ? "Từ chối"
             : "Chưa phê duyệt",
@@ -1520,7 +1520,7 @@ const exportSelectedToExcel = () => {
       },
       {
         STT: "",
-        "Mã phiếu": "Đã phê duyệt",
+        "Mã phiếu": "Đã thanh toán",
         "Tên phiếu": "",
         "Phương thức thanh toán": "",
         "Tổng thanh toán": "",

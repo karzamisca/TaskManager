@@ -11,23 +11,23 @@ function handleProposalDocument() {
   const addContentButton = document.getElementById("add-content-btn");
 
   contentFields.innerHTML = `
-      <label for="task">Công việc/Task</label>
+      <label for="task">Công việc</label>
       <input type="text" name="task" required />
-      <label for="costCenter">Trạm/Center</label>
+      <label for="costCenter">Trạm</label>
       <select name="costCenter" id="costCenter" required>
-        <option value="">Chọn một trạm/Select a center</option>
+        <option value="">Chọn một trạm</option>
       </select>
-      <label for="dateOfError">Ngày xảy ra lỗi/Date of Error</label>
+      <label for="dateOfError">Ngày xảy ra lỗi</label>
       <input type="text" name="dateOfError" id="dateOfError" required />
-      <label for="detailsDescription">Mô tả chi tiết/Details Description</label>
+      <label for="detailsDescription">Mô tả chi tiết</label>
       <textarea name="detailsDescription" rows="3" required></textarea>
-      <label for="direction">Hướng xử lý/Direction</label>
+      <label for="direction">Hướng xử lý</label>
       <input type="text" name="direction" required />
       <select name="groupName" id="groupName">
-        <option value="">Chọn nhóm/Select a group</option>
+        <option value="">Chọn nhóm</option>
       </select>
       <select name="projectName" id="projectName">
-        <option value="">Chọn dự án/Select a project</option>
+        <option value="">Chọn dự án</option>
       </select>          
     `;
   populateGroupDropdown();
@@ -52,25 +52,25 @@ function handlePurchasingDocument() {
   );
 
   contentFields.innerHTML = `
-      <label for="name">Tên/Name</label>
+      <label for="name">Tên</label>
       <input type="text" name="name" required />
-      <label for="costCenter">Trạm/Center</label>
+      <label for="costCenter">Trạm</label>
       <select name="costCenter" id="costCenter" required>
-        <option value="">Chọn một trạm/Select a center</option>
+        <option value="">Chọn một trạm</option>
       </select>
       <div id="product-entries">
-        <label>Tên sản phẩm/Product Name</label><input type="text" name="products[0][productName]" required />
-        <label>Đơn giá/Cost per Unit</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
-        <label>Số lượng/Amount</label><input type="number" name="products[0][amount]" required />
-        <label>Thuế/Vat (%)</label><input type="number" name="products[0][vat]" required />
-        <label>Ghi chú/Note</label><input type="text" name="products[0][note]" />
+        <label>Tên sản phẩm</label><input type="text" name="products[0][productName]" required />
+        <label>Đơn giá</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
+        <label>Số lượng</label><input type="number" name="products[0][amount]" required />
+        <label>Thuế (%)</label><input type="number" name="products[0][vat]" required />
+        <label>Ghi chú</label><input type="text" name="products[0][note]" />
       </div>
-      <button type="button" onclick="addProductEntry()">Thêm sản phẩm/Add More Products</button>
+      <button type="button" onclick="addProductEntry()">Thêm sản phẩm</button>
       <select name="groupName" id="groupName">
-        <option value="">Chọn nhóm/Select a group</option>
+        <option value="">Chọn nhóm</option>
       </select>
       <select name="projectName" id="projectName">
-        <option value="">Chọn dự án/Select a project</option>
+        <option value="">Chọn dự án</option>
       </select>     
     `;
   populateGroupDropdown();
@@ -95,25 +95,25 @@ function handlePaymentDocument() {
   fetchPurchasingDocumentsForPayment(); // Changed to specialized function
 
   contentFields.innerHTML = `
-      <label for="name">Tên/Name</label>
+      <label for="name">Tên</label>
       <input type="text" name="name" required />
-      <label for="content">Nội dung/Content</label>
+      <label for="content">Nội dung</label>
       <input type="text" name="content" required />
-      <label for="costCenter">Trạm/Center</label>
+      <label for="costCenter">Trạm</label>
       <select name="costCenter" id="costCenter">
-        <option value="">Chọn một trạm/Select a center</option>
+        <option value="">Chọn một trạm</option>
       </select>
-      <label for="paymentMethod">Hình thức thanh toán/Payment Method</label>
+      <label for="paymentMethod">Hình thức thanh toán</label>
       <input type="text" name="paymentMethod" required />
-      <label for="totalPayment">Tổng thanh toán/Total Payment:</label>
+      <label for="totalPayment">Tổng thanh toán:</label>
       <input type="number" step="0.01" name="totalPayment" required />
-      <label for="paymentDeadline">Thời hạn trả/Payment Deadline</label>
+      <label for="paymentDeadline">Thời hạn trả</label>
       <input type="text" name="paymentDeadline" id="paymentDeadline"/>
       <select name="groupName" id="groupName">
-        <option value="">Chọn nhóm/Select a group</option>
+        <option value="">Chọn nhóm</option>
       </select>
       <select name="projectName" id="projectName">
-        <option value="">Chọn dự án/Select a project</option>
+        <option value="">Chọn dự án</option>
       </select>             
     `;
   populateGroupDropdown();
@@ -139,25 +139,25 @@ function handleAdvancePaymentDocument() {
   fetchPurchasingDocumentsForAdvancePayment(); // Changed to specialized function
 
   contentFields.innerHTML = `
-      <label for="name">Tên/Name</label>
+      <label for="name">Tên</label>
       <input type="text" name="name" required />
-      <label for="content">Nội dung/Content</label>
+      <label for="content">Nội dung</label>
       <input type="text" name="content" required />
-      <label for="costCenter">Trạm/Center</label>
+      <label for="costCenter">Trạm</label>
       <select name="costCenter" id="costCenter">
-        <option value="">Chọn một trạm/Select a center</option>
+        <option value="">Chọn một trạm</option>
       </select>
-      <label for="paymentMethod">Hình thức thanh toán/Payment Method</label>
+      <label for="paymentMethod">Hình thức thanh toán</label>
       <input type="text" name="paymentMethod" required />
-      <label for="advancePayment">Thanh toán trước/Advance Payment:</label>
+      <label for="advancePayment">Thanh toán trước:</label>
       <input type="number" step="0.01" name="advancePayment"/>
-      <label for="paymentDeadline">Thời hạn trả/Payment Deadline</label>
+      <label for="paymentDeadline">Thời hạn trả</label>
       <input type="text" name="paymentDeadline" id="paymentDeadline"/>
       <select name="groupName" id="groupName">
-        <option value="">Chọn nhóm/Select a group</option>
+        <option value="">Chọn nhóm</option>
       </select>
       <select name="projectName" id="projectName">
-        <option value="">Chọn dự án/Select a project</option>
+        <option value="">Chọn dự án</option>
       </select>             
     `;
   populateGroupDropdown();
@@ -183,25 +183,25 @@ function handleAdvancePaymentReclaimDocument() {
   fetchPurchasingDocumentsForAdvancePaymentReclaim(); // Changed to specialized function
 
   contentFields.innerHTML = `
-      <label for="name">Tên/Name</label>
+      <label for="name">Tên</label>
       <input type="text" name="name" required />
-      <label for="content">Nội dung/Content</label>
+      <label for="content">Nội dung</label>
       <input type="text" name="content" required />
-      <label for="costCenter">Trạm/Center</label>
+      <label for="costCenter">Trạm</label>
       <select name="costCenter" id="costCenter">
-        <option value="">Chọn một trạm/Select a center</option>
+        <option value="">Chọn một trạm</option>
       </select>
-      <label for="paymentMethod">Hình thức thanh toán/Payment Method</label>
+      <label for="paymentMethod">Hình thức thanh toán</label>
       <input type="text" name="paymentMethod" required />
-      <label for="advancePaymentReclaim">Số tiền thu lại/Advance Payment Reclaim:</label>
+      <label for="advancePaymentReclaim">Số tiền thu lại:</label>
       <input type="number" step="0.01" name="advancePaymentReclaim"/>
-      <label for="paymentDeadline">Thời hạn trả/Payment Deadline</label>
+      <label for="paymentDeadline">Thời hạn trả</label>
       <input type="text" name="paymentDeadline" id="paymentDeadline"/>
       <select name="groupName" id="groupName">
-        <option value="">Chọn nhóm/Select a group</option>
+        <option value="">Chọn nhóm</option>
       </select>
       <select name="projectName" id="projectName">
-        <option value="">Chọn dự án/Select a project</option>
+        <option value="">Chọn dự án</option>
       </select>             
     `;
   populateGroupDropdown();
@@ -224,25 +224,25 @@ function handleDeliveryDocument() {
   );
 
   contentFields.innerHTML = `
-      <label for="name">Tên/Name</label>
+      <label for="name">Tên</label>
       <input type="text" name="name" required />
-      <label for="costCenter">Trạm/Center</label>
+      <label for="costCenter">Trạm</label>
       <select name="costCenter" id="costCenter" required>
-        <option value="">Chọn một trạm/Select a center</option>
+        <option value="">Chọn một trạm</option>
       </select>
       <div id="product-entries">
-        <label>Tên sản phẩm/Product Name</label><input type="text" name="products[0][productName]" required />
-        <label>Đơn giá/Cost per Unit</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
-        <label>Số lượng/Amount</label><input type="number" name="products[0][amount]" required />
-        <label>Thuế/Vat (%)</label><input type="number" name="products[0][vat]" required />
-        <label>Ghi chú/Note</label><input type="text" name="products[0][note]" />
+        <label>Tên sản phẩm</label><input type="text" name="products[0][productName]" required />
+        <label>Đơn giá</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
+        <label>Số lượng</label><input type="number" name="products[0][amount]" required />
+        <label>Thuế (%)</label><input type="number" name="products[0][vat]" required />
+        <label>Ghi chú</label><input type="text" name="products[0][note]" />
       </div>
-      <button type="button" onclick="addProductEntry()">Thêm sản phẩm/Add More Products</button>
+      <button type="button" onclick="addProductEntry()">Thêm sản phẩm</button>
       <select name="groupName" id="groupName">
-        <option value="">Chọn nhóm/Select a group</option>
+        <option value="">Chọn nhóm</option>
       </select>
       <select name="projectName" id="projectName">
-        <option value="">Chọn dự án/Select a project</option>
+        <option value="">Chọn dự án</option>
       </select>             
     `;
 
@@ -266,17 +266,17 @@ function handleProjectProposalDocument() {
   );
 
   contentFields.innerHTML = `
-      <label for="name">Tên/Name</label>
+      <label for="name">Tên</label>
       <input type="text" name="name" required />
-      <label for="contentName">Tên nội dung/Content Name</label>
+      <label for="contentName">Tên nội dung</label>
       <input type="text" name="contentName" required />
-      <label for="contentText">Nội dung/Content Text</label>
+      <label for="contentText">Nội dung</label>
       <textarea name="contentText" rows="5" required></textarea>
       <select name="groupName" id="groupName">
-        <option value="">Chọn nhóm/Select a group</option>
+        <option value="">Chọn nhóm</option>
       </select>
       <select name="projectName" id="projectName">
-        <option value="">Chọn dự án/Select a project</option>
+        <option value="">Chọn dự án</option>
       </select>             
     `;
   populateGroupDropdown();
@@ -294,15 +294,15 @@ function handleGenericDocument() {
   );
 
   contentFields.innerHTML = `
-      <label for="contentName">Tên nội dung/Content Name</label>
+      <label for="contentName">Tên nội dung</label>
       <input type="text" name="contentName" required />
-      <label for="contentText">Nội dung/Content Text</label>
+      <label for="contentText">Nội dung</label>
       <textarea name="contentText" rows="5" required></textarea>
       <select name="groupName" id="groupName">
-        <option value="">Chọn nhóm/Select a group</option>
+        <option value="">Chọn nhóm</option>
       </select>
       <select name="projectName" id="projectName">
-        <option value="">Chọn dự án/Select a project</option>
+        <option value="">Chọn dự án</option>
       </select>             
     `;
   populateGroupDropdown();
@@ -323,7 +323,7 @@ function fetchCostCenters() {
         .then((costCenters) => {
           const costCenterSelect = document.getElementById("costCenter");
           costCenterSelect.innerHTML =
-            '<option value="">Chọn một trạm/Select a center</option>';
+            '<option value="">Chọn một trạm</option>';
 
           costCenters.forEach((center) => {
             if (
@@ -409,11 +409,11 @@ function addProductEntry() {
   const productCount = productEntries.children.length / 5;
 
   const newEntry = `
-      <label>Tên sản phẩm/Product Name</label><input type="text" name="products[${productCount}][productName]" required />
-      <label>Đơn giá/Cost per Unit</label><input type="number" name="products[${productCount}][costPerUnit]" required />
-      <label>Số lượng/Amount</label><input type="number" name="products[${productCount}][amount]" required />
-      <label>Thuế/Vat</label><input type="number" name="products[${productCount}][vat]" required />
-      <label>Ghi chú/Note</label><input type="text" name="products[${productCount}][note]" />
+      <label>Tên sản phẩm</label><input type="text" name="products[${productCount}][productName]" required />
+      <label>Đơn giá</label><input type="number" name="products[${productCount}][costPerUnit]" required />
+      <label>Số lượng</label><input type="number" name="products[${productCount}][amount]" required />
+      <label>Thuế</label><input type="number" name="products[${productCount}][vat]" required />
+      <label>Ghi chú</label><input type="text" name="products[${productCount}][note]" />
     `;
   productEntries.insertAdjacentHTML("beforeend", newEntry);
 }
@@ -438,7 +438,7 @@ async function fetchApprovers() {
     const subRoleInput = document.createElement("input");
     subRoleInput.type = "text";
     subRoleInput.name = `subRole_${approver._id}`;
-    subRoleInput.placeholder = "Nhập vai trò/Enter Sub-Role";
+    subRoleInput.placeholder = "Nhập vai trò";
     subRoleInput.disabled = true;
     approverDiv.appendChild(subRoleInput);
 
@@ -457,9 +457,9 @@ function addProposalEntry() {
   newEntry.className = "proposal-entry";
   newEntry.innerHTML = `
       <select class="approved-proposal-dropdown" name="approvedProposals[]" onchange="previewProposalContent(this)">
-        <option value="">Chọn phiếu đề xuất/Select a proposal</option>
+        <option value="">Chọn phiếu đề xuất</option>
       </select>
-      <button type="button" class="remove-proposal" onclick="removeProposalEntry(this)">Xóa/Remove</button>
+      <button type="button" class="remove-proposal" onclick="removeProposalEntry(this)">Xóa</button>
     `;
   container.appendChild(newEntry);
 
@@ -519,8 +519,7 @@ async function fetchApprovedProposalsForDelivery(dropdown = null) {
 }
 
 function populateDropdown(select, proposals) {
-  select.innerHTML =
-    '<option value="">Chọn phiếu đề xuất/Select a proposal</option>';
+  select.innerHTML = '<option value="">Chọn phiếu đề xuất</option>';
   proposals.forEach((doc) => {
     const option = document.createElement("option");
     option.value = doc._id;
@@ -548,22 +547,16 @@ async function previewProposalContent(selectElement) {
   const previewDiv = document.createElement("div");
   previewDiv.className = "proposal-preview";
   previewDiv.innerHTML = `
-      <h3>Xem trước phiếu đề xuất/Preview of Proposal ${documentId}</h3>
-      <p><strong>Tình trạng phê duyệt/Approval Status:</strong> ${
-        proposal.status
-      }<br></p>
-      <p><strong>Công việc/Task:</strong> ${proposal.task}</p>
-      <p><strong>Trạm/Center:</strong> ${proposal.costCenter}</p>
-      <p><strong>Ngày xảy ra lỗi/Date of Error:</strong> ${
-        proposal.dateOfError
-      }</p>
-      <p><strong>Mô tả chi tiết/Details Description:</strong> ${
-        proposal.detailsDescription
-      }</p>
-      <p><strong>Hướng xử lý/Direction:</strong> ${proposal.direction}</p>
+      <h3>Xem trước phiếu đề xuất ${documentId}</h3>
+      <p><strong>Tình trạng phê duyệt:</strong> ${proposal.status}<br></p>
+      <p><strong>Công việc:</strong> ${proposal.task}</p>
+      <p><strong>Trạm:</strong> ${proposal.costCenter}</p>
+      <p><strong>Ngày xảy ra lỗi:</strong> ${proposal.dateOfError}</p>
+      <p><strong>Mô tả chi tiết:</strong> ${proposal.detailsDescription}</p>
+      <p><strong>Hướng xử lý:</strong> ${proposal.direction}</p>
       ${
         proposal.fileMetadata
-          ? `<p><strong>Tệp đính kèm/Attached File:</strong>
+          ? `<p><strong>Tệp đính kèm:</strong>
         <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
           : ""
       }
@@ -600,8 +593,7 @@ function populatePurchasingDocumentsDropdown(purchasingDocs) {
   const dropdown = document.getElementById("purchasingDocumentsDropdown");
 
   // Populate dropdown options
-  dropdown.innerHTML =
-    '<option value="">Hãy chọn một phiếu mua hàng/Select a purchasing document</option>';
+  dropdown.innerHTML = '<option value="">Hãy chọn một phiếu mua hàng</option>';
   purchasingDocs.forEach((doc) => {
     const option = document.createElement("option");
     option.value = doc._id;
@@ -623,13 +615,13 @@ document
     );
 
     if (!selectedDocId) {
-      alert("Xin hãy chọn phiếu mua hàng/Please select a purchasing document.");
+      alert("Xin hãy chọn phiếu mua hàng.");
       return;
     }
 
     // Check if the document is already added
     if (document.querySelector(`#doc-${selectedDocId}`)) {
-      alert("Bạn đã thêm phiếu này rồi/This document has already been added.");
+      alert("Bạn đã thêm phiếu này rồi.");
       return;
     }
 
@@ -642,33 +634,29 @@ document
       const listItem = document.createElement("li");
       listItem.id = `doc-${selectedDocId}`;
       listItem.innerHTML = `
-          <strong>Mã/ID:</strong> ${doc._id}<br>
-          <strong>Tình trạng phê duyệt/Approval Status:</strong> ${
-            doc.status
-          }<br>
-          <strong>Trạm/Center:</strong> ${
-            doc.costCenter ? doc.costCenter : ""
-          }<br>
-          <strong>Chi phí/Grand Total Cost:</strong> ${doc.grandTotalCost.toLocaleString()}<br>
-          <h3>Sản phẩm/Products:</h3>
+          <strong>Mã:</strong> ${doc._id}<br>
+          <strong>Tình trạng phê duyệt:</strong> ${doc.status}<br>
+          <strong>Trạm:</strong> ${doc.costCenter ? doc.costCenter : ""}<br>
+          <strong>Chi phí:</strong> ${doc.grandTotalCost.toLocaleString()}<br>
+          <h3>Sản phẩm:</h3>
           <ul>
               ${doc.products
                 .map(
                   (product) => `
                     <li>
                         <strong>${product.productName}</strong><br>
-                        Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
-                        Số lượng/Amount: ${product.amount.toLocaleString()}<br>
-                        Thuế/Vat (%): ${product.vat.toLocaleString()}<br>
-                        Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
-                        Thành tiền sau thuế/Total Cost After Vat: ${product.totalCostAfterVat.toLocaleString()}<br>
-                        Ghi chú/Notes: ${product.note || "None"}
+                        Đơn giá: ${product.costPerUnit.toLocaleString()}<br>
+                        Số lượng: ${product.amount.toLocaleString()}<br>
+                        Thuế (%): ${product.vat.toLocaleString()}<br>
+                        Thành tiền: ${product.totalCost.toLocaleString()}<br>
+                        Thành tiền sau thuế: ${product.totalCostAfterVat.toLocaleString()}<br>
+                        Ghi chú: ${product.note || "None"}
                     </li>
                 `
                 )
                 .join("")}
           </ul>
-          <h2>Các phiếu đề xuất đính kèm/Appended Proposals:</h2>
+          <h2>Các phiếu đề xuất đính kèm:</h2>
           ${
             doc.appendedProposals.length > 0
               ? doc.appendedProposals
@@ -676,17 +664,13 @@ document
                     (proposal) => `
                       <li>
                         <strong>${proposal.task}</strong><br>
-                        Trạm/Center: ${proposal.costCenter}<br>
-                        Ngày xảy ra lỗi/Date of Error: ${
-                          proposal.dateOfError
-                        }<br>
-                        Mô tả chi tiết/Details Description: ${
-                          proposal.detailsDescription
-                        } <br>
-                        Hướng xử lý/Direction: ${proposal.direction}<br>
+                        Trạm: ${proposal.costCenter}<br>
+                        Ngày xảy ra lỗi: ${proposal.dateOfError}<br>
+                        Mô tả chi tiết: ${proposal.detailsDescription} <br>
+                        Hướng xử lý: ${proposal.direction}<br>
                         ${
                           proposal.fileMetadata
-                            ? `Tệp đính kèm phiếu đề xuất/Attached File to Proposal Document:
+                            ? `Tệp đính kèm phiếu đề xuất:
                                 <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
                             : ""
                         }<br>
@@ -694,15 +678,15 @@ document
                   `
                   )
                   .join("")
-              : "<p>Không có phiếu đề xuất đính kèm/No appended proposals.</p>"
+              : "<p>Không có phiếu đề xuất đính kèm</p>"
           }
           ${
             doc.fileMetadata
-              ? `<p><strong>Tệp đính kèm phiếu thanh toán/File attaches to payment document:</strong>
+              ? `<p><strong>Tệp đính kèm phiếu thanh toán:</strong>
                     <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
-              : "<p>Không có tệp đính kèm/No file attached.</p>"
+              : "<p>Không có tệp đính kèm</p>"
           }
-          <button type="button" onclick="removePurchasingDocument('${selectedDocId}')">Xóa/Remove</button>
+          <button type="button" onclick="removePurchasingDocument('${selectedDocId}')">Xóa</button>
       `;
 
       purchasingDocumentsList.appendChild(listItem);
@@ -742,7 +726,7 @@ async function populateGroupDropdown() {
   const groupSelect = document.getElementById("groupName");
 
   // Clear existing options except the first one
-  groupSelect.innerHTML = '<option value="">Chọn nhóm/Select a group</option>';
+  groupSelect.innerHTML = '<option value="">Chọn nhóm</option>';
 
   // Add new options
   groups.forEach((group) => {
@@ -769,8 +753,7 @@ async function populateProjectDropdown() {
   const projectSelect = document.getElementById("projectName");
 
   // Clear existing options except the first one
-  projectSelect.innerHTML =
-    '<option value="">Chọn dự án/Select a project</option>';
+  projectSelect.innerHTML = '<option value="">Chọn dự án</option>';
 
   // Add new options
   projects.forEach((project) => {
@@ -791,9 +774,7 @@ document
     );
     if (approvers.length === 0) {
       event.preventDefault();
-      alert(
-        "Xin hãy chọn ít nhất một người phê duyệt/Please select at least one approver."
-      );
+      alert("Xin hãy chọn ít nhất một người phê duyệt");
     }
   });
 
@@ -802,13 +783,13 @@ document
   .addEventListener("click", function () {
     const contentFields = document.getElementById("content-fields");
     const nameLabel = document.createElement("label");
-    nameLabel.innerText = "Tên nội dung/Content Name";
+    nameLabel.innerText = "Tên nội dung";
     const nameInput = document.createElement("input");
     nameInput.type = "text";
     nameInput.name = "contentName";
 
     const textLabel = document.createElement("label");
-    textLabel.innerText = "Nội dung/Content Text";
+    textLabel.innerText = "Nội dung";
     const textArea = document.createElement("textarea");
     textArea.name = "contentText";
     textArea.rows = 5;
