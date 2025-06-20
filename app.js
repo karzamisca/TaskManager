@@ -52,6 +52,13 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
 }
 
+app.use((req, res, next) => {
+  if (req.accepts("html")) {
+    res.set("Cache-Control", "no-store, must-revalidate");
+  }
+  next();
+});
+
 // Routes
 app.use("/", authRoute);
 app.use("/", authMiddleware, adminRoute);
