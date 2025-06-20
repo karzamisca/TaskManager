@@ -162,9 +162,7 @@ const fetchPaymentDocuments = async () => {
   showLoading(true);
 
   try {
-    const response = await fetch(
-      `/getPaymentDocumentForSeparatedView?_=${Date.now()}`
-    );
+    const response = await fetch("/getPaymentDocumentForSeparatedView");
     const data = await response.json();
     state.paymentDocuments = data.paymentDocuments;
 
