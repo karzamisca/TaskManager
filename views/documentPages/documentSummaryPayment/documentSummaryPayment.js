@@ -125,6 +125,32 @@ const renderApprovalStatus = (approvers, approvedBy) => {
     .join("");
 };
 
+// Helper function to render stage approval status
+const renderStageApprovalStatus = (approvers, approvedBy) => {
+  return approvers
+    .map((approver) => {
+      const hasApproved = approvedBy.find(
+        (a) => a.username === approver.username
+      );
+      return `
+      <div class="approver-item">
+        <span class="status-icon ${
+          hasApproved ? "status-approved" : "status-pending"
+        }"></span>
+        <div>
+          <div>${approver.username} (${approver.subRole})</div>
+          ${
+            hasApproved
+              ? `<div class="approval-date">Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
+              : '<div class="approval-date">Chưa phê duyệt</div>'
+          }
+        </div>
+      </div>
+    `;
+    })
+    .join("");
+};
+
 // Data fetching
 const fetchCurrentUser = async () => {
   try {
@@ -255,6 +281,31 @@ const renderDocumentsTable = (documents) => {
   tableBody.innerHTML = "";
 
   documents.forEach((doc) => {
+    // Check if user can approve the document (only show if all stages are approved)
+    const canApproveDocument =
+      doc.approvers.some(
+        (approver) => approver.username === state.currentUser?.username
+      ) &&
+      (!doc.stages ||
+        doc.stages.length === 0 ||
+        doc.stages.every((stage) => stage.status === "Approved"));
+
+    // Check which stages the user can approve
+    const approvableStages =
+      doc.stages
+        ?.map((stage, index) => {
+          const canApprove =
+            stage.approvers.some(
+              (approver) => approver.username === state.currentUser?.username
+            ) &&
+            !stage.approvedBy.some(
+              (approver) => approver.username === state.currentUser?.username
+            ) &&
+            stage.status === "Pending";
+          return { index, canApprove };
+        })
+        .filter((stage) => stage.canApprove) || [];
+
     const row = document.createElement("tr");
     row.innerHTML = `
       <td><input type="checkbox" class="doc-checkbox" data-doc-id="${
@@ -271,6 +322,27 @@ const renderDocumentsTable = (documents) => {
         ${
           doc.suspendReason
             ? `<div class="suspend-reason"><strong>Lý do từ chối:</strong> ${doc.suspendReason}</div>`
+            : ""
+        }
+        ${
+          doc.stages?.length > 0
+            ? `<div class="stages-summary">
+                <strong>Các giai đoạn:</strong>
+                ${doc.stages
+                  .map(
+                    (stage, idx) => `
+                  <div class="stage-summary-item ${
+                    stage.status === "Approved" ? "approved" : "pending"
+                  }">
+                    <span>GĐ ${idx + 1}: ${stage.name}</span>
+                    <span>${formatCurrency(stage.amount)}</span>
+                    <span class="status-badge">${
+                      stage.status === "Approved" ? "Đã duyệt" : "Chờ duyệt"
+                    }</span>
+                  </div>`
+                  )
+                  .join("")}
+              </div>`
             : ""
         }
       </td>
@@ -309,12 +381,12 @@ const renderDocumentsTable = (documents) => {
               : ""
           }
           ${
-            doc.status === "Pending"
+            doc.status === "Pending" && canApproveDocument
               ? `
-            <button class="btn btn-primary btn-sm" onclick="approveDocument('${doc._id}')">
-              <i class="fas fa-check"></i> Phê duyệt
-            </button>
-          `
+                <button class="btn btn-primary btn-sm" onclick="approveDocument('${doc._id}')">
+                  <i class="fas fa-check"></i> Phê duyệt
+                </button>
+              `
               : ""
           }
           ${
@@ -338,6 +410,23 @@ const renderDocumentsTable = (documents) => {
                   <i class="fas fa-ban"></i> Từ chối
                 </button>
               `
+          }
+          ${
+            approvableStages.length > 0
+              ? approvableStages
+                  .map(
+                    (stage) => `
+                  <button class="btn btn-primary btn-sm stage-approve-btn" 
+                          onclick="approvePaymentStage('${doc._id}', ${
+                      stage.index
+                    })">
+                    <i class="fas fa-check-circle"></i> Duyệt GĐ ${
+                      stage.index + 1
+                    }
+                  </button>`
+                  )
+                  .join("")
+              : ""
           }
         </div>
       </td>
@@ -527,6 +616,37 @@ const approveDocument = async (documentId) => {
   } catch (err) {
     console.error("Error approving document:", err);
     showMessage("Error approving document", true);
+  }
+};
+
+const approvePaymentStage = async (docId, stageIndex) => {
+  try {
+    const response = await fetch(
+      `/approvePaymentStage/${docId}/${stageIndex}`,
+      {
+        method: "POST",
+      }
+    );
+
+    const result = await response.json();
+
+    if (response.ok) {
+      showMessage(result.message);
+
+      // If we can now approve the document, show a special message
+      if (result.canApproveDocument) {
+        showMessage(
+          "Tất cả giai đoạn đã được phê duyệt. Bạn có thể phê duyệt toàn bộ phiếu thanh toán bây giờ."
+        );
+      }
+
+      fetchPaymentDocuments();
+    } else {
+      showMessage(result.message || "Error approving stage", true);
+    }
+  } catch (err) {
+    console.error("Error approving payment stage:", err);
+    showMessage("Error approving payment stage", true);
   }
 };
 
@@ -726,6 +846,290 @@ const handleMassDeclarationSubmit = async (event) => {
   }
 };
 
+// Handle payment stages
+const renderPaymentStages = () => {
+  const container = document.getElementById("paymentStagesContainer");
+  container.innerHTML = "";
+
+  if (
+    !state.currentEditDoc?.stages ||
+    state.currentEditDoc.stages.length === 0
+  ) {
+    container.innerHTML =
+      "<p>Không có giai đoạn thanh toán nào được thiết lập</p>";
+    return;
+  }
+
+  state.currentEditDoc.stages.forEach((stage, index) => {
+    const isPartiallyApproved = stage.approvedBy?.length > 0;
+    const isFullyApproved = stage.status === "Approved";
+    const stageElement = document.createElement("div");
+    stageElement.className = `payment-stage ${
+      isPartiallyApproved ? "locked-stage" : ""
+    } ${isFullyApproved ? "approved-stage" : ""}`;
+    stageElement.dataset.index = index;
+
+    stageElement.innerHTML = `
+      <div class="stage-header">
+        <h4>Giai đoạn ${index + 1} ${
+      isPartiallyApproved
+        ? `(${stage.approvedBy.length}/${stage.approvers.length} đã duyệt)`
+        : ""
+    } ${isFullyApproved ? "(Đã phê duyệt hoàn toàn)" : ""}</h4>
+        ${
+          !isPartiallyApproved
+            ? `<button type="button" class="btn btn-danger btn-sm" onclick="removeSpecificStage(${index})">
+                <i class="fas fa-trash"></i> Xóa
+              </button>`
+            : '<span class="lock-icon"><i class="fas fa-lock"></i> Đã khóa</span>'
+        }
+      </div>
+      <div class="form-group">
+        <label>Tên giai đoạn:</label>
+        <input type="text" class="form-input stage-name" value="${
+          stage.name || ""
+        }" 
+               onchange="updateStageField(${index}, 'name', this.value)"
+               ${isPartiallyApproved ? "disabled" : ""}>
+      </div>
+      <div class="form-group">
+        <label>Số tiền:</label>
+        <input type="number" class="form-input stage-amount" value="${
+          stage.amount || 0
+        }" 
+               onchange="updateStageField(${index}, 'amount', this.value)"
+               ${isPartiallyApproved ? "disabled" : ""}>
+      </div>
+      <div class="form-group">
+        <label>Hạn thanh toán:</label>
+        <input type="text" class="form-input stage-deadline" value="${
+          stage.deadline || ""
+        }" 
+               placeholder="DD-MM-YYYY" pattern="(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[012])-[0-9]{4}"
+               onchange="updateStageField(${index}, 'deadline', this.value)"
+               ${isPartiallyApproved ? "disabled" : ""}>
+      </div>
+      <div class="form-group">
+        <label>Hình thức thanh toán:</label>
+        <select class="form-input stage-payment-method"
+                onchange="updateStageField(${index}, 'paymentMethod', this.value)"
+                ${isPartiallyApproved ? "disabled" : ""}>
+          <option value="Chuyển khoản" ${
+            stage.paymentMethod === "Chuyển khoản" ? "selected" : ""
+          }>Chuyển khoản</option>
+          <option value="Tiền mặt" ${
+            stage.paymentMethod === "Tiền mặt" ? "selected" : ""
+          }>Tiền mặt</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Ghi chú:</label>
+        <textarea class="form-textarea stage-notes" 
+                  onchange="updateStageField(${index}, 'notes', this.value)"
+                  ${isPartiallyApproved ? "disabled" : ""}>${
+      stage.notes || ""
+    }</textarea>
+      </div>
+      <div class="form-group">
+        <label>Người phê duyệt:</label>
+        <div class="stage-approvers-container" id="stageApproversContainer${index}">
+          ${renderStageApprovers(
+            stage.approvers || [],
+            stage.approvedBy || [],
+            index,
+            isPartiallyApproved
+          )}
+        </div>
+        ${
+          !isPartiallyApproved
+            ? `<div class="add-stage-approver">
+                <select class="form-select stage-approver-select" id="stageApproverSelect${index}">
+                  <option value="">Chọn người phê duyệt</option>
+                  <!-- Options will be populated dynamically -->
+                </select>
+                <input type="text" class="form-input stage-approver-subrole" 
+                       id="stageApproverSubRole${index}" placeholder="Vai trò/Sub Role">
+                <button type="button" class="btn btn-primary btn-sm" 
+                        onclick="addStageApprover(${index})">
+                  <i class="fas fa-plus"></i> Thêm
+                </button>
+              </div>`
+            : ""
+        }
+      </div>
+    `;
+
+    container.appendChild(stageElement);
+    if (!isPartiallyApproved) {
+      populateStageApproversDropdown(index);
+    }
+  });
+};
+
+const renderStageApprovers = (approvers, approvedBy, stageIndex, isLocked) => {
+  return approvers
+    .map((approver) => {
+      const hasApproved = approvedBy.some(
+        (a) => a.username === approver.username
+      );
+      return `
+      <div class="approver-item ${hasApproved ? "approved" : ""}">
+        <span class="status-icon ${
+          hasApproved ? "status-approved" : "status-pending"
+        }"></span>
+        <div class="approver-info">
+          <div>${approver.username} (${approver.subRole})</div>
+          ${
+            hasApproved
+              ? `<div class="approval-date">Đã phê duyệt</div>`
+              : '<div class="approval-date">Chưa phê duyệt</div>'
+          }
+        </div>
+        ${
+          !isLocked
+            ? `<button type="button" class="btn btn-danger btn-sm" 
+                    onclick="removeStageApprover(${stageIndex}, '${approver.approver}')">
+                <i class="fas fa-trash"></i> Xóa
+              </button>`
+            : ""
+        }
+      </div>
+    `;
+    })
+    .join("");
+};
+
+const populateStageApproversDropdown = async (stageIndex) => {
+  const allApprovers = await fetchApprovers();
+  const currentApprovers =
+    state.currentEditDoc.stages[stageIndex].approvers || [];
+  const availableApprovers = allApprovers.filter(
+    (approver) => !currentApprovers.some((a) => a.approver === approver._id)
+  );
+
+  const dropdown = document.getElementById(`stageApproverSelect${stageIndex}`);
+  dropdown.innerHTML = `
+    <option value="">Chọn người phê duyệt</option>
+    ${availableApprovers
+      .map(
+        (approver) => `
+      <option value="${approver._id}">${approver.username}</option>
+    `
+      )
+      .join("")}
+  `;
+};
+
+const addPaymentStage = () => {
+  if (!state.currentEditDoc.stages) {
+    state.currentEditDoc.stages = [];
+  }
+
+  state.currentEditDoc.stages.push({
+    name: `Giai đoạn ${state.currentEditDoc.stages.length + 1}`,
+    amount: 0,
+    deadline: "",
+    paymentMethod: "",
+    notes: "",
+    approvers: [],
+    approvedBy: [],
+    status: "Pending",
+  });
+
+  renderPaymentStages();
+};
+
+const removePaymentStage = () => {
+  if (state.currentEditDoc.stages && state.currentEditDoc.stages.length > 0) {
+    const lastStage =
+      state.currentEditDoc.stages[state.currentEditDoc.stages.length - 1];
+    if (lastStage.approvedBy && lastStage.approvedBy.length > 0) {
+      showMessage("Không thể xóa giai đoạn đã có người phê duyệt", true);
+      return;
+    }
+    state.currentEditDoc.stages.pop();
+    renderPaymentStages();
+  }
+};
+
+const removeSpecificStage = (index) => {
+  if (
+    state.currentEditDoc.stages &&
+    state.currentEditDoc.stages.length > index
+  ) {
+    const stage = state.currentEditDoc.stages[index];
+    if (stage.approvedBy && stage.approvedBy.length > 0) {
+      showMessage("Không thể xóa giai đoạn đã có người phê duyệt", true);
+      return;
+    }
+    state.currentEditDoc.stages.splice(index, 1);
+    renderPaymentStages();
+  }
+};
+
+const updateStageField = (index, field, value) => {
+  if (
+    state.currentEditDoc.stages &&
+    state.currentEditDoc.stages.length > index
+  ) {
+    state.currentEditDoc.stages[index][field] = value;
+  }
+};
+
+const addStageApprover = async (stageIndex) => {
+  const approverId = document.getElementById(
+    `stageApproverSelect${stageIndex}`
+  ).value;
+  const subRole = document.getElementById(
+    `stageApproverSubRole${stageIndex}`
+  ).value;
+
+  if (!approverId || !subRole) {
+    showMessage("Vui lòng chọn người phê duyệt và nhập vai trò phụ.", true);
+    return;
+  }
+
+  const allApprovers = await fetchApprovers();
+  const approver = allApprovers.find((a) => a._id === approverId);
+
+  if (approver) {
+    state.currentEditDoc.stages[stageIndex].approvers.push({
+      approver: approverId,
+      username: approver.username,
+      subRole: subRole,
+    });
+
+    renderPaymentStages();
+  }
+};
+
+const removeStageApprover = (stageIndex, approverId) => {
+  if (
+    state.currentEditDoc.stages &&
+    state.currentEditDoc.stages.length > stageIndex
+  ) {
+    state.currentEditDoc.stages[stageIndex].approvers =
+      state.currentEditDoc.stages[stageIndex].approvers.filter(
+        (a) => a.approver !== approverId
+      );
+    renderPaymentStages();
+  }
+};
+
+const updateStageApproverSubRole = (stageIndex, approverId, newSubRole) => {
+  if (
+    state.currentEditDoc.stages &&
+    state.currentEditDoc.stages.length > stageIndex
+  ) {
+    const approver = state.currentEditDoc.stages[stageIndex].approvers.find(
+      (a) => a.approver === approverId
+    );
+    if (approver) {
+      approver.subRole = newSubRole;
+    }
+  }
+};
+
 // Edit Document Functions
 const editDocument = async (docId) => {
   try {
@@ -744,8 +1148,11 @@ const editDocument = async (docId) => {
     document.getElementById("editCostCenter").value = doc.costCenter || "";
 
     state.currentApprovers = doc.approvers;
+    state.currentEditDoc = doc; // Store the full document for stage management
+
     renderCurrentApprovers();
     await populateNewApproversDropdown();
+    renderPaymentStages(); // Render the payment stages
 
     document.getElementById("editModal").style.display = "block";
   } catch (err) {
@@ -901,6 +1308,11 @@ const handleEditSubmit = async (event) => {
   // Add approvers
   formData.append("approvers", JSON.stringify(state.currentApprovers));
 
+  // Add stages if they exist
+  if (state.currentEditDoc.stages) {
+    formData.append("stages", JSON.stringify(state.currentEditDoc.stages));
+  }
+
   // Add file
   const fileInput = document.getElementById("editFile");
   if (fileInput.files.length > 0) {
@@ -912,6 +1324,7 @@ const handleEditSubmit = async (event) => {
       method: "POST",
       body: formData,
     });
+
     const result = await response.json();
     if (response.ok) {
       showMessage("Phiếu cập nhật thành công.");
@@ -1046,6 +1459,49 @@ const showFullView = async (docId) => {
         </div>
       </div>
     `;
+    if (doc.stages && doc.stages.length > 0) {
+      fullViewContent.innerHTML += `
+      <div class="full-view-section">
+        <h3><i class="fas fa-layer-group"></i> Các giai đoạn thanh toán</h3>
+        <div class="stages-container">
+          ${doc.stages
+            .map(
+              (stage, index) => `
+            <div class="stage-item ${stage.status.toLowerCase()}">
+              <div class="stage-header">
+                <h4>Giai đoạn ${index + 1}: ${stage.name} (${stage.amount})</h4>
+                <span class="status-badge">${
+                  stage.status === "Approved"
+                    ? "Đã phê duyệt"
+                    : "Chưa phê duyệt"
+                }</span>
+              </div>
+              <div class="stage-details">
+                <div><strong>Số tiền:</strong> ${formatCurrency(
+                  stage.amount
+                )}</div>
+                <div><strong>Hạn thanh toán:</strong> ${
+                  stage.deadline || "Không có"
+                }</div>
+                <div><strong>Hình thức thanh toán:</strong> ${
+                  stage.paymentMethod || "Không có"
+                }</div>
+                <div><strong>Ghi chú:</strong> ${
+                  stage.notes || "Không có"
+                }</div>
+              </div>
+              <div class="stage-approval-status">
+                <h5>Trạng thái phê duyệt:</h5>
+                ${renderStageApprovalStatus(stage.approvers, stage.approvedBy)}
+              </div>
+            </div>
+          `
+            )
+            .join("")}
+        </div>
+      </div>
+    `;
+    }
 
     document.getElementById("fullViewModal").style.display = "block";
   } catch (err) {

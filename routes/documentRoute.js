@@ -244,6 +244,11 @@ router.get(
   authMiddleware,
   documentController.getPaymentDocument
 );
+router.post(
+  "/approvePaymentStage/:docId/:stageIndex",
+  authMiddleware,
+  documentController.approvePaymentStage
+);
 //// END OF PAYMENT DOCUMENT ROUTE
 
 //// ADVANCE PAYMENT DOCUMENT ROUTE

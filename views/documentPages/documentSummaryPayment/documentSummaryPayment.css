@@ -632,6 +632,136 @@ tr:hover {
   background-color: var(--primary-color);
 }
 
+.payment-stage {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 15px;
+  background-color: #f9f9f9;
+}
+
+.stage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.stage-controls {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+}
+
+.stage-approvers-container {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.add-stage-approver {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.stage-approver-select {
+  flex: 1;
+}
+
+.stage-approver-subrole {
+  width: 150px;
+}
+
+.stages-summary {
+  margin-top: 8px;
+}
+
+.stage-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  margin-top: 4px;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+}
+
+.stage-summary-item.approved {
+  border-left: 3px solid #4caf50;
+}
+
+.stage-summary-item.pending {
+  border-left: 3px solid #ffc107;
+}
+
+.status-badge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+
+.stage-summary-item.approved .status-badge {
+  background-color: #4caf50;
+  color: white;
+}
+
+.stage-summary-item.pending .status-badge {
+  background-color: #ffc107;
+  color: #333;
+}
+
+.stage-approve-btn {
+  margin-top: 4px;
+  display: block;
+  width: 100%;
+  background-color: #2196f3 !important;
+}
+
+.approved-stage {
+  background-color: #f0f8ff;
+  border-left: 4px solid #4caf50;
+}
+
+.approved-stage .form-input,
+.approved-stage .form-textarea {
+  background-color: #f8f8f8;
+  color: #555;
+  cursor: not-allowed;
+}
+
+.approved-stage .stage-header {
+  color: #4caf50;
+}
+
+.approver-item.approved {
+  background-color: #f0fff0;
+}
+
+.locked-stage {
+  background-color: #fff8f8;
+  border-left: 4px solid #ff9800;
+}
+
+.locked-stage .form-input,
+.locked-stage .form-textarea {
+  background-color: #f8f8f8;
+  color: #777;
+  cursor: not-allowed;
+}
+
+.locked-stage .stage-header {
+  color: #ff9800;
+}
+
+.lock-icon {
+  color: #ff9800;
+  font-size: 0.9em;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .control-panel {

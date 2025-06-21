@@ -2294,6 +2294,8 @@ exports.updatePaymentDocument = async (req, res) => {
       paymentMethod,
       totalPayment,
       paymentDeadline,
+      approvers,
+      stages,
     } = req.body;
     const file = req.file;
 
@@ -2302,11 +2304,11 @@ exports.updatePaymentDocument = async (req, res) => {
       return res.status(404).json({ message: "Document not found" });
     }
 
-    // Parse approvers if it exists
-    let approvers;
-    if (req.body.approvers) {
+    // Parse approvers and stages if they exist
+    let parsedApprovers = [];
+    if (approvers) {
       try {
-        approvers = JSON.parse(req.body.approvers);
+        parsedApprovers = JSON.parse(approvers);
       } catch (error) {
         return res
           .status(400)
@@ -2314,12 +2316,54 @@ exports.updatePaymentDocument = async (req, res) => {
       }
     }
 
+    let parsedStages = [];
+    if (stages) {
+      try {
+        parsedStages = JSON.parse(stages);
+
+        // Verify no partially approved stages are being modified
+        const existingDoc = await PaymentDocument.findById(id);
+        if (existingDoc.stages) {
+          for (let i = 0; i < existingDoc.stages.length; i++) {
+            const existingStage = existingDoc.stages[i];
+            const newStage = parsedStages[i];
+
+            if (
+              existingStage.approvedBy &&
+              existingStage.approvedBy.length > 0
+            ) {
+              // Check if any critical fields are being modified
+              const criticalFields = [
+                "name",
+                "amount",
+                "deadline",
+                "paymentMethod",
+                "approvers",
+              ];
+              for (const field of criticalFields) {
+                if (
+                  JSON.stringify(existingStage[field]) !==
+                  JSON.stringify(newStage[field])
+                ) {
+                  return res.status(400).json({
+                    message: `Không thể chỉnh sửa giai đoạn đã có người phê duyệt (Giai đoạn ${
+                      i + 1
+                    })`,
+                  });
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        return res.status(400).json({ message: "Invalid stages data format" });
+      }
+    }
+
     // Check if the name has changed and update the tag if needed
     if (name && name !== doc.name) {
-      // Format the update date for the tag
       const now = moment().tz("Asia/Bangkok");
       const updateDateForTag = now.format("DDMMYYYYHHmmss");
-      // Create the new tag by combining name and formatted date
       doc.tag = `${name}${updateDateForTag}`;
     }
 
@@ -2332,8 +2376,13 @@ exports.updatePaymentDocument = async (req, res) => {
     doc.paymentDeadline = paymentDeadline;
 
     // Update approvers if provided
-    if (approvers) {
-      doc.approvers = approvers;
+    if (parsedApprovers) {
+      doc.approvers = parsedApprovers;
+    }
+
+    // Update stages if provided
+    if (parsedStages) {
+      doc.stages = parsedStages;
     }
 
     // Handle file update if provided
@@ -2457,6 +2506,108 @@ exports.massUpdatePaymentDocumentDeclaration = async (req, res) => {
   } catch (error) {
     console.error("Error updating declaration:", error);
     res.status(500).json({ message: "Error updating declaration" });
+  }
+};
+exports.approvePaymentStage = async (req, res) => {
+  const { docId, stageIndex } = req.params;
+
+  try {
+    if (
+      ![
+        "approver",
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+        "headOfNorthernRepresentativeOffice",
+        "captainOfMechanical",
+        "captainOfTechnical",
+        "captainOfPurchasing",
+        "captainOfAccounting",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
+    const document = await PaymentDocument.findById(docId);
+    if (!document) {
+      return res.send("Không tìm thấy phiếu thanh toán.");
+    }
+
+    // Check if stage exists
+    if (!document.stages || document.stages.length <= stageIndex) {
+      return res.send("Không tìm thấy giai đoạn thanh toán.");
+    }
+
+    const stage = document.stages[stageIndex];
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.send("Không tìm thấy người dùng.");
+    }
+
+    // Check if user is an approver for this stage
+    const isStageApprover = stage.approvers.some(
+      (approver) => approver.approver.toString() === req.user.id
+    );
+
+    if (!isStageApprover) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền phê duyệt giai đoạn này."
+      );
+    }
+
+    // Check if user has already approved this stage
+    const hasApproved = stage.approvedBy.some(
+      (approver) => approver.user.toString() === req.user.id
+    );
+
+    if (hasApproved) {
+      return res.send("Bạn đã phê duyệt giai đoạn này rồi.");
+    }
+
+    // Add approval
+    stage.approvedBy.push({
+      user: user.id,
+      username: user.username,
+      role: user.role,
+      approvalDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+    });
+
+    // Check if all stage approvers have approved
+    if (stage.approvedBy.length === stage.approvers.length) {
+      stage.status = "Approved";
+    }
+
+    await document.save();
+
+    // Check if all stages are approved
+    const allStagesApproved = document.stages.every(
+      (s) => s.status === "Approved"
+    );
+
+    // If all stages are approved and document has approvers, allow document approval
+    if (allStagesApproved && document.approvers.length > 0) {
+      return res.send({
+        message:
+          "Giai đoạn đã được phê duyệt. Bạn có thể phê duyệt toàn bộ phiếu thanh toán.",
+        canApproveDocument: true,
+      });
+    }
+
+    return res.send({
+      message:
+        stage.status === "Approved"
+          ? "Giai đoạn đã được phê duyệt hoàn toàn."
+          : "Giai đoạn đã được phê duyệt thành công.",
+      canApproveDocument: false,
+    });
+  } catch (err) {
+    console.error("Error approving payment stage:", err);
+    return res.send("Lỗi phê duyệt giai đoạn thanh toán.");
   }
 };
 //// END OF PAYMENT DOCUMENT CONTROLLER

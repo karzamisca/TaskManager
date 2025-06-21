@@ -52,6 +52,7 @@
             <option value="">Tất cả</option>
             <option value="Chuyển khoản">Chuyển khoản</option>
             <option value="Tiền mặt">Tiền mặt</option>
+            <option value="Hợp đồng">Hợp đồng</option>
           </select>
         </label>
       </div>
@@ -213,12 +214,11 @@
             <label for="editPaymentMethod" class="form-label"
               >Hình thức thanh toán:</label
             >
-            <input
-              type="text"
-              id="editPaymentMethod"
-              required
-              class="form-input"
-            />
+            <select id="editPaymentMethod" required class="form-input">
+              <option value="Chuyển khoản">Chuyển khoản</option>
+              <option value="Tiền mặt">Tiền mặt</option>
+              <option value="Hợp đồng">Hợp đồng</option>
+            </select>
           </div>
 
           <div class="form-group">
@@ -276,6 +276,29 @@
             >
               <i class="fas fa-plus"></i> Thêm
             </button>
+          </div>
+
+          <div class="form-group">
+            <h3><i class="fas fa-layer-group"></i> Các giai đoạn thanh toán</h3>
+            <div id="paymentStagesContainer">
+              <!-- Stages will be added here dynamically -->
+            </div>
+            <div class="stage-controls">
+              <button
+                type="button"
+                class="btn btn-primary"
+                onclick="addPaymentStage()"
+              >
+                <i class="fas fa-plus"></i> Thêm giai đoạn
+              </button>
+              <button
+                type="button"
+                class="btn btn-danger"
+                onclick="removePaymentStage()"
+              >
+                <i class="fas fa-minus"></i> Xóa giai đoạn cuối
+              </button>
+            </div>
           </div>
 
           <div class="form-actions">

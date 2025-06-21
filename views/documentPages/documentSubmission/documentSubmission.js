@@ -107,6 +107,7 @@ function handlePaymentDocument() {
       <select name="paymentMethod">
         <option value="Tiền mặt">Tiền mặt</option>
         <option value="Chuyển khoản">Chuyển khoản</option>
+        <option value="Hợp đồng">Hợp đồng</option>
       </select>
       <label for="totalPayment">Tổng thanh toán:</label>
       <input type="number" step="0.01" name="totalPayment" required />
