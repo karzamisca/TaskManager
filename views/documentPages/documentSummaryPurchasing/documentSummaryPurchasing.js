@@ -586,15 +586,23 @@ const openDocument = async (docId) => {
 };
 
 const editDeclaration = (docId) => {
+  // Remove any existing declaration modal first
+  const existingModal = document.getElementById("declarationModal");
+  if (existingModal) {
+    existingModal.remove();
+  }
+
   const doc = state.purchasingDocuments.find((d) => d._id === docId);
   if (!doc) return;
 
-  // Create a modal for editing the declaration
+  // Create a fresh modal
   const modalHTML = `
     <div id="declarationModal" class="modal">
       <div class="modal-content">
         <span class="modal-close" onclick="closeDeclarationModal()">&times;</span>
-        <h2 class="modal-title"><i class="fas fa-edit"></i> Kê Khai</h2>
+        <h2 class="modal-title"><i class="fas fa-edit"></i> Kê Khai - ${
+          doc.tag || doc.name
+        }</h2>
         <div class="modal-body">
           <div class="form-group">
             <textarea id="declarationInput" class="form-textarea">${
@@ -619,12 +627,17 @@ const editDeclaration = (docId) => {
 
   // Show the modal
   document.getElementById("declarationModal").style.display = "block";
+
+  // Focus on the textarea
+  document.getElementById("declarationInput").focus();
 };
 
 const closeDeclarationModal = () => {
   const modal = document.getElementById("declarationModal");
   if (modal) {
-    modal.remove();
+    modal.style.display = "none";
+    // Remove after animation completes
+    setTimeout(() => modal.remove(), 300);
   }
 };
 
@@ -648,7 +661,14 @@ const saveDeclaration = async (docId) => {
     if (response.ok) {
       showMessage(message);
       closeDeclarationModal();
-      fetchPurchasingDocuments();
+      // Update the local state to reflect changes
+      const docIndex = state.purchasingDocuments.findIndex(
+        (d) => d._id === docId
+      );
+      if (docIndex !== -1) {
+        state.purchasingDocuments[docIndex].declaration = declaration;
+      }
+      fetchPurchasingDocuments(); // Refresh the view
     } else {
       showMessage(message, true);
     }
