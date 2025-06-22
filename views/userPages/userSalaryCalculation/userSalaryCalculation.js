@@ -240,6 +240,10 @@ async function editUser(id) {
 
   document.getElementById("edit-user-id").value = user._id;
   document.getElementById("edit-username").value = user.username;
+  document.getElementById("edit-beneficiary-bank").value = user.beneficiaryBank;
+  document.getElementById("edit-bank-account-number").value =
+    user.bankAccountNumber;
+  document.getElementById("edit-citizen-id").value = user.citizenID;
   document.getElementById("edit-base-salary").value = user.baseSalary;
   document.getElementById("edit-commission-bonus").value = user.commissionBonus;
   document.getElementById("edit-holiday-days").value = user.currentHolidayDays;
