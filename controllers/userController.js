@@ -375,19 +375,7 @@ exports.getAllCostCenters = async (req, res) => {
 
 exports.getUserMonthlyRecordPage = (req, res) => {
   try {
-    if (
-      ![
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-      ].includes(req.user.role)
-    ) {
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
       return res.send(
         "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
       );
