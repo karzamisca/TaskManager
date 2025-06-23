@@ -70,7 +70,7 @@ async function loadCostCentersAndManagers() {
 
     costCenterSelects.forEach((select) => {
       if (!select) return;
-      select.innerHTML = '<option value="all">All Cost Centers</option>';
+      select.innerHTML = '<option value="all">Tất cả trạm</option>';
       costCenters.forEach((cc) => {
         const option = document.createElement("option");
         option.value = cc._id;
@@ -87,7 +87,7 @@ async function loadCostCentersAndManagers() {
 
     managerSelects.forEach((select) => {
       if (!select) return;
-      select.innerHTML = '<option value="">None</option>';
+      select.innerHTML = '<option value="">Không có</option>';
       managers.forEach((manager) => {
         const option = document.createElement("option");
         option.value = manager._id;
@@ -96,7 +96,7 @@ async function loadCostCentersAndManagers() {
       });
     });
   } catch (err) {
-    showError("Failed to load data");
+    showError("Không thể tải dữ liệu");
     console.error(err);
   }
 }
@@ -107,7 +107,7 @@ async function loadUsers() {
     allUsers = await res.json();
     renderUsers();
   } catch (err) {
-    showError("Failed to load users");
+    showError("Không thể tải danh sách nhân viên");
   }
 }
 
@@ -131,7 +131,7 @@ function renderUsers() {
         );
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="17" style="text-align:center;">No users found</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="21" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
     return;
   }
 
@@ -139,22 +139,26 @@ function renderUsers() {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${user.username}</td>
-      <td>${user.costCenter ? user.costCenter.name : "N/A"}</td>
-      <td>${user.assignedManager ? user.assignedManager.username : "N/A"}</td>
-      <td>${user.beneficiaryBank ? user.beneficiaryBank : "N/A"}</td>
-      <td>${user.bankAccountNumber ? user.bankAccountNumber : "N/A"}</td>
-      <td>${user.citizenID ? user.citizenID : "N/A"}</td>
+      <td>${user.costCenter ? user.costCenter.name : "Chưa có"}</td>
+      <td>${
+        user.assignedManager ? user.assignedManager.username : "Chưa có"
+      }</td>
+      <td>${user.beneficiaryBank || "Chưa có"}</td>
+      <td>${user.bankAccountNumber || "Chưa có"}</td>
+      <td>${user.citizenID || "Chưa có"}</td>
       <td>${user.baseSalary.toLocaleString()}</td>
+      <td>${user.hourlyWage.toLocaleString()}</td>
       <td>${user.commissionBonus.toLocaleString()}</td>
-      <td>${user.currentHolidayDays}</td>
-      <td>${user.currentNightShiftDays}</td>
-      <td>${user.holidayBonusPerDay.toLocaleString()}</td>
-      <td>${user.nightShiftBonusPerDay.toLocaleString()}</td>
+      <td>${user.responsibility.toLocaleString()}</td>
+      <td>${user.weekdayOvertimeHour}</td>
+      <td>${user.weekendOvertimeHour}</td>
+      <td>${user.holidayOvertimeHour}</td>
+      <td>${user.overtimePay.toLocaleString()}</td>
       <td>${user.travelExpense.toLocaleString()}</td>
       <td>${user.grossSalary.toLocaleString()}</td>
       <td>${user.insurableSalary.toLocaleString()}</td>
       <td>${user.mandatoryInsurance.toLocaleString()}</td>
-      <td>${user.dependantCount.toLocaleString()}</td>
+      <td>${user.dependantCount}</td>
       <td>${user.taxableIncome.toLocaleString()}</td>
       <td>${user.tax.toLocaleString()}</td>
       <td>${user.currentSalary.toLocaleString()}</td>
@@ -162,10 +166,10 @@ function renderUsers() {
         <div class="action-buttons">
           <button class="btn" onclick="editUser('${
             user._id
-          }')">Chỉnh sửa/Edit</button>
+          }')">Chỉnh sửa</button>
           <button class="btn btn-danger" onclick="deleteUser('${
             user._id
-          }')">Xóa/Delete</button>
+          }')">Xóa</button>
         </div>
       </td>
     `;
@@ -191,17 +195,17 @@ async function addUser(e) {
     commissionBonus: parseFloat(
       document.getElementById("new-commission-bonus").value
     ),
-    currentHolidayDays: parseInt(
-      document.getElementById("new-holiday-days").value
+    responsibility: parseFloat(
+      document.getElementById("new-responsibility").value
     ),
-    currentNightShiftDays: parseInt(
-      document.getElementById("new-night-shift-days").value
+    weekdayOvertimeHour: parseFloat(
+      document.getElementById("new-weekday-overtime").value
     ),
-    holidayBonusPerDay: parseFloat(
-      document.getElementById("new-holiday-bonus").value
+    weekendOvertimeHour: parseFloat(
+      document.getElementById("new-weekend-overtime").value
     ),
-    nightShiftBonusPerDay: parseFloat(
-      document.getElementById("new-night-shift-bonus").value
+    holidayOvertimeHour: parseFloat(
+      document.getElementById("new-holiday-overtime").value
     ),
     travelExpense: parseFloat(
       document.getElementById("new-travel-expense").value
@@ -223,14 +227,14 @@ async function addUser(e) {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || "Failed to add user");
+      throw new Error(error.message || "Không thể thêm nhân viên");
     }
 
     document.getElementById("add-user-form").reset();
-    showSuccess("User added successfully!");
+    showSuccess("Thêm nhân viên thành công!");
     loadUsers();
   } catch (err) {
-    showError(err.message || "Error adding user");
+    showError(err.message || "Lỗi khi thêm nhân viên");
   }
 }
 
@@ -240,18 +244,20 @@ async function editUser(id) {
 
   document.getElementById("edit-user-id").value = user._id;
   document.getElementById("edit-username").value = user.username;
-  document.getElementById("edit-beneficiary-bank").value = user.beneficiaryBank;
+  document.getElementById("edit-beneficiary-bank").value =
+    user.beneficiaryBank || "";
   document.getElementById("edit-bank-account-number").value =
-    user.bankAccountNumber;
-  document.getElementById("edit-citizen-id").value = user.citizenID;
+    user.bankAccountNumber || 0;
+  document.getElementById("edit-citizen-id").value = user.citizenID || 0;
   document.getElementById("edit-base-salary").value = user.baseSalary;
   document.getElementById("edit-commission-bonus").value = user.commissionBonus;
-  document.getElementById("edit-holiday-days").value = user.currentHolidayDays;
-  document.getElementById("edit-night-shift-days").value =
-    user.currentNightShiftDays;
-  document.getElementById("edit-holiday-bonus").value = user.holidayBonusPerDay;
-  document.getElementById("edit-night-shift-bonus").value =
-    user.nightShiftBonusPerDay;
+  document.getElementById("edit-responsibility").value = user.responsibility;
+  document.getElementById("edit-weekday-overtime").value =
+    user.weekdayOvertimeHour;
+  document.getElementById("edit-weekend-overtime").value =
+    user.weekendOvertimeHour;
+  document.getElementById("edit-holiday-overtime").value =
+    user.holidayOvertimeHour;
   document.getElementById("edit-travel-expense").value = user.travelExpense;
   document.getElementById("edit-insurable-salary").value = user.insurableSalary;
   document.getElementById("edit-dependant-count").value = user.dependantCount;
@@ -296,17 +302,17 @@ async function updateUser(e) {
     commissionBonus: parseFloat(
       document.getElementById("edit-commission-bonus").value
     ),
-    currentHolidayDays: parseInt(
-      document.getElementById("edit-holiday-days").value
+    responsibility: parseFloat(
+      document.getElementById("edit-responsibility").value
     ),
-    currentNightShiftDays: parseInt(
-      document.getElementById("edit-night-shift-days").value
+    weekdayOvertimeHour: parseFloat(
+      document.getElementById("edit-weekday-overtime").value
     ),
-    holidayBonusPerDay: parseFloat(
-      document.getElementById("edit-holiday-bonus").value
+    weekendOvertimeHour: parseFloat(
+      document.getElementById("edit-weekend-overtime").value
     ),
-    nightShiftBonusPerDay: parseFloat(
-      document.getElementById("edit-night-shift-bonus").value
+    holidayOvertimeHour: parseFloat(
+      document.getElementById("edit-holiday-overtime").value
     ),
     travelExpense: parseFloat(
       document.getElementById("edit-travel-expense").value
@@ -328,24 +334,26 @@ async function updateUser(e) {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || "Failed to update user");
+      throw new Error(
+        error.message || "Không thể cập nhật thông tin nhân viên"
+      );
     }
 
     document.getElementById("edit-user-modal").style.display = "none";
-    showSuccess("User updated successfully!");
+    showSuccess("Cập nhật thông tin nhân viên thành công!");
     loadUsers();
   } catch (err) {
-    showError(err.message || "Error updating user");
+    showError(err.message || "Lỗi khi cập nhật thông tin nhân viên");
   }
 }
 
 async function deleteUser(id) {
-  if (!confirm("Delete this user?")) return;
+  if (!confirm("Bạn có chắc chắn muốn xóa nhân viên này?")) return;
 
   try {
     const response = await fetch(`/userControl/${id}`, { method: "DELETE" });
-    if (!response.ok) throw new Error("Failed to delete user");
-    showSuccess("User deleted successfully!");
+    if (!response.ok) throw new Error("Không thể xóa nhân viên");
+    showSuccess("Xóa nhân viên thành công!");
     loadUsers();
   } catch (err) {
     showError(err.message);

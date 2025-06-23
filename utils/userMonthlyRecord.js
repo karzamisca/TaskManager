@@ -61,13 +61,15 @@ async function createMonthlyUserRecords(recordDate = new Date()) {
 
           // Copy salary data
           baseSalary: user.baseSalary,
+          hourlyWage: user.hourlyWage,
           commissionBonus: user.commissionBonus,
-          holidayBonusPerDay: user.holidayBonusPerDay,
-          nightShiftBonusPerDay: user.nightShiftBonusPerDay,
+          responsibility: user.responsibility,
+          weekdayOvertimeHour: user.weekdayOvertimeHour,
+          weekendOvertimeHour: user.weekendOvertimeHour,
+          holidayOvertimeHour: user.holidayOvertimeHour,
+          overtimePay: user.overtimePay,
           insurableSalary: user.insurableSalary,
           mandatoryInsurance: user.mandatoryInsurance,
-          currentHolidayDays: user.currentHolidayDays,
-          currentNightShiftDays: user.currentNightShiftDays,
           currentSalary: user.currentSalary,
           grossSalary: user.grossSalary,
 

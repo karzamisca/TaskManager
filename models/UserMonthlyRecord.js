@@ -43,13 +43,15 @@ const monthlyUserRecordSchema = new mongoose.Schema(
 
     // Salary information
     baseSalary: { type: Number, default: 0 },
+    hourlyWage: { type: Number, default: 0 },
     commissionBonus: { type: Number, default: 0 },
-    holidayBonusPerDay: { type: Number, default: 0 },
-    nightShiftBonusPerDay: { type: Number, default: 0 },
+    responsibility: { type: Number, default: 0 },
+    weekdayOvertimeHour: { type: Number, default: 0 },
+    weekendOvertimeHour: { type: Number, default: 0 },
+    holidayOvertimeHour: { type: Number, default: 0 },
+    overtimePay: { type: Number, default: 0 },
     insurableSalary: { type: Number, default: 0 },
     mandatoryInsurance: { type: Number, default: 0 },
-    currentHolidayDays: { type: Number, default: 0 },
-    currentNightShiftDays: { type: Number, default: 0 },
     currentSalary: { type: Number, default: 0 },
     grossSalary: { type: Number, default: 0 },
 

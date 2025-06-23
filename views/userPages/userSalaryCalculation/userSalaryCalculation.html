@@ -1,74 +1,74 @@
 <!-- views\userPages\userSalaryCalculation\userSalaryCalculation.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Bảng tính lương/Salary Calculation</title>
+    <title>Bảng tính lương</title>
     <link
       rel="stylesheet"
       href="userPages/userSalaryCalculation/userSalaryCalculation.css"
     />
   </head>
   <body>
-    <a href="/userMain">Trở về/Back</a>
+    <a href="/userMain">Trở về</a>
     <div class="container">
-      <h1>Bảng tính lương/Salary Calculation</h1>
+      <h1>Bảng tính lương</h1>
 
       <div class="tabs">
         <button class="tab-button active" data-tab="users">
-          Người dùng/Users
+          Danh sách nhân viên
         </button>
-        <button class="tab-button" data-tab="add-user">
-          Thêm người dùng/Add User
-        </button>
+        <button class="tab-button" data-tab="add-user">Thêm nhân viên</button>
       </div>
 
       <div class="tab-content">
         <div id="users" class="tab-pane active">
           <div class="filter-section">
-            <h2>Lọc/Filters</h2>
+            <h2>Bộ lọc</h2>
             <div class="filter-form">
               <div class="form-group">
                 <label for="user-cost-center-filter"
-                  >Người dùng thuộc trạm/User of Cost Center:</label
+                  >Nhân viên thuộc trạm:</label
                 >
                 <select id="user-cost-center-filter">
-                  <option value="all">Tất cả trạm/All Cost Centers</option>
+                  <option value="all">Tất cả trạm</option>
                 </select>
               </div>
               <button id="filter-button" class="btn primary">
-                Áp dụng lọc/Apply Filters
+                Áp dụng bộ lọc
               </button>
             </div>
           </div>
 
-          <h2>Thông tin người dùng/User Information</h2>
+          <h2>Thông tin nhân viên</h2>
           <div class="table-container">
             <table id="users-table">
               <thead>
                 <tr>
-                  <th>Tên/Username</th>
-                  <th>Trạm/Cost Center</th>
-                  <th>Người quản lý/Assigned Manager</th>
-                  <th>Ngân hàng hưởng/Beneficiary Bank</th>
-                  <th>Số tài khoản/Bank Account Number</th>
-                  <th>Căn cước công dân/Citizen ID</th>
-                  <th>Lương căn bản/Base Salary</th>
-                  <th>Hoa hồng/Commission Bonus</th>
-                  <th>Ngày lễ/Holiday Days</th>
-                  <th>Ngày trực đêm/Night Shift Days</th>
-                  <th>Thưởng ngày lễ/Holiday Bonus</th>
-                  <th>Thưởng trực đêm/Night Shift Bonus</th>
-                  <th>Công tác phí/Travel Expense</th>
-                  <th>Tổng lương/Gross Salary</th>
-                  <th>Lương đóng bảo hiểm/Insurable Salary:</th>
-                  <th>Bảo hiểm bắt buộc/Mandatory Insurance:</th>
-                  <th>Số người phụ thuộc/Dependant Count</th>
-                  <th>Thu nhập tính thuế /Taxable Income</th>
-                  <th>Thuế thu nhập/Income Tax</th>
-                  <th>Lương thực tế/Current Salary</th>
-                  <th>Hành động/Actions</th>
+                  <th>Tên đăng nhập</th>
+                  <th>Trạm</th>
+                  <th>Người quản lý</th>
+                  <th>Ngân hàng</th>
+                  <th>Số tài khoản</th>
+                  <th>Căn cước công dân</th>
+                  <th>Lương cơ bản</th>
+                  <th>Lương theo giờ</th>
+                  <th>Hoa hồng</th>
+                  <th>Trách nhiệm</th>
+                  <th>Giờ tăng ca trong tuần</th>
+                  <th>Giờ tăng ca cuối tuần</th>
+                  <th>Giờ tăng ca ngày lễ</th>
+                  <th>Lương làm thêm</th>
+                  <th>Công tác phí</th>
+                  <th>Tổng lương</th>
+                  <th>Lương đóng bảo hiểm</th>
+                  <th>Bảo hiểm bắt buộc</th>
+                  <th>Số người phụ thuộc</th>
+                  <th>Thu nhập tính thuế</th>
+                  <th>Thuế thu nhập</th>
+                  <th>Lương thực lĩnh</th>
+                  <th>Thao tác</th>
                 </tr>
               </thead>
               <tbody></tbody>
@@ -77,40 +77,34 @@
         </div>
 
         <div id="add-user" class="tab-pane">
-          <h2>Thêm người dùng mới/Add New User</h2>
+          <h2>Thêm nhân viên mới</h2>
           <form id="add-user-form">
             <div class="form-group">
-              <label for="new-username">Tên/Username:</label>
+              <label for="new-username">Tên đăng nhập:</label>
               <input type="text" id="new-username" required />
             </div>
             <div class="form-group">
-              <label for="new-cost-center">Trạm/Cost Center:</label>
+              <label for="new-cost-center">Trạm:</label>
               <select id="new-cost-center" required></select>
             </div>
             <div class="form-group">
-              <label for="new-assigned-manager"
-                >Người quản lý/Assigned Manager:</label
-              >
+              <label for="new-assigned-manager">Người quản lý:</label>
               <select id="new-assigned-manager"></select>
             </div>
             <div class="form-group">
-              <label for="new-beneficiary-bank"
-                >Ngân hàng hưởng/Beneficiary Bank:</label
-              >
+              <label for="new-beneficiary-bank">Ngân hàng:</label>
               <input type="text" id="new-beneficiary-bank" required />
             </div>
             <div class="form-group">
-              <label for="new-bank-account-number"
-                >Số tài khoản/Bank Account Number:</label
-              >
+              <label for="new-bank-account-number">Số tài khoản:</label>
               <input type="number" id="new-bank-account-number" required />
             </div>
             <div class="form-group">
-              <label for="new-citizen-id">Căn cước công dân/Citizen ID</label>
+              <label for="new-citizen-id">Căn cước công dân:</label>
               <input type="number" id="new-citizen-id" required />
             </div>
             <div class="form-group">
-              <label for="new-base-salary">Lương căn bản/Base Salary:</label>
+              <label for="new-base-salary">Lương cơ bản:</label>
               <input
                 type="number"
                 id="new-base-salary"
@@ -120,9 +114,7 @@
               />
             </div>
             <div class="form-group">
-              <label for="new-commission-bonus"
-                >Hoa hồng/Commission Bonus:</label
-              >
+              <label for="new-commission-bonus">Hoa hồng:</label>
               <input
                 type="number"
                 id="new-commission-bonus"
@@ -132,48 +124,47 @@
               />
             </div>
             <div class="form-group">
-              <label for="new-holiday-days">Ngày lễ/Holiday Days:</label>
-              <input type="number" id="new-holiday-days" min="0" value="0" />
-            </div>
-            <div class="form-group">
-              <label for="new-night-shift-days"
-                >Ngày trực đêm/Night Shift Days:</label
-              >
+              <label for="new-responsibility">Trách nhiệm:</label>
               <input
                 type="number"
-                id="new-night-shift-days"
-                min="0"
-                value="0"
-              />
-            </div>
-            <div class="form-group">
-              <label for="new-holiday-bonus"
-                >Thưởng ngày lễ/Holiday Bonus:</label
-              >
-              <input
-                type="number"
-                id="new-holiday-bonus"
+                id="new-responsibility"
                 min="0"
                 step="0.01"
                 value="0"
               />
             </div>
             <div class="form-group">
-              <label for="new-night-shift-bonus"
-                >Thưởng trực đêm/Night Shift Bonus:</label
-              >
+              <label for="new-weekday-overtime">Giờ tăng ca trong tuần:</label>
               <input
                 type="number"
-                id="new-night-shift-bonus"
+                id="new-weekday-overtime"
                 min="0"
-                step="0.01"
+                step="0.1"
                 value="0"
               />
             </div>
             <div class="form-group">
-              <label for="new-travel-expense"
-                >Công tác phí/Travel Expense:</label
-              >
+              <label for="new-weekend-overtime">Giờ tăng ca cuối tuần:</label>
+              <input
+                type="number"
+                id="new-weekend-overtime"
+                min="0"
+                step="0.1"
+                value="0"
+              />
+            </div>
+            <div class="form-group">
+              <label for="new-holiday-overtime">Giờ tăng ca ngày lễ:</label>
+              <input
+                type="number"
+                id="new-holiday-overtime"
+                min="0"
+                step="0.1"
+                value="0"
+              />
+            </div>
+            <div class="form-group">
+              <label for="new-travel-expense">Công tác phí:</label>
               <input
                 type="number"
                 id="new-travel-expense"
@@ -183,9 +174,7 @@
               />
             </div>
             <div class="form-group">
-              <label for="new-insurable-salary"
-                >Lương đóng bảo hiểm/Insurable Salary:</label
-              >
+              <label for="new-insurable-salary">Lương đóng bảo hiểm:</label>
               <input
                 type="number"
                 id="new-insurable-salary"
@@ -195,14 +184,10 @@
               />
             </div>
             <div class="form-group">
-              <label for="new-dependant-count"
-                >Số người phụ thuộc/Dependant Count:</label
-              >
+              <label for="new-dependant-count">Số người phụ thuộc:</label>
               <input type="number" id="new-dependant-count" min="0" value="0" />
             </div>
-            <button type="submit" class="btn primary">
-              Thêm người dùng/Add User
-            </button>
+            <button type="submit" class="btn primary">Thêm nhân viên</button>
           </form>
         </div>
       </div>
@@ -211,41 +196,35 @@
       <div id="edit-user-modal" class="modal">
         <div class="modal-content">
           <span class="close-modal">&times;</span>
-          <h2>Edit User</h2>
+          <h2>Chỉnh sửa thông tin nhân viên</h2>
           <form id="edit-user-form">
             <input type="hidden" id="edit-user-id" />
             <div class="form-group">
-              <label for="edit-username">Tên/Username:</label>
+              <label for="edit-username">Tên đăng nhập:</label>
               <input type="text" id="edit-username" required />
             </div>
             <div class="form-group">
-              <label for="edit-cost-center">Trạm/Cost Center:</label>
+              <label for="edit-cost-center">Trạm:</label>
               <select id="edit-cost-center" required></select>
             </div>
             <div class="form-group">
-              <label for="edit-assigned-manager"
-                >Người quản lý/Assigned Manager:</label
-              >
+              <label for="edit-assigned-manager">Quản lý trực tiếp:</label>
               <select id="edit-assigned-manager"></select>
             </div>
             <div class="form-group">
-              <label for="edit-beneficiary-bank"
-                >Ngân hàng hưởng/Beneficiary Bank:</label
-              >
+              <label for="edit-beneficiary-bank">Ngân hàng:</label>
               <input type="text" id="edit-beneficiary-bank" required />
             </div>
             <div class="form-group">
-              <label for="edit-bank-account-number"
-                >Số tài khoản/Bank Account Number:</label
-              >
+              <label for="edit-bank-account-number">Số tài khoản:</label>
               <input type="number" id="edit-bank-account-number" required />
             </div>
             <div class="form-group">
-              <label for="edit-citizen-id">Căn cước công dân/Citizen ID</label>
+              <label for="edit-citizen-id">Căn cước công dân:</label>
               <input type="number" id="edit-citizen-id" required />
             </div>
             <div class="form-group">
-              <label for="edit-base-salary">Lương căn bản/Base Salary:</label>
+              <label for="edit-base-salary">Lương cơ bản:</label>
               <input
                 type="number"
                 id="edit-base-salary"
@@ -255,9 +234,7 @@
               />
             </div>
             <div class="form-group">
-              <label for="edit-commission-bonus"
-                >Hoa hồng/Commission Bonus:</label
-              >
+              <label for="edit-commission-bonus">Hoa hồng:</label>
               <input
                 type="number"
                 id="edit-commission-bonus"
@@ -267,46 +244,47 @@
               />
             </div>
             <div class="form-group">
-              <label for="edit-holiday-days">Ngày lễ/Holiday Days:</label>
-              <input type="number" id="edit-holiday-days" min="0" value="0" />
-            </div>
-            <div class="form-group">
-              <label for="edit-night-shift-days"
-                >Ngày trực đêm/Night Shift Days:</label
-              >
+              <label for="edit-responsibility">Trách nhiệm:</label>
               <input
                 type="number"
-                id="edit-night-shift-days"
-                min="0"
-                value="0"
-              />
-            </div>
-            <div class="form-group">
-              <label for="edit-holiday-bonus">Thưởng lễ/Holiday Bonus:</label>
-              <input
-                type="number"
-                id="edit-holiday-bonus"
+                id="edit-responsibility"
                 min="0"
                 step="0.01"
                 value="0"
               />
             </div>
             <div class="form-group">
-              <label for="edit-night-shift-bonus"
-                >Thưởng trực đêm/Night Shift Bonus:</label
-              >
+              <label for="edit-weekday-overtime">Giờ tăng ca trong tuần:</label>
               <input
                 type="number"
-                id="edit-night-shift-bonus"
+                id="edit-weekday-overtime"
                 min="0"
-                step="0.01"
+                step="0.1"
                 value="0"
               />
             </div>
             <div class="form-group">
-              <label for="edit-travel-expense"
-                >Công tác phí/Travel Expense:</label
-              >
+              <label for="edit-weekend-overtime">Giờ tăng ca cuối tuần:</label>
+              <input
+                type="number"
+                id="edit-weekend-overtime"
+                min="0"
+                step="0.1"
+                value="0"
+              />
+            </div>
+            <div class="form-group">
+              <label for="edit-holiday-overtime">Giờ tăng ca ngày lễ:</label>
+              <input
+                type="number"
+                id="edit-holiday-overtime"
+                min="0"
+                step="0.1"
+                value="0"
+              />
+            </div>
+            <div class="form-group">
+              <label for="edit-travel-expense">Công tác phí:</label>
               <input
                 type="number"
                 id="edit-travel-expense"
@@ -316,9 +294,7 @@
               />
             </div>
             <div class="form-group">
-              <label for="edit-insurable-salary"
-                >Lương đóng bảo hiểm/Insurable Salary:</label
-              >
+              <label for="edit-insurable-salary">Lương đóng bảo hiểm:</label>
               <input
                 type="number"
                 id="edit-insurable-salary"
@@ -328,9 +304,7 @@
               />
             </div>
             <div class="form-group">
-              <label for="edit-dependant-count"
-                >Số người phụ thuộc/Dependant Count:</label
-              >
+              <label for="edit-dependant-count">Số người phụ thuộc:</label>
               <input
                 type="number"
                 id="edit-dependant-count"
@@ -338,13 +312,13 @@
                 value="0"
               />
             </div>
-            <button type="submit" class="btn primary">Cập nhật/Update</button>
+            <button type="submit" class="btn primary">Cập nhật</button>
           </form>
         </div>
       </div>
 
-      <a href="/userMain">Trở về/Back</a>
-      <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?=v1.0"></script>
+      <a href="/userMain">Trở về</a>
+      <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?=v1.1"></script>
     </div>
   </body>
 </html>

@@ -169,12 +169,14 @@ exports.createUser = async (req, res) => {
       citizenID,
       baseSalary,
       commissionBonus,
-      holidayBonusPerDay,
-      nightShiftBonusPerDay,
+      responsibility,
+      weekdayOvertimeHour,
+      weekendOvertimeHour,
+      holidayOvertimeHour,
       insurableSalary,
-      currentHolidayDays,
-      currentNightShiftDays,
       travelExpense,
+      email,
+      facebookUserId,
     } = req.body;
 
     const existingUser = await User.findOne({ username });
@@ -196,13 +198,15 @@ exports.createUser = async (req, res) => {
       citizenID,
       baseSalary,
       commissionBonus: commissionBonus || 0,
-      holidayBonusPerDay: holidayBonusPerDay || 0,
-      nightShiftBonusPerDay: nightShiftBonusPerDay || 0,
+      responsibility: responsibility || 0,
+      weekdayOvertimeHour: weekdayOvertimeHour || 0,
+      weekendOvertimeHour: weekendOvertimeHour || 0,
+      holidayOvertimeHour: holidayOvertimeHour || 0,
       insurableSalary: insurableSalary || 0,
-      currentHolidayDays: currentHolidayDays || 0,
-      currentNightShiftDays: currentNightShiftDays || 0,
       dependantCount: req.body.dependantCount || 0,
       travelExpense: travelExpense || 0,
+      email: email || "",
+      facebookUserId: facebookUserId || "",
     });
 
     const savedUser = await newUser.save();
@@ -242,12 +246,14 @@ exports.updateUser = async (req, res) => {
       bankAccountNumber,
       citizenID,
       commissionBonus,
-      holidayBonusPerDay,
-      nightShiftBonusPerDay,
+      responsibility,
+      weekdayOvertimeHour,
+      weekendOvertimeHour,
+      holidayOvertimeHour,
       insurableSalary,
-      currentHolidayDays,
-      currentNightShiftDays,
       travelExpense,
+      email,
+      facebookUserId,
     } = req.body;
 
     const user = await User.findById(req.params.id);
@@ -279,16 +285,17 @@ exports.updateUser = async (req, res) => {
     if (commissionBonus !== undefined) {
       user.commissionBonus = commissionBonus;
     }
-    if (holidayBonusPerDay !== undefined)
-      user.holidayBonusPerDay = holidayBonusPerDay;
-    if (nightShiftBonusPerDay !== undefined)
-      user.nightShiftBonusPerDay = nightShiftBonusPerDay;
+    if (responsibility !== undefined) user.responsibility = responsibility;
+    if (weekdayOvertimeHour !== undefined)
+      user.weekdayOvertimeHour = weekdayOvertimeHour;
+    if (weekendOvertimeHour !== undefined)
+      user.weekendOvertimeHour = weekendOvertimeHour;
+    if (holidayOvertimeHour !== undefined)
+      user.holidayOvertimeHour = holidayOvertimeHour;
     if (insurableSalary !== undefined) user.insurableSalary = insurableSalary;
-    if (currentHolidayDays !== undefined)
-      user.currentHolidayDays = currentHolidayDays;
-    if (currentNightShiftDays !== undefined)
-      user.currentNightShiftDays = currentNightShiftDays;
     if (travelExpense !== undefined) user.travelExpense = travelExpense;
+    if (email !== undefined) user.email = email;
+    if (facebookUserId !== undefined) user.facebookUserId = facebookUserId;
     if (assignedManager) {
       const managerExists = await User.findById(assignedManager);
       if (!managerExists) {
@@ -388,6 +395,7 @@ exports.getUserMonthlyRecordPage = (req, res) => {
     res.send("Server error");
   }
 };
+
 exports.getAllUserMonthlyRecord = async (req, res) => {
   try {
     const records = await UserMonthlyRecord.find()

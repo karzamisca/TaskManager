@@ -30,13 +30,15 @@ const userSchema = new mongoose.Schema({
   bankAccountNumber: { type: Number, default: 0 },
   citizenID: { type: Number, default: 0 },
   baseSalary: { type: Number, default: 0 },
+  hourlyWage: { type: Number, default: 0 },
   commissionBonus: { type: Number, default: 0 },
-  holidayBonusPerDay: { type: Number, default: 0 },
-  nightShiftBonusPerDay: { type: Number, default: 0 },
+  responsibility: { type: Number, default: 0 },
+  weekdayOvertimeHour: { type: Number, default: 0 },
+  weekendOvertimeHour: { type: Number, default: 0 },
+  holidayOvertimeHour: { type: Number, default: 0 },
+  overtimePay: { type: Number, default: 0 },
   insurableSalary: { type: Number, default: 0 },
   mandatoryInsurance: { type: Number, default: 0 },
-  currentHolidayDays: { type: Number, default: 0 },
-  currentNightShiftDays: { type: Number, default: 0 },
   currentSalary: { type: Number, default: 0 },
   email: { type: String },
   facebookUserId: { type: String },
@@ -45,7 +47,6 @@ const userSchema = new mongoose.Schema({
   grossSalary: { type: Number, default: 0 },
   dependantCount: { type: Number, default: 0 },
   taxableIncome: { type: Number, default: 0 },
-
   // Travel Expense Fields
   travelExpense: { type: Number, default: 0 },
 });
@@ -57,13 +58,23 @@ userSchema.pre("save", function (next) {
     this.password = generateRandomPassword();
   }
 
+  // Calculate hourly wage according to Vietnamese law (baseSalary/26 working days/8 hours per day)
+  this.hourlyWage = this.baseSalary / 26 / 8 || 0;
+
+  // Calculate overtime pay according to Vietnamese labor law
+  const weekdayOvertimePay = this.weekdayOvertimeHour * this.hourlyWage * 1.5; // 150% for weekday overtime
+  const weekendOvertimePay = this.weekendOvertimeHour * this.hourlyWage * 2; // 200% for weekend overtime
+  const holidayOvertimePay = this.holidayOvertimeHour * this.hourlyWage * 3; // 300% for holiday overtime
+  this.overtimePay =
+    weekdayOvertimePay + weekendOvertimePay + holidayOvertimePay;
+
   // Calculate gross salary (before deductions)
   this.grossSalary =
     this.baseSalary +
-    this.holidayBonusPerDay * this.currentHolidayDays +
-    this.nightShiftBonusPerDay * this.currentNightShiftDays +
-    this.travelExpense +
-    this.commissionBonus;
+    this.commissionBonus +
+    this.responsibility +
+    this.overtimePay +
+    this.travelExpense;
 
   // Calculate mandatory insurance according to Vietnamese law
   // Social Insurance (8%), Health Insurance (1.5%), Unemployment Insurance (1%)
@@ -71,9 +82,6 @@ userSchema.pre("save", function (next) {
 
   // Vietnam has both minimum salary and regional minimum salary
   const minimumSalary = 2340000; // Basic minimum salary in VND
-
-  // Vietnam has 4 regional minimum salary levels based on location
-  // Using the highest regional minimum salary (Region I - currently 4,680,000 VND) for the cap calculation
   const regionalMinSalary = 4960000; // Region I minimum salary in VND
 
   // For social insurance and health insurance, cap is based on 20x basic minimum salary
