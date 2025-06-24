@@ -630,6 +630,12 @@ const showFullView = (docId) => {
             <span class="detail-value">${doc.dateOfError || "Không có"}</span>
           </div>
           <div class="detail-item">
+            <span class="detail-label">Người nộp:</span>
+            <span class="detail-value">${
+              doc.submittedBy?.username || "Không rõ"
+            }</span>
+          </div>
+          <div class="detail-item">
             <span class="detail-label">Ngày nộp:</span>
             <span class="detail-value">${submissionDate}</span>
           </div>
