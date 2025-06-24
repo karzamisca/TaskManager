@@ -85,8 +85,8 @@ app.use((err, req, res, next) => {
   }
 });
 
-// Monthly user records cron job - runs on the 1st day of every month at 2:00 AM
-cron.schedule("0 2 1 * *", async () => {
+// Monthly user records cron job - runs on the 1st day of every month at 8:00 AM
+cron.schedule("0 8 1 * *", async () => {
   try {
     const result = await createMonthlyUserRecords();
     // Silent execution - results are captured in the returned object

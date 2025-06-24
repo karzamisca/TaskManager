@@ -369,13 +369,20 @@ const renderDocumentsTable = (documents) => {
               </button>
           </form>
           ${
-            doc.approvedBy.length === 0
+            doc.approvedBy.length === 0 &&
+            (!doc.stages || doc.stages.length === 0)
               ? `
             <button class="btn btn-primary btn-sm" onclick="editDocument('${doc._id}')">
               <i class="fas fa-edit"></i> Sửa
             </button>
             <button class="btn btn-danger btn-sm" onclick="deleteDocument('${doc._id}')">
               <i class="fas fa-trash"></i> Xóa
+            </button>
+          `
+              : doc.approvedBy.length === 0
+              ? `
+            <button class="btn btn-primary btn-sm" onclick="editDocument('${doc._id}')">
+              <i class="fas fa-edit"></i> Sửa
             </button>
           `
               : ""
