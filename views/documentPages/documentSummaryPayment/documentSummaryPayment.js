@@ -437,50 +437,71 @@ const renderDocumentsTable = (documents) => {
   updateSelectAllCheckbox();
 };
 
+const parseDateFromString = (dateStr) => {
+  if (!dateStr) return null;
+
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return null;
+
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1; // Months are 0-indexed
+  const year = parseInt(parts[2], 10);
+
+  // Validate date components
+  if (isNaN(day)) return null;
+  if (isNaN(month)) return null;
+  if (isNaN(year)) return null;
+  if (year < 1000) return null; // Basic year validation
+
+  const date = new Date(year, month, day);
+
+  // Check if the date is valid (handles cases like 31-02-2023)
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+};
+
 const updateSummary = (filteredDocuments) => {
-  const summary = filteredDocuments.reduce(
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const thirtyDaysLater = new Date();
+  thirtyDaysLater.setDate(today.getDate() + 30);
+  thirtyDaysLater.setHours(0, 0, 0, 0);
+
+  // First, calculate the original summary values exactly as before
+  const originalSummary = filteredDocuments.reduce(
     (acc, doc) => {
       if (doc.status === "Approved") {
-        // If advance payment equals 0, then paid sum equals total payment
         if (doc.advancePayment === 0) {
           acc.paidSum += doc.totalPayment;
-        }
-        // If total payment equals 0, then paid sum equals advance payment
-        else if (doc.totalPayment === 0) {
+        } else if (doc.totalPayment === 0) {
           acc.paidSum += doc.advancePayment;
-        }
-        // Otherwise, paid sum equals total payment minus advance payment
-        else {
+        } else {
           acc.paidSum += doc.totalPayment - doc.advancePayment;
         }
         acc.approvedDocument += 1;
-      }
-      // Only one approver left
-      else if (doc.approvers.length - doc.approvedBy.length === 1) {
+      } else if (doc.approvers.length - doc.approvedBy.length === 1) {
         if (doc.advancePayment === 0) {
           acc.approvedSum += doc.totalPayment;
-        }
-        // If total payment equals 0, then approved sum equals advance payment
-        else if (doc.totalPayment === 0) {
+        } else if (doc.totalPayment === 0) {
           acc.approvedSum += doc.advancePayment;
-        }
-        // Otherwise, approved sum equals total payment minus advance payment
-        else {
+        } else {
           acc.approvedSum += doc.totalPayment - doc.advancePayment;
         }
         acc.unapprovedDocument += 1;
-      }
-      // More than one approver left
-      else {
+      } else {
         if (doc.advancePayment === 0) {
           acc.unapprovedSum += doc.totalPayment;
-        }
-        // If total payment equals 0, then unapproved sum equals advance payment
-        else if (doc.totalPayment === 0) {
+        } else if (doc.totalPayment === 0) {
           acc.unapprovedSum += doc.advancePayment;
-        }
-        // Otherwise, unapproved sum equals total payment minus advance payment
-        else {
+        } else {
           acc.unapprovedSum += doc.totalPayment - doc.advancePayment;
         }
         acc.unapprovedDocument += 1;
@@ -496,20 +517,91 @@ const updateSummary = (filteredDocuments) => {
     }
   );
 
+  // Then calculate the new values (due in 30 days and expired) only for pending documents
+  const newCalculations = filteredDocuments.reduce(
+    (acc, doc) => {
+      // Skip approved and suspended documents
+      if (doc.status !== "Pending") return acc;
+
+      // Helper function to parse DD-MM-YYYY dates
+      const parseDate = (dateStr) => {
+        if (!dateStr) return null;
+        const parts = dateStr.split("-");
+        if (parts.length !== 3) return null;
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        const date = new Date(year, month, day);
+        // Validate the date
+        if (
+          date.getFullYear() !== year ||
+          date.getMonth() !== month ||
+          date.getDate() !== day
+        ) {
+          return null;
+        }
+        return date;
+      };
+
+      // For documents with stages
+      if (doc.stages && doc.stages.length > 0) {
+        doc.stages.forEach((stage) => {
+          const deadline = parseDate(stage.deadline);
+          if (!deadline) return;
+
+          const amount = stage.amount || 0;
+
+          if (deadline >= today && deadline <= thirtyDaysLater) {
+            acc.dueIn30DaysSum += amount;
+          } else if (deadline < today) {
+            acc.expiredSum += amount;
+          }
+        });
+      }
+      // For documents without stages
+      else {
+        const deadline = parseDate(doc.paymentDeadline);
+        if (!deadline) return;
+
+        const amount = doc.totalPayment || 0;
+
+        if (deadline >= today && deadline <= thirtyDaysLater) {
+          acc.dueIn30DaysSum += amount;
+        } else if (deadline < today) {
+          acc.expiredSum += amount;
+        }
+      }
+
+      return acc;
+    },
+    {
+      dueIn30DaysSum: 0,
+      expiredSum: 0,
+    }
+  );
+
   // Update the summary display
   document.getElementById("paidSum").textContent = formatCurrency(
-    summary.paidSum
+    originalSummary.paidSum
   );
   document.getElementById("approvedSum").textContent = formatCurrency(
-    summary.approvedSum
+    originalSummary.approvedSum
   );
   document.getElementById("unapprovedSum").textContent = formatCurrency(
-    summary.unapprovedSum
+    originalSummary.unapprovedSum
   );
   document.getElementById("approvedDocument").textContent =
-    summary.approvedDocument.toLocaleString();
+    originalSummary.approvedDocument.toLocaleString();
   document.getElementById("unapprovedDocument").textContent =
-    summary.unapprovedDocument.toLocaleString();
+    originalSummary.unapprovedDocument.toLocaleString();
+
+  // Update the new fields
+  document.getElementById("dueIn30DaysSum").textContent = formatCurrency(
+    newCalculations.dueIn30DaysSum
+  );
+  document.getElementById("expiredSum").textContent = formatCurrency(
+    newCalculations.expiredSum
+  );
 };
 
 const renderPagination = () => {
