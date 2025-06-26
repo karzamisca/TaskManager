@@ -492,16 +492,16 @@ const createModalContent = (record) => {
       <p><strong>Lương cơ bản:</strong> ${record.baseSalary.toLocaleString()}</p>
       <p><strong>Lương theo giờ:</strong> ${record.hourlyWage.toLocaleString()}</p>
       <p><strong>Phụ cấp trách nhiệm:</strong> ${record.responsibility.toLocaleString()}</p>
-      <p><strong>Giờ làm thêm trong tuần:</strong> ${
+      <p><strong>Giờ tăng ca trong tuần:</strong> ${
         record.weekdayOvertimeHour || 0
       } giờ</p>
-      <p><strong>Giờ làm thêm cuối tuần:</strong> ${
+      <p><strong>Giờ tăng ca Chủ Nhật:</strong> ${
         record.weekendOvertimeHour || 0
       } giờ</p>
-      <p><strong>Giờ làm thêm ngày lễ:</strong> ${
+      <p><strong>Giờ tăng ca ngày lễ:</strong> ${
         record.holidayOvertimeHour || 0
       } giờ</p>
-      <p><strong>Lương làm thêm:</strong> ${record.overtimePay.toLocaleString()}</p>
+      <p><strong>Lương tăng ca:</strong> ${record.overtimePay.toLocaleString()}</p>
       <p><strong>Lương đóng bảo hiểm:</strong> ${record.insurableSalary.toLocaleString()}</p>
       <p><strong>Bảo hiểm bắt buộc:</strong> ${record.mandatoryInsurance.toLocaleString()}</p>
       <p><strong>Lương hiện tại:</strong> ${record.currentSalary.toLocaleString()}</p>
