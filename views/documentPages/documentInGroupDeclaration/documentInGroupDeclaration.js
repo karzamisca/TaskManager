@@ -2,6 +2,7 @@
 let allGroups = [];
 let allDocuments = [];
 let unassignedDocuments = [];
+let scrollPosition = 0;
 
 // Initialize the page
 document.addEventListener("DOMContentLoaded", () => {
@@ -12,6 +13,9 @@ document.addEventListener("DOMContentLoaded", () => {
 // Load all necessary data
 async function loadData() {
   try {
+    // Save current scroll position
+    scrollPosition = window.scrollY || document.documentElement.scrollTop;
+
     const [groupsRes, unassignedRes] = await Promise.all([
       fetch("/getGroupDeclaration"),
       fetch("/getUnassignedDocumentsForGroupDeclaration"),
@@ -32,6 +36,9 @@ async function loadData() {
 
     // Now that we have all data, render the groups
     renderGroups();
+
+    // Restore scroll position after rendering
+    window.scrollTo(0, scrollPosition);
   } catch (error) {
     console.error("Error loading data:", error);
     showNotification("Lỗi khi tải dữ liệu", "error");
@@ -41,7 +48,9 @@ async function loadData() {
 // Render all groups with their documents
 function renderGroups() {
   const container = document.getElementById("groups-container");
-  container.innerHTML = "";
+
+  // Create a document fragment to build our updates off-DOM
+  const fragment = document.createDocumentFragment();
 
   if (allGroups.length === 0) {
     container.innerHTML = "<p>Không có nhóm nào</p>";
@@ -59,12 +68,50 @@ function renderGroups() {
     return formattedDateB.localeCompare(formattedDateA);
   });
 
+  // Get existing group elements
+  const existingGroups = Array.from(container.querySelectorAll(".group-card"));
+  const existingGroupNames = existingGroups.map(
+    (el) => el.querySelector(".group-title").textContent.split(" - ")[0]
+  );
+
   sortedGroups.forEach((group) => {
     const groupDocs = allDocuments.filter(
       (doc) => doc.groupDeclarationName === group.name
     );
-    const groupElement = createGroupElement(group, groupDocs);
-    container.appendChild(groupElement);
+
+    // Check if this group already exists in the DOM
+    const existingIndex = existingGroupNames.indexOf(group.name);
+
+    if (existingIndex >= 0) {
+      // Update existing group element
+      const existingGroup = existingGroups[existingIndex];
+      const newGroupElement = createGroupElement(group, groupDocs);
+
+      // Preserve expanded/collapsed state
+      const wasExpanded = existingGroup
+        .querySelector(".group-content")
+        .classList.contains("show");
+      if (wasExpanded) {
+        newGroupElement.querySelector(".group-content").classList.add("show");
+      }
+
+      // Replace the existing group with the updated one
+      container.replaceChild(newGroupElement, existingGroup);
+    } else {
+      // Add new group
+      const groupElement = createGroupElement(group, groupDocs);
+      fragment.appendChild(groupElement);
+    }
+  });
+
+  // Append any new groups
+  container.appendChild(fragment);
+
+  // Remove any groups that no longer exist
+  existingGroups.forEach((groupEl, index) => {
+    if (!sortedGroups.some((g) => g.name === existingGroupNames[index])) {
+      container.removeChild(groupEl);
+    }
   });
 }
 
@@ -167,7 +214,6 @@ function createGroupElement(group, documents) {
       if (response.ok) {
         showNotification(result.message, "success");
         await loadData();
-        renderGroups();
       } else {
         showNotification(result.message || "Lỗi khi thêm tài liệu", "error");
       }
@@ -387,7 +433,6 @@ function setupEventListeners() {
           showNotification("Tạo nhóm thành công", "success");
           e.target.reset();
           await loadData();
-          renderGroups();
         } else {
           const result = await response.json();
           showNotification(result.message || "Lỗi khi tạo nhóm", "error");
@@ -420,7 +465,6 @@ function setupEventListeners() {
         if (response.ok) {
           showNotification(result.message, "success");
           await loadData();
-          renderGroups();
         } else {
           showNotification(result.message || "Lỗi khi xóa tài liệu", "error");
         }
@@ -453,7 +497,6 @@ async function lockGroup(groupName) {
     if (response.ok) {
       showNotification(result.message, "success");
       await loadData();
-      renderGroups();
     } else {
       showNotification(result.message || "Lỗi khi khóa nhóm", "error");
     }
@@ -477,7 +520,6 @@ async function unlockGroup(groupName) {
     if (response.ok) {
       showNotification(result.message, "success");
       await loadData();
-      renderGroups();
     } else {
       showNotification(result.message || "Lỗi khi mở khóa nhóm", "error");
     }
@@ -543,7 +585,6 @@ async function submitMassUpdate(groupName) {
       showNotification(result, "success");
       closeModal();
       await loadData();
-      renderGroups();
     } else {
       showNotification("Lỗi khi cập nhật kê khai", "error");
     }
@@ -1275,7 +1316,6 @@ async function saveDeclaration(
 
     // Refresh data to ensure consistency
     await loadData();
-    renderGroups();
   } catch (error) {
     console.error("Error updating declaration:", error);
     showNotification("Lỗi khi cập nhật kê khai", "error");
