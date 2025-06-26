@@ -26,22 +26,6 @@ router.get(
   "/getGroupDeclarationedDocuments",
   groupDeclarationController.getGroupDeclarationedDocuments
 );
-// Approve document route
-router.get(
-  "/approveGroupDeclarationedDocument",
-  authMiddleware,
-  documentController.getPendingDocument
-);
-router.post(
-  "/approveGroupDeclarationedDocument/:id",
-  authMiddleware,
-  groupDeclarationController.approveGroupDeclarationedDocument
-);
-router.post(
-  "/deleteGroupDeclarationedDocument/:id",
-  authMiddleware,
-  groupDeclarationController.deleteGroupDeclarationedDocument
-);
 
 // Route to get unassigned documents
 router.get(
