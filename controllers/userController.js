@@ -317,22 +317,8 @@ exports.updateUser = async (req, res) => {
 
 exports.deleteUser = async (req, res) => {
   try {
-    if (
-      ![
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-      ].includes(req.user.role)
-    ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+    if (!["superAdmin"].includes(req.user.role)) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
     const user = await User.findById(req.params.id);
     if (!user) {
