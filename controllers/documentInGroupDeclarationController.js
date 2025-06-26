@@ -24,9 +24,7 @@ exports.getDocumentInGroupDeclarationViews = (req, res) => {
   ) {
     return res
       .status(403)
-      .send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
   res.sendFile("documentInGroupDeclaration.html", {
     root: "./views/documentPages/documentInGroupDeclaration",
@@ -36,6 +34,21 @@ exports.getDocumentInGroupDeclarationViews = (req, res) => {
 // Add a new groupDeclaration
 exports.createGroupDeclaration = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "captainOfPurchasing",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
     const { name, description } = req.body;
 
     // Check if groupDeclaration already exists
@@ -60,6 +73,22 @@ exports.createGroupDeclaration = async (req, res) => {
 
 // New method to get all groupDeclarations as JSON
 exports.getGroupDeclaration = (req, res) => {
+  if (
+    ![
+      "superAdmin",
+      "director",
+      "deputyDirector",
+      "headOfAccounting",
+      "headOfPurchasing",
+      "captainOfPurchasing",
+      "captainOfAccounting",
+    ].includes(req.user.role)
+  ) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+  }
+
   GroupDeclaration.find()
     .then((groupDeclarations) => {
       // Sort groups by date (extracted from the group name)
@@ -89,6 +118,22 @@ exports.getGroupDeclaration = (req, res) => {
 
 exports.getGroupDeclarationedDocuments = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "captainOfPurchasing",
+        "captainOfAccounting",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
     // Fetch all documents from the models and filter out documents without a valid groupDeclarationName
     const Documents = await Document.find({
       $and: [
@@ -176,10 +221,19 @@ exports.approveGroupDeclarationedDocument = async (req, res) => {
   const { id } = req.params;
 
   try {
-    if (req.user.role !== "approver") {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền phê duyệt tài liệu./Access denied. You don't have permission to approve document."
-      );
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "captainOfPurchasing",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Check if the document is a Generic, Proposal, or Purchasing Document
@@ -259,6 +313,21 @@ exports.deleteGroupDeclarationedDocument = async (req, res) => {
   const { id } = req.params;
 
   try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "captainOfPurchasing",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
     // Try to find the document in each collection
     let document = await Document.findById(id);
     let documentType = "Generic";
@@ -317,6 +386,21 @@ exports.deleteGroupDeclarationedDocument = async (req, res) => {
 // Add a document to a groupDeclaration
 exports.addDocumentToGroupDeclaration = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "captainOfPurchasing",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
     const { documentId, documentType, groupDeclarationName } = req.body;
 
     let document;
@@ -385,6 +469,21 @@ exports.addDocumentToGroupDeclaration = async (req, res) => {
 // Get all unassigned documents
 exports.getUnassignedDocuments = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "captainOfPurchasing",
+        "captainOfAccounting",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     // Fetch documents with no groupDeclaration assigned
     const genericDocuments = await Document.find({
       $or: [{ groupDeclarationName: null }, { groupDeclarationName: "" }],
@@ -454,6 +553,21 @@ exports.getUnassignedDocuments = async (req, res) => {
 // Remove document from groupDeclaration
 exports.removeDocumentFromGroupDeclaration = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "captainOfPurchasing",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
     const { documentId, documentType } = req.body;
 
     let document;

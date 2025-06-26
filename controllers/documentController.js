@@ -1445,7 +1445,7 @@ exports.updateProposalDocument = async (req, res) => {
     }
 
     await doc.save();
-    res.json({ message: "Document updated successfully" });
+    res.json({ message: "Phiếu được cập nhật thành công." });
   } catch (error) {
     console.error("Error updating proposal document:", error);
     res.status(500).json({ message: "Error updating document" });
