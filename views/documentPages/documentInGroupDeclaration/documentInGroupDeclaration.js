@@ -1,69 +1,237 @@
 // views\documentPages\documentInGroupDeclaration\documentInGroupDeclaration.js
-let currentUser = null;
-let groupDeclarationedDocuments = null;
-let allGroupDeclarations = [];
+let allGroups = [];
+let allDocuments = [];
 let unassignedDocuments = [];
 
-async function initializeDocumentManagement() {
+// Initialize the page
+document.addEventListener("DOMContentLoaded", async () => {
   try {
-    await refreshGroupData();
-    populateGroupDeclarationSelect();
-
-    const response = await fetch("/getUnassignedDocumentsForGroupDeclaration");
-    unassignedDocuments = await response.json();
-    populateDocumentSelect();
+    await loadData();
+    renderGroups();
+    renderUnassignedDocuments();
+    setupEventListeners();
   } catch (error) {
-    console.error("Error initializing:", error);
+    console.error("Initialization error:", error);
+    showNotification("Lỗi khi khởi tạo trang", "error");
   }
+});
 
-  document
-    .getElementById("groupDeclaration-select")
-    .addEventListener("change", handleGroupDeclarationChange);
-  document
-    .getElementById("add-to-groupDeclaration-btn")
-    .addEventListener("click", addDocumentToGroupDeclaration);
+// Load all necessary data
+async function loadData() {
+  try {
+    const [groupsRes, unassignedRes] = await Promise.all([
+      fetch("/getGroupDeclaration"),
+      fetch("/getUnassignedDocumentsForGroupDeclaration"),
+    ]);
 
-  document
-    .getElementById("lock-group-btn")
-    .addEventListener("click", lockGroupDeclaration);
-  document
-    .getElementById("unlock-group-btn")
-    .addEventListener("click", unlockGroupDeclaration);
+    allGroups = await groupsRes.json();
+    unassignedDocuments = await unassignedRes.json();
+
+    const groupDeclarationedRes = await fetch(
+      "/getGroupDeclarationedDocuments"
+    );
+    const groupDeclarationedData = await groupDeclarationedRes.json();
+
+    // Convert groupDeclarationed data to a more usable format
+    allDocuments = [];
+    for (const [groupName, docs] of Object.entries(groupDeclarationedData)) {
+      allDocuments.push(...docs);
+    }
+  } catch (error) {
+    console.error("Error loading data:", error);
+    throw error;
+  }
 }
 
-function populateGroupDeclarationSelect() {
-  const groupDeclarationSelect = document.getElementById(
-    "groupDeclaration-select"
-  );
+// Render all groups with their documents
+function renderGroups() {
+  const container = document.getElementById("groups-container");
+  container.innerHTML = "";
 
-  // Clear existing options except the first one (if any)
-  while (groupDeclarationSelect.options.length > 1) {
-    groupDeclarationSelect.remove(1);
+  if (allGroups.length === 0) {
+    container.innerHTML = "<p>Không có nhóm nào</p>";
+    return;
   }
 
-  // Populate the dropdown with groupDeclaration names and descriptions
-  allGroupDeclarations.forEach((groupDeclaration) => {
-    const option = document.createElement("option");
-    option.value = groupDeclaration.name;
+  // Sort groups by name (assuming PTT[DDMMYYYY] format)
+  const sortedGroups = [...allGroups].sort((a, b) => {
+    const dateA = a.name.replace("PTT", "");
+    const dateB = b.name.replace("PTT", "");
+    const formattedDateA =
+      dateA.substring(4) + dateA.substring(2, 4) + dateA.substring(0, 2);
+    const formattedDateB =
+      dateB.substring(4) + dateB.substring(2, 4) + dateB.substring(0, 2);
+    return formattedDateB.localeCompare(formattedDateA);
+  });
 
-    // Combine groupDeclaration name and description for display
-    option.textContent = `${groupDeclaration.name} - ${groupDeclaration.description}`;
-
-    groupDeclarationSelect.appendChild(option);
+  sortedGroups.forEach((group) => {
+    const groupDocs = allDocuments.filter(
+      (doc) => doc.groupDeclarationName === group.name
+    );
+    const groupElement = createGroupElement(group, groupDocs);
+    container.appendChild(groupElement);
   });
 }
 
-function populateDocumentSelect() {
-  const documentSelect = document.getElementById("document-select");
-  while (documentSelect.options.length > 1) {
-    documentSelect.remove(1);
+// Create a group card element
+function createGroupElement(group, documents) {
+  const groupElement = document.createElement("div");
+  groupElement.className = "group-card";
+
+  const header = document.createElement("div");
+  header.className = "group-header";
+  header.innerHTML = `
+        <div class="group-title">${group.name} - ${group.description}</div>
+        <div class="group-status ${group.locked ? "locked" : "unlocked"}">
+            ${group.locked ? "Đã khóa" : "Đang mở"}
+        </div>
+    `;
+
+  const content = document.createElement("div");
+  content.className = "group-content";
+
+  // Calculate totals
+  const paymentSum = documents
+    .filter((doc) => doc.type === "Thanh toán/Payment")
+    .reduce((sum, doc) => sum + (doc.totalPayment || 0), 0);
+
+  const advanceSum = documents
+    .filter((doc) => doc.type === "Tạm ứng/Advance Payment")
+    .reduce((sum, doc) => sum + (doc.advancePayment || 0), 0);
+
+  const summary = document.createElement("div");
+  summary.className = "group-summary";
+  summary.innerHTML = `
+        <p><strong>Tổng thanh toán:</strong> ${paymentSum.toLocaleString()}</p>
+        <p><strong>Tổng tạm ứng:</strong> ${advanceSum.toLocaleString()}</p>
+    `;
+  content.appendChild(summary);
+
+  // Action buttons
+  const actions = document.createElement("div");
+  actions.className = "group-actions";
+
+  const lockBtn = document.createElement("button");
+  lockBtn.className = `action-button ${group.locked ? "warning" : "danger"}`;
+  lockBtn.textContent = group.locked ? "Mở khóa" : "Khóa nhóm";
+  lockBtn.onclick = () =>
+    group.locked ? unlockGroup(group.name) : lockGroup(group.name);
+
+  const massUpdateBtn = document.createElement("button");
+  massUpdateBtn.className = "action-button primary";
+  massUpdateBtn.textContent = "Cập nhật kê khai";
+  massUpdateBtn.onclick = () => showMassUpdateForm(group.name);
+
+  actions.appendChild(lockBtn);
+  actions.appendChild(massUpdateBtn);
+  content.appendChild(actions);
+
+  // Documents list
+  if (documents.length > 0) {
+    const docsList = document.createElement("div");
+    docsList.className = "document-list";
+
+    documents.forEach((doc) => {
+      const docItem = createDocumentItem(doc, group.name);
+      docsList.appendChild(docItem);
+    });
+
+    content.appendChild(docsList);
+  } else {
+    const emptyMsg = document.createElement("p");
+    emptyMsg.textContent = "Không có tài liệu trong nhóm này";
+    content.appendChild(emptyMsg);
   }
+
+  // Toggle content visibility on header click
+  header.addEventListener("click", () => {
+    content.classList.toggle("show");
+  });
+
+  groupElement.appendChild(header);
+  groupElement.appendChild(content);
+
+  return groupElement;
+}
+
+// Create a document item element
+function createDocumentItem(doc, groupName) {
+  const docItem = document.createElement("div");
+  docItem.className = "document-item";
+
+  let docTitle = "";
+  let appendedInfo = "";
+
+  if (doc.type === "Chung/Generic") {
+    docTitle = doc.title || "Untitled";
+  } else if (doc.type === "Đề xuất/Proposal") {
+    docTitle = doc.task || "Untitled";
+  } else if (doc.type === "Mua hàng/Purchasing") {
+    docTitle = `${doc.title} (Tên: ${doc.name || ""}) (Tổng chi phí: ${
+      doc.grandTotalCost
+    })`;
+  } else if (doc.type === "Xuất kho/Delivery") {
+    docTitle = `${doc.title} (Tên: ${doc.name}) (Tổng chi phí: ${doc.grandTotalCost})`;
+  } else if (doc.type === "Tạm ứng/Advance Payment") {
+    docTitle = `(Mã: ${doc.tag}) (Kê khai: ${
+      doc.declaration || "Không có"
+    }) (Tạm ứng: ${doc.advancePayment?.toLocaleString() || 0})`;
+  } else if (doc.type === "Thanh toán/Payment") {
+    docTitle = `(Mã: ${doc.tag}) (Kê khai: ${
+      doc.declaration || "Không có"
+    }) (Tổng thanh toán: ${doc.totalPayment?.toLocaleString() || 0})`;
+  }
+
+  // Show appended documents count if available
+  if (doc.appendedProposals?.length > 0) {
+    appendedInfo += `<span class="appended-count">Đề xuất: ${doc.appendedProposals.length}</span>`;
+  }
+  if (doc.appendedPurchasingDocuments?.length > 0) {
+    appendedInfo += `<span class="appended-count">Mua hàng: ${doc.appendedPurchasingDocuments.length}</span>`;
+  }
+
+  docItem.innerHTML = `
+        <div class="document-info">
+            <strong>${doc.type}:</strong> ${docTitle}
+            ${
+              appendedInfo
+                ? `<div class="appended-docs">${appendedInfo}</div>`
+                : ""
+            }
+        </div>
+        <div class="document-actions">
+            <button class="action-button primary" onclick="showDocumentDetails('${
+              doc._id
+            }', '${groupName}')">
+                Chi tiết
+            </button>
+            <button class="action-button danger" data-id="${
+              doc._id
+            }" data-type="${getDocumentType(doc.type)}">
+                Xóa
+            </button>
+        </div>
+    `;
+
+  return docItem;
+}
+
+// Render unassigned documents dropdown
+function renderUnassignedDocuments() {
+  const select = document.getElementById("document-select");
+
+  // Clear existing options except the first one
+  while (select.options.length > 1) {
+    select.remove(1);
+  }
+
   unassignedDocuments.forEach((doc) => {
     const option = document.createElement("option");
     option.value = JSON.stringify({
       id: doc._id,
       type: doc.documentType,
     });
+
     let displayText = `${doc.displayType}: `;
     if (doc.documentType === "generic") {
       displayText += doc.title || "Untitled";
@@ -77,997 +245,317 @@ function populateDocumentSelect() {
       displayText += `${doc.title} (Tên: ${doc.name}) (Tổng chi phí: ${doc.grandTotalCost})`;
     } else if (doc.documentType === "advancePayment") {
       displayText += `(Mã/Tag: ${doc.tag}) (Kê khai: ${
-        doc.declaration
-      }) (Tạm ứng: ${doc.advancePayment.toLocaleString()})`;
+        doc.declaration || "Không có"
+      }) (Tạm ứng: ${doc.advancePayment?.toLocaleString() || 0})`;
     } else if (doc.documentType === "payment") {
       displayText += `(Mã/Tag: ${doc.tag}) (Kê khai: ${
-        doc.declaration
-      }) (Tổng thanh toán: ${doc.totalPayment.toLocaleString()})`;
+        doc.declaration || "Không có"
+      }) (Tổng thanh toán: ${doc.totalPayment?.toLocaleString() || 0})`;
     }
+
     option.textContent = displayText;
-    documentSelect.appendChild(option);
+    select.appendChild(option);
+  });
+
+  // Render group dropdown
+  const groupSelect = document.getElementById("group-select");
+  groupSelect.innerHTML = '<option value="">-- Chọn nhóm --</option>';
+
+  allGroups.forEach((group) => {
+    const option = document.createElement("option");
+    option.value = group.name;
+    option.textContent = `${group.name} - ${group.description}`;
+    groupSelect.appendChild(option);
   });
 }
 
-function showModal(docContent) {
-  document.getElementById("modalContent").innerHTML = docContent;
-  document.getElementById("documentModal").style.display = "block";
-}
+// Setup event listeners
+function setupEventListeners() {
+  // Create new group form
+  document
+    .getElementById("create-group-form")
+    .addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-function closeModal() {
-  document.getElementById("documentModal").style.display = "none";
-}
+      const name = document.getElementById("name").value.trim();
+      const description = document.getElementById("description").value.trim();
 
-function displayGroupDeclarationDocumentsForRemoval(
-  groupDeclarationName,
-  documents
-) {
-  const container = document.getElementById("remove-document-container");
-  container.innerHTML = "";
-
-  if (!documents || documents.length === 0) {
-    container.innerHTML = "<p>Không có tài liệu trong nhóm này</p>";
-    return;
-  }
-
-  // Compute the total payment sum for payment documents in this groupDeclaration
-  const totalPaymentSum = documents
-    .filter((doc) => doc.type === "Thanh toán/Payment")
-    .reduce((sum, doc) => {
-      if (doc.advancePayment === 0) {
-        sum += doc.totalPayment;
-      } else if (doc.totalPayment === 0) {
-        sum += doc.advancePayment;
-      } else {
-        sum += doc.totalPayment - doc.advancePayment;
+      if (!name || !description) {
+        showNotification("Vui lòng điền đầy đủ thông tin", "error");
+        return;
       }
-      return sum;
-    }, 0);
 
-  // Compute the total advance payment sum for advance payment documents in this groupDeclaration
-  const totalAdvancePaymentSum = documents
-    .filter((doc) => doc.type === "Tạm ứng/Advance Payment")
-    .reduce((sum, doc) => {
-      sum += doc.advancePayment || 0;
-      return sum;
-    }, 0);
+      try {
+        const response = await fetch("/createGroupDeclaration", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, description }),
+        });
 
-  // Create and insert a header showing the groupDeclaration name and computed total payment sum
-  const header = document.createElement("h3");
-  header.textContent = `Nhóm: ${groupDeclarationName} - Số tiền thanh toán: ${totalPaymentSum.toLocaleString()} - Số tiền tạm ứng: ${totalAdvancePaymentSum.toLocaleString()}`;
-  container.appendChild(header);
+        if (response.ok) {
+          showNotification("Tạo nhóm thành công", "success");
+          e.target.reset();
+          await loadData();
+          renderGroups();
+          renderUnassignedDocuments();
+        } else {
+          const result = await response.json();
+          showNotification(result.message || "Lỗi khi tạo nhóm", "error");
+        }
+      } catch (error) {
+        console.error("Error creating group:", error);
+        showNotification("Lỗi máy chủ", "error");
+      }
+    });
 
-  // Iterate over each document and display its details
-  documents.forEach((doc) => {
-    const documentItem = document.createElement("div");
-    let documentTitle = "";
-    if (doc.type === "Chung/Generic") {
-      documentTitle = doc.title || "Untitled";
-    } else if (doc.type === "Đề xuất/Proposal") {
-      documentTitle = doc.task || "Untitled";
-    } else if (doc.type === "Mua hàng/Purchasing") {
-      documentTitle = `${doc.title} (Tên: ${doc.name || ""}) (Tổng chi phí: ${
-        doc.grandTotalCost
-      })`;
-    } else if (doc.type === "Xuất kho/Delivery") {
-      documentTitle = `${doc.title} (Tên: ${doc.name}) (Tổng chi phí: ${doc.grandTotalCost})`;
-    } else if (doc.type === "Tạm ứng/Advance Payment") {
-      documentTitle = `(Mã: ${doc.tag}) (Kê khai: ${
-        doc.declaration
-      }) (Tạm ứng: ${doc.advancePayment.toLocaleString()})`;
-    } else if (doc.type === "Thanh toán/Payment") {
-      documentTitle = `(Mã: ${doc.tag}) (Kê khai: ${
-        doc.declaration
-      }) (Tổng thanh toán: ${doc.totalPayment.toLocaleString()})`;
+  // Add document to group
+  document
+    .getElementById("add-to-group-btn")
+    .addEventListener("click", async () => {
+      const docSelect = document.getElementById("document-select");
+      const groupSelect = document.getElementById("group-select");
+
+      const docData = docSelect.value;
+      const groupName = groupSelect.value;
+
+      if (!docData || !groupName) {
+        showNotification("Vui lòng chọn cả tài liệu và nhóm", "error");
+        return;
+      }
+
+      try {
+        const { id, type } = JSON.parse(docData);
+
+        const response = await fetch("/addDocumentToGroupDeclaration", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            documentId: id,
+            documentType: type,
+            groupDeclarationName: groupName,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          showNotification(result.message, "success");
+          await loadData();
+          renderGroups();
+          renderUnassignedDocuments();
+        } else {
+          showNotification(result.message || "Lỗi khi thêm tài liệu", "error");
+        }
+      } catch (error) {
+        console.error("Error adding document:", error);
+        showNotification("Lỗi máy chủ", "error");
+      }
+    });
+
+  // Delete document from group (using event delegation)
+  document.addEventListener("click", async (event) => {
+    if (
+      event.target.classList.contains("action-button") &&
+      event.target.classList.contains("danger") &&
+      event.target.hasAttribute("data-id")
+    ) {
+      const docId = event.target.getAttribute("data-id");
+      const docType = event.target.getAttribute("data-type");
+
+      try {
+        const response = await fetch("/removeDocumentFromGroupDeclaration", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documentId: docId, documentType: docType }),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          showNotification(result.message, "success");
+          await loadData();
+          renderGroups();
+          renderUnassignedDocuments();
+        } else {
+          showNotification(result.message || "Lỗi khi xóa tài liệu", "error");
+        }
+      } catch (error) {
+        console.error("Error removing document:", error);
+        showNotification("Lỗi máy chủ", "error");
+      }
     }
+  });
+}
 
-    documentItem.innerHTML = `
-      <div>
-        <strong>${doc.type}:</strong> ${documentTitle}
-        <button onclick="showDocumentDetails('${
-          doc._id
-        }', '${groupDeclarationName}')">Chi tiết đầy đủ</button>
-        <button class="remove-btn" data-id="${
-          doc._id
-        }" data-type="${getDocumentType(doc.type)}">
-          Xóa khỏi nhóm
-        </button>
-      </div>
+// Lock a group
+async function lockGroup(groupName) {
+  try {
+    const response = await fetch("/lockGroupDeclaration", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: groupName }),
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      showNotification(result.message, "success");
+      await loadData();
+      renderGroups();
+    } else {
+      showNotification(result.message || "Lỗi khi khóa nhóm", "error");
+    }
+  } catch (error) {
+    console.error("Error locking group:", error);
+    showNotification("Lỗi máy chủ", "error");
+  }
+}
+
+// Unlock a group
+async function unlockGroup(groupName) {
+  try {
+    const response = await fetch("/unlockGroupDeclaration", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: groupName }),
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      showNotification(result.message, "success");
+      await loadData();
+      renderGroups();
+    } else {
+      showNotification(result.message || "Lỗi khi mở khóa nhóm", "error");
+    }
+  } catch (error) {
+    console.error("Error unlocking group:", error);
+    showNotification("Lỗi máy chủ", "error");
+  }
+}
+
+// Show mass update form
+function showMassUpdateForm(groupName) {
+  const modal = document.getElementById("documentModal");
+  const modalContent = document.getElementById("modalContent");
+
+  modalContent.innerHTML = `
+        <h2>Cập nhật kê khai hàng loạt</h2>
+        <p>Nhóm: ${groupName}</p>
+        <div class="form-group">
+            <label for="mass-declaration">Nội dung kê khai:</label>
+            <textarea id="mass-declaration" class="form-control" rows="5"></textarea>
+        </div>
+        <div class="form-actions">
+            <button class="action-button primary" onclick="submitMassUpdate('${groupName}')">Cập nhật</button>
+            <button class="action-button" onclick="closeModal()">Hủy</button>
+        </div>
     `;
 
-    container.appendChild(documentItem);
-  });
-
-  // Attach event listeners to the remove buttons
-  document.querySelectorAll(".remove-btn").forEach((button) => {
-    button.addEventListener("click", removeDocumentFromGroupDeclaration);
-  });
+  modal.style.display = "block";
 }
 
-function renderPurchasingDocuments(purchDocs) {
-  if (!purchDocs || purchDocs.length === 0) return "";
-
-  return `
-    <div class="documents-container">
-      ${purchDocs
-        .map((purchDoc) => {
-          const products = purchDoc.products
-            .map(
-              (product) => `
-          <li>
-            <strong>${product.productName}</strong><br>
-            Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
-            Số lượng/Amount: ${product.amount.toLocaleString()}<br>
-            Thuế/Vat (%): ${(product.vat ?? 0).toLocaleString()}<br>
-            Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
-            Thành tiền sau thuế/Total Cost After Vat: ${(
-              product.totalCostAfterVat ?? product.totalCost
-            ).toLocaleString()}<br>
-            Ghi chú/Notes: ${product.note || "None"}
-          </li>
-        `
-            )
-            .join("");
-
-          const fileMetadata = purchDoc.fileMetadata
-            ? `<p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong> 
-              <a href="${purchDoc.fileMetadata.link}" target="_blank">${purchDoc.fileMetadata.name}</a></p>`
-            : "";
-
-          return `
-          <div class="purchasing-doc">
-            <p><strong>Trạm/Center:</strong> ${
-              purchDoc.costCenter ? purchDoc.costCenter : ""
-            }</p>
-            <p><strong>Tổng chi phí/Total Cost:</strong> ${purchDoc.grandTotalCost.toLocaleString()}</p>
-            <p><strong>Sản phẩm/Products:</strong></p>
-            <ul>${products}</ul>
-            ${fileMetadata}
-          </div>`;
-        })
-        .join("")}
-    </div>`;
-}
-
-function renderProducts(products) {
-  if (!products || products.length === 0) return "-";
-
-  return `
-    <table class="products-table" style="width: 100%; border-collapse: collapse;">
-      <thead>
-        <tr>
-          <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Sản phẩm/Product</th>
-          <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Đơn giá/Cost Per Unit</th>
-          <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Số lượng/Amount</th>
-          <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Thuế/Vat (%)</th>
-          <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Thành tiền/Total Cost</th>
-          <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Thành tiền sau thuế/Total Cost After Vat</th>
-          <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Ghi chú/Notes</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${products
-          .map(
-            (product) => `
-          <tr>
-            <td style="text-align: left; padding: 8px; border-bottom: 1px solid #eee;"><strong>${
-              product.productName
-            }</strong></td>
-            <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${product.costPerUnit.toLocaleString()}</td>
-            <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${product.amount.toLocaleString()}</td>
-            <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${
-              product.vat.toLocaleString() || ""
-            }</td>
-            <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${product.totalCost.toLocaleString()}</td>
-            <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">${
-              product.totalCostAfterVat.toLocaleString() || ""
-            }</td>
-            <td style="text-align: left; padding: 8px; border-bottom: 1px solid #eee;">${
-              product.note || ""
-            }</td>
-          </tr>
-        `
-          )
-          .join("")}
-      </tbody>
-    </table>
-  `;
-}
-
-function renderProposals(purchDocs) {
-  const allProposals = purchDocs
-    .flatMap((purchDoc) => purchDoc.appendedProposals)
-    .filter((proposal) => proposal);
-
-  if (allProposals.length === 0) return "";
-
-  return `
-    <div class="proposals-container">
-      ${allProposals
-        .map(
-          (proposal) => `
-        <div class="proposal-card">
-          <p><strong>Công việc/Task:</strong> ${proposal.task}</p>
-          <p><strong>Trạm/Center:</strong> ${proposal.costCenter}</p>
-          <p><strong>Mô tả/Description:</strong> ${
-            proposal.detailsDescription
-          }</p>
-          ${
-            proposal.fileMetadata
-              ? `<p><strong>Tệp đính kèm/File:</strong> 
-                <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
-              : ""
-          }
-        </div>
-      `
-        )
-        .join("")}
-    </div>`;
-}
-
-function renderStatus(status) {
-  switch (status) {
-    case "Approved":
-      return `<span class="status approved">Approved</span>`;
-    case "Suspended":
-      return `<span class="status suspended">Suspended</span>`;
-    default:
-      return `<span class="status pending">Pending</span>`;
-  }
-}
-
-function showDocumentDetails(docId, groupDeclarationName) {
-  const doc = groupDeclarationedDocuments[groupDeclarationName].find(
-    (d) => d._id === docId
-  );
-  if (!doc) return;
-
-  let modalContent = `
-          <h2>${doc.type}</h2>
-          <div>
-              <strong>Document ID:</strong> ${doc._id}<br>
-              ${generateDocumentContent(doc)}
-          </div>
-      `;
-
-  showModal(modalContent);
-}
-
-function handleEditDeclarationClick(event) {
-  // Get container and relevant elements
-  const container = event.target.closest(".declaration-container");
-  const documentId = container.dataset.documentId;
-  const valueElement = container.querySelector(".declaration-value");
-  const currentValue = valueElement.textContent.trim();
-
-  // Create edit form
-  const editForm = document.createElement("div");
-  editForm.className = "declaration-edit-form";
-  editForm.innerHTML = `
-    <textarea class="form-control mb-2">${
-      currentValue === "Not specified" ? "" : currentValue
-    }</textarea>
-    <div class="btn-groupDeclaration">
-      <button type="button" class="btn btn-sm btn-primary save-declaration-btn">Lưu/Save</button>
-      <button type="button" class="btn btn-sm btn-secondary cancel-declaration-btn">Hủy/Cancel</button>
-    </div>
-  `;
-
-  // Hide value element and button
-  valueElement.style.display = "none";
-  event.target.closest(".edit-declaration-btn").style.display = "none";
-
-  // Add form to container
-  container.appendChild(editForm);
-
-  // Focus the textarea
-  const textarea = editForm.querySelector("textarea");
-  textarea.focus();
-
-  // Add event listeners for save and cancel
-  editForm
-    .querySelector(".save-declaration-btn")
-    .addEventListener("click", function () {
-      saveDeclaration(
-        documentId,
-        textarea.value.trim(),
-        valueElement,
-        editForm,
-        container
-      );
-    });
-
-  editForm
-    .querySelector(".cancel-declaration-btn")
-    .addEventListener("click", function () {
-      cancelEdit(valueElement, editForm, container);
-    });
-}
-
-async function saveDeclaration(
-  documentId,
-  declaration,
-  valueElement,
-  editForm,
-  container
-) {
-  try {
-    const response = await fetch(
-      `/updatePaymentDocumentDeclaration/${documentId}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ declaration }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to update declaration");
-    }
-
-    // Update display value
-    valueElement.textContent = declaration || "Not specified";
-
-    // Restore original elements
-    restoreOriginalView(valueElement, editForm, container);
-
-    await refreshDocumentData();
-
-    // Show success notification
-    showNotification(
-      "Kê khai cập nhật thành công/Declaration updated successfully",
-      "success"
-    );
-  } catch (error) {
-    console.error("Error updating declaration:", error);
-    showNotification(
-      "Lỗi khi cập nhật kê khai/Error updating declaration",
-      "error"
-    );
-
-    // Restore original view even on error
-    restoreOriginalView(valueElement, editForm, container);
-  }
-}
-
-function cancelEdit(valueElement, editForm, container) {
-  restoreOriginalView(valueElement, editForm, container);
-}
-
-// Function to handle mass declaration update
-async function handleMassUpdateDeclaration() {
-  const groupDeclarationSelect = document.getElementById(
-    "groupDeclaration-select"
-  );
-  const declarationInput = document.getElementById("mass-declaration-input");
-  const statusMessage = document.getElementById("mass-update-status-message");
-
-  const groupDeclarationName = groupDeclarationSelect.value;
-  const declaration = declarationInput.value.trim();
-
-  if (!groupDeclarationName) {
-    statusMessage.textContent =
-      "Vui lòng chọn một nhóm/Please select a groupDeclaration.";
-    return;
-  }
+// Submit mass update
+async function submitMassUpdate(groupName) {
+  const declaration = document.getElementById("mass-declaration").value.trim();
 
   if (!declaration) {
-    statusMessage.textContent =
-      "Vui lòng nhập kê khai/Please enter a declaration.";
+    showNotification("Vui lòng nhập nội dung kê khai", "error");
     return;
   }
 
   try {
-    // Get all document IDs in the selected groupDeclaration
-    const groupDeclarationDocuments =
-      groupDeclarationedDocuments[groupDeclarationName];
-    if (!groupDeclarationDocuments || groupDeclarationDocuments.length === 0) {
-      statusMessage.textContent =
-        "Không có tài liệu trong nhóm này/No documents in this groupDeclaration.";
+    // Get all payment document IDs in the group
+    const paymentDocs = allDocuments.filter(
+      (doc) =>
+        doc.groupDeclarationName === groupName &&
+        doc.type === "Thanh toán/Payment"
+    );
+
+    if (paymentDocs.length === 0) {
+      showNotification("Không có phiếu thanh toán trong nhóm này", "warning");
       return;
     }
 
-    const documentIds = groupDeclarationDocuments
-      .filter((doc) => doc.type === "Thanh toán/Payment") // Only update payment documents
-      .map((doc) => doc._id);
+    const documentIds = paymentDocs.map((doc) => doc._id);
 
-    if (documentIds.length === 0) {
-      statusMessage.textContent =
-        "Không có tài liệu thanh toán trong nhóm này/No payment documents in this groupDeclaration.";
-      return;
-    }
-
-    // Send mass update request
     const response = await fetch("/massUpdatePaymentDocumentDeclaration", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        documentIds,
-        declaration,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ documentIds, declaration }),
     });
 
     if (response.ok) {
       const result = await response.text();
-      statusMessage.textContent = result;
-      await refreshDocumentData(); // Refresh the document list
+      showNotification(result, "success");
+      closeModal();
+      await loadData();
+      renderGroups();
     } else {
-      statusMessage.textContent =
-        "Lỗi khi cập nhật kê khai/Error updating declaration.";
+      showNotification("Lỗi khi cập nhật kê khai", "error");
     }
   } catch (error) {
-    console.error("Error:", error);
-    statusMessage.textContent =
-      "Lỗi máy chủ/Server error. Vui lòng thử lại/Please try again.";
+    console.error("Error in mass update:", error);
+    showNotification("Lỗi máy chủ", "error");
   }
 }
 
-function restoreOriginalView(valueElement, editForm, container) {
-  // Remove edit form
-  editForm.remove();
+// Show document details
+function showDocumentDetails(docId, groupName) {
+  const doc = allDocuments.find(
+    (d) => d._id === docId && d.groupDeclarationName === groupName
+  );
+  if (!doc) return;
 
-  // Show value element and edit button
-  valueElement.style.display = "";
-  container.querySelector(".edit-declaration-btn").style.display = "";
+  const modal = document.getElementById("documentModal");
+  const modalContent = document.getElementById("modalContent");
+
+  modalContent.innerHTML = `
+        <h2>${doc.type}</h2>
+        <div>
+            <strong>Document ID:</strong> ${doc._id}<br>
+            ${generateDocumentContent(doc)}
+        </div>
+    `;
+
+  modal.style.display = "block";
 }
 
+// Close modal
+function closeModal() {
+  document.getElementById("documentModal").style.display = "none";
+}
+
+// Show notification
 function showNotification(message, type) {
-  // Create notification element
+  const container = document.getElementById("notification-container");
   const notification = document.createElement("div");
-  notification.className = `alert alert-${
-    type === "success" ? "success" : "danger"
-  } notification`;
+  notification.className = `notification ${type}`;
   notification.textContent = message;
 
-  // Add to document
-  document.body.appendChild(notification);
+  container.appendChild(notification);
 
-  // Auto-dismiss after 3 seconds
   setTimeout(() => {
     notification.classList.add("fade-out");
     setTimeout(() => notification.remove(), 500);
   }, 3000);
 }
 
-function generateGenericDocumentContent(doc) {
-  return doc.content
-    .map(
-      (section) => `
-        <div>
-            <strong>${section.name}:</strong><br>
-            <p>${section.text}</p>
-        </div>
-    `
-    )
-    .join("");
+// Helper function to get document type
+function getDocumentType(displayType) {
+  const typeMap = {
+    "Chung/Generic": "generic",
+    "Đề xuất/Proposal": "proposal",
+    "Mua hàng/Purchasing": "purchasing",
+    "Xuất kho/Delivery": "delivery",
+    "Tạm ứng/Advance Payment": "advancePayment",
+    "Thanh toán/Payment": "payment",
+  };
+  return typeMap[displayType] || "generic";
 }
 
-function generatePaymentDocumentContent(doc) {
-  const submissionDate = doc.submissionDate || "Not specified";
-  const paymentDeadline = doc.paymentDeadline || "Not specified";
-
-  return `
-    <!-- Basic Information Section -->
-    <div class="full-view-section">
-      <h3>Thông tin cơ bản/Basic Information</h3>
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Mã/Tag:</span>
-          <span class="detail-value">${doc.tag || "Not specified"}</span>
-          <span class="detail-label">Tên/Name:</span>
-          <span class="detail-value">${doc.name || "Not specified"}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Tên nhóm/GroupDeclaration Name:</span>
-          <span class="detail-value">${
-            doc.groupDeclarationName || "Not specified"
-          }</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Ngày nộp/Submission Date:</span>
-          <span class="detail-value">${submissionDate}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Hạn trả/Payment Deadline:</span>
-          <span class="detail-value">${paymentDeadline}</span>
-        </div>
-        <div class="detail-item declaration-container" data-document-id="${
-          doc._id
-        }">
-          <span class="detail-label">Kê khai/Declaration:</span>
-          <span class="detail-value declaration-value">${
-            doc.declaration || "Not specified"
-          }</span>
-          <button class="edit-declaration-btn">Chỉnh sửa</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Content Section -->
-    <div class="full-view-section">
-      <h3>Nội dung/Content</h3>
-      <p style="white-space: pre-wrap;">${
-        doc.content || "No content provided"
-      }</p>
-    </div>
-
-    <div class="full-view-section">
-      <h3>Trạm/Center</h3>
-      <p style="white-space: pre-wrap;">${
-        doc.costCenter || "No content provided"
-      }</p>
-    </div>
-
-    <!-- Payment Information Section -->
-    <div class="full-view-section">
-      <h3>Thông tin thanh toán/Payment Information</h3>
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Phương thức/Payment Method:</span>
-          <span class="detail-value">${
-            doc.paymentMethod || "Not specified"
-          }</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Tổng thanh toán/Total Payment:</span>
-          <span class="detail-value">${
-            doc.totalPayment?.toLocaleString() || "Not specified"
-          }</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Tạm ứng/Advance Payment:</span>
-          <span class="detail-value">${
-            doc.advancePayment?.toLocaleString() || "Not specified"
-          }</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Bù trừ/Offset:</span>
-          <span class="detail-value">${
-            doc.totalPayment && doc.advancePayment
-              ? (doc.totalPayment - doc.advancePayment).toLocaleString()
-              : "Not calculated"
-          }</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- File Attachment Section -->
-    <div class="full-view-section">
-      <h3>Tệp tin kèm theo/Attached File</h3>
-      ${
-        doc.fileMetadata
-          ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-          : "No file attached"
-      }
-    </div>
-
-    <!-- Purchasing Documents Section -->
-    <div class="full-view-section">
-      <h3>Phiếu mua hàng kèm theo/Appended Purchasing Documents</h3>
-      ${
-        doc.appendedPurchasingDocuments?.length
-          ? renderPurchasingDocuments(doc.appendedPurchasingDocuments)
-          : "No purchasing documents attached"
-      }
-    </div>
-
-    <!-- Proposals Section -->
-    <div class="full-view-section">
-      <h3>Phiếu đề xuất kèm theo/Appended Proposal Documents</h3>
-      ${
-        doc.appendedPurchasingDocuments?.length
-          ? renderProposals(doc.appendedPurchasingDocuments)
-          : "No proposal documents attached"
-      }
-    </div>
-
-    <!-- Status Section -->
-    <div class="full-view-section">
-      <h3>Trạng thái/Status Information</h3>
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Tình trạng/Status:</span>
-          <span class="detail-value ${renderStatus(doc.status)}</span>
-        </div>
-      </div>
-      <div style="margin-top: 16px;">
-        <h4>Trạng thái phê duyệt/Approval Status:</h4>
-        <div class="approval-status">
-          ${doc.approvers
-            .map((approver) => {
-              const hasApproved = doc.approvedBy.find(
-                (a) => a.username === approver.username
-              );
-              return `
-              <div class="approver-item">
-                <span class="status-icon ${
-                  hasApproved ? "status-approved" : "status-pending"
-                }"></span>
-                <div>
-                  <div>${approver.username} (${approver.subRole})</div>
-                  ${
-                    hasApproved
-                      ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
-                      : '<div class="approval-date">Pending</div>'
-                  }
-                </div>
-              </div>
-            `;
-            })
-            .join("")}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function generateAdvancePaymentDocumentContent(doc) {
-  const submissionDate = doc.submissionDate || "Not specified";
-  const paymentDeadline = doc.paymentDeadline || "Not specified";
-
-  return `
-    <!-- Basic Information Section -->
-    <div class="full-view-section">
-      <h3>Thông tin cơ bản/Basic Information</h3>
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Mã/Tag:</span>
-          <span class="detail-value">${doc.tag || "Not specified"}</span>
-          <span class="detail-label">Tên/Name:</span>
-          <span class="detail-value">${doc.name || "Not specified"}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Tên nhóm/GroupDeclaration Name:</span>
-          <span class="detail-value">${
-            doc.groupDeclarationName || "Not specified"
-          }</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Ngày nộp/Submission Date:</span>
-          <span class="detail-value">${submissionDate}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Hạn trả/Payment Deadline:</span>
-          <span class="detail-value">${paymentDeadline}</span>
-        </div>
-        <div class="detail-item declaration-container" data-document-id="${
-          doc._id
-        }">
-          <span class="detail-label">Kê khai/Declaration:</span>
-          <span class="detail-value declaration-value">${
-            doc.declaration || "Not specified"
-          }</span>
-          <button class="edit-declaration-btn">Chỉnh sửa</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Content Section -->
-    <div class="full-view-section">
-      <h3>Nội dung/Content</h3>
-      <p style="white-space: pre-wrap;">${
-        doc.content || "No content provided"
-      }</p>
-    </div>
-
-    <div class="full-view-section">
-      <h3>Trạm/Center</h3>
-      <p style="white-space: pre-wrap;">${
-        doc.costCenter || "No content provided"
-      }</p>
-    </div>
-
-    <!-- Payment Information Section -->
-    <div class="full-view-section">
-      <h3>Thông tin thanh toán/Payment Information</h3>
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Phương thức/Payment Method:</span>
-          <span class="detail-value">${
-            doc.paymentMethod || "Not specified"
-          }</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Tạm ứng/Advance Payment:</span>
-          <span class="detail-value">${
-            doc.advancePayment?.toLocaleString() || "Not specified"
-          }</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- File Attachment Section -->
-    <div class="full-view-section">
-      <h3>Tệp tin kèm theo/Attached File</h3>
-      ${
-        doc.fileMetadata
-          ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-          : "No file attached"
-      }
-    </div>
-
-    <!-- Purchasing Documents Section -->
-    <div class="full-view-section">
-      <h3>Phiếu mua hàng kèm theo/Appended Purchasing Documents</h3>
-      ${
-        doc.appendedPurchasingDocuments?.length
-          ? renderPurchasingDocuments(doc.appendedPurchasingDocuments)
-          : "No purchasing documents attached"
-      }
-    </div>
-
-    <!-- Proposals Section -->
-    <div class="full-view-section">
-      <h3>Phiếu đề xuất kèm theo/Appended Proposal Documents</h3>
-      ${
-        doc.appendedPurchasingDocuments?.length
-          ? renderProposals(doc.appendedPurchasingDocuments)
-          : "No proposal documents attached"
-      }
-    </div>
-
-    <!-- Status Section -->
-    <div class="full-view-section">
-      <h3>Trạng thái/Status Information</h3>
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Tình trạng/Status:</span>
-          <span class="detail-value ${renderStatus(doc.status)}</span>
-        </div>
-      </div>
-      <div style="margin-top: 16px;">
-        <h4>Trạng thái phê duyệt/Approval Status:</h4>
-        <div class="approval-status">
-          ${doc.approvers
-            .map((approver) => {
-              const hasApproved = doc.approvedBy.find(
-                (a) => a.username === approver.username
-              );
-              return `
-              <div class="approver-item">
-                <span class="status-icon ${
-                  hasApproved ? "status-approved" : "status-pending"
-                }"></span>
-                <div>
-                  <div>${approver.username} (${approver.subRole})</div>
-                  ${
-                    hasApproved
-                      ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
-                      : '<div class="approval-date">Pending</div>'
-                  }
-                </div>
-              </div>
-            `;
-            })
-            .join("")}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function generatePurchasingDocumentContent(doc) {
-  const submissionDate = doc.submissionDate || "Not specified";
-
-  return `
-    <!-- Basic Information Section -->
-    <div class="full-view-section">
-      <h3>Thông tin cơ bản/Basic Information</h3>
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Tên:</span>
-          <span class="detail-value">${doc.name}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Trạm:</span>
-          <span class="detail-value">${doc.costCenter}</span>
-        </div>                
-        <div class="detail-item">
-          <span class="detail-label">Tên nhóm/GroupDeclaration Name:</span>
-          <span class="detail-value">${
-            doc.groupDeclarationName || "Not specified"
-          }</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Ngày nộp/Submission Date:</span>
-          <span class="detail-value">${submissionDate}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Kê khai/Declaration:</span>
-          <span class="detail-value">${
-            doc.declaration || "Not specified"
-          }</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Products Section -->
-    <div class="full-view-section">
-      <h3>Sản phẩm/Products</h3>
-      ${renderProducts(doc.products)}
-    </div>
-
-    <!-- File Attachment Section -->
-    <div class="full-view-section">
-      <h3>Tệp tin kèm theo/Attached File</h3>
-      ${
-        doc.fileMetadata
-          ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-          : "No file attached"
-      }
-    </div>
-
-    <!-- Proposals Section -->
-    <div class="full-view-section">
-      <h3>Phiếu đề xuất kèm theo/Appended Proposals</h3>
-      ${renderProposals(doc.appendedProposals)}
-    </div>
-
-    <!-- Status Section -->
-    <div class="full-view-section">
-      <h3>Trạng thái/Status Information</h3>
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Tình trạng/Status:</span>
-          <span class="detail-value ${renderStatus(doc.status)}</span>
-        </div>
-      </div>
-      <div style="margin-top: 16px;">
-        <h4>Trạng thái phê duyệt/Approval Status:</h4>
-        <div class="approval-status">
-          ${doc.approvers
-            .map((approver) => {
-              const hasApproved = doc.approvedBy.find(
-                (a) => a.username === approver.username
-              );
-              return `
-              <div class="approver-item">
-                <span class="status-icon ${
-                  hasApproved ? "status-approved" : "status-pending"
-                }"></span>
-                <div>
-                  <div>${approver.username} (${approver.subRole})</div>
-                  ${
-                    hasApproved
-                      ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
-                      : '<div class="approval-date">Pending</div>'
-                  }
-                </div>
-              </div>
-            `;
-            })
-            .join("")}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function generateDeliveryDocumentContent(doc) {
-  const submissionDate = doc.submissionDate || "Not specified";
-
-  return `
-    <!-- Basic Information Section -->
-    <div class="full-view-section">
-      <h3>Thông tin cơ bản/Basic Information</h3>
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Tên:</span>
-          <span class="detail-value">${doc.name}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Trạm:</span>
-          <span class="detail-value">${doc.costCenter}</span>
-        </div>                
-        <div class="detail-item">
-          <span class="detail-label">Tên nhóm/GroupDeclaration Name:</span>
-          <span class="detail-value">${
-            doc.groupDeclarationName || "Not specified"
-          }</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Ngày nộp/Submission Date:</span>
-          <span class="detail-value">${submissionDate}</span>
-        </div>
-        <div class="detail-item">
-          <span class="detail-label">Kê khai/Declaration:</span>
-          <span class="detail-value">${
-            doc.declaration || "Not specified"
-          }</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Products Section -->
-    <div class="full-view-section">
-      <h3>Sản phẩm/Products</h3>
-      ${renderProducts(doc.products)}
-    </div>
-
-    <!-- File Attachment Section -->
-    <div class="full-view-section">
-      <h3>Tệp tin kèm theo/Attached File</h3>
-      ${
-        doc.fileMetadata
-          ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-          : "No file attached"
-      }
-    </div>
-
-    <!-- Proposals Section -->
-    <div class="full-view-section">
-      <h3>Phiếu đề xuất kèm theo/Appended Proposals</h3>
-      ${renderProposals(doc.appendedProposals)}
-    </div>
-
-    <!-- Status Section -->
-    <div class="full-view-section">
-      <h3>Trạng thái/Status Information</h3>
-      <div class="detail-grid">
-        <div class="detail-item">
-          <span class="detail-label">Tình trạng/Status:</span>
-          <span class="detail-value ${renderStatus(doc.status)}</span>
-        </div>
-      </div>
-      <div style="margin-top: 16px;">
-        <h4>Trạng thái phê duyệt/Approval Status:</h4>
-        <div class="approval-status">
-          ${doc.approvers
-            .map((approver) => {
-              const hasApproved = doc.approvedBy.find(
-                (a) => a.username === approver.username
-              );
-              return `
-              <div class="approver-item">
-                <span class="status-icon ${
-                  hasApproved ? "status-approved" : "status-pending"
-                }"></span>
-                <div>
-                  <div>${approver.username} (${approver.subRole})</div>
-                  ${
-                    hasApproved
-                      ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
-                      : '<div class="approval-date">Pending</div>'
-                  }
-                </div>
-              </div>
-            `;
-            })
-            .join("")}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function generateProposalDocumentContent(doc) {
-  return `
-    <h2>Phiếu đề xuất/Proposal Document</h2>
-    <div>
-      <strong>Mã/Document ID:</strong> ${doc._id}<br>
-      <strong>Tiêu đề/Title:</strong> ${doc.title}<br>
-      <strong>Công việc/Task:</strong> ${doc.task}<br>
-      <strong>Trạm/Center:</strong> ${doc.costCenter}<br>
-      <strong>Ngày xảy ra lỗi/Date of Error:</strong> ${doc.dateOfError}<br>
-      <strong>Mô tả chi tiết/Details Description:</strong> ${
-        doc.detailsDescription
-      }<br>
-      <strong>Hướng xử lý/Direction:</strong> ${doc.direction}<br>
-      <strong>Người xử lý/Submission Date:</strong> ${doc.submissionDate}<br>
-      <strong>Tình trạng/Status:</strong> ${doc.status}<br>
-      ${
-        doc.suspendReason
-          ? `<strong>Lý do từ chối/Suspend Reason:</strong> ${doc.suspendReason}<br>`
-          : ""
-      }
-    </div>
-  `;
-}
-
+// Generate document content for modal view
 function generateDocumentContent(doc) {
   switch (doc.type) {
     case "Chung/Generic":
@@ -1087,253 +575,316 @@ function generateDocumentContent(doc) {
   }
 }
 
-function getDocumentType(displayType) {
-  const typeMap = {
-    "Chung/Generic": "generic",
-    "Đề xuất/Proposal": "proposal",
-    "Mua hàng/Purchasing": "purchasing",
-    "Xuất kho/Delivery": "delivery",
-    "Tạm ứng/Advance Payment": "advancePayment",
-    "Thanh toán/Payment": "payment",
-  };
-  return typeMap[displayType] || "generic";
+function generateGenericDocumentContent(doc) {
+  return doc.content
+    ? doc.content
+        .map(
+          (section) => `
+            <div class="full-view-section">
+                <h3>${section.name}</h3>
+                <p>${section.text}</p>
+            </div>
+        `
+        )
+        .join("")
+    : "<p>Không có nội dung</p>";
 }
 
-async function addDocumentToGroupDeclaration() {
-  const groupDeclarationSelect = document.getElementById(
-    "groupDeclaration-select"
-  );
-  const documentSelect = document.getElementById("document-select");
-  const statusMessage = document.getElementById("add-status-message");
-
-  statusMessage.textContent = "";
-
-  const groupDeclarationName = groupDeclarationSelect.value;
-  const documentData = documentSelect.value;
-
-  if (!groupDeclarationName || !documentData) {
-    statusMessage.textContent = "Vui lòng chọn cả nhóm và tài liệu";
-    return;
+function renderProposals(proposals) {
+  if (!proposals || proposals.length === 0) {
+    return "<p>Không có phiếu đề xuất</p>";
   }
 
-  const { id, type } = JSON.parse(documentData);
-
-  try {
-    const response = await fetch("/addDocumentToGroupDeclaration", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        documentId: id,
-        documentType: type,
-        groupDeclarationName: groupDeclarationName,
-      }),
-    });
-
-    const result = await response.json();
-    statusMessage.textContent = result.message;
-
-    if (response.ok) {
-      await refreshDocumentData();
-    }
-  } catch (error) {
-    console.error("Error:", error);
-    statusMessage.textContent = "Lỗi máy chủ";
-  }
+  return `
+        <div class="proposals-container">
+            ${proposals
+              .map(
+                (proposal) => `
+                <div class="proposal-card">
+                    <p><strong>Công việc/Task:</strong> ${
+                      proposal.task || "Không có"
+                    }</p>
+                    <p><strong>Trạm/Center:</strong> ${
+                      proposal.costCenter || "Không có"
+                    }</p>
+                    <p><strong>Mô tả chi tiết:</strong> ${
+                      proposal.detailsDescription || "Không có"
+                    }</p>
+                    ${
+                      proposal.fileMetadata
+                        ? `
+                        <p><strong>Tệp đính kèm:</strong> 
+                            <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>
+                        </p>
+                    `
+                        : ""
+                    }
+                </div>
+            `
+              )
+              .join("")}
+        </div>
+    `;
 }
 
-async function removeDocumentFromGroupDeclaration(event) {
-  const button = event.target;
-  const documentId = button.getAttribute("data-id");
-  const documentType = button.getAttribute("data-type");
-  const statusMessage = document.getElementById("remove-status-message");
-
-  try {
-    const response = await fetch("/removeDocumentFromGroupDeclaration", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ documentId, documentType }),
-    });
-
-    const result = await response.json();
-    statusMessage.textContent = result.message;
-
-    if (response.ok) {
-      await refreshDocumentData();
-    }
-  } catch (error) {
-    console.error("Error:", error);
-    statusMessage.textContent = "Lỗi máy chủ";
+function renderPurchasingDocuments(purchDocs) {
+  if (!purchDocs || purchDocs.length === 0) {
+    return "<p>Không có phiếu mua hàng</p>";
   }
+
+  return `
+        <div class="purchasing-documents-container">
+            ${purchDocs
+              .map(
+                (purchDoc) => `
+                <div class="purchasing-card">
+                    <p><strong>Tiêu đề:</strong> ${
+                      purchDoc.title || "Không có"
+                    }</p>
+                    <p><strong>Tên:</strong> ${purchDoc.name || "Không có"}</p>
+                    <p><strong>Trạm:</strong> ${
+                      purchDoc.costCenter || "Không có"
+                    }</p>
+                    <p><strong>Tổng chi phí:</strong> ${
+                      purchDoc.grandTotalCost?.toLocaleString() || "Không có"
+                    }</p>
+                    
+                    <h4>Sản phẩm:</h4>
+                    ${renderProducts(purchDoc.products || [])}
+                    
+                    ${
+                      purchDoc.fileMetadata
+                        ? `
+                        <p><strong>Tệp đính kèm:</strong> 
+                            <a href="${purchDoc.fileMetadata.link}" target="_blank">${purchDoc.fileMetadata.name}</a>
+                        </p>
+                    `
+                        : ""
+                    }
+                </div>
+            `
+              )
+              .join("")}
+        </div>
+    `;
 }
 
-async function refreshDocumentData() {
-  try {
-    const [unassignedResponse, groupDeclarationedResponse] = await Promise.all([
-      fetch("/getUnassignedDocumentsForGroupDeclaration"),
-      fetch("/getGroupDeclarationedDocuments"),
-    ]);
-
-    unassignedDocuments = await unassignedResponse.json();
-    groupDeclarationedDocuments = await groupDeclarationedResponse.json();
-
-    populateDocumentSelect();
-    const selectedGroupDeclaration = document.getElementById(
-      "groupDeclaration-select"
-    ).value;
-
-    // Check if selectedGroupDeclaration exists and has documents
-    if (selectedGroupDeclaration) {
-      // Handle case when groupDeclaration exists but has no documents (empty array)
-      if (
-        groupDeclarationedDocuments[selectedGroupDeclaration] &&
-        groupDeclarationedDocuments[selectedGroupDeclaration].length > 0
-      ) {
-        displayGroupDeclarationDocumentsForRemoval(
-          selectedGroupDeclaration,
-          groupDeclarationedDocuments[selectedGroupDeclaration]
-        );
-      } else {
-        // Handle the case where the groupDeclaration is empty (no documents)
-        document.getElementById("remove-document-container").innerHTML =
-          "<p>Không có tài liệu trong nhóm này/No documents in this groupDeclaration</p>";
-      }
-    }
-  } catch (error) {
-    console.error("Error refreshing data:", error);
-  }
+function generatePaymentDocumentContent(doc) {
+  return `
+        <!-- Previous payment document content... -->
+        
+        ${
+          doc.appendedPurchasingDocuments?.length
+            ? `
+        <div class="full-view-section">
+            <h3>Phiếu mua hàng kèm theo</h3>
+            ${renderPurchasingDocuments(doc.appendedPurchasingDocuments)}
+        </div>
+        `
+            : ""
+        }
+        
+        ${
+          doc.appendedProposals?.length
+            ? `
+        <div class="full-view-section">
+            <h3>Phiếu đề xuất kèm theo</h3>
+            ${renderProposals(doc.appendedProposals)}
+        </div>
+        `
+            : ""
+        }
+    `;
 }
 
-function handleGroupDeclarationChange() {
-  const selectedGroupDeclaration = document.getElementById(
-    "groupDeclaration-select"
-  ).value;
-  if (!selectedGroupDeclaration) {
-    document.getElementById("remove-document-container").innerHTML =
-      "<p>Chọn một nhóm trước/Select a groupDeclaration first</p>";
-    return;
-  }
-
-  // Check if groupDeclarationedDocuments exists, the selected groupDeclaration exists, and it has documents
-  if (
-    groupDeclarationedDocuments &&
-    groupDeclarationedDocuments[selectedGroupDeclaration] &&
-    groupDeclarationedDocuments[selectedGroupDeclaration].length > 0
-  ) {
-    displayGroupDeclarationDocumentsForRemoval(
-      selectedGroupDeclaration,
-      groupDeclarationedDocuments[selectedGroupDeclaration]
-    );
-  } else {
-    document.getElementById("remove-document-container").innerHTML =
-      "<p>Không có tài liệu trong nhóm này/No documents in this groupDeclaration</p>";
-  }
+function generateAdvancePaymentDocumentContent(doc) {
+  return `
+        <!-- Previous advance payment content... -->
+        
+        ${
+          doc.appendedPurchasingDocuments?.length
+            ? `
+        <div class="full-view-section">
+            <h3>Phiếu mua hàng kèm theo</h3>
+            ${renderPurchasingDocuments(doc.appendedPurchasingDocuments)}
+        </div>
+        `
+            : ""
+        }
+        
+        ${
+          doc.appendedProposals?.length
+            ? `
+        <div class="full-view-section">
+            <h3>Phiếu đề xuất kèm theo</h3>
+            ${renderProposals(doc.appendedProposals)}
+        </div>
+        `
+            : ""
+        }
+    `;
 }
 
-async function lockGroupDeclaration() {
-  const groupName = document.getElementById("lock-group-select").value;
-  const statusMessage = document.getElementById("lock-status-message");
-
-  if (!groupName) {
-    statusMessage.textContent = "Vui lòng chọn một nhóm";
-    return;
-  }
-
-  try {
-    const response = await fetch("/lockGroupDeclaration", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: groupName }),
-    });
-
-    const result = await response.json();
-    statusMessage.textContent = result.message;
-    await refreshGroupData();
-  } catch (error) {
-    console.error("Error locking group:", error);
-    statusMessage.textContent = "Lỗi khi khóa nhóm";
-  }
+function generatePurchasingDocumentContent(doc) {
+  return `
+        <div class="full-view-section">
+            <h3>Thông tin cơ bản</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Tên:</span>
+                    <span class="detail-value">${doc.name || "Không có"}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Trạm:</span>
+                    <span class="detail-value">${
+                      doc.costCenter || "Không có"
+                    }</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Ngày nộp:</span>
+                    <span class="detail-value">${
+                      doc.submissionDate || "Không có"
+                    }</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Kê khai:</span>
+                    <span class="detail-value">${
+                      doc.declaration || "Không có"
+                    }</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="full-view-section">
+            <h3>Thông tin sản phẩm</h3>
+            ${renderProducts(doc.products || [])}
+        </div>
+        
+        <div class="full-view-section">
+            <h3>Tổng chi phí</h3>
+            <p>${doc.grandTotalCost?.toLocaleString() || "Không có"}</p>
+        </div>
+    `;
 }
 
-async function unlockGroupDeclaration() {
-  const groupName = document.getElementById("lock-group-select").value;
-  const statusMessage = document.getElementById("lock-status-message");
-
-  if (!groupName) {
-    statusMessage.textContent = "Vui lòng chọn một nhóm";
-    return;
-  }
-
-  try {
-    const response = await fetch("/unlockGroupDeclaration", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: groupName }),
-    });
-
-    const result = await response.json();
-    statusMessage.textContent = result.message;
-    await refreshGroupData();
-  } catch (error) {
-    console.error("Error unlocking group:", error);
-    statusMessage.textContent = "Lỗi khi mở khóa nhóm";
-  }
+function generateDeliveryDocumentContent(doc) {
+  return `
+        <div class="full-view-section">
+            <h3>Thông tin cơ bản</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Tên:</span>
+                    <span class="detail-value">${doc.name || "Không có"}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Trạm:</span>
+                    <span class="detail-value">${
+                      doc.costCenter || "Không có"
+                    }</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Ngày nộp:</span>
+                    <span class="detail-value">${
+                      doc.submissionDate || "Không có"
+                    }</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Kê khai:</span>
+                    <span class="detail-value">${
+                      doc.declaration || "Không có"
+                    }</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="full-view-section">
+            <h3>Thông tin sản phẩm</h3>
+            ${renderProducts(doc.products || [])}
+        </div>
+        
+        <div class="full-view-section">
+            <h3>Tổng chi phí</h3>
+            <p>${doc.grandTotalCost?.toLocaleString() || "Không có"}</p>
+        </div>
+    `;
 }
 
-async function refreshGroupData() {
-  try {
-    const response = await fetch("/getGroupDeclaration");
-    allGroupDeclarations = await response.json();
-    populateGroupDeclarationSelect();
-    populateLockGroupSelect();
-  } catch (error) {
-    console.error("Error refreshing group data:", error);
+function generateProposalDocumentContent(doc) {
+  return `
+        <div class="full-view-section">
+            <h3>Thông tin cơ bản</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Công việc:</span>
+                    <span class="detail-value">${doc.task || "Không có"}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Trạm:</span>
+                    <span class="detail-value">${
+                      doc.costCenter || "Không có"
+                    }</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Ngày xảy ra lỗi:</span>
+                    <span class="detail-value">${
+                      doc.dateOfError || "Không có"
+                    }</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="full-view-section">
+            <h3>Mô tả chi tiết</h3>
+            <p>${doc.detailsDescription || "Không có"}</p>
+        </div>
+        
+        <div class="full-view-section">
+            <h3>Hướng xử lý</h3>
+            <p>${doc.direction || "Không có"}</p>
+        </div>
+    `;
+}
+
+function renderProducts(products) {
+  if (!products || products.length === 0) {
+    return "<p>Không có sản phẩm</p>";
   }
+
+  return `
+        <table style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
+            <thead>
+                <tr>
+                    <th style="text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color);">Tên sản phẩm</th>
+                    <th style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">Đơn giá</th>
+                    <th style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">Số lượng</th>
+                    <th style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">Thành tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${products
+                  .map(
+                    (product) => `
+                    <tr>
+                        <td style="text-align: left; padding: 8px; border-bottom: 1px solid var(--border-color);">
+                            ${product.productName || "Không có"}
+                        </td>
+                        <td style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">
+                            ${
+                              product.costPerUnit?.toLocaleString() ||
+                              "Không có"
+                            }
+                        </td>
+                        <td style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">
+                            ${product.amount?.toLocaleString() || "Không có"}
+                        </td>
+                        <td style="text-align: right; padding: 8px; border-bottom: 1px solid var(--border-color);">
+                            ${product.totalCost?.toLocaleString() || "Không có"}
+                        </td>
+                    </tr>
+                `
+                  )
+                  .join("")}
+            </tbody>
+        </table>
+    `;
 }
-
-function populateLockGroupSelect() {
-  const select = document.getElementById("lock-group-select");
-  while (select.options.length > 1) {
-    select.remove(1);
-  }
-
-  allGroupDeclarations.forEach((group) => {
-    const option = document.createElement("option");
-    option.value = group.name;
-    option.textContent = `${group.name} - ${group.description} ${
-      group.locked ? "(Đã khóa)" : ""
-    }`;
-    select.appendChild(option);
-  });
-}
-
-// Declaration Editor Functions
-function initDeclarationEditor() {
-  // Add event delegation for edit declaration buttons
-  document.addEventListener("click", function (event) {
-    // Check if the clicked element or its parent is an edit button
-    const editButton = event.target.closest(".edit-declaration-btn");
-    if (editButton) {
-      handleEditDeclarationClick(event);
-    }
-  });
-}
-
-// Add event listener for the mass update button
-document
-  .getElementById("mass-update-declaration-btn")
-  .addEventListener("click", handleMassUpdateDeclaration);
-
-document.addEventListener("DOMContentLoaded", () => {
-  initializeDocumentManagement();
-  refreshDocumentData();
-  initDeclarationEditor();
-});
-
-// Close modal when clicking outside
-document
-  .getElementById("documentModal")
-  .addEventListener("click", function (event) {
-    if (event.target === this) {
-      closeModal();
-    }
-  });
