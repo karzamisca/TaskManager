@@ -19,6 +19,7 @@ exports.getDocumentInGroupDeclarationViews = (req, res) => {
       "headOfAccounting",
       "headOfPurchasing",
       "captainOfPurchasing",
+      "captainOfAccounting",
     ].includes(req.user.role)
   ) {
     return res
