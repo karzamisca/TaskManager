@@ -194,8 +194,8 @@ exports.createUser = async (req, res) => {
       costCenter,
       assignedManager,
       beneficiaryBank,
-      bankAccountNumber,
-      citizenID,
+      bankAccountNumber: bankAccountNumber.toString(),
+      citizenID: citizenID.toString(),
       baseSalary,
       commissionBonus: commissionBonus || 0,
       responsibility: responsibility || 0,
@@ -279,8 +279,8 @@ exports.updateUser = async (req, res) => {
 
     if (beneficiaryBank !== undefined) user.beneficiaryBank = beneficiaryBank;
     if (bankAccountNumber !== undefined)
-      user.bankAccountNumber = bankAccountNumber;
-    if (citizenID !== undefined) user.citizenID = citizenID;
+      user.bankAccountNumber = bankAccountNumber.toString();
+    if (citizenID !== undefined) user.citizenID = citizenID.toString();
     if (baseSalary !== undefined) user.baseSalary = baseSalary;
     if (commissionBonus !== undefined) {
       user.commissionBonus = commissionBonus;

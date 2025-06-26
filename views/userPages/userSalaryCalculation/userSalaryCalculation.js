@@ -187,10 +187,8 @@ async function addUser(e) {
     assignedManager:
       document.getElementById("new-assigned-manager").value || undefined,
     beneficiaryBank: document.getElementById("new-beneficiary-bank").value,
-    bankAccountNumber: parseFloat(
-      document.getElementById("new-bank-account-number").value
-    ),
-    citizenID: parseFloat(document.getElementById("new-citizen-id").value),
+    bankAccountNumber: document.getElementById("new-bank-account-number").value,
+    citizenID: document.getElementById("new-citizen-id").value,
     baseSalary: parseFloat(document.getElementById("new-base-salary").value),
     commissionBonus: parseFloat(
       document.getElementById("new-commission-bonus").value
@@ -247,8 +245,8 @@ async function editUser(id) {
   document.getElementById("edit-beneficiary-bank").value =
     user.beneficiaryBank || "";
   document.getElementById("edit-bank-account-number").value =
-    user.bankAccountNumber || 0;
-  document.getElementById("edit-citizen-id").value = user.citizenID || 0;
+    user.bankAccountNumber || "0";
+  document.getElementById("edit-citizen-id").value = user.citizenID || "0";
   document.getElementById("edit-base-salary").value = user.baseSalary;
   document.getElementById("edit-commission-bonus").value = user.commissionBonus;
   document.getElementById("edit-responsibility").value = user.responsibility;
@@ -295,10 +293,9 @@ async function updateUser(e) {
       document.getElementById("edit-assigned-manager").value || undefined,
     baseSalary: parseFloat(document.getElementById("edit-base-salary").value),
     beneficiaryBank: document.getElementById("edit-beneficiary-bank").value,
-    bankAccountNumber: parseFloat(
-      document.getElementById("edit-bank-account-number").value
-    ),
-    citizenID: parseFloat(document.getElementById("edit-citizen-id").value),
+    bankAccountNumber: document.getElementById("edit-bank-account-number")
+      .value,
+    citizenID: document.getElementById("edit-citizen-id").value,
     commissionBonus: parseFloat(
       document.getElementById("edit-commission-bonus").value
     ),
