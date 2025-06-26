@@ -61,4 +61,16 @@ router.post(
   groupDeclarationController.removeDocumentFromGroupDeclaration
 );
 
+// Routes for locking or unlocking document groupDeclaration
+router.post(
+  "/unlockGroupDeclaration",
+  authMiddleware,
+  groupDeclarationController.unlockGroupDeclaration
+);
+router.post(
+  "/lockGroupDeclaration",
+  authMiddleware,
+  groupDeclarationController.lockGroupDeclaration
+);
+
 module.exports = router;

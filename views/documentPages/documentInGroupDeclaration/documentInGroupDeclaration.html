@@ -1,10 +1,10 @@
-<!-- views\documentPages\documentInGroupDeclaration\documentInGroupDeclaration.html -->
+<!-- views/documentPages/documentInGroupDeclaration/documentInGroupDeclaration.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Phiếu theo nhóm/Document In GroupDeclaration</title>
+    <title>Quản lý Phiếu theo nhóm kê khai</title>
     <link
       rel="stylesheet"
       href="documentPages/documentInGroupDeclaration/documentInGroupDeclaration.css"
@@ -12,45 +12,62 @@
   </head>
   <body>
     <header>
-      <h1>Phiếu theo nhóm kê khai/Document in Declaration Group</h1>
-      <a href="/documentMain">Trở về/Back</a>
+      <h1>Quản lý Phiếu theo nhóm kê khai</h1>
+      <a href="/documentMain">Trở về trang chính</a>
     </header>
 
     <!-- Create GroupDeclaration Form -->
     <section class="compact-section">
-      <h2>Tạo nhóm kê khai mới/Create a New Declaration Group</h2>
+      <h2>Tạo nhóm kê khai mới</h2>
       <form action="/createGroupDeclaration" method="POST" class="compact-form">
         <div>
-          <label for="name">Tên nhóm kê khai/Declaration Group Name:</label>
+          <label for="name">Tên nhóm kê khai:</label>
           <input type="text" id="name" name="name" required />
         </div>
         <div>
-          <label for="description">Mô tả/Description:</label>
+          <label for="description">Mô tả:</label>
           <textarea id="description" name="description" required></textarea>
         </div>
-        <button type="submit">Tạo nhóm kê khai/Create Declaration Group</button>
+        <button type="submit">Tạo nhóm kê khai</button>
       </form>
     </section>
 
     <!-- Document Management Section -->
     <section>
-      <h2>
-        Quản lý tài liệu trong nhóm kê khai/Manage Documents in Declaration
-        Group
-      </h2>
+      <h2>Quản lý tài liệu trong nhóm kê khai</h2>
+
+      <!-- Group Lock Section -->
+      <div>
+        <h3>Khóa/Mở khóa nhóm</h3>
+        <div class="form-grid">
+          <div>
+            <label for="lock-group-select">Chọn nhóm kê khai:</label>
+            <select id="lock-group-select" class="form-control">
+              <option value="">-- Chọn nhóm --</option>
+            </select>
+          </div>
+          <button id="lock-group-btn" class="action-button danger">
+            Khóa nhóm
+          </button>
+          <button id="unlock-group-btn" class="action-button">
+            Mở khóa nhóm
+          </button>
+        </div>
+        <div id="lock-status-message" class="status-message"></div>
+      </div>
 
       <!-- Mass Declaration Update Section -->
       <div>
-        <h3>Cập nhật kê khai hàng loạt/Mass Declaration Update</h3>
+        <h3>Cập nhật kê khai hàng loạt</h3>
         <div class="mass-update-container">
-          <label for="mass-declaration-input">Kê khai/Declaration:</label>
+          <label for="mass-declaration-input">Kê khai:</label>
           <textarea
             id="mass-declaration-input"
             class="form-control"
-            placeholder="Nhập kê khai/Enter declaration"
+            placeholder="Nhập kê khai"
           ></textarea>
           <button id="mass-update-declaration-btn" class="action-button">
-            Cập nhật hàng loạt/Mass Update
+            Cập nhật hàng loạt
           </button>
         </div>
         <div id="mass-update-status-message" class="status-message"></div>
@@ -58,30 +75,24 @@
 
       <!-- Add Document to GroupDeclaration -->
       <div>
-        <h3>
-          Thêm tài liệu vào nhóm kê khai/Add Document to Declaration Group
-        </h3>
+        <h3>Thêm tài liệu vào nhóm kê khai</h3>
         <div class="document-management-form">
           <div>
-            <label for="groupDeclaration-select"
-              >Chọn nhóm kê khai/Select Declaration Group:</label
-            >
+            <label for="groupDeclaration-select">Chọn nhóm kê khai:</label>
             <select id="groupDeclaration-select" class="form-control">
-              <option value="">
-                -- Chọn nhóm kê khai/Select Declaration Group --
-              </option>
+              <option value="">-- Chọn nhóm --</option>
             </select>
           </div>
 
           <div>
-            <label for="document-select">Chọn tài liệu/Select Document:</label>
+            <label for="document-select">Chọn tài liệu:</label>
             <select id="document-select" class="form-control">
-              <option value="">-- Chọn tài liệu/Select Document --</option>
+              <option value="">-- Chọn tài liệu --</option>
             </select>
           </div>
 
           <button id="add-to-groupDeclaration-btn" class="action-button">
-            Thêm vào nhóm kê khai/Add to Declaration Group
+            Thêm vào nhóm
           </button>
         </div>
         <div id="add-status-message" class="status-message"></div>
@@ -89,9 +100,9 @@
 
       <!-- Remove Document from Group -->
       <div>
-        <h3>Phiếu trong nhóm kê khai/Document in the Declaration Group</h3>
+        <h3>Phiếu trong nhóm kê khai</h3>
         <div id="remove-document-container">
-          <p>Chọn một nhóm kê khai trước/Select a declaration group first</p>
+          <p>Vui lòng chọn một nhóm kê khai</p>
         </div>
         <div id="remove-status-message"></div>
       </div>
@@ -112,7 +123,7 @@
       "
     >
       <div class="modal-container">
-        <button onclick="closeModal()" class="close-button">Close</button>
+        <button onclick="closeModal()" class="close-button">Đóng</button>
         <div id="modalContent">
           <!-- Modal content will be dynamically inserted here based on the document type -->
         </div>

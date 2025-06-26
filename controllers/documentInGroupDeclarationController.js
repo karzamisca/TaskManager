@@ -22,9 +22,7 @@ exports.getDocumentInGroupDeclarationViews = (req, res) => {
       "captainOfAccounting",
     ].includes(req.user.role)
   ) {
-    return res
-      .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
   res.sendFile("documentInGroupDeclaration.html", {
     root: "./views/documentPages/documentInGroupDeclaration",
@@ -44,9 +42,7 @@ exports.createGroupDeclaration = async (req, res) => {
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
-      return res
-        .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     const { name, description } = req.body;
@@ -67,7 +63,7 @@ exports.createGroupDeclaration = async (req, res) => {
     res.redirect("/documentInGroupDeclaration");
   } catch (error) {
     console.error("Error creating groupDeclaration:", error);
-    res.status(500).send("Internal Server Error");
+    res.send("Internal Server Error");
   }
 };
 
@@ -84,9 +80,7 @@ exports.getGroupDeclaration = (req, res) => {
       "captainOfAccounting",
     ].includes(req.user.role)
   ) {
-    return res
-      .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
 
   GroupDeclaration.find()
@@ -112,7 +106,7 @@ exports.getGroupDeclaration = (req, res) => {
     })
     .catch((err) => {
       console.log("Error fetching groupDeclarations:", err);
-      res.status(500).send("Internal Server Error");
+      res.send("Internal Server Error");
     });
 };
 
@@ -129,9 +123,7 @@ exports.getGroupDeclarationedDocuments = async (req, res) => {
         "captainOfAccounting",
       ].includes(req.user.role)
     ) {
-      return res
-        .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Fetch all documents from the models and filter out documents without a valid groupDeclarationName
@@ -213,7 +205,7 @@ exports.getGroupDeclarationedDocuments = async (req, res) => {
     res.json(groupDeclarationedDocuments);
   } catch (error) {
     console.error("Error fetching documents:", error);
-    res.status(500).send("Internal Server Error");
+    res.send("Internal Server Error");
   }
 };
 
@@ -231,9 +223,7 @@ exports.approveGroupDeclarationedDocument = async (req, res) => {
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
-      return res
-        .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Check if the document is a Generic, Proposal, or Purchasing Document
@@ -323,9 +313,7 @@ exports.deleteGroupDeclarationedDocument = async (req, res) => {
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
-      return res
-        .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Try to find the document in each collection
@@ -396,12 +384,20 @@ exports.addDocumentToGroupDeclaration = async (req, res) => {
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
-      return res
-        .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     const { documentId, documentType, groupDeclarationName } = req.body;
+
+    // Check if group is locked
+    const group = await GroupDeclaration.findOne({
+      name: groupDeclarationName,
+    });
+    if (group && group.locked) {
+      return res.json({
+        message: `Nhóm đã bị khóa. Không thể thêm tài liệu.`,
+      });
+    }
 
     let document;
     // Find the document based on its type
@@ -425,11 +421,11 @@ exports.addDocumentToGroupDeclaration = async (req, res) => {
         document = await DeliveryDocument.findById(documentId);
         break;
       default:
-        return res.status(400).json({ message: "Invalid document type" });
+        return res.json({ message: "Invalid document type" });
     }
 
     if (!document) {
-      return res.status(404).json({ message: "Document not found" });
+      return res.json({ message: "Document not found" });
     }
 
     // Update the document with the groupDeclaration name
@@ -457,12 +453,10 @@ exports.addDocumentToGroupDeclaration = async (req, res) => {
         break;
     }
 
-    res
-      .status(200)
-      .json({ message: "Document added to groupDeclaration successfully" });
+    res.json({ message: "Phiếu thêm vào nhóm thành công." });
   } catch (error) {
     console.error("Error adding document to groupDeclaration:", error);
-    res.status(500).send("Internal Server Error");
+    res.send("Internal Server Error");
   }
 };
 
@@ -480,9 +474,7 @@ exports.getUnassignedDocuments = async (req, res) => {
         "captainOfAccounting",
       ].includes(req.user.role)
     ) {
-      return res
-        .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
     // Fetch documents with no groupDeclaration assigned
     const genericDocuments = await Document.find({
@@ -546,7 +538,7 @@ exports.getUnassignedDocuments = async (req, res) => {
     res.json(allDocuments);
   } catch (error) {
     console.error("Error fetching unassigned documents:", error);
-    res.status(500).send("Internal Server Error");
+    res.send("Internal Server Error");
   }
 };
 
@@ -563,9 +555,7 @@ exports.removeDocumentFromGroupDeclaration = async (req, res) => {
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
-      return res
-        .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     const { documentId, documentType } = req.body;
@@ -592,11 +582,23 @@ exports.removeDocumentFromGroupDeclaration = async (req, res) => {
         document = await DeliveryDocument.findById(documentId);
         break;
       default:
-        return res.status(400).json({ message: "Invalid document type" });
+        return res.json({ message: "Invalid document type" });
     }
 
     if (!document) {
-      return res.status(404).json({ message: "Document not found" });
+      return res.json({ message: "Document not found" });
+    }
+
+    // Check if group is locked
+    if (document.groupDeclarationName) {
+      const group = await GroupDeclaration.findOne({
+        name: document.groupDeclarationName,
+      });
+      if (group && group.locked) {
+        return res.json({
+          message: `Nhóm đã bị khóa. Không thể xóa tài liệu.`,
+        });
+      }
     }
 
     // Remove the groupDeclaration assignment
@@ -624,11 +626,66 @@ exports.removeDocumentFromGroupDeclaration = async (req, res) => {
         break;
     }
 
-    res
-      .status(200)
-      .json({ message: "Document removed from groupDeclaration successfully" });
+    res.json({ message: "Phiếu xóa khỏi nhóm thành công." });
   } catch (error) {
     console.error("Error removing document from groupDeclaration:", error);
-    res.status(500).send("Internal Server Error");
+    res.send("Internal Server Error");
+  }
+};
+
+exports.lockGroupDeclaration = async (req, res) => {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+        "headOfPurchasing",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
+    const { name } = req.body;
+
+    const groupDeclaration = await GroupDeclaration.findOne({ name });
+    if (!groupDeclaration) {
+      return res.json({ message: "Không tìm thấy nhóm" });
+    }
+
+    groupDeclaration.locked = true;
+    groupDeclaration.lockedBy = req.user.id;
+    groupDeclaration.lockedAt = new Date();
+
+    await groupDeclaration.save();
+    res.json({ message: "Nhóm đã được khóa thành công" });
+  } catch (error) {
+    console.error("Error locking group:", error);
+    res.send("Lỗi máy chủ");
+  }
+};
+
+exports.unlockGroupDeclaration = async (req, res) => {
+  try {
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+    const { name } = req.body;
+
+    const groupDeclaration = await GroupDeclaration.findOne({ name });
+    if (!groupDeclaration) {
+      return res.json({ message: "Không tìm thấy nhóm" });
+    }
+
+    groupDeclaration.locked = false;
+    groupDeclaration.lockedBy = null;
+    groupDeclaration.lockedAt = null;
+
+    await groupDeclaration.save();
+    res.json({ message: "Nhóm đã được mở khóa thành công" });
+  } catch (error) {
+    console.error("Error unlocking group:", error);
+    res.send("Lỗi máy chủ");
   }
 };

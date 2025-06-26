@@ -6,19 +6,14 @@ let unassignedDocuments = [];
 
 async function initializeDocumentManagement() {
   try {
-    const response = await fetch("/getGroupDeclaration");
-    allGroupDeclarations = await response.json();
+    await refreshGroupData();
     populateGroupDeclarationSelect();
-  } catch (error) {
-    console.error("Error fetching groupDeclarations:", error);
-  }
 
-  try {
     const response = await fetch("/getUnassignedDocumentsForGroupDeclaration");
     unassignedDocuments = await response.json();
     populateDocumentSelect();
   } catch (error) {
-    console.error("Error fetching unassigned documents:", error);
+    console.error("Error initializing:", error);
   }
 
   document
@@ -27,6 +22,13 @@ async function initializeDocumentManagement() {
   document
     .getElementById("add-to-groupDeclaration-btn")
     .addEventListener("click", addDocumentToGroupDeclaration);
+
+  document
+    .getElementById("lock-group-btn")
+    .addEventListener("click", lockGroupDeclaration);
+  document
+    .getElementById("unlock-group-btn")
+    .addEventListener("click", unlockGroupDeclaration);
 }
 
 function populateGroupDeclarationSelect() {
@@ -104,8 +106,7 @@ function displayGroupDeclarationDocumentsForRemoval(
   container.innerHTML = "";
 
   if (!documents || documents.length === 0) {
-    container.innerHTML =
-      "<p>Không có tài liệu trong nhóm này/No documents in this groupDeclaration</p>";
+    container.innerHTML = "<p>Không có tài liệu trong nhóm này</p>";
     return;
   }
 
@@ -151,11 +152,11 @@ function displayGroupDeclarationDocumentsForRemoval(
     } else if (doc.type === "Xuất kho/Delivery") {
       documentTitle = `${doc.title} (Tên: ${doc.name}) (Tổng chi phí: ${doc.grandTotalCost})`;
     } else if (doc.type === "Tạm ứng/Advance Payment") {
-      documentTitle = `(Mã/Tag: ${doc.tag}) (Kê khai: ${
+      documentTitle = `(Mã: ${doc.tag}) (Kê khai: ${
         doc.declaration
       }) (Tạm ứng: ${doc.advancePayment.toLocaleString()})`;
     } else if (doc.type === "Thanh toán/Payment") {
-      documentTitle = `(Mã/Tag: ${doc.tag}) (Kê khai: ${
+      documentTitle = `(Mã: ${doc.tag}) (Kê khai: ${
         doc.declaration
       }) (Tổng thanh toán: ${doc.totalPayment.toLocaleString()})`;
     }
@@ -165,11 +166,11 @@ function displayGroupDeclarationDocumentsForRemoval(
         <strong>${doc.type}:</strong> ${documentTitle}
         <button onclick="showDocumentDetails('${
           doc._id
-        }', '${groupDeclarationName}')">Chi tiết đầy đủ/Full Details</button>
+        }', '${groupDeclarationName}')">Chi tiết đầy đủ</button>
         <button class="remove-btn" data-id="${
           doc._id
         }" data-type="${getDocumentType(doc.type)}">
-          Xóa khỏi nhóm/Remove
+          Xóa khỏi nhóm
         </button>
       </div>
     `;
@@ -1111,8 +1112,7 @@ async function addDocumentToGroupDeclaration() {
   const documentData = documentSelect.value;
 
   if (!groupDeclarationName || !documentData) {
-    statusMessage.textContent =
-      "Please select both groupDeclaration and document";
+    statusMessage.textContent = "Vui lòng chọn cả nhóm và tài liệu";
     return;
   }
 
@@ -1129,15 +1129,15 @@ async function addDocumentToGroupDeclaration() {
       }),
     });
 
+    const result = await response.json();
+    statusMessage.textContent = result.message;
+
     if (response.ok) {
-      statusMessage.textContent = "Document added successfully";
       await refreshDocumentData();
-    } else {
-      statusMessage.textContent = "Error adding document";
     }
   } catch (error) {
     console.error("Error:", error);
-    statusMessage.textContent = "Server error";
+    statusMessage.textContent = "Lỗi máy chủ";
   }
 }
 
@@ -1154,15 +1154,15 @@ async function removeDocumentFromGroupDeclaration(event) {
       body: JSON.stringify({ documentId, documentType }),
     });
 
+    const result = await response.json();
+    statusMessage.textContent = result.message;
+
     if (response.ok) {
-      statusMessage.textContent = "Document removed successfully";
       await refreshDocumentData();
-    } else {
-      statusMessage.textContent = "Error removing document";
     }
   } catch (error) {
     console.error("Error:", error);
-    statusMessage.textContent = "Server error";
+    statusMessage.textContent = "Lỗi máy chủ";
   }
 }
 
@@ -1227,6 +1227,83 @@ function handleGroupDeclarationChange() {
     document.getElementById("remove-document-container").innerHTML =
       "<p>Không có tài liệu trong nhóm này/No documents in this groupDeclaration</p>";
   }
+}
+
+async function lockGroupDeclaration() {
+  const groupName = document.getElementById("lock-group-select").value;
+  const statusMessage = document.getElementById("lock-status-message");
+
+  if (!groupName) {
+    statusMessage.textContent = "Vui lòng chọn một nhóm";
+    return;
+  }
+
+  try {
+    const response = await fetch("/lockGroupDeclaration", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: groupName }),
+    });
+
+    const result = await response.json();
+    statusMessage.textContent = result.message;
+    await refreshGroupData();
+  } catch (error) {
+    console.error("Error locking group:", error);
+    statusMessage.textContent = "Lỗi khi khóa nhóm";
+  }
+}
+
+async function unlockGroupDeclaration() {
+  const groupName = document.getElementById("lock-group-select").value;
+  const statusMessage = document.getElementById("lock-status-message");
+
+  if (!groupName) {
+    statusMessage.textContent = "Vui lòng chọn một nhóm";
+    return;
+  }
+
+  try {
+    const response = await fetch("/unlockGroupDeclaration", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: groupName }),
+    });
+
+    const result = await response.json();
+    statusMessage.textContent = result.message;
+    await refreshGroupData();
+  } catch (error) {
+    console.error("Error unlocking group:", error);
+    statusMessage.textContent = "Lỗi khi mở khóa nhóm";
+  }
+}
+
+async function refreshGroupData() {
+  try {
+    const response = await fetch("/getGroupDeclaration");
+    allGroupDeclarations = await response.json();
+    populateGroupDeclarationSelect();
+    populateLockGroupSelect();
+  } catch (error) {
+    console.error("Error refreshing group data:", error);
+  }
+}
+
+function populateLockGroupSelect() {
+  const select = document.getElementById("lock-group-select");
+  while (select.options.length > 1) {
+    select.remove(1);
+  }
+
+  allGroupDeclarations.forEach((group) => {
+    const option = document.createElement("option");
+    option.value = group.name;
+    option.textContent = `${group.name} - ${group.description} ${
+      group.locked ? "(Đã khóa)" : ""
+    }`;
+    select.appendChild(option);
+  });
 }
 
 // Declaration Editor Functions
