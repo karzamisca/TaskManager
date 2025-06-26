@@ -1,6 +1,6 @@
-////views/sftpPages/sftpPurchasing/sftpPurchasing.js
+////views/sftpPages/sftpAccounting/sftpAccounting.js
 // Global variables
-let currentPath = "/purchasing";
+let currentPath = "/accounting";
 let selectedFiles = [];
 let fileListData = [];
 
@@ -151,8 +151,8 @@ async function checkConnectionStatus() {
 // Load file list for the given path
 async function loadFileList(path) {
   // Ensure path starts with /sftp
-  if (!path.startsWith("/purchasing")) {
-    path = "/purchasing" + (path === "/" ? "" : path);
+  if (!path.startsWith("/accounting")) {
+    path = "/accounting" + (path === "/" ? "" : path);
   }
 
   showLoading();
@@ -170,7 +170,7 @@ async function loadFileList(path) {
     let files = await response.json();
 
     // Filter out parent directory if we're at /sftp
-    if (path === "/purchasing") {
+    if (path === "/accounting") {
       files = files.filter((file) => file.name !== ".." && file.name !== ".");
     }
 
@@ -213,8 +213,8 @@ function renderFileList(files) {
       const parentPath = currentPath.split("/").slice(0, -1).join("/") || "/";
       // Don't allow navigation above /sftp
       if (
-        parentPath.startsWith("/purchasing") ||
-        parentPath === "/purchasing"
+        parentPath.startsWith("/accounting") ||
+        parentPath === "/accounting"
       ) {
         loadFileList(parentPath);
       }
@@ -315,16 +315,16 @@ function updateBreadcrumb(path) {
   breadcrumbElement.innerHTML = "";
 
   // Remove /sftp prefix for display purposes
-  const displayPath = path.replace(/^\/purchasing/, "") || "/";
+  const displayPath = path.replace(/^\/accounting/, "") || "/";
   const parts = displayPath.split("/").filter((part) => part !== "");
 
   // Add SFTP root indicator (not clickable)
   const rootSpan = document.createElement("span");
-  rootSpan.textContent = "Purchasing";
+  rootSpan.textContent = "Accounting";
   breadcrumbElement.appendChild(rootSpan);
 
   // Add path parts
-  let currentPath = "/purchasing";
+  let currentPath = "/accounting";
   parts.forEach((part, index) => {
     currentPath += `/${part}`;
 

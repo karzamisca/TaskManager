@@ -51,9 +51,7 @@ exports.getSftpMainViews = (req, res) => {
   ) {
     return res
       .status(403)
-      .send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
   res.sendFile("sftpMain.html", {
     root: "./views/sftpPages/sftpMain",
@@ -63,58 +61,57 @@ exports.getSftpMainViews = (req, res) => {
 exports.getSftpPurchasingViews = (req, res) => {
   if (
     ![
-      "approver",
       "superAdmin",
       "director",
       "deputyDirector",
-      "headOfMechanical",
-      "headOfTechnical",
-      "headOfAccounting",
       "headOfPurchasing",
-      "headOfOperations",
-      "headOfNorthernRepresentativeOffice",
-      "captainOfMechanical",
-      "captainOfTechnical",
       "captainOfPurchasing",
     ].includes(req.user.role)
   ) {
     return res
       .status(403)
-      .send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
   res.sendFile("sftpPurchasing.html", {
     root: "./views/sftpPages/sftpPurchasing",
   });
 };
 
-exports.getSftpTechnologyViews = (req, res) => {
+exports.getSftpTechnicalViews = (req, res) => {
   if (
     ![
-      "approver",
       "superAdmin",
       "director",
       "deputyDirector",
-      "headOfMechanical",
       "headOfTechnical",
-      "headOfAccounting",
-      "headOfPurchasing",
-      "headOfOperations",
-      "headOfNorthernRepresentativeOffice",
-      "captainOfMechanical",
       "captainOfTechnical",
-      "captainOfPurchasing",
     ].includes(req.user.role)
   ) {
     return res
       .status(403)
-      .send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
-  res.sendFile("sftpTechnology.html", {
-    root: "./views/sftpPages/sftpTechnology",
+  res.sendFile("sftpTechnical.html", {
+    root: "./views/sftpPages/sftpTechnical",
+  });
+};
+
+exports.getSftpAccountingViews = (req, res) => {
+  if (
+    ![
+      "superAdmin",
+      "director",
+      "deputyDirector",
+      "headOfAccounting",
+      "captainOfAccounting",
+    ].includes(req.user.role)
+  ) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+  }
+  res.sendFile("sftpAccounting.html", {
+    root: "./views/sftpPages/sftpAccounting",
   });
 };
 

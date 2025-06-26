@@ -16,9 +16,14 @@ router.get(
   sftpController.getSftpPurchasingViews
 );
 router.get(
-  "/sftpTechnology",
+  "/sftpTechnical",
   authMiddleware,
-  sftpController.getSftpTechnologyViews
+  sftpController.getSftpTechnicalViews
+);
+router.get(
+  "/sftpAccounting",
+  authMiddleware,
+  sftpController.getSftpAccountingViews
 );
 
 // SFTP connection routes

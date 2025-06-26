@@ -1,6 +1,6 @@
-////views/sftpPages/sftpTechnology/sftpTechnology.js
+////views/sftpPages/sftpTechnical/sftpTechnical.js
 // Global variables
-let currentPath = "/technology";
+let currentPath = "/technical";
 let selectedFiles = [];
 let fileListData = [];
 
@@ -151,8 +151,8 @@ async function checkConnectionStatus() {
 // Load file list for the given path
 async function loadFileList(path) {
   // Ensure path starts with /sftp
-  if (!path.startsWith("/technology")) {
-    path = "/technology" + (path === "/" ? "" : path);
+  if (!path.startsWith("/technical")) {
+    path = "/technical" + (path === "/" ? "" : path);
   }
 
   showLoading();
@@ -170,7 +170,7 @@ async function loadFileList(path) {
     let files = await response.json();
 
     // Filter out parent directory if we're at /sftp
-    if (path === "/technology") {
+    if (path === "/technical") {
       files = files.filter((file) => file.name !== ".." && file.name !== ".");
     }
 
@@ -212,10 +212,7 @@ function renderFileList(files) {
       e.preventDefault();
       const parentPath = currentPath.split("/").slice(0, -1).join("/") || "/";
       // Don't allow navigation above /sftp
-      if (
-        parentPath.startsWith("/technology") ||
-        parentPath === "/technology"
-      ) {
+      if (parentPath.startsWith("/technical") || parentPath === "/technical") {
         loadFileList(parentPath);
       }
     });
@@ -315,16 +312,16 @@ function updateBreadcrumb(path) {
   breadcrumbElement.innerHTML = "";
 
   // Remove /sftp prefix for display purposes
-  const displayPath = path.replace(/^\/technology/, "") || "/";
+  const displayPath = path.replace(/^\/technical/, "") || "/";
   const parts = displayPath.split("/").filter((part) => part !== "");
 
   // Add SFTP root indicator (not clickable)
   const rootSpan = document.createElement("span");
-  rootSpan.textContent = "Technology";
+  rootSpan.textContent = "Technical";
   breadcrumbElement.appendChild(rootSpan);
 
   // Add path parts
-  let currentPath = "/technology";
+  let currentPath = "/technical";
   parts.forEach((part, index) => {
     currentPath += `/${part}`;
 
@@ -399,10 +396,7 @@ async function handleUpload(e) {
     }
 
     const result = await response.json();
-    showNotification(
-      `${result.uploaded} file(s) uploaded successfully`,
-      "success"
-    );
+    showNotification(`${result.uploaded} tệp tải lên thành công`, "success");
     loadFileList(currentPath);
     uploadModal.style.display = "none";
   } catch (error) {
@@ -441,7 +435,7 @@ async function createFolder(e) {
       throw new Error(await response.text());
     }
 
-    showNotification("Folder created successfully", "success");
+    showNotification("Thư mục đã tạo thành công", "success");
     loadFileList(currentPath);
     folderModal.style.display = "none";
   } catch (error) {
@@ -481,7 +475,7 @@ async function renameFile(e) {
       throw new Error(await response.text());
     }
 
-    showNotification("Item renamed successfully", "success");
+    showNotification("Đối tượng đổi tên thành công", "success");
     loadFileList(currentPath);
     renameModal.style.display = "none";
     clearSelection();
@@ -498,9 +492,7 @@ async function deleteSelectedFiles() {
   if (selectedFiles.length === 0) return;
 
   if (
-    !confirm(
-      `Are you sure you want to delete ${selectedFiles.length} selected item(s)?`
-    )
+    !confirm(`Bạn có chắc muốn xóa ${selectedFiles.length} đối tượng đã chọn?`)
   ) {
     return;
   }
@@ -524,7 +516,7 @@ async function deleteSelectedFiles() {
     }
 
     showNotification(
-      `${selectedFiles.length} item(s) deleted successfully`,
+      `${selectedFiles.length} đối tượng xóa thành công`,
       "success"
     );
     loadFileList(currentPath);
@@ -576,7 +568,7 @@ async function downloadSelectedFiles() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      showNotification("Download started", "success");
+      showNotification("Bắt đầu tải xuống", "success");
     } else {
       // For multiple files, we would need a zip creation endpoint
       showNotification("Multiple file download not yet implemented", "warning");
