@@ -8,25 +8,25 @@
     <link rel="stylesheet" href="sftpPages/sftpMain/sftpMain.css" />
   </head>
   <body>
-    <div class="header">
-      <a href="/main">Trở về trang chính</a>
-      <a href="/message">Bảng tin nhắn</a>
-      <a href="/changePassword">Đổi mật khẩu</a>
-      <a href="/logout">Đăng xuất</a>
-    </div>
-    <div class="container">
-      <header>
-        <h1>Hệ thống quản lý tệp tin</h1>
-      </header>
-      <nav>
-        <ul class="document-links">
-          <li>
-            <a href="/sftpPurchasing" class="sftpPurchasing"
-              >Thuộc phòng mua hàng</a
-            >
-          </li>
-        </ul>
+    <header class="app-header">
+      <nav class="header-nav">
+        <a href="/main" class="nav-link">← Quay lại</a>
+        <a href="/main" class="nav-link">Trang chính</a>
+        <a href="/message" class="nav-link">Bảng tin nhắn</a>
+        <a href="/changePassword" class="nav-link">Đổi mật khẩu</a>
+        <a href="/logout" class="nav-link">Đăng xuất</a>
       </nav>
-    </div>
+    </header>
+
+    <main class="document-container">
+      <h1 class="document-title">Hệ thống phê duyệt</h1>
+
+      <div class="document-grid">
+        <a href="/sftpPurchasing" class="document-card">Thuộc phòng mua hàng</a>
+        <a href="/sftpTechnology" class="document-card"
+          >Thuộc phòng công nghệ</a
+        >
+      </div>
+    </main>
   </body>
 </html>
