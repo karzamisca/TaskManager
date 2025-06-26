@@ -4,16 +4,9 @@ let allDocuments = [];
 let unassignedDocuments = [];
 
 // Initialize the page
-document.addEventListener("DOMContentLoaded", async () => {
-  try {
-    await loadData();
-    renderGroups();
-    renderUnassignedDocuments();
-    setupEventListeners();
-  } catch (error) {
-    console.error("Initialization error:", error);
-    showNotification("Lỗi khi khởi tạo trang", "error");
-  }
+document.addEventListener("DOMContentLoaded", () => {
+  loadData();
+  setupEventListeners();
 });
 
 // Load all necessary data
@@ -32,14 +25,16 @@ async function loadData() {
     );
     const groupDeclarationedData = await groupDeclarationedRes.json();
 
-    // Convert groupDeclarationed data to a more usable format
     allDocuments = [];
     for (const [groupName, docs] of Object.entries(groupDeclarationedData)) {
       allDocuments.push(...docs);
     }
+
+    // Now that we have all data, render the groups
+    renderGroups();
   } catch (error) {
     console.error("Error loading data:", error);
-    throw error;
+    showNotification("Lỗi khi tải dữ liệu", "error");
   }
 }
 
@@ -126,6 +121,62 @@ function createGroupElement(group, documents) {
   actions.appendChild(massUpdateBtn);
   content.appendChild(actions);
 
+  // Add document form for this group
+  const addDocForm = document.createElement("div");
+  addDocForm.className = "group-add-document-form";
+  addDocForm.innerHTML = `
+    <h4>Thêm phiếu vào nhóm</h4>
+    <select id="document-select-${group.name}" class="form-control">
+      <option value="">-- Chọn tài liệu --</option>
+    </select>
+    <button id="add-to-group-btn-${group.name}" class="action-button primary">
+      Thêm vào nhóm
+    </button>
+  `;
+  content.appendChild(addDocForm);
+
+  // Populate the document dropdown for this group
+  const docSelect = addDocForm.querySelector(`#document-select-${group.name}`);
+  populateDocumentDropdown(docSelect);
+
+  // Set up event listener for the add button
+  const addBtn = addDocForm.querySelector(`#add-to-group-btn-${group.name}`);
+  addBtn.addEventListener("click", async () => {
+    const docData = docSelect.value;
+
+    if (!docData) {
+      showNotification("Vui lòng chọn tài liệu", "error");
+      return;
+    }
+
+    try {
+      const { id, type } = JSON.parse(docData);
+
+      const response = await fetch("/addDocumentToGroupDeclaration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentId: id,
+          documentType: type,
+          groupDeclarationName: group.name,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        showNotification(result.message, "success");
+        await loadData();
+        renderGroups();
+      } else {
+        showNotification(result.message || "Lỗi khi thêm tài liệu", "error");
+      }
+    } catch (error) {
+      console.error("Error adding document:", error);
+      showNotification("Lỗi máy chủ", "error");
+    }
+  });
+
   // Documents list
   if (documents.length > 0) {
     const docsList = document.createElement("div");
@@ -152,6 +203,46 @@ function createGroupElement(group, documents) {
   groupElement.appendChild(content);
 
   return groupElement;
+}
+
+// Helper function to populate document dropdown
+function populateDocumentDropdown(selectElement) {
+  // Clear existing options except the first one
+  while (selectElement.options.length > 1) {
+    selectElement.remove(1);
+  }
+
+  unassignedDocuments.forEach((doc) => {
+    const option = document.createElement("option");
+    option.value = JSON.stringify({
+      id: doc._id,
+      type: doc.documentType,
+    });
+
+    let displayText = `${doc.displayType}: `;
+    if (doc.documentType === "generic") {
+      displayText += doc.title || "Untitled";
+    } else if (doc.documentType === "proposal") {
+      displayText += doc.task || "Untitled";
+    } else if (doc.documentType === "purchasing") {
+      displayText += `${doc.title} (Tên: ${doc.name || ""}) (Tổng chi phí: ${
+        doc.grandTotalCost
+      })`;
+    } else if (doc.documentType === "delivery") {
+      displayText += `${doc.title} (Tên: ${doc.name}) (Tổng chi phí: ${doc.grandTotalCost})`;
+    } else if (doc.documentType === "advancePayment") {
+      displayText += `(Mã/Tag: ${doc.tag}) (Kê khai: ${
+        doc.declaration || "Không có"
+      }) (Tạm ứng: ${doc.advancePayment?.toLocaleString() || 0})`;
+    } else if (doc.documentType === "payment") {
+      displayText += `(Mã/Tag: ${doc.tag}) (Kê khai: ${
+        doc.declaration || "Không có"
+      }) (Tổng thanh toán: ${doc.totalPayment?.toLocaleString() || 0})`;
+    }
+
+    option.textContent = displayText;
+    selectElement.appendChild(option);
+  });
 }
 
 // Create a document item element
@@ -297,57 +388,12 @@ function setupEventListeners() {
           e.target.reset();
           await loadData();
           renderGroups();
-          renderUnassignedDocuments();
         } else {
           const result = await response.json();
           showNotification(result.message || "Lỗi khi tạo nhóm", "error");
         }
       } catch (error) {
         console.error("Error creating group:", error);
-        showNotification("Lỗi máy chủ", "error");
-      }
-    });
-
-  // Add document to group
-  document
-    .getElementById("add-to-group-btn")
-    .addEventListener("click", async () => {
-      const docSelect = document.getElementById("document-select");
-      const groupSelect = document.getElementById("group-select");
-
-      const docData = docSelect.value;
-      const groupName = groupSelect.value;
-
-      if (!docData || !groupName) {
-        showNotification("Vui lòng chọn cả tài liệu và nhóm", "error");
-        return;
-      }
-
-      try {
-        const { id, type } = JSON.parse(docData);
-
-        const response = await fetch("/addDocumentToGroupDeclaration", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            documentId: id,
-            documentType: type,
-            groupDeclarationName: groupName,
-          }),
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-          showNotification(result.message, "success");
-          await loadData();
-          renderGroups();
-          renderUnassignedDocuments();
-        } else {
-          showNotification(result.message || "Lỗi khi thêm tài liệu", "error");
-        }
-      } catch (error) {
-        console.error("Error adding document:", error);
         showNotification("Lỗi máy chủ", "error");
       }
     });
@@ -375,7 +421,6 @@ function setupEventListeners() {
           showNotification(result.message, "success");
           await loadData();
           renderGroups();
-          renderUnassignedDocuments();
         } else {
           showNotification(result.message || "Lỗi khi xóa tài liệu", "error");
         }
