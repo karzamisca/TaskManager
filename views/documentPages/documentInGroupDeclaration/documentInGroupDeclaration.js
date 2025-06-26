@@ -385,6 +385,13 @@ function setupEventListeners() {
       }
     }
   });
+
+  // Handle edit declaration clicks (using event delegation)
+  document.addEventListener("click", function (event) {
+    if (event.target.classList.contains("edit-declaration-btn")) {
+      handleEditDeclarationClick(event);
+    }
+  });
 }
 
 // Lock a group
@@ -669,60 +676,307 @@ function renderPurchasingDocuments(purchDocs) {
     `;
 }
 
+function renderStatus(status) {
+  switch (status) {
+    case "Approved":
+      return `<span class="status-approved">Đã thanh toán</span>`;
+    case "Suspended":
+      return `<span class="status-suspended">Từ chối/span>`;
+    default:
+      return `<span class="status-pending">Chưa phê duyệt</span>`;
+  }
+}
+
 function generatePaymentDocumentContent(doc) {
+  const submissionDate = doc.submissionDate || "Không có";
+  const paymentDeadline = doc.paymentDeadline || "Không có";
+
   return `
-        <!-- Previous payment document content... -->
-        
-        ${
-          doc.appendedPurchasingDocuments?.length
-            ? `
-        <div class="full-view-section">
-            <h3>Phiếu mua hàng kèm theo</h3>
-            ${renderPurchasingDocuments(doc.appendedPurchasingDocuments)}
+    <!-- Basic Information Section -->
+    <div class="full-view-section">
+      <h3>Thông tin cơ bản</h3>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Mã:</span>
+          <span class="detail-value">${doc.tag || "Không có"}</span>
+          <span class="detail-label">Tên:</span>
+          <span class="detail-value">${doc.name || "Không có"}</span>
         </div>
-        `
-            : ""
-        }
-        
-        ${
-          doc.appendedProposals?.length
-            ? `
-        <div class="full-view-section">
-            <h3>Phiếu đề xuất kèm theo</h3>
-            ${renderProposals(doc.appendedProposals)}
+        <div class="detail-item">
+          <span class="detail-label">Tên nhóm:</span>
+          <span class="detail-value">${
+            doc.groupDeclarationName || "Không có"
+          }</span>
         </div>
-        `
-            : ""
-        }
-    `;
+        <div class="detail-item">
+          <span class="detail-label">Ngày nộp:</span>
+          <span class="detail-value">${submissionDate}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Hạn trả:</span>
+          <span class="detail-value">${paymentDeadline}</span>
+        </div>
+        <div class="detail-item declaration-container" data-document-id="${
+          doc._id
+        }">
+            <span class="detail-label">Kê khai:</span>
+            <span class="detail-value declaration-value">${
+              doc.declaration || "Không có"
+            }</span>
+            <button class="edit-declaration-btn action-button primary">Chỉnh sửa</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Section -->
+    <div class="full-view-section">
+      <h3>Nội dung/Content</h3>
+      <p style="white-space: pre-wrap;">${doc.content || "Không có"}</p>
+    </div>
+
+    <div class="full-view-section">
+      <h3>Trạm/Center</h3>
+      <p style="white-space: pre-wrap;">${doc.costCenter || "Không có"}</p>
+    </div>
+
+    <!-- Payment Information Section -->
+    <div class="full-view-section">
+      <h3>Thông tin thanh toán</h3>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Phương thức:</span>
+          <span class="detail-value">${doc.paymentMethod || "Không có"}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Tổng thanh toán:</span>
+          <span class="detail-value">${
+            doc.totalPayment?.toLocaleString() || "Không có"
+          }</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Tạm ứng:</span>
+          <span class="detail-value">${
+            doc.advancePayment?.toLocaleString() || "Không có"
+          }</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Bù trừ:</span>
+          <span class="detail-value">${
+            doc.totalPayment && doc.advancePayment
+              ? (doc.totalPayment - doc.advancePayment).toLocaleString()
+              : "Not calculated"
+          }</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- File Attachment Section -->
+    <div class="full-view-section">
+      <h3>Tệp tin kèm theo</h3>
+      ${
+        doc.fileMetadata
+          ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+          : "Không có"
+      }
+    </div>
+
+    <!-- Purchasing Documents Section -->
+    <div class="full-view-section">
+      <h3>Phiếu mua hàng kèm theo</h3>
+      ${
+        doc.appendedPurchasingDocuments?.length
+          ? renderPurchasingDocuments(doc.appendedPurchasingDocuments)
+          : "Không có"
+      }
+    </div>
+
+    <!-- Proposals Section -->
+    <div class="full-view-section">
+      <h3>Phiếu đề xuất kèm theo</h3>
+      ${
+        doc.appendedPurchasingDocuments?.length
+          ? renderProposals(doc.appendedPurchasingDocuments)
+          : "Không có"
+      }
+    </div>
+
+    <!-- Status Section -->
+    <div class="full-view-section">
+      <h3>Trạng thái</h3>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Tình trạng:</span>
+          <span class="detail-value ${renderStatus(doc.status)}</span>
+        </div>
+      </div>
+      <div style="margin-top: 16px;">
+        <h4>Trạng thái phê duyệt:</h4>
+        <div class="approval-status">
+          ${doc.approvers
+            .map((approver) => {
+              const hasApproved = doc.approvedBy.find(
+                (a) => a.username === approver.username
+              );
+              return `
+              <div class="approver-item">
+                <span class="status-icon ${
+                  hasApproved ? "status-approved" : "status-pending"
+                }"></span>
+                <div>
+                  <div>${approver.username} (${approver.subRole})</div>
+                  ${
+                    hasApproved
+                      ? `<div class="approval-date">Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
+                      : '<div class="approval-date">Chưa phê duyệt</div>'
+                  }
+                </div>
+              </div>
+            `;
+            })
+            .join("")}
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function generateAdvancePaymentDocumentContent(doc) {
+  const submissionDate = doc.submissionDate || "Không có";
+  const paymentDeadline = doc.paymentDeadline || "Không có";
+
   return `
-        <!-- Previous advance payment content... -->
-        
-        ${
-          doc.appendedPurchasingDocuments?.length
-            ? `
-        <div class="full-view-section">
-            <h3>Phiếu mua hàng kèm theo</h3>
-            ${renderPurchasingDocuments(doc.appendedPurchasingDocuments)}
+    <!-- Basic Information Section -->
+    <div class="full-view-section">
+      <h3>Thông tin cơ bản</h3>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Mã:</span>
+          <span class="detail-value">${doc.tag || "Không có"}</span>
+          <span class="detail-label">Tên:</span>
+          <span class="detail-value">${doc.name || "Không có"}</span>
         </div>
-        `
-            : ""
-        }
-        
-        ${
-          doc.appendedProposals?.length
-            ? `
-        <div class="full-view-section">
-            <h3>Phiếu đề xuất kèm theo</h3>
-            ${renderProposals(doc.appendedProposals)}
+        <div class="detail-item">
+          <span class="detail-label">Tên nhóm:</span>
+          <span class="detail-value">${
+            doc.groupDeclarationName || "Không có"
+          }</span>
         </div>
-        `
-            : ""
-        }
-    `;
+        <div class="detail-item">
+          <span class="detail-label">Ngày nộp:</span>
+          <span class="detail-value">${submissionDate}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Hạn trả:</span>
+          <span class="detail-value">${paymentDeadline}</span>
+        </div>
+        <div class="detail-item declaration-container" data-document-id="${
+          doc._id
+        }">
+            <span class="detail-label">Kê khai:</span>
+            <span class="detail-value declaration-value">${
+              doc.declaration || "Không có"
+            }</span>
+            <button class="edit-declaration-btn action-button primary">Chỉnh sửa</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Section -->
+    <div class="full-view-section">
+      <h3>Nội dung</h3>
+      <p style="white-space: pre-wrap;">${doc.content || "Không có"}</p>
+    </div>
+
+    <div class="full-view-section">
+      <h3>Trạm</h3>
+      <p style="white-space: pre-wrap;">${doc.costCenter || "Không có"}</p>
+    </div>
+
+    <!-- Payment Information Section -->
+    <div class="full-view-section">
+      <h3>Thông tin thanh toán</h3>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Phương thức:</span>
+          <span class="detail-value">${doc.paymentMethod || "Không có"}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Tạm ứng:</span>
+          <span class="detail-value">${
+            doc.advancePayment?.toLocaleString() || "Không có"
+          }</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- File Attachment Section -->
+    <div class="full-view-section">
+      <h3>Tệp tin kèm theo/Attached File</h3>
+      ${
+        doc.fileMetadata
+          ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
+          : "Không có"
+      }
+    </div>
+
+    <!-- Purchasing Documents Section -->
+    <div class="full-view-section">
+      <h3>Phiếu mua hàng kèm theo</h3>
+      ${
+        doc.appendedPurchasingDocuments?.length
+          ? renderPurchasingDocuments(doc.appendedPurchasingDocuments)
+          : "Không có"
+      }
+    </div>
+
+    <!-- Proposals Section -->
+    <div class="full-view-section">
+      <h3>Phiếu đề xuất kèm theo</h3>
+      ${
+        doc.appendedPurchasingDocuments?.length
+          ? renderProposals(doc.appendedPurchasingDocuments)
+          : "Không có"
+      }
+    </div>
+
+    <!-- Status Section -->
+    <div class="full-view-section">
+      <h3>Trạng thái</h3>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Tình trạng:</span>
+          <span class="detail-value ${renderStatus(doc.status)}</span>
+        </div>
+      </div>
+      <div style="margin-top: 16px;">
+        <h4>Trạng thái phê duyệt:</h4>
+        <div class="approval-status">
+          ${doc.approvers
+            .map((approver) => {
+              const hasApproved = doc.approvedBy.find(
+                (a) => a.username === approver.username
+              );
+              return `
+              <div class="approver-item">
+                <span class="status-icon ${
+                  hasApproved ? "status-approved" : "status-pending"
+                }"></span>
+                <div>
+                  <div>${approver.username} (${approver.subRole})</div>
+                  ${
+                    hasApproved
+                      ? `<div class="approval-date">Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
+                      : '<div class="approval-date">Chưa phê duyệt</div>'
+                  }
+                </div>
+              </div>
+            `;
+            })
+            .join("")}
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function generatePurchasingDocumentContent(doc) {
@@ -887,4 +1141,116 @@ function renderProducts(products) {
             </tbody>
         </table>
     `;
+}
+
+function handleEditDeclarationClick(event) {
+  // Get container and relevant elements
+  const container = event.target.closest(".declaration-container");
+  const documentId = container.dataset.documentId;
+  const valueElement = container.querySelector(".declaration-value");
+  const currentValue = valueElement.textContent.trim();
+
+  // Create edit form
+  const editForm = document.createElement("div");
+  editForm.className = "declaration-edit-form";
+  editForm.innerHTML = `
+        <textarea class="form-control">${
+          currentValue === "Không có" ? "" : currentValue
+        }</textarea>
+        <div class="form-actions">
+            <button class="action-button primary save-declaration-btn">Lưu</button>
+            <button class="action-button cancel-declaration-btn">Hủy</button>
+        </div>
+    `;
+
+  // Hide value element and button
+  valueElement.style.display = "none";
+  event.target.style.display = "none";
+
+  // Add form to container
+  container.appendChild(editForm);
+
+  // Focus the textarea
+  const textarea = editForm.querySelector("textarea");
+  textarea.focus();
+
+  // Add event listeners for save and cancel
+  editForm
+    .querySelector(".save-declaration-btn")
+    .addEventListener("click", function () {
+      saveDeclaration(
+        documentId,
+        textarea.value.trim(),
+        valueElement,
+        editForm,
+        container,
+        event.target // edit button
+      );
+    });
+
+  editForm
+    .querySelector(".cancel-declaration-btn")
+    .addEventListener("click", function () {
+      cancelEdit(valueElement, editForm, container, event.target);
+    });
+}
+
+async function saveDeclaration(
+  documentId,
+  declaration,
+  valueElement,
+  editForm,
+  container,
+  editButton
+) {
+  try {
+    const response = await fetch(
+      `/updatePaymentDocumentDeclaration/${documentId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ declaration }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to update declaration");
+    }
+
+    // Update display value
+    valueElement.textContent = declaration || "Không có";
+
+    // Restore original view
+    restoreOriginalView(valueElement, editForm, container, editButton);
+
+    // Show success notification
+    showNotification("Kê khai cập nhật thành công", "success");
+
+    // Refresh data to ensure consistency
+    await loadData();
+    renderGroups();
+  } catch (error) {
+    console.error("Error updating declaration:", error);
+    showNotification("Lỗi khi cập nhật kê khai", "error");
+    restoreOriginalView(valueElement, editForm, container, editButton);
+  }
+}
+
+function cancelEdit(valueElement, editForm, container, editButton) {
+  restoreOriginalView(valueElement, editForm, container, editButton);
+}
+
+function restoreOriginalView(valueElement, editForm, container, editButton) {
+  // Remove edit form
+  if (editForm && editForm.parentNode) {
+    editForm.parentNode.removeChild(editForm);
+  }
+
+  // Show original elements
+  valueElement.style.display = "";
+  if (editButton) {
+    editButton.style.display = "";
+  }
 }

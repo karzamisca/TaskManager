@@ -2443,7 +2443,7 @@ exports.updatePaymentDocumentDeclaration = async (req, res) => {
 
   try {
     if (
-      !["approver", "headOfAccounting", "headOfPurchasing"].includes(
+      !["superAdmin", "headOfAccounting", "headOfPurchasing"].includes(
         req.user.role
       )
     ) {
@@ -2470,7 +2470,7 @@ exports.massUpdatePaymentDocumentDeclaration = async (req, res) => {
   try {
     // Check user role
     if (
-      !["approver", "headOfAccounting", "headOfPurchasing"].includes(
+      !["superAdmin", "headOfAccounting", "headOfPurchasing"].includes(
         req.user.role
       )
     ) {
