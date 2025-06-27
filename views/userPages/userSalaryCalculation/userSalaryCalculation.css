@@ -284,3 +284,33 @@ form {
   border-radius: var(--border-radius);
   display: none;
 }
+
+.selection-controls {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-lg);
+  align-items: center;
+}
+
+.export-section {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.checkbox-cell {
+  width: 20px;
+  padding: 0 var(--spacing-sm);
+}
+
+.checkbox-cell input {
+  width: auto;
+  margin: 0;
+}
+
+.btn-export {
+  background: #28a745;
+}
+
+.btn-export:hover {
+  background: #218838;
+}

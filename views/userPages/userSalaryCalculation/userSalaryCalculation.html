@@ -47,11 +47,23 @@
             </div>
           </div>
 
+          <div class="selection-controls">
+            <div>
+              <button id="select-all-btn" class="btn">Chọn tất cả</button>
+            </div>
+            <div class="export-section">
+              <button id="export-csv-btn" class="btn btn-export">
+                Xuất CSV
+              </button>
+            </div>
+          </div>
+
           <h2>Thông tin nhân viên</h2>
           <div class="table-container">
             <table id="users-table">
               <thead>
                 <tr>
+                  <th class="checkbox-cell">Chọn</th>
                   <th>Tên đăng nhập</th>
                   <th>Trạm</th>
                   <th>Người quản lý</th>
@@ -324,7 +336,7 @@
       </div>
 
       <a href="/userMain">Trở về</a>
-      <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?=v1.3"></script>
+      <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?=v1.4"></script>
     </div>
   </body>
 </html>

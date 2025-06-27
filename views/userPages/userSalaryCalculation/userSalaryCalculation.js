@@ -1,8 +1,120 @@
 //views\userPages\userSalaryCalculation\userSalaryCalculation.js
+let selectedUsers = new Set();
+let currentFilteredUsers = [];
+
+function toggleSelectUser(userId) {
+  if (selectedUsers.has(userId)) {
+    selectedUsers.delete(userId);
+  } else {
+    selectedUsers.add(userId);
+  }
+}
+
+function selectAllFiltered() {
+  if (selectedUsers.size === currentFilteredUsers.length) {
+    // If all are already selected, deselect all
+    selectedUsers.clear();
+  } else {
+    // Select all filtered users
+    currentFilteredUsers.forEach((user) => selectedUsers.add(user._id));
+  }
+  renderUsers();
+}
+
+async function exportToCSV() {
+  if (selectedUsers.size === 0) {
+    showError("Vui lòng chọn ít nhất một nhân viên để xuất");
+    return;
+  }
+
+  const usersToExport = allUsers.filter((user) => selectedUsers.has(user._id));
+
+  // Define CSV headers in Vietnamese
+  const headers = [
+    "Tên đăng nhập",
+    "Trạm",
+    "Người quản lý",
+    "Ngân hàng",
+    "Số tài khoản",
+    "Căn cước công dân",
+    "Lương cơ bản",
+    "Lương theo giờ",
+    "Hoa hồng",
+    "Trách nhiệm",
+    "Giờ tăng ca trong tuần",
+    "Giờ tăng ca Chủ Nhật",
+    "Giờ tăng ca ngày lễ",
+    "Lương tăng ca",
+    "Công tác phí",
+    "Tổng lương",
+    "Lương đóng bảo hiểm",
+    "Bảo hiểm bắt buộc",
+    "Số người phụ thuộc",
+    "Thu nhập tính thuế",
+    "Thuế thu nhập",
+    "Lương thực lĩnh",
+  ];
+
+  // Map the data to match the headers
+  const rows = usersToExport.map((user) => [
+    user.username,
+    user.costCenter ? user.costCenter.name : "Chưa có",
+    user.assignedManager ? user.assignedManager.username : "Chưa có",
+    user.beneficiaryBank || "Chưa có",
+    user.bankAccountNumber || "Chưa có",
+    user.citizenID || "Chưa có",
+    user.baseSalary.toLocaleString(),
+    user.hourlyWage.toLocaleString(),
+    user.commissionBonus.toLocaleString(),
+    user.responsibility.toLocaleString(),
+    user.weekdayOvertimeHour,
+    user.weekendOvertimeHour,
+    user.holidayOvertimeHour,
+    user.overtimePay.toLocaleString(),
+    user.travelExpense.toLocaleString(),
+    user.grossSalary.toLocaleString(),
+    user.insurableSalary.toLocaleString(),
+    user.mandatoryInsurance.toLocaleString(),
+    user.dependantCount,
+    user.taxableIncome.toLocaleString(),
+    user.tax.toLocaleString(),
+    user.currentSalary.toLocaleString(),
+  ]);
+
+  // Create CSV content
+  let csvContent = headers.join(",") + "\n";
+  rows.forEach((row) => {
+    csvContent += row.map((field) => `"${field}"`).join(",") + "\n";
+  });
+
+  // Create download link
+  const blob = new Blob(["\uFEFF" + csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute(
+    "download",
+    `bang_luong_${new Date().toISOString().slice(0, 10)}.csv`
+  );
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   // Load initial data
   loadCostCentersAndManagers();
   loadUsers();
+
+  document
+    .getElementById("select-all-btn")
+    .addEventListener("click", selectAllFiltered);
+  document
+    .getElementById("export-csv-btn")
+    .addEventListener("click", exportToCSV);
 
   // Tab functionality
   document.querySelectorAll(".tab-button").forEach((button) => {
@@ -139,32 +251,37 @@ function renderUsers() {
   const tbody = document.querySelector("#users-table tbody");
   tbody.innerHTML = "";
 
-  let filtered = [...allUsers];
+  currentFilteredUsers = [...allUsers];
 
   // Apply cost center filter
   if (filterCostCenterId !== "all") {
-    filtered = filtered.filter(
+    currentFilteredUsers = currentFilteredUsers.filter(
       (u) => u.costCenter && u.costCenter._id === filterCostCenterId
     );
   }
 
   // Apply manager filter
   if (filterManagerId !== "all") {
-    filtered = filtered.filter(
+    currentFilteredUsers = currentFilteredUsers.filter(
       (u) =>
         (filterManagerId === "none" && !u.assignedManager) ||
         (u.assignedManager && u.assignedManager._id === filterManagerId)
     );
   }
 
-  if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="23" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
+  if (currentFilteredUsers.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="24" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
     return;
   }
 
-  filtered.forEach((user) => {
+  currentFilteredUsers.forEach((user) => {
     const row = document.createElement("tr");
     row.innerHTML = `
+      <td class="checkbox-cell">
+        <input type="checkbox" ${
+          selectedUsers.has(user._id) ? "checked" : ""
+        } onchange="toggleSelectUser('${user._id}')">
+      </td>
       <td>${user.username}</td>
       <td>${user.costCenter ? user.costCenter.name : "Chưa có"}</td>
       <td>${
