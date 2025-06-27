@@ -314,3 +314,22 @@ form {
 .btn-export:hover {
   background: #218838;
 }
+
+/* Selection header styles */
+.selection-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.select-all-toggle {
+  margin: 0;
+  width: auto;
+  cursor: pointer;
+}
+
+.select-all-label {
+  font-weight: normal;
+  cursor: pointer;
+  white-space: nowrap;
+}

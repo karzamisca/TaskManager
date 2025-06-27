@@ -10,13 +10,18 @@ function toggleSelectUser(userId) {
   }
 }
 
-function selectAllFiltered() {
-  if (selectedUsers.size === currentFilteredUsers.length) {
-    // If all are already selected, deselect all
+function toggleSelectAll() {
+  const selectAllToggle = document.getElementById("select-all-toggle");
+  const allSelected = selectedUsers.size === currentFilteredUsers.length;
+
+  if (allSelected) {
+    // Deselect all
     selectedUsers.clear();
+    selectAllToggle.checked = false;
   } else {
     // Select all filtered users
     currentFilteredUsers.forEach((user) => selectedUsers.add(user._id));
+    selectAllToggle.checked = true;
   }
   renderUsers();
 }
@@ -110,8 +115,9 @@ document.addEventListener("DOMContentLoaded", function () {
   loadUsers();
 
   document
-    .getElementById("select-all-btn")
-    .addEventListener("click", selectAllFiltered);
+    .getElementById("select-all-toggle")
+    .addEventListener("change", toggleSelectAll);
+
   document
     .getElementById("export-csv-btn")
     .addEventListener("click", exportToCSV);
@@ -272,6 +278,18 @@ function renderUsers() {
   if (currentFilteredUsers.length === 0) {
     tbody.innerHTML = `<tr><td colspan="24" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
     return;
+  }
+
+  const selectAllToggle = document.getElementById("select-all-toggle");
+  if (currentFilteredUsers.length > 0) {
+    const allSelected = currentFilteredUsers.every((user) =>
+      selectedUsers.has(user._id)
+    );
+    selectAllToggle.checked = allSelected;
+    selectAllToggle.disabled = false;
+  } else {
+    selectAllToggle.checked = false;
+    selectAllToggle.disabled = true;
   }
 
   currentFilteredUsers.forEach((user) => {
