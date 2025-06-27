@@ -81,19 +81,34 @@ async function loadCostCentersAndManagers() {
 
     // Update manager dropdowns
     const managerSelects = [
+      document.getElementById("user-manager-filter"),
       document.getElementById("new-assigned-manager"),
       document.getElementById("edit-assigned-manager"),
     ];
 
     managerSelects.forEach((select) => {
       if (!select) return;
-      select.innerHTML = '<option value="">Không có</option>';
+      select.innerHTML = '<option value="all">Tất cả quản lý</option>';
       managers.forEach((manager) => {
         const option = document.createElement("option");
         option.value = manager._id;
         option.textContent = `${manager.username}`;
         select.appendChild(option);
       });
+
+      // Add "No manager" option to the filter dropdown
+      if (select.id === "user-manager-filter") {
+        const noneOption = document.createElement("option");
+        noneOption.value = "none";
+        noneOption.textContent = "Không có quản lý";
+        select.appendChild(noneOption);
+      } else {
+        // For other dropdowns (add/edit forms)
+        const noneOption = document.createElement("option");
+        noneOption.value = "";
+        noneOption.textContent = "Không có";
+        select.appendChild(noneOption);
+      }
     });
   } catch (err) {
     showError("Không thể tải dữ liệu");
@@ -120,18 +135,30 @@ function renderUsers() {
   const filterCostCenterId = document.getElementById(
     "user-cost-center-filter"
   ).value;
+  const filterManagerId = document.getElementById("user-manager-filter").value;
   const tbody = document.querySelector("#users-table tbody");
   tbody.innerHTML = "";
 
-  const filtered =
-    filterCostCenterId === "all"
-      ? allUsers
-      : allUsers.filter(
-          (u) => u.costCenter && u.costCenter._id === filterCostCenterId
-        );
+  let filtered = [...allUsers];
+
+  // Apply cost center filter
+  if (filterCostCenterId !== "all") {
+    filtered = filtered.filter(
+      (u) => u.costCenter && u.costCenter._id === filterCostCenterId
+    );
+  }
+
+  // Apply manager filter
+  if (filterManagerId !== "all") {
+    filtered = filtered.filter(
+      (u) =>
+        (filterManagerId === "none" && !u.assignedManager) ||
+        (u.assignedManager && u.assignedManager._id === filterManagerId)
+    );
+  }
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="21" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="23" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
     return;
   }
 
