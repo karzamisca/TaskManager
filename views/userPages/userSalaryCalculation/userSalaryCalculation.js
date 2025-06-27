@@ -34,6 +34,11 @@ async function exportToCSV() {
 
   const usersToExport = allUsers.filter((user) => selectedUsers.has(user._id));
 
+  // Helper function to safely format numbers
+  const safeFormat = (value) => {
+    return value !== null && value !== undefined ? value : 0;
+  };
+
   // Define CSV headers in Vietnamese
   const headers = [
     "Tên đăng nhập",
@@ -68,22 +73,22 @@ async function exportToCSV() {
     user.beneficiaryBank || "Chưa có",
     user.bankAccountNumber || "Chưa có",
     user.citizenID || "Chưa có",
-    user.baseSalary.toLocaleString(),
-    user.hourlyWage.toLocaleString(),
-    user.commissionBonus.toLocaleString(),
-    user.responsibility.toLocaleString(),
-    user.weekdayOvertimeHour,
-    user.weekendOvertimeHour,
-    user.holidayOvertimeHour,
-    user.overtimePay.toLocaleString(),
-    user.travelExpense.toLocaleString(),
-    user.grossSalary.toLocaleString(),
-    user.insurableSalary.toLocaleString(),
-    user.mandatoryInsurance.toLocaleString(),
-    user.dependantCount,
-    user.taxableIncome.toLocaleString(),
-    user.tax.toLocaleString(),
-    user.currentSalary.toLocaleString(),
+    safeFormat(user.baseSalary).toLocaleString(),
+    safeFormat(user.hourlyWage).toLocaleString(),
+    safeFormat(user.commissionBonus).toLocaleString(),
+    safeFormat(user.responsibility).toLocaleString(),
+    safeFormat(user.weekdayOvertimeHour),
+    safeFormat(user.weekendOvertimeHour),
+    safeFormat(user.holidayOvertimeHour),
+    safeFormat(user.overtimePay).toLocaleString(),
+    safeFormat(user.travelExpense).toLocaleString(),
+    safeFormat(user.grossSalary).toLocaleString(),
+    safeFormat(user.insurableSalary).toLocaleString(),
+    safeFormat(user.mandatoryInsurance).toLocaleString(),
+    safeFormat(user.dependantCount),
+    safeFormat(user.taxableIncome).toLocaleString(),
+    safeFormat(user.tax).toLocaleString(),
+    safeFormat(user.currentSalary).toLocaleString(),
   ]);
 
   // Create CSV content
@@ -293,6 +298,12 @@ function renderUsers() {
   }
 
   currentFilteredUsers.forEach((user) => {
+    const formatNumber = (value) => {
+      return value !== null && value !== undefined
+        ? value.toLocaleString()
+        : "0";
+    };
+
     const row = document.createElement("tr");
     row.innerHTML = `
       <td class="checkbox-cell">
@@ -308,22 +319,22 @@ function renderUsers() {
       <td>${user.beneficiaryBank || "Chưa có"}</td>
       <td>${user.bankAccountNumber || "Chưa có"}</td>
       <td>${user.citizenID || "Chưa có"}</td>
-      <td>${user.baseSalary.toLocaleString()}</td>
-      <td>${user.hourlyWage.toLocaleString()}</td>
-      <td>${user.commissionBonus.toLocaleString()}</td>
-      <td>${user.responsibility.toLocaleString()}</td>
-      <td>${user.weekdayOvertimeHour}</td>
-      <td>${user.weekendOvertimeHour}</td>
-      <td>${user.holidayOvertimeHour}</td>
-      <td>${user.overtimePay.toLocaleString()}</td>
-      <td>${user.travelExpense.toLocaleString()}</td>
-      <td>${user.grossSalary.toLocaleString()}</td>
-      <td>${user.insurableSalary.toLocaleString()}</td>
-      <td>${user.mandatoryInsurance.toLocaleString()}</td>
-      <td>${user.dependantCount}</td>
-      <td>${user.taxableIncome.toLocaleString()}</td>
-      <td>${user.tax.toLocaleString()}</td>
-      <td>${user.currentSalary.toLocaleString()}</td>
+      <td>${formatNumber(user.baseSalary)}</td>
+      <td>${formatNumber(user.hourlyWage)}</td>
+      <td>${formatNumber(user.commissionBonus)}</td>
+      <td>${formatNumber(user.responsibility)}</td>
+      <td>${user.weekdayOvertimeHour || 0}</td>
+      <td>${user.weekendOvertimeHour || 0}</td>
+      <td>${user.holidayOvertimeHour || 0}</td>
+      <td>${formatNumber(user.overtimePay)}</td>
+      <td>${formatNumber(user.travelExpense)}</td>
+      <td>${formatNumber(user.grossSalary)}</td>
+      <td>${formatNumber(user.insurableSalary)}</td>
+      <td>${formatNumber(user.mandatoryInsurance)}</td>
+      <td>${user.dependantCount || 0}</td>
+      <td>${formatNumber(user.taxableIncome)}</td>
+      <td>${formatNumber(user.tax)}</td>
+      <td>${formatNumber(user.currentSalary)}</td>
       <td>
         <div class="action-buttons">
           <button class="btn" onclick="editUser('${
