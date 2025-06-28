@@ -10,6 +10,12 @@ document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
 });
 
+function sanitizeForSelector(str) {
+  return str.replace(/[^a-z0-9]/g, function (s) {
+    return "_" + s.charCodeAt(0).toString(16) + "_";
+  });
+}
+
 // Load all necessary data
 async function loadData() {
   try {
@@ -173,21 +179,29 @@ function createGroupElement(group, documents) {
   addDocForm.className = "group-add-document-form";
   addDocForm.innerHTML = `
     <h4>Thêm phiếu vào nhóm</h4>
-    <select id="document-select-${group.name}" class="form-control">
+    <select id="document-select-${sanitizeForSelector(
+      group.name
+    )}" class="form-control">
       <option value="">-- Chọn tài liệu --</option>
     </select>
-    <button id="add-to-group-btn-${group.name}" class="action-button primary">
+    <button id="add-to-group-btn-${sanitizeForSelector(
+      group.name
+    )}" class="action-button primary">
       Thêm vào nhóm
     </button>
   `;
-  content.appendChild(addDocForm);
 
-  // Populate the document dropdown for this group
-  const docSelect = addDocForm.querySelector(`#document-select-${group.name}`);
+  // When selecting the element:
+  const sanitizedGroupName = sanitizeForSelector(group.name);
+  const docSelect = addDocForm.querySelector(
+    `#document-select-${sanitizedGroupName}`
+  );
+  // Set up event listener for the add button
+  const addBtn = addDocForm.querySelector(
+    `#add-to-group-btn-${sanitizedGroupName}`
+  );
   populateDocumentDropdown(docSelect);
 
-  // Set up event listener for the add button
-  const addBtn = addDocForm.querySelector(`#add-to-group-btn-${group.name}`);
   addBtn.addEventListener("click", async () => {
     const docData = docSelect.value;
 
