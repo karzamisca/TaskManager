@@ -14,6 +14,7 @@ const projectProposalDocumentSchema = new mongoose.Schema({
     driveFileId: { type: String },
     name: { type: String },
     link: { type: String },
+    path: { type: String },
   },
   submissionDate: { type: String, required: true },
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

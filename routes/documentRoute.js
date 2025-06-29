@@ -8,7 +8,16 @@ const Project = require("../models/Project");
 const authMiddleware = require("../middlewares/authMiddleware");
 
 // Set up multer to handle in-memory file uploads
-const storage = multer.memoryStorage(); // Store file in memory (buffer)
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/"); // Make sure this directory exists
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+
 const upload = multer({ storage: storage });
 
 //// GENERAL ROUTE

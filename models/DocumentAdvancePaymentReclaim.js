@@ -18,6 +18,7 @@ const advancePaymentReclaimDocumentSchema = new mongoose.Schema({
     driveFileId: { type: String },
     name: { type: String },
     link: { type: String },
+    path: { type: String },
   },
   submissionDate: { type: String, required: true },
   submittedBy: {

@@ -45,6 +45,42 @@ const CHATFUEL_BOT_ID = process.env.CHATFUEL_BOT_ID;
 const CHATFUEL_TOKEN = process.env.CHATFUEL_TOKEN;
 const CHATFUEL_BLOCK_ID = process.env.CHATFUEL_BLOCK_ID;
 
+const DOCUMENT_TYPE_FOLDERS = {
+  "Generic Document": process.env.FILEBROWSER_DOCUMENT_GENERIC_UPLOAD_FOLDER,
+  "Proposal Document": process.env.FILEBROWSER_DOCUMENT_PROPOSAL_UPLOAD_FOLDER,
+  "Purchasing Document":
+    process.env.FILEBROWSER_DOCUMENT_PURCHASING_UPLOAD_FOLDER,
+  "Delivery Document": process.env.FILEBROWSER_DOCUMENT_DELIVERY_UPLOAD_FOLDER,
+  "Payment Document": process.env.FILEBROWSER_DOCUMENT_PAYMENT_UPLOAD_FOLDER,
+  "Advance Payment Document":
+    process.env.FILEBROWSER_DOCUMENT_PAYMENT_ADVANCE_UPLOAD_FOLDER,
+  "Advance Payment Reclaim Document":
+    process.env.FILEBROWSER_DOCUMENT_PAYMENT_ADVANCE_RECLAIM_UPLOAD_FOLDER,
+  "Project Proposal Document":
+    process.env.FILEBROWSER_DOCUMENT_PROPOSAL_PROJECT_UPLOAD_FOLDER,
+};
+
+// Document type to share code mapping
+const DOCUMENT_TYPE_SHARE_CODES = {
+  "Generic Document":
+    process.env.FILEBROWSER_DOCUMENT_GENERIC_UPLOAD_FOLDER_SHARE_CODE,
+  "Proposal Document":
+    process.env.FILEBROWSER_DOCUMENT_PROPOSAL_UPLOAD_FOLDER_SHARE_CODE,
+  "Purchasing Document":
+    process.env.FILEBROWSER_DOCUMENT_PURCHASING_UPLOAD_FOLDER_SHARE_CODE,
+  "Delivery Document":
+    process.env.FILEBROWSER_DOCUMENT_DELIVERY_UPLOAD_FOLDER_SHARE_CODE,
+  "Payment Document":
+    process.env.FILEBROWSER_DOCUMENT_PAYMENT_UPLOAD_FOLDER_SHARE_CODE,
+  "Advance Payment Document":
+    process.env.FILEBROWSER_DOCUMENT_PAYMENT_ADVANCE_UPLOAD_FOLDER_SHARE_CODE,
+  "Advance Payment Reclaim Document":
+    process.env
+      .FILEBROWSER_DOCUMENT_PAYMENT_ADVANCE_RECLAIM_UPLOAD_FOLDER_SHARE_CODE,
+  "Project Proposal Document":
+    process.env.FILEBROWSER_DOCUMENT_PROPOSAL_PROJECT_UPLOAD_FOLDER_SHARE_CODE,
+};
+
 //// GENERAL CONTROLLER
 // Utility functions for document filtering and sorting
 const documentUtils = {
@@ -483,34 +519,292 @@ async function processApprovers(req) {
   );
 }
 
-// Handle file upload to Google Drive
+class FileBrowserClient {
+  constructor(baseUrl) {
+    this.baseUrl = baseUrl;
+    this.token = null;
+  }
+
+  // Authenticate and get JWT token
+  async authenticate(username, password) {
+    try {
+      const response = await axios.post(`${this.baseUrl}/api/login`, {
+        username: username,
+        password: password,
+      });
+
+      this.token = response.data.token || response.data;
+      return this.token;
+    } catch (error) {
+      console.error(
+        "Authentication failed:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  // Upload a file from local path with custom filename
+  async uploadFile(
+    destinationPath,
+    filePath,
+    customFileName = null,
+    override = true
+  ) {
+    if (!this.token) {
+      throw new Error("Not authenticated. Call authenticate() first.");
+    }
+
+    try {
+      // Use custom filename if provided, otherwise use the file's basename
+      const fileName = customFileName || path.basename(filePath);
+      const fullPath = destinationPath.endsWith("/")
+        ? `${destinationPath}${fileName}`
+        : `${destinationPath}/${fileName}`;
+
+      const uploadUrl = `${this.baseUrl}/api/resources${fullPath}${
+        override ? "?override=true" : ""
+      }`;
+
+      // Create a read stream instead of reading entire file into memory
+      const fileStream = fs.createReadStream(filePath);
+      const mimeType = this.getMimeType(fileName);
+
+      const response = await axios.post(uploadUrl, fileStream, {
+        headers: {
+          "X-Auth": this.token,
+          "Content-Type": mimeType,
+          // Add content length if needed
+          "Content-Length": fs.statSync(filePath).size,
+        },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+        // Important: Don't let axios transform the data
+        transformRequest: [(data) => data],
+      });
+
+      return {
+        success: true,
+        fileName: fileName,
+        path: fullPath,
+        downloadUrl: `${this.baseUrl}/api/raw${fullPath}`,
+        size: fs.statSync(filePath).size,
+      };
+    } catch (error) {
+      console.error(
+        "Failed to upload file:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  // Alternative method using form data with custom filename
+  async uploadFileWithFormData(
+    destinationPath,
+    filePath,
+    customFileName = null,
+    override = true
+  ) {
+    if (!this.token) {
+      throw new Error("Not authenticated. Call authenticate() first.");
+    }
+
+    try {
+      const FormData = require("form-data");
+      // Ensure destination path starts with a slash
+      const normalizedPath = destinationPath.startsWith("/")
+        ? destinationPath
+        : `/${destinationPath}`;
+
+      const fileName = customFileName || path.basename(filePath);
+      const fullPath = normalizedPath.endsWith("/")
+        ? `${normalizedPath}${fileName}`
+        : `${normalizedPath}/${fileName}`;
+
+      const uploadUrl = `${this.baseUrl}/api/resources${fullPath}${
+        override ? "?override=true" : ""
+      }`;
+
+      const form = new FormData();
+      form.append("file", fs.createReadStream(filePath), {
+        filename: fileName,
+        contentType: this.getMimeType(fileName),
+      });
+
+      const response = await axios.post(uploadUrl, form, {
+        headers: {
+          "X-Auth": this.token,
+          ...form.getHeaders(),
+        },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+      });
+
+      return {
+        success: true,
+        fileName: fileName,
+        path: fullPath,
+        downloadUrl: `${this.baseUrl}/api/raw${fullPath}`,
+        size: fs.statSync(filePath).size,
+      };
+    } catch (error) {
+      console.error(
+        "Failed to upload file with form data:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  // Delete a file
+  async deleteFile(filePath) {
+    if (!this.token) {
+      throw new Error("Not authenticated. Call authenticate() first.");
+    }
+
+    try {
+      const response = await axios.delete(
+        `${this.baseUrl}/api/resources${filePath}`,
+        {
+          headers: {
+            "X-Auth": this.token,
+          },
+        }
+      );
+      return { success: true };
+    } catch (error) {
+      console.error(
+        "Failed to delete file:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  // Enhanced MIME type detection
+  getMimeType(fileName) {
+    const ext = path.extname(fileName).toLowerCase();
+    const mimeTypes = {
+      ".txt": "text/plain",
+      ".json": "application/json",
+      ".js": "text/javascript",
+      ".html": "text/html",
+      ".css": "text/css",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".gif": "image/gif",
+      ".pdf": "application/pdf",
+      ".zip": "application/zip",
+      ".mp4": "video/mp4",
+      ".mp3": "audio/mpeg",
+      ".doc": "application/msword",
+      ".docx":
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ".xls": "application/vnd.ms-excel",
+      ".xlsx":
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ".ppt": "application/vnd.ms-powerpoint",
+      ".pptx":
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    };
+    return mimeTypes[ext] || "application/octet-stream";
+  }
+}
+
+// Initialize FileBrowser client
+let fileBrowserClient = null;
+
+async function getFileBrowserClient() {
+  if (!fileBrowserClient) {
+    fileBrowserClient = new FileBrowserClient(process.env.FILEBROWSER_URL);
+    await fileBrowserClient.authenticate(
+      process.env.FILEBROWSER_USERNAME,
+      process.env.FILEBROWSER_PASSWORD
+    );
+  }
+  return fileBrowserClient;
+}
+
+// Enhanced file upload handler that preserves original filename with timestamp
 async function handleFileUpload(req) {
   if (!req.file) return null;
 
-  const folderId = process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID;
-  const fileMetadata = {
-    name: req.file.originalname,
-    parents: [folderId],
-  };
-  const media = {
-    mimeType: req.file.mimetype,
-    body: fs.createReadStream(req.file.path),
-  };
+  try {
+    // Validate file exists and is readable
+    if (!fs.existsSync(req.file.path)) {
+      throw new Error("Uploaded file not found");
+    }
 
-  const driveResponse = await drive.files.create({
-    resource: fileMetadata,
-    media,
-    fields: "id, webViewLink, name",
-  });
+    // Get file stats for validation
+    const fileStats = fs.statSync(req.file.path);
 
-  // Cleanup: Remove the local file
-  fs.unlinkSync(req.file.path);
+    // Get authenticated FileBrowser client
+    const client = await getFileBrowserClient();
 
-  return {
-    driveFileId: driveResponse.data.id,
-    name: driveResponse.data.name,
-    link: driveResponse.data.webViewLink,
-  };
+    // Determine target folder based on document type
+    const title = req.body.title;
+    const targetFolder =
+      DOCUMENT_TYPE_FOLDERS[title] ||
+      process.env.FILEBROWSER_DEFAULT_UPLOAD_FOLDER;
+
+    // Create unique filename with timestamp while preserving original name
+    const originalFilename = req.file.originalname;
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .slice(0, -1); // Format: 2024-12-29T10-30-45-123
+    const fileExtension = path.extname(originalFilename);
+    const baseName = path.basename(originalFilename, fileExtension);
+    const uniqueFilename = `${baseName}_${timestamp}${fileExtension}`;
+
+    let uploadResult;
+    try {
+      // Try the stream method first with unique filename
+      uploadResult = await client.uploadFile(
+        targetFolder,
+        req.file.path,
+        uniqueFilename
+      );
+    } catch (streamError) {
+      // If stream method fails, try form data method with unique filename
+      uploadResult = await client.uploadFileWithFormData(
+        targetFolder,
+        req.file.path,
+        uniqueFilename
+      );
+    }
+
+    // Cleanup: Remove the local temp file
+    fs.unlinkSync(req.file.path);
+
+    // Generate public download URL using environment variable
+    const shareCode = DOCUMENT_TYPE_SHARE_CODES[title];
+    const publicDownloadUrl = shareCode
+      ? `${client.baseUrl}/api/public/dl/${shareCode}/${uniqueFilename}`
+      : uploadResult.downloadUrl; // Fallback to original URL
+
+    return {
+      driveFileId: uniqueFilename, // Use unique filename as ID for storage
+      name: originalFilename, // Return original name for display purposes
+      displayName: originalFilename, // Explicit display name
+      actualFilename: uniqueFilename, // Actual filename in storage
+      link: publicDownloadUrl, // Use public share URL
+      path: uploadResult.path,
+      size: uploadResult.size,
+      mimeType: req.file.mimetype,
+      uploadTimestamp: timestamp,
+    };
+  } catch (error) {
+    // Cleanup local file even if upload fails
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    console.error("File upload failed:", error.message);
+    throw new Error(`File upload failed: ${error.message}`);
+  }
 }
 
 // Create a Proposal Document
@@ -1343,11 +1637,23 @@ exports.getProposalDocumentById = async (req, res) => {
   }
 };
 exports.updateProposalDocument = async (req, res) => {
+  let tempFilePath = null;
+
   try {
     const { id } = req.params;
     const { task, costCenter, dateOfError, detailsDescription, direction } =
       req.body;
     const file = req.file;
+
+    // Store temp file path for cleanup
+    if (file) {
+      tempFilePath = file.path;
+
+      // Verify file exists immediately
+      if (!fs.existsSync(tempFilePath)) {
+        throw new Error(`Uploaded file not found at: ${tempFilePath}`);
+      }
+    }
 
     const doc = await ProposalDocument.findById(id);
     if (!doc) {
@@ -1387,6 +1693,24 @@ exports.updateProposalDocument = async (req, res) => {
       }
     }
 
+    // Handle file upload if new file provided
+    let uploadedFileData = null;
+    if (file) {
+      req.body.title = doc.title;
+      // Delete old file if exists
+      if (doc.fileMetadata?.path) {
+        try {
+          const client = await getFileBrowserClient();
+          await client.deleteFile(doc.fileMetadata.path);
+        } catch (error) {
+          console.error("Warning: Could not delete old file", error);
+        }
+      }
+
+      // Upload new file
+      uploadedFileData = await handleFileUpload(req);
+    }
+
     // Update the document
     doc.task = task;
     doc.costCenter = costCenter;
@@ -1394,49 +1718,8 @@ exports.updateProposalDocument = async (req, res) => {
     doc.detailsDescription = detailsDescription;
     doc.direction = direction;
 
-    // Handle file update if provided
-    if (file) {
-      // Delete old file from Google Drive if it exists
-      if (doc.fileMetadata?.driveFileId) {
-        try {
-          await drive.files.delete({
-            fileId: doc.fileMetadata.driveFileId,
-          });
-        } catch (error) {
-          console.error("Error deleting old file:", error);
-        }
-      }
-
-      // Upload new file
-      const fileMetadata = {
-        name: file.originalname,
-        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
-      };
-      const media = {
-        mimeType: file.mimetype,
-        body: Readable.from(file.buffer),
-      };
-      const driveResponse = await drive.files.create({
-        resource: fileMetadata,
-        media: media,
-        fields: "id, webViewLink",
-      });
-
-      // Update file permissions
-      await drive.permissions.create({
-        fileId: driveResponse.data.id,
-        requestBody: {
-          role: "reader",
-          type: "anyone",
-        },
-      });
-
-      // Update document with new file metadata
-      doc.fileMetadata = {
-        driveFileId: driveResponse.data.id,
-        name: file.originalname,
-        link: driveResponse.data.webViewLink,
-      };
+    if (uploadedFileData) {
+      doc.fileMetadata = uploadedFileData;
     }
 
     // Update approvers if provided
@@ -2000,9 +2283,19 @@ exports.getPurchasingDocument = async (req, res) => {
 };
 // Update a Purchasing Document
 exports.updatePurchasingDocument = async (req, res) => {
+  let tempFilePath = null;
   try {
     const { id } = req.params;
     const file = req.file;
+
+    // Store temp file path for cleanup
+    if (file) {
+      tempFilePath = file.path;
+      // Verify file exists immediately
+      if (!fs.existsSync(tempFilePath)) {
+        throw new Error(`Uploaded file not found at: ${tempFilePath}`);
+      }
+    }
 
     // Parse the products JSON string into an object
     let products;
@@ -2046,11 +2339,54 @@ exports.updatePurchasingDocument = async (req, res) => {
       return res.status(404).json({ message: "Document not found" });
     }
 
+    // Fetch the current user
+    const currentUser = req.user.username;
+
+    // Fetch allowed cost centers for the current user
+    const costCenters = await CostCenter.find({
+      $or: [
+        { allowedUsers: { $in: [currentUser] } },
+        { allowedUsers: { $size: 0 } },
+      ],
+    });
+
+    // Check if the new cost center is allowed for the user
+    const isCostCenterAllowed = costCenters.some(
+      (center) => center.name === costCenter
+    );
+
+    if (!isCostCenterAllowed) {
+      return res.status(403).json({
+        message: "You do not have permission to edit this cost center.",
+      });
+    }
+
+    // Handle file upload if new file provided
+    let uploadedFileData = null;
+    if (file) {
+      req.body.title = doc.title;
+
+      // Delete old file if exists
+      if (doc.fileMetadata?.path) {
+        try {
+          const client = await getFileBrowserClient();
+          await client.deleteFile(doc.fileMetadata.path);
+        } catch (error) {
+          console.error("Warning: Could not delete old file", error);
+          // Continue execution even if file deletion fails
+        }
+      }
+
+      // Upload new file
+      uploadedFileData = await handleFileUpload(req);
+    }
+
     // Update basic fields
     doc.products = products;
     doc.grandTotalCost = grandTotalCost;
     doc.name = name;
     doc.costCenter = costCenter;
+
     if (appendedProposals) {
       doc.appendedProposals = appendedProposals;
     }
@@ -2060,51 +2396,9 @@ exports.updatePurchasingDocument = async (req, res) => {
       doc.approvers = approvers;
     }
 
-    // Handle file update if provided
-    if (file) {
-      // Delete old file from Google Drive if it exists
-      if (doc.fileMetadata?.driveFileId) {
-        try {
-          await drive.files.delete({
-            fileId: doc.fileMetadata.driveFileId,
-          });
-        } catch (error) {
-          console.error("Error deleting old file:", error);
-          // Continue execution even if file deletion fails
-        }
-      }
-
-      // Upload new file
-      const fileMetadata = {
-        name: file.originalname,
-        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
-      };
-      const media = {
-        mimeType: file.mimetype,
-        body: Readable.from(file.buffer),
-      };
-
-      const driveResponse = await drive.files.create({
-        resource: fileMetadata,
-        media: media,
-        fields: "id, webViewLink",
-      });
-
-      // Update file permissions
-      await drive.permissions.create({
-        fileId: driveResponse.data.id,
-        requestBody: {
-          role: "reader",
-          type: "anyone",
-        },
-      });
-
-      // Update document with new file metadata
-      doc.fileMetadata = {
-        driveFileId: driveResponse.data.id,
-        name: file.originalname,
-        link: driveResponse.data.webViewLink,
-      };
+    // Update file metadata if new file was uploaded
+    if (uploadedFileData) {
+      doc.fileMetadata = uploadedFileData;
     }
 
     await doc.save();
@@ -2285,6 +2579,7 @@ exports.getPaymentDocument = async (req, res) => {
   }
 };
 exports.updatePaymentDocument = async (req, res) => {
+  let tempFilePath = null;
   try {
     const { id } = req.params;
     const {
@@ -2299,9 +2594,40 @@ exports.updatePaymentDocument = async (req, res) => {
     } = req.body;
     const file = req.file;
 
+    // Store temp file path for cleanup
+    if (file) {
+      tempFilePath = file.path;
+      // Verify file exists immediately
+      if (!fs.existsSync(tempFilePath)) {
+        throw new Error(`Uploaded file not found at: ${tempFilePath}`);
+      }
+    }
+
     const doc = await PaymentDocument.findById(id);
     if (!doc) {
       return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Fetch the current user
+    const currentUser = req.user.username;
+
+    // Fetch allowed cost centers for the current user
+    const costCenters = await CostCenter.find({
+      $or: [
+        { allowedUsers: { $in: [currentUser] } },
+        { allowedUsers: { $size: 0 } },
+      ],
+    });
+
+    // Check if the new cost center is allowed for the user
+    const isCostCenterAllowed = costCenters.some(
+      (center) => center.name === costCenter
+    );
+
+    if (!isCostCenterAllowed) {
+      return res.status(403).json({
+        message: "You do not have permission to edit this cost center.",
+      });
     }
 
     // Parse approvers and stages if they exist
@@ -2316,6 +2642,7 @@ exports.updatePaymentDocument = async (req, res) => {
       }
     }
 
+    // Parse stages if it exists
     let parsedStages = [];
     if (stages) {
       try {
@@ -2360,6 +2687,25 @@ exports.updatePaymentDocument = async (req, res) => {
       }
     }
 
+    // Handle file upload if new file provided
+    let uploadedFileData = null;
+    if (file) {
+      req.body.title = doc.title; // Use document name as title for file upload
+
+      // Delete old file if exists
+      if (doc.fileMetadata?.path) {
+        try {
+          const client = await getFileBrowserClient();
+          await client.deleteFile(doc.fileMetadata.path);
+        } catch (error) {
+          console.error("Warning: Could not delete old file", error);
+        }
+      }
+
+      // Upload new file
+      uploadedFileData = await handleFileUpload(req);
+    }
+
     // Check if the name has changed and update the tag if needed
     if (name && name !== doc.name) {
       const now = moment().tz("Asia/Bangkok");
@@ -2375,6 +2721,11 @@ exports.updatePaymentDocument = async (req, res) => {
     doc.totalPayment = parseFloat(totalPayment);
     doc.paymentDeadline = paymentDeadline;
 
+    // Update file metadata if new file uploaded
+    if (uploadedFileData) {
+      doc.fileMetadata = uploadedFileData;
+    }
+
     // Update approvers if provided
     if (parsedApprovers) {
       doc.approvers = parsedApprovers;
@@ -2383,51 +2734,6 @@ exports.updatePaymentDocument = async (req, res) => {
     // Update stages if provided
     if (parsedStages) {
       doc.stages = parsedStages;
-    }
-
-    // Handle file update if provided
-    if (file) {
-      // Delete old file from Google Drive if it exists
-      if (doc.fileMetadata?.driveFileId) {
-        try {
-          await drive.files.delete({
-            fileId: doc.fileMetadata.driveFileId,
-          });
-        } catch (error) {
-          console.error("Error deleting old file:", error);
-        }
-      }
-
-      // Upload new file
-      const fileMetadata = {
-        name: file.originalname,
-        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
-      };
-      const media = {
-        mimeType: file.mimetype,
-        body: Readable.from(file.buffer),
-      };
-      const driveResponse = await drive.files.create({
-        resource: fileMetadata,
-        media: media,
-        fields: "id, webViewLink",
-      });
-
-      // Update file permissions
-      await drive.permissions.create({
-        fileId: driveResponse.data.id,
-        requestBody: {
-          role: "reader",
-          type: "anyone",
-        },
-      });
-
-      // Update document with new file metadata
-      doc.fileMetadata = {
-        driveFileId: driveResponse.data.id,
-        name: file.originalname,
-        link: driveResponse.data.webViewLink,
-      };
     }
 
     await doc.save();
@@ -2659,6 +2965,7 @@ exports.getAdvancePaymentDocument = async (req, res) => {
   }
 };
 exports.updateAdvancePaymentDocument = async (req, res) => {
+  let tempFilePath = null;
   try {
     const { id } = req.params;
     const {
@@ -2671,9 +2978,40 @@ exports.updateAdvancePaymentDocument = async (req, res) => {
     } = req.body;
     const file = req.file;
 
+    // Store temp file path for cleanup
+    if (file) {
+      tempFilePath = file.path;
+      // Verify file exists immediately
+      if (!fs.existsSync(tempFilePath)) {
+        throw new Error(`Uploaded file not found at: ${tempFilePath}`);
+      }
+    }
+
     const doc = await AdvancePaymentDocument.findById(id);
     if (!doc) {
       return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Fetch the current user
+    const currentUser = req.user.username;
+
+    // Fetch allowed cost centers for the current user
+    const costCenters = await CostCenter.find({
+      $or: [
+        { allowedUsers: { $in: [currentUser] } },
+        { allowedUsers: { $size: 0 } },
+      ],
+    });
+
+    // Check if the new cost center is allowed for the user
+    const isCostCenterAllowed = costCenters.some(
+      (center) => center.name === costCenter
+    );
+
+    if (!isCostCenterAllowed) {
+      return res.status(403).json({
+        message: "You do not have permission to edit this cost center.",
+      });
     }
 
     // Parse approvers if it exists
@@ -2686,6 +3024,25 @@ exports.updateAdvancePaymentDocument = async (req, res) => {
           .status(400)
           .json({ message: "Invalid approvers data format" });
       }
+    }
+
+    // Handle file upload if new file provided
+    let uploadedFileData = null;
+    if (file) {
+      req.body.title = doc.title; // Use document name as title for file upload
+
+      // Delete old file if exists
+      if (doc.fileMetadata?.path) {
+        try {
+          const client = await getFileBrowserClient();
+          await client.deleteFile(doc.fileMetadata.path);
+        } catch (error) {
+          console.error("Warning: Could not delete old file", error);
+        }
+      }
+
+      // Upload new file
+      uploadedFileData = await handleFileUpload(req);
     }
 
     // Check if the name has changed and update the tag if needed
@@ -2705,60 +3062,20 @@ exports.updateAdvancePaymentDocument = async (req, res) => {
     doc.advancePayment = parseFloat(advancePayment);
     doc.paymentDeadline = paymentDeadline;
 
+    // Update file metadata if new file uploaded
+    if (uploadedFileData) {
+      doc.fileMetadata = uploadedFileData;
+    }
+
     // Update approvers if provided
     if (approvers) {
       doc.approvers = approvers;
     }
 
-    // Handle file update if provided
-    if (file) {
-      // Delete old file from Google Drive if it exists
-      if (doc.fileMetadata?.driveFileId) {
-        try {
-          await drive.files.delete({
-            fileId: doc.fileMetadata.driveFileId,
-          });
-        } catch (error) {
-          console.error("Error deleting old file:", error);
-        }
-      }
-
-      // Upload new file
-      const fileMetadata = {
-        name: file.originalname,
-        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
-      };
-      const media = {
-        mimeType: file.mimetype,
-        body: Readable.from(file.buffer),
-      };
-      const driveResponse = await drive.files.create({
-        resource: fileMetadata,
-        media: media,
-        fields: "id, webViewLink",
-      });
-
-      // Update file permissions
-      await drive.permissions.create({
-        fileId: driveResponse.data.id,
-        requestBody: {
-          role: "reader",
-          type: "anyone",
-        },
-      });
-
-      // Update document with new file metadata
-      doc.fileMetadata = {
-        driveFileId: driveResponse.data.id,
-        name: file.originalname,
-        link: driveResponse.data.webViewLink,
-      };
-    }
-
     await doc.save();
     res.json({ message: "Document updated successfully" });
   } catch (error) {
-    console.error("Error updating payment document:", error);
+    console.error("Error updating advance payment document:", error);
     res.status(500).json({ message: "Error updating document" });
   }
 };
@@ -2883,6 +3200,7 @@ exports.getAdvancePaymentReclaimDocument = async (req, res) => {
   }
 };
 exports.updateAdvancePaymentReclaimDocument = async (req, res) => {
+  let tempFilePath = null;
   try {
     const { id } = req.params;
     const {
@@ -2895,9 +3213,40 @@ exports.updateAdvancePaymentReclaimDocument = async (req, res) => {
     } = req.body;
     const file = req.file;
 
+    // Store temp file path for cleanup
+    if (file) {
+      tempFilePath = file.path;
+      // Verify file exists immediately
+      if (!fs.existsSync(tempFilePath)) {
+        throw new Error(`Uploaded file not found at: ${tempFilePath}`);
+      }
+    }
+
     const doc = await AdvancePaymentReclaimDocument.findById(id);
     if (!doc) {
       return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Fetch the current user
+    const currentUser = req.user.username;
+
+    // Fetch allowed cost centers for the current user
+    const costCenters = await CostCenter.find({
+      $or: [
+        { allowedUsers: { $in: [currentUser] } },
+        { allowedUsers: { $size: 0 } },
+      ],
+    });
+
+    // Check if the new cost center is allowed for the user
+    const isCostCenterAllowed = costCenters.some(
+      (center) => center.name === costCenter
+    );
+
+    if (!isCostCenterAllowed) {
+      return res.status(403).json({
+        message: "You do not have permission to edit this cost center.",
+      });
     }
 
     // Parse approvers if it exists
@@ -2910,6 +3259,25 @@ exports.updateAdvancePaymentReclaimDocument = async (req, res) => {
           .status(400)
           .json({ message: "Invalid approvers data format" });
       }
+    }
+
+    // Handle file upload if new file provided
+    let uploadedFileData = null;
+    if (file) {
+      req.body.title = doc.title; // Use document name as title for file upload
+
+      // Delete old file if exists
+      if (doc.fileMetadata?.path) {
+        try {
+          const client = await getFileBrowserClient();
+          await client.deleteFile(doc.fileMetadata.path);
+        } catch (error) {
+          console.error("Warning: Could not delete old file", error);
+        }
+      }
+
+      // Upload new file
+      uploadedFileData = await handleFileUpload(req);
     }
 
     // Check if the name has changed and update the tag if needed
@@ -2929,60 +3297,20 @@ exports.updateAdvancePaymentReclaimDocument = async (req, res) => {
     doc.advancePaymentReclaim = parseFloat(advancePaymentReclaim);
     doc.paymentDeadline = paymentDeadline;
 
+    // Update file metadata if new file uploaded
+    if (uploadedFileData) {
+      doc.fileMetadata = uploadedFileData;
+    }
+
     // Update approvers if provided
     if (approvers) {
       doc.approvers = approvers;
     }
 
-    // Handle file update if provided
-    if (file) {
-      // Delete old file from Google Drive if it exists
-      if (doc.fileMetadata?.driveFileId) {
-        try {
-          await drive.files.delete({
-            fileId: doc.fileMetadata.driveFileId,
-          });
-        } catch (error) {
-          console.error("Error deleting old file:", error);
-        }
-      }
-
-      // Upload new file
-      const fileMetadata = {
-        name: file.originalname,
-        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
-      };
-      const media = {
-        mimeType: file.mimetype,
-        body: Readable.from(file.buffer),
-      };
-      const driveResponse = await drive.files.create({
-        resource: fileMetadata,
-        media: media,
-        fields: "id, webViewLink",
-      });
-
-      // Update file permissions
-      await drive.permissions.create({
-        fileId: driveResponse.data.id,
-        requestBody: {
-          role: "reader",
-          type: "anyone",
-        },
-      });
-
-      // Update document with new file metadata
-      doc.fileMetadata = {
-        driveFileId: driveResponse.data.id,
-        name: file.originalname,
-        link: driveResponse.data.webViewLink,
-      };
-    }
-
     await doc.save();
     res.json({ message: "Document updated successfully" });
   } catch (error) {
-    console.error("Error updating payment document:", error);
+    console.error("Error updating advance payment reclaim document:", error);
     res.status(500).json({ message: "Error updating document" });
   }
 };
@@ -3116,9 +3444,19 @@ exports.getDeliveryDocument = async (req, res) => {
 };
 // Update a Delivery Document
 exports.updateDeliveryDocument = async (req, res) => {
+  let tempFilePath = null;
   try {
     const { id } = req.params;
     const file = req.file;
+
+    // Store temp file path for cleanup
+    if (file) {
+      tempFilePath = file.path;
+      // Verify file exists immediately
+      if (!fs.existsSync(tempFilePath)) {
+        throw new Error(`Uploaded file not found at: ${tempFilePath}`);
+      }
+    }
 
     // Parse the products JSON string into an object
     let products;
@@ -3162,65 +3500,65 @@ exports.updateDeliveryDocument = async (req, res) => {
       return res.status(404).json({ message: "Document not found" });
     }
 
+    // Fetch the current user
+    const currentUser = req.user.username;
+
+    // Fetch allowed cost centers for the current user
+    const costCenters = await CostCenter.find({
+      $or: [
+        { allowedUsers: { $in: [currentUser] } },
+        { allowedUsers: { $size: 0 } },
+      ],
+    });
+
+    // Check if the new cost center is allowed for the user
+    const isCostCenterAllowed = costCenters.some(
+      (center) => center.name === costCenter
+    );
+
+    if (!isCostCenterAllowed) {
+      return res.status(403).json({
+        message: "You do not have permission to edit this cost center.",
+      });
+    }
+
+    // Handle file upload if new file provided
+    let uploadedFileData = null;
+    if (file) {
+      req.body.title = doc.title; // Use document name as title for file upload
+
+      // Delete old file if exists
+      if (doc.fileMetadata?.path) {
+        try {
+          const client = await getFileBrowserClient();
+          await client.deleteFile(doc.fileMetadata.path);
+        } catch (error) {
+          console.error("Warning: Could not delete old file", error);
+        }
+      }
+
+      // Upload new file
+      uploadedFileData = await handleFileUpload(req);
+    }
+
     // Update basic fields
     doc.products = products;
     doc.grandTotalCost = grandTotalCost;
     doc.name = name;
     doc.costCenter = costCenter;
+
     if (appendedProposals) {
       doc.appendedProposals = appendedProposals;
+    }
+
+    // Update file metadata if new file uploaded
+    if (uploadedFileData) {
+      doc.fileMetadata = uploadedFileData;
     }
 
     // Update approvers if provided
     if (approvers) {
       doc.approvers = approvers;
-    }
-
-    // Handle file update if provided
-    if (file) {
-      // Delete old file from Google Drive if it exists
-      if (doc.fileMetadata?.driveFileId) {
-        try {
-          await drive.files.delete({
-            fileId: doc.fileMetadata.driveFileId,
-          });
-        } catch (error) {
-          console.error("Error deleting old file:", error);
-          // Continue execution even if file deletion fails
-        }
-      }
-
-      // Upload new file
-      const fileMetadata = {
-        name: file.originalname,
-        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
-      };
-      const media = {
-        mimeType: file.mimetype,
-        body: Readable.from(file.buffer),
-      };
-
-      const driveResponse = await drive.files.create({
-        resource: fileMetadata,
-        media: media,
-        fields: "id, webViewLink",
-      });
-
-      // Update file permissions
-      await drive.permissions.create({
-        fileId: driveResponse.data.id,
-        requestBody: {
-          role: "reader",
-          type: "anyone",
-        },
-      });
-
-      // Update document with new file metadata
-      doc.fileMetadata = {
-        driveFileId: driveResponse.data.id,
-        name: file.originalname,
-        link: driveResponse.data.webViewLink,
-      };
     }
 
     await doc.save();
@@ -3319,9 +3657,19 @@ exports.getProjectProposal = async (req, res) => {
 
 // Update a project proposal
 exports.updateProjectProposal = async (req, res) => {
+  let tempFilePath = null;
   try {
     const { id } = req.params;
     const file = req.file;
+
+    // Store temp file path for cleanup
+    if (file) {
+      tempFilePath = file.path;
+      // Verify file exists immediately
+      if (!fs.existsSync(tempFilePath)) {
+        throw new Error(`Uploaded file not found at: ${tempFilePath}`);
+      }
+    }
 
     // Parse the content JSON string into an object
     let content;
@@ -3348,6 +3696,25 @@ exports.updateProjectProposal = async (req, res) => {
       return res.status(404).json({ message: "Document not found" });
     }
 
+    // Handle file upload if new file provided
+    let uploadedFileData = null;
+    if (file) {
+      req.body.title = doc.title;
+
+      // Delete old file if exists
+      if (doc.fileMetadata?.path) {
+        try {
+          const client = await getFileBrowserClient();
+          await client.deleteFile(doc.fileMetadata.path);
+        } catch (error) {
+          console.error("Warning: Could not delete old file", error);
+        }
+      }
+
+      // Upload new file
+      uploadedFileData = await handleFileUpload(req);
+    }
+
     // Update basic fields
     doc.title = req.body.title;
     doc.name = req.body.name;
@@ -3355,56 +3722,14 @@ exports.updateProjectProposal = async (req, res) => {
     doc.groupName = req.body.groupName;
     doc.projectName = req.body.projectName;
 
+    // Update file metadata if new file uploaded
+    if (uploadedFileData) {
+      doc.fileMetadata = uploadedFileData;
+    }
+
     // Update approvers if provided
     if (approvers) {
       doc.approvers = approvers;
-    }
-
-    // Handle file update if provided
-    if (file) {
-      // Delete old file from Google Drive if it exists
-      if (doc.fileMetadata?.driveFileId) {
-        try {
-          await drive.files.delete({
-            fileId: doc.fileMetadata.driveFileId,
-          });
-        } catch (error) {
-          console.error("Error deleting old file:", error);
-        }
-      }
-
-      // Upload new file
-      const fileMetadata = {
-        name: file.originalname,
-        parents: [process.env.GOOGLE_DRIVE_DOCUMENT_ATTACHED_FOLDER_ID],
-      };
-
-      const media = {
-        mimeType: file.mimetype,
-        body: Readable.from(file.buffer),
-      };
-
-      const driveResponse = await drive.files.create({
-        resource: fileMetadata,
-        media: media,
-        fields: "id, webViewLink",
-      });
-
-      // Update file permissions
-      await drive.permissions.create({
-        fileId: driveResponse.data.id,
-        requestBody: {
-          role: "reader",
-          type: "anyone",
-        },
-      });
-
-      // Update document with new file metadata
-      doc.fileMetadata = {
-        driveFileId: driveResponse.data.id,
-        name: file.originalname,
-        link: driveResponse.data.webViewLink,
-      };
     }
 
     await doc.save();
