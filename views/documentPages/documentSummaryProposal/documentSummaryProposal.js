@@ -1293,13 +1293,3 @@ const initialize = async () => {
 
 // Initialize when DOM is loaded
 document.addEventListener("DOMContentLoaded", initialize);
-
-// Close modals when clicking outside
-window.onclick = function (event) {
-  const modals = document.querySelectorAll(".modal");
-  modals.forEach((modal) => {
-    if (event.target === modal) {
-      modal.style.display = "none";
-    }
-  });
-};

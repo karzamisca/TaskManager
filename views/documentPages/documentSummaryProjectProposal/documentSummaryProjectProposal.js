@@ -918,17 +918,6 @@ function closeFullViewModal() {
   document.getElementById("fullViewModal").style.display = "none";
 }
 
-window.onclick = function (event) {
-  const fullViewModal = document.getElementById("fullViewModal");
-  const editModal = document.getElementById("editModal");
-  if (event.target === fullViewModal) {
-    closeFullViewModal();
-  }
-  if (event.target === editModal) {
-    closeEditModal();
-  }
-};
-
 async function initializePage() {
   await fetchCurrentUser();
   const table = document.querySelector("table");

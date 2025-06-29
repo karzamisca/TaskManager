@@ -1293,18 +1293,6 @@ async function handleMassDeclarationSubmit(event) {
   }
 }
 
-// Update window click event to close modals
-window.onclick = function (event) {
-  const fullViewModal = document.getElementById("fullViewModal");
-  const editModal = document.getElementById("editModal");
-  if (event.target === fullViewModal) {
-    closeFullViewModal();
-  }
-  if (event.target === editModal) {
-    closeEditModal();
-  }
-};
-
 // Modify the initialization code
 async function initializePage() {
   await fetchCurrentUser();

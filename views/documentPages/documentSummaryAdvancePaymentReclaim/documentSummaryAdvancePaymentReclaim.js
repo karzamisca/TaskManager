@@ -633,7 +633,7 @@ function addEditModal() {
         ">&times;</span>
         
         <h2 style="font-size: clamp(18px, 2vw, 24px); margin-bottom: clamp(16px, 2vw, 24px);">
-          Chỉnh sửa phiếu tạm ứng/Edit Advance Payment Document
+          Chỉnh sửa phiếu thu lại tạm ứng
         </h2>
         
         <form id="editForm" onsubmit="handleEditSubmit(event)">
@@ -1303,18 +1303,6 @@ async function handleMassDeclarationSubmit(event) {
     showMessage("Lỗi khi cập nhật kê khai/Error updating declaration", true);
   }
 }
-
-// Update window click event to close modals
-window.onclick = function (event) {
-  const fullViewModal = document.getElementById("fullViewModal");
-  const editModal = document.getElementById("editModal");
-  if (event.target === fullViewModal) {
-    closeFullViewModal();
-  }
-  if (event.target === editModal) {
-    closeEditModal();
-  }
-};
 
 // Modify the initialization code
 async function initializePage() {
