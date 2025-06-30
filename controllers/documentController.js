@@ -1297,10 +1297,12 @@ exports.approveDocument = async (req, res) => {
 };
 exports.deleteDocument = async (req, res) => {
   const { id } = req.params;
+
   try {
     // Try to find the document in each collection
     let document = await Document.findById(id);
     let documentType = "Generic";
+
     if (!document) {
       document = await ProposalDocument.findById(id);
       if (document) documentType = "Proposal";
@@ -1329,8 +1331,20 @@ exports.deleteDocument = async (req, res) => {
       document = await ProjectProposalDocument.findById(id);
       if (document) documentType = "ProjectProposal";
     }
+
     if (!document) {
       return res.send("Document not found");
+    }
+
+    // Delete associated file if it exists
+    if (document.fileMetadata?.path) {
+      try {
+        const client = await getFileBrowserClient();
+        await client.deleteFile(document.fileMetadata.path);
+      } catch (fileError) {
+        console.error("Warning: Could not delete associated file:", fileError);
+        // Continue with document deletion even if file deletion fails
+      }
     }
 
     // Delete the document based on its type
