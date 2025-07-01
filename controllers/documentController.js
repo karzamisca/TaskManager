@@ -713,20 +713,15 @@ class FileBrowserClient {
   }
 }
 
-// Initialize FileBrowser client
-let fileBrowserClient = null;
-
+// Always create a fresh client - simple and reliable
 async function getFileBrowserClient() {
-  if (!fileBrowserClient) {
-    fileBrowserClient = new FileBrowserClient(process.env.FILEBROWSER_URL);
-    await fileBrowserClient.authenticate(
-      process.env.FILEBROWSER_USERNAME,
-      process.env.FILEBROWSER_PASSWORD
-    );
-  }
-  return fileBrowserClient;
+  const client = new FileBrowserClient(process.env.FILEBROWSER_URL);
+  await client.authenticate(
+    process.env.FILEBROWSER_USERNAME,
+    process.env.FILEBROWSER_PASSWORD
+  );
+  return client;
 }
-
 // Enhanced file upload handler that preserves original filename with timestamp
 async function handleFileUpload(req) {
   if (!req.file) return null;
@@ -783,14 +778,14 @@ async function handleFileUpload(req) {
     const shareCode = DOCUMENT_TYPE_SHARE_CODES[title];
     const publicDownloadUrl = shareCode
       ? `${client.baseUrl}/api/public/dl/${shareCode}/${uniqueFilename}`
-      : uploadResult.downloadUrl; // Fallback to original URL
+      : uploadResult.downloadUrl;
 
     return {
-      driveFileId: uniqueFilename, // Use unique filename as ID for storage
-      name: originalFilename, // Return original name for display purposes
-      displayName: originalFilename, // Explicit display name
-      actualFilename: uniqueFilename, // Actual filename in storage
-      link: publicDownloadUrl, // Use public share URL
+      driveFileId: uniqueFilename,
+      name: originalFilename,
+      displayName: originalFilename,
+      actualFilename: uniqueFilename,
+      link: publicDownloadUrl,
       path: uploadResult.path,
       size: uploadResult.size,
       mimeType: req.file.mimetype,
