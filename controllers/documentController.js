@@ -109,15 +109,18 @@ const documentUtils = {
       "PhongTran",
       "HuynhDiep",
     ];
+
     if (!restrictedUsers.includes(username)) {
       return documents;
     }
 
-    // Define the hierarchy: HoangNam must approve before PhongTran, PhongTran before HuynhDiep
-    const hierarchy = {
-      NguyenHongNhuThuy: ["HuynhDiep", "PhongTran", "HoangNam"],
-      HuynhDiep: ["PhongTran", "HoangNam"], // PhongTran must approve before HuynhDiep
-      PhongTran: ["HoangNam"], // HoangNam must approve before PhongTran
+    // Define who must approve BEFORE each user
+    // Approval order: NguyenHongNhuThuy → HoangNam → PhongTran → HuynhDiep
+    const prerequisiteApprovers = {
+      HoangNam: ["NguyenHongNhuThuy"],
+      PhongTran: ["NguyenHongNhuThuy", "HoangNam"],
+      HuynhDiep: ["NguyenHongNhuThuy", "HoangNam", "PhongTran"],
+      // NguyenHongNhuThuy has no prerequisites (can always approve first)
     };
 
     // Filter documents for restricted users
@@ -135,6 +138,14 @@ const documentUtils = {
       }));
 
       const approvedUsernames = approvedUsers.map((user) => user.username);
+
+      // Check if current user submitted this document
+      const currentUserIsSubmitter = doc.submittedBy.username === username;
+
+      // If the user submitted this document, they can always see it
+      if (currentUserIsSubmitter) {
+        return true;
+      }
 
       // Check if current user has already approved this document
       const currentUserHasApproved = approvedUsernames.includes(username);
@@ -169,22 +180,19 @@ const documentUtils = {
       // Check hierarchical approval constraints
       let hierarchyAllowsApproval = true;
 
-      if (hierarchy[username]) {
-        // For each user that must approve before the current user
-        for (const requiredApprover of hierarchy[username]) {
-          // Check if this user is an approver for this document
-          const isApproverForDoc = allApproversWithUsernames.some(
-            (approver) => approver.username === requiredApprover
-          );
+      // Get the list of users who must approve before the current user
+      const requiredPredecessors = prerequisiteApprovers[username] || [];
 
-          // If they are an approver but haven't approved yet, block the current user
-          if (
-            isApproverForDoc &&
-            !approvedUsernames.includes(requiredApprover)
-          ) {
-            hierarchyAllowsApproval = false;
-            break;
-          }
+      for (const requiredApprover of requiredPredecessors) {
+        // Check if this required approver is in the approvers list for this document
+        const isApproverForDoc = allApproversWithUsernames.some(
+          (approver) => approver.username === requiredApprover
+        );
+
+        // If they are an approver but haven't approved yet, block the current user
+        if (isApproverForDoc && !approvedUsernames.includes(requiredApprover)) {
+          hierarchyAllowsApproval = false;
+          break;
         }
       }
 
