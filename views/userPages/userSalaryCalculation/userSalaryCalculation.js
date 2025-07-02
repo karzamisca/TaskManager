@@ -42,6 +42,7 @@ async function exportToCSV() {
   // Define CSV headers in Vietnamese
   const headers = [
     "Tên đăng nhập",
+    "Tên thật",
     "Trạm",
     "Người quản lý",
     "Ngân hàng",
@@ -68,6 +69,7 @@ async function exportToCSV() {
   // Map the data to match the headers
   const rows = usersToExport.map((user) => [
     user.username,
+    user.realName,
     user.costCenter ? user.costCenter.name : "Chưa có",
     user.assignedManager ? user.assignedManager.username : "Chưa có",
     user.beneficiaryBank || "Chưa có",
@@ -312,6 +314,7 @@ function renderUsers() {
         } onchange="toggleSelectUser('${user._id}')">
       </td>
       <td>${user.username}</td>
+      <td>${user.realName}</td>
       <td>${user.costCenter ? user.costCenter.name : "Chưa có"}</td>
       <td>${
         user.assignedManager ? user.assignedManager.username : "Chưa có"
@@ -356,6 +359,7 @@ async function addUser(e) {
 
   const newUser = {
     username: document.getElementById("new-username").value,
+    realName: document.getElementById("new-real-name").value,
     costCenter: document.getElementById("new-cost-center").value,
     assignedManager:
       document.getElementById("new-assigned-manager").value || undefined,
@@ -415,6 +419,7 @@ async function editUser(id) {
 
   document.getElementById("edit-user-id").value = user._id;
   document.getElementById("edit-username").value = user.username;
+  document.getElementById("edit-real-name").value = user.realName;
   document.getElementById("edit-beneficiary-bank").value =
     user.beneficiaryBank || "";
   document.getElementById("edit-bank-account-number").value =
@@ -461,6 +466,7 @@ async function updateUser(e) {
   const userId = document.getElementById("edit-user-id").value;
   const userData = {
     username: document.getElementById("edit-username").value,
+    realName: document.getElementById("edit-real-name").value,
     costCenter: document.getElementById("edit-cost-center").value,
     assignedManager:
       document.getElementById("edit-assigned-manager").value || undefined,

@@ -53,11 +53,17 @@ async function createMonthlyUserRecords(recordDate = new Date()) {
 
           // Copy user data
           username: user.username,
+          realName: user.realName,
           role: user.role,
           department: user.department,
           email: user.email,
           costCenter: user.costCenter,
           assignedManager: user.assignedManager,
+
+          // Copy banking and ID information
+          beneficiaryBank: user.beneficiaryBank,
+          bankAccountNumber: user.bankAccountNumber,
+          citizenID: user.citizenID,
 
           // Copy salary data
           baseSalary: user.baseSalary,

@@ -156,6 +156,7 @@ exports.createUser = async (req, res) => {
 
     const {
       username,
+      realName,
       costCenter,
       assignedManager,
       beneficiaryBank,
@@ -185,6 +186,7 @@ exports.createUser = async (req, res) => {
 
     const newUser = new User({
       username,
+      realName,
       costCenter,
       assignedManager,
       beneficiaryBank,
@@ -231,6 +233,7 @@ exports.updateUser = async (req, res) => {
 
     const {
       username,
+      realName,
       costCenter,
       assignedManager,
       baseSalary,
@@ -260,6 +263,8 @@ exports.updateUser = async (req, res) => {
       }
       user.username = username;
     }
+
+    if (realName !== undefined) user.realName = realName;
 
     if (costCenter) {
       const costCenterExists = await CostCenter.findById(costCenter);
@@ -379,13 +384,30 @@ exports.getUserMonthlyRecordPage = (req, res) => {
 
 exports.getAllUserMonthlyRecord = async (req, res) => {
   try {
-    const records = await UserMonthlyRecord.find()
-      .populate("userId", "username")
+    const privilegedRoles = ["superAdmin", "deputyDirector", "director"];
+
+    // Create base query to exclude privileged roles
+    let matchQuery = {};
+
+    // If user is not in privileged roles, only show records they manage
+    if (!privilegedRoles.includes(req.user.role)) {
+      matchQuery.assignedManager = req.user._id;
+    }
+
+    const records = await UserMonthlyRecord.find(matchQuery)
+      .populate({
+        path: "userId",
+        select: "username role",
+        match: { role: { $nin: privilegedRoles } }, // Exclude privileged users
+      })
       .populate("costCenter", "name")
       .populate("assignedManager", "username")
       .sort({ recordYear: -1, recordMonth: -1 });
 
-    res.json(records);
+    // Filter out records where userId is null (due to populate match filter)
+    const filteredRecords = records.filter((record) => record.userId !== null);
+
+    res.json(filteredRecords);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

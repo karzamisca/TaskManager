@@ -27,6 +27,7 @@ const monthlyUserRecordSchema = new mongoose.Schema(
 
     // User data snapshot at time of record
     username: { type: String, required: true },
+    realName: { type: String, required: true },
     role: { type: String },
     department: { type: String },
     email: { type: String },
@@ -42,6 +43,9 @@ const monthlyUserRecordSchema = new mongoose.Schema(
     },
 
     // Salary information
+    beneficiaryBank: { type: String },
+    bankAccountNumber: { type: String, default: "0" },
+    citizenID: { type: String, default: "0" },
     baseSalary: { type: Number, default: 0 },
     hourlyWage: { type: Number, default: 0 },
     commissionBonus: { type: Number, default: 0 },
