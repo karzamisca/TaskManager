@@ -46,6 +46,7 @@ exports.getSftpMainViews = (req, res) => {
       "headOfNorthernRepresentativeOffice",
       "captainOfMechanical",
       "captainOfTechnical",
+      "captainOfAccounting",
       "captainOfPurchasing",
     ].includes(req.user.role)
   ) {
