@@ -97,6 +97,32 @@
           </button>
           <small id="reset-help" class="sr-only">Xóa tất cả bộ lọc</small>
         </div>
+
+        <div class="filter-group">
+          <button
+            id="exportExcel"
+            type="button"
+            class="btn-secondary"
+            aria-describedby="export-help"
+          >
+            Xuất Excel
+          </button>
+          <small id="export-help" class="sr-only"
+            >Xuất dữ liệu ra file Excel</small
+          >
+        </div>
+
+        <div class="filter-group">
+          <button
+            id="exportPdf"
+            type="button"
+            class="btn-secondary"
+            aria-describedby="pdf-help"
+          >
+            Xuất Form PDF
+          </button>
+          <small id="pdf-help" class="sr-only">Xuất dữ liệu ra file PDF</small>
+        </div>
       </section>
 
       <!-- Loading Indicator -->
@@ -119,7 +145,7 @@
                 <th scope="col" role="columnheader">Lương cơ bản</th>
                 <th scope="col" role="columnheader">Lương theo giờ</th>
                 <th scope="col" role="columnheader">Lương tăng ca</th>
-                <th scope="col" role="columnheader">Tổng lương</th>
+                <th scope="col" role="columnheader">Lương thực lĩnh</th>
                 <th scope="col" role="columnheader">Thuế</th>
                 <th scope="col" role="columnheader">Trạm</th>
                 <th scope="col" role="columnheader">Thao tác</th>
@@ -171,7 +197,7 @@
     <div class="sr-only" aria-live="polite" id="announcements"></div>
 
     <!-- JavaScript -->
-    <script src="userPages/userMonthlyRecord/userMonthlyRecord.js?=v1.1"></script>
+    <script src="userPages/userMonthlyRecord/userMonthlyRecord.js?=v1.2"></script>
 
     <!-- Additional CSS for screen readers -->
     <style>

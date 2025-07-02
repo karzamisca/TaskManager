@@ -285,7 +285,7 @@ const populateCostCenterFilter = (costCenters) => {
   if (!costCenterFilter) return;
 
   // Clear existing options except the first one
-  costCenterFilter.innerHTML = '<option value="">Tất cả trung tâm</option>';
+  costCenterFilter.innerHTML = '<option value="">Tất cả trạm</option>';
 
   costCenters.forEach((name) => {
     const option = document.createElement("option");
@@ -304,19 +304,13 @@ const createRecordRow = (record) => {
   const row = document.createElement("tr");
   const monthName = getMonthName(record.recordMonth);
 
-  // Calculate overtime pay
-  const overtimePay =
-    record.weekdayOvertimeHour * record.hourlyWage * 1.5 +
-    record.weekendOvertimeHour * record.hourlyWage * 2 +
-    record.holidayOvertimeHour * record.hourlyWage * 3;
-
   row.innerHTML = `
     <td>${safeGet(record, "username", "N/A")}</td>
     <td>${monthName} ${record.recordYear || "N/A"}</td>
     <td>${record.baseSalary.toLocaleString()}</td>
     <td>${record.hourlyWage.toLocaleString()}</td>
-    <td>${overtimePay.toLocaleString()}</td>
-    <td>${record.grossSalary.toLocaleString()}</td>
+    <td>${record.overtimePay.toLocaleString()}</td>
+    <td>${record.currentSalary.toLocaleString()}</td>
     <td>${record.tax.toLocaleString()}</td>
     <td>${safeGet(record, "costCenter.name")}</td>
     <td>
@@ -478,20 +472,30 @@ const createModalContent = (record) => {
     <h2>${safeGet(record, "username")} - ${monthName} ${record.recordYear}</h2>
     <p><strong>Ngày ghi nhận:</strong> ${formatDate(record.recordDate)}</p>
     <p><strong>Email:</strong> ${safeGet(record, "email")}</p>
-    <p><strong>Trung tâm chi phí:</strong> ${safeGet(
-      record,
-      "costCenter.name"
-    )}</p>
+    <p><strong>Trạm:</strong> ${safeGet(record, "costCenter.name")}</p>
     <p><strong>Người phụ trách:</strong> ${safeGet(
       record,
       "assignedManager.username"
     )}</p>
     
     <div class="modal-section">
-      <h3>Thông tin lương</h3>
+      <p><strong>Số tài khoản ngân hàng:</strong> ${
+        record.bankAccountNumber || "Chưa cập nhật"
+      }</p>
+      <p><strong>Ngân hàng thụ hưởng:</strong> ${
+        record.beneficiaryBank || "Chưa cập nhật"
+      }</p>
       <p><strong>Lương cơ bản:</strong> ${record.baseSalary.toLocaleString()}</p>
       <p><strong>Lương theo giờ:</strong> ${record.hourlyWage.toLocaleString()}</p>
-      <p><strong>Phụ cấp trách nhiệm:</strong> ${record.responsibility.toLocaleString()}</p>
+    </div>
+
+    <div class="modal-section">
+      <p><strong>Trách nhiệm:</strong> ${record.responsibility.toLocaleString()}</p>
+      <p><strong>Công tác phí:</strong> ${record.travelExpense.toLocaleString()}</p>
+      <p><strong>Hoa hồng:</strong> ${record.commissionBonus.toLocaleString()}</p>
+    </div>
+
+    <div class="modal-section">
       <p><strong>Giờ tăng ca trong tuần:</strong> ${
         record.weekdayOvertimeHour || 0
       } giờ</p>
@@ -502,28 +506,22 @@ const createModalContent = (record) => {
         record.holidayOvertimeHour || 0
       } giờ</p>
       <p><strong>Lương tăng ca:</strong> ${record.overtimePay.toLocaleString()}</p>
-      <p><strong>Lương đóng bảo hiểm:</strong> ${record.insurableSalary.toLocaleString()}</p>
-      <p><strong>Bảo hiểm bắt buộc:</strong> ${record.mandatoryInsurance.toLocaleString()}</p>
-      <p><strong>Lương hiện tại:</strong> ${record.currentSalary.toLocaleString()}</p>
+    </div>
+
+    <div class="modal-section">
       <p><strong>Tổng lương:</strong> ${record.grossSalary.toLocaleString()}</p>
     </div>
-    
+
     <div class="modal-section">
-      <h3>Thông tin thuế</h3>
+      <p><strong>Lương tính thuế:</strong> ${record.taxableIncome.toLocaleString()}</p>
       <p><strong>Thuế thu nhập:</strong> ${record.tax.toLocaleString()}</p>
       <p><strong>Số người phụ thuộc:</strong> ${record.dependantCount || 0}</p>
-      <p><strong>Thu nhập chịu thuế:</strong> ${record.taxableIncome.toLocaleString()}</p>
+      <p><strong>Lương đóng bảo hiểm:</strong> ${record.insurableSalary.toLocaleString()}</p>
+      <p><strong>Bảo hiểm bắt buộc:</strong> ${record.mandatoryInsurance.toLocaleString()}</p>
     </div>
-    
-    <div class="modal-section">
-      <h3>Thông tin khác</h3>
-      <p><strong>Công tác phí:</strong> ${record.travelExpense.toLocaleString()}</p>
-      <p><strong>Số tài khoản ngân hàng:</strong> ${
-        record.bankAccountNumber || "Chưa cập nhật"
-      }</p>
-      <p><strong>Ngân hàng thụ hưởng:</strong> ${
-        record.beneficiaryBank || "Chưa cập nhật"
-      }</p>
+
+    <div class="modal-section">  
+      <p><strong>Lương thực lĩnh:</strong> ${record.currentSalary.toLocaleString()}</p>
     </div>
   `;
 };

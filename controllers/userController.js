@@ -18,9 +18,7 @@ exports.getUserMainPage = (req, res) => {
         "headOfNorthernRepresentativeOffice",
       ].includes(req.user.role)
     ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
     res.sendFile("userMain.html", {
       root: "./views/userPages/userMain",
@@ -46,9 +44,7 @@ exports.getUserSalaryCalculationPage = (req, res) => {
         "headOfNorthernRepresentativeOffice",
       ].includes(req.user.role)
     ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
     res.sendFile("userSalaryCalculation.html", {
       root: "./views/userPages/userSalaryCalculation",
@@ -155,9 +151,7 @@ exports.createUser = async (req, res) => {
         "headOfNorthernRepresentativeOffice",
       ].includes(req.user.role)
     ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     const {
@@ -232,9 +226,7 @@ exports.updateUser = async (req, res) => {
         "headOfNorthernRepresentativeOffice",
       ].includes(req.user.role)
     ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     const {
@@ -346,9 +338,7 @@ exports.getAllCostCenters = async (req, res) => {
         "headOfNorthernRepresentativeOffice",
       ].includes(req.user.role)
     ) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Fetch all cost centers
@@ -368,10 +358,15 @@ exports.getAllCostCenters = async (req, res) => {
 
 exports.getUserMonthlyRecordPage = (req, res) => {
   try {
-    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
-      );
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
     res.sendFile("userMonthlyRecord.html", {
       root: "./views/userPages/userMonthlyRecord",
