@@ -568,8 +568,8 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
     // Prepare document content
     const docDefinition = {
       pageSize: "A4",
-      pageOrientation: "landscape", // Use landscape for wider tables
-      pageMargins: [20, 20, 20, 20], // Smaller margins
+      pageOrientation: "landscape",
+      pageMargins: [15, 15, 15, 15], // Minimal margins for maximum space
       content: [
         {
           text: "DANH SÁCH CHI LƯƠNG",
@@ -580,12 +580,13 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
           text: "(Kèm theo Hợp đồng Dịch vụ chi lương số 41/HDCL-HDBCH ngày 15 tháng 09 năm 2022 được kì kết giữa Ngân Hàng TMCP Phát Triển TP. Hồ Chí Minh – Chi nhánh Cộng Hòa và Công ty TNHH Đầu Tư Thương Mại Dịch Vụ Kỳ Long)",
           style: "subheader",
           alignment: "center",
-          margin: [0, 0, 0, 10],
+          margin: [0, 0, 0, 15],
         },
         {
           table: {
             headerRows: 1,
-            widths: ["auto", 120, 100, 100, "auto", "auto", 100], // Dynamic widths
+            // Use percentage-based widths for better scaling
+            widths: ["5%", "20%", "15%", "12%", "15%", "20%", "13%"],
             body: [
               [
                 { text: "STT", style: "tableHeader" },
@@ -597,13 +598,22 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
                 { text: "Ngân hàng hưởng", style: "tableHeader" },
               ],
               ...filteredRecords.map((record, index) => [
-                (index + 1).toString(),
+                {
+                  text: (index + 1).toString(),
+                  style: "tableContent",
+                  alignment: "center",
+                },
                 { text: record.realName || "N/A", style: "tableContent" },
                 {
                   text: record.bankAccountNumber || "N/A",
                   style: "tableContent",
+                  alignment: "center",
                 },
-                { text: record.citizenID || "N/A", style: "tableContent" },
+                {
+                  text: record.citizenID || "N/A",
+                  style: "tableContent",
+                  alignment: "center",
+                },
                 {
                   text: record.currentSalary.toLocaleString("vi-VN"),
                   style: "tableContent",
@@ -625,48 +635,59 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
             vLineWidth: () => 0.5,
             hLineColor: () => "#aaa",
             vLineColor: () => "#aaa",
-            paddingLeft: () => 5,
-            paddingRight: () => 5,
-            paddingTop: () => 2,
-            paddingBottom: () => 2,
+            paddingLeft: () => 4,
+            paddingRight: () => 4,
+            paddingTop: () => 3,
+            paddingBottom: () => 3,
           },
         },
         {
           text: `Tổng: ${filteredRecords
             .reduce((sum, record) => sum + record.currentSalary, 0)
-            .toLocaleString("vi-VN")}`,
+            .toLocaleString("vi-VN")} VND`,
           style: "total",
-          margin: [0, 20, 0, 0],
+          margin: [0, 15, 0, 0],
         },
         {
-          text: "ĐẠI DIỆN CÔNG TY",
-          style: "signature",
-          margin: [400, 40, 0, 0],
+          columns: [
+            {
+              width: "50%",
+              text: "",
+            },
+            {
+              width: "50%",
+              text: "ĐẠI DIỆN CÔNG TY",
+              style: "signature",
+              alignment: "center",
+            },
+          ],
+          margin: [0, 30, 0, 0],
         },
       ],
       styles: {
         header: {
-          fontSize: 14,
+          fontSize: 16,
           bold: true,
           margin: [0, 0, 0, 10],
         },
         subheader: {
-          fontSize: 10,
+          fontSize: 9,
           margin: [0, 0, 0, 10],
         },
         tableHeader: {
           bold: true,
-          fontSize: 9, // Slightly smaller for headers
+          fontSize: 10,
           color: "black",
-          fillColor: "#f5f5f5", // Light gray background
+          fillColor: "#f5f5f5",
+          alignment: "center",
         },
         tableContent: {
-          fontSize: 8, // Smaller font to fit more content
-          margin: [0, 2, 0, 2], // Tighter spacing
+          fontSize: 9,
+          margin: [0, 1, 0, 1],
         },
         total: {
           bold: true,
-          fontSize: 10,
+          fontSize: 12,
           alignment: "right",
         },
         signature: {
