@@ -482,6 +482,9 @@ const createModalContent = (record) => {
       <p><strong>Số tài khoản ngân hàng:</strong> ${
         record.bankAccountNumber || "Chưa cập nhật"
       }</p>
+      <p><strong>Số CMND/CCCD:</strong> ${
+        record.citizenID || "Chưa cập nhật"
+      }</p>
       <p><strong>Ngân hàng thụ hưởng:</strong> ${
         record.beneficiaryBank || "Chưa cập nhật"
       }</p>
