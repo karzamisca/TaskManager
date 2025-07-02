@@ -388,7 +388,12 @@ exports.getUserMonthlyRecordPage = (req, res) => {
 
 exports.getAllUserMonthlyRecord = async (req, res) => {
   try {
-    const privilegedRoles = ["superAdmin", "deputyDirector", "director"];
+    const privilegedRoles = [
+      "superAdmin",
+      "deputyDirector",
+      "director",
+      "headOfAccounting",
+    ];
 
     // Create base query to exclude privileged roles
     let matchQuery = {};
@@ -497,6 +502,12 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
     }
 
     const privilegedRoles = ["superAdmin", "deputyDirector", "director"];
+    const fullAccessRoles = [
+      "superAdmin",
+      "deputyDirector",
+      "director",
+      "headOfAccounting",
+    ];
 
     // Build query based on filters and user role
     const query = {
@@ -508,8 +519,8 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       query["costCenter._id"] = costCenter;
     }
 
-    // If user is not in privileged roles, only show records they manage
-    if (!privilegedRoles.includes(req.user.role)) {
+    // If user is not in full access roles, only show records they manage
+    if (!fullAccessRoles.includes(req.user.role)) {
       query.assignedManager = req.user._id;
     }
 
