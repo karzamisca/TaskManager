@@ -2,6 +2,10 @@
 const User = require("../models/User");
 const UserMonthlyRecord = require("../models/UserMonthlyRecord");
 const CostCenter = require("../models/CostCenter");
+const PdfPrinter = require("pdfmake");
+const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
 
 exports.getUserMainPage = (req, res) => {
   try {
@@ -410,5 +414,289 @@ exports.getAllUserMonthlyRecord = async (req, res) => {
     res.json(filteredRecords);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// Updated reliable font URLs from Google Fonts
+const FONT_URLS = {
+  normal: "https://fonts.googleapis.com/css2?family=Roboto&display=swap",
+  bold: "https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap",
+  italics:
+    "https://fonts.googleapis.com/css2?family=Roboto:ital@1&display=swap",
+  bolditalics:
+    "https://fonts.googleapis.com/css2?family=Roboto:ital,wght@1,700&display=swap",
+};
+
+// Directory to cache downloaded fonts
+const FONT_CACHE_DIR = path.join(__dirname, "../font_cache");
+
+// Ensure cache directory exists
+if (!fs.existsSync(FONT_CACHE_DIR)) {
+  fs.mkdirSync(FONT_CACHE_DIR);
+}
+
+async function getFontUrl(type) {
+  try {
+    const response = await axios.get(FONT_URLS[type]);
+    const css = response.data;
+    // Extract the actual font URL from the CSS
+    const fontUrl = css.match(/src:\s*url\(([^)]+)\)/)[1];
+    return fontUrl.replace(/^['"]|['"]$/g, "");
+  } catch (error) {
+    console.error(`Error getting font URL for ${type}:`, error);
+    throw new Error(`Could not retrieve font URL for ${type}`);
+  }
+}
+
+async function downloadFont(type) {
+  const fontPath = path.join(FONT_CACHE_DIR, `Roboto-${type}.ttf`);
+
+  // Return cached font if exists
+  if (fs.existsSync(fontPath)) {
+    return fontPath;
+  }
+
+  try {
+    // First get the actual font URL from Google Fonts CSS
+    const fontUrl = await getFontUrl(type);
+
+    // Download the font file
+    const response = await axios.get(fontUrl, {
+      responseType: "arraybuffer",
+    });
+
+    // Save to cache
+    fs.writeFileSync(fontPath, response.data);
+    return fontPath;
+  } catch (error) {
+    console.error(`Error downloading font ${type}:`, error);
+    throw new Error(`Could not download font ${type}`);
+  }
+}
+
+exports.exportSalaryPaymentPDF = async (req, res) => {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Truy cập bị từ chối. Bạn không có quyền truy cập." });
+    }
+
+    const { month, year, costCenter } = req.query;
+
+    // Validate input
+    if (!month || !year) {
+      return res.status(400).json({ message: "Thiếu tháng hoặc năm" });
+    }
+
+    const privilegedRoles = ["superAdmin", "deputyDirector", "director"];
+
+    // Build query based on filters and user role
+    const query = {
+      recordMonth: parseInt(month),
+      recordYear: parseInt(year),
+    };
+
+    if (costCenter) {
+      query["costCenter._id"] = costCenter;
+    }
+
+    // If user is not in privileged roles, only show records they manage
+    if (!privilegedRoles.includes(req.user.role)) {
+      query.assignedManager = req.user._id;
+    }
+
+    // Get records with filters and populate userId to exclude privileged users
+    const records = await UserMonthlyRecord.find(query)
+      .populate({
+        path: "userId",
+        select: "username role",
+        match: { role: { $nin: privilegedRoles } }, // Exclude privileged users
+      })
+      .populate("costCenter")
+      .sort({ realName: 1 });
+
+    // Filter out records where userId is null (due to populate match filter)
+    const filteredRecords = records.filter((record) => record.userId !== null);
+
+    if (filteredRecords.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy bản ghi nào phù hợp" });
+    }
+
+    // Download fonts with error handling
+    let fonts;
+    try {
+      const [normal, bold, italics, bolditalics] = await Promise.all([
+        downloadFont("normal"),
+        downloadFont("bold"),
+        downloadFont("italics"),
+        downloadFont("bolditalics"),
+      ]);
+
+      fonts = {
+        Roboto: {
+          normal,
+          bold,
+          italics,
+          bolditalics,
+        },
+      };
+    } catch (fontError) {
+      console.error("Font download failed, using fallback fonts:", fontError);
+      // Fallback to built-in PDFMake fonts if download fails
+      fonts = {
+        Roboto: {
+          normal: "Helvetica",
+          bold: "Helvetica-Bold",
+          italics: "Helvetica-Oblique",
+          bolditalics: "Helvetica-BoldOblique",
+        },
+      };
+    }
+
+    const printer = new PdfPrinter(fonts);
+
+    // Prepare document content
+    const docDefinition = {
+      pageSize: "A4",
+      pageOrientation: "landscape", // Use landscape for wider tables
+      pageMargins: [20, 20, 20, 20], // Smaller margins
+      content: [
+        {
+          text: "DANH SÁCH CHI LƯƠNG",
+          style: "header",
+          alignment: "center",
+        },
+        {
+          text: "(Kèm theo Hợp đồng Dịch vụ chi lương số 41/HDCL-HDBCH ngày 15 tháng 09 năm 2022 được kì kết giữa Ngân Hàng TMCP Phát Triển TP. Hồ Chí Minh – Chi nhánh Cộng Hòa và Công ty TNHH Đầu Tư Thương Mại Dịch Vụ Kỳ Long)",
+          style: "subheader",
+          alignment: "center",
+          margin: [0, 0, 0, 10],
+        },
+        {
+          table: {
+            headerRows: 1,
+            widths: ["auto", 120, 100, 100, "auto", "auto", 100], // Dynamic widths
+            body: [
+              [
+                { text: "STT", style: "tableHeader" },
+                { text: "Họ và tên", style: "tableHeader" },
+                { text: "Số tài khoản", style: "tableHeader" },
+                { text: "Số CMND/CCCD", style: "tableHeader" },
+                { text: "Số tiền chi lương", style: "tableHeader" },
+                { text: "Nội dung chi lương", style: "tableHeader" },
+                { text: "Ngân hàng hưởng", style: "tableHeader" },
+              ],
+              ...filteredRecords.map((record, index) => [
+                (index + 1).toString(),
+                { text: record.realName || "N/A", style: "tableContent" },
+                {
+                  text: record.bankAccountNumber || "N/A",
+                  style: "tableContent",
+                },
+                { text: record.citizenID || "N/A", style: "tableContent" },
+                {
+                  text: record.currentSalary.toLocaleString("vi-VN"),
+                  style: "tableContent",
+                  alignment: "right",
+                },
+                {
+                  text: `Thanh toán lương tháng ${parseInt(month) - 1}`,
+                  style: "tableContent",
+                },
+                {
+                  text: record.beneficiaryBank || "N/A",
+                  style: "tableContent",
+                },
+              ]),
+            ],
+          },
+          layout: {
+            hLineWidth: () => 0.5,
+            vLineWidth: () => 0.5,
+            hLineColor: () => "#aaa",
+            vLineColor: () => "#aaa",
+            paddingLeft: () => 5,
+            paddingRight: () => 5,
+            paddingTop: () => 2,
+            paddingBottom: () => 2,
+          },
+        },
+        {
+          text: `Tổng: ${filteredRecords
+            .reduce((sum, record) => sum + record.currentSalary, 0)
+            .toLocaleString("vi-VN")}`,
+          style: "total",
+          margin: [0, 20, 0, 0],
+        },
+        {
+          text: "ĐẠI DIỆN CÔNG TY",
+          style: "signature",
+          margin: [400, 40, 0, 0],
+        },
+      ],
+      styles: {
+        header: {
+          fontSize: 14,
+          bold: true,
+          margin: [0, 0, 0, 10],
+        },
+        subheader: {
+          fontSize: 10,
+          margin: [0, 0, 0, 10],
+        },
+        tableHeader: {
+          bold: true,
+          fontSize: 9, // Slightly smaller for headers
+          color: "black",
+          fillColor: "#f5f5f5", // Light gray background
+        },
+        tableContent: {
+          fontSize: 8, // Smaller font to fit more content
+          margin: [0, 2, 0, 2], // Tighter spacing
+        },
+        total: {
+          bold: true,
+          fontSize: 10,
+          alignment: "right",
+        },
+        signature: {
+          bold: true,
+          fontSize: 12,
+        },
+      },
+      defaultStyle: {
+        font: "Roboto",
+        fontSize: 10,
+      },
+    };
+
+    // Create PDF stream
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    // Set response headers
+    const fileName = `ChiLuong_${month}_${year}${
+      costCenter ? "_" + costCenter : ""
+    }.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+
+    // Stream the PDF to the response
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    console.error("Error exporting PDF:", error);
+    res
+      .status(500)
+      .json({ message: "Lỗi khi xuất file PDF: " + error.message });
   }
 };

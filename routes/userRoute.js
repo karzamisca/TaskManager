@@ -33,4 +33,10 @@ router.get(
   userController.getAllUserMonthlyRecord
 );
 
+router.get(
+  "/exportSalaryPDF",
+  authMiddleware,
+  userController.exportSalaryPaymentPDF
+);
+
 module.exports = router;

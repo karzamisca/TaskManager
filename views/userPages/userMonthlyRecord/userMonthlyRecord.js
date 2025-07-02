@@ -257,6 +257,43 @@ const paginateRecords = (records, page, itemsPerPage) => {
 // UI RENDERING FUNCTIONS
 // ====================================================================
 
+const exportToPDF = () => {
+  const { year, month, costCenter } = state.filters;
+
+  if (!year || !month) {
+    alert("Vui lòng chọn cả năm và tháng để xuất báo cáo chi lương");
+    return;
+  }
+
+  let url = `/exportSalaryPDF?month=${month}&year=${year}`;
+  if (costCenter) {
+    url += `&costCenter=${costCenter}`;
+  }
+
+  // Show loading message in Vietnamese
+  const loadingDiv = elements.loadingDiv();
+  loadingDiv.style.display = "block";
+  loadingDiv.innerHTML = "Đang tạo báo cáo PDF, vui lòng chờ...";
+
+  // Create a temporary iframe for download
+  const iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  iframe.src = url;
+
+  iframe.onload = function () {
+    loadingDiv.style.display = "none";
+    document.body.removeChild(iframe);
+  };
+
+  document.body.appendChild(iframe);
+};
+
+// Add this to setupEventListeners function
+const exportBtn = document.getElementById("exportPDF");
+if (exportBtn) {
+  exportBtn.addEventListener("click", exportToPDF);
+}
+
 /**
  * Populates year filter dropdown
  * @param {Array} years - Array of unique years
@@ -681,6 +718,11 @@ const setupEventListeners = () => {
     .forEach((element) => {
       element.addEventListener("change", debouncedApplyFilters);
     });
+
+  const exportBtn = document.getElementById("exportPDF");
+  if (exportBtn) {
+    exportBtn.addEventListener("click", exportToPDF);
+  }
 };
 
 // ====================================================================
