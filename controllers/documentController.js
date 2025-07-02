@@ -140,7 +140,20 @@ const documentUtils = {
       const approvedUsernames = approvedUsers.map((user) => user.username);
 
       // Check if current user submitted this document
-      const currentUserIsSubmitter = doc.submittedBy.username === username;
+      // Handle both populated and non-populated submittedBy
+      let currentUserIsSubmitter = false;
+      if (doc.submittedBy) {
+        if (typeof doc.submittedBy === "object" && doc.submittedBy.username) {
+          // submittedBy is populated
+          currentUserIsSubmitter = doc.submittedBy.username === username;
+        } else if (typeof doc.submittedBy === "string" || doc.submittedBy._id) {
+          // submittedBy is not populated, need to compare with user ID
+          // This would require passing userId as well, or finding user by username first
+          console.warn(
+            "submittedBy is not populated. Consider populating it in your query."
+          );
+        }
+      }
 
       // If the user submitted this document, they can always see it
       if (currentUserIsSubmitter) {
