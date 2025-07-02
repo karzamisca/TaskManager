@@ -44,28 +44,31 @@ async function createMonthlyUserRecords(recordDate = new Date()) {
           continue;
         }
 
-        // Create new monthly record
+        // Create new monthly record with graceful field handling
         const monthlyRecord = new MonthlyUserRecord({
           userId: user._id,
           recordDate: recordDate,
           recordMonth: month,
           recordYear: year,
 
-          // Copy user data
-          username: user.username,
-          realName: user.realName,
+          // Handle required fields with fallbacks
+          username: user.username || `user_${user._id}`,
+          realName:
+            user.realName || user.username || `Unknown User ${user._id}`,
+
+          // Copy optional user data (use existing values or let schema defaults apply)
           role: user.role,
           department: user.department,
           email: user.email,
           costCenter: user.costCenter,
           assignedManager: user.assignedManager,
 
-          // Copy banking and ID information
+          // Copy banking and ID information (fallback to schema defaults if missing)
           beneficiaryBank: user.beneficiaryBank,
           bankAccountNumber: user.bankAccountNumber,
           citizenID: user.citizenID,
 
-          // Copy salary data
+          // Copy salary data (fallback to schema defaults if missing)
           baseSalary: user.baseSalary,
           hourlyWage: user.hourlyWage,
           commissionBonus: user.commissionBonus,
@@ -79,12 +82,12 @@ async function createMonthlyUserRecords(recordDate = new Date()) {
           currentSalary: user.currentSalary,
           grossSalary: user.grossSalary,
 
-          // Copy tax data
+          // Copy tax data (fallback to schema defaults if missing)
           tax: user.tax,
           dependantCount: user.dependantCount,
           taxableIncome: user.taxableIncome,
 
-          // Copy travel expenses
+          // Copy travel expenses (fallback to schema defaults if missing)
           travelExpense: user.travelExpense,
         });
 
@@ -92,7 +95,8 @@ async function createMonthlyUserRecords(recordDate = new Date()) {
         recordsCreated++;
       } catch (userError) {
         errors.push({
-          username: user.username,
+          username: user.username || `user_${user._id}`,
+          userId: user._id,
           error: userError.message,
         });
       }

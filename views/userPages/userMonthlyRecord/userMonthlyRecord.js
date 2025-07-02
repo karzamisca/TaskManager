@@ -305,7 +305,7 @@ const createRecordRow = (record) => {
   const monthName = getMonthName(record.recordMonth);
 
   row.innerHTML = `
-    <td>${safeGet(record, "username", "N/A")}</td>
+    <td>${safeGet(record, "realName", "N/A")}</td>
     <td>${monthName} ${record.recordYear || "N/A"}</td>
     <td>${record.baseSalary.toLocaleString()}</td>
     <td>${record.hourlyWage.toLocaleString()}</td>
@@ -469,13 +469,13 @@ const createModalContent = (record) => {
   const monthName = getMonthName(record.recordMonth);
 
   return `
-    <h2>${safeGet(record, "username")} - ${monthName} ${record.recordYear}</h2>
+    <h2>${safeGet(record, "realName")} - ${monthName} ${record.recordYear}</h2>
     <p><strong>Ngày ghi nhận:</strong> ${formatDate(record.recordDate)}</p>
     <p><strong>Email:</strong> ${safeGet(record, "email")}</p>
     <p><strong>Trạm:</strong> ${safeGet(record, "costCenter.name")}</p>
     <p><strong>Người phụ trách:</strong> ${safeGet(
       record,
-      "assignedManager.username"
+      "assignedManager.realName"
     )}</p>
     
     <div class="modal-section">

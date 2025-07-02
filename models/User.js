@@ -14,7 +14,7 @@ function generateRandomPassword(length = 15) {
 
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
-  realName: { type: String, required: true },
+  realName: { type: String, default: "none" },
   password: { type: String },
   role: { type: String, default: "submitter" },
   department: { type: String, default: "In Training" },
