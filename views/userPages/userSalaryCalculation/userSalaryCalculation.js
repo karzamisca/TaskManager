@@ -26,7 +26,7 @@ function toggleSelectAll() {
   renderUsers();
 }
 
-async function exportToCSV() {
+async function exportToExcel() {
   if (selectedUsers.size === 0) {
     showError("Vui lòng chọn ít nhất một nhân viên để xuất");
     return;
@@ -39,7 +39,27 @@ async function exportToCSV() {
     return value !== null && value !== undefined ? value : 0;
   };
 
-  // Define CSV headers in Vietnamese
+  // Helper function to calculate optimal column width
+  const calculateColumnWidth = (data, columnIndex, header) => {
+    const headerLength = header.length;
+    const maxDataLength = Math.max(
+      ...data.map((row) => {
+        const cellValue = row[columnIndex];
+        if (typeof cellValue === "object" && cellValue.v) {
+          return cellValue.v.toString().length;
+        }
+        return cellValue ? cellValue.toString().length : 0;
+      })
+    );
+
+    // Return the maximum between header length and data length, with some padding
+    const optimalWidth = Math.max(headerLength, maxDataLength) + 2;
+
+    // Set minimum and maximum bounds for column width
+    return Math.min(Math.max(optimalWidth, 8), 35);
+  };
+
+  // Define headers in Vietnamese
   const headers = [
     "Tên đăng nhập",
     "Tên thật",
@@ -66,54 +86,113 @@ async function exportToCSV() {
     "Lương thực lĩnh",
   ];
 
-  // Map the data to match the headers
-  const rows = usersToExport.map((user) => [
+  // Prepare the data
+  const data = usersToExport.map((user) => [
     user.username,
     user.realName,
     user.costCenter ? user.costCenter.name : "Chưa có",
     user.assignedManager ? user.assignedManager.username : "Chưa có",
     user.beneficiaryBank || "Chưa có",
-    user.bankAccountNumber || "Chưa có",
-    user.citizenID || "Chưa có",
-    safeFormat(user.baseSalary).toLocaleString(),
-    safeFormat(user.hourlyWage).toLocaleString(),
-    safeFormat(user.commissionBonus).toLocaleString(),
-    safeFormat(user.responsibility).toLocaleString(),
+    {
+      t: "s",
+      v: user.bankAccountNumber ? user.bankAccountNumber.toString() : "Chưa có",
+    }, // Force string type
+    { t: "s", v: user.citizenID ? user.citizenID.toString() : "Chưa có" }, // Force string type
+    safeFormat(user.baseSalary),
+    safeFormat(user.hourlyWage),
+    safeFormat(user.commissionBonus),
+    safeFormat(user.responsibility),
     safeFormat(user.weekdayOvertimeHour),
     safeFormat(user.weekendOvertimeHour),
     safeFormat(user.holidayOvertimeHour),
-    safeFormat(user.overtimePay).toLocaleString(),
-    safeFormat(user.travelExpense).toLocaleString(),
-    safeFormat(user.grossSalary).toLocaleString(),
-    safeFormat(user.insurableSalary).toLocaleString(),
-    safeFormat(user.mandatoryInsurance).toLocaleString(),
+    safeFormat(user.overtimePay),
+    safeFormat(user.travelExpense),
+    safeFormat(user.grossSalary),
+    safeFormat(user.insurableSalary),
+    safeFormat(user.mandatoryInsurance),
     safeFormat(user.dependantCount),
-    safeFormat(user.taxableIncome).toLocaleString(),
-    safeFormat(user.tax).toLocaleString(),
-    safeFormat(user.currentSalary).toLocaleString(),
+    safeFormat(user.taxableIncome),
+    safeFormat(user.tax),
+    safeFormat(user.currentSalary),
   ]);
 
-  // Create CSV content
-  let csvContent = headers.join(",") + "\n";
-  rows.forEach((row) => {
-    csvContent += row.map((field) => `"${field}"`).join(",") + "\n";
-  });
+  // Create a worksheet
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
 
-  // Create download link
-  const blob = new Blob(["\uFEFF" + csvContent], {
-    type: "text/csv;charset=utf-8;",
-  });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute(
-    "download",
-    `bang_luong_${new Date().toISOString().slice(0, 10)}.csv`
-  );
-  link.style.visibility = "hidden";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  // Calculate dynamic column widths
+  const columnWidths = headers.map((header, index) => ({
+    wch: calculateColumnWidth(data, index, header),
+  }));
+
+  // Set dynamic column widths
+  ws["!cols"] = columnWidths;
+
+  // Set row heights for better readability
+  const rowHeights = [];
+  // Header row height
+  rowHeights.push({ hpt: 25 });
+  // Data rows height
+  for (let i = 0; i < data.length; i++) {
+    rowHeights.push({ hpt: 20 });
+  }
+  ws["!rows"] = rowHeights;
+
+  // Apply styling to header row
+  const headerRange = XLSX.utils.decode_range(ws["!ref"]);
+  for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+    if (!ws[cellAddress]) continue;
+
+    ws[cellAddress].s = {
+      font: { bold: true, sz: 11 },
+      fill: { fgColor: { rgb: "E6E6FA" } }, // Light lavender background
+      alignment: { horizontal: "center", vertical: "center", wrapText: true },
+      border: {
+        top: { style: "thin" },
+        bottom: { style: "thin" },
+        left: { style: "thin" },
+        right: { style: "thin" },
+      },
+    };
+  }
+
+  // Apply styling to data rows
+  for (let row = 1; row <= data.length; row++) {
+    for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+      const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+      if (!ws[cellAddress]) continue;
+
+      ws[cellAddress].s = {
+        alignment: { horizontal: "left", vertical: "center" },
+        border: {
+          top: { style: "thin" },
+          bottom: { style: "thin" },
+          left: { style: "thin" },
+          right: { style: "thin" },
+        },
+      };
+
+      // Right-align numeric columns
+      if (col >= 7) {
+        // Numeric columns start from index 7
+        ws[cellAddress].s.alignment.horizontal = "right";
+      }
+    }
+  }
+
+  // Auto-filter for the data
+  ws["!autofilter"] = { ref: ws["!ref"] };
+
+  // Freeze the header row
+  ws["!freeze"] = { xSplit: 0, ySplit: 1 };
+
+  // Create a workbook
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Bảng lương");
+
+  // Generate Excel file and download
+  const date = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `bang_luong_${date}.xlsx`);
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -126,8 +205,8 @@ document.addEventListener("DOMContentLoaded", function () {
     .addEventListener("change", toggleSelectAll);
 
   document
-    .getElementById("export-csv-btn")
-    .addEventListener("click", exportToCSV);
+    .getElementById("export-xlsx-btn")
+    .addEventListener("click", exportToExcel);
 
   // Tab functionality
   document.querySelectorAll(".tab-button").forEach((button) => {
