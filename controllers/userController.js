@@ -494,7 +494,14 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
         .json({ message: "Truy cập bị từ chối. Bạn không có quyền truy cập." });
     }
 
-    const { month, year, costCenter, beneficiaryBank } = req.query;
+    const {
+      month,
+      year,
+      costCenter,
+      beneficiaryBank,
+      costCenterReverse,
+      beneficiaryBankReverse,
+    } = req.query;
 
     // Validate input
     if (!month || !year) {
@@ -516,11 +523,21 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
     };
 
     if (costCenter) {
-      query["costCenter._id"] = costCenter;
+      if (costCenterReverse === "true") {
+        query["costCenter._id"] = { $ne: costCenter };
+      } else {
+        query["costCenter._id"] = costCenter;
+      }
     }
 
     if (beneficiaryBank) {
-      query.beneficiaryBank = { $regex: beneficiaryBank, $options: "i" };
+      if (beneficiaryBankReverse === "true") {
+        query.beneficiaryBank = {
+          $not: { $regex: beneficiaryBank, $options: "i" },
+        };
+      } else {
+        query.beneficiaryBank = { $regex: beneficiaryBank, $options: "i" };
+      }
     }
 
     // If user is not in full access roles, only show records they manage

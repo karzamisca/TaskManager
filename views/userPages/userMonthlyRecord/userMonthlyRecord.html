@@ -11,7 +11,7 @@
     <title>Bản Ghi Hàng Tháng</title>
     <link
       rel="stylesheet"
-      href="userPages/userMonthlyRecord/userMonthlyRecord.css"
+      href="userPages/userMonthlyRecord/userMonthlyRecord.css?=v1.0"
     />
 
     <!-- Preconnect for performance -->
@@ -39,29 +39,47 @@
       <section class="filters" role="search" aria-label="Bộ lọc tìm kiếm">
         <div class="filter-group">
           <label for="yearFilter">Năm:</label>
-          <select id="yearFilter" aria-describedby="year-help">
-            <option value="">Tất cả năm</option>
-          </select>
+          <div style="display: flex; align-items: center; gap: 5px">
+            <select id="yearFilter" aria-describedby="year-help"></select>
+            <button
+              id="yearReverse"
+              class="reverse-btn"
+              title="Tìm bản ghi KHÔNG phải năm này"
+              aria-label="Đảo ngược tìm kiếm năm"
+            >
+              ≠
+            </button>
+          </div>
           <small id="year-help" class="sr-only">Chọn năm để lọc bản ghi</small>
         </div>
 
         <div class="filter-group">
           <label for="monthFilter">Tháng:</label>
-          <select id="monthFilter" aria-describedby="month-help">
-            <option value="">Tất cả tháng</option>
-            <option value="1">Tháng 1</option>
-            <option value="2">Tháng 2</option>
-            <option value="3">Tháng 3</option>
-            <option value="4">Tháng 4</option>
-            <option value="5">Tháng 5</option>
-            <option value="6">Tháng 6</option>
-            <option value="7">Tháng 7</option>
-            <option value="8">Tháng 8</option>
-            <option value="9">Tháng 9</option>
-            <option value="10">Tháng 10</option>
-            <option value="11">Tháng 11</option>
-            <option value="12">Tháng 12</option>
-          </select>
+          <div style="display: flex; align-items: center; gap: 5px">
+            <select id="monthFilter" aria-describedby="month-help">
+              <option value="">Tất cả tháng</option>
+              <option value="1">Tháng 1</option>
+              <option value="2">Tháng 2</option>
+              <option value="3">Tháng 3</option>
+              <option value="4">Tháng 4</option>
+              <option value="5">Tháng 5</option>
+              <option value="6">Tháng 6</option>
+              <option value="7">Tháng 7</option>
+              <option value="8">Tháng 8</option>
+              <option value="9">Tháng 9</option>
+              <option value="10">Tháng 10</option>
+              <option value="11">Tháng 11</option>
+              <option value="12">Tháng 12</option>
+            </select>
+            <button
+              id="monthReverse"
+              class="reverse-btn"
+              title="Tìm bản ghi KHÔNG phải tháng này"
+              aria-label="Đảo ngược tìm kiếm tháng"
+            >
+              ≠
+            </button>
+          </div>
           <small id="month-help" class="sr-only"
             >Chọn tháng để lọc bản ghi</small
           >
@@ -69,22 +87,43 @@
 
         <div class="filter-group">
           <label for="costCenterFilter">Trạm:</label>
-          <select id="costCenterFilter" aria-describedby="cost-center-help">
-            <option value="">Tất cả trạm</option>
-          </select>
+          <div style="display: flex; align-items: center; gap: 5px">
+            <select
+              id="costCenterFilter"
+              aria-describedby="cost-center-help"
+            ></select>
+            <button
+              id="costCenterReverse"
+              class="reverse-btn"
+              title="Tìm bản ghi KHÔNG phải trạm này"
+              aria-label="Đảo ngược tìm kiếm trạm"
+            >
+              ≠
+            </button>
+          </div>
           <small id="cost-center-help" class="sr-only"
             >Chọn trạm để lọc bản ghi</small
           >
         </div>
 
         <div class="filter-group">
-          <label for="bankFilter">Ngân hàng hưởng:</label>
-          <input
-            type="text"
-            id="bankFilter"
-            placeholder="Tìm kiếm ngân hàng..."
-            aria-describedby="bank-help"
-          />
+          <label for="bankFilter">Ngân hàng:</label>
+          <div style="display: flex; align-items: center; gap: 5px">
+            <input
+              type="text"
+              id="bankFilter"
+              placeholder="Tìm kiếm ngân hàng..."
+              aria-describedby="bank-help"
+            />
+            <button
+              id="bankReverse"
+              class="reverse-btn"
+              title="Tìm bản ghi KHÔNG chứa ngân hàng này"
+              aria-label="Đảo ngược tìm kiếm ngân hàng"
+            >
+              ≠
+            </button>
+          </div>
           <small id="bank-help" class="sr-only"
             >Tìm kiếm theo tên ngân hàng (tìm kiếm một phần)</small
           >
@@ -193,7 +232,7 @@
     <div class="sr-only" aria-live="polite" id="announcements"></div>
 
     <!-- JavaScript -->
-    <script src="userPages/userMonthlyRecord/userMonthlyRecord.js?=v1.5"></script>
+    <script src="userPages/userMonthlyRecord/userMonthlyRecord.js?=v1.6"></script>
 
     <!-- Additional CSS for screen readers -->
     <style>

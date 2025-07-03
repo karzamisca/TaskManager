@@ -40,6 +40,12 @@ const state = {
     month: "",
     costCenter: "",
     bank: "",
+    reverseFilters: {
+      year: false,
+      month: false,
+      costCenter: false,
+      bank: false,
+    },
   },
 };
 
@@ -220,17 +226,41 @@ const extractUniqueCostCenters = (records) => {
  */
 const filterRecords = (records, filters) => {
   return records.filter((record) => {
-    const yearMatch = !filters.year || record.recordYear == filters.year;
-    const monthMatch = !filters.month || record.recordMonth == filters.month;
-    const costCenterMatch =
-      !filters.costCenter ||
-      safeGet(record, "costCenter.name", "") === filters.costCenter;
-    const bankMatch =
-      !filters.bank ||
-      (record.beneficiaryBank &&
-        record.beneficiaryBank
-          .toLowerCase()
-          .includes(filters.bank.toLowerCase()));
+    // Year filter with reverse option
+    const yearMatch = filters.year
+      ? filters.reverseFilters.year
+        ? record.recordYear != filters.year
+        : record.recordYear == filters.year
+      : true;
+
+    // Month filter with reverse option
+    const monthMatch = filters.month
+      ? filters.reverseFilters.month
+        ? record.recordMonth != filters.month
+        : record.recordMonth == filters.month
+      : true;
+
+    // Cost Center filter with reverse option
+    const costCenterMatch = filters.costCenter
+      ? filters.reverseFilters.costCenter
+        ? safeGet(record, "costCenter.name", "") !== filters.costCenter
+        : safeGet(record, "costCenter.name", "") === filters.costCenter
+      : true;
+
+    // Bank filter with reverse option
+    const bankMatch = filters.bank
+      ? filters.reverseFilters.bank
+        ? !(
+            record.beneficiaryBank &&
+            record.beneficiaryBank
+              .toLowerCase()
+              .includes(filters.bank.toLowerCase())
+          )
+        : record.beneficiaryBank &&
+          record.beneficiaryBank
+            .toLowerCase()
+            .includes(filters.bank.toLowerCase())
+      : true;
 
     return yearMatch && monthMatch && costCenterMatch && bankMatch;
   });
@@ -266,6 +296,7 @@ const paginateRecords = (records, page, itemsPerPage) => {
 
 const exportToPDF = () => {
   const { year, month, costCenter, bank } = state.filters;
+  const { reverseFilters } = state.filters;
 
   if (!year || !month) {
     alert("Vui lòng chọn cả năm và tháng để xuất báo cáo chi lương");
@@ -273,11 +304,19 @@ const exportToPDF = () => {
   }
 
   let url = `/exportSalaryPDF?month=${month}&year=${year}`;
+
   if (costCenter) {
     url += `&costCenter=${costCenter}`;
+    if (reverseFilters.costCenter) {
+      url += `&costCenterReverse=true`;
+    }
   }
+
   if (bank) {
     url += `&beneficiaryBank=${encodeURIComponent(bank)}`;
+    if (reverseFilters.bank) {
+      url += `&beneficiaryBankReverse=true`;
+    }
   }
 
   // Show loading message in Vietnamese
@@ -590,11 +629,26 @@ const handleApplyFilters = () => {
   const bankFilter = document.getElementById("bankFilter");
 
   state.filters = {
+    ...state.filters,
     year: yearFilter?.value || "",
     month: monthFilter?.value || "",
     costCenter: costCenterFilter?.value || "",
     bank: bankFilter?.value || "",
   };
+
+  state.currentPage = 1;
+  updateDisplay();
+};
+
+const toggleReverseFilter = (filterType) => {
+  state.filters.reverseFilters[filterType] =
+    !state.filters.reverseFilters[filterType];
+
+  // Update button appearance
+  const button = document.getElementById(`${filterType}Reverse`);
+  if (button) {
+    button.classList.toggle("active", state.filters.reverseFilters[filterType]);
+  }
 
   state.currentPage = 1;
   updateDisplay();
@@ -737,6 +791,19 @@ const setupEventListeners = () => {
   if (bankFilter) {
     bankFilter.addEventListener("input", debouncedApplyFilters);
   }
+
+  document
+    .getElementById("yearReverse")
+    ?.addEventListener("click", () => toggleReverseFilter("year"));
+  document
+    .getElementById("monthReverse")
+    ?.addEventListener("click", () => toggleReverseFilter("month"));
+  document
+    .getElementById("costCenterReverse")
+    ?.addEventListener("click", () => toggleReverseFilter("costCenter"));
+  document
+    .getElementById("bankReverse")
+    ?.addEventListener("click", () => toggleReverseFilter("bank"));
 
   const exportBtn = document.getElementById("exportPDF");
   if (exportBtn) {
