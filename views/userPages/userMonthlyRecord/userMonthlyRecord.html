@@ -78,6 +78,19 @@
         </div>
 
         <div class="filter-group">
+          <label for="bankFilter">Ngân hàng hưởng:</label>
+          <input
+            type="text"
+            id="bankFilter"
+            placeholder="Tìm kiếm ngân hàng..."
+            aria-describedby="bank-help"
+          />
+          <small id="bank-help" class="sr-only"
+            >Tìm kiếm theo tên ngân hàng (tìm kiếm một phần)</small
+          >
+        </div>
+
+        <div class="filter-group">
           <button id="applyFilters" type="button" aria-describedby="apply-help">
             Áp dụng
           </button>
@@ -180,7 +193,7 @@
     <div class="sr-only" aria-live="polite" id="announcements"></div>
 
     <!-- JavaScript -->
-    <script src="userPages/userMonthlyRecord/userMonthlyRecord.js?=v1.4"></script>
+    <script src="userPages/userMonthlyRecord/userMonthlyRecord.js?=v1.5"></script>
 
     <!-- Additional CSS for screen readers -->
     <style>

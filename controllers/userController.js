@@ -494,7 +494,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
         .json({ message: "Truy cập bị từ chối. Bạn không có quyền truy cập." });
     }
 
-    const { month, year, costCenter } = req.query;
+    const { month, year, costCenter, beneficiaryBank } = req.query;
 
     // Validate input
     if (!month || !year) {
@@ -517,6 +517,10 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
 
     if (costCenter) {
       query["costCenter._id"] = costCenter;
+    }
+
+    if (beneficiaryBank) {
+      query.beneficiaryBank = { $regex: beneficiaryBank, $options: "i" };
     }
 
     // If user is not in full access roles, only show records they manage
@@ -626,7 +630,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
                   alignment: "center",
                 },
                 {
-                  text: record.currentSalary.toLocaleString("vi-VN"),
+                  text: Math.ceil(record.currentSalary).toLocaleString("vi-VN"),
                   style: "tableContent",
                   alignment: "right",
                 },
@@ -654,7 +658,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
         },
         {
           text: `Tổng: ${filteredRecords
-            .reduce((sum, record) => sum + record.currentSalary, 0)
+            .reduce((sum, record) => sum + Math.ceil(record.currentSalary), 0)
             .toLocaleString("vi-VN")} VND`,
           style: "total",
           margin: [0, 15, 0, 0],

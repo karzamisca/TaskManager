@@ -39,6 +39,7 @@ const state = {
     year: "",
     month: "",
     costCenter: "",
+    bank: "",
   },
 };
 
@@ -224,8 +225,14 @@ const filterRecords = (records, filters) => {
     const costCenterMatch =
       !filters.costCenter ||
       safeGet(record, "costCenter.name", "") === filters.costCenter;
+    const bankMatch =
+      !filters.bank ||
+      (record.beneficiaryBank &&
+        record.beneficiaryBank
+          .toLowerCase()
+          .includes(filters.bank.toLowerCase()));
 
-    return yearMatch && monthMatch && costCenterMatch;
+    return yearMatch && monthMatch && costCenterMatch && bankMatch;
   });
 };
 
@@ -258,7 +265,7 @@ const paginateRecords = (records, page, itemsPerPage) => {
 // ====================================================================
 
 const exportToPDF = () => {
-  const { year, month, costCenter } = state.filters;
+  const { year, month, costCenter, bank } = state.filters;
 
   if (!year || !month) {
     alert("Vui lòng chọn cả năm và tháng để xuất báo cáo chi lương");
@@ -268,6 +275,9 @@ const exportToPDF = () => {
   let url = `/exportSalaryPDF?month=${month}&year=${year}`;
   if (costCenter) {
     url += `&costCenter=${costCenter}`;
+  }
+  if (bank) {
+    url += `&beneficiaryBank=${encodeURIComponent(bank)}`;
   }
 
   // Show loading message in Vietnamese
@@ -577,11 +587,13 @@ const handleApplyFilters = () => {
   const yearFilter = elements.yearFilter();
   const monthFilter = elements.monthFilter();
   const costCenterFilter = elements.costCenterFilter();
+  const bankFilter = document.getElementById("bankFilter");
 
   state.filters = {
     year: yearFilter?.value || "",
     month: monthFilter?.value || "",
     costCenter: costCenterFilter?.value || "",
+    bank: bankFilter?.value || "",
   };
 
   state.currentPage = 1;
@@ -595,12 +607,14 @@ const handleResetFilters = () => {
   const yearFilter = elements.yearFilter();
   const monthFilter = elements.monthFilter();
   const costCenterFilter = elements.costCenterFilter();
+  const bankFilter = document.getElementById("bankFilter");
 
   if (yearFilter) yearFilter.value = "";
   if (monthFilter) monthFilter.value = "";
   if (costCenterFilter) costCenterFilter.value = "";
+  if (bankFilter) bankFilter.value = "";
 
-  state.filters = { year: "", month: "", costCenter: "" };
+  state.filters = { year: "", month: "", costCenter: "", bank: "" };
   state.currentPage = 1;
   updateDisplay();
 };
@@ -718,6 +732,11 @@ const setupEventListeners = () => {
     .forEach((element) => {
       element.addEventListener("change", debouncedApplyFilters);
     });
+
+  const bankFilter = document.getElementById("bankFilter");
+  if (bankFilter) {
+    bankFilter.addEventListener("input", debouncedApplyFilters);
+  }
 
   const exportBtn = document.getElementById("exportPDF");
   if (exportBtn) {
