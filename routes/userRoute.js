@@ -39,4 +39,10 @@ router.get(
   userController.exportSalaryPaymentPDF
 );
 
+router.get(
+  "/exportSalaryExcel",
+  authMiddleware,
+  userController.exportSalaryPaymentExcel
+);
+
 module.exports = router;

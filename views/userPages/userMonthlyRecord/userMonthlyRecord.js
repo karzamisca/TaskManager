@@ -337,11 +337,48 @@ const exportToPDF = () => {
   document.body.appendChild(iframe);
 };
 
-// Add this to setupEventListeners function
-const exportBtn = document.getElementById("exportPDF");
-if (exportBtn) {
-  exportBtn.addEventListener("click", exportToPDF);
-}
+const exportToExcel = async () => {
+  const { year, month, costCenter, bank } = state.filters;
+  const { reverseFilters } = state.filters;
+
+  if (!year || !month) {
+    alert("Vui lòng chọn cả năm và tháng để xuất báo cáo chi lương");
+    return;
+  }
+
+  // Show loading message in Vietnamese
+  const loadingDiv = elements.loadingDiv();
+  loadingDiv.style.display = "block";
+  loadingDiv.innerHTML = "Đang tạo báo cáo Excel, vui lòng chờ...";
+
+  let url = `/exportSalaryExcel?month=${month}&year=${year}`;
+
+  if (costCenter) {
+    url += `&costCenter=${costCenter}`;
+    if (reverseFilters.costCenter) {
+      url += `&costCenterReverse=true`;
+    }
+  }
+
+  if (bank) {
+    url += `&beneficiaryBank=${encodeURIComponent(bank)}`;
+    if (reverseFilters.bank) {
+      url += `&beneficiaryBankReverse=true`;
+    }
+  }
+
+  // Create a temporary iframe for download
+  const iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  iframe.src = url;
+
+  iframe.onload = function () {
+    loadingDiv.style.display = "none";
+    document.body.removeChild(iframe);
+  };
+
+  document.body.appendChild(iframe);
+};
 
 /**
  * Populates year filter dropdown
@@ -808,6 +845,11 @@ const setupEventListeners = () => {
   const exportBtn = document.getElementById("exportPDF");
   if (exportBtn) {
     exportBtn.addEventListener("click", exportToPDF);
+  }
+
+  const exportExcelBtn = document.getElementById("exportExcel");
+  if (exportExcelBtn) {
+    exportExcelBtn.addEventListener("click", exportToExcel);
   }
 };
 

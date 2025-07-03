@@ -158,6 +158,19 @@
             >Xuất báo cáo chi lương dạng PDF</small
           >
         </div>
+
+        <div class="filter-group">
+          <button
+            id="exportExcel"
+            type="button"
+            aria-describedby="export-excel-help"
+          >
+            Xuất Excel
+          </button>
+          <small id="export-excel-help" class="sr-only"
+            >Xuất báo cáo chi lương dạng Excel</small
+          >
+        </div>
       </section>
 
       <!-- Loading Indicator -->
@@ -232,7 +245,9 @@
     <div class="sr-only" aria-live="polite" id="announcements"></div>
 
     <!-- JavaScript -->
-    <script src="userPages/userMonthlyRecord/userMonthlyRecord.js?=v1.6"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="userPages/userMonthlyRecord/userMonthlyRecord.js?=v1.7"></script>
 
     <!-- Additional CSS for screen readers -->
     <style>

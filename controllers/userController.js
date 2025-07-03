@@ -3,6 +3,7 @@ const User = require("../models/User");
 const UserMonthlyRecord = require("../models/UserMonthlyRecord");
 const CostCenter = require("../models/CostCenter");
 const PdfPrinter = require("pdfmake");
+const ExcelJS = require("exceljs");
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
@@ -751,5 +752,286 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
     res
       .status(500)
       .json({ message: "Lỗi khi xuất file PDF: " + error.message });
+  }
+};
+
+exports.exportSalaryPaymentExcel = async (req, res) => {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Truy cập bị từ chối. Bạn không có quyền truy cập." });
+    }
+
+    const {
+      month,
+      year,
+      costCenter,
+      beneficiaryBank,
+      costCenterReverse,
+      beneficiaryBankReverse,
+    } = req.query;
+
+    // Validate input
+    if (!month || !year) {
+      return res.status(400).json({ message: "Thiếu tháng hoặc năm" });
+    }
+
+    const privilegedRoles = ["superAdmin", "deputyDirector", "director"];
+    const fullAccessRoles = [
+      "superAdmin",
+      "deputyDirector",
+      "director",
+      "headOfAccounting",
+    ];
+
+    // Build query based on filters and user role
+    const query = {
+      recordMonth: parseInt(month),
+      recordYear: parseInt(year),
+    };
+
+    if (costCenter) {
+      if (costCenterReverse === "true") {
+        query["costCenter._id"] = { $ne: costCenter };
+      } else {
+        query["costCenter._id"] = costCenter;
+      }
+    }
+
+    if (beneficiaryBank) {
+      if (beneficiaryBankReverse === "true") {
+        query.beneficiaryBank = {
+          $not: { $regex: beneficiaryBank, $options: "i" },
+        };
+      } else {
+        query.beneficiaryBank = { $regex: beneficiaryBank, $options: "i" };
+      }
+    }
+
+    // If user is not in full access roles, only show records they manage
+    if (!fullAccessRoles.includes(req.user.role)) {
+      query.assignedManager = req.user._id;
+    }
+
+    // Get records with filters and populate userId to exclude privileged users
+    const records = await UserMonthlyRecord.find(query)
+      .populate({
+        path: "userId",
+        select: "username role",
+        match: { role: { $nin: privilegedRoles } }, // Exclude privileged users
+      })
+      .populate("costCenter")
+      .sort({ realName: 1 });
+
+    // Filter out records where userId is null (due to populate match filter)
+    const filteredRecords = records.filter((record) => record.userId !== null);
+
+    if (filteredRecords.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy bản ghi nào phù hợp" });
+    }
+
+    // Create a new workbook
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(`Chi lương ${month}-${year}`);
+
+    // Set page setup for better printing
+    worksheet.pageSetup = {
+      paperSize: 9, // A4
+      orientation: "landscape",
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+      margins: {
+        left: 0.7,
+        right: 0.7,
+        top: 0.75,
+        bottom: 0.75,
+        header: 0.3,
+        footer: 0.3,
+      },
+    };
+
+    // Add main title
+    worksheet.mergeCells("A1:G1");
+    worksheet.getCell("A1").value = "DANH SÁCH CHI LƯƠNG";
+    worksheet.getCell("A1").font = { bold: true, size: 16, name: "Arial" };
+    worksheet.getCell("A1").alignment = {
+      horizontal: "center",
+      vertical: "middle",
+    };
+    worksheet.getRow(1).height = 25;
+
+    // Add subtitle with contract info
+    worksheet.mergeCells("A2:G3");
+    worksheet.getCell("A2").value =
+      "(Kèm theo Hợp đồng Dịch vụ chi lương số 41/HDCL-HDBCH ngày 15 tháng 09 năm 2022 được kì kết giữa Ngân Hàng TMCP Phát Triển TP. Hồ Chí Minh – Chi nhánh Cộng Hòa và Công ty TNHH Đầu Tư Thương Mại Dịch Vụ Kỳ Long)";
+    worksheet.getCell("A2").font = { size: 10, name: "Arial" };
+    worksheet.getCell("A2").alignment = {
+      horizontal: "center",
+      vertical: "middle",
+      wrapText: true,
+    };
+    worksheet.getRow(2).height = 30;
+    worksheet.getRow(3).height = 15;
+
+    // Add empty row for spacing
+    worksheet.addRow([]);
+
+    // Define headers with proper widths
+    const headers = [
+      { header: "STT", key: "stt", width: 6 },
+      { header: "Họ và tên", key: "name", width: 25 },
+      { header: "Số tài khoản", key: "account", width: 18 },
+      { header: "Số CMND/CCCD", key: "id", width: 15 },
+      { header: "Số tiền chi lương", key: "salary", width: 16 },
+      { header: "Nội dung chi lương", key: "description", width: 22 },
+      { header: "Ngân hàng hưởng", key: "bank", width: 25 },
+    ];
+
+    // Set column widths
+    worksheet.columns = headers;
+
+    // Add header row (row 5)
+    const headerRow = worksheet.getRow(5);
+    headers.forEach((header, index) => {
+      const cell = headerRow.getCell(index + 1);
+      cell.value = header.header;
+      cell.font = { bold: true, size: 11, name: "Arial" };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE6E6E6" },
+      };
+      cell.border = {
+        top: { style: "thin", color: { argb: "FF000000" } },
+        left: { style: "thin", color: { argb: "FF000000" } },
+        bottom: { style: "thin", color: { argb: "FF000000" } },
+        right: { style: "thin", color: { argb: "FF000000" } },
+      };
+      cell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+        wrapText: true,
+      };
+    });
+    headerRow.height = 25;
+
+    // Add data rows starting from row 6
+    let totalSalary = 0;
+    filteredRecords.forEach((record, index) => {
+      const salaryAmount = Math.ceil(record.currentSalary);
+      totalSalary += salaryAmount;
+
+      const dataRow = worksheet.addRow({
+        stt: index + 1,
+        name: record.realName || "N/A",
+        account: record.bankAccountNumber || "N/A",
+        id: record.citizenID || "N/A",
+        salary: salaryAmount,
+        description: `Thanh toán lương tháng ${parseInt(month) - 1}`,
+        bank: record.beneficiaryBank || "N/A",
+      });
+
+      // Format each cell in the data row
+      dataRow.eachCell((cell, colNumber) => {
+        cell.font = { size: 10, name: "Arial" };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FF000000" } },
+          left: { style: "thin", color: { argb: "FF000000" } },
+          bottom: { style: "thin", color: { argb: "FF000000" } },
+          right: { style: "thin", color: { argb: "FF000000" } },
+        };
+
+        // Alignment based on column
+        if (colNumber === 1) {
+          // STT
+          cell.alignment = { horizontal: "center", vertical: "middle" };
+        } else if (colNumber === 5) {
+          // Salary
+          cell.alignment = { horizontal: "right", vertical: "middle" };
+          cell.numFmt = "#,##0";
+        } else if (colNumber === 3 || colNumber === 4) {
+          // Account & ID
+          cell.alignment = { horizontal: "center", vertical: "middle" };
+        } else {
+          cell.alignment = {
+            horizontal: "left",
+            vertical: "middle",
+            wrapText: true,
+          };
+        }
+      });
+
+      dataRow.height = 22;
+    });
+
+    // Add total row
+    const totalRowIndex = worksheet.lastRow.number + 1;
+    const totalRow = worksheet.getRow(totalRowIndex);
+
+    // Merge cells for "Tổng:" and total amount
+    worksheet.mergeCells(`D${totalRowIndex}:E${totalRowIndex}`);
+    totalRow.getCell(4).value = `Tổng: ${totalSalary.toLocaleString()} VND`;
+    totalRow.getCell(4).font = { bold: true, size: 11, name: "Arial" };
+    totalRow.getCell(4).alignment = { horizontal: "right", vertical: "middle" };
+
+    // Add borders to total row
+    for (let i = 1; i <= 7; i++) {
+      totalRow.getCell(i).border = {
+        top: { style: "thin", color: { argb: "FF000000" } },
+        left: { style: "thin", color: { argb: "FF000000" } },
+        bottom: { style: "thin", color: { argb: "FF000000" } },
+        right: { style: "thin", color: { argb: "FF000000" } },
+      };
+    }
+    totalRow.height = 25;
+
+    // Add empty rows for spacing
+    worksheet.addRow([]);
+    worksheet.addRow([]);
+
+    // Add signature section
+    const signatureRowIndex = worksheet.lastRow.number + 1;
+    const signatureRow = worksheet.getRow(signatureRowIndex);
+    signatureRow.getCell(6).value = "ĐẠI DIỆN CÔNG TY";
+    signatureRow.getCell(6).font = { bold: true, size: 11, name: "Arial" };
+    signatureRow.getCell(6).alignment = {
+      horizontal: "center",
+      vertical: "middle",
+    };
+    signatureRow.height = 20;
+
+    // Set print area
+    worksheet.pageSetup.printArea = `A1:G${signatureRowIndex}`;
+
+    // Set response headers
+    const fileName = `ChiLuong_${month}_${year}${
+      costCenter ? "_" + costCenter : ""
+    }.xlsx`;
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+
+    // Stream the Excel file to the response
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error("Error exporting Excel:", error);
+    res
+      .status(500)
+      .json({ message: "Lỗi khi xuất file Excel: " + error.message });
   }
 };
