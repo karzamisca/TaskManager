@@ -107,7 +107,7 @@ const documentUtils = {
       "NguyenHongNhuThuy",
       "HoangNam",
       "PhongTran",
-      "HuynhDiep",
+      "HoaVu",
     ];
 
     if (!restrictedUsers.includes(username)) {
@@ -115,11 +115,11 @@ const documentUtils = {
     }
 
     // Define who must approve BEFORE each user
-    // Approval order: NguyenHongNhuThuy → HoangNam → PhongTran → HuynhDiep
+    // Approval order: NguyenHongNhuThuy → HoangNam → PhongTran → HoaVu
     const prerequisiteApprovers = {
       HoangNam: ["NguyenHongNhuThuy"],
       PhongTran: ["NguyenHongNhuThuy", "HoangNam"],
-      HuynhDiep: ["NguyenHongNhuThuy", "HoangNam", "PhongTran"],
+      HoaVu: ["NguyenHongNhuThuy", "HoangNam", "PhongTran"],
       // NguyenHongNhuThuy has no prerequisites (can always approve first)
     };
 
