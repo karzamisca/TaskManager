@@ -1319,382 +1319,190 @@ const exportSelectedToExcel = () => {
   }
 
   try {
-    // Filter the selected documents from the state
     const documentsToExport = state.purchasingDocuments.filter((doc) =>
       selectedDocs.includes(doc._id)
     );
 
-    // Create multiple sheets for comprehensive export
     const wb = XLSX.utils.book_new();
-
-    // Sheet 1: Document Overview
-    const overviewData = documentsToExport.map((doc, index) => ({
-      STT: index + 1,
-      "Tên phiếu": doc.name || "Không có",
-      Trạm: doc.costCenter || "Không có",
-      "Tổng chi phí": doc.grandTotalCost || 0,
-      "Số sản phẩm": doc.products?.length || 0,
-      "Trạng thái":
-        doc.status === "Approved"
-          ? "Đã phê duyệt"
-          : doc.status === "Suspended"
-          ? "Từ chối"
-          : "Chưa phê duyệt",
-      "Ngày nộp": doc.submissionDate || "Không có",
-      "Kê khai": doc.declaration || "Không có",
-    }));
-
-    const overviewWs = XLSX.utils.json_to_sheet(overviewData);
-    overviewWs["!cols"] = [
-      { wch: 5 },
-      { wch: 30 },
-      { wch: 20 },
-      { wch: 15 },
-      { wch: 12 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 30 },
-    ];
-    XLSX.utils.book_append_sheet(wb, overviewWs, "Tổng quan");
-
-    // Sheet 2: Detailed Information (Multiple rows per document)
     const detailedData = [];
 
     documentsToExport.forEach((doc, docIndex) => {
-      // Header row for each document
+      // Document header
       detailedData.push({
-        STT: docIndex + 1,
+        "STT": docIndex + 1,
         "Tên phiếu": doc.name || "Không có",
-        "Loại thông tin": "=== THÔNG TIN CƠ BẢN ===",
-        "Chi tiết": "",
-        "Giá trị": "",
+        "Trạm": doc.costCenter || "Không có",
+        "Ngày nộp": doc.submissionDate || "Không có",
+        "Tên sản phẩm": "",
+        "Số lượng": "",
+        "Giá trước VAT": "",
+        "Tổng trước VAT": "", // Will be calculated below
+        "VAT (%)": "",
+        "Giá sau VAT": "",
+        "Tổng sau VAT": doc.grandTotalCost || 0,
         "Ghi chú": "",
-      });
-
-      // Basic information rows
-      const basicInfo = [
-        ["Tên phiếu", doc.name || "Không có"],
-        ["Trạm", doc.costCenter || "Không có"],
-        ["Ngày nộp", doc.submissionDate || "Không có"],
-        ["Kê khai", doc.declaration || "Không có"],
-        ["Lý do từ chối", doc.suspendReason || "Không có"],
-        ["Tổng chi phí", "", doc.grandTotalCost || 0],
-      ];
-
-      basicInfo.forEach(([label, detail, value]) => {
-        detailedData.push({
-          STT: "",
-          "Tên phiếu": "",
-          "Loại thông tin": label,
-          "Chi tiết": detail,
-          "Giá trị": value || "",
-          "Ghi chú": "",
-        });
+        "Tình trạng": 
+          doc.status === "Approved" ? "Đã phê duyệt" : 
+          doc.status === "Suspended" ? "Từ chối" : "Chưa phê duyệt",
+        "Kê khai": doc.declaration || "Không có",
+        "Lý do từ chối": doc.suspendReason || "Không có",
+        "Tệp đính kèm": doc.fileMetadata ? doc.fileMetadata.name : "Không có",
+        "Link tệp": doc.fileMetadata ? doc.fileMetadata.link : "",
+        "Người nộp": doc.submittedBy?.username || "Không rõ",
+        "Người phê duyệt": doc.approvedBy.map(a => a.username).join(", ") || "Chưa có"
       });
 
       // Products section
-      detailedData.push({
-        STT: "",
-        "Tên phiếu": "",
-        "Loại thông tin": "=== SẢN PHẨM ===",
-        "Chi tiết": "",
-        "Giá trị": "",
-        "Ghi chú": "",
-      });
-
+      let documentTotalBeforeVAT = 0;
+      
       if (doc.products?.length) {
         doc.products.forEach((product, productIndex) => {
+          const costBeforeVAT = product.costPerUnit || 0;
+          const vatPercentage = product.vat || 0;
+          const costAfterVAT = costBeforeVAT * (1 + vatPercentage / 100);
+          const amount = product.amount || 0;
+          const totalBeforeVAT = costBeforeVAT * amount;
+          const totalAfterVAT = costAfterVAT * amount;
+          
+          documentTotalBeforeVAT += totalBeforeVAT;
+
           detailedData.push({
-            STT: "",
+            "STT": `SP${productIndex + 1}`,
             "Tên phiếu": "",
-            "Loại thông tin": `Sản phẩm ${productIndex + 1}`,
-            "Chi tiết": product.productName || "",
-            "Giá trị": product.totalCost || 0,
-            "Ghi chú": `${product.amount || 0} x ${formatCurrency(
-              product.costPerUnit || 0
-            )}${product.vat ? ` (VAT: ${product.vat}%)` : ""}`,
+            "Trạm": "",
+            "Ngày nộp": "",
+            "Tên sản phẩm": product.productName || "",
+            "Số lượng": amount,
+            "Giá trước VAT": costBeforeVAT,
+            "Tổng trước VAT": totalBeforeVAT,
+            "VAT (%)": vatPercentage,
+            "Giá sau VAT": costAfterVAT,
+            "Tổng sau VAT": totalAfterVAT,
+            "Ghi chú": product.note || "",
+            "Tình trạng": "",
+            "Kê khai": "",
+            "Lý do từ chối": "",
+            "Tệp đính kèm": "",
+            "Link tệp": "",
+            "Người nộp": "",
+            "Người phê duyệt": ""
           });
         });
+
+        // Update document header with calculated total before VAT
+        detailedData[detailedData.length - doc.products.length - 1]["Tổng trước VAT"] = documentTotalBeforeVAT;
       } else {
         detailedData.push({
-          STT: "",
+          "STT": "",
           "Tên phiếu": "",
-          "Loại thông tin": "Không có sản phẩm",
-          "Chi tiết": "",
-          "Giá trị": "",
+          "Trạm": "",
+          "Ngày nộp": "",
+          "Tên sản phẩm": "Không có sản phẩm",
+          "Số lượng": "",
+          "Giá trước VAT": "",
+          "Tổng trước VAT": "",
+          "VAT (%)": "",
+          "Giá sau VAT": "",
+          "Tổng sau VAT": "",
           "Ghi chú": "",
+          "Tình trạng": "",
+          "Kê khai": "",
+          "Lý do từ chối": "",
+          "Tệp đính kèm": "",
+          "Link tệp": "",
+          "Người nộp": "",
+          "Người phê duyệt": ""
         });
       }
 
-      // File attachment
-      detailedData.push({
-        STT: "",
-        "Tên phiếu": "",
-        "Loại thông tin": "=== TỆP TIN ĐÍNH KÈM ===",
-        "Chi tiết": "",
-        "Giá trị": "",
-        "Ghi chú": "",
-      });
-
-      detailedData.push({
-        STT: "",
-        "Tên phiếu": "",
-        "Loại thông tin": "Tệp đính kèm",
-        "Chi tiết": doc.fileMetadata
-          ? doc.fileMetadata.name
-          : "Không có tệp tin",
-        "Giá trị": "",
-        "Ghi chú": doc.fileMetadata ? doc.fileMetadata.link : "",
-      });
-
-      // Proposals section
-      if (doc.appendedProposals?.length) {
-        detailedData.push({
-          STT: "",
-          "Tên phiếu": "",
-          "Loại thông tin": "=== PHIẾU ĐỀ XUẤT KÈM THEO ===",
-          "Chi tiết": "",
-          "Giá trị": "",
-          "Ghi chú": "",
-        });
-
-        doc.appendedProposals.forEach((proposal, proposalIndex) => {
-          detailedData.push({
-            STT: "",
-            "Tên phiếu": "",
-            "Loại thông tin": `Đề xuất ${proposalIndex + 1}`,
-            "Chi tiết": proposal.task || "",
-            "Giá trị": "",
-            "Ghi chú": `Trạm: ${proposal.costCenter || ""} | Mô tả: ${
-              proposal.detailsDescription || ""
-            }`,
-          });
-
-          // Add proposal file link if exists
-          if (proposal.fileMetadata?.link) {
-            detailedData.push({
-              STT: "",
-              "Tên phiếu": "",
-              "Loại thông tin": `  └ Tệp đề xuất`,
-              "Chi tiết": proposal.fileMetadata.name || "",
-              "Giá trị": "",
-              "Ghi chú": proposal.fileMetadata.link || "",
-            });
-          }
-        });
-      }
-
-      // Approval status
-      detailedData.push({
-        STT: "",
-        "Tên phiếu": "",
-        "Loại thông tin": "=== TRẠNG THÁI PHÊ DUYỆT ===",
-        "Chi tiết": "",
-        "Giá trị": "",
-        "Ghi chú": "",
-      });
-
-      detailedData.push({
-        STT: "",
-        "Tên phiếu": "",
-        "Loại thông tin": "Tình trạng hiện tại",
-        "Chi tiết":
-          doc.status === "Approved"
-            ? "Đã phê duyệt"
-            : doc.status === "Suspended"
-            ? "Từ chối"
-            : "Chưa phê duyệt",
-        "Giá trị": "",
-        "Ghi chú": "",
-      });
-
-      // Individual approvers
-      if (doc.approvers?.length) {
-        doc.approvers.forEach((approver, approverIndex) => {
-          const hasApproved = doc.approvedBy.find(
-            (a) => a.username === approver.username
-          );
-          detailedData.push({
-            STT: "",
-            "Tên phiếu": "",
-            "Loại thông tin": `Người phê duyệt ${approverIndex + 1}`,
-            "Chi tiết": `${approver.username} (${approver.subRole})`,
-            "Giá trị": "",
-            "Ghi chú": hasApproved
-              ? `Đã phê duyệt vào: ${hasApproved.approvalDate}`
-              : "Chưa phê duyệt",
-          });
-        });
-      }
-
-      // Add separator row
-      detailedData.push({
-        STT: "",
-        "Tên phiếu": "",
-        "Loại thông tin": "=" + "=".repeat(50),
-        "Chi tiết": "",
-        "Giá trị": "",
-        "Ghi chú": "",
-      });
+      // Add empty row as separator
+      detailedData.push({});
     });
 
     const detailedWs = XLSX.utils.json_to_sheet(detailedData);
-    detailedWs["!cols"] = [
-      { wch: 5 }, // STT
-      { wch: 30 }, // Tên phiếu
-      { wch: 25 }, // Loại thông tin
-      { wch: 40 }, // Chi tiết
-      { wch: 15 }, // Giá trị
-      { wch: 50 }, // Ghi chú
-    ];
-    XLSX.utils.book_append_sheet(wb, detailedWs, "Chi tiết đầy đủ");
-
-    // Sheet 3: Approval Tracking
-    const approvalData = [];
-    documentsToExport.forEach((doc, docIndex) => {
-      if (doc.approvers?.length) {
-        doc.approvers.forEach((approver, approverIndex) => {
-          const hasApproved = doc.approvedBy.find(
-            (a) => a.username === approver.username
-          );
-          approvalData.push({
-            STT: docIndex + 1,
-            "Tên phiếu": doc.name || "Không có",
-            Trạm: doc.costCenter || "Không có",
-            "Người phê duyệt": approver.username,
-            "Vai trò": approver.subRole,
-            "Trạng thái": hasApproved ? "Đã phê duyệt" : "Chưa phê duyệt",
-            "Ngày phê duyệt": hasApproved ? hasApproved.approvalDate : "",
-            "Thứ tự": approverIndex + 1,
-            "Tổng số người PD": doc.approvers.length,
-            "Đã PD": doc.approvedBy.length,
-          });
-        });
-      }
+    
+    // Calculate optimal column widths based on actual content
+    const sheetRange = XLSX.utils.decode_range(detailedWs['!ref']);
+    const colWidths = [];
+    
+    // Initialize with minimum widths for headers
+    const headers = Object.keys(detailedData[0] || {});
+    headers.forEach((header, colIndex) => {
+      colWidths[colIndex] = Math.max(header.length, 8); // Minimum 8 characters
     });
+    
+    // Check all data rows to find maximum content length per column
+    for (let rowNum = sheetRange.s.r; rowNum <= sheetRange.e.r; rowNum++) {
+      for (let colNum = sheetRange.s.c; colNum <= sheetRange.e.c; colNum++) {
+        const cellRef = XLSX.utils.encode_cell({ r: rowNum, c: colNum });
+        const cell = detailedWs[cellRef];
+        
+        if (cell && cell.v) {
+          const cellValue = String(cell.v);
+          const cellLength = cellValue.length;
+          
+          // For Vietnamese text, add extra width as characters may be wider
+          const adjustedLength = /[àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(cellValue) 
+            ? Math.ceil(cellLength * 1.1) 
+            : cellLength;
+          
+          colWidths[colNum] = Math.max(colWidths[colNum] || 0, adjustedLength);
+        }
+      }
+    }
+    
+    // Set maximum reasonable width to prevent extremely wide columns
+    detailedWs["!cols"] = colWidths.map(width => ({
+      wch: Math.min(width + 2, 100) // Add 2 for padding, max 100 characters
+    }));
 
-    if (approvalData.length > 0) {
-      const approvalWs = XLSX.utils.json_to_sheet(approvalData);
-      approvalWs["!cols"] = [
-        { wch: 5 },
-        { wch: 30 },
-        { wch: 20 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 8 },
-        { wch: 12 },
-        { wch: 8 },
-      ];
-      XLSX.utils.book_append_sheet(wb, approvalWs, "Theo dõi phê duyệt");
+    // Set row heights for better visibility
+    detailedWs["!rows"] = [];
+    
+    for (let rowNum = sheetRange.s.r; rowNum <= sheetRange.e.r; rowNum++) {
+      // Check if this is a document header row (has numeric STT)
+      const sttCell = detailedWs[XLSX.utils.encode_cell({ r: rowNum, c: 0 })];
+      const isDocumentHeader = sttCell && typeof sttCell.v === 'number';
+      
+      // Check if this is an empty separator row
+      const isEmptyRow = !sttCell || sttCell.v === '';
+      
+      if (isDocumentHeader) {
+        // Document header rows - taller for prominence
+        detailedWs["!rows"][rowNum] = { hpt: 25 };
+      } else if (isEmptyRow) {
+        // Separator rows - smaller height
+        detailedWs["!rows"][rowNum] = { hpt: 8 };
+      } else {
+        // Product rows - standard height
+        detailedWs["!rows"][rowNum] = { hpt: 20 };
+      }
     }
 
-    // Sheet 4: Financial Summary
-    const financialData = [];
-    let totalApproved = 0,
-      totalPending = 0,
-      totalSuspended = 0;
-
-    documentsToExport.forEach((doc, docIndex) => {
-      const paymentAmount = doc.grandTotalCost || 0;
-
-      if (doc.status === "Approved") totalApproved += paymentAmount;
-      else if (doc.status === "Suspended") totalSuspended += paymentAmount;
-      else totalPending += paymentAmount;
-
-      financialData.push({
-        STT: docIndex + 1,
-        "Tên phiếu": doc.name || "Không có",
-        Trạm: doc.costCenter || "",
-        "Tổng chi phí": doc.grandTotalCost || 0,
-        "Trạng thái":
-          doc.status === "Approved"
-            ? "Đã phê duyệt"
-            : doc.status === "Suspended"
-            ? "Từ chối"
-            : "Chưa phê duyệt",
-        "Ngày nộp": doc.submissionDate || "",
-        "Kê khai": doc.declaration || "",
-        "Số sản phẩm": doc.products?.length || 0,
-        "Ghi chú": doc.suspendReason || "",
+    // Auto-wrap text for better readability in cells with long content
+    const wrapTextColumns = [1, 7, 8, 9, 10, 20]; // Columns with potentially long text
+    
+    for (let rowNum = sheetRange.s.r; rowNum <= sheetRange.e.r; rowNum++) {
+      wrapTextColumns.forEach(colNum => {
+        const cellRef = XLSX.utils.encode_cell({ r: rowNum, c: colNum });
+        if (detailedWs[cellRef]) {
+          if (!detailedWs[cellRef].s) detailedWs[cellRef].s = {};
+          detailedWs[cellRef].s.alignment = { wrapText: true, vertical: 'top' };
+        }
       });
-    });
+    }
 
-    // Add summary rows
-    financialData.push(
-      {},
-      {
-        STT: "",
-        "Tên phiếu": "TỔNG KẾT",
-        Trạm: "",
-        "Tổng chi phí": "",
-        "Trạng thái": "",
-        "Ngày nộp": "",
-        "Kê khai": "",
-        "Số sản phẩm": "",
-        "Ghi chú": "",
-      },
-      {
-        STT: "",
-        "Tên phiếu": "Đã phê duyệt",
-        Trạm: "",
-        "Tổng chi phí": totalApproved,
-        "Trạng thái": "",
-        "Ngày nộp": "",
-        "Kê khai": "",
-        "Số sản phẩm": "",
-        "Ghi chú": "",
-      },
-      {
-        STT: "",
-        "Tên phiếu": "Chưa phê duyệt",
-        Trạm: "",
-        "Tổng chi phí": totalPending,
-        "Trạng thái": "",
-        "Ngày nộp": "",
-        "Kê khai": "",
-        "Số sản phẩm": "",
-        "Ghi chú": "",
-      },
-      {
-        STT: "",
-        "Tên phiếu": "Từ chối",
-        Trạm: "",
-        "Tổng chi phí": totalSuspended,
-        "Trạng thái": "",
-        "Ngày nộp": "",
-        "Kê khai": "",
-        "Số sản phẩm": "",
-        "Ghi chú": "",
-      }
-    );
+    // Add freeze panes to keep headers visible
+    detailedWs["!freeze"] = { xSplit: 1, ySplit: 1 };
 
-    const financialWs = XLSX.utils.json_to_sheet(financialData);
-    financialWs["!cols"] = [
-      { wch: 5 },
-      { wch: 30 },
-      { wch: 20 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 30 },
-      { wch: 12 },
-      { wch: 30 },
-    ];
-    XLSX.utils.book_append_sheet(wb, financialWs, "Tổng hợp tài chính");
+    XLSX.utils.book_append_sheet(wb, detailedWs, "Chi tiết đầy đủ");
 
-    // Generate the Excel file and trigger download
     XLSX.writeFile(
       wb,
-      `Bao_cao_chi_tiet_phieu_mua_hang_${new Date()
-        .toISOString()
-        .slice(0, 10)}.xlsx`
+      `Bao_cao_phieu_mua_hang_${new Date().toISOString().slice(0, 10)}.xlsx`
     );
 
-    showMessage(
-      `Đã xuất báo cáo chi tiết ${selectedDocs.length} phiếu mua hàng với ${wb.SheetNames.length} bảng tính.`
-    );
+    showMessage(`Đã xuất ${selectedDocs.length} phiếu mua hàng.`);
   } catch (err) {
     console.error("Error exporting documents:", err);
     showMessage("Lỗi khi xuất dữ liệu: " + err.message, true);
