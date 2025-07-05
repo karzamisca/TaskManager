@@ -63,6 +63,10 @@ function handlePurchasingDocument() {
         <label>Đơn giá</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
         <label>Số lượng</label><input type="number" name="products[0][amount]" required />
         <label>Thuế (%)</label><input type="number" name="products[0][vat]" required />
+        <label>Trạm sản phẩm</label>
+        <select name="products[0][costCenter]" class="product-cost-center" required>
+          <option value="">Chọn trạm</option>
+        </select>
         <label>Ghi chú</label><input type="text" name="products[0][note]" />
       </div>
       <button type="button" onclick="addProductEntry()">Thêm sản phẩm</button>
@@ -82,6 +86,9 @@ function handlePurchasingDocument() {
 
   // Fetch current user and populate cost centers
   fetchCostCenters();
+  
+  // Populate product cost centers
+  populateProductCostCenters();
 }
 
 // Function to handle Payment Document selection
@@ -408,18 +415,56 @@ document
   });
 ////END OF DOCUMENT SELECT HANDLERS
 
+async function populateProductCostCenters() {
+  try {
+    // Get current user to check allowed cost centers
+    const userResponse = await fetch("/getCurrentUser");
+    const userData = await userResponse.json();
+    const currentUser = userData.username;
+
+    // Get all cost centers
+    const costCenterResponse = await fetch("/costCenters");
+    const costCenters = await costCenterResponse.json();
+
+    // Populate each product cost center dropdown
+    document.querySelectorAll('.product-cost-center').forEach(select => {
+      // Only populate if empty (has only the default option)
+      if (select.options.length <= 1) {
+        costCenters.forEach(center => {
+          if (center.allowedUsers.length === 0 || 
+              center.allowedUsers.includes(currentUser)) {
+            const option = document.createElement('option');
+            option.value = center.name;
+            option.textContent = center.name;
+            select.appendChild(option);
+          }
+        });
+      }
+    });
+  } catch (error) {
+    console.error("Error populating product cost centers:", error);
+  }
+}
+
 function addProductEntry() {
   const productEntries = document.getElementById("product-entries");
-  const productCount = productEntries.children.length / 5;
+  const productCount = productEntries.children.length / 6; // Changed from 5 to 6 to account for cost center field
 
   const newEntry = `
       <label>Tên sản phẩm</label><input type="text" name="products[${productCount}][productName]" required />
-      <label>Đơn giá</label><input type="number" name="products[${productCount}][costPerUnit]" required />
+      <label>Đơn giá</label><input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required />
       <label>Số lượng</label><input type="number" name="products[${productCount}][amount]" required />
-      <label>Thuế</label><input type="number" name="products[${productCount}][vat]" required />
+      <label>Thuế VAT(%)</label><input type="number" name="products[${productCount}][vat]" required />
+      <label>Trạm sản phẩm</label>
+      <select name="products[${productCount}][costCenter]" class="product-cost-center" required>
+        <option value="">Chọn trạm</option>
+      </select>
       <label>Ghi chú</label><input type="text" name="products[${productCount}][note]" />
     `;
   productEntries.insertAdjacentHTML("beforeend", newEntry);
+  
+  // Populate cost centers for the new product entry
+  populateProductCostCenters();
 }
 
 async function fetchApprovers() {
@@ -770,17 +815,53 @@ async function populateProjectDropdown() {
 
 fetchApprovers();
 
-document
-  .getElementById("submit-form")
-  .addEventListener("submit", function (event) {
-    const approvers = document.querySelectorAll(
-      'input[name="approvers"]:checked'
-    );
-    if (approvers.length === 0) {
+document.getElementById("submit-form").addEventListener("submit", async function(event) {
+  const approvers = document.querySelectorAll('input[name="approvers"]:checked');
+  if (approvers.length === 0) {
+    event.preventDefault();
+    alert("Xin hãy chọn ít nhất một người phê duyệt");
+    return;
+  }
+
+  // Validate product cost centers
+  const productCostCenters = document.querySelectorAll('.product-cost-center');
+  let allCostCentersValid = true;
+  
+  // Get current user's allowed cost centers
+  try {
+    const userResponse = await fetch("/getCurrentUser");
+    const userData = await userResponse.json();
+    const currentUser = userData.username;
+
+    const costCenterResponse = await fetch("/costCenters");
+    const costCenters = await costCenterResponse.json();
+    const allowedCostCenters = costCenters
+      .filter(center => center.allowedUsers.length === 0 || 
+                       center.allowedUsers.includes(currentUser))
+      .map(center => center.name);
+
+    // Check each product's cost center
+    productCostCenters.forEach(select => {
+      if (!allowedCostCenters.includes(select.value)) {
+        allCostCentersValid = false;
+        select.style.border = "1px solid red";
+      } else {
+        select.style.border = "";
+      }
+    });
+
+    if (!allCostCentersValid) {
       event.preventDefault();
-      alert("Xin hãy chọn ít nhất một người phê duyệt");
+      alert("Một số trạm sản phẩm không hợp lệ hoặc bạn không có quyền sử dụng. Vui lòng kiểm tra lại.");
+      return;
     }
-  });
+  } catch (error) {
+    console.error("Error validating cost centers:", error);
+    event.preventDefault();
+    alert("Có lỗi xảy ra khi kiểm tra trạm sản phẩm. Vui lòng thử lại.");
+    return;
+  }
+});
 
 document
   .getElementById("add-content-btn")

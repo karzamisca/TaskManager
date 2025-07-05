@@ -74,6 +74,7 @@ const renderProducts = (products) => {
             <th class="text-right">VAT (%)</th>
             <th class="text-right">Thành tiền</th>
             <th class="text-right">Sau VAT</th>
+            <th>Trạm</th>
             <th>Ghi chú/Notes</th>
           </tr>
         </thead>
@@ -90,6 +91,7 @@ const renderProducts = (products) => {
               <td class="text-right">${
                 product.totalCostAfterVat.toLocaleString() || ""
               }</td>
+              <td>${product.costCenter || ""}</td>
               <td>${product.note || ""}</td>
             </tr>
           `
@@ -885,8 +887,16 @@ const addProductField = (product = null) => {
         product?.amount || ""
       }" required>
       <input type="number" placeholder="VAT(%)" value="${
-        product?.vat || ""
+        product?.vat !== undefined ? product.vat : ""
       }" required step="0.01">
+      <select class="product-cost-center" placeholder="Trạm">
+        <option value="">Chọn trạm</option>
+        ${state.costCenters.map(center => 
+          `<option value="${center.name}" ${product?.costCenter === center.name ? 'selected' : ''}>
+            ${center.name}
+          </option>`
+        ).join('')}
+      </select>
       <input type="text" placeholder="Ghi chú" value="${product?.note || ""}">
       <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.parentElement.remove()">
         <i class="fas fa-trash"></i> Xóa
@@ -1013,6 +1023,10 @@ const addNewApprover = () => {
 
 const editDocument = async (docId) => {
   try {
+    // Load cost centers first
+    const costCenterResponse = await fetch("/costCenters");
+    state.costCenters = await costCenterResponse.json();
+
     const response = await fetch(`/getPurchasingDocument/${docId}`);
     const doc = await response.json();
 
@@ -1065,6 +1079,7 @@ const handleEditSubmit = async (event) => {
 
   productItems.forEach((item) => {
     const productInputs = item.querySelectorAll("input");
+    const costCenterSelect = item.querySelector(".product-cost-center");
     if (productInputs.length >= 4) {
       const costPerUnit = parseFloat(productInputs[1].value) || 0;
       const amount = parseInt(productInputs[2].value) || 0;
@@ -1078,6 +1093,7 @@ const handleEditSubmit = async (event) => {
         totalCost: costPerUnit * amount,
         totalCostAfterVat:
           costPerUnit * amount + costPerUnit * amount * (vat / 100),
+        costCenter: costCenterSelect ? costCenterSelect.value : '',
         note: productInputs[4].value,
       };
       products.push(product);
@@ -1334,6 +1350,7 @@ const exportSelectedToExcel = () => {
         "Trạm": doc.costCenter || "Không có",
         "Ngày nộp": doc.submissionDate || "Không có",
         "Tên sản phẩm": "",
+        "Trạm sản phẩm": "",
         "Số lượng": "",
         "Giá trước VAT": "",
         "Tổng trước VAT": "", // Will be calculated below
@@ -1372,6 +1389,7 @@ const exportSelectedToExcel = () => {
             "Trạm": "",
             "Ngày nộp": "",
             "Tên sản phẩm": product.productName || "",
+            "Trạm sản phẩm": product.costCenter || "",
             "Số lượng": amount,
             "Giá trước VAT": costBeforeVAT,
             "Tổng trước VAT": totalBeforeVAT,
@@ -1398,6 +1416,7 @@ const exportSelectedToExcel = () => {
           "Trạm": "",
           "Ngày nộp": "",
           "Tên sản phẩm": "Không có sản phẩm",
+          "Trạm sản phẩm":"",
           "Số lượng": "",
           "Giá trước VAT": "",
           "Tổng trước VAT": "",
