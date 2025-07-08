@@ -191,17 +191,16 @@ function createGroupElement(group, documents) {
     </button>
   `;
 
-  // When selecting the element:
-  const sanitizedGroupName = sanitizeForSelector(group.name);
+  // Get the select element and populate it
   const docSelect = addDocForm.querySelector(
-    `#document-select-${sanitizedGroupName}`
+    `#document-select-${sanitizeForSelector(group.name)}`
   );
+  populateDocumentDropdown(docSelect, group.name);
+
   // Set up event listener for the add button
   const addBtn = addDocForm.querySelector(
-    `#add-to-group-btn-${sanitizedGroupName}`
+    `#add-to-group-btn-${sanitizeForSelector(group.name)}`
   );
-  populateDocumentDropdown(docSelect);
-
   addBtn.addEventListener("click", async () => {
     const docData = docSelect.value;
 
@@ -237,6 +236,8 @@ function createGroupElement(group, documents) {
     }
   });
 
+  content.appendChild(addDocForm);
+
   // Documents list
   if (documents.length > 0) {
     const docsList = document.createElement("div");
@@ -266,13 +267,21 @@ function createGroupElement(group, documents) {
 }
 
 // Helper function to populate document dropdown
-function populateDocumentDropdown(selectElement) {
+function populateDocumentDropdown(selectElement, groupName) {
   // Clear existing options except the first one
   while (selectElement.options.length > 1) {
     selectElement.remove(1);
   }
 
-  unassignedDocuments.forEach((doc) => {
+  // Filter out documents that are already in this group
+  const availableDocuments = unassignedDocuments.filter((doc) => {
+    const docInGroup = allDocuments.find(
+      (d) => d._id === doc._id && d.groupDeclarationName === groupName
+    );
+    return !docInGroup;
+  });
+
+  availableDocuments.forEach((doc) => {
     const option = document.createElement("option");
     option.value = JSON.stringify({
       id: doc._id,
