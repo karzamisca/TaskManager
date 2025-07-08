@@ -116,6 +116,25 @@ exports.getSftpAccountingViews = (req, res) => {
   });
 };
 
+exports.getSftpNorthernRepresentativeOfficeViews = (req, res) => {
+  if (
+    ![
+      "superAdmin",
+      "director",
+      "deputyDirector",
+      "headOfNorthernRepresentativeOffice",
+      "captainOfNorthernRepresentativeOffice",
+    ].includes(req.user.role)
+  ) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+  }
+  res.sendFile("sftpNorthernRepresentativeOffice.html", {
+    root: "./views/sftpPages/sftpNorthernRepresentativeOffice",
+  });
+};
+
 const connectionMonitor = {
   isActive: false,
   checkInterval: 30000, // 30 seconds

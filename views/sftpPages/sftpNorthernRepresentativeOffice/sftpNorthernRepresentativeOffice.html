@@ -1,0 +1,162 @@
+<!-- views/sftpPages/sftpAccounting/sftpAccounting.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thuộc Văn phòng miền Bắc</title>
+    <link
+      rel="stylesheet"
+      href="sftpPages/sftpNorthernRepresentativeOffice/sftpNorthernRepresentativeOffice.css"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <a href="/sftpMain" class="back-button"> Trở về </a>
+        <h1>Thuộc Văn phòng miền Bắc</h1>
+        <div class="status-indicator">
+          <div class="status-dot connected" id="connection-status"></div>
+          <span id="connection-text">Connected</span>
+        </div>
+      </header>
+
+      <div class="main-content">
+        <div class="sidebar">
+          <h3>Tạo</h3>
+          <div class="toolbar">
+            <button class="btn btn-primary" id="upload-btn">Tải lên</button>
+            <button class="btn btn-success" id="new-folder-btn">
+              Thư mục mới
+            </button>
+          </div>
+        </div>
+
+        <div class="file-explorer">
+          <div class="breadcrumb" id="breadcrumb">
+            <span>SFTP</span>
+          </div>
+
+          <div class="toolbar">
+            <button class="btn btn-primary" id="refresh-btn">Làm mới</button>
+            <button class="btn btn-danger" id="delete-btn" disabled>Xóa</button>
+            <button class="btn" id="rename-btn" disabled>Đổi tên</button>
+            <button class="btn btn-success" id="download-btn" disabled>
+              Tải xuống
+            </button>
+          </div>
+
+          <table class="file-table">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="select-all" /></th>
+                <th>Tên</th>
+                <th>Kích thước</th>
+                <th>Ngày thay đổi</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="file-list">
+              <tr>
+                <td colspan="5">Loading...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal" id="upload-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title">Tải tệp tin lên</div>
+          <button class="close-modal">&times;</button>
+        </div>
+        <form id="upload-form">
+          <div class="form-group">
+            <label for="upload-files">Chọn tệp tin</label>
+            <input type="file" id="upload-files" multiple />
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" id="cancel-upload">Hủy</button>
+            <button type="submit" class="btn btn-primary">Tải lên</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- New Folder Modal -->
+    <div class="modal" id="folder-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title">Tạo thư mục mới</div>
+          <button class="close-modal">&times;</button>
+        </div>
+        <form id="folder-form">
+          <div class="form-group">
+            <label for="folder-name">Tên thư mục</label>
+            <input
+              type="text"
+              id="folder-name"
+              placeholder="Enter folder name"
+              required
+            />
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" id="cancel-folder">
+              Hủy/Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">Tạo</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Rename Modal -->
+    <div class="modal" id="rename-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title">Đổi tên</div>
+          <button class="close-modal">&times;</button>
+        </div>
+        <form id="rename-form">
+          <div class="form-group">
+            <label for="old-name">Tên cũ</label>
+            <input type="text" id="old-name" readonly />
+          </div>
+          <div class="form-group">
+            <label for="new-name">Tên mới</label>
+            <input
+              type="text"
+              id="new-name"
+              placeholder="Enter new name"
+              required
+            />
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" id="cancel-rename">Hủy</button>
+            <button type="submit" class="btn btn-primary">Đổi tên</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu">
+      <div class="context-menu-item" id="ctx-download">Tải xuống</div>
+      <div class="context-menu-item" id="ctx-rename">Đổi tên</div>
+      <div class="context-menu-item" id="ctx-delete">Xóa</div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading" id="loading-overlay">
+      <div class="spinner"></div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+
+    <script src="sftpPages/sftpNorthernRepresentativeOffice/sftpNorthernRepresentativeOffice.js?v=1.0"></script>
+  </body>
+</html>

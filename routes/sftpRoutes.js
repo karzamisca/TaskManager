@@ -25,6 +25,11 @@ router.get(
   authMiddleware,
   sftpController.getSftpAccountingViews
 );
+router.get(
+  "/sftpNorthernRepresentativeOffice",
+  authMiddleware,
+  sftpController.getSftpNorthernRepresentativeOfficeViews
+);
 
 // SFTP connection routes
 router.post("/sftpConnect", authMiddleware, sftpController.connect);
