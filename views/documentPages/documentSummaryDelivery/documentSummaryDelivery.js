@@ -4,9 +4,9 @@ let deliveryDocuments = null;
 let showOnlyPendingApprovals = false;
 let currentApprovers = [];
 let currentPage = 1;
-const itemsPerPage = 10; // Adjust this value based on your preference
+const itemsPerPage = 10;
 let totalPages = 1;
-let paginationEnabled = true; // Default to enabled
+let paginationEnabled = true;
 
 function createToggleSwitch() {
   const toggleContainer = document.createElement("div");
@@ -14,7 +14,7 @@ function createToggleSwitch() {
   toggleContainer.innerHTML = `
     <label class="toggle-switch" style="display: flex; align-items: center; cursor: pointer;">
       <input type="checkbox" id="pendingToggle" style="margin-right: 0.5rem;">
-      <span>Chỉ hiện phiếu tôi cần phê duyệt/Show only documents pending my approval</span>
+      <span>Chỉ hiện phiếu tôi cần phê duyệt</span>
     </label>
   `;
   return toggleContainer;
@@ -25,7 +25,7 @@ async function fetchCurrentUser() {
     const response = await fetch("/getCurrentUser");
     currentUser = await response.json();
   } catch (error) {
-    console.error("Error fetching current user:", error);
+    console.error("Lỗi khi lấy thông tin người dùng:", error);
   }
 }
 
@@ -48,9 +48,8 @@ function showMessage(message, isError = false) {
   messageContainer.textContent = message;
   messageContainer.className = `message ${isError ? "error" : "success"}`;
 
-  // Get the current scroll position
   const scrollY = window.scrollY || document.documentElement.scrollTop;
-  messageContainer.style.top = `${scrollY + 20}px`; // Offset from top of viewport
+  messageContainer.style.top = `${scrollY + 20}px`;
 
   messageContainer.style.display = "block";
 
@@ -62,11 +61,11 @@ function showMessage(message, isError = false) {
 function renderStatus(status) {
   switch (status) {
     case "Approved":
-      return `<span class="status approved">Approved</span>`;
+      return `<span class="status approved">Đã phê duyệt</span>`;
     case "Suspended":
-      return `<span class="status suspended">Suspended</span>`;
+      return `<span class="status suspended">Từ chối</span>`;
     default:
-      return `<span class="status pending">Pending</span>`;
+      return `<span class="status pending">Chưa phê duyệt</span>`;
   }
 }
 
@@ -77,13 +76,13 @@ function renderProducts(products) {
     <table class="products-table" style="width: 100%; border-collapse: collapse;">
       <thead>
         <tr>
-          <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Sản phẩm/Product</th>
-          <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Đơn giá/Cost Per Unit</th>
-          <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Số lượng/Amount</th>
-          <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Thuế/Vat (%)</th>
-          <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Thành tiền/Total Cost</th>
-          <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Thành tiền sau thuế/Total Cost After Vat</th>
-          <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Ghi chú/Notes</th>
+          <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Sản phẩm</th>
+          <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Đơn giá</th>
+          <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Số lượng</th>
+          <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">VAT (%)</th>
+          <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Thành tiền</th>
+          <th style="text-align: right; padding: 8px; border-bottom: 1px solid #ddd;">Thành tiền sau VAT</th>
+          <th style="text-align: left; padding: 8px; border-bottom: 1px solid #ddd;">Ghi chú</th>
         </tr>
       </thead>
       <tbody>
@@ -124,14 +123,12 @@ function renderProposals(proposals) {
         .map(
           (proposal) => `
             <div class="product-item">
-              <strong>Công việc/Task:</strong> ${proposal.task}<br>
-              <strong>Trạm/Center:</strong> ${proposal.costCenter}<br>
-              <strong>Mô tả/Description:</strong> ${
-                proposal.detailsDescription
-              }<br>
+              <strong>Công việc:</strong> ${proposal.task}<br>
+              <strong>Trạm:</strong> ${proposal.costCenter}<br>
+              <strong>Mô tả:</strong> ${proposal.detailsDescription}<br>
               ${
                 proposal.fileMetadata
-                  ? `<strong>Tệp đính kèm/File:</strong> 
+                  ? `<strong>Tệp đính kèm:</strong> 
                 <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
                   : ""
               }
@@ -139,11 +136,10 @@ function renderProposals(proposals) {
           `
         )
         .join("")}
-        </div>
-      `;
+    </div>
+  `;
 }
 
-// Update the fetchDeliveryDocuments function to use the new endpoint
 async function fetchDeliveryDocuments() {
   try {
     const response = await fetch("/getDeliveryDocumentForSeparatedView");
@@ -152,10 +148,8 @@ async function fetchDeliveryDocuments() {
 
     const filteredDocuments = filterDocumentsForCurrentUser(deliveryDocuments);
 
-    // Calculate total pages
     totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
 
-    // Make sure current page is in valid range
     if (currentPage > totalPages) {
       currentPage = totalPages;
     }
@@ -163,11 +157,9 @@ async function fetchDeliveryDocuments() {
       currentPage = 1;
     }
 
-    // Calculate slice indexes for current page
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
 
-    // Get documents for current page only if pagination is enabled, otherwise show all
     const pageDocuments = paginationEnabled
       ? filteredDocuments.slice(startIndex, endIndex)
       : filteredDocuments;
@@ -190,8 +182,8 @@ async function fetchDeliveryDocuments() {
                 <div>${approver.username} (${approver.subRole})</div>
                 ${
                   hasApproved
-                    ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
-                    : '<div class="approval-date">Pending</div>'
+                    ? `<div class="approval-date">Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
+                    : '<div class="approval-date">Chưa phê duyệt</div>'
                 }
               </div>
             </div>
@@ -217,18 +209,18 @@ async function fetchDeliveryDocuments() {
           <button class="approve-btn" onclick="showFullView('${
             doc._id
           }')" style="margin-right: 5px;">
-            Xem đầy đủ/Full View
-          </button
+            Xem đầy đủ
+          </button>
           <form action="/exportDocumentToDocx/${
             doc._id
           }" method="GET" style="display:inline;">
-              <button class="approve-btn">Xuất ra DOCX/Export to DOCX</button>
+              <button class="approve-btn">Xuất ra DOCX</button>
           </form>
           ${
             doc.approvedBy.length === 0
               ? `
-            <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa/Edit</button>
-            <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa/Delete</button>
+            <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa</button>
+            <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa</button>
           `
               : ""
           }
@@ -236,7 +228,7 @@ async function fetchDeliveryDocuments() {
             doc.status === "Pending"
               ? `
             <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
-              Phê duyệt/Approve
+              Phê duyệt
             </button>
           `
               : ""
@@ -246,18 +238,15 @@ async function fetchDeliveryDocuments() {
       tableBody.appendChild(row);
     });
 
-    // Render pagination controls if pagination is enabled
     if (paginationEnabled) {
       renderPagination();
     } else {
-      // Remove pagination if disabled
       let paginationContainer = document.getElementById("paginationContainer");
       if (paginationContainer) {
         paginationContainer.innerHTML = "";
       }
     }
 
-    // Update summary section
     const approvedSum = filteredDocuments
       .filter((doc) => doc.status === "Approved")
       .reduce((sum, doc) => sum + (doc.grandTotalCost || 0), 0);
@@ -275,21 +264,18 @@ async function fetchDeliveryDocuments() {
     document.getElementById("unapprovedDocument").textContent =
       data.unapprovedDocument.toLocaleString();
   } catch (err) {
-    console.error("Error fetching delivery documents:", err);
-    showMessage("Error fetching delivery documents", true);
+    console.error("Lỗi khi lấy danh sách phiếu xuất kho:", err);
+    showMessage("Lỗi khi lấy danh sách phiếu xuất kho", true);
   }
 }
 
-// Function to handle pagination toggle
 function togglePagination() {
   paginationEnabled = document.getElementById("paginationToggle").checked;
-  currentPage = 1; // Reset to first page
+  currentPage = 1;
   fetchDeliveryDocuments();
 }
 
-// Function to render pagination controls
 function renderPagination() {
-  // First check if pagination container exists, if not create it
   let paginationContainer = document.getElementById("paginationContainer");
   if (!paginationContainer) {
     const table = document.querySelector("table");
@@ -299,10 +285,8 @@ function renderPagination() {
     table.parentNode.insertBefore(paginationContainer, table.nextSibling);
   }
 
-  // Generate pagination HTML
   let paginationHTML = `
     <style>
-      /* Pagination styles */
       .pagination {
         display: flex;
         justify-content: center;
@@ -357,25 +341,25 @@ function renderPagination() {
     paginationHTML += `
       <div class="pagination-controls">
         <button onclick="changePage(1)" ${currentPage === 1 ? "disabled" : ""}>
-          &laquo; First
+          &laquo; Đầu
         </button>
         <button onclick="changePage(${currentPage - 1})" ${
       currentPage === 1 ? "disabled" : ""
     }>
-          &lsaquo; Prev
+          &lsaquo; Trước
         </button>
         <span class="page-info">
-          Trang/Page ${currentPage} / ${totalPages}
+          Trang ${currentPage} / ${totalPages}
         </span>
         <button onclick="changePage(${currentPage + 1})" ${
       currentPage === totalPages ? "disabled" : ""
     }>
-          Next &rsaquo;
+          Sau &rsaquo;
         </button>
         <button onclick="changePage(${totalPages})" ${
       currentPage === totalPages ? "disabled" : ""
     }>
-          Last &raquo;
+          Cuối &raquo;
         </button>
       </div>
     `;
@@ -384,12 +368,10 @@ function renderPagination() {
   paginationContainer.innerHTML = paginationHTML;
 }
 
-// Function to change the current page
 function changePage(newPage) {
   if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
     currentPage = newPage;
     fetchDeliveryDocuments();
-    // Scroll to top of table for better user experience
     document.querySelector("table").scrollIntoView({ behavior: "smooth" });
   }
 }
@@ -409,8 +391,8 @@ async function approveDocument(documentId) {
       showMessage(message, true);
     }
   } catch (err) {
-    console.error("Error approving document:", err);
-    showMessage("Error approving document", true);
+    console.error("Lỗi khi phê duyệt phiếu:", err);
+    showMessage("Lỗi khi phê duyệt phiếu", true);
   }
 }
 
@@ -429,8 +411,8 @@ async function deleteDocument(documentId) {
       showMessage(message, true);
     }
   } catch (err) {
-    console.error("Error approving document:", err);
-    showMessage("Error approving document", true);
+    console.error("Lỗi khi xóa phiếu:", err);
+    showMessage("Lỗi khi xóa phiếu", true);
   }
 }
 
@@ -440,19 +422,16 @@ function addProductField(product = null) {
   productDiv.className = "product-item";
   productDiv.style.marginBottom = "10px";
 
-  // Create the div first
   productsList.appendChild(productDiv);
 
-  // Create and configure inputs directly instead of using innerHTML
   const container = document.createElement("div");
   container.style.display = "grid";
   container.style.gap = "10px";
   productDiv.appendChild(container);
 
-  // Product Name input
   const nameInput = document.createElement("input");
   nameInput.type = "text";
-  nameInput.placeholder = "Tên sản phẩm/Product Name";
+  nameInput.placeholder = "Tên sản phẩm";
   nameInput.required = true;
   nameInput.style.width = "100%";
   nameInput.style.padding = "8px";
@@ -461,10 +440,9 @@ function addProductField(product = null) {
   }
   container.appendChild(nameInput);
 
-  // Cost Per Unit input
   const costInput = document.createElement("input");
   costInput.type = "number";
-  costInput.placeholder = "Đơn giá/Cost Per Unit";
+  costInput.placeholder = "Đơn giá";
   costInput.required = true;
   costInput.style.width = "100%";
   costInput.style.padding = "8px";
@@ -473,10 +451,9 @@ function addProductField(product = null) {
   }
   container.appendChild(costInput);
 
-  // Amount input
   const amountInput = document.createElement("input");
   amountInput.type = "number";
-  amountInput.placeholder = "Số lượng/Amount";
+  amountInput.placeholder = "Số lượng";
   amountInput.required = true;
   amountInput.style.width = "100%";
   amountInput.style.padding = "8px";
@@ -485,10 +462,9 @@ function addProductField(product = null) {
   }
   container.appendChild(amountInput);
 
-  // VAT input
   const vatInput = document.createElement("input");
   vatInput.type = "number";
-  vatInput.placeholder = "Thuế/Vat (%)";
+  vatInput.placeholder = "VAT (%)";
   vatInput.required = true;
   vatInput.style.width = "100%";
   vatInput.style.padding = "8px";
@@ -497,10 +473,9 @@ function addProductField(product = null) {
   }
   container.appendChild(vatInput);
 
-  // Note input
   const noteInput = document.createElement("input");
   noteInput.type = "text";
-  noteInput.placeholder = "Ghi chú/Note";
+  noteInput.placeholder = "Ghi chú";
   noteInput.style.width = "100%";
   noteInput.style.padding = "8px";
   if (product && product.note !== undefined) {
@@ -508,11 +483,10 @@ function addProductField(product = null) {
   }
   container.appendChild(noteInput);
 
-  // Remove button
   const removeButton = document.createElement("button");
   removeButton.type = "button";
   removeButton.className = "approve-btn";
-  removeButton.textContent = "Xóa/Remove";
+  removeButton.textContent = "Xóa";
   removeButton.style.background = "#dc3545";
   removeButton.onclick = function () {
     this.parentElement.parentElement.remove();
@@ -522,23 +496,17 @@ function addProductField(product = null) {
 
 async function populateCostCenterDropdown() {
   try {
-    // Fetch the current user
     const userResponse = await fetch("/getCurrentUser");
     const userData = await userResponse.json();
     const currentUser = userData.username;
 
-    // Fetch cost centers
     const costCenterResponse = await fetch("/costCenters");
     const costCenters = await costCenterResponse.json();
 
-    // Get the cost center dropdown in the edit modal
     const costCenterDropdown = document.getElementById("editCostCenter");
 
-    // Clear existing options
-    costCenterDropdown.innerHTML =
-      '<option value="">Chọn một trạm/Select a center</option>';
+    costCenterDropdown.innerHTML = '<option value="">Chọn một trạm</option>';
 
-    // Populate the dropdown with allowed cost centers
     costCenters.forEach((center) => {
       if (
         center.allowedUsers.length === 0 ||
@@ -551,23 +519,21 @@ async function populateCostCenterDropdown() {
       }
     });
   } catch (error) {
-    console.error("Error fetching cost centers:", error);
+    console.error("Lỗi khi lấy danh sách trạm:", error);
   }
 }
 
-// Function to fetch all approvers
 async function fetchApprovers() {
   try {
     const response = await fetch("/approvers");
     const approvers = await response.json();
     return approvers;
   } catch (error) {
-    console.error("Error fetching approvers:", error);
+    console.error("Lỗi khi lấy danh sách người phê duyệt:", error);
     return [];
   }
 }
 
-// Function to render current approvers
 function renderCurrentApprovers() {
   const currentApproversList = document.getElementById("currentApproversList");
   currentApproversList.innerHTML = currentApprovers
@@ -576,14 +542,13 @@ function renderCurrentApprovers() {
         <div class="approver-item" data-id="${approver.approver}">
           <span>${approver.username} (${approver.subRole})</span>
           <input type="text" value="${approver.subRole}" onchange="updateApproverSubRole('${approver.approver}', this.value)" style="width: 100px; padding: 4px;">
-          <button type="button" class="approve-btn" onclick="removeApprover('${approver.approver}')" style="background: #dc3545; padding: 4px 8px;">Xóa/Remove</button>
+          <button type="button" class="approve-btn" onclick="removeApprover('${approver.approver}')" style="background: #dc3545; padding: 4px 8px;">Xóa</button>
         </div>
       `
     )
     .join("");
 }
 
-// Function to update an approver's subRole
 function updateApproverSubRole(approverId, newSubRole) {
   const approver = currentApprovers.find((a) => a.approver === approverId);
   if (approver) {
@@ -591,22 +556,18 @@ function updateApproverSubRole(approverId, newSubRole) {
   }
 }
 
-// Function to remove an approver
 function removeApprover(approverId) {
   currentApprovers = currentApprovers.filter((a) => a.approver !== approverId);
   renderCurrentApprovers();
-  populateNewApproversDropdown(); // Refresh the dropdown
+  populateNewApproversDropdown();
 }
 
-// Function to add a new approver
 function addNewApprover() {
   const newApproverId = document.getElementById("newApproversDropdown").value;
   const newSubRole = document.getElementById("newApproverSubRole").value;
 
   if (!newApproverId || !newSubRole) {
-    alert(
-      "Vui lòng chọn người phê duyệt và nhập vai trò phụ/Please select an approver and enter a sub role."
-    );
+    alert("Vui lòng chọn người phê duyệt và nhập vai trò phụ.");
     return;
   }
 
@@ -620,14 +581,12 @@ function addNewApprover() {
 
   currentApprovers.push(newApprover);
   renderCurrentApprovers();
-  populateNewApproversDropdown(); // Refresh the dropdown
+  populateNewApproversDropdown();
 
-  // Clear the input fields
   document.getElementById("newApproversDropdown").value = "";
   document.getElementById("newApproverSubRole").value = "";
 }
 
-// Function to populate the new approvers dropdown (excluding current approvers)
 async function populateNewApproversDropdown() {
   const allApprovers = await fetchApprovers();
   const availableApprovers = allApprovers.filter(
@@ -636,7 +595,7 @@ async function populateNewApproversDropdown() {
 
   const dropdown = document.getElementById("newApproversDropdown");
   dropdown.innerHTML = `
-    <option value="">Chọn người phê duyệt/Select an approver</option>
+    <option value="">Chọn người phê duyệt</option>
     ${availableApprovers
       .map(
         (approver) => `
@@ -647,7 +606,6 @@ async function populateNewApproversDropdown() {
   `;
 }
 
-// Function to initialize the modal with document data
 async function editDocument(docId) {
   try {
     const response = await fetch(`/getDeliveryDocument/${docId}`);
@@ -659,20 +617,18 @@ async function editDocument(docId) {
     await populateCostCenterDropdown();
     document.getElementById("editCostCenter").value = doc.costCenter;
 
-    // Clear and repopulate products
     const productsList = document.getElementById("productsList");
     productsList.innerHTML = "";
     doc.products.forEach((product) => addProductField(product));
-    // Populate current approvers
+
     currentApprovers = doc.approvers;
     renderCurrentApprovers();
-    // Populate new approvers dropdown
     await populateNewApproversDropdown();
 
     document.getElementById("editModal").style.display = "block";
   } catch (err) {
-    console.error("Error fetching document details:", err);
-    showMessage("Error loading document details", true);
+    console.error("Lỗi khi lấy chi tiết phiếu:", err);
+    showMessage("Lỗi khi tải chi tiết phiếu", true);
   }
 }
 
@@ -687,14 +643,12 @@ async function handleEditSubmit(event) {
   const docId = document.getElementById("editDocId").value;
   const formData = new FormData();
 
-  // Add basic fields
   formData.append("name", document.getElementById("editName").value);
   formData.append(
     "costCenter",
     document.getElementById("editCostCenter").value
   );
 
-  // Get all products
   const products = [];
   const productItems = document.querySelectorAll(".product-item");
 
@@ -721,17 +675,14 @@ async function handleEditSubmit(event) {
 
   formData.append("products", JSON.stringify(products));
 
-  // Calculate grand total
   const grandTotalCost = products.reduce(
     (sum, product) => sum + product.totalCostAfterVat,
     0
   );
   formData.append("grandTotalCost", grandTotalCost);
 
-  // Add approvers
   formData.append("approvers", JSON.stringify(currentApprovers));
 
-  // Add file
   const fileInput = document.getElementById("editFile");
   if (fileInput.files.length > 0) {
     formData.append("file", fileInput.files[0]);
@@ -744,53 +695,48 @@ async function handleEditSubmit(event) {
     });
     const result = await response.json();
     if (response.ok) {
-      showMessage("Document updated successfully");
+      showMessage("Cập nhật phiếu thành công");
       closeEditModal();
       fetchDeliveryDocuments();
     } else {
-      showMessage(result.message || "Error updating document", true);
+      showMessage(result.message || "Lỗi khi cập nhật phiếu", true);
     }
   } catch (err) {
-    console.error("Error updating document:", err);
-    showMessage("Error updating document", true);
+    console.error("Lỗi khi cập nhật phiếu:", err);
+    showMessage("Lỗi khi cập nhật phiếu", true);
   }
 }
 
-// Update the edit modal to include the new fields
 function addEditModal() {
   const modalHTML = `
     <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
       <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-color); padding: 20px; border-radius: 8px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;">
-        <h2>Chỉnh sửa phiếu xuất kho/Edit Delivery Document</h2>
+        <h2>Chỉnh sửa phiếu xuất kho</h2>
         <form id="editForm" onsubmit="handleEditSubmit(event)">
           <input type="hidden" id="editDocId">
 
-          <!-- Basic Fields -->
           <div style="margin-bottom: 15px;">
-            <label for="editName">Tên/Name:</label>
+            <label for="editName">Tên:</label>
             <input type="text" id="editName" required style="width: 100%; padding: 8px;">
           </div>
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm/Cost Center:</label>
+            <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm:</label>
             <select id="editCostCenter" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
-              <option value="">Chọn một trạm/Select a center</option>
-              <!-- Options will be populated dynamically -->
+              <option value="">Chọn một trạm</option>
             </select>
           </div>
 
-          <!-- Products Section -->
           <div id="productsContainer" style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label style="display: block; margin-bottom: 0.5em;">Sản phẩm/Products:</label>
+            <label style="display: block; margin-bottom: 0.5em;">Sản phẩm:</label>
             <div id="productsList"></div>
             <button type="button" class="approve-btn" onclick="addProductField()" style="margin-top: 10px;">
-              Thêm sản phẩm/Add Product
+              Thêm sản phẩm
             </button>
           </div>
 
-          <!-- File Upload -->
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-              <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới/Update File:</label>
+              <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới:</label>
               <input type="file" id="editFile" style="
                   width: 100%;
                   padding: clamp(6px, 1vw, 12px);
@@ -798,26 +744,22 @@ function addEditModal() {
               ">
           </div>
 
-          <!-- Current Approvers Section -->
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label style="display: block; margin-bottom: 0.5em;">Người phê duyệt hiện tại/Current Approvers:</label>
+            <label style="display: block; margin-bottom: 0.5em;">Người phê duyệt hiện tại:</label>
             <div id="currentApproversList"></div>
           </div>
 
-          <!-- Add New Approvers Section -->
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label style="display: block; margin-bottom: 0.5em;">Thêm người phê duyệt/Add Approvers:</label>
+            <label style="display: block; margin-bottom: 0.5em;">Thêm người phê duyệt:</label>
             <select id="newApproversDropdown" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
-              <option value="">Chọn người phê duyệt/Select an approver</option>
-              <!-- Options will be populated dynamically -->
+              <option value="">Chọn người phê duyệt</option>
             </select>
-            <input type="text" id="newApproverSubRole" placeholder="Vai trò/Sub Role" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
+            <input type="text" id="newApproverSubRole" placeholder="Vai trò" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
             <button type="button" class="approve-btn" onclick="addNewApprover()" style="margin-top: 10px;">
-              Thêm/Add
+              Thêm
             </button>
           </div>
 
-          <!-- Save and Cancel Buttons -->
           <div style="
               display: flex;
               gap: clamp(8px, 1vw, 16px);
@@ -826,13 +768,13 @@ function addEditModal() {
               <button type="submit" class="approve-btn" style="
                   padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
                   font-size: inherit;
-              ">Lưu thay đổi/Save Changes</button>
+              ">Lưu thay đổi</button>
               
               <button type="button" class="approve-btn" onclick="closeEditModal()" style="
                   background: #666;
                   padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
                   font-size: inherit;
-              ">Hủy/Cancel</button>
+              ">Hủy</button>
           </div>
         </form>
       </div>
@@ -844,17 +786,15 @@ function addEditModal() {
 function showFullView(docId) {
   try {
     const doc = deliveryDocuments.find((d) => d._id === docId);
-    if (!doc) throw new Error("Document not found");
+    if (!doc) throw new Error("Không tìm thấy phiếu");
 
     const fullViewContent = document.getElementById("fullViewContent");
 
-    // Format date strings
-    const submissionDate = doc.submissionDate || "Not specified";
+    const submissionDate = doc.submissionDate || "Không xác định";
 
     fullViewContent.innerHTML = `
-      <!-- Basic Information Section -->
       <div class="full-view-section">
-        <h3>Thông tin cơ bản/Basic Information</h3>
+        <h3>Thông tin cơ bản</h3>
         <div class="detail-grid">
           <div class="detail-item">
             <span class="detail-label">Tên:</span>
@@ -865,57 +805,53 @@ function showFullView(docId) {
             <span class="detail-value">${doc.costCenter}</span>
           </div>                
           <div class="detail-item">
-            <span class="detail-label">Tên nhóm/Group Name:</span>
+            <span class="detail-label">Tên nhóm:</span>
             <span class="detail-value">${
-              doc.groupName || "Not specified"
+              doc.groupName || "Không xác định"
             }</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Ngày nộp/Submission Date:</span>
+            <span class="detail-label">Ngày nộp:</span>
             <span class="detail-value">${submissionDate}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Kê khai/Declaration:</span>
+            <span class="detail-label">Kê khai:</span>
             <span class="detail-value">${
-              doc.declaration || "Not specified"
+              doc.declaration || "Không xác định"
             }</span>
           </div>
         </div>
       </div>
 
-      <!-- Products Section -->
       <div class="full-view-section">
-        <h3>Sản phẩm/Products</h3>
+        <h3>Sản phẩm</h3>
         ${renderProducts(doc.products)}
       </div>
 
-      <!-- File Attachment Section -->
       <div class="full-view-section">
-        <h3>Tệp tin kèm theo/Attached File</h3>
+        <h3>Tệp tin kèm theo</h3>
         ${
           doc.fileMetadata
             ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-            : "No file attached"
+            : "Không có tệp đính kèm"
         }
       </div>
 
-      <!-- Proposals Section -->
       <div class="full-view-section">
-        <h3>Phiếu đề xuất kèm theo/Appended Proposals</h3>
+        <h3>Phiếu đề xuất kèm theo</h3>
         ${renderProposals(doc.appendedProposals)}
       </div>
 
-      <!-- Status Section -->
       <div class="full-view-section">
-        <h3>Trạng thái/Status Information</h3>
+        <h3>Thông tin trạng thái</h3>
         <div class="detail-grid">
           <div class="detail-item">
-            <span class="detail-label">Tình trạng/Status:</span>
+            <span class="detail-label">Tình trạng:</span>
             <span class="detail-value ${renderStatus(doc.status)}</span>
           </div>
         </div>
         <div style="margin-top: 16px;">
-          <h4>Trạng thái phê duyệt/Approval Status:</h4>
+          <h4>Trạng thái phê duyệt:</h4>
           <div class="approval-status">
             ${doc.approvers
               .map((approver) => {
@@ -931,8 +867,8 @@ function showFullView(docId) {
                     <div>${approver.username} (${approver.subRole})</div>
                     ${
                       hasApproved
-                        ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
-                        : '<div class="approval-date">Pending</div>'
+                        ? `<div class="approval-date">Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
+                        : '<div class="approval-date">Chưa phê duyệt</div>'
                     }
                   </div>
                 </div>
@@ -946,8 +882,8 @@ function showFullView(docId) {
 
     document.getElementById("fullViewModal").style.display = "block";
   } catch (err) {
-    console.error("Error showing full view:", err);
-    showMessage("Error loading full document details", true);
+    console.error("Lỗi khi hiển thị chi tiết:", err);
+    showMessage("Lỗi khi tải chi tiết phiếu", true);
   }
 }
 
@@ -961,21 +897,19 @@ async function initializePage() {
   const table = document.querySelector("table");
   table.parentElement.insertBefore(createToggleSwitch(), table);
 
-  // Add pagination toggle event listener
   document
     .getElementById("paginationToggle")
     .addEventListener("change", togglePagination);
 
   document.getElementById("pendingToggle").addEventListener("change", (e) => {
     showOnlyPendingApprovals = e.target.checked;
-    currentPage = 1; // Reset to first page when filter changes
+    currentPage = 1;
     fetchDeliveryDocuments();
   });
 
   fetchDeliveryDocuments();
 }
 
-// Initialize the page
 document.addEventListener("DOMContentLoaded", () => {
   addEditModal();
   initializePage();

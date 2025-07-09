@@ -1,17 +1,17 @@
 <!-- views\documentPages\documentSummaryDelivery\documentSummaryDelivery.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Phiếu xuất kho/Delivery Documents</title>
+    <title>Phiếu xuất kho</title>
     <link
       rel="stylesheet"
       href="documentPages/documentSummaryDelivery/documentSummaryDelivery.css"
     />
   </head>
   <body>
-    <h1>Phiếu xuất kho/Delivery Documents</h1>
+    <h1>Phiếu xuất kho</h1>
     <div id="messageContainer" class="message"></div>
 
     <div style="margin-bottom: 1rem; display: inline-block; margin-left: 1rem">
@@ -25,22 +25,22 @@
           checked
           style="margin-right: 0.5rem"
         />
-        <span>Hiển thị phân trang/Enable pagination</span>
+        <span>Hiển thị phân trang</span>
       </label>
     </div>
 
     <table>
       <thead>
         <tr>
-          <th>Tên/Name</th>
-          <th>Trạm/Center</th>
-          <th>Sản phẩm/Products</th>
-          <th>Tệp tin kèm theo/Attached File</th>
-          <th>Tổng chi phí/Grand Total Cost</th>
-          <th>Phiếu đề xuất kèm theo/Appended Proposals</th>
-          <th>Tình trạng/Status</th>
-          <th>Trạng thái phê duyệt/Approval Status</th>
-          <th>Hành động/Action</th>
+          <th>Tên</th>
+          <th>Trạm</th>
+          <th>Sản phẩm</th>
+          <th>Tệp tin kèm theo</th>
+          <th>Tổng chi phí</th>
+          <th>Phiếu đề xuất kèm theo</th>
+          <th>Tình trạng</th>
+          <th>Trạng thái phê duyệt</th>
+          <th>Hành động</th>
         </tr>
       </thead>
       <tbody id="deliveryDocumentsTable">
@@ -51,32 +51,32 @@
     <div id="fullViewModal" class="full-view-modal">
       <div class="full-view-content">
         <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
-        <h2 style="margin-bottom: 24px">Chi tiết đầy đủ/Full Details</h2>
+        <h2 style="margin-bottom: 24px">Chi tiết đầy đủ</h2>
         <div id="fullViewContent"></div>
       </div>
     </div>
 
     <div class="summary">
-      <h2>Tóm tắt/Summary</h2>
+      <h2>Tóm tắt</h2>
       <p>
-        Tổng chi phí đã phê duyệt/Total Approved Grand Total Cost:
+        Tổng chi phí đã phê duyệt:
         <span id="approvedSum" class="approved">0</span>
       </p>
       <p>
-        Tổng chi phí chưa phê duyệt/Total Unapproved Grand Total Cost:
+        Tổng chi phí chưa phê duyệt:
         <span id="unapprovedSum" class="unapproved">0</span>
       </p>
       <p>
-        Số phiếu đã phê duyệt/Total Approved Document:
+        Số phiếu đã phê duyệt:
         <span id="approvedDocument" class="approved">0</span>
       </p>
       <p>
-        Số phiếu chưa phê duyệt/Total Unapproved Document:
+        Số phiếu chưa phê duyệt:
         <span id="unapprovedDocument" class="unapproved">0</span>
       </p>
     </div>
-    <a href="/documentSummary">Trở về/Back</a>
+    <a href="/documentSummary">Trở về</a>
 
-    <script src="documentPages/documentSummaryDelivery/documentSummaryDelivery.js"></script>
+    <script src="documentPages/documentSummaryDelivery/documentSummaryDelivery.js?v=1.0"></script>
   </body>
 </html>
