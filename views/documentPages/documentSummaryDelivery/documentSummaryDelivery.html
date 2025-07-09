@@ -7,76 +7,99 @@
     <title>Phiếu xuất kho</title>
     <link
       rel="stylesheet"
-      href="documentPages/documentSummaryDelivery/documentSummaryDelivery.css"
+      href="documentPages/documentSummaryDelivery/documentSummaryDelivery.css?v=1.0"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
   </head>
   <body>
-    <h1>Phiếu xuất kho</h1>
-    <div id="messageContainer" class="message"></div>
+    <div class="container">
+      <div class="header">
+        <h1>📋 Phiếu xuất kho</h1>
+        <div class="header-actions">
+          <a href="/documentSummary" class="back-link">
+            <i class="fas fa-arrow-left"></i> Trở về
+          </a>
+          <a href="/documentMain" class="back-link">
+            <i class="fas fa-arrow-left"></i> Hệ thống phê duyệt
+          </a>
+          <a href="/main" class="back-link">
+            <i class="fas fa-arrow-left"></i> Trang chính
+          </a>
+        </div>
+      </div>
 
-    <div style="margin-bottom: 1rem; display: inline-block; margin-left: 1rem">
-      <label
-        for="paginationToggle"
-        style="display: flex; align-items: center; cursor: pointer"
-      >
-        <input
-          type="checkbox"
-          id="paginationToggle"
-          checked
-          style="margin-right: 0.5rem"
-        />
-        <span>Hiển thị phân trang</span>
-      </label>
-    </div>
+      <div id="messageContainer" class="message"></div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Tên</th>
-          <th>Trạm</th>
-          <th>Sản phẩm</th>
-          <th>Tệp tin kèm theo</th>
-          <th>Tổng chi phí</th>
-          <th>Phiếu đề xuất kèm theo</th>
-          <th>Tình trạng</th>
-          <th>Trạng thái phê duyệt</th>
-          <th>Hành động</th>
-        </tr>
-      </thead>
-      <tbody id="deliveryDocumentsTable">
-        <!-- Delivery documents will be populated here -->
-      </tbody>
-    </table>
+      <div class="controls">
+        <label class="toggle-switch">
+          <input type="checkbox" id="paginationToggle" checked />
+          <span>📄 Hiển thị phân trang</span>
+        </label>
+        <div class="toggle-switch">
+          <input type="checkbox" id="pendingToggle" />
+          <span>⏳ Chỉ hiện phiếu tôi cần phê duyệt</span>
+        </div>
+      </div>
 
-    <div id="fullViewModal" class="full-view-modal">
-      <div class="full-view-content">
-        <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
-        <h2 style="margin-bottom: 24px">Chi tiết đầy đủ</h2>
-        <div id="fullViewContent"></div>
+      <div class="table-container">
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>📝 Tên</th>
+                <th>🏢 Trạm</th>
+                <th>📦 Sản phẩm</th>
+                <th>📎 Tệp tin</th>
+                <th>💰 Tổng chi phí</th>
+                <th>📋 Phiếu đề xuất</th>
+                <th>📊 Tình trạng</th>
+                <th>✅ Trạng thái phê duyệt</th>
+                <th>⚙️ Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="deliveryDocumentsTable">
+              <tr>
+                <td colspan="9" class="loading">Đang tải dữ liệu...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="summary">
+        <div class="summary-card">
+          <h3>💚 Tổng chi phí đã phê duyệt</h3>
+          <p class="summary-value approved" id="approvedSum">0</p>
+        </div>
+        <div class="summary-card">
+          <h3>⏳ Tổng chi phí chưa phê duyệt</h3>
+          <p class="summary-value unapproved" id="unapprovedSum">0</p>
+        </div>
+        <div class="summary-card">
+          <h3>✅ Số phiếu đã phê duyệt</h3>
+          <p class="summary-value approved" id="approvedDocument">0</p>
+        </div>
+        <div class="summary-card">
+          <h3>📋 Số phiếu chưa phê duyệt</h3>
+          <p class="summary-value unapproved" id="unapprovedDocument">0</p>
+        </div>
+      </div>
+
+      <div id="fullViewModal" class="modal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>📄 Chi tiết đầy đủ</h2>
+            <span class="close-btn" onclick="closeFullViewModal()"
+              >&times;</span
+            >
+          </div>
+          <div id="fullViewContent"></div>
+        </div>
       </div>
     </div>
-
-    <div class="summary">
-      <h2>Tóm tắt</h2>
-      <p>
-        Tổng chi phí đã phê duyệt:
-        <span id="approvedSum" class="approved">0</span>
-      </p>
-      <p>
-        Tổng chi phí chưa phê duyệt:
-        <span id="unapprovedSum" class="unapproved">0</span>
-      </p>
-      <p>
-        Số phiếu đã phê duyệt:
-        <span id="approvedDocument" class="approved">0</span>
-      </p>
-      <p>
-        Số phiếu chưa phê duyệt:
-        <span id="unapprovedDocument" class="unapproved">0</span>
-      </p>
-    </div>
-    <a href="/documentSummary">Trở về</a>
-
-    <script src="documentPages/documentSummaryDelivery/documentSummaryDelivery.js?v=1.0"></script>
+    <script src="documentPages/documentSummaryDelivery/documentSummaryDelivery.js?v=1.1"></script>
   </body>
 </html>

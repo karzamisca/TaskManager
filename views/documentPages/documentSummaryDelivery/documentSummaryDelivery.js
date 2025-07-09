@@ -8,18 +8,6 @@ const itemsPerPage = 10;
 let totalPages = 1;
 let paginationEnabled = true;
 
-function createToggleSwitch() {
-  const toggleContainer = document.createElement("div");
-  toggleContainer.style.marginBottom = "1rem";
-  toggleContainer.innerHTML = `
-    <label class="toggle-switch" style="display: flex; align-items: center; cursor: pointer;">
-      <input type="checkbox" id="pendingToggle" style="margin-right: 0.5rem;">
-      <span>Chỉ hiện phiếu tôi cần phê duyệt</span>
-    </label>
-  `;
-  return toggleContainer;
-}
-
 async function fetchCurrentUser() {
   try {
     const response = await fetch("/getCurrentUser");
@@ -893,9 +881,6 @@ function closeFullViewModal() {
 
 async function initializePage() {
   await fetchCurrentUser();
-
-  const table = document.querySelector("table");
-  table.parentElement.insertBefore(createToggleSwitch(), table);
 
   document
     .getElementById("paginationToggle")
