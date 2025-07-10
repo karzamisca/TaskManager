@@ -115,12 +115,12 @@ const documentUtils = {
     }
 
     // Define who must approve BEFORE each user
-    // Approval order: NguyenHongNhuThuy → HoangNam → PhongTran → HuynhDiep
+    // Approval order: HoangNam → PhongTran → NguyenHongNhuThuy → HuynhDiep
     const prerequisiteApprovers = {
-      HoangNam: ["NguyenHongNhuThuy"],
-      PhongTran: ["NguyenHongNhuThuy", "HoangNam"],
-      HuynhDiep: ["NguyenHongNhuThuy", "HoangNam", "PhongTran"],
-      // NguyenHongNhuThuy has no prerequisites (can always approve first)
+      PhongTran: ["HoangNam"],
+      NguyenHongNhuThuy: ["HoangNam", "PhongTran"],
+      HuynhDiep: ["HoangNam", "PhongTran", "NguyenHongNhuThuy"],
+      // HoangNam has no prerequisites (can always approve first)
     };
 
     // Filter documents for restricted users
