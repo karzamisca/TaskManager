@@ -11,6 +11,7 @@ const state = {
   paginationEnabled: true,
   selectedDocuments: new Set(),
   currentEditDoc: null,
+  nameFilter: "",
 };
 
 // Utility functions
@@ -209,6 +210,13 @@ const filterDocumentsForCurrentUser = (documents) => {
   if (selectedCenter) {
     filteredDocs = filteredDocs.filter(
       (doc) => doc.costCenter === selectedCenter
+    );
+  }
+
+  // Apply name filter if there's a search term
+  if (state.nameFilter) {
+    filteredDocs = filteredDocs.filter((doc) =>
+      doc.name?.toLowerCase().includes(state.nameFilter)
     );
   }
 
@@ -891,11 +899,16 @@ const addProductField = (product = null) => {
       }" required step="0.01">
       <select class="product-cost-center" placeholder="Trạm">
         <option value="">Chọn trạm</option>
-        ${state.costCenters.map(center => 
-          `<option value="${center.name}" ${product?.costCenter === center.name ? 'selected' : ''}>
+        ${state.costCenters
+          .map(
+            (center) =>
+              `<option value="${center.name}" ${
+                product?.costCenter === center.name ? "selected" : ""
+              }>
             ${center.name}
           </option>`
-        ).join('')}
+          )
+          .join("")}
       </select>
       <input type="text" placeholder="Ghi chú" value="${product?.note || ""}">
       <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.parentElement.remove()">
@@ -1093,7 +1106,7 @@ const handleEditSubmit = async (event) => {
         totalCost: costPerUnit * amount,
         totalCostAfterVat:
           costPerUnit * amount + costPerUnit * amount * (vat / 100),
-        costCenter: costCenterSelect ? costCenterSelect.value : '',
+        costCenter: costCenterSelect ? costCenterSelect.value : "",
         note: productInputs[4].value,
       };
       products.push(product);
@@ -1345,9 +1358,9 @@ const exportSelectedToExcel = () => {
     documentsToExport.forEach((doc, docIndex) => {
       // Document header
       detailedData.push({
-        "STT": docIndex + 1,
+        STT: docIndex + 1,
         "Tên phiếu": doc.name || "Không có",
-        "Trạm": doc.costCenter || "Không có",
+        Trạm: doc.costCenter || "Không có",
         "Ngày nộp": doc.submissionDate || "Không có",
         "Tên sản phẩm": "",
         "Trạm sản phẩm": "",
@@ -1358,20 +1371,24 @@ const exportSelectedToExcel = () => {
         "Giá sau VAT": "",
         "Tổng sau VAT": doc.grandTotalCost || 0,
         "Ghi chú": "",
-        "Tình trạng": 
-          doc.status === "Approved" ? "Đã phê duyệt" : 
-          doc.status === "Suspended" ? "Từ chối" : "Chưa phê duyệt",
+        "Tình trạng":
+          doc.status === "Approved"
+            ? "Đã phê duyệt"
+            : doc.status === "Suspended"
+            ? "Từ chối"
+            : "Chưa phê duyệt",
         "Kê khai": doc.declaration || "Không có",
         "Lý do từ chối": doc.suspendReason || "Không có",
         "Tệp đính kèm": doc.fileMetadata ? doc.fileMetadata.name : "Không có",
         "Link tệp": doc.fileMetadata ? doc.fileMetadata.link : "",
         "Người nộp": doc.submittedBy?.username || "Không rõ",
-        "Người phê duyệt": doc.approvedBy.map(a => a.username).join(", ") || "Chưa có"
+        "Người phê duyệt":
+          doc.approvedBy.map((a) => a.username).join(", ") || "Chưa có",
       });
 
       // Products section
       let documentTotalBeforeVAT = 0;
-      
+
       if (doc.products?.length) {
         doc.products.forEach((product, productIndex) => {
           const costBeforeVAT = product.costPerUnit || 0;
@@ -1380,13 +1397,13 @@ const exportSelectedToExcel = () => {
           const amount = product.amount || 0;
           const totalBeforeVAT = costBeforeVAT * amount;
           const totalAfterVAT = costAfterVAT * amount;
-          
+
           documentTotalBeforeVAT += totalBeforeVAT;
 
           detailedData.push({
-            "STT": `SP${productIndex + 1}`,
+            STT: `SP${productIndex + 1}`,
             "Tên phiếu": "",
-            "Trạm": "",
+            Trạm: "",
             "Ngày nộp": "",
             "Tên sản phẩm": product.productName || "",
             "Trạm sản phẩm": product.costCenter || "",
@@ -1403,20 +1420,22 @@ const exportSelectedToExcel = () => {
             "Tệp đính kèm": "",
             "Link tệp": "",
             "Người nộp": "",
-            "Người phê duyệt": ""
+            "Người phê duyệt": "",
           });
         });
 
         // Update document header with calculated total before VAT
-        detailedData[detailedData.length - doc.products.length - 1]["Tổng trước VAT"] = documentTotalBeforeVAT;
+        detailedData[detailedData.length - doc.products.length - 1][
+          "Tổng trước VAT"
+        ] = documentTotalBeforeVAT;
       } else {
         detailedData.push({
-          "STT": "",
+          STT: "",
           "Tên phiếu": "",
-          "Trạm": "",
+          Trạm: "",
           "Ngày nộp": "",
           "Tên sản phẩm": "Không có sản phẩm",
-          "Trạm sản phẩm":"",
+          "Trạm sản phẩm": "",
           "Số lượng": "",
           "Giá trước VAT": "",
           "Tổng trước VAT": "",
@@ -1430,7 +1449,7 @@ const exportSelectedToExcel = () => {
           "Tệp đính kèm": "",
           "Link tệp": "",
           "Người nộp": "",
-          "Người phê duyệt": ""
+          "Người phê duyệt": "",
         });
       }
 
@@ -1439,53 +1458,56 @@ const exportSelectedToExcel = () => {
     });
 
     const detailedWs = XLSX.utils.json_to_sheet(detailedData);
-    
+
     // Calculate optimal column widths based on actual content
-    const sheetRange = XLSX.utils.decode_range(detailedWs['!ref']);
+    const sheetRange = XLSX.utils.decode_range(detailedWs["!ref"]);
     const colWidths = [];
-    
+
     // Initialize with minimum widths for headers
     const headers = Object.keys(detailedData[0] || {});
     headers.forEach((header, colIndex) => {
       colWidths[colIndex] = Math.max(header.length, 8); // Minimum 8 characters
     });
-    
+
     // Check all data rows to find maximum content length per column
     for (let rowNum = sheetRange.s.r; rowNum <= sheetRange.e.r; rowNum++) {
       for (let colNum = sheetRange.s.c; colNum <= sheetRange.e.c; colNum++) {
         const cellRef = XLSX.utils.encode_cell({ r: rowNum, c: colNum });
         const cell = detailedWs[cellRef];
-        
+
         if (cell && cell.v) {
           const cellValue = String(cell.v);
           const cellLength = cellValue.length;
-          
+
           // For Vietnamese text, add extra width as characters may be wider
-          const adjustedLength = /[àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(cellValue) 
-            ? Math.ceil(cellLength * 1.1) 
-            : cellLength;
-          
+          const adjustedLength =
+            /[àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(
+              cellValue
+            )
+              ? Math.ceil(cellLength * 1.1)
+              : cellLength;
+
           colWidths[colNum] = Math.max(colWidths[colNum] || 0, adjustedLength);
         }
       }
     }
-    
+
     // Set maximum reasonable width to prevent extremely wide columns
-    detailedWs["!cols"] = colWidths.map(width => ({
-      wch: Math.min(width + 2, 100) // Add 2 for padding, max 100 characters
+    detailedWs["!cols"] = colWidths.map((width) => ({
+      wch: Math.min(width + 2, 100), // Add 2 for padding, max 100 characters
     }));
 
     // Set row heights for better visibility
     detailedWs["!rows"] = [];
-    
+
     for (let rowNum = sheetRange.s.r; rowNum <= sheetRange.e.r; rowNum++) {
       // Check if this is a document header row (has numeric STT)
       const sttCell = detailedWs[XLSX.utils.encode_cell({ r: rowNum, c: 0 })];
-      const isDocumentHeader = sttCell && typeof sttCell.v === 'number';
-      
+      const isDocumentHeader = sttCell && typeof sttCell.v === "number";
+
       // Check if this is an empty separator row
-      const isEmptyRow = !sttCell || sttCell.v === '';
-      
+      const isEmptyRow = !sttCell || sttCell.v === "";
+
       if (isDocumentHeader) {
         // Document header rows - taller for prominence
         detailedWs["!rows"][rowNum] = { hpt: 25 };
@@ -1500,13 +1522,13 @@ const exportSelectedToExcel = () => {
 
     // Auto-wrap text for better readability in cells with long content
     const wrapTextColumns = [1, 7, 8, 9, 10, 20]; // Columns with potentially long text
-    
+
     for (let rowNum = sheetRange.s.r; rowNum <= sheetRange.e.r; rowNum++) {
-      wrapTextColumns.forEach(colNum => {
+      wrapTextColumns.forEach((colNum) => {
         const cellRef = XLSX.utils.encode_cell({ r: rowNum, c: colNum });
         if (detailedWs[cellRef]) {
           if (!detailedWs[cellRef].s) detailedWs[cellRef].s = {};
-          detailedWs[cellRef].s.alignment = { wrapText: true, vertical: 'top' };
+          detailedWs[cellRef].s.alignment = { wrapText: true, vertical: "top" };
         }
       });
     }
@@ -1576,6 +1598,12 @@ const setupEventListeners = () => {
   document.getElementById("paginationToggle").addEventListener("change", () => {
     state.paginationEnabled =
       document.getElementById("paginationToggle").checked;
+    state.currentPage = 1;
+    fetchPurchasingDocuments();
+  });
+
+  document.getElementById("nameFilter").addEventListener("input", (e) => {
+    state.nameFilter = e.target.value.trim().toLowerCase();
     state.currentPage = 1;
     fetchPurchasingDocuments();
   });

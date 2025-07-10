@@ -7,7 +7,7 @@
     <title>Phiếu mua hàng</title>
     <link
       rel="stylesheet"
-      href="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.css"
+      href="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.css?v=1.0"
     />
     <link
       rel="stylesheet"
@@ -38,6 +38,18 @@
           <input type="checkbox" id="paginationToggle" checked />
           <span class="toggle-slider"></span>
           <span class="toggle-label">Phân trang</span>
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label for="nameFilter">
+          <span>Tên:</span>
+          <input
+            type="text"
+            id="nameFilter"
+            class="filter-select"
+            placeholder="Nhập tên cần tìm..."
+          />
         </label>
       </div>
 
@@ -166,6 +178,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.js?v=1.4"></script>
+    <script src="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.js?v=1.5"></script>
   </body>
 </html>
