@@ -921,6 +921,7 @@ async function createPurchasingDocument(
       processedProposals = proposalDocs.map((doc) => ({
         task: doc.task,
         costCenter: doc.costCenter,
+        groupName: doc.groupName,
         dateOfError: doc.dateOfError,
         detailsDescription: doc.detailsDescription,
         direction: doc.direction,
@@ -1746,8 +1747,14 @@ exports.updateProposalDocument = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { task, costCenter, dateOfError, detailsDescription, direction } =
-      req.body;
+    const {
+      task,
+      costCenter,
+      dateOfError,
+      detailsDescription,
+      direction,
+      groupName,
+    } = req.body;
     const file = req.file;
 
     // Store temp file path for cleanup
@@ -1822,6 +1829,7 @@ exports.updateProposalDocument = async (req, res) => {
     doc.dateOfError = dateOfError;
     doc.detailsDescription = detailsDescription;
     doc.direction = direction;
+    doc.groupName = groupName;
 
     if (uploadedFileData) {
       doc.fileMetadata = uploadedFileData;
@@ -2414,6 +2422,7 @@ exports.updatePurchasingDocument = async (req, res) => {
     const grandTotalCost = parseFloat(req.body.grandTotalCost);
     const name = req.body.name;
     const costCenter = req.body.costCenter;
+    const groupName = req.body.groupName;
 
     // Parse appendedProposals if it exists
     let appendedProposals;
@@ -2512,6 +2521,7 @@ exports.updatePurchasingDocument = async (req, res) => {
     );
     doc.name = name;
     doc.costCenter = costCenter;
+    doc.groupName = groupName;
 
     if (appendedProposals) {
       doc.appendedProposals = appendedProposals;
@@ -2717,6 +2727,7 @@ exports.updatePaymentDocument = async (req, res) => {
       paymentDeadline,
       approvers,
       stages,
+      groupName,
     } = req.body;
     const file = req.file;
 
@@ -2846,6 +2857,7 @@ exports.updatePaymentDocument = async (req, res) => {
     doc.paymentMethod = paymentMethod;
     doc.totalPayment = parseFloat(totalPayment);
     doc.paymentDeadline = paymentDeadline;
+    doc.groupName = groupName;
 
     // Update file metadata if new file uploaded
     if (uploadedFileData) {

@@ -865,7 +865,15 @@ const addEditModal = () => {
                 <!-- Options will be populated dynamically -->
               </select>
             </div>
-            
+
+            <div class="form-group">
+              <label for="editGroupName" class="form-label">Nhóm:</label>
+              <select id="editGroupName" required class="form-select">
+                <option value="">Chọn một nhóm</option>
+                <!-- Options will be populated dynamically -->
+              </select>
+            </div>            
+
             <div class="form-group">
               <label class="form-label">Sản phẩm:</label>
               <div id="productsList" class="products-list"></div>
@@ -957,7 +965,7 @@ const addProductField = (product = null) => {
   productsList.appendChild(productDiv);
 };
 
-const populateCostCenterDropdown = async () => {
+const populateCostCenterDropdownForEditing = async () => {
   try {
     const response = await fetch("/costCenters");
     const costCenters = await response.json();
@@ -975,6 +983,27 @@ const populateCostCenterDropdown = async () => {
     });
   } catch (error) {
     console.error("Error fetching cost centers:", error);
+  }
+};
+
+const populateGroupDropdownForEditing = async () => {
+  try {
+    const response = await fetch("/getGroupDocument");
+    const groups = await response.json();
+    const dropdown = document.getElementById("editGroupName");
+
+    // Clear existing options except the first one
+    dropdown.innerHTML = '<option value="">Chọn một nhóm</option>';
+
+    // Add new options
+    groups.forEach((group) => {
+      const option = document.createElement("option");
+      option.value = group.name;
+      option.textContent = group.name;
+      dropdown.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error fetching groups for filter:", error);
   }
 };
 
@@ -1083,8 +1112,11 @@ const editDocument = async (docId) => {
     document.getElementById("editDocId").value = docId;
     document.getElementById("editName").value = doc.name;
 
-    await populateCostCenterDropdown();
+    await populateCostCenterDropdownForEditing();
     document.getElementById("editCostCenter").value = doc.costCenter;
+
+    await populateGroupDropdownForEditing();
+    document.getElementById("editGroupName").value = doc.groupName;
 
     // Clear and repopulate products
     const productsList = document.getElementById("productsList");
@@ -1122,6 +1154,7 @@ const handleEditSubmit = async (event) => {
     "costCenter",
     document.getElementById("editCostCenter").value
   );
+  formData.append("groupName", document.getElementById("editGroupName").value);
 
   // Get all products
   const products = [];
