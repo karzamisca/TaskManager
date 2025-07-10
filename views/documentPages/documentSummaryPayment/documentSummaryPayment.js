@@ -1733,7 +1733,7 @@ const exportSelectedToExcel = () => {
     // Sheet 1: Document Overview
     const overviewData = documentsToExport.map((doc, index) => ({
       STT: index + 1,
-      "Mã phiếu": doc.tag || "Không có",
+      "Tem phiếu": doc.tag || "Không có",
       "Tên phiếu": doc.name || "Không có",
       Nhóm: doc.groupName || "Không có",
       "Ngày nộp": doc.submissionDate || "Không có",
@@ -1776,7 +1776,7 @@ const exportSelectedToExcel = () => {
       // Header row for each document
       detailedData.push({
         STT: docIndex + 1,
-        "Mã phiếu": doc.tag || "Không có",
+        "Tem phiếu": doc.tag || "Không có",
         "Loại thông tin": "=== THÔNG TIN CƠ BẢN ===",
         "Chi tiết": "",
         "Giá trị": "",
@@ -1796,7 +1796,7 @@ const exportSelectedToExcel = () => {
       basicInfo.forEach(([label, value]) => {
         detailedData.push({
           STT: "",
-          "Mã phiếu": "",
+          "Tem phiếu": "",
           "Loại thông tin": label,
           "Chi tiết": value,
           "Giá trị": "",
@@ -1807,7 +1807,7 @@ const exportSelectedToExcel = () => {
       // Content section
       detailedData.push({
         STT: "",
-        "Mã phiếu": "",
+        "Tem phiếu": "",
         "Loại thông tin": "=== NỘI DUNG ===",
         "Chi tiết": "",
         "Giá trị": "",
@@ -1816,7 +1816,7 @@ const exportSelectedToExcel = () => {
 
       detailedData.push({
         STT: "",
-        "Mã phiếu": "",
+        "Tem phiếu": "",
         "Loại thông tin": "Nội dung chi tiết",
         "Chi tiết": doc.content || "Không có nội dung",
         "Giá trị": "",
@@ -1826,7 +1826,7 @@ const exportSelectedToExcel = () => {
       // Payment information
       detailedData.push({
         STT: "",
-        "Mã phiếu": "",
+        "Tem phiếu": "",
         "Loại thông tin": "=== THÔNG TIN THANH TOÁN ===",
         "Chi tiết": "",
         "Giá trị": "",
@@ -1849,7 +1849,7 @@ const exportSelectedToExcel = () => {
       paymentInfo.forEach(([label, detail, value]) => {
         detailedData.push({
           STT: "",
-          "Mã phiếu": "",
+          "Tem phiếu": "",
           "Loại thông tin": label,
           "Chi tiết": detail,
           "Giá trị": value,
@@ -1860,7 +1860,7 @@ const exportSelectedToExcel = () => {
       // File attachment
       detailedData.push({
         STT: "",
-        "Mã phiếu": "",
+        "Tem phiếu": "",
         "Loại thông tin": "=== TỆP TIN ĐÍNH KÈM ===",
         "Chi tiết": "",
         "Giá trị": "",
@@ -1869,7 +1869,7 @@ const exportSelectedToExcel = () => {
 
       detailedData.push({
         STT: "",
-        "Mã phiếu": "",
+        "Tem phiếu": "",
         "Loại thông tin": "Tệp đính kèm",
         "Chi tiết": doc.fileMetadata
           ? doc.fileMetadata.name
@@ -1882,7 +1882,7 @@ const exportSelectedToExcel = () => {
       if (doc.appendedPurchasingDocuments?.length) {
         detailedData.push({
           STT: "",
-          "Mã phiếu": "",
+          "Tem phiếu": "",
           "Loại thông tin": "=== PHIẾU MUA HÀNG KÈM THEO ===",
           "Chi tiết": "",
           "Giá trị": "",
@@ -1892,7 +1892,7 @@ const exportSelectedToExcel = () => {
         doc.appendedPurchasingDocuments.forEach((purchDoc, purchIndex) => {
           detailedData.push({
             STT: "",
-            "Mã phiếu": "",
+            "Tem phiếu": "",
             "Loại thông tin": `Phiếu mua hàng ${purchIndex + 1}`,
             "Chi tiết": purchDoc.name || "",
             "Giá trị": purchDoc.grandTotalCost || 0,
@@ -1904,7 +1904,7 @@ const exportSelectedToExcel = () => {
             purchDoc.products.forEach((product, productIndex) => {
               detailedData.push({
                 STT: "",
-                "Mã phiếu": "",
+                "Tem phiếu": "",
                 "Loại thông tin": `  └ Sản phẩm ${productIndex + 1}`,
                 "Chi tiết": product.productName || "",
                 "Giá trị": product.totalCost || 0,
@@ -1920,7 +1920,7 @@ const exportSelectedToExcel = () => {
             purchDoc.appendedProposals.forEach((proposal, propIndex) => {
               detailedData.push({
                 STT: "",
-                "Mã phiếu": "",
+                "Tem phiếu": "",
                 "Loại thông tin": `  └ Đề xuất ${propIndex + 1}`,
                 "Chi tiết": proposal.task || "",
                 "Giá trị": "",
@@ -1933,7 +1933,7 @@ const exportSelectedToExcel = () => {
               if (proposal.fileMetadata?.link) {
                 detailedData.push({
                   STT: "",
-                  "Mã phiếu": "",
+                  "Tem phiếu": "",
                   "Loại thông tin": `    └ Tệp đề xuất`,
                   "Chi tiết": proposal.fileMetadata.name || "",
                   "Giá trị": "",
@@ -1947,7 +1947,7 @@ const exportSelectedToExcel = () => {
           if (purchDoc.fileMetadata?.link) {
             detailedData.push({
               STT: "",
-              "Mã phiếu": "",
+              "Tem phiếu": "",
               "Loại thông tin": `  └ Tệp phiếu mua hàng`,
               "Chi tiết": purchDoc.fileMetadata.name || "",
               "Giá trị": "",
@@ -1960,7 +1960,7 @@ const exportSelectedToExcel = () => {
       // Approval status
       detailedData.push({
         STT: "",
-        "Mã phiếu": "",
+        "Tem phiếu": "",
         "Loại thông tin": "=== TRẠNG THÁI PHÊ DUYỆT ===",
         "Chi tiết": "",
         "Giá trị": "",
@@ -1969,7 +1969,7 @@ const exportSelectedToExcel = () => {
 
       detailedData.push({
         STT: "",
-        "Mã phiếu": "",
+        "Tem phiếu": "",
         "Loại thông tin": "Tình trạng hiện tại",
         "Chi tiết":
           doc.status === "Approved"
@@ -1989,7 +1989,7 @@ const exportSelectedToExcel = () => {
           );
           detailedData.push({
             STT: "",
-            "Mã phiếu": "",
+            "Tem phiếu": "",
             "Loại thông tin": `Người phê duyệt ${approverIndex + 1}`,
             "Chi tiết": `${approver.username} (${approver.subRole})`,
             "Giá trị": "",
@@ -2003,7 +2003,7 @@ const exportSelectedToExcel = () => {
       // Add separator row
       detailedData.push({
         STT: "",
-        "Mã phiếu": "",
+        "Tem phiếu": "",
         "Loại thông tin": "=" + "=".repeat(50),
         "Chi tiết": "",
         "Giá trị": "",
@@ -2014,7 +2014,7 @@ const exportSelectedToExcel = () => {
     const detailedWs = XLSX.utils.json_to_sheet(detailedData);
     detailedWs["!cols"] = [
       { wch: 5 }, // STT
-      { wch: 15 }, // Mã phiếu
+      { wch: 15 }, // Tem phiếu
       { wch: 25 }, // Loại thông tin
       { wch: 40 }, // Chi tiết
       { wch: 15 }, // Giá trị
@@ -2032,7 +2032,7 @@ const exportSelectedToExcel = () => {
           );
           approvalData.push({
             STT: docIndex + 1,
-            "Mã phiếu": doc.tag || "Không có",
+            "Tem phiếu": doc.tag || "Không có",
             "Tên phiếu": doc.name || "Không có",
             "Người phê duyệt": approver.username,
             "Vai trò": approver.subRole,
@@ -2081,7 +2081,7 @@ const exportSelectedToExcel = () => {
 
       financialData.push({
         STT: docIndex + 1,
-        "Mã phiếu": doc.tag || "Không có",
+        "Tem phiếu": doc.tag || "Không có",
         "Tên phiếu": doc.name || "Không có",
         "Phương thức thanh toán": doc.paymentMethod || "",
         "Tổng thanh toán": doc.totalPayment || 0,
@@ -2103,7 +2103,7 @@ const exportSelectedToExcel = () => {
       {},
       {
         STT: "",
-        "Mã phiếu": "TỔNG KẾT",
+        "Tem phiếu": "TỔNG KẾT",
         "Tên phiếu": "",
         "Phương thức thanh toán": "",
         "Tổng thanh toán": "",
@@ -2115,7 +2115,7 @@ const exportSelectedToExcel = () => {
       },
       {
         STT: "",
-        "Mã phiếu": "Đã phê duyệt",
+        "Tem phiếu": "Đã phê duyệt",
         "Tên phiếu": "",
         "Phương thức thanh toán": "",
         "Tổng thanh toán": "",
@@ -2127,7 +2127,7 @@ const exportSelectedToExcel = () => {
       },
       {
         STT: "",
-        "Mã phiếu": "Chưa phê duyệt",
+        "Tem phiếu": "Chưa phê duyệt",
         "Tên phiếu": "",
         "Phương thức thanh toán": "",
         "Tổng thanh toán": "",
@@ -2139,7 +2139,7 @@ const exportSelectedToExcel = () => {
       },
       {
         STT: "",
-        "Mã phiếu": "Từ chối",
+        "Tem phiếu": "Từ chối",
         "Tên phiếu": "",
         "Phương thức thanh toán": "",
         "Tổng thanh toán": "",
