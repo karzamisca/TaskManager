@@ -15,13 +15,14 @@ const purchasingDocumentSchema = new mongoose.Schema({
       totalCost: { type: Number, required: true }, // Cost per unit x amount
       totalCostAfterVat: { type: Number, required: true },
       note: { type: String },
-      costCenter: { type: String , default: "Chưa có"}
+      costCenter: { type: String, default: "Chưa có" },
     },
   ],
   appendedProposals: [
     {
       task: String,
       costCenter: String,
+      groupName: String,
       dateOfError: String,
       detailsDescription: String,
       direction: String,

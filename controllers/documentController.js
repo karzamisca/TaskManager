@@ -1234,6 +1234,7 @@ async function processAppendedProposals(approvedProposals) {
         return {
           task: proposal.task,
           costCenter: proposal.costCenter,
+          groupName: proposal.groupName,
           dateOfError: proposal.dateOfError,
           detailsDescription: proposal.detailsDescription,
           direction: proposal.direction,

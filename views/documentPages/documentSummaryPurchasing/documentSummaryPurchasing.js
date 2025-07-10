@@ -117,6 +117,7 @@ const renderProposals = (proposals) => {
           <div class="proposal-item">
             <div><strong>Công việc:</strong> ${proposal.task}</div>
             <div><strong>Trạм:</strong> ${proposal.costCenter}</div>
+            <div><strong>Nhóm:</strong> ${proposal.groupName}</div>
             <div><strong>Mô tả:</strong> ${proposal.detailsDescription}</div>
             ${
               proposal.fileMetadata

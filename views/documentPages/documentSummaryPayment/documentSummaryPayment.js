@@ -1763,6 +1763,7 @@ const renderPurchasingDocuments = (purchDocs) => {
                 <div class="proposal-item" style="margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
                   <div><strong>Công việc:</strong> ${proposal.task}</div>
                   <div><strong>Trạm:</strong> ${proposal.costCenter}</div>
+                  <div><strong>Nhóm:</strong> ${proposal.groupName}</div>
                   <div><strong>Mô tả:</strong> ${
                     proposal.detailsDescription
                   }</div>
@@ -1782,6 +1783,7 @@ const renderPurchasingDocuments = (purchDocs) => {
             <div class="payment-document" style="margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px;">
               <div><strong>Tên:</strong> ${purchDoc.name || ""}</div>
               <div><strong>Trạm:</strong> ${purchDoc.costCenter || ""}</div>
+              <div><strong>Nhóm:</strong> ${purchDoc.groupName || ""}</div>
               <div><strong>Tổng chi phí:</strong> ${formatCurrency(
                 purchDoc.grandTotalCost
               )}</div>

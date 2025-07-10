@@ -20,6 +20,7 @@ const deliveryDocumentSchema = new mongoose.Schema({
     {
       task: String,
       costCenter: String,
+      groupName: String,
       dateOfError: String,
       detailsDescription: String,
       direction: String,

@@ -86,7 +86,7 @@ function handlePurchasingDocument() {
 
   // Fetch current user and populate cost centers
   fetchCostCenters();
-  
+
   // Populate product cost centers
   populateProductCostCenters();
 }
@@ -427,13 +427,15 @@ async function populateProductCostCenters() {
     const costCenters = await costCenterResponse.json();
 
     // Populate each product cost center dropdown
-    document.querySelectorAll('.product-cost-center').forEach(select => {
+    document.querySelectorAll(".product-cost-center").forEach((select) => {
       // Only populate if empty (has only the default option)
       if (select.options.length <= 1) {
-        costCenters.forEach(center => {
-          if (center.allowedUsers.length === 0 || 
-              center.allowedUsers.includes(currentUser)) {
-            const option = document.createElement('option');
+        costCenters.forEach((center) => {
+          if (
+            center.allowedUsers.length === 0 ||
+            center.allowedUsers.includes(currentUser)
+          ) {
+            const option = document.createElement("option");
             option.value = center.name;
             option.textContent = center.name;
             select.appendChild(option);
@@ -462,7 +464,7 @@ function addProductEntry() {
       <label>Ghi chú</label><input type="text" name="products[${productCount}][note]" />
     `;
   productEntries.insertAdjacentHTML("beforeend", newEntry);
-  
+
   // Populate cost centers for the new product entry
   populateProductCostCenters();
 }
@@ -600,6 +602,7 @@ async function previewProposalContent(selectElement) {
       <p><strong>Tình trạng phê duyệt:</strong> ${proposal.status}<br></p>
       <p><strong>Công việc:</strong> ${proposal.task}</p>
       <p><strong>Trạm:</strong> ${proposal.costCenter}</p>
+      <p><strong>Nhóm:</strong> ${proposal.groupName}</p>
       <p><strong>Ngày xảy ra lỗi:</strong> ${proposal.dateOfError}</p>
       <p><strong>Mô tả chi tiết:</strong> ${proposal.detailsDescription}</p>
       <p><strong>Hướng xử lý:</strong> ${proposal.direction}</p>
@@ -686,6 +689,7 @@ document
           <strong>Mã:</strong> ${doc._id}<br>
           <strong>Tình trạng phê duyệt:</strong> ${doc.status}<br>
           <strong>Trạm:</strong> ${doc.costCenter ? doc.costCenter : ""}<br>
+          <strong>Nhóm:</strong> ${doc.groupName ? doc.groupName : ""}<br>
           <strong>Chi phí:</strong> ${doc.grandTotalCost.toLocaleString()}<br>
           <h3>Sản phẩm:</h3>
           <ul>
@@ -714,6 +718,7 @@ document
                       <li>
                         <strong>${proposal.task}</strong><br>
                         Trạm: ${proposal.costCenter}<br>
+                        Nhóm: ${proposal.groupName}<br>
                         Ngày xảy ra lỗi: ${proposal.dateOfError}<br>
                         Mô tả chi tiết: ${proposal.detailsDescription} <br>
                         Hướng xử lý: ${proposal.direction}<br>
@@ -815,53 +820,64 @@ async function populateProjectDropdown() {
 
 fetchApprovers();
 
-document.getElementById("submit-form").addEventListener("submit", async function(event) {
-  const approvers = document.querySelectorAll('input[name="approvers"]:checked');
-  if (approvers.length === 0) {
-    event.preventDefault();
-    alert("Xin hãy chọn ít nhất một người phê duyệt");
-    return;
-  }
-
-  // Validate product cost centers
-  const productCostCenters = document.querySelectorAll('.product-cost-center');
-  let allCostCentersValid = true;
-  
-  // Get current user's allowed cost centers
-  try {
-    const userResponse = await fetch("/getCurrentUser");
-    const userData = await userResponse.json();
-    const currentUser = userData.username;
-
-    const costCenterResponse = await fetch("/costCenters");
-    const costCenters = await costCenterResponse.json();
-    const allowedCostCenters = costCenters
-      .filter(center => center.allowedUsers.length === 0 || 
-                       center.allowedUsers.includes(currentUser))
-      .map(center => center.name);
-
-    // Check each product's cost center
-    productCostCenters.forEach(select => {
-      if (!allowedCostCenters.includes(select.value)) {
-        allCostCentersValid = false;
-        select.style.border = "1px solid red";
-      } else {
-        select.style.border = "";
-      }
-    });
-
-    if (!allCostCentersValid) {
+document
+  .getElementById("submit-form")
+  .addEventListener("submit", async function (event) {
+    const approvers = document.querySelectorAll(
+      'input[name="approvers"]:checked'
+    );
+    if (approvers.length === 0) {
       event.preventDefault();
-      alert("Một số trạm sản phẩm không hợp lệ hoặc bạn không có quyền sử dụng. Vui lòng kiểm tra lại.");
+      alert("Xin hãy chọn ít nhất một người phê duyệt");
       return;
     }
-  } catch (error) {
-    console.error("Error validating cost centers:", error);
-    event.preventDefault();
-    alert("Có lỗi xảy ra khi kiểm tra trạm sản phẩm. Vui lòng thử lại.");
-    return;
-  }
-});
+
+    // Validate product cost centers
+    const productCostCenters = document.querySelectorAll(
+      ".product-cost-center"
+    );
+    let allCostCentersValid = true;
+
+    // Get current user's allowed cost centers
+    try {
+      const userResponse = await fetch("/getCurrentUser");
+      const userData = await userResponse.json();
+      const currentUser = userData.username;
+
+      const costCenterResponse = await fetch("/costCenters");
+      const costCenters = await costCenterResponse.json();
+      const allowedCostCenters = costCenters
+        .filter(
+          (center) =>
+            center.allowedUsers.length === 0 ||
+            center.allowedUsers.includes(currentUser)
+        )
+        .map((center) => center.name);
+
+      // Check each product's cost center
+      productCostCenters.forEach((select) => {
+        if (!allowedCostCenters.includes(select.value)) {
+          allCostCentersValid = false;
+          select.style.border = "1px solid red";
+        } else {
+          select.style.border = "";
+        }
+      });
+
+      if (!allCostCentersValid) {
+        event.preventDefault();
+        alert(
+          "Một số trạm sản phẩm không hợp lệ hoặc bạn không có quyền sử dụng. Vui lòng kiểm tra lại."
+        );
+        return;
+      }
+    } catch (error) {
+      console.error("Error validating cost centers:", error);
+      event.preventDefault();
+      alert("Có lỗi xảy ra khi kiểm tra trạm sản phẩm. Vui lòng thử lại.");
+      return;
+    }
+  });
 
 document
   .getElementById("add-content-btn")

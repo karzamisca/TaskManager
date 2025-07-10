@@ -113,6 +113,7 @@ function renderProposals(proposals) {
             <div class="product-item">
               <strong>Công việc:</strong> ${proposal.task}<br>
               <strong>Trạm:</strong> ${proposal.costCenter}<br>
+              <strong>Nhóm:</strong> ${proposal.groupName}<br>
               <strong>Mô tả:</strong> ${proposal.detailsDescription}<br>
               ${
                 proposal.fileMetadata
@@ -182,7 +183,8 @@ async function fetchDeliveryDocuments() {
       const row = document.createElement("tr");
       row.innerHTML = `
         <td>${doc.name}</td>
-        <td>${doc.costCenter}</td>              
+        <td>${doc.costCenter}</td>   
+        <td>${doc.groupName}</td>           
         <td>${renderProducts(doc.products)}</td>
         <td>${
           doc.fileMetadata?.link
@@ -793,7 +795,7 @@ function showFullView(docId) {
             <span class="detail-value">${doc.costCenter}</span>
           </div>                
           <div class="detail-item">
-            <span class="detail-label">Tên nhóm:</span>
+            <span class="detail-label">Nhóm:</span>
             <span class="detail-value">${
               doc.groupName || "Không xác định"
             }</span>
