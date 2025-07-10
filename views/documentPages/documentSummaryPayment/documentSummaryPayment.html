@@ -42,6 +42,28 @@
       </div>
 
       <div class="control-group">
+        <label for="tagFilter">
+          <span>Tem:</span>
+          <input
+            type="text"
+            id="tagFilter"
+            class="filter-select"
+            placeholder="Nhập tem cần tìm..."
+          />
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label for="costCenterFilter">
+          <span>Trạm:</span>
+          <select id="costCenterFilter" class="filter-select">
+            <option value="">Tất cả</option>
+            <!-- Options will be populated dynamically -->
+          </select>
+        </label>
+      </div>
+
+      <div class="control-group">
         <label for="groupFilter">
           <span>Nhóm:</span>
           <select id="groupFilter" class="filter-select">
@@ -389,6 +411,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="documentPages/documentSummaryPayment/documentSummaryPayment.js?v=1.5"></script>
+    <script src="documentPages/documentSummaryPayment/documentSummaryPayment.js?v=1.6"></script>
   </body>
 </html>

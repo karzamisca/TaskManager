@@ -12,6 +12,7 @@ const state = {
   selectedDocuments: new Set(),
   currentEditDoc: null,
   nameFilter: "",
+  currentGroupFilter: "",
 };
 
 // Utility functions
@@ -205,6 +206,13 @@ const filterDocumentsForCurrentUser = (documents) => {
     });
   }
 
+  // Apply name filter if there's a search term
+  if (state.nameFilter) {
+    filteredDocs = filteredDocs.filter((doc) =>
+      doc.name?.toLowerCase().includes(state.nameFilter)
+    );
+  }
+
   // Apply cost center filter
   const selectedCenter = document.getElementById("costCenterFilter").value;
   if (selectedCenter) {
@@ -213,14 +221,20 @@ const filterDocumentsForCurrentUser = (documents) => {
     );
   }
 
-  // Apply name filter if there's a search term
-  if (state.nameFilter) {
-    filteredDocs = filteredDocs.filter((doc) =>
-      doc.name?.toLowerCase().includes(state.nameFilter)
+  // Apply group filter if selected
+  if (state.currentGroupFilter) {
+    filteredDocs = filteredDocs.filter(
+      (doc) => doc.groupName === state.currentGroupFilter
     );
   }
 
   return filteredDocs;
+};
+
+const filterByGroup = () => {
+  state.currentGroupFilter = document.getElementById("groupFilter").value;
+  state.currentPage = 1;
+  fetchPurchasingDocuments();
 };
 
 const populateCostCenterFilter = async () => {
@@ -249,6 +263,29 @@ const populateCostCenterFilter = async () => {
     });
   } catch (error) {
     console.error("Error fetching cost centers for filter:", error);
+  }
+};
+
+const populateGroupFilter = async () => {
+  try {
+    const response = await fetch("/getGroupDocument");
+    const groups = await response.json();
+    const filterDropdown = document.getElementById("groupFilter");
+
+    // Clear existing options except the first one
+    while (filterDropdown.options.length > 1) {
+      filterDropdown.remove(1);
+    }
+
+    // Add new options
+    groups.forEach((group) => {
+      const option = document.createElement("option");
+      option.value = group.name;
+      option.textContent = group.name;
+      filterDropdown.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error fetching groups for filter:", error);
   }
 };
 
@@ -1608,6 +1645,10 @@ const setupEventListeners = () => {
     fetchPurchasingDocuments();
   });
 
+  document
+    .getElementById("groupFilter")
+    .addEventListener("change", filterByGroup);
+
   document.addEventListener("keypress", (e) => {
     if (e.target.id === "pageInput" && e.key === "Enter") {
       goToPage();
@@ -1654,6 +1695,7 @@ const initialize = async () => {
   await fetchCurrentUser();
   setupEventListeners();
   await populateCostCenterFilter();
+  await populateGroupFilter();
   await fetchPurchasingDocuments();
   addEditModal();
 };

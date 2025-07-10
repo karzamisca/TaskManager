@@ -64,6 +64,16 @@
       </div>
 
       <div class="control-group">
+        <label for="groupFilter">
+          <span>Nhóm:</span>
+          <select id="groupFilter" class="filter-select">
+            <option value="">Tất cả</option>
+            <!-- Options will be populated dynamically -->
+          </select>
+        </label>
+      </div>
+
+      <div class="control-group">
         <label class="toggle-switch">
           <input type="checkbox" id="pendingToggle" />
           <span class="toggle-slider"></span>
@@ -178,6 +188,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.js?v=1.5"></script>
+    <script src="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.js?v=1.6"></script>
   </body>
 </html>

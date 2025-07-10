@@ -11,6 +11,8 @@ const state = {
   paginationEnabled: true,
   selectedDocuments: new Set(),
   currentEditDoc: null,
+  currentTagFilter: "",
+  currentCostCenterFilter: "",
   currentGroupFilter: "",
   currentPaymentMethodFilter: "",
 };
@@ -161,29 +163,6 @@ const fetchCurrentUser = async () => {
   }
 };
 
-const fetchGroups = async () => {
-  try {
-    const response = await fetch("/getGroupDocument");
-    const groups = await response.json();
-    const filterDropdown = document.getElementById("groupFilter");
-
-    // Clear existing options except the first one
-    while (filterDropdown.options.length > 1) {
-      filterDropdown.remove(1);
-    }
-
-    // Add new options
-    groups.forEach((group) => {
-      const option = document.createElement("option");
-      option.value = group.name;
-      option.textContent = group.name;
-      filterDropdown.appendChild(option);
-    });
-  } catch (error) {
-    console.error("Error fetching groups:", error);
-  }
-};
-
 const fetchPaymentDocuments = async () => {
   showLoading(true);
 
@@ -235,6 +214,20 @@ const fetchPaymentDocuments = async () => {
 const filterDocumentsForCurrentUser = (documents) => {
   let filteredDocs = [...documents];
 
+  // Apply tag filter if there's a search term
+  if (state.currentTagFilter) {
+    filteredDocs = filteredDocs.filter((doc) =>
+      doc.tag?.toLowerCase().includes(state.currentTagFilter)
+    );
+  }
+
+  // Apply cost center filter if selected
+  if (state.currentCostCenterFilter) {
+    filteredDocs = filteredDocs.filter(
+      (doc) => doc.costCenter === state.currentCostCenterFilter
+    );
+  }
+
   // Apply group filter if selected
   if (state.currentGroupFilter) {
     filteredDocs = filteredDocs.filter(
@@ -263,6 +256,75 @@ const filterDocumentsForCurrentUser = (documents) => {
   }
 
   return filteredDocs;
+};
+
+// Filter functions
+const filterByTag = () => {
+  state.currentTagFilter = document
+    .getElementById("tagFilter")
+    .value.toLowerCase();
+  state.currentPage = 1;
+  fetchPaymentDocuments();
+};
+
+const filterByCostCenter = () => {
+  state.currentCostCenterFilter =
+    document.getElementById("costCenterFilter").value;
+  state.currentPage = 1;
+  fetchPaymentDocuments();
+};
+
+const filterByGroup = () => {
+  state.currentGroupFilter = document.getElementById("groupFilter").value;
+  state.currentPage = 1;
+  fetchPaymentDocuments();
+};
+
+//Function to populate cost center filter
+const populateCostCenterFilter = async () => {
+  try {
+    const response = await fetch("/costCenters");
+    const costCenters = await response.json();
+    const filterDropdown = document.getElementById("costCenterFilter");
+
+    // Clear existing options except the first one
+    while (filterDropdown.options.length > 1) {
+      filterDropdown.remove(1);
+    }
+
+    // Add new options
+    costCenters.forEach((center) => {
+      const option = document.createElement("option");
+      option.value = center.name;
+      option.textContent = center.name;
+      filterDropdown.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error fetching cost centers for filter:", error);
+  }
+};
+
+const fetchGroups = async () => {
+  try {
+    const response = await fetch("/getGroupDocument");
+    const groups = await response.json();
+    const filterDropdown = document.getElementById("groupFilter");
+
+    // Clear existing options except the first one
+    while (filterDropdown.options.length > 1) {
+      filterDropdown.remove(1);
+    }
+
+    // Add new options
+    groups.forEach((group) => {
+      const option = document.createElement("option");
+      option.value = group.name;
+      option.textContent = group.name;
+      filterDropdown.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error fetching groups:", error);
+  }
 };
 
 const filterByPaymentMethod = () => {
@@ -1482,6 +1544,10 @@ const showFullView = async (docId) => {
             <span class="detail-value">${doc.name || "Không có"}</span>
           </div>
           <div class="detail-item">
+            <span class="detail-label">Trạm:</span>
+            <span class="detail-value">${doc.costCenter || "Không có"}</span>
+          </div>
+          <div class="detail-item">
             <span class="detail-label">Tên nhóm:</span>
             <span class="detail-value">${doc.groupName || "Không có"}</span>
           </div>
@@ -2220,13 +2286,6 @@ const updateSelectAllCheckbox = () => {
   selectAllCheckbox.checked = allChecked;
 };
 
-// Filter functions
-const filterByGroup = () => {
-  state.currentGroupFilter = document.getElementById("groupFilter").value;
-  state.currentPage = 1;
-  fetchPaymentDocuments();
-};
-
 // Event listeners
 const setupEventListeners = () => {
   // Toggle switches
@@ -2276,6 +2335,12 @@ const setupEventListeners = () => {
       closeFullViewModal();
     });
 
+  document.getElementById("tagFilter").addEventListener("input", filterByTag);
+
+  document
+    .getElementById("costCenterFilter")
+    .addEventListener("change", filterByCostCenter);
+
   // Group filter
   document
     .getElementById("groupFilter")
@@ -2304,6 +2369,7 @@ const setupEventListeners = () => {
 // Initialize the application
 const initialize = async () => {
   await fetchCurrentUser();
+  await populateCostCenterFilter();
   await fetchGroups();
   setupEventListeners();
   await fetchPaymentDocuments();
