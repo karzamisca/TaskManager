@@ -42,9 +42,31 @@
       </div>
 
       <div class="control-group">
+        <label for="taskFilter">
+          <span>Công việc:</span>
+          <input
+            type="text"
+            id="taskFilter"
+            class="filter-select"
+            placeholder="Nhập công việc cần tìm..."
+          />
+        </label>
+      </div>
+
+      <div class="control-group">
         <label for="costCenterFilter">
           <span>Trạm:</span>
           <select id="costCenterFilter" class="filter-select">
+            <option value="">Tất cả</option>
+            <!-- Options will be populated dynamically -->
+          </select>
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label for="groupFilter">
+          <span>Nhóm:</span>
+          <select id="groupFilter" class="filter-select">
             <option value="">Tất cả</option>
             <!-- Options will be populated dynamically -->
           </select>
@@ -77,12 +99,12 @@
             <th width="40px">Chọn</th>
             <th>Công việc</th>
             <th>Trạm</th>
+            <th>Nhóm</th>
             <th>Ngày lỗi</th>
             <th>Mô tả chi tiết</th>
             <th>Hướng xử lý</th>
             <th>Tệp tin kèm theo</th>
             <th>Ngày nộp phiếu</th>
-            <th>Tên nhóm</th>
             <th>Tình trạng</th>
             <th>Trạng thái phê duyệt</th>
             <th>Hành động</th>
@@ -160,6 +182,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="documentPages/documentSummaryProposal/documentSummaryProposal.js?v=1.2"></script>
+    <script src="documentPages/documentSummaryProposal/documentSummaryProposal.js?v=1.3"></script>
   </body>
 </html>

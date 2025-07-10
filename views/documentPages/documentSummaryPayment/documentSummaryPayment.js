@@ -1548,7 +1548,7 @@ const showFullView = async (docId) => {
             <span class="detail-value">${doc.costCenter || "Không có"}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Tên nhóm:</span>
+            <span class="detail-label">Nhóm:</span>
             <span class="detail-value">${doc.groupName || "Không có"}</span>
           </div>
           <div class="detail-item">

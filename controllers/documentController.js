@@ -107,7 +107,7 @@ const documentUtils = {
       "NguyenHongNhuThuy",
       "HoangNam",
       "PhongTran",
-      "HoaVu",
+      "HuynhDiep",
     ];
 
     if (!restrictedUsers.includes(username)) {
@@ -115,11 +115,11 @@ const documentUtils = {
     }
 
     // Define who must approve BEFORE each user
-    // Approval order: NguyenHongNhuThuy → HoangNam → PhongTran → HoaVu
+    // Approval order: NguyenHongNhuThuy → HoangNam → PhongTran → HuynhDiep
     const prerequisiteApprovers = {
       HoangNam: ["NguyenHongNhuThuy"],
       PhongTran: ["NguyenHongNhuThuy", "HoangNam"],
-      HoaVu: ["NguyenHongNhuThuy", "HoangNam", "PhongTran"],
+      HuynhDiep: ["NguyenHongNhuThuy", "HoangNam", "PhongTran"],
       // NguyenHongNhuThuy has no prerequisites (can always approve first)
     };
 
@@ -842,7 +842,11 @@ async function createProposalDocument(req, approverDetails, uploadedFileData) {
 }
 
 // Create a Purchasing Document
-async function createPurchasingDocument(req, approverDetails, uploadedFileData) {
+async function createPurchasingDocument(
+  req,
+  approverDetails,
+  uploadedFileData
+) {
   try {
     const { products, approvedProposals, costCenter } = req.body;
     const currentUser = req.user.username;
@@ -851,13 +855,15 @@ async function createPurchasingDocument(req, approverDetails, uploadedFileData) 
     const allowedCostCenters = await CostCenter.find({
       $or: [
         { allowedUsers: { $in: [currentUser] } },
-        { allowedUsers: { $size: 0 } }
-      ]
+        { allowedUsers: { $size: 0 } },
+      ],
     }).lean();
 
     // Validate document cost center
-    if (!allowedCostCenters.some(center => center.name === costCenter)) {
-      throw new Error(`You don't have permission to use cost center ${costCenter}`);
+    if (!allowedCostCenters.some((center) => center.name === costCenter)) {
+      throw new Error(
+        `You don't have permission to use cost center ${costCenter}`
+      );
     }
 
     // 2. Process products with cost center validation
@@ -865,12 +871,17 @@ async function createPurchasingDocument(req, approverDetails, uploadedFileData) 
       throw new Error("Invalid products data");
     }
 
-    const allowedCenterNames = allowedCostCenters.map(center => center.name);
+    const allowedCenterNames = allowedCostCenters.map((center) => center.name);
     const processedProducts = products.map((product, index) => {
       // Validate product cost center
-      if (!product.costCenter || !allowedCenterNames.includes(product.costCenter)) {
+      if (
+        !product.costCenter ||
+        !allowedCenterNames.includes(product.costCenter)
+      ) {
         throw new Error(
-          `Invalid or unauthorized cost center '${product.costCenter}' for product ${index + 1}`
+          `Invalid or unauthorized cost center '${
+            product.costCenter
+          }' for product ${index + 1}`
         );
       }
 
@@ -888,30 +899,33 @@ async function createPurchasingDocument(req, approverDetails, uploadedFileData) 
         totalCost,
         totalCostAfterVat,
         costCenter: product.costCenter, // Store product-level cost center
-        note: product.note || ""
+        note: product.note || "",
       };
     });
 
     // 3. Calculate grand total
     const grandTotalCost = parseFloat(
-      processedProducts.reduce((acc, product) => acc + product.totalCostAfterVat, 0)
+      processedProducts.reduce(
+        (acc, product) => acc + product.totalCostAfterVat,
+        0
+      )
     );
 
     // 4. Process appended proposals
     let processedProposals = [];
     if (approvedProposals && Array.isArray(approvedProposals)) {
       const proposalDocs = await ProposalDocument.find({
-        _id: { $in: approvedProposals }
+        _id: { $in: approvedProposals },
       }).lean();
 
-      processedProposals = proposalDocs.map(doc => ({
+      processedProposals = proposalDocs.map((doc) => ({
         task: doc.task,
         costCenter: doc.costCenter,
         dateOfError: doc.dateOfError,
         detailsDescription: doc.detailsDescription,
         direction: doc.direction,
         fileMetadata: doc.fileMetadata,
-        proposalId: doc._id
+        proposalId: doc._id,
       }));
     }
 
@@ -929,9 +943,8 @@ async function createPurchasingDocument(req, approverDetails, uploadedFileData) 
       approvers: approverDetails,
       fileMetadata: uploadedFileData,
       submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
-      status: "Pending"
+      status: "Pending",
     });
-
   } catch (error) {
     console.error("Error creating purchasing document:", error);
     throw error; // Re-throw for route handler to catch
@@ -2454,9 +2467,12 @@ exports.updatePurchasingDocument = async (req, res) => {
     }
 
     // Validate product cost centers
-    const allowedCostCenters = costCenters.map(center => center.name);
+    const allowedCostCenters = costCenters.map((center) => center.name);
     for (const product of products) {
-      if (product.costCenter && !allowedCostCenters.includes(product.costCenter)) {
+      if (
+        product.costCenter &&
+        !allowedCostCenters.includes(product.costCenter)
+      ) {
         return res.status(403).json({
           message: `You don't have permission to use cost center ${product.costCenter} for products.`,
         });
@@ -2484,10 +2500,11 @@ exports.updatePurchasingDocument = async (req, res) => {
     }
 
     // Update basic fields
-    doc.products = products.map(product => ({
+    doc.products = products.map((product) => ({
       ...product,
       totalCost: product.costPerUnit * product.amount,
-      totalCostAfterVat: (product.costPerUnit * product.amount) * (1 + (product.vat || 0) / 100)
+      totalCostAfterVat:
+        product.costPerUnit * product.amount * (1 + (product.vat || 0) / 100),
     }));
     doc.grandTotalCost = doc.products.reduce(
       (sum, product) => sum + product.totalCostAfterVat,

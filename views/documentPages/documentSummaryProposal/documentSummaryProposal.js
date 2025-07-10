@@ -11,6 +11,8 @@ const state = {
   paginationEnabled: true,
   selectedDocuments: new Set(),
   currentEditDoc: null,
+  taskFilter: "",
+  currentGroupFilter: "",
 };
 
 // Utility functions
@@ -134,6 +136,13 @@ const filterDocumentsForCurrentUser = (documents) => {
     });
   }
 
+  // Apply task filter if there's a search term
+  if (state.taskFilter) {
+    filteredDocs = filteredDocs.filter((doc) =>
+      doc.task?.toLowerCase().includes(state.taskFilter)
+    );
+  }
+
   // Apply cost center filter
   const selectedCenter = document.getElementById("costCenterFilter").value;
   if (selectedCenter) {
@@ -142,7 +151,20 @@ const filterDocumentsForCurrentUser = (documents) => {
     );
   }
 
+  // Apply group filter if selected
+  if (state.currentGroupFilter) {
+    filteredDocs = filteredDocs.filter(
+      (doc) => doc.groupName === state.currentGroupFilter
+    );
+  }
+
   return filteredDocs;
+};
+
+const filterByGroup = () => {
+  state.currentGroupFilter = document.getElementById("groupFilter").value;
+  state.currentPage = 1;
+  fetchProposalDocuments();
 };
 
 const populateCostCenterFilter = async () => {
@@ -171,6 +193,29 @@ const populateCostCenterFilter = async () => {
     });
   } catch (error) {
     console.error("Error fetching cost centers for filter:", error);
+  }
+};
+
+const populateGroupFilter = async () => {
+  try {
+    const response = await fetch("/getGroupDocument");
+    const groups = await response.json();
+    const filterDropdown = document.getElementById("groupFilter");
+
+    // Clear existing options except the first one
+    while (filterDropdown.options.length > 1) {
+      filterDropdown.remove(1);
+    }
+
+    // Add new options
+    groups.forEach((group) => {
+      const option = document.createElement("option");
+      option.value = group.name;
+      option.textContent = group.name;
+      filterDropdown.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error fetching groups for filter:", error);
   }
 };
 
@@ -223,6 +268,7 @@ const renderDocumentsTable = (documents) => {
         }
       </td>
       <td>${doc.costCenter || ""}</td>
+      <td>${doc.groupName || ""}</td>
       <td>${doc.dateOfError || ""}</td>
       <td>${doc.detailsDescription || ""}</td>
       <td>${doc.direction || ""}</td>
@@ -232,7 +278,6 @@ const renderDocumentsTable = (documents) => {
           : "-"
       }</td>
       <td>${doc.submissionDate || ""}</td>
-      <td>${doc.groupName || ""}</td>
       <td>${renderStatus(doc.status)}</td>
       <td class="approval-status">${approvalStatus}</td>
       <td>
@@ -622,7 +667,7 @@ const showFullView = (docId) => {
             <span class="detail-value">${doc.costCenter}</span>
           </div>                
           <div class="detail-item">
-            <span class="detail-label">Tên nhóm:</span>
+            <span class="detail-label">Nhóm:</span>
             <span class="detail-value">${doc.groupName || "Không có"}</span>
           </div>
           <div class="detail-item">
@@ -1149,7 +1194,7 @@ const exportSelectedToExcel = async () => {
       "Hướng xử lý": doc.direction || "",
       "Tệp tin kèm theo": doc.fileMetadata?.name || "",
       "Ngày nộp phiếu": doc.submissionDate || "",
-      "Tên nhóm": doc.groupName || "",
+      Nhóm: doc.groupName || "",
       "Tình trạng": doc.status || "",
       "Kê khai": doc.declaration || "",
       "Lý do từ chối": doc.suspendReason || "",
@@ -1241,6 +1286,16 @@ const setupEventListeners = () => {
     fetchProposalDocuments();
   });
 
+  document.getElementById("taskFilter").addEventListener("input", (e) => {
+    state.taskFilter = e.target.value.trim().toLowerCase();
+    state.currentPage = 1;
+    fetchProposalDocuments();
+  });
+
+  document
+    .getElementById("groupFilter")
+    .addEventListener("change", filterByGroup);
+
   document.addEventListener("keypress", (e) => {
     if (e.target.id === "pageInput" && e.key === "Enter") {
       goToPage();
@@ -1287,6 +1342,7 @@ const initialize = async () => {
   await fetchCurrentUser();
   setupEventListeners();
   await populateCostCenterFilter();
+  await populateGroupFilter();
   await fetchProposalDocuments();
   addEditModal();
 };
