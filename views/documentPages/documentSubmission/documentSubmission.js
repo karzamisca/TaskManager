@@ -874,7 +874,6 @@ document
     } catch (error) {
       console.error("Error validating cost centers:", error);
       event.preventDefault();
-      alert("Có lỗi xảy ra khi kiểm tra trạm sản phẩm. Vui lòng thử lại.");
       return;
     }
   });

@@ -1571,7 +1571,10 @@ exports.getApprovedProposalsForPurchasing = async (req, res) => {
     // Fetch all approved proposal documents
     const approvedProposals = await ProposalDocument.find({
       status: "Approved",
-    }).populate("submittedBy approvers.approver approvedBy.user");
+    })
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
 
     // Fetch all purchasing documents to check which proposals are already attached
     const PurchasingDocument = require("../models/DocumentPurchasing.js");
@@ -1642,7 +1645,10 @@ exports.getApprovedProposalsForDelivery = async (req, res) => {
     // Fetch all approved proposal documents
     const approvedProposals = await ProposalDocument.find({
       status: "Approved",
-    }).populate("submittedBy approvers.approver approvedBy.user");
+    })
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
 
     // Fetch all purchasing documents to check which proposals are already attached
     const DeliveryDocument = require("../models/DocumentDelivery.js");
@@ -1860,7 +1866,10 @@ exports.getProposalDocumentForSeparatedView = async (req, res) => {
     // Find documents that the user has access to
     const proposalDocuments = await ProposalDocument.find(
       documentUtils.filterDocumentsByUserAccess(userId, userRole)
-    ).populate("submittedBy approvers.approver approvedBy.user");
+    )
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
 
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
@@ -1889,7 +1898,10 @@ exports.getProposalDocumentForSeparatedView = async (req, res) => {
 exports.getProposalDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const document = await ProposalDocument.findById(id);
+    const document = await ProposalDocument.findById(id)
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
     if (!document) {
       return res.status(404).json({ message: "Document not found" });
     }
@@ -2023,7 +2035,10 @@ exports.getApprovedPurchasingDocumentsForPayment = async (req, res) => {
     // First get all approved purchasing documents
     const approvedPurchasingDocs = await PurchasingDocument.find({
       status: "Approved",
-    }).populate("submittedBy approvers.approver approvedBy.user");
+    })
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
 
     // Then get all payment documents to check which purchasing documents are attached
     const paymentDocuments = await PaymentDocument.find({});
@@ -2103,7 +2118,10 @@ exports.getApprovedPurchasingDocumentsForAdvancePayment = async (req, res) => {
     // First get all approved purchasing documents
     const approvedPurchasingDocs = await PurchasingDocument.find({
       status: "Approved",
-    }).populate("submittedBy approvers.approver approvedBy.user");
+    })
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
 
     // Then get all payment documents to check which purchasing documents are attached
     const advancePaymentDocuments = await AdvancePaymentDocument.find({});
@@ -2186,7 +2204,10 @@ exports.getApprovedPurchasingDocumentsForAdvancePaymentReclaim = async (
     // First get all approved purchasing documents
     const approvedPurchasingDocs = await PurchasingDocument.find({
       status: "Approved",
-    }).populate("submittedBy approvers.approver approvedBy.user");
+    })
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
 
     // Then get all payment documents to check which purchasing documents are attached
     const advancePaymentReclaimDocuments =
@@ -2343,7 +2364,10 @@ exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
     // Find documents that the user has access to
     const purchasingDocuments = await PurchasingDocument.find(
       documentUtils.filterDocumentsByUserAccess(userId, userRole)
-    ).populate("submittedBy approvers.approver approvedBy.user");
+    )
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
 
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
@@ -2387,7 +2411,10 @@ exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
 exports.getPurchasingDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const document = await PurchasingDocument.findById(id);
+    const document = await PurchasingDocument.findById(id)
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
     if (!document) {
       return res.status(404).json({ message: "Document not found" });
     }
@@ -2682,7 +2709,10 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
     // Find documents that the user has access to
     const paymentDocuments = await PaymentDocument.find(
       documentUtils.filterDocumentsByUserAccess(userId, userRole)
-    ).populate("submittedBy approvers.approver approvedBy.user");
+    )
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
 
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
@@ -2705,7 +2735,10 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
 exports.getPaymentDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const document = await PaymentDocument.findById(id);
+    const document = await PaymentDocument.findById(id)
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
 
     if (!document) {
       return res.status(404).json({ message: "Document not found" });
@@ -3070,7 +3103,10 @@ exports.getAdvancePaymentDocumentForSeparatedView = async (req, res) => {
     // Find documents that the user has access to
     const advancePaymentDocuments = await AdvancePaymentDocument.find(
       documentUtils.filterDocumentsByUserAccess(userId, userRole)
-    ).populate("submittedBy approvers.approver approvedBy.user");
+    )
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
 
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
@@ -3093,7 +3129,10 @@ exports.getAdvancePaymentDocumentForSeparatedView = async (req, res) => {
 exports.getAdvancePaymentDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const document = await AdvancePaymentDocument.findById(id);
+    const document = await AdvancePaymentDocument.findById(id)
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
 
     if (!document) {
       return res.status(404).json({ message: "Document not found" });
@@ -3305,7 +3344,10 @@ exports.getAdvancePaymentReclaimDocumentForSeparatedView = async (req, res) => {
     const advancePaymentReclaimDocuments =
       await AdvancePaymentReclaimDocument.find(
         documentUtils.filterDocumentsByUserAccess(userId, userRole)
-      ).populate("submittedBy approvers.approver approvedBy.user");
+      )
+        .populate("submittedBy", "username")
+        .populate("approvers.approver", "username role")
+        .populate("approvedBy.user", "username");
 
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
@@ -3328,7 +3370,10 @@ exports.getAdvancePaymentReclaimDocumentForSeparatedView = async (req, res) => {
 exports.getAdvancePaymentReclaimDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const document = await AdvancePaymentReclaimDocument.findById(id);
+    const document = await AdvancePaymentReclaimDocument.findById(id)
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
 
     if (!document) {
       return res.status(404).json({ message: "Document not found" });
@@ -3543,7 +3588,10 @@ exports.getDeliveryDocumentsForSeparatedView = async (req, res) => {
     // Find documents that the user has access to
     const deliveryDocuments = await DeliveryDocument.find(
       documentUtils.filterDocumentsByUserAccess(userId, userRole)
-    ).populate("submittedBy approvers.approver approvedBy.user");
+    )
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
 
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
@@ -3573,7 +3621,10 @@ exports.getDeliveryDocumentsForSeparatedView = async (req, res) => {
 exports.getDeliveryDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const document = await DeliveryDocument.findById(id);
+    const document = await DeliveryDocument.findById(id)
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
     if (!document) {
       return res.status(404).json({ message: "Document not found" });
     }
@@ -3754,7 +3805,10 @@ exports.getProjectProposalsForSeparatedView = async (req, res) => {
     // Find documents that the user has access to
     const projectProposals = await ProjectProposalDocument.find(
       documentUtils.filterDocumentsByUserAccess(userId, userRole)
-    ).populate("submittedBy approvers.approver approvedBy.user");
+    )
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
 
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
@@ -3785,7 +3839,10 @@ exports.getProjectProposalsForSeparatedView = async (req, res) => {
 exports.getProjectProposal = async (req, res) => {
   try {
     const { id } = req.params;
-    const document = await ProjectProposalDocument.findById(id);
+    const document = await ProjectProposalDocument.findById(id)
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
     if (!document) {
       return res.status(404).json({ message: "Document not found" });
     }
@@ -3991,7 +4048,7 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
         })
         .populate("submittedBy", "username")
         .populate("approvers.approver", "username role")
-        .lean();
+        .populate("approvedBy.user", "username");
 
       // Apply username-specific filtering for restricted users
       const filteredDocs = documentUtils.filterDocumentsByUsername(

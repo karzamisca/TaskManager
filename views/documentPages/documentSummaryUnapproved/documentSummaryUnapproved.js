@@ -18,6 +18,61 @@ const elements = {
   exportBtn: document.getElementById("exportBtn"),
   modalTitle: document.getElementById("modalTitle"),
   modalDocumentList: document.getElementById("modalDocumentList"),
+  documentDetailsModal: document.getElementById("documentDetailsModal"),
+  documentDetailsBody: document.getElementById("documentDetailsBody"),
+  documentDetailsTitle: document.getElementById("documentDetailsTitle"),
+};
+
+// Document type configurations
+const documentTypes = {
+  generic: {
+    name: "Chung",
+    icon: "bi-file-earmark-text",
+    color: "primary",
+    endpoint: "/getDocument",
+  },
+  proposal: {
+    name: "Đề xuất",
+    icon: "bi-file-earmark-medical",
+    color: "success",
+    endpoint: "/getProposalDocument",
+  },
+  purchasing: {
+    name: "Mua hàng",
+    icon: "bi-cart",
+    color: "info",
+    endpoint: "/getPurchasingDocument",
+  },
+  delivery: {
+    name: "Xuất kho",
+    icon: "bi-truck",
+    color: "warning",
+    endpoint: "/getDeliveryDocument",
+  },
+  payment: {
+    name: "Thanh toán",
+    icon: "bi-cash-stack",
+    color: "danger",
+    endpoint: "/getPaymentDocument",
+  },
+  advance_payment: {
+    name: "Tạm ứng",
+    icon: "bi-currency-exchange",
+    color: "secondary",
+    endpoint: "/getAdvancePaymentDocument",
+  },
+  advance_reclaim: {
+    name: "Thu hồi tạm ứng",
+    icon: "bi-arrow-counterclockwise",
+    color: "dark",
+    endpoint: "/getAdvancePaymentReclaimDocument",
+  },
+  project_proposal: {
+    name: "Đề nghị mở dự án",
+    icon: "bi-file-earmark-ppt",
+    color: "primary",
+    endpoint: "/getProjectProposal",
+  },
 };
 
 // Initialize the dashboard
@@ -60,10 +115,7 @@ async function loadDashboardData() {
 function updateUserInfo() {
   if (!appData.user) return;
 
-  // Set welcome message
   elements.welcomeMessage.textContent = `Xin chào ${appData.user.username}!`;
-
-  // Update user avatar and info
   const initials = appData.user.username
     .split(" ")
     .map((n) => n[0])
@@ -73,106 +125,51 @@ function updateUserInfo() {
   elements.usernameDisplay.textContent = appData.user.username;
 }
 
-// Render the main dashboard cards
+// Render the main dashboard
 function renderDashboard() {
   if (!appData.summaries) return;
-
   renderSummaryCards();
   renderRecentDocuments();
 }
 
 // Render the summary cards
 function renderSummaryCards() {
-  const documentTypes = [
-    {
-      name: "Chung",
-      key: "generic",
-      icon: "bi-file-earmark-text",
-      color: "primary",
-    },
-    {
-      name: "Đề xuất",
-      key: "proposal",
-      icon: "bi-file-earmark-medical",
-      color: "success",
-    },
-    {
-      name: "Mua hàng",
-      key: "purchasing",
-      icon: "bi-cart",
-      color: "info",
-    },
-    {
-      name: "Xuất kho",
-      key: "delivery",
-      icon: "bi-truck",
-      color: "warning",
-    },
-    {
-      name: "Thanh toán",
-      key: "payment",
-      icon: "bi-cash-stack",
-      color: "danger",
-    },
-    {
-      name: "Tạm ứng",
-      key: "advance_payment",
-      icon: "bi-currency-exchange",
-      color: "secondary",
-    },
-    {
-      name: "Thu hồi tạm ứng",
-      key: "advance_reclaim",
-      icon: "bi-arrow-counterclockwise",
-      color: "dark",
-    },
-    {
-      name: "Đề nghị mở dự án",
-      key: "project_proposal",
-      icon: "bi-file-earmark-ppt",
-      color: "primary",
-    },
-  ];
-
-  elements.documentCards.innerHTML = documentTypes
-    .map((type) => {
-      const summary = appData.summaries[type.key] || {
-        count: 0,
-        documents: [],
-      };
-      const cardClass = `summary-card ${type.key.replace("_", "-")}`;
+  elements.documentCards.innerHTML = Object.entries(documentTypes)
+    .map(([key, type]) => {
+      const summary = appData.summaries[key] || { count: 0, documents: [] };
       const badgeClass =
         summary.count > 0 ? `bg-${type.color}` : "bg-secondary";
 
       return `
-          <div class="col">
-            <div class="card ${cardClass} h-100" onclick="showDocuments('${
-        type.key
-      }', '${type.name}')">
-              <div class="card-body text-center">
-                <div class="document-icon text-${type.color}">
-                  <i class="bi ${type.icon}"></i>
-                </div>
-                <h5 class="card-title">${type.name}</h5>
-                <span class="badge ${badgeClass} badge-count">${
+        <div class="col">
+          <div class="card summary-card ${key.replace(
+            "_",
+            "-"
+          )} h-100" onclick="showDocuments('${key}', '${type.name}')">
+            <div class="card-body text-center">
+              <div class="document-icon text-${type.color}">
+                <i class="bi ${type.icon}"></i>
+              </div>
+              <h5 class="card-title">${type.name}</h5>
+              <span class="badge ${badgeClass} badge-count">${
         summary.count
       }</span>
-                <p class="card-text mt-2 text-muted">
-                  ${summary.count > 0 ? "Cần bạn phê duyệt" : "Đã cập nhật"}
-                </p>
-                ${
-                  summary.count > 0
-                    ? `
-                  <button class="btn btn-sm btn-outline-${type.color} mt-2">
-                    <i class="bi bi-eye"></i> Xem lại
-                  </button>
-                `
-                    : ""
-                }
-              </div>
+              <p class="card-text mt-2 text-muted">
+                ${summary.count > 0 ? "Cần bạn phê duyệt" : "Đã cập nhật"}
+              </p>
+              ${
+                summary.count > 0
+                  ? `
+                <button class="btn btn-sm btn-outline-${type.color} mt-2">
+                  <i class="bi bi-eye"></i> Xem lại
+                </button>
+              `
+                  : ""
+              }
             </div>
           </div>
-        `;
+        </div>
+      `;
     })
     .join("");
 }
@@ -181,35 +178,49 @@ function renderSummaryCards() {
 function renderRecentDocuments() {
   if (!appData.summaries) return;
 
-  // Get all documents from all categories, sorted by date
   const allDocuments = Object.values(appData.summaries)
     .flatMap((summary) => summary.documents)
-    .sort((a, b) => b.submissionDate - a.submissionDate)
-    .slice(0, 5); // Show only 5 most recent
+    .sort(
+      (a, b) =>
+        new Date(b.submissionDate.split("-").reverse().join("-")) -
+        new Date(a.submissionDate.split("-").reverse().join("-"))
+    )
+    .slice(0, 5);
 
   if (allDocuments.length === 0) {
     elements.recentDocuments.innerHTML = `
-          <div class="alert alert-info mb-0">
-            <i class="bi bi-check-circle"></i> Không có phiếu nào đang chờ phê duyệt
-          </div>
-        `;
+      <div class="alert alert-info mb-0">
+        <i class="bi bi-check-circle"></i> Không có phiếu nào đang chờ phê duyệt
+      </div>
+    `;
     return;
   }
 
   elements.recentDocuments.innerHTML = allDocuments
     .map(
       (doc) => `
-        <a href="/viewDocument/${
-          doc.id
-        }" class="list-group-item list-group-item-action document-item">
-          <div class="d-flex w-100 justify-content-between">
-            <h6 class="mb-1">${doc.tag || doc.name || doc.task}</h6>
-            <small>${doc.submissionDate}</small>
-          </div>
-          <p class="mb-1">Gửi bởi ${doc.submittedBy}</p>
-          <small class="text-muted">Nhấn để xem lại</small>
-        </a>
-      `
+      <div class="list-group-item document-item">
+        <div class="d-flex w-100 justify-content-between">
+          <h6 class="mb-1">${doc.tag || doc.name || doc.task}</h6>
+          <small>${doc.submissionDate}</small>
+        </div>
+        <p class="mb-1">Gửi bởi ${doc.submittedBy}</p>
+        <div class="d-flex gap-2 mt-2">
+          <button onclick="approveDocument('${doc.type || "generic"}', '${
+        doc.id
+      }')" 
+                  class="btn btn-sm btn-success">
+            <i class="bi bi-check-circle"></i> Duyệt
+          </button>
+          <button onclick="viewDocumentDetails('${doc.type || "generic"}', '${
+        doc.id
+      }')" 
+                  class="btn btn-sm btn-primary">
+            <i class="bi bi-eye"></i> Xem chi tiết
+          </button>
+        </div>
+      </div>
+    `
     )
     .join("");
 }
@@ -217,45 +228,42 @@ function renderRecentDocuments() {
 // Show documents modal for a specific type
 function showDocuments(typeKey, typeName) {
   const summary = appData.summaries[typeKey];
+  const typeConfig = documentTypes[typeKey];
 
-  elements.modalTitle.innerHTML = `<i class="bi ${getDocumentIcon(
-    typeKey
-  )}"></i> Phiếu ${typeName} đang chờ phê duyệt`;
+  elements.modalTitle.innerHTML = `<i class="bi ${typeConfig.icon}"></i> Phiếu ${typeName} đang chờ phê duyệt`;
 
   if (!summary || summary.count === 0) {
     elements.modalDocumentList.innerHTML = `
-            <tr>
-              <td colspan="4" class="text-center py-4">
-                <div class="alert alert-info mb-0">
-                  <i class="bi bi-check-circle"></i> Không có phiếu ${typeName.toLowerCase()} nào cần bạn phê duyệt
-                </div>
-              </td>
-            </tr>
-          `;
+      <tr>
+        <td colspan="4" class="text-center py-4">
+          <div class="alert alert-info mb-0">
+            <i class="bi bi-check-circle"></i> Không có phiếu ${typeName.toLowerCase()} nào cần bạn phê duyệt
+          </div>
+        </td>
+      </tr>
+    `;
   } else {
     elements.modalDocumentList.innerHTML = summary.documents
       .map(
         (doc) => `
-              <tr>
-                <td>${doc.tag || doc.name || doc.task}</td>
-                <td>${doc.submittedBy}</td>
-                <td>${doc.submissionDate}</td>
-                <td>
-                  <div class="d-flex gap-2">
-                    <button onclick="approveDocument('${typeKey}', '${
-          doc.id
-        }')" class="btn btn-sm btn-success">
-                      <i class="bi bi-check-circle"></i> Duyệt
-                    </button>
-                    <a href="/viewDocument/${
-                      doc.id
-                    }" class="btn btn-sm btn-primary">
-                      <i class="bi bi-eye"></i> Xem đầy đủ
-                    </a>
-                  </div>
-                </td>
-              </tr>
-            `
+        <tr>
+          <td>${doc.tag || doc.name || doc.task}</td>
+          <td>${doc.submittedBy}</td>
+          <td>${doc.submissionDate}</td>
+          <td>
+            <div class="d-flex gap-2">
+              <button onclick="approveDocument('${typeKey}', '${doc.id}')" 
+                      class="btn btn-sm btn-success">
+                <i class="bi bi-check-circle"></i> Duyệt
+              </button>
+              <button onclick="viewDocumentDetails('${typeKey}', '${doc.id}')" 
+                      class="btn btn-sm btn-primary">
+                <i class="bi bi-eye"></i> Xem chi tiết
+              </button>
+            </div>
+          </td>
+        </tr>
+      `
       )
       .join("");
   }
@@ -263,8 +271,446 @@ function showDocuments(typeKey, typeName) {
   new bootstrap.Modal(document.getElementById("documentsModal")).show();
 }
 
+// View document details in modal
+async function viewDocumentDetails(type, id) {
+  try {
+    showLoadingInDetailsModal();
+
+    const typeConfig = documentTypes[type] || documentTypes.generic;
+    elements.documentDetailsTitle.innerHTML = `<i class="bi ${typeConfig.icon}"></i> Đang tải chi tiết phiếu...`;
+
+    const modal = new bootstrap.Modal(elements.documentDetailsModal);
+    modal.show();
+
+    const response = await fetch(`${typeConfig.endpoint}/${id}`);
+    if (!response.ok) throw new Error("Failed to fetch document");
+
+    const document = await response.json();
+    renderDocumentDetails(type, document);
+  } catch (error) {
+    console.error("Error loading document details:", error);
+    showErrorInDetailsModal("Không thể tải chi tiết phiếu");
+  }
+}
+
+// Show loading state in details modal
+function showLoadingInDetailsModal() {
+  elements.documentDetailsBody.innerHTML = `
+    <div class="d-flex justify-content-center py-4">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+  `;
+}
+
+// Show error in details modal
+function showErrorInDetailsModal(message) {
+  elements.documentDetailsBody.innerHTML = `
+    <div class="alert alert-danger">
+      <i class="bi bi-exclamation-triangle"></i> ${message}
+    </div>
+  `;
+}
+
+// Render document details in modal
+function renderDocumentDetails(type, document) {
+  const typeConfig = documentTypes[type] || documentTypes.generic;
+
+  elements.documentDetailsTitle.innerHTML = `<i class="bi ${
+    typeConfig.icon
+  }"></i> ${document.name || document.title || "Chi tiết phiếu"}`;
+
+  let detailsHtml = `
+    <div class="card mb-3">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Thông tin cơ bản</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <p><strong>Người gửi:</strong> ${
+              document.submittedBy?.username || "Không rõ"
+            }</p>
+            <p><strong>Ngày gửi:</strong> ${document.submissionDate}</p>
+          </div>
+          <div class="col-md-6">
+            <p><strong>Trạng thái:</strong> <span class="badge bg-${getStatusBadgeColor(
+              document.status
+            )}">
+              ${document.status || "Pending"}
+            </span></p>
+            ${
+              document.costCenter
+                ? `<p><strong>Trung tâm chi phí:</strong> ${document.costCenter}</p>`
+                : ""
+            }
+          </div>
+        </div>
+  `;
+
+  // Add type-specific details
+  switch (type) {
+    case "proposal":
+      detailsHtml += addProposalDetails(document);
+      break;
+    case "purchasing":
+      detailsHtml += addPurchasingDetails(document);
+      break;
+    case "payment":
+      detailsHtml += addPaymentDetails(document);
+      break;
+    case "advance_payment":
+    case "advance_reclaim":
+      detailsHtml += addAdvancePaymentDetails(document, type);
+      break;
+    case "delivery":
+      detailsHtml += addDeliveryDetails(document);
+      break;
+    case "project_proposal":
+      detailsHtml += addProjectProposalDetails(document);
+      break;
+  }
+
+  // Add file attachment if exists
+  if (document.fileMetadata?.name) {
+    detailsHtml += `
+      <hr>
+      <h6>Tệp đính kèm</h6>
+      <p>
+        <a href="${
+          document.fileMetadata.link || "#"
+        }" target="_blank" class="text-decoration-none">
+          <i class="bi bi-file-earmark"></i> ${document.fileMetadata.name}
+          ${
+            document.fileMetadata.size
+              ? `(${formatFileSize(document.fileMetadata.size)})`
+              : ""
+          }
+        </a>
+      </p>
+    `;
+  }
+
+  detailsHtml += `</div></div>`;
+  elements.documentDetailsBody.innerHTML = detailsHtml;
+}
+
+// Helper function to get badge color based on status
+function getStatusBadgeColor(status) {
+  switch (status?.toLowerCase()) {
+    case "approved":
+      return "success";
+    case "suspended":
+      return "danger";
+    default:
+      return "warning";
+  }
+}
+
+// Format file size
+function formatFileSize(bytes) {
+  if (!bytes) return "";
+  if (bytes < 1024) return bytes + " bytes";
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / 1048576).toFixed(1) + " MB";
+}
+
+// Add proposal-specific details
+function addProposalDetails(document) {
+  return `
+    <hr>
+    <h6>Thông tin đề xuất</h6>
+    <p><strong>Công việc:</strong> ${document.task}</p>
+    <p><strong>Ngày phát sinh:</strong> ${document.dateOfError}</p>
+    <p><strong>Mô tả:</strong> ${document.detailsDescription}</p>
+    <p><strong>Hướng giải quyết:</strong> ${document.direction}</p>
+    ${
+      document.declaration
+        ? `
+      <hr>
+      <h6>Kê khai</h6>
+      <div class="bg-light p-2 rounded">${document.declaration}</div>
+    `
+        : ""
+    }
+  `;
+}
+
+// Add purchasing-specific details
+function addPurchasingDetails(document) {
+  let html = "";
+
+  if (document.products?.length > 0) {
+    html += `
+      <hr>
+      <h6>Danh sách sản phẩm</h6>
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Tên sản phẩm</th>
+              <th>Trạm</th>
+              <th>Số lượng</th>
+              <th>Đơn giá</th>
+              <th>VAT</th>
+              <th>Thành tiền</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${document.products
+              .map(
+                (product) => `
+              <tr>
+                <td>${product.productName}</td>
+                <td>${product.costCenter}</td>
+                <td>${product.amount}</td>
+                <td>${formatCurrency(product.costPerUnit)}</td>
+                <td>${product.vat}%</td>
+                <td>${formatCurrency(product.totalCostAfterVat)}</td>
+              </tr>
+            `
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+      <p class="text-end fw-bold">Tổng cộng: ${formatCurrency(
+        document.grandTotalCost
+      )}</p>
+    `;
+  }
+
+  if (document.declaration) {
+    html += `
+      <hr>
+      <h6>Kê khai</h6>
+      <div class="bg-light p-2 rounded">${document.declaration}</div>
+    `;
+  }
+
+  return html;
+}
+
+// Add payment-specific details
+function addPaymentDetails(document) {
+  let html = `
+    <hr>
+    <h6>Thông tin thanh toán</h6>
+    <p><strong>Phương thức thanh toán:</strong> ${document.paymentMethod}</p>
+    <p><strong>Tổng thanh toán:</strong> ${formatCurrency(
+      document.totalPayment
+    )}</p>
+    ${
+      document.advancePayment
+        ? `<p><strong>Đã tạm ứng:</strong> ${formatCurrency(
+            document.advancePayment
+          )}</p>`
+        : ""
+    }
+    <p><strong>Hạn thanh toán:</strong> ${
+      document.paymentDeadline || "Không xác định"
+    }</p>
+  `;
+
+  if (document.stages?.length > 0) {
+    html += `
+      <hr>
+      <h6>Các giai đoạn thanh toán</h6>
+      <div class="accordion" id="paymentStagesAccordion">
+        ${document.stages
+          .map(
+            (stage, index) => `
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="stageHeading${index}">
+              <button class="accordion-button ${index > 0 ? "collapsed" : ""}" 
+                      type="button" data-bs-toggle="collapse" 
+                      data-bs-target="#stageCollapse${index}" 
+                      aria-expanded="${index === 0 ? "true" : "false"}" 
+                      aria-controls="stageCollapse${index}">
+                Giai đoạn ${index + 1}: ${stage.name} - ${formatCurrency(
+              stage.amount
+            )}
+                <span class="badge bg-${getStatusBadgeColor(
+                  stage.status
+                )} ms-2">
+                  ${stage.status || "Pending"}
+                </span>
+              </button>
+            </h2>
+            <div id="stageCollapse${index}" 
+                 class="accordion-collapse collapse ${
+                   index === 0 ? "show" : ""
+                 }" 
+                 aria-labelledby="stageHeading${index}" 
+                 data-bs-parent="#paymentStagesAccordion">
+              <div class="accordion-body">
+                <p><strong>Hạn thanh toán:</strong> ${
+                  stage.deadline || "Không xác định"
+                }</p>
+                <p><strong>Phương thức thanh toán:</strong> ${
+                  stage.paymentMethod || document.paymentMethod
+                }</p>
+                ${
+                  stage.notes
+                    ? `<p><strong>Ghi chú:</strong> ${stage.notes}</p>`
+                    : ""
+                }
+                ${
+                  stage.approvedBy?.length > 0
+                    ? `
+                  <hr>
+                  <h6>Người đã phê duyệt</h6>
+                  <ul class="list-unstyled">
+                    ${stage.approvedBy
+                      .map(
+                        (approval) => `
+                      <li>
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        ${approval.username} (${approval.role}) - ${approval.approvalDate}
+                      </li>
+                    `
+                      )
+                      .join("")}
+                  </ul>
+                `
+                    : ""
+                }
+              </div>
+            </div>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    `;
+  }
+
+  if (document.declaration) {
+    html += `
+      <hr>
+      <h6>Kê khai</h6>
+      <div class="bg-light p-2 rounded">${document.declaration}</div>
+    `;
+  }
+
+  return html;
+}
+
+// Add advance payment details
+function addAdvancePaymentDetails(document, type) {
+  const isReclaim = type === "advance_reclaim";
+  const title = isReclaim ? "Thu hồi tạm ứng" : "Tạm ứng";
+  const amountField = isReclaim ? "advancePaymentReclaim" : "advancePayment";
+
+  return `
+    <hr>
+    <h6>Thông tin ${title}</h6>
+    <p><strong>Số tiền:</strong> ${formatCurrency(document[amountField])}</p>
+    <p><strong>Phương thức thanh toán:</strong> ${document.paymentMethod}</p>
+    <p><strong>Hạn thanh toán:</strong> ${
+      document.paymentDeadline || "Không xác định"
+    }</p>
+    ${
+      document.declaration
+        ? `
+      <hr>
+      <h6>Kê khai</h6>
+      <div class="bg-light p-2 rounded">${document.declaration}</div>
+    `
+        : ""
+    }
+  `;
+}
+
+// Add delivery-specific details
+function addDeliveryDetails(document) {
+  let html = "";
+
+  if (document.products?.length > 0) {
+    html += `
+      <hr>
+      <h6>Danh sách sản phẩm</h6>
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Tên sản phẩm</th>
+              <th>Số lượng</th>
+              <th>Đơn giá</th>
+              <th>Thành tiền</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${document.products
+              .map(
+                (product) => `
+              <tr>
+                <td>${product.productName}</td>
+                <td>${product.amount}</td>
+                <td>${formatCurrency(product.costPerUnit)}</td>
+                <td>${formatCurrency(product.totalCost)}</td>
+              </tr>
+            `
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+      <p class="text-end fw-bold">Tổng cộng: ${formatCurrency(
+        document.grandTotalCost
+      )}</p>
+    `;
+  }
+
+  return html;
+}
+
+// Add project proposal details
+function addProjectProposalDetails(document) {
+  let html = "";
+
+  if (document.content?.length > 0) {
+    html += `
+      <hr>
+      <h6>Nội dung đề xuất</h6>
+      ${document.content
+        .map(
+          (item) => `
+        <div class="mb-3">
+          <h6>${item.name}</h6>
+          <div class="bg-light p-2 rounded">${item.text}</div>
+        </div>
+      `
+        )
+        .join("")}
+    `;
+  }
+
+  if (document.declaration) {
+    html += `
+      <hr>
+      <h6>Kê khai</h6>
+      <div class="bg-light p-2 rounded">${document.declaration}</div>
+    `;
+  }
+
+  return html;
+}
+
+// Format currency
+function formatCurrency(amount) {
+  if (typeof amount !== "number") return "N/A";
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(amount);
+}
+
 // Approve document function
 async function approveDocument(type, id) {
+  if (!confirm("Bạn có chắc chắn muốn phê duyệt phiếu này?")) return;
+
   try {
     const response = await fetch(`/approveDocument/${id}`, {
       method: "POST",
@@ -276,33 +722,77 @@ async function approveDocument(type, id) {
     const result = await response.text();
 
     if (result.includes("thành công") || result.includes("hoàn toàn")) {
-      alert(result);
+      showToast("success", result);
       loadDashboardData(); // Refresh the dashboard
-      bootstrap.Modal.getInstance(
+
+      // Close modals if open
+      const docsModal = bootstrap.Modal.getInstance(
         document.getElementById("documentsModal")
-      ).hide();
+      );
+      if (docsModal) docsModal.hide();
+
+      const detailsModal = bootstrap.Modal.getInstance(
+        document.getElementById("documentDetailsModal")
+      );
+      if (detailsModal) detailsModal.hide();
     } else {
-      alert(result);
+      showToast("danger", result);
     }
   } catch (error) {
     console.error("Error approving document:", error);
-    alert("Lỗi khi phê duyệt phiếu");
+    showToast("danger", "Lỗi khi phê duyệt phiếu");
   }
 }
 
-// Helper function to get document icon by type
-function getDocumentIcon(typeKey) {
-  const icons = {
-    generic: "bi-file-earmark-text",
-    proposal: "bi-file-earmark-medical",
-    purchasing: "bi-cart",
-    delivery: "bi-truck",
-    payment: "bi-cash-stack",
-    advance_payment: "bi-currency-exchange",
-    advance_reclaim: "bi-arrow-counterclockwise",
-    project_proposal: "bi-file-earmark-ppt",
-  };
-  return icons[typeKey] || "bi-file-earmark";
+// Show toast notification
+function showToast(type, message) {
+  const toastContainer =
+    document.getElementById("toastContainer") || createToastContainer();
+  const toastId = "toast-" + Date.now();
+
+  const toastHtml = `
+    <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body">
+          <i class="bi ${
+            type === "success" ? "bi-check-circle" : "bi-exclamation-triangle"
+          } me-2"></i>
+          ${message}
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  `;
+
+  toastContainer.insertAdjacentHTML("beforeend", toastHtml);
+  const toastEl = document.getElementById(toastId);
+  const toast = new bootstrap.Toast(toastEl);
+  toast.show();
+
+  // Remove toast after it hides
+  toastEl.addEventListener("hidden.bs.toast", () => {
+    toastEl.remove();
+  });
+}
+
+// Create toast container if not exists
+function createToastContainer() {
+  const container = document.createElement("div");
+  container.id = "toastContainer";
+  container.className = "position-fixed bottom-0 end-0 p-3";
+  container.style.zIndex = "11";
+  document.body.appendChild(container);
+  return container;
+}
+
+// Update last updated timestamp
+function updateLastUpdated() {
+  if (!appData.lastUpdated) return;
+  elements.lastUpdated.innerHTML = `
+    <i class="bi bi-clock-history"></i> Cập nhật: ${formatDate(
+      appData.lastUpdated
+    )}
+  `;
 }
 
 // Format date for display
@@ -310,20 +800,10 @@ function formatDate(dateString) {
   if (!dateString) return "Không rõ ngày";
   const date = new Date(dateString);
   return (
-    date.toLocaleDateString() +
+    date.toLocaleDateString("vi-VN") +
     " " +
-    date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
   );
-}
-
-// Update last updated timestamp
-function updateLastUpdated() {
-  if (!appData.lastUpdated) return;
-  elements.lastUpdated.innerHTML = `
-        <i class="bi bi-clock-history"></i> Cập nhật: ${formatDate(
-          appData.lastUpdated
-        )}
-      `;
 }
 
 // Enable action buttons
@@ -347,10 +827,10 @@ function setLoadingState(isLoading) {
 // Show error message
 function showError(message) {
   elements.documentCards.innerHTML = `
-        <div class="col-12">
-          <div class="alert alert-danger">
-            <i class="bi bi-exclamation-triangle"></i> ${message}
-          </div>
-        </div>
-      `;
+    <div class="col-12">
+      <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle"></i> ${message}
+      </div>
+    </div>
+  `;
 }
