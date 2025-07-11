@@ -3974,3 +3974,82 @@ exports.openProjectProposal = async (req, res) => {
   }
 };
 //// END OF PROJECT PROPOSAL DOCUMENT CONTROLLER
+
+//// SUMMARY CONTROLLER
+exports.getUnapprovedDocumentsSummary = async (req, res) => {
+  try {
+    const userId = req._id;
+    const username = req.user.username;
+
+    // Enhanced helper function to get unapproved documents with more details
+    const getUnapprovedDocs = async (model, type) => {
+      const docs = await model
+        .find({
+          status: "Pending",
+          "approvers.approver": userId,
+          approvedBy: { $not: { $elemMatch: { user: userId } } },
+        })
+        .populate("submittedBy", "username")
+        .populate("approvers.approver", "username role")
+        .lean();
+
+      // Apply username-specific filtering for restricted users
+      const filteredDocs = documentUtils.filterDocumentsByUsername(
+        docs,
+        username
+      );
+
+      return {
+        count: filteredDocs.length,
+        documents: filteredDocs.map((doc) => ({
+          id: doc._id,
+          title: doc.title || type,
+          tag: doc.tag ?? null,
+          name: doc.name ?? null,
+          task: doc.task ?? null,
+          submittedBy: doc.submittedBy?.username || "Unknown",
+          submissionDate: doc.submissionDate,
+          // Add other relevant fields
+        })),
+        type,
+      };
+    };
+
+    // Get unapproved documents for each type
+    const summaries = await Promise.all([
+      getUnapprovedDocs(Document, "Generic"),
+      getUnapprovedDocs(ProposalDocument, "Proposal"),
+      getUnapprovedDocs(PurchasingDocument, "Purchasing"),
+      getUnapprovedDocs(DeliveryDocument, "Delivery"),
+      getUnapprovedDocs(PaymentDocument, "Payment"),
+      getUnapprovedDocs(AdvancePaymentDocument, "Advance Payment"),
+      getUnapprovedDocs(AdvancePaymentReclaimDocument, "Advance Reclaim"),
+      getUnapprovedDocs(ProjectProposalDocument, "Project Proposal"),
+    ]);
+
+    // Transform into a more usable format
+    const result = summaries.reduce((acc, { type, count, documents }) => {
+      acc[type.toLowerCase().replace(" ", "_")] = { count, documents };
+      return acc;
+    }, {});
+
+    res.json({
+      success: true,
+      data: {
+        summaries: result,
+        user: {
+          id: userId,
+          username,
+          role: req.user.role,
+        },
+        lastUpdated: new Date().toISOString(),
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching unapproved documents summary:", err);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching unapproved documents summary",
+    });
+  }
+};

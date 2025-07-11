@@ -420,4 +420,19 @@ router.post(
 );
 //// END OF PROJECT PROPOSAL DOCUMENT ROUTE
 
+//// SUMMARY ROUTES
+// Serve the summary HTML page
+router.get("/documentSummaryUnapproved", authMiddleware, (req, res) => {
+  res.sendFile("documentSummaryUnapproved.html", {
+    root: "./views/documentPages/documentSummaryUnapproved",
+  });
+});
+
+// API endpoint to fetch unapproved document counts
+router.get(
+  "/unapprovedDocumentsSummary",
+  authMiddleware,
+  documentController.getUnapprovedDocumentsSummary
+);
+
 module.exports = router;
