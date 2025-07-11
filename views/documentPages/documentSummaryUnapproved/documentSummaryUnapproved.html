@@ -35,6 +35,16 @@
         box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
       }
 
+      .nav-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .nav-actions .btn {
+        white-space: nowrap;
+      }
+
       .summary-card {
         border-left: 0.25rem solid;
         transition: transform 0.2s;
@@ -118,6 +128,37 @@
       .last-updated {
         font-size: 0.85rem;
       }
+
+      .user-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      @media (max-width: 768px) {
+        .nav-actions {
+          flex-direction: column;
+          gap: 0.25rem;
+          align-items: stretch;
+        }
+
+        .nav-actions .btn {
+          width: 100%;
+        }
+
+        .header-actions {
+          flex-direction: column;
+          gap: 0.5rem;
+          align-items: stretch;
+        }
+      }
     </style>
   </head>
   <body>
@@ -134,19 +175,46 @@
             </p>
           </div>
           <div class="col-lg-6 text-lg-end mt-3 mt-lg-0">
-            <div class="d-flex align-items-center justify-content-lg-end gap-3">
-              <div class="user-avatar" id="userAvatar">
-                <span>?</span>
+            <div class="header-actions">
+              <!-- Quick Actions Navigation -->
+              <div class="nav-actions">
+                <button
+                  class="btn btn-primary btn-sm"
+                  onclick="location.href='/documentSubmission'"
+                >
+                  <i class="bi bi-plus-circle"></i> Tạo phiếu mới
+                </button>
+                <a
+                  href="/main"
+                  class="btn btn-outline-primary btn-sm"
+                  id="viewAllBtn"
+                >
+                  <i class="bi bi-house"></i> Trang chính
+                </a>
+                <a
+                  href="/documentSummary"
+                  class="btn btn-outline-secondary btn-sm"
+                  id="exportBtn"
+                >
+                  <i class="bi bi-file-text"></i> Tóm tắt phiếu
+                </a>
               </div>
-              <div>
-                <div class="fw-bold" id="usernameDisplay">Đang tải...</div>
+
+              <!-- User Info and Refresh -->
+              <div class="user-info">
+                <button
+                  class="btn btn-sm btn-outline-primary refresh-btn"
+                  id="refreshBtn"
+                >
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+                <div class="user-avatar" id="userAvatar">
+                  <span>?</span>
+                </div>
+                <div>
+                  <div class="fw-bold" id="usernameDisplay">Đang tải...</div>
+                </div>
               </div>
-              <button
-                class="btn btn-sm btn-outline-primary refresh-btn"
-                id="refreshBtn"
-              >
-                <i class="bi bi-arrow-clockwise"></i>
-              </button>
             </div>
           </div>
         </div>
@@ -198,9 +266,9 @@
         </div>
       </div>
 
-      <!-- Recent Documents Section -->
+      <!-- Recent Documents Section - Now Full Width -->
       <div class="row">
-        <div class="col-lg-8">
+        <div class="col-12">
           <div class="card shadow mb-4">
             <div class="card-header py-3">
               <h6 class="m-0 font-weight-bold text-primary">
@@ -218,37 +286,6 @@
                   <small class="placeholder col-3"></small>
                 </div>
                 <!-- Repeat placeholder items as needed -->
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="col-lg-4">
-          <div class="card shadow mb-4">
-            <div class="card-header py-3">
-              <h6 class="m-0 font-weight-bold text-primary">
-                <i class="bi bi-lightning"></i> Thao tác nhanh
-              </h6>
-            </div>
-            <div class="card-body">
-              <div class="d-grid gap-2">
-                <button
-                  class="btn btn-primary"
-                  onclick="location.href='/documentSubmission'"
-                >
-                  <i class="bi bi-plus-circle"></i> Tạo phiếu mới
-                </button>
-                <a href="/main" class="btn btn-outline-primary" id="viewAllBtn">
-                  Trang chính
-                </a>
-                <a
-                  href="/documentSummary"
-                  class="btn btn-outline-secondary"
-                  id="exportBtn"
-                >
-                  Tóm tắt phiếu
-                </a>
               </div>
             </div>
           </div>
