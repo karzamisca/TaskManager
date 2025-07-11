@@ -1,3 +1,4 @@
+/* views/documentPages/documentSummaryUnapproved/documentSummaryUnapproved.css */
 :root {
   --primary-color: #4e73df;
   --success-color: #1cc88a;
@@ -88,16 +89,6 @@ body {
   align-items: center;
   justify-content: center;
   font-weight: bold;
-}
-
-.document-item {
-  transition: all 0.2s;
-  border-left: 3px solid transparent;
-}
-
-.document-item:hover {
-  background-color: #f8f9fa;
-  border-left-color: var(--primary-color);
 }
 
 .refresh-btn {

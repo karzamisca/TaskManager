@@ -1,3 +1,4 @@
+// views/documentPages/documentSummaryUnapproved/documentSummaryUnapproved.js
 // Global data store
 let appData = {
   user: null,
@@ -12,7 +13,6 @@ const elements = {
   usernameDisplay: document.getElementById("usernameDisplay"),
   lastUpdated: document.getElementById("lastUpdated"),
   documentCards: document.getElementById("documentCards"),
-  recentDocuments: document.getElementById("recentDocuments"),
   refreshBtn: document.getElementById("refreshBtn"),
   viewAllBtn: document.getElementById("viewAllBtn"),
   exportBtn: document.getElementById("exportBtn"),
@@ -129,7 +129,6 @@ function updateUserInfo() {
 function renderDashboard() {
   if (!appData.summaries) return;
   renderSummaryCards();
-  renderRecentDocuments();
 }
 
 // Render the summary cards
@@ -171,57 +170,6 @@ function renderSummaryCards() {
         </div>
       `;
     })
-    .join("");
-}
-
-// Render recent documents list
-function renderRecentDocuments() {
-  if (!appData.summaries) return;
-
-  const allDocuments = Object.values(appData.summaries)
-    .flatMap((summary) => summary.documents)
-    .sort(
-      (a, b) =>
-        new Date(b.submissionDate.split("-").reverse().join("-")) -
-        new Date(a.submissionDate.split("-").reverse().join("-"))
-    )
-    .slice(0, 5);
-
-  if (allDocuments.length === 0) {
-    elements.recentDocuments.innerHTML = `
-      <div class="alert alert-info mb-0">
-        <i class="bi bi-check-circle"></i> Không có phiếu nào đang chờ phê duyệt
-      </div>
-    `;
-    return;
-  }
-
-  elements.recentDocuments.innerHTML = allDocuments
-    .map(
-      (doc) => `
-      <div class="list-group-item document-item">
-        <div class="d-flex w-100 justify-content-between">
-          <h6 class="mb-1">${doc.tag || doc.name || doc.task}</h6>
-          <small>${doc.submissionDate}</small>
-        </div>
-        <p class="mb-1">Gửi bởi ${doc.submittedBy}</p>
-        <div class="d-flex gap-2 mt-2">
-          <button onclick="approveDocument('${doc.type || "generic"}', '${
-        doc.id
-      }')" 
-                  class="btn btn-sm btn-success">
-            <i class="bi bi-check-circle"></i> Duyệt
-          </button>
-          <button onclick="viewDocumentDetails('${doc.type || "generic"}', '${
-        doc.id
-      }')" 
-                  class="btn btn-sm btn-primary">
-            <i class="bi bi-eye"></i> Xem chi tiết
-          </button>
-        </div>
-      </div>
-    `
-    )
     .join("");
 }
 
