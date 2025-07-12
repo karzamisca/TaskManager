@@ -596,6 +596,17 @@ async function populateNewApproversDropdown() {
   `;
 }
 
+async function fetchGroups() {
+  try {
+    const response = await fetch("/getGroupDocument");
+    const groups = await response.json();
+    return groups;
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách nhóm:", error);
+    return [];
+  }
+}
+
 async function editDocument(docId) {
   try {
     const response = await fetch(`/getDeliveryDocument/${docId}`);
@@ -606,6 +617,20 @@ async function editDocument(docId) {
 
     await populateCostCenterDropdown();
     document.getElementById("editCostCenter").value = doc.costCenter;
+
+    // Populate group dropdown
+    const groups = await fetchGroups();
+    const groupDropdown = document.getElementById("editGroupName");
+    groupDropdown.innerHTML = '<option value="">Chọn nhóm</option>';
+    groups.forEach((group) => {
+      const option = document.createElement("option");
+      option.value = group.name;
+      option.textContent = group.name;
+      groupDropdown.appendChild(option);
+    });
+    if (doc.groupName) {
+      groupDropdown.value = doc.groupName;
+    }
 
     const productsList = document.getElementById("productsList");
     productsList.innerHTML = "";
@@ -638,6 +663,7 @@ async function handleEditSubmit(event) {
     "costCenter",
     document.getElementById("editCostCenter").value
   );
+  formData.append("groupName", document.getElementById("editGroupName").value);
 
   const products = [];
   const productItems = document.querySelectorAll(".product-item");
@@ -714,6 +740,13 @@ function addEditModal() {
             <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm:</label>
             <select id="editCostCenter" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
               <option value="">Chọn một trạm</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+            <label for="editGroupName" style="display: block; margin-bottom: 0.5em;">Nhóm:</label>
+            <select id="editGroupName" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
+              <option value="">Chọn nhóm</option>
             </select>
           </div>
 

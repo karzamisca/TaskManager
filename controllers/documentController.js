@@ -3662,6 +3662,7 @@ exports.updateDeliveryDocument = async (req, res) => {
     const grandTotalCost = parseFloat(req.body.grandTotalCost);
     const name = req.body.name;
     const costCenter = req.body.costCenter;
+    const groupName = req.body.groupName;
 
     // Parse appendedProposals if it exists
     let appendedProposals;
@@ -3738,7 +3739,7 @@ exports.updateDeliveryDocument = async (req, res) => {
     doc.grandTotalCost = grandTotalCost;
     doc.name = name;
     doc.costCenter = costCenter;
-
+    doc.groupName = groupName;
     if (appendedProposals) {
       doc.appendedProposals = appendedProposals;
     }
