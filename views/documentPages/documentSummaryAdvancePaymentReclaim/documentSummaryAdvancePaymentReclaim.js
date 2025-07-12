@@ -32,19 +32,10 @@ async function fetchCurrentUser() {
   }
 }
 
-async function fetchGroups() {
-  try {
-    const response = await fetch("/getGroupDocument");
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching groups:", error);
-    return [];
-  }
-}
-
 // Add this function to populate the group filter dropdown
 async function populateGroupFilter() {
-  const groups = await fetchGroups();
+  const response = await fetch("/getGroupDocument");
+  const groups = await response.json();
   const groupFilter = document.getElementById("groupFilter");
 
   // Clear existing options except the first one
@@ -284,8 +275,8 @@ async function fetchAdvancePaymentReclaimDocuments() {
                 <div>${approver.username} (${approver.subRole})</div>
                 ${
                   hasApproved
-                    ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
-                    : '<div class="approval-date">Pending</div>'
+                    ? `<div class="approval-date">Đã phê duyệt: ${hasApproved.approvalDate}</div>`
+                    : '<div class="approval-date">Chờ phê duyệt</div>'
                 }
               </div>
             </div>
@@ -313,18 +304,18 @@ async function fetchAdvancePaymentReclaimDocuments() {
           <button class="approve-btn" onclick="showFullView('${
             doc._id
           }')" style="margin-right: 5px;">
-            Xem đầy đủ/Full View
+            Xem đầy đủ
           </button>
           <form action="/exportDocumentToDocx/${
             doc._id
           }" method="GET" style="display:inline;">
-              <button class="approve-btn">Xuất ra DOCX/Export to DOCX</button>
+              <button class="approve-btn">Xuất ra DOCX</button>
           </form>
           ${
             doc.approvedBy.length === 0
               ? `
-            <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa/Edit</button>
-            <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa/Delete</button>
+            <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa</button>
+            <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa</button>
           `
               : ""
           }
@@ -332,7 +323,7 @@ async function fetchAdvancePaymentReclaimDocuments() {
             doc.status === "Pending"
               ? `
             <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
-              Phê duyệt/Approve
+              Phê duyệt
             </button>
           `
               : ""
@@ -341,21 +332,21 @@ async function fetchAdvancePaymentReclaimDocuments() {
             doc.status === "Approved"
               ? `
                 <button class="approve-btn" onclick="editDeclaration('${doc._id}')" style="margin-right: 5px;">
-                  Kê khai/Declaration
+                  Kê khai
                 </button>
                 <button class="approve-btn" onclick="suspendDocument('${doc._id}')">
-                  Từ chối/Suspend
+                  Từ chối
                 </button>
               `
               : doc.status === "Suspended"
               ? `
                 <button class="approve-btn" onclick="openDocument('${doc._id}')">
-                  Mở/Open
+                  Mở
                 </button>
               `
               : `
                 <button class="approve-btn" onclick="suspendDocument('${doc._id}')">
-                  Từ chối/Suspend
+                  Từ chối
                 </button>
               `
           }
@@ -606,6 +597,30 @@ async function populateCostCenterDropdown() {
   }
 }
 
+async function populateGroupDropdown() {
+  try {
+    const response = await fetch("/getGroupDocument");
+    const groups = await response.json();
+    const groupDropdown = document.getElementById("editGroupName");
+
+    // Clear existing options except the first one
+    while (groupDropdown.options.length > 1) {
+      groupDropdown.remove(1);
+    }
+
+    // Add group options
+    groups.forEach((group) => {
+      const option = document.createElement("option");
+      option.value = group.name;
+      option.textContent = group.name;
+      groupDropdown.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error fetching groups:", error);
+    showMessage("Lỗi khi tải danh sách nhóm", true);
+  }
+}
+
 // Add edit modal HTML at the end of the table
 function addEditModal() {
   const modalHTML = `
@@ -640,7 +655,7 @@ function addEditModal() {
           <input type="hidden" id="editDocId">
           
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label for="editName" style="display: block; margin-bottom: 0.5em;">Tên/Name:</label>
+            <label for="editName" style="display: block; margin-bottom: 0.5em;">Tên:</label>
             <input type="text" id="editName" required style="
               width: 100%;
               padding: clamp(6px, 1vw, 12px);
@@ -651,7 +666,21 @@ function addEditModal() {
           </div>
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label for="editContent" style="display: block; margin-bottom: 0.5em;">Nội dung/Content:</label>
+            <label for="editGroupName" style="display: block; margin-bottom: 0.5em;">Nhóm:</label>
+            <select id="editGroupName" style="
+              width: 100%;
+              padding: clamp(6px, 1vw, 12px);
+              font-size: inherit;
+              border: 1px solid var(--border-color);
+              border-radius: clamp(3px, 0.5vw, 6px);
+            ">
+              <option value="">Chọn nhóm</option>
+              <!-- Options will be populated dynamically -->
+            </select>
+          </div>
+
+          <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+            <label for="editContent" style="display: block; margin-bottom: 0.5em;">Nội dung:</label>
             <textarea id="editContent" required style="
               width: 100%;
               padding: clamp(6px, 1vw, 12px);
@@ -663,15 +692,15 @@ function addEditModal() {
           </div>
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-              <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm/Cost Center:</label>
+              <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm:</label>
               <select id="editCostCenter" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
-                  <option value="">Chọn một trạm/Select a center</option>
+                  <option value="">Chọn một trạm</option>
                   <!-- Options will be populated dynamically -->
               </select>
           </div>      
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label for="editPaymentMethod" style="display: block; margin-bottom: 0.5em;">Hình thức thanh toán/Payment Method:</label>
+            <label for="editPaymentMethod" style="display: block; margin-bottom: 0.5em;">Hình thức thanh toán:</label>
             <input type="text" id="editPaymentMethod" required style="
               width: 100%;
               padding: clamp(6px, 1vw, 12px);
@@ -682,7 +711,7 @@ function addEditModal() {
           </div>
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label for="editAdvancePaymentReclaim" style="display: block; margin-bottom: 0.5em;">Tạm ứng/Advance Payment:</label>
+            <label for="editAdvancePaymentReclaim" style="display: block; margin-bottom: 0.5em;">Số tiền tạm ứng thu lại:</label>
             <input type="number" id="editAdvancePaymentReclaim" required style="
               width: 100%;
               padding: clamp(6px, 1vw, 12px);
@@ -693,7 +722,7 @@ function addEditModal() {
           </div>
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label for="editDeadline" style="display: block; margin-bottom: 0.5em;">Hạn thanh toán/Payment Deadline (DD-MM-YYYY):</label>
+            <label for="editDeadline" style="display: block; margin-bottom: 0.5em;">Hạn thanh toán (DD-MM-YYYY):</label>
             <input type="text" 
                   id="editDeadline" 
                   required 
@@ -709,7 +738,7 @@ function addEditModal() {
           </div>
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới/Update File:</label>
+            <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới:</label>
             <input type="file" id="editFile" style="
               width: 100%;
               padding: clamp(6px, 1vw, 12px);
@@ -719,20 +748,20 @@ function addEditModal() {
 
           <!-- Current Approvers Section -->
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label style="display: block; margin-bottom: 0.5em;">Người phê duyệt hiện tại/Current Approvers:</label>
+            <label style="display: block; margin-bottom: 0.5em;">Người phê duyệt hiện tại:</label>
             <div id="currentApproversList"></div>
           </div>
 
           <!-- Add New Approvers Section -->
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label style="display: block; margin-bottom: 0.5em;">Thêm người phê duyệt/Add Approvers:</label>
+            <label style="display: block; margin-bottom: 0.5em;">Thêm người phê duyệt:</label>
             <select id="newApproversDropdown" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
-              <option value="">Chọn người phê duyệt/Select an approver</option>
+              <option value="">Chọn người phê duyệt</option>
               <!-- Options will be populated dynamically -->
             </select>
-            <input type="text" id="newApproverSubRole" placeholder="Vai trò/Sub Role" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
+            <input type="text" id="newApproverSubRole" placeholder="Vai trò" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
             <button type="button" class="approve-btn" onclick="addNewApprover()" style="margin-top: 10px;">
-              Thêm/Add
+              Thêm
             </button>
           </div>
 
@@ -744,13 +773,13 @@ function addEditModal() {
             <button type="submit" class="approve-btn" style="
               padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
               font-size: inherit;
-            ">Lưu thay đổi/Save Changes</button>
+            ">Lưu thay đổi</button>
             
             <button type="button" class="approve-btn" onclick="closeEditModal()" style="
               background: #666;
               padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
               font-size: inherit;
-            ">Hủy/Cancel</button>
+            ">Hủy</button>
           </div>
         </form>
       </div>
@@ -865,29 +894,37 @@ async function editDocument(docId) {
   try {
     const response = await fetch(`/getAdvancePaymentReclaimDocument/${docId}`);
     const doc = await response.json();
+
+    // Populate the form fields
     document.getElementById("editDocId").value = docId;
     document.getElementById("editName").value = doc.name;
     document.getElementById("editContent").value = doc.content;
-    // Populate the cost center dropdown
+
+    // Populate dropdowns
     await populateCostCenterDropdown();
+    await populateGroupDropdown();
+
+    // Set selected values
     document.getElementById("editCostCenter").value = doc.costCenter;
+    document.getElementById("editGroupName").value = doc.groupName || "";
     document.getElementById("editPaymentMethod").value = doc.paymentMethod;
     document.getElementById("editAdvancePaymentReclaim").value =
       doc.advancePaymentReclaim;
     document.getElementById("editDeadline").value = doc.paymentDeadline;
-    // Populate current approvers
+
+    // Populate approvers
     currentApprovers = doc.approvers.map((approver) => ({
       approver: approver.approver?._id || approver.approver,
       username: approver.approver?.username || approver.username,
       subRole: approver.subRole,
     }));
     renderCurrentApprovers();
-    // Populate new approvers dropdown
     await populateNewApproversDropdown();
+
     document.getElementById("editModal").style.display = "block";
   } catch (err) {
     console.error("Error fetching document details:", err);
-    showMessage("Error loading document details", true);
+    showMessage("Lỗi khi tải chi tiết tài liệu", true);
   }
 }
 
@@ -903,6 +940,7 @@ async function handleEditSubmit(event) {
   const docId = document.getElementById("editDocId").value;
   const formData = new FormData();
   formData.append("name", document.getElementById("editName").value);
+  formData.append("groupName", document.getElementById("editGroupName").value);
   formData.append("content", document.getElementById("editContent").value);
   formData.append(
     "costCenter",
@@ -915,7 +953,7 @@ async function handleEditSubmit(event) {
   formData.append(
     "advancePaymentReclaim",
     document.getElementById("editAdvancePaymentReclaim").value
-  ); // New field
+  );
   formData.append(
     "paymentDeadline",
     document.getElementById("editDeadline").value
@@ -937,15 +975,15 @@ async function handleEditSubmit(event) {
     );
     const result = await response.json();
     if (response.ok) {
-      showMessage("Document updated successfully");
+      showMessage("Cập nhật tài liệu thành công");
       closeEditModal();
       fetchAdvancePaymentReclaimDocuments();
     } else {
-      showMessage(result.message || "Error updating document", true);
+      showMessage(result.message || "Lỗi khi cập nhật tài liệu", true);
     }
   } catch (err) {
     console.error("Error updating document:", err);
-    showMessage("Error updating document", true);
+    showMessage("Lỗi khi cập nhật tài liệu", true);
   }
 }
 
@@ -963,82 +1001,72 @@ async function showFullView(docId) {
     fullViewContent.innerHTML = `
       <!-- Basic Information Section -->
       <div class="full-view-section">
-        <h3>Thông tin cơ bản/Basic Information</h3>
+        <h3>Thông tin cơ bản</h3>
         <div class="detail-grid">
           <div class="detail-item">
-            <span class="detail-label">Mã/Tag:</span>
-            <span class="detail-value">${doc.tag || "Not specified"}</span>
-            <span class="detail-label">Tên/Name:</span>
-            <span class="detail-value">${doc.name || "Not specified"}</span>
+            <span class="detail-label">Tem:</span>
+            <span class="detail-value">${doc.tag || "Không có"}</span>
+            <span class="detail-label">Tên/:</span>
+            <span class="detail-value">${doc.name || "Không có"}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Tên nhóm/Group Name:</span>
-            <span class="detail-value">${
-              doc.groupName || "Not specified"
-            }</span>
+            <span class="detail-label">Nhóm:</span>
+            <span class="detail-value">${doc.groupName || "Không có"}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Ngày nộp/Submission Date:</span>
+            <span class="detail-label">Ngày nộp:</span>
             <span class="detail-value">${submissionDate}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Hạn trả/Payment Deadline:</span>
+            <span class="detail-label">Hạn trả:</span>
             <span class="detail-value">${paymentDeadline}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Kê khai/Declaration:</span>
-            <span class="detail-value">${
-              doc.declaration || "Not specified"
-            }</span>
+            <span class="detail-label">Kê khai:</span>
+            <span class="detail-value">${doc.declaration || "Không có"}</span>
           </div>
         </div>
       </div>
 
       <!-- Content Section -->
       <div class="full-view-section">
-        <h3>Nội dung/Content</h3>
-        <p style="white-space: pre-wrap;">${
-          doc.content || "No content provided"
-        }</p>
+        <h3>Nội dung</h3>
+        <p style="white-space: pre-wrap;">${doc.content || "Không có"}</p>
       </div>
 
       <div class="full-view-section">
-        <h3>Trạm/Center</h3>
-        <p style="white-space: pre-wrap;">${
-          doc.costCenter || "No content provided"
-        }</p>
+        <h3>Trạm</h3>
+        <p style="white-space: pre-wrap;">${doc.costCenter || "Không có"}</p>
       </div>
 
       <!-- Payment Information Section -->
       <div class="full-view-section">
-        <h3>Thông tin thanh toán/Payment Information</h3>
+        <h3>Thông tin thanh toán</h3>
         <div class="detail-grid">
           <div class="detail-item">
-            <span class="detail-label">Phương thức/Payment Method:</span>
+            <span class="detail-label">Phương thức:</span>
+            <span class="detail-value">${doc.paymentMethod || "Không có"}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Tổng thanh toán:</span>
             <span class="detail-value">${
-              doc.paymentMethod || "Not specified"
+              doc.totalPayment?.toLocaleString() || "Không có"
             }</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Tổng thanh toán/Total Payment:</span>
+            <span class="detail-label">Số tiền thu lại tạm ứng:</span>
             <span class="detail-value">${
-              doc.totalPayment?.toLocaleString() || "Not specified"
+              doc.advancePaymentReclaim?.toLocaleString() || "Không có"
             }</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Số tiền thu lại tạm ứng/Advance Payment Reclaim:</span>
-            <span class="detail-value">${
-              doc.advancePaymentReclaim?.toLocaleString() || "Not specified"
-            }</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Bù trừ/Offset:</span>
+            <span class="detail-label">Bù trừ:</span>
             <span class="detail-value">${
               doc.totalPayment && doc.advancePaymentReclaim
                 ? (
                     doc.totalPayment - doc.advancePaymentReclaim
                   ).toLocaleString()
-                : "Not calculated"
+                : "Không có"
             }</span>
           </div>
         </div>
@@ -1046,45 +1074,45 @@ async function showFullView(docId) {
 
       <!-- File Attachment Section -->
       <div class="full-view-section">
-        <h3>Tệp tin kèm theo/Attached File</h3>
+        <h3>Tệp tin kèm theo</h3>
         ${
           doc.fileMetadata
             ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-            : "No file attached"
+            : "Không đính kèm"
         }
       </div>
 
       <!-- Purchasing Documents Section -->
       <div class="full-view-section">
-        <h3>Phiếu mua hàng kèm theo/Appended Purchasing Documents</h3>
+        <h3>Phiếu mua hàng kèm theo</h3>
         ${
           doc.appendedPurchasingDocuments?.length
             ? renderPurchasingDocuments(doc.appendedPurchasingDocuments)
-            : "No purchasing documents attached"
+            : "Không đính kèm"
         }
       </div>
 
       <!-- Proposals Section -->
       <div class="full-view-section">
-        <h3>Phiếu đề xuất kèm theo/Appended Proposal Documents</h3>
+        <h3>Phiếu đề xuất kèm theo</h3>
         ${
           doc.appendedPurchasingDocuments?.length
             ? renderProposals(doc.appendedPurchasingDocuments)
-            : "No proposal documents attached"
+            : "Không đính kèm"
         }
       </div>
 
       <!-- Status Section -->
       <div class="full-view-section">
-        <h3>Trạng thái/Status Information</h3>
+        <h3>Trạng thái</h3>
         <div class="detail-grid">
           <div class="detail-item">
-            <span class="detail-label">Tình trạng/Status:</span>
+            <span class="detail-label">Tình trạng:</span>
             <span class="detail-value ${renderStatus(doc.status)}</span>
           </div>
         </div>
         <div style="margin-top: 16px;">
-          <h4>Trạng thái phê duyệt/Approval Status:</h4>
+          <h4>Trạng thái phê duyệt:</h4>
           <div class="approval-status">
             ${doc.approvers
               .map((approver) => {
@@ -1100,8 +1128,8 @@ async function showFullView(docId) {
                     <div>${approver.username} (${approver.subRole})</div>
                     ${
                       hasApproved
-                        ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
-                        : '<div class="approval-date">Pending</div>'
+                        ? `<div class="approval-date">Dã phê duyệt: ${hasApproved.approvalDate}</div>`
+                        : '<div class="approval-date">Chờ phê duyệt</div>'
                     }
                   </div>
                 </div>
@@ -1162,7 +1190,7 @@ async function handleSuspendSubmit(event) {
     }
   } catch (err) {
     console.error("Error suspending document:", err);
-    showMessage("Lỗi khi tạm dừng tài liệu/Error suspending document", true);
+    showMessage("Lỗi khi tạm dừng tài liệu", true);
   }
 }
 
@@ -1183,7 +1211,7 @@ async function openDocument(docId) {
     }
   } catch (err) {
     console.error("Error reopening document:", err);
-    showMessage("Lỗi khi mở lại tài liệu/Error reopening document", true);
+    showMessage("Lỗi khi mở lại tài liệu", true);
   }
 }
 
@@ -1196,11 +1224,11 @@ function editDeclaration(docId) {
     <div id="declarationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
       <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-color); padding: 20px; width: 90%; max-width: 500px; border-radius: 8px;">
         <span onclick="closeDeclarationModal()" style="position: absolute; right: 10px; top: 10px; cursor: pointer; font-size: 24px;">&times;</span>
-        <h2>Kê Khai/Declaration</h2>
+        <h2>Kê Khai</h2>
         <textarea id="declarationInput" style="width: 100%; height: 150px; padding: 10px; font-size: 16px;">${
           doc.declaration || ""
         }</textarea>
-        <button onclick="saveDeclaration('${docId}')" class="approve-btn" style="margin-top: 10px;">Lưu kê khai/Save Declaration</button>
+        <button onclick="saveDeclaration('${docId}')" class="approve-btn" style="margin-top: 10px;">Lưu kê khai</button>
       </div>
     </div>
   `;
@@ -1253,10 +1281,7 @@ async function saveDeclaration(docId) {
 function openMassDeclarationModal() {
   const selectedIds = getSelectedDocumentIds();
   if (selectedIds.length === 0) {
-    showMessage(
-      "Vui lòng chọn ít nhất một tài liệu để cập nhật kê khai/Please select at least one document to update declaration.",
-      true
-    );
+    showMessage("Vui lòng chọn ít nhất một tài liệu để cập nhật kê khai", true);
     return;
   }
   document.getElementById("massDeclarationModal").style.display = "block";
@@ -1275,10 +1300,7 @@ async function handleMassDeclarationSubmit(event) {
   const declaration = document.getElementById("massDeclarationInput").value;
 
   if (selectedIds.length === 0) {
-    showMessage(
-      "Vui lòng chọn ít nhất một tài liệu để cập nhật kê khai/Please select at least one document to update declaration.",
-      true
-    );
+    showMessage("Vui lòng chọn ít nhất một tài liệu để cập nhật kê khai", true);
     return;
   }
 
@@ -1304,7 +1326,7 @@ async function handleMassDeclarationSubmit(event) {
     }
   } catch (err) {
     console.error("Error updating declaration:", err);
-    showMessage("Lỗi khi cập nhật kê khai/Error updating declaration", true);
+    showMessage("Lỗi khi cập nhật kê khai", true);
   }
 }
 
@@ -1316,13 +1338,14 @@ async function initializePage() {
   const table = document.querySelector("table");
   table.parentElement.insertBefore(createToggleSwitch(), table);
 
-  // Add group filter
+  // Pre-load groups for the filter and edit modal
   await populateGroupFilter();
+  await populateGroupDropdown();
 
   // Add toggle event listener
   document.getElementById("pendingToggle").addEventListener("change", (e) => {
     showOnlyPendingApprovals = e.target.checked;
-    currentPage = 1; // Reset to first page when filter changes
+    currentPage = 1;
     fetchAdvancePaymentReclaimDocuments();
   });
 

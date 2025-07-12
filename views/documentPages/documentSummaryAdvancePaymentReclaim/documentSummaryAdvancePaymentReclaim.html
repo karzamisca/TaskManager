@@ -1,17 +1,17 @@
 <!-- views\documentPages\documentSummaryAdvancePaymentReclaim\documentSummaryAdvancePaymentReclaim.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Phiếu thu lại tạm ứng/Advance Payment Reclaim Documents</title>
+    <title>Phiếu thu lại tạm ứng</title>
     <link
       rel="stylesheet"
       href="documentPages/documentSummaryAdvancePaymentReclaim/documentSummaryAdvancePaymentReclaim.css"
     />
   </head>
   <body>
-    <h1>Phiếu thu lại tạm ứng/Advance Payment Reclaim Documents</h1>
+    <h1>Phiếu thu lại tạm ứng</h1>
     <div id="messageContainer" class="message"></div>
 
     <div style="margin-bottom: 1rem; display: inline-block; margin-left: 1rem">
@@ -25,25 +25,25 @@
           checked
           style="margin-right: 0.5rem"
         />
-        <span>Hiển thị phân trang/Enable pagination</span>
+        <span>Phân trang</span>
       </label>
     </div>
 
     <div style="margin-bottom: 1rem">
-      <label for="groupFilter">Lọc theo nhóm/Filter by Group:</label>
+      <label for="groupFilter">Nhóm:</label>
       <select
         id="groupFilter"
         onchange="filterByGroup()"
         style="margin-left: 0.5rem; padding: 4px 8px"
       >
-        <option value="">Tất cả nhóm/All Groups</option>
+        <option value="">Tất cả nhóm</option>
         <!-- Groups will be populated dynamically -->
       </select>
     </div>
 
     <div>
       <button class="approve-btn" onclick="openMassDeclarationModal()">
-        Cập nhật kê khai hàng loạt/Mass Declaration Update
+        Cập nhật kê khai hàng loạt
       </button>
     </div>
     <table>
@@ -52,14 +52,14 @@
           <th>
             <input type="checkbox" id="selectAll" onclick="toggleSelectAll()" />
           </th>
-          <th>Mã/Tag</th>
-          <th>Nội dung/Content</th>
-          <th>Phương thức trả tiền/Payment Method</th>
-          <th>Số tiền tạm ứng thu lại/Advance Payment Reclaim</th>
-          <th>Hạn trả/Payment Deadline</th>
-          <th>Tình trạng/Status</th>
-          <th>Trạng thái phê duyệt/Approval Status</th>
-          <th>Hành động/Action</th>
+          <th>Mã</th>
+          <th>Nội dung</th>
+          <th>Phương thức thanh toán</th>
+          <th>Số tiền tạm ứng thu lại</th>
+          <th>Hạn trả</th>
+          <th>Tình trạng</th>
+          <th>Trạng thái phê duyệt</th>
+          <th>Hành động</th>
         </tr>
       </thead>
       <tbody id="advancePaymentReclaimDocumentsTable">
@@ -70,7 +70,7 @@
     <div id="fullViewModal" class="full-view-modal">
       <div class="full-view-content">
         <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
-        <h2 style="margin-bottom: 24px">Chi tiết đầy đủ/Full Details</h2>
+        <h2 style="margin-bottom: 24px">Chi tiết đầy đủ</h2>
         <div id="fullViewContent"></div>
       </div>
     </div>
@@ -78,10 +78,10 @@
     <div id="suspendModal" class="full-view-modal">
       <div class="full-view-content">
         <span class="close-btn" onclick="closeSuspendModal()">&times;</span>
-        <h2>Từ chối tài liệu/Suspend Document</h2>
+        <h2>Từ chối tài liệu</h2>
         <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
           <div style="margin-bottom: 20px">
-            <label for="suspendReason">Lý do từ chối/Suspend Reason:</label>
+            <label for="suspendReason">Lý do từ chối:</label>
             <textarea
               id="suspendReason"
               required
@@ -89,13 +89,13 @@
             ></textarea>
           </div>
           <div style="display: flex; gap: 10px">
-            <button type="submit" class="approve-btn">Từ chối/Suspend</button>
+            <button type="submit" class="approve-btn">Từ chối</button>
             <button
               type="button"
               class="approve-btn"
               onclick="closeSuspendModal()"
             >
-              Cancel
+              Hủy
             </button>
           </div>
         </form>
@@ -107,13 +107,13 @@
         <span class="close-btn" onclick="closeMassDeclarationModal()"
           >&times;</span
         >
-        <h2>Cập nhật kê khai hàng loạt/Mass Declaration Update</h2>
+        <h2>Cập nhật kê khai hàng loạt</h2>
         <form
           id="massDeclarationForm"
           onsubmit="handleMassDeclarationSubmit(event)"
         >
           <div style="margin-bottom: 20px">
-            <label for="massDeclarationInput">Kê khai/Declaration:</label>
+            <label for="massDeclarationInput">Kê khai:</label>
             <textarea
               id="massDeclarationInput"
               required
@@ -126,13 +126,13 @@
             ></textarea>
           </div>
           <div style="display: flex; gap: 10px">
-            <button type="submit" class="approve-btn">Cập nhật/Update</button>
+            <button type="submit" class="approve-btn">Cập nhật</button>
             <button
               type="button"
               class="approve-btn"
               onclick="closeMassDeclarationModal()"
             >
-              Hủy/Cancel
+              Hủy
             </button>
           </div>
         </form>
@@ -140,30 +140,30 @@
     </div>
 
     <div class="summary">
-      <h2>Tóm tắt/Summary</h2>
+      <h2>Tóm tắt</h2>
       <p>
-        Số tiền đã thu lại/Reclaim Amount:
+        Số tiền đã thu lại:
         <span id="reclaimSum" class="approved">0</span>
       </p>
       <p>
-        Số tiền đã phê duyệt/Total Approved Amount:
+        Số tiền đã phê duyệt:
         <span id="approvedSum" class="approved">0</span>
       </p>
       <p>
-        Số tiền chưa phê duyệt/Total Unapproved Amount:
+        Số tiền chưa phê duyệt:
         <span id="unapprovedSum" class="unapproved">0</span>
       </p>
       <p>
-        Số phiếu đã phê duyệt/Total Approved Document:
+        Số phiếu đã phê duyệt:
         <span id="approvedDocument" class="approved">0</span>
       </p>
       <p>
-        Số phiếu chưa phê duyệt/Total Unapproved Document:
+        Số phiếu chưa phê duyệt:
         <span id="unapprovedDocument" class="unapproved">0</span>
       </p>
     </div>
-    <a href="/documentSummary">Trở về/Back</a>
+    <a href="/documentSummary">Trở về</a>
 
-    <script src="documentPages/documentSummaryAdvancePaymentReclaim/documentSummaryAdvancePaymentReclaim.js?v=1.1"></script>
+    <script src="documentPages/documentSummaryAdvancePaymentReclaim/documentSummaryAdvancePaymentReclaim.js?v=1.2"></script>
   </body>
 </html>
