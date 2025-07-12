@@ -3155,6 +3155,7 @@ exports.updateAdvancePaymentDocument = async (req, res) => {
       paymentMethod,
       advancePayment,
       paymentDeadline,
+      groupName,
     } = req.body;
     const file = req.file;
 
@@ -3241,6 +3242,7 @@ exports.updateAdvancePaymentDocument = async (req, res) => {
     doc.paymentMethod = paymentMethod;
     doc.advancePayment = parseFloat(advancePayment);
     doc.paymentDeadline = paymentDeadline;
+    doc.groupName = groupName;
 
     // Update file metadata if new file uploaded
     if (uploadedFileData) {

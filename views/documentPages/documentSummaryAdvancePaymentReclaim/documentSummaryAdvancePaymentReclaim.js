@@ -876,7 +876,11 @@ async function editDocument(docId) {
       doc.advancePaymentReclaim;
     document.getElementById("editDeadline").value = doc.paymentDeadline;
     // Populate current approvers
-    currentApprovers = doc.approvers;
+    currentApprovers = doc.approvers.map((approver) => ({
+      approver: approver.approver?._id || approver.approver,
+      username: approver.approver?.username || approver.username,
+      subRole: approver.subRole,
+    }));
     renderCurrentApprovers();
     // Populate new approvers dropdown
     await populateNewApproversDropdown();

@@ -636,7 +636,12 @@ async function editDocument(docId) {
     productsList.innerHTML = "";
     doc.products.forEach((product) => addProductField(product));
 
-    currentApprovers = doc.approvers;
+    currentApprovers = doc.approvers.map((approver) => ({
+      approver: approver.approver?._id || approver.approver,
+      username: approver.approver?.username || approver.username,
+      subRole: approver.subRole,
+    }));
+
     renderCurrentApprovers();
     await populateNewApproversDropdown();
 
