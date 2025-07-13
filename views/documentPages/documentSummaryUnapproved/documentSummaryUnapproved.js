@@ -14,8 +14,6 @@ const elements = {
   lastUpdated: document.getElementById("lastUpdated"),
   documentCards: document.getElementById("documentCards"),
   refreshBtn: document.getElementById("refreshBtn"),
-  viewAllBtn: document.getElementById("viewAllBtn"),
-  exportBtn: document.getElementById("exportBtn"),
   modalTitle: document.getElementById("modalTitle"),
   modalDocumentList: document.getElementById("modalDocumentList"),
   documentDetailsModal: document.getElementById("documentDetailsModal"),
@@ -99,7 +97,6 @@ async function loadDashboardData() {
       updateUserInfo();
       renderDashboard();
       updateLastUpdated();
-      enableButtons();
     } else {
       showError("Không thể tải dữ liệu phê duyệt");
     }
@@ -1728,12 +1725,6 @@ function formatDate(dateString) {
     " " +
     date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
   );
-}
-
-// Enable action buttons
-function enableButtons() {
-  elements.viewAllBtn.disabled = false;
-  elements.exportBtn.disabled = false;
 }
 
 // Set loading state
