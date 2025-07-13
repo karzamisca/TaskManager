@@ -17,20 +17,6 @@
   <body>
     <header class="page-header">
       <h1><i class="fas fa-file-invoice-dollar"></i> Phiếu thanh toán</h1>
-      <div class="header-actions">
-        <a href="/documentSummary" class="btn btn-secondary">
-          <i class="fas fa-arrow-left"></i> Trở về
-        </a>
-        <a href="/documentSummaryUnapproved" class="btn btn-secondary">
-          <i class="fas fa-arrow-left"></i> Phiếu chưa duyệt
-        </a>
-        <a href="/documentMain" class="btn btn-secondary">
-          <i class="fas fa-arrow-left"></i> Hệ thống phê duyệt
-        </a>
-        <a href="/main" class="btn btn-secondary">
-          <i class="fas fa-arrow-left"></i> Trang chính
-        </a>
-      </div>
     </header>
 
     <div id="messageContainer" class="message"></div>
@@ -423,5 +409,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="documentPages/documentSummaryPayment/documentSummaryPayment.js?v=1.8"></script>
+    <script src="/components/header/headerLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>

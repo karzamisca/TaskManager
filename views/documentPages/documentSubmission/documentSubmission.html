@@ -17,174 +17,16 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
     />
     <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
       rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
-    />
-    <link
-      rel="stylesheet"
-      href="documentPages/documentSubmission/documentSubmission.css?v=1.0"
+      href="documentPages/documentSubmission/documentSubmission.css?v=1.1"
     />
   </head>
   <body>
-    <!-- Header Section -->
-    <header class="dashboard-header py-4">
-      <div class="container-fluid">
-        <div class="row align-items-center">
-          <div class="col-lg-6 text-lg-end mt-3 mt-lg-0">
-            <div class="header-actions">
-              <!-- Quick Actions Navigation -->
-              <div class="nav-actions">
-                <button
-                  class="btn btn-primary btn-sm"
-                  onclick="location.href='/documentSummaryUnapproved'"
-                >
-                  <i class="bi-exclamation-circle"></i> Phiếu chưa duyệt
-                </button>
-
-                <!-- Document Summary Dropdown -->
-                <div class="btn-group">
-                  <button
-                    type="button"
-                    class="btn btn-outline-secondary btn-sm dropdown-toggle"
-                    data-bs-toggle="dropdown"
-                    aria-expanded="false"
-                  >
-                    <i class="bi bi-file-text"></i> Tóm tắt phiếu
-                  </button>
-                  <ul class="dropdown-menu">
-                    <li>
-                      <a class="dropdown-item" href="/documentSummaryProposal"
-                        ><i class="bi bi-file-earmark-medical"></i> Tóm tắt đề
-                        xuất</a
-                      >
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="/documentSummaryPurchasing"
-                        ><i class="bi bi-cart"></i> Tóm tắt mua hàng</a
-                      >
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="/documentSummaryPayment"
-                        ><i class="bi bi-cash-stack"></i> Tóm tắt thanh toán</a
-                      >
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="/documentSummaryDelivery"
-                        ><i class="bi bi-truck"></i> Tóm tắt xuất kho</a
-                      >
-                    </li>
-                    <li>
-                      <a
-                        class="dropdown-item"
-                        href="/documentSummaryAdvancePayment"
-                        ><i class="bi bi-currency-exchange"></i> Tóm tắt tạm
-                        ứng</a
-                      >
-                    </li>
-                    <li>
-                      <a
-                        class="dropdown-item"
-                        href="/documentSummaryAdvancePaymentReclaim"
-                        ><i class="bi bi-arrow-counterclockwise"></i> Tóm tắt
-                        thu hồi tạm ứng</a
-                      >
-                    </li>
-                  </ul>
-                </div>
-
-                <!-- Report Dropdown -->
-                <div class="btn-group">
-                  <button
-                    type="button"
-                    class="btn btn-outline-secondary btn-sm dropdown-toggle"
-                    data-bs-toggle="dropdown"
-                    aria-expanded="false"
-                  >
-                    <i class="bi bi-clipboard-data"></i> Báo cáo
-                  </button>
-                  <ul class="dropdown-menu">
-                    <li>
-                      <a class="dropdown-item" href="/reportSubmission"
-                        ><i class="bi bi-file-earmark-plus"></i> Báo cáo gửi
-                        đi</a
-                      >
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="/reportSummary"
-                        ><i class="bi bi-file-earmark-bar-graph"></i> Tổng hợp
-                        báo cáo</a
-                      >
-                    </li>
-                  </ul>
-                </div>
-
-                <!-- SFTP Dropdown -->
-                <div class="btn-group">
-                  <button
-                    type="button"
-                    class="btn btn-outline-secondary btn-sm dropdown-toggle"
-                    data-bs-toggle="dropdown"
-                    aria-expanded="false"
-                  >
-                    <i class="bi bi-folder"></i> Quản tệp tin
-                  </button>
-                  <ul class="dropdown-menu">
-                    <li>
-                      <a class="dropdown-item" href="/sftpPurchasing"
-                        ><i class="bi bi-cart-check"></i> Mua hàng</a
-                      >
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="/sftpTechnical"
-                        ><i class="bi bi-tools"></i> Kỹ thuật</a
-                      >
-                    </li>
-                    <li>
-                      <a class="dropdown-item" href="/sftpAccounting"
-                        ><i class="bi bi-calculator"></i> Kế toán</a
-                      >
-                    </li>
-                    <li>
-                      <a
-                        class="dropdown-item"
-                        href="/sftpNorthernRepresentativeOffice"
-                        ><i class="bi bi-building"></i> Văn phòng đại diện miền
-                        Bắc</a
-                      >
-                    </li>
-                  </ul>
-                </div>
-
-                <a
-                  href="/message"
-                  class="btn btn-outline-secondary btn-sm"
-                  id="messageBtn"
-                >
-                  <i class="bi bi-chat-left-text"></i> Bảng tin nhắn
-                </a>
-                <a
-                  href="/logout"
-                  class="btn btn-outline-secondary btn-sm"
-                  id="logoutBtn"
-                >
-                  <i class="bi bi-box-arrow-right"></i> Đăng xuất
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
-
     <!-- Main Content -->
     <main class="content-wrapper">
       <div class="container">
         <div class="page-header">
-          <h2><i class="fas fa-paper-plane"></i> Nộp phiếu mới</h2>
+          <h2>Nộp phiếu mới</h2>
           <p class="page-description">
             Vui lòng điền đầy đủ thông tin bên dưới để gửi phiếu mới
           </p>
@@ -358,7 +200,8 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="documentPages/documentSubmission/documentSubmission.js?v=1.1"></script>
+    <script src="/components/header/headerLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>

@@ -25,20 +25,6 @@ body {
   min-height: 100vh;
 }
 
-/* Header styles */
-.dashboard-header {
-  background-color: #fff;
-  border-bottom: 1px solid #e3e6f0;
-  box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
 .logo-container {
   display: flex;
   align-items: center;
@@ -308,12 +294,6 @@ input[type="file"] {
 
 /* Responsive design */
 @media (max-width: 768px) {
-  .header-actions {
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: stretch;
-  }
-
   .container {
     padding: 1.5rem;
   }
