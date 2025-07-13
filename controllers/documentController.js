@@ -92,6 +92,7 @@ const documentUtils = {
         { "approvers.approver": userId },
         ...(userRole === "headOfAccounting" ||
         userRole === "superAdmin" ||
+        userRole === "director" ||
         userRole === "headOfPurchasing" ||
         userRole === "captainOfPurchasing"
           ? [{}] // Include all documents if user is headOfAccounting or superAdmin
@@ -168,6 +169,23 @@ const documentUtils = {
       // If the user has already approved this document, they can see it
       if (currentUserHasApproved) {
         return true;
+      }
+
+      // MODIFICATION: Check if document has stages and user is a pending stage approver
+      if (doc.stages && doc.stages.length > 0) {
+        const isStageApprover = doc.stages.some((stage) => {
+          const isApprover = stage.approvers.some(
+            (a) => a.username === username
+          );
+          const hasApproved = stage.approvedBy.some(
+            (a) => a.username === username
+          );
+          return isApprover && !hasApproved;
+        });
+
+        if (isStageApprover) {
+          return true;
+        }
       }
 
       // Find pending approvers (those not in approvedBy)

@@ -1127,7 +1127,7 @@ const renderPaymentStages = () => {
                   <!-- Options will be populated dynamically -->
                 </select>
                 <input type="text" class="form-input stage-approver-subrole" 
-                       id="stageApproverSubRole${index}" placeholder="Vai trò/Sub Role">
+                       id="stageApproverSubRole${index}" placeholder="Vai trò">
                 <button type="button" class="btn btn-primary btn-sm" 
                         onclick="addStageApprover(${index})">
                   <i class="fas fa-plus"></i> Thêm
