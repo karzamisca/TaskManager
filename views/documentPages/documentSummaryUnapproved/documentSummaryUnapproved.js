@@ -409,6 +409,15 @@ async function showFullView(type, id) {
       case "payment":
         fullViewHtml += addPaymentFullView(document);
         break;
+      case "delivery":
+        fullViewHtml += addDeliveryFullView(document);
+        break;
+      case "advance_payment":
+        fullViewHtml += addAdvancePaymentFullView(document, false);
+        break;
+      case "advance_reclaim":
+        fullViewHtml += addAdvancePaymentFullView(document, true);
+        break;
       default:
         fullViewHtml += addGenericFullView(document);
     }
@@ -649,6 +658,248 @@ function addPaymentFullView(document) {
       </div>
     `;
   }
+
+  // Add appended purchasing documents if they exist
+  if (document.appendedPurchasingDocuments?.length > 0) {
+    html += `
+      <hr>
+      <h6>Phiếu mua hàng kèm theo</h6>
+      <div class="purchasing-documents-container">
+        ${document.appendedPurchasingDocuments
+          .map(
+            (purchDoc) => `
+          <div class="purchasing-document card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">${purchDoc.name || "Phiếu mua hàng"}</h5>
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Trạm:</strong> ${
+                    purchDoc.costCenter || "Không có"
+                  }</p>
+                  <p><strong>Nhóm:</strong> ${
+                    purchDoc.groupName || "Không có"
+                  }</p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Tổng chi phí:</strong> ${formatCurrency(
+                    purchDoc.grandTotalCost
+                  )}</p>
+                </div>
+              </div>
+              
+              <div class="products-section mt-3">
+                <h6>Danh sách sản phẩm</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Tên sản phẩm</th>
+                        <th>Số lượng</th>
+                        <th>Đơn giá</th>
+                        <th>VAT (%)</th>
+                        <th>Thành tiền</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${purchDoc.products
+                        .map(
+                          (product) => `
+                        <tr>
+                          <td>${product.productName}</td>
+                          <td>${product.amount}</td>
+                          <td>${formatCurrency(product.costPerUnit)}</td>
+                          <td>${product.vat}</td>
+                          <td>${formatCurrency(product.totalCost)}</td>
+                        </tr>
+                      `
+                        )
+                        .join("")}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              ${
+                purchDoc.fileMetadata
+                  ? `<div class="file-section mt-3">
+                      <p><strong>Tệp đính kèm:</strong> 
+                      <a href="${purchDoc.fileMetadata.link}" target="_blank">${purchDoc.fileMetadata.name}</a></p>
+                    </div>`
+                  : ""
+              }
+              
+              ${
+                purchDoc.appendedProposals?.length > 0
+                  ? `
+                  <div class="proposals-section mt-3">
+                    <h6>Phiếu đề xuất kèm theo</h6>
+                    <div class="proposals-list">
+                      ${purchDoc.appendedProposals
+                        .map(
+                          (proposal) => `
+                        <div class="proposal-item card mb-2">
+                          <div class="card-body">
+                            <h6 class="card-title">${
+                              proposal.task || "Đề xuất"
+                            }</h6>
+                            <p><strong>Trạm:</strong> ${proposal.costCenter}</p>
+                            <p><strong>Mô tả:</strong> ${
+                              proposal.detailsDescription
+                            }</p>
+                            ${
+                              proposal.fileMetadata
+                                ? `<p><strong>Tệp đính kèm:</strong> 
+                                   <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
+                                : ""
+                            }
+                          </div>
+                        </div>
+                      `
+                        )
+                        .join("")}
+                    </div>
+                  </div>`
+                  : ""
+              }
+            </div>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    `;
+  }
+
+  if (document.declaration) {
+    html += `
+      <hr>
+      <h6>Kê khai</h6>
+      <div class="bg-light p-2 rounded">${document.declaration}</div>
+    `;
+  }
+
+  return html;
+}
+
+// Add delivery-specific full view
+function addDeliveryFullView(document) {
+  let html = `
+    <hr>
+    <h6>Thông tin xuất kho</h6>
+    <p><strong>Trạm:</strong> ${document.costCenter || "Không có"}</p>
+    <p><strong>Nhóm:</strong> ${document.groupName || "Không có"}</p>
+  `;
+
+  if (document.products?.length > 0) {
+    html += `
+      <hr>
+      <h6>Danh sách sản phẩm</h6>
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Tên sản phẩm</th>
+              <th>Số lượng</th>
+              <th>Đơn giá</th>
+              <th>Thành tiền</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${document.products
+              .map(
+                (product) => `
+              <tr>
+                <td>${product.productName}</td>
+                <td>${product.amount}</td>
+                <td>${formatCurrency(product.costPerUnit)}</td>
+                <td>${formatCurrency(product.totalCost)}</td>
+              </tr>
+            `
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+      <p class="text-end fw-bold">Tổng cộng: ${formatCurrency(
+        document.grandTotalCost
+      )}</p>
+    `;
+  }
+
+  // Add appended proposals if they exist
+  if (document.appendedProposals?.length > 0) {
+    html += `
+      <hr>
+      <h6>Phiếu đề xuất kèm theo</h6>
+      <div class="proposals-container">
+        ${document.appendedProposals
+          .map(
+            (proposal) => `
+          <div class="proposal-item card mb-2">
+            <div class="card-body">
+              <h5 class="card-title">${
+                proposal.task || "Đề xuất không có tiêu đề"
+              }</h5>
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Trạm:</strong> ${
+                    proposal.costCenter || "Không có"
+                  }</p>
+                  <p><strong>Nhóm:</strong> ${
+                    proposal.groupName || "Không có"
+                  }</p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Ngày phát sinh:</strong> ${
+                    proposal.dateOfError || "Không có"
+                  }</p>
+                  <p><strong>Người nộp:</strong> ${
+                    proposal.submittedBy?.username || "Không rõ"
+                  }</p>
+                </div>
+              </div>
+              <p><strong>Mô tả:</strong> ${proposal.detailsDescription}</p>
+              <p><strong>Hướng giải quyết:</strong> ${proposal.direction}</p>
+              ${
+                proposal.fileMetadata
+                  ? `<p><strong>Tệp đính kèm:</strong> 
+                     <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
+                  : ""
+              }
+            </div>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    `;
+  }
+
+  if (document.declaration) {
+    html += `
+      <hr>
+      <h6>Kê khai</h6>
+      <div class="bg-light p-2 rounded">${document.declaration}</div>
+    `;
+  }
+
+  return html;
+}
+
+// Add advance payment full view
+function addAdvancePaymentFullView(document, isReclaim) {
+  const title = isReclaim ? "Thu hồi tạm ứng" : "Tạm ứng";
+  const amountField = isReclaim ? "advancePaymentReclaim" : "advancePayment";
+
+  let html = `
+    <hr>
+    <h6>Thông tin ${title}</h6>
+    <p><strong>Số tiền:</strong> ${formatCurrency(document[amountField])}</p>
+    <p><strong>Phương thức thanh toán:</strong> ${document.paymentMethod}</p>
+    <p><strong>Hạn thanh toán:</strong> ${
+      document.paymentDeadline || "Không xác định"
+    }</p>
+  `;
 
   // Add appended purchasing documents if they exist
   if (document.appendedPurchasingDocuments?.length > 0) {
@@ -1052,7 +1303,7 @@ function addAdvancePaymentDetails(document, type) {
   const title = isReclaim ? "Thu hồi tạm ứng" : "Tạm ứng";
   const amountField = isReclaim ? "advancePaymentReclaim" : "advancePayment";
 
-  return `
+  let html = `
     <hr>
     <h6>Thông tin ${title}</h6>
     <p><strong>Số tiền:</strong> ${formatCurrency(document[amountField])}</p>
@@ -1060,21 +1311,115 @@ function addAdvancePaymentDetails(document, type) {
     <p><strong>Hạn thanh toán:</strong> ${
       document.paymentDeadline || "Không xác định"
     }</p>
-    ${
-      document.declaration
-        ? `
+  `;
+
+  // Add appended purchasing documents if they exist
+  if (document.appendedPurchasingDocuments?.length > 0) {
+    html += `
+      <hr>
+      <h6>Phiếu mua hàng kèm theo</h6>
+      <div class="purchasing-documents-container">
+        ${document.appendedPurchasingDocuments
+          .map(
+            (purchDoc) => `
+          <div class="purchasing-document card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">${purchDoc.name || "Phiếu mua hàng"}</h5>
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Trạm:</strong> ${
+                    purchDoc.costCenter || "Không có"
+                  }</p>
+                  <p><strong>Nhóm:</strong> ${
+                    purchDoc.groupName || "Không có"
+                  }</p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Tổng chi phí:</strong> ${formatCurrency(
+                    purchDoc.grandTotalCost
+                  )}</p>
+                </div>
+              </div>
+              
+              <div class="products-section mt-3">
+                <h6>Danh sách sản phẩm</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Tên sản phẩm</th>
+                        <th>Số lượng</th>
+                        <th>Đơn giá</th>
+                        <th>VAT (%)</th>
+                        <th>Thành tiền</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${purchDoc.products
+                        .map(
+                          (product) => `
+                        <tr>
+                          <td>${product.productName}</td>
+                          <td>${product.amount}</td>
+                          <td>${formatCurrency(product.costPerUnit)}</td>
+                          <td>${product.vat}</td>
+                          <td>${formatCurrency(product.totalCost)}</td>
+                        </tr>
+                      `
+                        )
+                        .join("")}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              ${
+                purchDoc.fileMetadata
+                  ? `<div class="file-section mt-3">
+                      <p><strong>Tệp đính kèm:</strong> 
+                      <a href="${purchDoc.fileMetadata.link}" target="_blank">${purchDoc.fileMetadata.name}</a></p>
+                    </div>`
+                  : ""
+              }
+            </div>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    `;
+  }
+
+  if (document.declaration) {
+    html += `
       <hr>
       <h6>Kê khai</h6>
       <div class="bg-light p-2 rounded">${document.declaration}</div>
-    `
-        : ""
-    }
-  `;
+    `;
+  }
+
+  // Add button to show full view with appended purchasing
+  if (document.appendedPurchasingDocuments?.length > 0) {
+    html += `
+      <div class="mt-3">
+        <button class="btn btn-primary" onclick="showFullView('${type}', '${document._id}')">
+          <i class="bi bi-eye"></i> Xem toàn bộ thông tin
+        </button>
+      </div>
+    `;
+  }
+
+  return html;
 }
 
 // Add delivery-specific details
 function addDeliveryDetails(document) {
-  let html = "";
+  let html = `
+    <hr>
+    <h6>Thông tin xuất kho</h6>
+    <p><strong>Trạm:</strong> ${document.costCenter || "Không có"}</p>
+    <p><strong>Nhóm:</strong> ${document.groupName || "Không có"}</p>
+  `;
 
   if (document.products?.length > 0) {
     html += `
@@ -1109,6 +1454,74 @@ function addDeliveryDetails(document) {
       <p class="text-end fw-bold">Tổng cộng: ${formatCurrency(
         document.grandTotalCost
       )}</p>
+    `;
+  }
+
+  // Add appended proposals if they exist
+  if (document.appendedProposals?.length > 0) {
+    html += `
+      <hr>
+      <h6>Phiếu đề xuất kèm theo</h6>
+      <div class="proposals-container">
+        ${document.appendedProposals
+          .map(
+            (proposal) => `
+          <div class="proposal-item card mb-2">
+            <div class="card-body">
+              <h5 class="card-title">${
+                proposal.task || "Đề xuất không có tiêu đề"
+              }</h5>
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Trạm:</strong> ${
+                    proposal.costCenter || "Không có"
+                  }</p>
+                  <p><strong>Nhóm:</strong> ${
+                    proposal.groupName || "Không có"
+                  }</p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Ngày phát sinh:</strong> ${
+                    proposal.dateOfError || "Không có"
+                  }</p>
+                  <p><strong>Người nộp:</strong> ${
+                    proposal.submittedBy?.username || "Không rõ"
+                  }</p>
+                </div>
+              </div>
+              <p><strong>Mô tả:</strong> ${proposal.detailsDescription}</p>
+              <p><strong>Hướng giải quyết:</strong> ${proposal.direction}</p>
+              ${
+                proposal.fileMetadata
+                  ? `<p><strong>Tệp đính kèm:</strong> 
+                     <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
+                  : ""
+              }
+            </div>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    `;
+  }
+
+  if (document.declaration) {
+    html += `
+      <hr>
+      <h6>Kê khai</h6>
+      <div class="bg-light p-2 rounded">${document.declaration}</div>
+    `;
+  }
+
+  // Add button to show full view with appended proposals
+  if (document.appendedProposals?.length > 0) {
+    html += `
+      <div class="mt-3">
+        <button class="btn btn-primary" onclick="showFullView('delivery', '${document._id}')">
+          <i class="bi bi-eye"></i> Xem toàn bộ thông tin
+        </button>
+      </div>
     `;
   }
 

@@ -20,6 +20,35 @@ const advancePaymentReclaimDocumentSchema = new mongoose.Schema({
     link: { type: String },
     path: { type: String },
   },
+  stages: [
+    {
+      name: { type: String, required: true },
+      amount: { type: Number, required: true },
+      deadline: { type: String },
+      approvers: [
+        {
+          approver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+          username: { type: String, required: true },
+          subRole: { type: String, required: true },
+        },
+      ],
+      approvedBy: [
+        {
+          user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+          username: { type: String, required: true },
+          role: { type: String, required: true },
+          approvalDate: { type: String, required: true },
+        },
+      ],
+      status: {
+        type: String,
+        enum: ["Pending", "Approved", "Suspended"],
+        default: "Pending",
+      },
+      paymentMethod: { type: String },
+      notes: { type: String },
+    },
+  ],
   submissionDate: { type: String, required: true },
   submittedBy: {
     type: mongoose.Schema.Types.ObjectId,
