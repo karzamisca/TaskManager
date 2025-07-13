@@ -489,7 +489,7 @@ async function fetchApprovers() {
     const subRoleInput = document.createElement("input");
     subRoleInput.type = "text";
     subRoleInput.name = `subRole_${approver._id}`;
-    subRoleInput.placeholder = "Nhập vai trò";
+    subRoleInput.placeholder = "";
     subRoleInput.disabled = true;
     approverDiv.appendChild(subRoleInput);
 

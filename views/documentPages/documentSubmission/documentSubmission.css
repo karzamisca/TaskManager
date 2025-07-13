@@ -1,44 +1,107 @@
-/* views\documentPages\documentSubmission\documentSubmission.css */
+/* views/documentPages/documentSubmission/documentSubmission.css */
 /* Base styles */
-body {
-  font-family: "Segoe UI", Arial, sans-serif;
-  background-color: #f8f9fa;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  margin: 0;
-  padding: 20px;
-  box-sizing: border-box;
-  color: #333;
+:root {
+  --primary-color: #3182ce;
+  --primary-hover: #2c5282;
+  --secondary-color: #718096;
+  --secondary-hover: #4a5568;
+  --success-color: #38a169;
+  --danger-color: #e53e3e;
+  --light-color: #f8f9fa;
+  --dark-color: #2d3748;
+  --text-color: #333;
+  --border-color: #e2e8f0;
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-/* Container styling */
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background-color: #f5f7fa;
+  color: var(--text-color);
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header styles */
+.dashboard-header {
+  background-color: #fff;
+  border-bottom: 1px solid #e3e6f0;
+  box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-icon {
+  font-size: 1.5rem;
+}
+
+.nav-link {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.nav-link:hover {
+  opacity: 0.9;
+}
+
+/* Main content styles */
+.content-wrapper {
+  flex: 1;
+  padding: 2rem 0;
+}
+
 .container {
   background: #fff;
   padding: 2rem;
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow);
   max-width: 800px;
   width: 100%;
+  margin: 0 auto;
 }
 
-/* Typography */
-h2 {
-  margin-bottom: 1.5rem;
-  font-size: 1.75rem;
-  color: #2c3e50;
-  border-bottom: 2px solid #e9ecef;
-  padding-bottom: 0.75rem;
+.section-title {
+  color: var(--primary-color);
+  font-size: 1.25rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Form elements */
+.form-section {
+  margin-bottom: 1.5rem;
+}
+
 label {
   display: block;
   margin-bottom: 0.5rem;
   font-size: 0.95rem;
   font-weight: 500;
-  color: #4a5568;
+  color: var(--dark-color);
 }
 
 input,
@@ -46,8 +109,8 @@ textarea,
 select {
   width: 100%;
   padding: 0.75rem;
-  margin-bottom: 1.25rem;
-  border: 1.5px solid #e2e8f0;
+  margin-bottom: 1rem;
+  border: 1.5px solid var(--border-color);
   border-radius: 6px;
   font-size: 1rem;
   transition: all 0.2s ease;
@@ -58,15 +121,13 @@ input:focus,
 textarea:focus,
 select:focus {
   outline: none;
-  border-color: #4299e1;
+  border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
 }
 
 /* Buttons */
 button {
-  width: 100%;
   padding: 0.75rem;
-  background: #3182ce;
   color: white;
   border: none;
   border-radius: 6px;
@@ -74,26 +135,88 @@ button {
   font-size: 1rem;
   font-weight: 500;
   transition: all 0.2s ease;
-  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-button:hover {
-  background: #2c5282;
+.primary-button {
+  background: var(--primary-color);
+  width: 100%;
+}
+
+.primary-button:hover {
+  background: var(--primary-hover);
   transform: translateY(-1px);
 }
 
-button:active {
-  transform: translateY(0);
+.secondary-button {
+  background: var(--secondary-color);
+  width: 100%;
+  margin-bottom: 1rem;
 }
 
-/* Secondary buttons */
-button[type="button"] {
-  background: #718096;
-  margin-bottom: 1.5rem;
+.secondary-button:hover {
+  background: var(--secondary-hover);
+  transform: translateY(-1px);
 }
 
-button[type="button"]:hover {
-  background: #4a5568;
+.cancel-button {
+  display: inline-block;
+  padding: 0.75rem;
+  text-align: center;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.cancel-button:hover {
+  background-color: rgba(49, 130, 206, 0.1);
+}
+
+.form-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* File upload styling */
+.file-upload-wrapper {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.file-upload-label {
+  display: block;
+  padding: 1.5rem;
+  border: 2px dashed #cbd5e0;
+  border-radius: 6px;
+  text-align: center;
+  cursor: pointer;
+  background-color: #f8fafc;
+  color: #4a5568;
+  transition: all 0.2s ease;
+}
+
+.file-upload-label:hover {
+  background-color: #edf2f7;
+  border-color: #a0aec0;
+}
+
+input[type="file"] {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
 }
 
 /* Product entries section */
@@ -105,8 +228,10 @@ button[type="button"]:hover {
 }
 
 /* Approver selection styling */
-#approver-selection {
-  margin: 1.5rem 0;
+.approver-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
 }
 
 #approver-selection div {
@@ -114,7 +239,6 @@ button[type="button"]:hover {
   grid-template-columns: auto 24px 1fr;
   gap: 1rem;
   align-items: center;
-  margin-bottom: 1rem;
   padding: 0.75rem;
   background: #f8fafc;
   border-radius: 6px;
@@ -138,20 +262,58 @@ button[type="button"]:hover {
   margin-top: 1rem;
 }
 
-/* Links */
-a {
-  color: #3182ce;
-  text-decoration: none;
-  transition: color 0.2s ease;
+/* Footer styles */
+.main-footer {
+  background-color: var(--dark-color);
+  color: white;
+  padding: 2rem 0 0;
 }
 
-a:hover {
-  color: #2c5282;
-  text-decoration: underline;
+.footer-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.footer-section {
+  margin-bottom: 1.5rem;
+}
+
+.footer-section h4 {
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.footer-link {
+  display: block;
+  color: #cbd5e0;
+  text-decoration: none;
+  margin-bottom: 0.5rem;
+  transition: color 0.2s;
+}
+
+.footer-link:hover {
+  color: white;
+}
+
+.footer-bottom {
+  text-align: center;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.1);
+  margin-top: 2rem;
 }
 
 /* Responsive design */
 @media (max-width: 768px) {
+  .header-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
   .container {
     padding: 1.5rem;
   }
@@ -166,41 +328,6 @@ a:hover {
   select {
     padding: 0.625rem;
   }
-
-  h2 {
-    font-size: 1.5rem;
-  }
-}
-
-/* File input styling */
-input[type="file"] {
-  padding: 0.5rem;
-  border: 1.5px dashed #cbd5e0;
-  background: #f8fafc;
-}
-
-input[type="file"]:hover {
-  background: #edf2f7;
-}
-
-/* Flatpickr calendar customization */
-.flatpickr-calendar {
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* Error states */
-input:invalid,
-textarea:invalid,
-select:invalid {
-  border-color: #27ae60;
-}
-
-/* Success states */
-input:valid:not(:placeholder-shown),
-textarea:valid:not(:placeholder-shown),
-select:valid:not(:placeholder-shown) {
-  border-color: #27ae60;
 }
 
 /* Dark mode styles */
@@ -215,11 +342,6 @@ select:valid:not(:placeholder-shown) {
     color: #f1f1f1;
     box-shadow: 0 4px 6px rgba(255, 255, 255, 0.1),
       0 1px 3px rgba(255, 255, 255, 0.08);
-  }
-
-  h2 {
-    color: #e0e0e0;
-    border-bottom: 2px solid #333;
   }
 
   label {
@@ -241,23 +363,6 @@ select:valid:not(:placeholder-shown) {
     box-shadow: 0 0 0 3px rgba(144, 205, 244, 0.3);
   }
 
-  button {
-    background: #2d3748;
-    color: #f1f1f1;
-  }
-
-  button:hover {
-    background: #4a5568;
-  }
-
-  button[type="button"] {
-    background: #4a5568;
-  }
-
-  button[type="button"]:hover {
-    background: #2d3748;
-  }
-
   #product-entries,
   #approver-selection div,
   #proposalPreview,
@@ -266,32 +371,13 @@ select:valid:not(:placeholder-shown) {
     color: #f1f1f1;
   }
 
-  a {
-    color: #90cdf4;
-  }
-
-  a:hover {
-    color: #63b3ed;
-  }
-
-  input[type="file"] {
-    background: #333;
+  .file-upload-label {
+    background-color: #333;
     border-color: #444;
+    color: #ccc;
   }
 
-  input[type="file"]:hover {
-    background: #444;
-  }
-
-  input:invalid,
-  textarea:invalid,
-  select:invalid {
-    border-color: #68d391;
-  }
-
-  input:valid:not(:placeholder-shown),
-  textarea:valid:not(:placeholder-shown),
-  select:valid:not(:placeholder-shown) {
-    border-color: #68d391;
+  .file-upload-label:hover {
+    background-color: #444;
   }
 }

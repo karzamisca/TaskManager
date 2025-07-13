@@ -53,7 +53,7 @@ exports.login = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    res.redirect("/main");
+    res.redirect("/documentSummaryUnapproved");
   } catch (err) {
     console.error(err);
     res.send("Lỗi server/Server error");
