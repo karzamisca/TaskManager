@@ -4060,24 +4060,61 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
   try {
     const userId = req._id;
     const username = req.user.username;
+    const userRole = req.user.role;
 
     // Enhanced helper function to get unapproved documents with more details
     const getUnapprovedDocs = async (model, type) => {
+      let queryConditions = {
+        status: "Pending",
+        $or: [
+          { "approvers.approver": userId },
+          { "stages.approvers.approver": userId },
+        ],
+        approvedBy: { $not: { $elemMatch: { user: userId } } },
+      };
+
       const docs = await model
-        .find({
-          status: "Pending",
-          "approvers.approver": userId,
-          approvedBy: { $not: { $elemMatch: { user: userId } } },
-        })
+        .find(queryConditions)
         .populate("submittedBy", "username")
         .populate("approvers.approver", "username role")
-        .populate("approvedBy.user", "username");
+        .populate("approvedBy.user", "username")
+        .populate("stages.approvers.approver", "username role")
+        .populate("stages.approvedBy.user", "username");
 
       // Apply username-specific filtering for restricted users
-      const filteredDocs = documentUtils.filterDocumentsByUsername(
-        docs,
-        username
-      );
+      const filteredDocs = documentUtils
+        .filterDocumentsByUsername(docs, username, userRole)
+        .filter((doc) => {
+          // Additional filtering for stage approvers
+          if (doc.stages && doc.stages.length > 0) {
+            // Check if user is a pending stage approver
+            const hasPendingStageApproval = doc.stages.some((stage) => {
+              const isStageApprover = stage.approvers.some(
+                (a) =>
+                  a.approver._id.equals(userId) ||
+                  (typeof a.approver === "string" &&
+                    a.approver === userId.toString())
+              );
+              const hasApproved = stage.approvedBy.some(
+                (a) =>
+                  a.user._id.equals(userId) ||
+                  (typeof a.user === "string" && a.user === userId.toString())
+              );
+              return isStageApprover && !hasApproved;
+            });
+
+            return (
+              hasPendingStageApproval ||
+              doc.approvers.some(
+                (a) =>
+                  a.approver._id.equals(userId) ||
+                  (typeof a.approver === "string" &&
+                    a.approver === userId.toString())
+              )
+            );
+          }
+          return true;
+        });
 
       return {
         count: filteredDocs.length,
@@ -4089,7 +4126,23 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
           task: doc.task ?? null,
           submittedBy: doc.submittedBy?.username || "Unknown",
           submissionDate: doc.submissionDate,
-          // Add other relevant fields
+          stages: doc.stages?.map((stage) => ({
+            name: stage.name,
+            amount: stage.amount,
+            status: stage.status,
+            approvers: stage.approvers.map((a) => ({
+              username:
+                typeof a.approver === "object"
+                  ? a.approver.username
+                  : a.username,
+              role: typeof a.approver === "object" ? a.approver.role : a.role,
+            })),
+            approvedBy: stage.approvedBy.map((a) => ({
+              username:
+                typeof a.user === "object" ? a.user.username : a.username,
+              role: typeof a.user === "object" ? a.user.role : a.role,
+            })),
+          })),
         })),
         type,
       };
@@ -4120,7 +4173,7 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
         user: {
           id: userId,
           username,
-          role: req.user.role,
+          role: userRole,
         },
         lastUpdated: new Date().toISOString(),
       },

@@ -117,6 +117,22 @@ body {
   flex-wrap: wrap;
 }
 
+.stage-card {
+  transition: all 0.3s ease;
+}
+
+.stage-card:hover {
+  box-shadow: 0 0.15rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+.stage-card .card-header {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.stage-card.border-success .card-header {
+  background-color: rgba(25, 135, 84, 0.1);
+}
+
 @media (max-width: 768px) {
   .nav-actions {
     flex-direction: column;

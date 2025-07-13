@@ -930,34 +930,34 @@ function addPaymentDetails(document) {
     html += `
       <hr>
       <h6>Các giai đoạn thanh toán</h6>
-      <div class="accordion" id="paymentStagesAccordion">
+      <div class="stages-container">
         ${document.stages
-          .map(
-            (stage, index) => `
-          <div class="accordion-item">
-            <h2 class="accordion-header" id="stageHeading${index}">
-              <button class="accordion-button ${index > 0 ? "collapsed" : ""}" 
-                      type="button" data-bs-toggle="collapse" 
-                      data-bs-target="#stageCollapse${index}" 
-                      aria-expanded="${index === 0 ? "true" : "false"}" 
-                      aria-controls="stageCollapse${index}">
-                Giai đoạn ${index + 1}: ${stage.name} - ${formatCurrency(
-              stage.amount
-            )}
-                <span class="badge bg-${getStatusBadgeColor(
-                  stage.status
-                )} ms-2">
-                  ${stage.status || "Pending"}
+          .map((stage, index) => {
+            const isApprover = stage.approvers.some(
+              (a) => a.approver.toString() === appData.user.id
+            );
+            const hasApproved = stage.approvedBy.some(
+              (a) => a.user.toString() === appData.user.id
+            );
+            const canApprove =
+              isApprover && !hasApproved && stage.status === "Pending";
+
+            return `
+            <div class="stage-card card mb-3 ${
+              stage.status === "Approved" ? "border-success" : ""
+            }">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Giai đoạn ${index + 1}: ${stage.name}</h6>
+                <span class="badge bg-${getStatusBadgeColor(stage.status)}">
+                  ${
+                    stage.status === "Approved"
+                      ? "Đã phê duyệt"
+                      : "Chờ phê duyệt"
+                  }
                 </span>
-              </button>
-            </h2>
-            <div id="stageCollapse${index}" 
-                 class="accordion-collapse collapse ${
-                   index === 0 ? "show" : ""
-                 }" 
-                 aria-labelledby="stageHeading${index}" 
-                 data-bs-parent="#paymentStagesAccordion">
-              <div class="accordion-body">
+              </div>
+              <div class="card-body">
+                <p><strong>Số tiền:</strong> ${formatCurrency(stage.amount)}</p>
                 <p><strong>Hạn thanh toán:</strong> ${
                   stage.deadline || "Không xác định"
                 }</p>
@@ -969,6 +969,7 @@ function addPaymentDetails(document) {
                     ? `<p><strong>Ghi chú:</strong> ${stage.notes}</p>`
                     : ""
                 }
+                
                 ${
                   stage.approvedBy?.length > 0
                     ? `
@@ -989,14 +990,49 @@ function addPaymentDetails(document) {
                 `
                     : ""
                 }
+                
+                ${
+                  canApprove
+                    ? `
+                  <button onclick="approvePaymentStage('${document._id}', ${index})" 
+                          class="btn btn-sm btn-success mt-2">
+                    <i class="bi bi-check-circle"></i> Phê duyệt giai đoạn này
+                  </button>
+                `
+                    : ""
+                }
               </div>
             </div>
-          </div>
-        `
-          )
+          `;
+          })
           .join("")}
       </div>
     `;
+
+    // Check if all stages are approved and show document approval button
+    const allStagesApproved = document.stages.every(
+      (s) => s.status === "Approved"
+    );
+    if (allStagesApproved && document.approvers.length > 0) {
+      const isDocApprover = document.approvers.some(
+        (a) => a.approver.toString() === appData.user.id
+      );
+      const hasDocApproved = document.approvedBy.some(
+        (a) => a.user.toString() === appData.user.id
+      );
+
+      if (isDocApprover && !hasDocApproved) {
+        html += `
+          <div class="alert alert-success mt-3">
+            <h6><i class="bi bi-check-circle"></i> Tất cả giai đoạn đã được phê duyệt</h6>
+            <button onclick="approveDocument('payment', '${document._id}')" 
+                    class="btn btn-success">
+              <i class="bi bi-check-all"></i> Phê duyệt toàn bộ phiếu thanh toán
+            </button>
+          </div>
+        `;
+      }
+    }
   }
 
   if (document.declaration) {
@@ -1111,9 +1147,80 @@ function addProjectProposalDetails(document) {
   return html;
 }
 
+async function approvePaymentStage(docId, stageIndex) {
+  if (
+    !confirm(`Bạn có chắc chắn muốn phê duyệt giai đoạn ${stageIndex + 1} này?`)
+  )
+    return;
+
+  try {
+    const response = await fetch(
+      `/approvePaymentStage/${docId}/${stageIndex}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const result = await response.json();
+
+    if (result.message) {
+      showToast("success", result.message);
+      loadDashboardData();
+      // Close modals if open
+      const docsModal = bootstrap.Modal.getInstance(
+        document.getElementById("documentsModal")
+      );
+      if (docsModal) docsModal.hide();
+
+      const detailsModal = bootstrap.Modal.getInstance(
+        document.getElementById("documentDetailsModal")
+      );
+      if (detailsModal) detailsModal.hide();
+    } else {
+      showToast("danger", "Lỗi khi phê duyệt giai đoạn");
+    }
+  } catch (error) {
+    console.error("Error approving payment stage:", error);
+    showToast("danger", "Lỗi khi phê duyệt giai đoạn");
+  }
+}
+
 // Approve document function
 async function approveDocument(type, id) {
-  if (!confirm("Bạn có chắc chắn muốn phê duyệt phiếu này?")) return;
+  // For payment documents, we need to check if all stages are approved
+  if (type === "payment") {
+    try {
+      // First get the current document state
+      const response = await fetch(`/getPaymentDocument/${id}`);
+      const document = await response.json();
+
+      // Check if all stages are approved
+      const allStagesApproved = document.stages.every(
+        (s) => s.status === "Approved"
+      );
+      if (!allStagesApproved) {
+        return showToast(
+          "warning",
+          "Vui lòng phê duyệt tất cả các giai đoạn trước khi phê duyệt toàn bộ phiếu"
+        );
+      }
+    } catch (error) {
+      console.error("Error checking document stages:", error);
+      return showToast("danger", "Lỗi khi kiểm tra trạng thái giai đoạn");
+    }
+  }
+
+  if (
+    !confirm(
+      `Bạn có chắc chắn muốn phê duyệt ${
+        type === "payment" ? "toàn bộ phiếu thanh toán" : "phiếu này"
+      }?`
+    )
+  )
+    return;
 
   try {
     const response = await fetch(`/approveDocument/${id}`, {
