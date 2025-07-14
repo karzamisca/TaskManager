@@ -10,26 +10,208 @@
 }
 
 body {
-  background-color: #f8f9fc;
   font-family: "Nunito", -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #f8f9fc;
+  color: #212529;
 }
 
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary-color: #4e73df;
+    --success-color: #1cc88a;
+    --info-color: #36b9cc;
+    --warning-color: #f6c23e;
+    --danger-color: #e74a3b;
+    --secondary-color: #858796;
+    --dark-color: #5a5c69;
+  }
+
+  body {
+    background-color: #212529;
+    color: #f8f9fa;
+  }
+
+  /* Header */
+  .dashboard-header {
+    background-color: #343a40 !important;
+    border-bottom-color: #495057 !important;
+  }
+
+  /* Cards */
+  .card {
+    background-color: #343a40;
+    border-color: #495057;
+  }
+
+  .card-header {
+    background-color: #495057;
+    border-bottom-color: #6c757d;
+    color: #f8f9fa;
+  }
+
+  .card-body {
+    color: #f8f9fa;
+  }
+
+  /* Tables - General */
+  .table {
+    color: #f8f9fa;
+    --bs-table-bg: transparent;
+    --bs-table-striped-color: #f8f9fa;
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.05);
+    --bs-table-active-color: #f8f9fa;
+    --bs-table-active-bg: rgba(255, 255, 255, 0.1);
+    --bs-table-hover-color: #f8f9fa;
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.075);
+    border-color: #495057;
+  }
+
+  .table th {
+    background-color: #495057;
+    border-color: #6c757d;
+  }
+
+  .table td {
+    border-color: #495057;
+  }
+
+  .table-hover tbody tr:hover {
+    color: #f8f9fa;
+    background-color: rgba(255, 255, 255, 0.075);
+  }
+
+  /* Tables - Striped */
+  .table-striped > tbody > tr:nth-of-type(odd) > * {
+    --bs-table-accent-bg: rgba(255, 255, 255, 0.05);
+    color: #f8f9fa;
+  }
+
+  /* Tables - Bordered */
+  .table-bordered {
+    border-color: #495057;
+  }
+  .table-bordered th,
+  .table-bordered td {
+    border-color: #495057;
+  }
+
+  /* Dropdowns */
+  .dropdown-menu {
+    background-color: #343a40;
+    border-color: #495057;
+  }
+
+  .dropdown-item {
+    color: #f8f9fa;
+  }
+
+  .dropdown-item:hover {
+    background-color: #495057;
+    color: #f8f9fa;
+  }
+
+  /* Alerts */
+  .alert-info {
+    background-color: #084298;
+    border-color: #055160;
+    color: #cfe2ff;
+  }
+
+  /* Backgrounds */
+  .bg-light {
+    background-color: #495057 !important;
+  }
+
+  /* Text colors */
+  .text-muted {
+    color: #adb5bd !important;
+  }
+
+  /* Modals */
+  .modal-content {
+    background-color: #343a40;
+    border-color: #495057;
+  }
+
+  .modal-header {
+    border-bottom-color: #495057;
+  }
+
+  .modal-footer {
+    border-top-color: #495057;
+  }
+
+  .modal-title {
+    color: #f8f9fa;
+  }
+
+  .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+  }
+
+  /* Accordions */
+  .accordion {
+    --bs-accordion-bg: #343a40;
+    --bs-accordion-border-color: #495057;
+    --bs-accordion-btn-color: #f8f9fa;
+    --bs-accordion-btn-bg: #495057;
+    --bs-accordion-active-color: #f8f9fa;
+    --bs-accordion-active-bg: #495057;
+    --bs-accordion-btn-focus-box-shadow: 0 0 0 0.25rem rgba(130, 138, 145, 0.5);
+  }
+
+  .accordion-button:not(.collapsed) {
+    color: #f8f9fa;
+    background-color: #495057;
+  }
+
+  .accordion-body {
+    color: #f8f9fa;
+  }
+
+  /* Form controls */
+  .form-control,
+  .form-select {
+    background-color: #495057;
+    border-color: #6c757d;
+    color: #f8f9fa;
+  }
+
+  .form-control:focus,
+  .form-select:focus {
+    background-color: #495057;
+    border-color: #86b7fe;
+    color: #f8f9fa;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+
+  /* Badges */
+  .badge {
+    color: #212529;
+  }
+}
+
+/* Header styles */
 .dashboard-header {
   background-color: #fff;
   border-bottom: 1px solid #e3e6f0;
   box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+  padding: 1rem 0;
 }
 
 .nav-actions {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .nav-actions .btn {
   white-space: nowrap;
 }
 
+/* Summary cards */
 .summary-card {
   border-left: 0.25rem solid;
   transition: transform 0.2s;
@@ -68,6 +250,7 @@ body {
   border-left-color: var(--primary-color);
 }
 
+/* Other elements */
 .badge-count {
   font-size: 1.25rem;
   padding: 0.5rem 0.9rem;
@@ -133,7 +316,12 @@ body {
   background-color: rgba(25, 135, 84, 0.1);
 }
 
+/* Responsive styles */
 @media (max-width: 768px) {
+  .dashboard-header {
+    padding: 0.75rem 0;
+  }
+
   .nav-actions {
     flex-direction: column;
     gap: 0.25rem;
@@ -148,5 +336,10 @@ body {
     flex-direction: column;
     gap: 0.5rem;
     align-items: stretch;
+  }
+
+  .user-info {
+    justify-content: center;
+    margin-top: 0.5rem;
   }
 }
