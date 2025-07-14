@@ -52,6 +52,19 @@ router.post("/sftpDownload", authMiddleware, sftpController.downloadFile);
 router.post("/sftpDelete", authMiddleware, sftpController.deleteFiles);
 router.post("/sftpRename", authMiddleware, sftpController.renameFile);
 
+//START OF SFTP TECHNICAL DEPARTMENT ROUTE
+router.post(
+  "/sftpDeleteForTechnical",
+  authMiddleware,
+  sftpController.deleteFilesForTechnical
+);
+router.post(
+  "/sftpRenameForTechnical",
+  authMiddleware,
+  sftpController.renameFileForTechnical
+);
+//END OF SFTP TECHNICAL DEPARTMENT ROUTE
+
 // Health check
 router.get("/sftpHealth", authMiddleware, sftpController.getHealth);
 

@@ -459,7 +459,7 @@ async function renameFile(e) {
   }
 
   try {
-    const response = await fetch("/sftpRename", {
+    const response = await fetch("/sftpRenameForTechnical", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -500,7 +500,7 @@ async function deleteSelectedFiles() {
   showLoading();
 
   try {
-    const response = await fetch("/sftpDelete", {
+    const response = await fetch("/sftpDeleteForTechnical", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

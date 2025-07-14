@@ -86,6 +86,7 @@ exports.getSftpTechnicalViews = (req, res) => {
       "deputyDirector",
       "headOfTechnical",
       "captainOfTechnical",
+      "submitterOfTechnical",
     ].includes(req.user.role)
   ) {
     return res
@@ -491,6 +492,81 @@ exports.cleanup = async function () {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
 };
+
+//START OF SFTP TECHNICAL DEPARTMENT CONTROLLER
+// Delete files/directories
+exports.deleteFilesForTechnical = async function (req, res) {
+  try {
+    if (
+      !["superAdmin", "director", "deputyDirector", "headOfTechnical"].includes(
+        req.user.role
+      )
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+    if (!sftpManager.isConnected()) {
+      return res.status(400).json({ error: "Not connected to SFTP server" });
+    }
+
+    const { path: remotePath, files } = req.body;
+
+    if (!files || !Array.isArray(files)) {
+      return res.status(400).json({ error: "Files array is required" });
+    }
+
+    const sanitizedPath = sanitizePath(remotePath || "/");
+
+    const deletePromises = files.map(async (filename) => {
+      const fullPath = path.posix.join(sanitizedPath, filename);
+      await sftpManager.deleteFile(fullPath);
+    });
+
+    await Promise.all(deletePromises);
+    res.json({ status: "success", deleted: files.length });
+  } catch (error) {
+    console.error("Delete error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Rename file/directory
+exports.renameFileForTechnical = async function (req, res) {
+  try {
+    if (
+      !["superAdmin", "director", "deputyDirector", "headOfTechnical"].includes(
+        req.user.role
+      )
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+    if (!sftpManager.isConnected()) {
+      return res.status(400).json({ error: "Not connected to SFTP server" });
+    }
+
+    const { path: remotePath, oldName, newName } = req.body;
+
+    if (!oldName || !newName) {
+      return res
+        .status(400)
+        .json({ error: "Both old and new names are required" });
+    }
+
+    const sanitizedPath = sanitizePath(remotePath || "/");
+    const oldPath = path.posix.join(sanitizedPath, oldName);
+    const newPath = path.posix.join(sanitizedPath, newName);
+
+    await sftpManager.renameFile(oldPath, newPath);
+    res.json({ status: "success" });
+  } catch (error) {
+    console.error("Rename error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+//END OF SFTP TECHNICAL DEPARTMENT CONTROLLER
 
 // Export the sftpManager and utility function for use in other modules
 exports.sftpManager = sftpManager;
