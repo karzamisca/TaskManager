@@ -1,4 +1,5 @@
-function loadHeaderWithCacheBust() {
+// views/components/header/headerLoader.js
+function loadHeader() {
   // Check if header is already loaded
   if (document.querySelector(".dashboard-header")) {
     return;
@@ -18,19 +19,11 @@ function loadHeaderWithCacheBust() {
   // Set theme immediately
   setBootstrapTheme();
 
-  // Create cache-busting parameter
-  const cacheBuster = Date.now(); // or use a version number
-
   // Create a new XMLHttpRequest object
   const xhr = new XMLHttpRequest();
 
-  // Configure it to GET the header.html file with cache buster
-  xhr.open("GET", `/components/header/header.html?v=${cacheBuster}`, true);
-
-  // Set cache control headers
-  xhr.setRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  xhr.setRequestHeader("Pragma", "no-cache");
-  xhr.setRequestHeader("Expires", "0");
+  // Configure it to GET the header.html file
+  xhr.open("GET", "/components/header/header.html", true);
 
   // Set up the callback function when the request completes
   xhr.onload = function () {
@@ -60,4 +53,4 @@ function loadHeaderWithCacheBust() {
 }
 
 // Load the header when the script is executed
-loadHeaderWithCacheBust();
+loadHeader();
