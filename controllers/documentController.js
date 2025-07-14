@@ -530,7 +530,7 @@ exports.submitDocument = async (req, res) => {
       }
 
       await newDocument.save();
-      res.redirect("/documentMain");
+      res.redirect("/documentSummaryUnapproved");
     } catch (err) {
       console.error("Error submitting document:", err);
       if (!res.headersSent) {
