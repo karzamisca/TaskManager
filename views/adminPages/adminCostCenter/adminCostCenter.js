@@ -1,3 +1,4 @@
+//views/adminPages/adminCostCenter/adminCostCenter.js
 // Utility functions
 const showNotification = (message, type = "success") => {
   const notification = document.createElement("div");
@@ -64,7 +65,7 @@ const renderCostCenters = (costCenters) => {
     const usersCell = document.createElement("td");
     if (costCenter.allowedUsers.length === 0) {
       usersCell.innerHTML =
-        '<span class="empty-state">All users allowed</span>';
+        '<span class="empty-state">Tất cả người dùng được truy cập</span>';
     } else {
       const userTags = costCenter.allowedUsers
         .map((user) => `<span class="user-tag">${user}</span>`)
@@ -82,12 +83,12 @@ const renderCostCenters = (costCenters) => {
                         }', '${
       costCenter.name
     }', '${costCenter.allowedUsers.join(", ")}')">
-                            <i class="fas fa-edit"></i> Edit
+                            <i class="fas fa-edit"></i> Sửa
                         </button>
                         <button class="btn btn-danger btn-sm" onclick="deleteCostCenter('${
                           costCenter._id
                         }')">
-                            <i class="fas fa-trash"></i> Delete
+                            <i class="fas fa-trash"></i> Xóa
                         </button>
                     </div>
                 `;
@@ -226,7 +227,7 @@ const addUserInput = (user = "") => {
   const userInputGroup = document.createElement("div");
   userInputGroup.className = "user-input-group";
   userInputGroup.innerHTML = `
-                <input type="text" name="allowedUsers[]" value="${user}" class="form-input" placeholder="Enter username..." />
+                <input type="text" name="allowedUsers[]" value="${user}" class="form-input" placeholder="Nhập người dùng..." />
                 <button type="button" class="btn btn-danger btn-sm" onclick="removeUserInput(this)">
                     <i class="fas fa-times"></i>
                 </button>

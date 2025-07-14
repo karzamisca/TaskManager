@@ -1,3 +1,4 @@
+/* views/adminPages/adminCostCenter/adminCostCenter.css */
 :root {
   --primary-color: #4f46e5;
   --primary-hover: #3730a3;
@@ -18,6 +19,61 @@
     0 4px 6px -2px rgba(0, 0, 0, 0.05);
   --radius: 0.5rem;
   --radius-lg: 0.75rem;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-color: #1a1a1a;
+    --card-bg: #2d2d2d;
+    --text-color: #f8f8f8;
+    --text-muted: #a0a0a0;
+    --border-color: #444444;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
+      0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3),
+      0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  }
+
+  .form-input {
+    background-color: #3d3d3d !important;
+    color: #f8f8f8 !important;
+    border-color: #555555 !important;
+  }
+
+  .form-input::placeholder {
+    color: #a0a0a0 !important;
+  }
+
+  .form-input:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3) !important;
+    background-color: #4d4d4d !important;
+  }
+
+  .table {
+    background: #2d2d2d;
+    color: #f8f8f8;
+  }
+
+  .table th {
+    background: #222222;
+    color: #f8f8f8;
+  }
+
+  .table tr:hover {
+    background: #333333;
+  }
+
+  .users-container {
+    background: #222222;
+    border-color: #444444;
+  }
+
+  .note {
+    background: #3a3a1a;
+    border-color: #5a5a2a;
+  }
 }
 
 * {
@@ -188,7 +244,7 @@ body {
 }
 
 .table th {
-  background: #f8fafc;
+  background: --bg-color;
   font-weight: 600;
   color: var(--text-color);
   position: sticky;
@@ -197,7 +253,7 @@ body {
 }
 
 .table tr:hover {
-  background: #f8fafc;
+  background: --bg-color;
 }
 
 .table tr:last-child td {
@@ -338,7 +394,7 @@ body {
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   padding: 1rem;
-  background: #f8fafc;
+  background: --bg-color;
 }
 
 .notification {
