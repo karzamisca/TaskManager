@@ -165,11 +165,15 @@ exports.editCostCenter = async (req, res) => {
     // Ensure allowedUsers is a string
     let usersArray = [];
 
-    if (typeof allowedUsers === "string") {
-      usersArray = allowedUsers.split(",").map((user) => user.trim());
+    if (typeof allowedUsers === "string" && allowedUsers.trim() !== "") {
+      usersArray = allowedUsers
+        .split(",")
+        .map((user) => user.trim())
+        .filter((user) => user !== "");
     } else if (Array.isArray(allowedUsers)) {
-      usersArray = allowedUsers;
+      usersArray = allowedUsers.filter((user) => user && user.trim() !== "");
     }
+    // If usersArray is empty, it represents "all users allowed"
 
     // Update cost center with the new allowed users list
     const updatedCostCenter = await CostCenter.findByIdAndUpdate(

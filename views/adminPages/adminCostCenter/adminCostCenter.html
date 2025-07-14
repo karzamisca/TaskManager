@@ -1,72 +1,150 @@
-<!-- views\admins\costCenterAdmins\costCenterAdmin.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Phân công trạm/Centers Assignment</title>
+    <title>Cost Center Management</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
     <link
       rel="stylesheet"
-      href="adminPages/adminCostCenter/adminCostCenter.css"
+      href="adminPages/adminCostCenter/adminCostCenter.css?v=1.0"
     />
   </head>
   <body>
-    <h1>Phân quyền trạm/Centers Permission Assignment</h1>
+    <div class="container">
+      <div class="header">
+        <h1>Cost Center Management</h1>
+        <p>Manage cost centers and user permissions</p>
+      </div>
 
-    <!-- Add New Cost Center Form -->
-    <h2>Thêm trạm mới/Add New Center</h2>
-    <form id="addCostCenterForm">
-      <label for="name">Tên trạm/Center Name:</label>
-      <input type="text" id="name" name="name" required />
+      <!-- Add New Cost Center Form -->
+      <div class="card">
+        <div class="card-header">
+          <i class="fas fa-plus-circle"></i>
+          <h2>Add New Cost Center</h2>
+        </div>
+        <form id="addCostCenterForm">
+          <div class="form-group">
+            <label class="form-label" for="name">
+              <i class="fas fa-building"></i> Cost Center Name
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              class="form-input"
+              required
+              placeholder="Enter cost center name..."
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="allowedUsers">
+              <i class="fas fa-users"></i> Allowed Users (comma separated)
+            </label>
+            <input
+              type="text"
+              id="allowedUsers"
+              name="allowedUsers"
+              class="form-input"
+              placeholder="user1, user2, user3..."
+            />
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Cost Center
+          </button>
+        </form>
+        <div class="note">
+          <i class="fas fa-info-circle"></i>
+          <div>
+            <strong>Note:</strong> Leave the allowed users field empty to grant
+            access to all users.
+          </div>
+        </div>
+      </div>
 
-      <label for="allowedUsers"
-        >Người dùng được cấp quyền (tách bằng dấu phẩy) / Allowed Users (comma
-        separated):</label
-      >
-      <input type="text" id="allowedUsers" name="allowedUsers" />
-
-      <button type="submit">Thêm trạm mới/Add New Center</button>
-    </form>
-
-    <h3>
-      Ghi chú: Để trống cấp quyền tương đương với cấp quyền cho tất cả mọi
-      người/Note: Empty space for allowed user means all users are allowed.
-    </h3>
-
-    <!-- Existing Cost Centers Table -->
-    <h2>Trạm hiện có/Existing Centers</h2>
-    <table id="costCentersTable">
-      <thead>
-        <tr>
-          <th>Tên/Name</th>
-          <th>Người dùng được cấp quyền/Allowed Users</th>
-          <th>Hành động/Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Dynamic content will be populated here via JavaScript -->
-      </tbody>
-    </table>
-
-    <!-- Edit Cost Center Modal (hidden by default) -->
-    <div id="editModal" style="display: none">
-      <h2>Sửa trạm/Edit Center</h2>
-      <form id="editForm" action="" method="POST">
-        <label for="editName">Tên trạm/Center Name:</label>
-        <input type="text" id="editName" name="name" required />
-
-        <label>Người dùng được cấp quyền/Allowed Users:</label>
-        <div id="allowedUsersContainer"></div>
-
-        <button type="button" onclick="addUserInput()">
-          Thêm người dùng/Add User
-        </button>
-        <button type="submit">Lưu thay đổi/Save Changes</button>
-        <button type="button" onclick="closeModal()">Hủy/Cancel</button>
-      </form>
+      <!-- Existing Cost Centers -->
+      <div class="card">
+        <div class="card-header">
+          <i class="fas fa-list"></i>
+          <h2>Existing Cost Centers</h2>
+        </div>
+        <div class="table-container">
+          <table class="table" id="costCentersTable">
+            <thead>
+              <tr>
+                <th><i class="fas fa-building"></i> Name</th>
+                <th><i class="fas fa-users"></i> Allowed Users</th>
+                <th><i class="fas fa-cogs"></i> Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Dynamic content will be populated here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
-    <script src="adminPages/adminCostCenter/adminCostCenter.js"></script>
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i class="fas fa-edit"></i> Edit Cost Center</h3>
+          <button type="button" class="modal-close" onclick="closeModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form id="editForm">
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label" for="editName">
+                <i class="fas fa-building"></i> Cost Center Name
+              </label>
+              <input
+                type="text"
+                id="editName"
+                name="name"
+                class="form-input"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-users"></i> Allowed Users
+              </label>
+              <div class="users-container" id="allowedUsersContainer">
+                <!-- Dynamic user inputs will be added here -->
+              </div>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="addUserInput()"
+                style="margin-top: 1rem"
+              >
+                <i class="fas fa-plus"></i> Add User
+              </button>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeModal()"
+            >
+              <i class="fas fa-times"></i> Cancel
+            </button>
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-save"></i> Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="adminPages/adminCostCenter/adminCostCenter.js?v=1.0"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>
