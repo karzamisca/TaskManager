@@ -93,6 +93,7 @@ const documentUtils = {
         ...(userRole === "headOfAccounting" ||
         userRole === "superAdmin" ||
         userRole === "director" ||
+        userRole === "deputyDirector" ||
         userRole === "headOfPurchasing" ||
         userRole === "captainOfPurchasing"
           ? [{}] // Include all documents if user is headOfAccounting or superAdmin
