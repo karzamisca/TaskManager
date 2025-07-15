@@ -8,20 +8,7 @@ const path = require("path");
 exports.getAdminPage = (req, res) => {
   try {
     if (
-      ![
-        "approver",
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-        "captainOfMechanical",
-        "captainOfTechnical",
-      ].includes(req.user.role)
+      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -40,20 +27,7 @@ exports.getAdminPage = (req, res) => {
 exports.getCostCenterAdminPage = (req, res) => {
   try {
     if (
-      ![
-        "approver",
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-        "captainOfMechanical",
-        "captainOfTechnical",
-      ].includes(req.user.role)
+      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -70,20 +44,7 @@ exports.getCostCenterAdminPage = (req, res) => {
 exports.getCostCenters = async (req, res) => {
   try {
     if (
-      ![
-        "approver",
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-        "captainOfMechanical",
-        "captainOfTechnical",
-      ].includes(req.user.role)
+      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -109,20 +70,7 @@ exports.addCostCenter = async (req, res) => {
 
   try {
     if (
-      ![
-        "approver",
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-        "captainOfMechanical",
-        "captainOfTechnical",
-      ].includes(req.user.role)
+      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -142,20 +90,7 @@ exports.addCostCenter = async (req, res) => {
 exports.editCostCenter = async (req, res) => {
   try {
     if (
-      ![
-        "approver",
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-        "captainOfMechanical",
-        "captainOfTechnical",
-      ].includes(req.user.role)
+      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -195,20 +130,7 @@ exports.editCostCenter = async (req, res) => {
 exports.deleteCostCenter = async (req, res) => {
   try {
     if (
-      ![
-        "approver",
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-        "captainOfMechanical",
-        "captainOfTechnical",
-      ].includes(req.user.role)
+      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -226,20 +148,7 @@ exports.deleteCostCenter = async (req, res) => {
 exports.getProductAdminPage = (req, res) => {
   try {
     if (
-      ![
-        "approver",
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-        "captainOfMechanical",
-        "captainOfTechnical",
-      ].includes(req.user.role)
+      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -257,20 +166,7 @@ exports.getProductAdminPage = (req, res) => {
 exports.getProducts = async (req, res) => {
   try {
     if (
-      ![
-        "approver",
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-        "captainOfMechanical",
-        "captainOfTechnical",
-      ].includes(req.user.role)
+      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -285,20 +181,7 @@ exports.getProducts = async (req, res) => {
 exports.getProductById = async (req, res) => {
   try {
     if (
-      ![
-        "approver",
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-        "captainOfMechanical",
-        "captainOfTechnical",
-      ].includes(req.user.role)
+      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -316,20 +199,7 @@ exports.getProductById = async (req, res) => {
 exports.createProduct = async (req, res) => {
   try {
     if (
-      ![
-        "approver",
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-        "captainOfMechanical",
-        "captainOfTechnical",
-      ].includes(req.user.role)
+      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -359,20 +229,7 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     if (
-      ![
-        "approver",
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-        "captainOfMechanical",
-        "captainOfTechnical",
-      ].includes(req.user.role)
+      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -410,20 +267,7 @@ exports.updateProduct = async (req, res) => {
 exports.deleteProduct = async (req, res) => {
   try {
     if (
-      ![
-        "approver",
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-        "captainOfMechanical",
-        "captainOfTechnical",
-      ].includes(req.user.role)
+      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -443,20 +287,7 @@ exports.deleteProduct = async (req, res) => {
 exports.importProducts = async (req, res) => {
   try {
     if (
-      ![
-        "approver",
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-        "captainOfMechanical",
-        "captainOfTechnical",
-      ].includes(req.user.role)
+      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -522,20 +353,7 @@ exports.importProductsFromFile = async (req, res) => {
 
   try {
     if (
-      ![
-        "approver",
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-        "captainOfMechanical",
-        "captainOfTechnical",
-      ].includes(req.user.role)
+      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -653,20 +471,7 @@ exports.importProductsFromFile = async (req, res) => {
 exports.exportProducts = async (req, res) => {
   try {
     if (
-      ![
-        "approver",
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfMechanical",
-        "headOfTechnical",
-        "headOfAccounting",
-        "headOfPurchasing",
-        "headOfOperations",
-        "headOfNorthernRepresentativeOffice",
-        "captainOfMechanical",
-        "captainOfTechnical",
-      ].includes(req.user.role)
+      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
