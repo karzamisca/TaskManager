@@ -909,13 +909,13 @@ const renderCurrentApprovers = () => {
   currentApproversList.innerHTML = state.currentApprovers
     .map(
       (approver) => `
-        <div class="approver-item" data-id="${approver.approver}">
+        <div class="approver-item">
           <span>${approver.username}</span>
           <input type="text" value="${approver.subRole}" 
-                 onchange="updateApproverSubRole('${approver.approver}', this.value)" 
+                 onchange="updateApproverSubRole('${approver._id}', this.value)" 
                  class="form-input" style="width: 120px;">
           <button type="button" class="btn btn-danger btn-sm" 
-                  onclick="removeApprover('${approver.approver}')">
+                  onclick="removeApprover('${approver._id}')">  <!-- Use _id here -->
             <i class="fas fa-trash"></i> Xóa
           </button>
         </div>
@@ -935,8 +935,9 @@ const updateApproverSubRole = (approverId, newSubRole) => {
 
 const removeApprover = (approverId) => {
   state.currentApprovers = state.currentApprovers.filter(
-    (a) => a.approver !== approverId
+    (a) => a._id !== approverId // Compare with _id
   );
+
   renderCurrentApprovers();
   populateNewApproversDropdown();
 };
