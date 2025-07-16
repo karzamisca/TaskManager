@@ -109,8 +109,8 @@ const documentUtils = {
       "NguyenHongNhuThuy",
       "HoangNam",
       "PhongTran",
-      "HuynhDiep",
       "HoaVu",
+      "HoangLong",
     ];
 
     if (!restrictedUsers.includes(username)) {
@@ -118,67 +118,69 @@ const documentUtils = {
     }
 
     // Define who must approve BEFORE each user
-    // Approval order: HoangNam → PhongTran → NguyenHongNhuThuy → HuynhDiep → HoaVu
     const prerequisiteApprovers = {
       PhongTran: ["HoangNam"],
       NguyenHongNhuThuy: ["HoangNam", "PhongTran"],
       HuynhDiep: ["HoangNam", "PhongTran", "NguyenHongNhuThuy"],
-      HoaVu: ["HoangNam", "PhongTran", "NguyenHongNhuThuy", "HuynhDiep"],
-      // HoangNam has no prerequisites (can always approve first)
+      HoaVu: ["HoangNam", "PhongTran", "NguyenHongNhuThuy"],
+      HoangLong: ["HoangNam", "PhongTran", "NguyenHongNhuThuy", "HoaVu"],
     };
 
-    // Filter documents for restricted users
     return documents.filter((doc) => {
-      // Get all approver objects with usernames
-      const allApproversWithUsernames = doc.approvers.map((approver) => ({
-        id: approver.approver._id.toString(),
-        username: approver.approver.username,
-      }));
+      // Safely get approvers with null checks
+      const allApprovers = doc.approvers || [];
+      const approvedBy = doc.approvedBy || [];
 
-      // Get all approved users with usernames
-      const approvedUsers = doc.approvedBy.map((approval) => ({
-        id: approval.user._id.toString(),
-        username: approval.user.username,
-      }));
+      // Get usernames of approvers (with null checks)
+      const allApproverUsernames = allApprovers
+        .map((approver) => {
+          if (!approver || !approver.approver) return null;
+          return typeof approver.approver === "object"
+            ? approver.approver.username
+            : approver.approver.toString();
+        })
+        .filter(Boolean);
 
-      const approvedUsernames = approvedUsers.map((user) => user.username);
+      // Get usernames of approved users (with null checks)
+      const approvedUsernames = approvedBy
+        .map((approval) => {
+          if (!approval || !approval.user) return null;
+          return typeof approval.user === "object"
+            ? approval.user.username
+            : approval.user.toString();
+        })
+        .filter(Boolean);
 
       // Check if current user submitted this document
-      // Handle both populated and non-populated submittedBy
       let currentUserIsSubmitter = false;
       if (doc.submittedBy) {
         if (typeof doc.submittedBy === "object" && doc.submittedBy.username) {
-          // submittedBy is populated
           currentUserIsSubmitter = doc.submittedBy.username === username;
-        } else if (typeof doc.submittedBy === "string" || doc.submittedBy._id) {
-          // submittedBy is not populated, need to compare with user ID
-          // This would require passing userId as well, or finding user by username first
-          console.warn(
-            "submittedBy is not populated. Consider populating it in your query."
-          );
+        } else if (typeof doc.submittedBy === "string") {
+          // If submittedBy is just an ID string, we can't compare usernames
+          // You might need to modify this part if you need to handle this case
         }
       }
 
-      // If the user submitted this document, they can always see it
       if (currentUserIsSubmitter) {
         return true;
       }
 
-      // Check if current user has already approved this document
-      const currentUserHasApproved = approvedUsernames.includes(username);
-
-      // If the user has already approved this document, they can see it
-      if (currentUserHasApproved) {
+      // Check if current user has already approved
+      if (approvedUsernames.includes(username)) {
         return true;
       }
 
-      // MODIFICATION: Check if document has stages and user is a pending stage approver
+      // Check stages if they exist
       if (doc.stages && doc.stages.length > 0) {
         const isStageApprover = doc.stages.some((stage) => {
-          const isApprover = stage.approvers.some(
+          const stageApprovers = stage.approvers || [];
+          const stageApprovedBy = stage.approvedBy || [];
+
+          const isApprover = stageApprovers.some(
             (a) => a.username === username
           );
-          const hasApproved = stage.approvedBy.some(
+          const hasApproved = stageApprovedBy.some(
             (a) => a.username === username
           );
           return isApprover && !hasApproved;
@@ -190,50 +192,52 @@ const documentUtils = {
       }
 
       // Find pending approvers (those not in approvedBy)
-      const pendingApprovers = allApproversWithUsernames.filter(
-        (approver) => !approvedUsers.some((user) => user.id === approver.id)
-      );
+      const pendingApprovers = allApprovers.filter((approver) => {
+        if (!approver || !approver.approver) return false;
+        const approverUsername =
+          typeof approver.approver === "object"
+            ? approver.approver.username
+            : approver.approver.toString();
+        return !approvedUsernames.includes(approverUsername);
+      });
 
-      const pendingUsernames = pendingApprovers.map(
-        (approver) => approver.username
-      );
+      const pendingUsernames = pendingApprovers
+        .map((approver) => {
+          if (!approver || !approver.approver) return null;
+          return typeof approver.approver === "object"
+            ? approver.approver.username
+            : approver.approver.toString();
+        })
+        .filter(Boolean);
 
-      // If there are no pending approvers, document is fully approved
       if (pendingApprovers.length === 0) {
         return true;
       }
 
-      // Check if all pending approvers are restricted users
-      const allPendingAreRestricted = pendingApprovers.every((approver) =>
-        restrictedUsers.includes(approver.username)
-      );
+      const allPendingAreRestricted = pendingApprovers.every((approver) => {
+        if (!approver || !approver.approver) return false;
+        const approverUsername =
+          typeof approver.approver === "object"
+            ? approver.approver.username
+            : approver.approver.toString();
+        return restrictedUsers.includes(approverUsername);
+      });
 
-      // Check if the current restricted user is among the pending approvers
       const currentUserIsPending = pendingUsernames.includes(username);
 
       // Check hierarchical approval constraints
       let hierarchyAllowsApproval = true;
-
-      // Get the list of users who must approve before the current user
       const requiredPredecessors = prerequisiteApprovers[username] || [];
 
       for (const requiredApprover of requiredPredecessors) {
-        // Check if this required approver is in the approvers list for this document
-        const isApproverForDoc = allApproversWithUsernames.some(
-          (approver) => approver.username === requiredApprover
-        );
-
-        // If they are an approver but haven't approved yet, block the current user
+        const isApproverForDoc =
+          allApproverUsernames.includes(requiredApprover);
         if (isApproverForDoc && !approvedUsernames.includes(requiredApprover)) {
           hierarchyAllowsApproval = false;
           break;
         }
       }
 
-      // Only show document if:
-      // 1. All pending approvers are restricted users
-      // 2. The current user is among the pending approvers
-      // 3. The hierarchical approval constraints are satisfied
       return (
         allPendingAreRestricted &&
         currentUserIsPending &&
