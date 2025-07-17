@@ -52,6 +52,35 @@ router.post("/sftpDownload", authMiddleware, sftpController.downloadFile);
 router.post("/sftpDelete", authMiddleware, sftpController.deleteFiles);
 router.post("/sftpRename", authMiddleware, sftpController.renameFile);
 
+//START OF SFTP PURCHASING DEPARTMENT ROUTE
+router.get(
+  "/sftpFilesForPurchasing",
+  authMiddleware,
+  sftpController.listFilesForPurchasing
+);
+router.post(
+  "/sftpMkdirForPurchasing",
+  authMiddleware,
+  sftpController.createDirectoryForPurchasing
+);
+router.post(
+  "/sftpUploadForPurchasing",
+  upload.array("files"),
+  authMiddleware,
+  sftpController.uploadFilesForPurchasing
+);
+router.post(
+  "/sftpDeleteForPurchasing",
+  authMiddleware,
+  sftpController.deleteFilesForPurchasing
+);
+router.post(
+  "/sftpRenameForPurchasing",
+  authMiddleware,
+  sftpController.renameFileForPurchasing
+);
+//END OF SFTP PURCHASING DEPARTMENT ROUTE
+
 //START OF SFTP TECHNICAL DEPARTMENT ROUTE
 router.post(
   "/sftpDeleteForTechnical",

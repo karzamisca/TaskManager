@@ -4,7 +4,6 @@ const router = express.Router();
 const userController = require("../controllers/userController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
-router.get("/userMain", authMiddleware, userController.getUserMainPage);
 router.get(
   "/userSalaryCalculation",
   authMiddleware,

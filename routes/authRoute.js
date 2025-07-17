@@ -16,11 +16,6 @@ router.post("/login", authController.login);
 // Logout route
 router.get("/logout", authController.logout);
 
-// Main page route
-router.get("/main", authMiddleware, (req, res) => {
-  res.sendFile("main.html", { root: "./views/starterPages" }); // Serve the main page
-});
-
 router.get("/approvers", authMiddleware, async (req, res) => {
   try {
     const approvers = await User.find({

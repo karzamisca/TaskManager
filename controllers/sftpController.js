@@ -31,73 +31,6 @@ function sanitizePath(inputPath) {
   return cleanPath;
 }
 
-exports.getSftpMainViews = (req, res) => {
-  if (
-    ![
-      "approver",
-      "superAdmin",
-      "director",
-      "deputyDirector",
-      "headOfMechanical",
-      "headOfTechnical",
-      "headOfAccounting",
-      "headOfPurchasing",
-      "headOfOperations",
-      "headOfNorthernRepresentativeOffice",
-      "captainOfMechanical",
-      "captainOfTechnical",
-      "captainOfAccounting",
-      "captainOfPurchasing",
-    ].includes(req.user.role)
-  ) {
-    return res
-      .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
-  }
-  res.sendFile("sftpMain.html", {
-    root: "./views/sftpPages/sftpMain",
-  });
-};
-
-exports.getSftpPurchasingViews = (req, res) => {
-  if (
-    ![
-      "superAdmin",
-      "director",
-      "deputyDirector",
-      "headOfPurchasing",
-      "captainOfPurchasing",
-    ].includes(req.user.role)
-  ) {
-    return res
-      .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
-  }
-  res.sendFile("sftpPurchasing.html", {
-    root: "./views/sftpPages/sftpPurchasing",
-  });
-};
-
-exports.getSftpTechnicalViews = (req, res) => {
-  if (
-    ![
-      "superAdmin",
-      "director",
-      "deputyDirector",
-      "headOfTechnical",
-      "captainOfTechnical",
-      "submitterOfTechnical",
-    ].includes(req.user.role)
-  ) {
-    return res
-      .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
-  }
-  res.sendFile("sftpTechnical.html", {
-    root: "./views/sftpPages/sftpTechnical",
-  });
-};
-
 exports.getSftpAccountingViews = (req, res) => {
   if (
     ![
@@ -493,7 +426,316 @@ exports.cleanup = async function () {
   }
 };
 
+//START OF SFTP PURCHASING DEPARTMENT CONTROLLER
+exports.getSftpPurchasingViews = (req, res) => {
+  if (
+    ![
+      "superAdmin",
+      "director",
+      "deputyDirector",
+      "headOfPurchasing",
+      "captainOfPurchasing",
+      "headOfAccounting",
+      "captainOfAccounting",
+      "submitterOfAccounting",
+    ].includes(req.user.role)
+  ) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+  }
+  res.sendFile("sftpPurchasing.html", {
+    root: "./views/sftpPages/sftpPurchasing",
+  });
+};
+
+function isRestrictedPaymentUser(role) {
+  return [
+    "submitterOfAccounting",
+    "captainOfAccounting",
+    "headOfAccounting",
+  ].includes(role);
+}
+
+// Function to validate path access for restricted users
+function validatePaymentUserPathAccess(userRole, requestedPath) {
+  if (!isRestrictedPaymentUser(userRole)) {
+    return true; // Not a restricted user, allow access
+  }
+
+  // Define allowed paths for payment users
+  const allowedPaths = [
+    "/purchasing", // Allow root purchasing folder for navigation
+    "/purchasing/Hồ sơ nhập khẩu",
+    "/purchasing/invoices",
+    "/purchasing/receipts",
+  ];
+
+  // Check if requested path is exactly an allowed path or starts with an allowed path + /
+  return allowedPaths.some(
+    (allowedPath) =>
+      requestedPath === allowedPath ||
+      requestedPath.startsWith(allowedPath + "/")
+  );
+}
+
+exports.listFilesForPurchasing = async function (req, res) {
+  try {
+    await ensureConnected();
+
+    const remotePath = sanitizePath(req.query.path || "/");
+
+    // Check if user is restricted payment user and path is allowed
+    if (
+      isRestrictedPaymentUser(req.user.role) &&
+      !validatePaymentUserPathAccess(req.user.role, remotePath)
+    ) {
+      return res
+        .status(403)
+        .json({ error: "Access to this path is restricted for your role" });
+    }
+
+    let files = await sftpManager.listFiles(remotePath);
+
+    // Filter out parent directory if we're at the root
+    if (remotePath === "/") {
+      files = files.filter((file) => file.name !== ".." && file.name !== ".");
+    }
+
+    // For payment users in /purchasing root, only show allowed subfolders
+    if (
+      isRestrictedPaymentUser(req.user.role) &&
+      remotePath === "/purchasing"
+    ) {
+      const allowedSubfolders = ["Hồ sơ nhập khẩu", "invoices", "receipts"];
+      files = files.filter(
+        (file) =>
+          file.type === "directory" && allowedSubfolders.includes(file.name)
+      );
+    }
+
+    res.json(files);
+  } catch (error) {
+    console.error("List files error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.createDirectoryForPurchasing = async function (req, res) {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfPurchasing",
+        "captainOfPurchasing",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+    if (!sftpManager.isConnected()) {
+      return res.status(400).json({ error: "Not connected to SFTP server" });
+    }
+
+    const { path: parentPath, name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: "Directory name is required" });
+    }
+
+    const sanitizedParentPath = sanitizePath(parentPath || "/");
+    const fullPath = path.posix.join(sanitizedParentPath, name);
+
+    await sftpManager.createDirectory(fullPath);
+    res.json({ status: "success" });
+  } catch (error) {
+    console.error("Create directory error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.uploadFilesForPurchasing = async function (req, res) {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfPurchasing",
+        "captainOfPurchasing",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+    if (!sftpManager.isConnected()) {
+      return res.status(400).json({ error: "Not connected to SFTP server" });
+    }
+
+    const remotePath = sanitizePath(req.body.path || "/");
+    const files = req.files;
+
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: "No files uploaded" });
+    }
+
+    // Validate that all files have the required properties
+    const invalidFiles = files.filter(
+      (file) => !file.path || !file.originalname
+    );
+    if (invalidFiles.length > 0) {
+      console.error("Invalid files detected:", invalidFiles);
+      return res.status(400).json({
+        error: "Some files are missing required properties",
+        details: invalidFiles.map((f) => ({
+          filename: f.originalname,
+          hasPath: !!f.path,
+        })),
+      });
+    }
+
+    const uploadPromises = files.map(async (file) => {
+      const remoteFilePath = path.posix.join(remotePath, file.originalname);
+
+      try {
+        // Verify local file exists
+        if (!fs.existsSync(file.path)) {
+          throw new Error(`Local file not found: ${file.path}`);
+        }
+
+        await sftpManager.uploadFile(file.path, remoteFilePath);
+        cleanupTempFile(file.path);
+      } catch (error) {
+        console.error(`Failed to upload ${file.originalname}:`, error);
+        cleanupTempFile(file.path);
+        throw new Error(
+          `Failed to upload ${file.originalname}: ${error.message}`
+        );
+      }
+    });
+
+    await Promise.all(uploadPromises);
+    res.json({ status: "success", uploaded: files.length });
+  } catch (error) {
+    console.error("Upload error:", error);
+    // Cleanup any remaining temp files
+    if (req.files) {
+      req.files.forEach((file) => {
+        if (file.path) {
+          cleanupTempFile(file.path);
+        }
+      });
+    }
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.deleteFilesForPurchasing = async function (req, res) {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfPurchasing",
+        "captainOfPurchasing",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+    if (!sftpManager.isConnected()) {
+      return res.status(400).json({ error: "Not connected to SFTP server" });
+    }
+
+    const { path: remotePath, files } = req.body;
+
+    if (!files || !Array.isArray(files)) {
+      return res.status(400).json({ error: "Files array is required" });
+    }
+
+    const sanitizedPath = sanitizePath(remotePath || "/");
+
+    const deletePromises = files.map(async (filename) => {
+      const fullPath = path.posix.join(sanitizedPath, filename);
+      await sftpManager.deleteFile(fullPath);
+    });
+
+    await Promise.all(deletePromises);
+    res.json({ status: "success", deleted: files.length });
+  } catch (error) {
+    console.error("Delete error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Rename file/directory
+exports.renameFileForPurchasing = async function (req, res) {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfPurchasing",
+        "captainOfPurchasing",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+    if (!sftpManager.isConnected()) {
+      return res.status(400).json({ error: "Not connected to SFTP server" });
+    }
+
+    const { path: remotePath, oldName, newName } = req.body;
+
+    if (!oldName || !newName) {
+      return res
+        .status(400)
+        .json({ error: "Both old and new names are required" });
+    }
+
+    const sanitizedPath = sanitizePath(remotePath || "/");
+    const oldPath = path.posix.join(sanitizedPath, oldName);
+    const newPath = path.posix.join(sanitizedPath, newName);
+
+    await sftpManager.renameFile(oldPath, newPath);
+    res.json({ status: "success" });
+  } catch (error) {
+    console.error("Rename error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+//END OF SFTP PURCHASING DEPARTMENT CONTROLLER
+
 //START OF SFTP TECHNICAL DEPARTMENT CONTROLLER
+exports.getSftpTechnicalViews = (req, res) => {
+  if (
+    ![
+      "superAdmin",
+      "director",
+      "deputyDirector",
+      "headOfTechnical",
+      "captainOfTechnical",
+      "submitterOfTechnical",
+    ].includes(req.user.role)
+  ) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+  }
+  res.sendFile("sftpTechnical.html", {
+    root: "./views/sftpPages/sftpTechnical",
+  });
+};
+
 // Delete files/directories
 exports.deleteFilesForTechnical = async function (req, res) {
   try {

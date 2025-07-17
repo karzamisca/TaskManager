@@ -5,12 +5,6 @@ const projectController = require("../controllers/projectController");
 const documentController = require("../controllers/documentController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
-router.get(
-  "/projectMain",
-  authMiddleware,
-  projectController.getProjectMainViews
-);
-
 ////PROJECT DOCUMENT ROUTES
 // Route to display project creation form
 router.get(

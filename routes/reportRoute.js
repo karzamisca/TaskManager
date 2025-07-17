@@ -4,12 +4,6 @@ const router = express.Router();
 const authMiddleware = require("../middlewares/authMiddleware");
 const reportController = require("../controllers/reportController");
 
-router.get("/reportMain", authMiddleware, (req, res) => {
-  res.sendFile("reportMain.html", {
-    root: "./views/reportPages/reportMain",
-  }); // Serve the main report page
-});
-
 router.get("/reportSummary", authMiddleware, (req, res) => {
   res.sendFile("reportSummary.html", {
     root: "./views/reportPages/reportSummary",

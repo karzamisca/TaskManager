@@ -21,21 +21,11 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 //// GENERAL ROUTE
-router.get("/documentMain", authMiddleware, (req, res) => {
-  res.sendFile("documentMain.html", {
-    root: "./views/documentPages/documentMain",
-  }); // Serve the main document page
-});
 // Submit document route
 router.get("/documentSubmission", authMiddleware, (req, res) => {
   res.sendFile("documentSubmission.html", {
     root: "./views/documentPages/documentSubmission",
   }); // Serve the submit document page
-});
-router.get("/documentSummary", authMiddleware, (req, res) => {
-  res.sendFile("documentSummary.html", {
-    root: "./views/documentPages/documentSummary",
-  }); // Serve the main document summary page
 });
 // For restricting cost center
 // Route to fetch cost centers

@@ -5,23 +5,6 @@ const Product = require("../models/Product");
 const fs = require("fs");
 const path = require("path");
 
-exports.getAdminPage = (req, res) => {
-  try {
-    if (
-      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
-    ) {
-      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
-    }
-    // Serve the HTML file
-    res.sendFile("adminMain.html", {
-      root: "./views/adminPages/adminMain",
-    });
-  } catch (error) {
-    console.error("Error serving the cost center admin page:", error);
-    res.send("Server error");
-  }
-};
-
 ////COST CENTER ADMIN CONTROLLERS
 // Serve the cost center admin page
 exports.getCostCenterAdminPage = (req, res) => {

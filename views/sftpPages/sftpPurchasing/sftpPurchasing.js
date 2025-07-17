@@ -162,7 +162,9 @@ async function loadFileList(path) {
       throw new Error("Not connected to SFTP server");
     }
 
-    const response = await fetch(`/sftpFiles?path=${encodeURIComponent(path)}`);
+    const response = await fetch(
+      `/sftpFilesForPurchasing?path=${encodeURIComponent(path)}`
+    );
     if (!response.ok) {
       throw new Error(await response.text());
     }
@@ -389,7 +391,7 @@ async function handleUpload(e) {
   formData.append("path", currentPath);
 
   try {
-    const response = await fetch("/sftpUpload", {
+    const response = await fetch("/sftpUploadForPurchasing", {
       method: "POST",
       body: formData,
     });
@@ -423,7 +425,7 @@ async function createFolder(e) {
   }
 
   try {
-    const response = await fetch("/sftpMkdir", {
+    const response = await fetch("/sftpMkdirForPurchasing", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -462,7 +464,7 @@ async function renameFile(e) {
   }
 
   try {
-    const response = await fetch("/sftpRename", {
+    const response = await fetch("/sftpRenameForPurchasing", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -503,7 +505,7 @@ async function deleteSelectedFiles() {
   showLoading();
 
   try {
-    const response = await fetch("/sftpDelete", {
+    const response = await fetch("/sftpDeleteForPurchasing", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
