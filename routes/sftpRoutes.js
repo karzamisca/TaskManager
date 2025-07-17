@@ -9,7 +9,6 @@ const router = express.Router();
 // Configure multer for file uploads using the corrected config
 const upload = multer(sftpConfig.upload);
 
-router.get("/sftpMain", authMiddleware, sftpController.getSftpMainViews);
 router.get(
   "/sftpPurchasing",
   authMiddleware,
