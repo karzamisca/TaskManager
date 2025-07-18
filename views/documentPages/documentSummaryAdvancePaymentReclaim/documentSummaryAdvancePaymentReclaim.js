@@ -1006,7 +1006,7 @@ async function showFullView(docId) {
           <div class="detail-item">
             <span class="detail-label">Tem:</span>
             <span class="detail-value">${doc.tag || "Không có"}</span>
-            <span class="detail-label">Tên/:</span>
+            <span class="detail-label">Tên:</span>
             <span class="detail-value">${doc.name || "Không có"}</span>
           </div>
           <div class="detail-item">

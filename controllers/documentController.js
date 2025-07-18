@@ -1385,6 +1385,11 @@ exports.approveDocument = async (req, res) => {
     // If all approvers have approved, mark it as fully approved
     if (document.approvedBy.length === document.approvers.length) {
       document.status = "Approved"; // Update status to Approved
+
+      // Check if this is an AdvancePaymentDocument that needs a reclaim document
+      if (document instanceof AdvancePaymentDocument) {
+        await createAdvancePaymentReclaimAfterAdvancePaymentApproval(document);
+      }
     }
 
     // Save document in the correct collection
@@ -1417,6 +1422,65 @@ exports.approveDocument = async (req, res) => {
     return res.send("Lỗi phê duyệt phiếu.");
   }
 };
+async function createAdvancePaymentReclaimAfterAdvancePaymentApproval(
+  advancePaymentDoc
+) {
+  try {
+    // Find deputy director user to set as approver
+    const deputyDirector = await User.findOne({ role: "deputyDirector" });
+    if (!deputyDirector) {
+      console.error("Deputy director user not found");
+      return;
+    }
+
+    // Calculate payment deadline 30 days from now
+    const paymentDeadline = moment()
+      .tz("Asia/Bangkok")
+      .add(30, "days")
+      .format("DD-MM-YYYY");
+
+    // Prepare fileMetadata object - handle null case
+    const fileMetadata = advancePaymentDoc.fileMetadata
+      ? {
+          driveFileId: advancePaymentDoc.fileMetadata.driveFileId || null,
+          name: advancePaymentDoc.fileMetadata.name || null,
+          link: advancePaymentDoc.fileMetadata.link || null,
+          path: advancePaymentDoc.fileMetadata.path || null,
+        }
+      : undefined; // Use undefined instead of null to avoid validation error
+
+    // Create the reclaim document
+    const reclaimDoc = new AdvancePaymentReclaimDocument({
+      tag: `Hoàn ứng_${advancePaymentDoc.tag}`,
+      title: "Advance Payment Reclaim Document",
+      name: `Hoàn ứng cho phiếu ${advancePaymentDoc.name}`,
+      costCenter: advancePaymentDoc.costCenter,
+      content: `Hoàn ứng cho nội dung ${advancePaymentDoc.tag}`,
+      paymentMethod: advancePaymentDoc.paymentMethod,
+      advancePaymentReclaim: advancePaymentDoc.advancePayment,
+      paymentDeadline: paymentDeadline,
+      fileMetadata: fileMetadata, // This will be undefined if no file was attached
+      submittedBy: advancePaymentDoc.submittedBy,
+      approvers: [
+        {
+          approver: deputyDirector._id,
+          username: deputyDirector.username,
+          subRole: "Phó giám đốc",
+        },
+      ],
+      appendedPurchasingDocuments:
+        advancePaymentDoc.appendedPurchasingDocuments,
+      submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+      status: "Pending",
+      groupName: advancePaymentDoc.groupName,
+      projectName: advancePaymentDoc.projectName,
+    });
+
+    await reclaimDoc.save();
+  } catch (err) {
+    console.error("Error creating advance payment reclaim document:", err);
+  }
+}
 exports.deleteDocument = async (req, res) => {
   const { id } = req.params;
 
