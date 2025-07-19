@@ -91,14 +91,21 @@ function showMessage(message, isError = false) {
   messageContainer.textContent = message;
   messageContainer.className = `message ${isError ? "error" : "success"}`;
 
-  // Get the current scroll position
-  const scrollY = window.scrollY || document.documentElement.scrollTop;
-  messageContainer.style.top = `${scrollY + 20}px`; // Offset from top of viewport
+  // Clear any previous animations
+  messageContainer.style.animation = "none";
+  messageContainer.offsetHeight; // Trigger reflow
+  messageContainer.style.animation = null;
 
+  // Show the message
   messageContainer.style.display = "block";
+  messageContainer.style.opacity = "1";
 
+  // Hide after delay
   setTimeout(() => {
-    messageContainer.style.display = "none";
+    messageContainer.style.animation = "fadeOut 0.3s ease-out forwards";
+    setTimeout(() => {
+      messageContainer.style.display = "none";
+    }, 300);
   }, 5000);
 }
 
