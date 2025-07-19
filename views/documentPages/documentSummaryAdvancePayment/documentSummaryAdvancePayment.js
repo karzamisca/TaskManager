@@ -6,6 +6,8 @@ let currentApprovers = [];
 let currentPage = 1;
 const itemsPerPage = 10; // Adjust this value based on your preference
 let totalPages = 1;
+let currentTagFilter = "";
+let currentCostCenterFilter = "";
 let currentGroupFilter = "";
 let paginationEnabled = true; // Default to enabled
 
@@ -20,6 +22,37 @@ function createToggleSwitch() {
     </label>
   `;
   return toggleContainer;
+}
+
+async function populateCostCenterFilter() {
+  try {
+    const response = await fetch("/costCenters");
+    const costCenters = await response.json();
+    const costCenterFilter = document.getElementById("costCenterFilter");
+
+    costCenterFilter.innerHTML = '<option value="">Tất cả trạm</option>';
+
+    costCenters.forEach((center) => {
+      const option = document.createElement("option");
+      option.value = center.name;
+      option.textContent = center.name;
+      costCenterFilter.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error loading cost centers:", error);
+  }
+}
+
+function filterByTag() {
+  currentTagFilter = document.getElementById("tagFilter").value.toLowerCase();
+  currentPage = 1;
+  fetchAdvancePaymentDocuments();
+}
+
+function filterByCostCenter() {
+  currentCostCenterFilter = document.getElementById("costCenterFilter").value;
+  currentPage = 1;
+  fetchAdvancePaymentDocuments();
 }
 
 // Add the current user fetch function
@@ -65,17 +98,26 @@ function filterByGroup() {
 
 // Document filter function
 function filterDocumentsForCurrentUser(documents) {
-  if (!currentUser && !showOnlyPendingApprovals && !currentGroupFilter) {
-    return documents;
-  }
-
   return documents.filter((doc) => {
-    // Apply group filter if selected
+    // Apply tag filter
+    if (
+      currentTagFilter &&
+      (!doc.tag || !doc.tag.toLowerCase().includes(currentTagFilter))
+    ) {
+      return false;
+    }
+
+    // Apply cost center filter
+    if (currentCostCenterFilter && doc.costCenter !== currentCostCenterFilter) {
+      return false;
+    }
+
+    // Apply group filter
     if (currentGroupFilter && doc.groupName !== currentGroupFilter) {
       return false;
     }
 
-    // Apply pending approvals filter if enabled
+    // Apply pending approvals filter
     if (showOnlyPendingApprovals && currentUser) {
       const isRequiredApprover = doc.approvers.some(
         (approver) => approver.username === currentUser.username
@@ -1331,19 +1373,13 @@ async function handleMassDeclarationSubmit(event) {
 // Modify the initialization code
 async function initializePage() {
   await fetchCurrentUser();
-
-  // Add toggle switch before the table
-  const table = document.querySelector("table");
-  table.parentElement.insertBefore(createToggleSwitch(), table);
-
-  // Add group filter
   await populateGroupFilter();
+  await populateCostCenterFilter();
   await populateGroupDropdown();
 
-  // Add toggle event listener
   document.getElementById("pendingToggle").addEventListener("change", (e) => {
     showOnlyPendingApprovals = e.target.checked;
-    currentPage = 1; // Reset to first page when filter changes
+    currentPage = 1;
     fetchAdvancePaymentDocuments();
   });
 
@@ -1351,7 +1387,6 @@ async function initializePage() {
     .getElementById("paginationToggle")
     .addEventListener("change", togglePagination);
 
-  // Initial fetch of documents
   fetchAdvancePaymentDocuments();
 }
 
