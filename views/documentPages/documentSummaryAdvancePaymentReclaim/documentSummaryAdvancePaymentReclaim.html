@@ -7,38 +7,44 @@
     <title>Phiếu thu lại tạm ứng</title>
     <link
       rel="stylesheet"
-      href="documentPages/documentSummaryAdvancePaymentReclaim/documentSummaryAdvancePaymentReclaim.css?v=1.0"
+      href="documentPages/documentSummaryAdvancePaymentReclaim/documentSummaryAdvancePaymentReclaim.css?v=1.1"
     />
   </head>
   <body>
     <h1>Phiếu thu lại tạm ứng</h1>
     <div id="messageContainer" class="message"></div>
 
-    <div style="margin-bottom: 1rem; display: inline-block; margin-left: 1rem">
-      <label
-        for="paginationToggle"
-        style="display: flex; align-items: center; cursor: pointer"
-      >
-        <input
-          type="checkbox"
-          id="paginationToggle"
-          checked
-          style="margin-right: 0.5rem"
-        />
-        <span>Phân trang</span>
-      </label>
-    </div>
+    <div class="filters-container">
+      <div class="filter-group">
+        <label for="tagFilter">Tem:</label>
+        <input type="text" id="tagFilter" oninput="filterByTag()" />
+      </div>
 
-    <div style="margin-bottom: 1rem">
-      <label for="groupFilter">Nhóm:</label>
-      <select
-        id="groupFilter"
-        onchange="filterByGroup()"
-        style="margin-left: 0.5rem; padding: 4px 8px"
-      >
-        <option value="">Tất cả nhóm</option>
-        <!-- Groups will be populated dynamically -->
-      </select>
+      <div class="filter-group">
+        <label for="costCenterFilter">Trạm:</label>
+        <select id="costCenterFilter" onchange="filterByCostCenter()"></select>
+      </div>
+
+      <div class="filter-group">
+        <label for="groupFilter">Nhóm:</label>
+        <select id="groupFilter" onchange="filterByGroup()">
+          <option value="">Tất cả nhóm</option>
+        </select>
+      </div>
+
+      <div class="filter-group toggle-group">
+        <label class="toggle-label">
+          <input type="checkbox" id="pendingToggle" />
+          <span>Phiếu tôi cần phê duyệt</span>
+        </label>
+      </div>
+
+      <div class="filter-group toggle-group">
+        <label class="toggle-label">
+          <input type="checkbox" id="paginationToggle" checked />
+          <span>Phân trang</span>
+        </label>
+      </div>
     </div>
 
     <div>
@@ -46,6 +52,7 @@
         Cập nhật kê khai hàng loạt
       </button>
     </div>
+
     <table>
       <thead>
         <tr>
@@ -70,7 +77,7 @@
     <div id="fullViewModal" class="full-view-modal">
       <div class="full-view-content">
         <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
-        <h2 style="margin-bottom: 24px">Chi tiết đầy đủ</h2>
+        <h2>Chi tiết đầy đủ</h2>
         <div id="fullViewContent"></div>
       </div>
     </div>
@@ -141,13 +148,9 @@
 
     <div class="summary">
       <h2>Tóm tắt</h2>
+      <p>Số tiền đã thu lại: <span id="reclaimSum" class="approved">0</span></p>
       <p>
-        Số tiền đã thu lại:
-        <span id="reclaimSum" class="approved">0</span>
-      </p>
-      <p>
-        Số tiền đã phê duyệt:
-        <span id="approvedSum" class="approved">0</span>
+        Số tiền đã phê duyệt: <span id="approvedSum" class="approved">0</span>
       </p>
       <p>
         Số tiền chưa phê duyệt:
@@ -163,7 +166,7 @@
       </p>
     </div>
 
-    <script src="documentPages/documentSummaryAdvancePaymentReclaim/documentSummaryAdvancePaymentReclaim.js?v=1.4"></script>
+    <script src="documentPages/documentSummaryAdvancePaymentReclaim/documentSummaryAdvancePaymentReclaim.js?v=1.5"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>

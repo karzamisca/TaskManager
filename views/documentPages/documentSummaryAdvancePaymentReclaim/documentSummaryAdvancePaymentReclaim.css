@@ -556,6 +556,68 @@ input[type="checkbox"] {
   cursor: pointer;
 }
 
+/* Filter */
+.filters-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--table-header);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.filter-group input[type="text"],
+.filter-group select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  min-width: 150px;
+  transition: var(--transition);
+}
+
+.filter-group input[type="text"]:focus,
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.toggle-group {
+  margin-left: auto;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 0.5rem;
+  user-select: none;
+}
+
+.toggle-label input[type="checkbox"] {
+  margin: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary-color);
+}
+
 /* Responsive adjustments */
 @media screen and (max-width: 768px) {
   body {
@@ -595,6 +657,27 @@ input[type="checkbox"] {
   .proposal-card {
     flex: 1 1 auto;
     max-width: 100%;
+  }
+
+  .filters-container {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.75rem;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .filter-group input[type="text"],
+  .filter-group select {
+    width: 100%;
+    flex-grow: 1;
+  }
+
+  .toggle-group {
+    margin-left: 0;
+    width: 100%;
   }
 }
 
