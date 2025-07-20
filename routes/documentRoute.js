@@ -322,6 +322,11 @@ router.get(
   authMiddleware,
   documentController.getAdvancePaymentReclaimDocument
 );
+router.post(
+  "/extendAdvancePaymentReclaimDeadline/:id",
+  authMiddleware,
+  documentController.extendAdvancePaymentReclaimDeadline
+);
 //// END OF ADVANCE PAYMENT RECLAIM DOCUMENT ROUTE
 
 //// DELIVERY DOCUMENT ROUTE

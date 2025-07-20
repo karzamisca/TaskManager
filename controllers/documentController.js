@@ -3670,6 +3670,47 @@ exports.massUpdateAdvancePaymentReclaimDocumentDeclaration = async (
     res.status(500).json({ message: "Error updating declaration" });
   }
 };
+exports.extendAdvancePaymentReclaimDeadline = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const document = await AdvancePaymentReclaimDocument.findById(id);
+    if (!document) {
+      return res.status(404).send("Không tìm thấy phiếu thu lại tạm ứng.");
+    }
+
+    // Determine which deadline to extend from
+    const baseDeadline =
+      document.extendedPaymentDeadline || document.paymentDeadline;
+
+    if (!baseDeadline || baseDeadline === "Not specified") {
+      return res
+        .status(400)
+        .send("Không thể gia hạn vì không có hạn trả hợp lệ.");
+    }
+
+    // Parse the base deadline (format DD-MM-YYYY)
+    const baseDate = moment.tz(baseDeadline, "DD-MM-YYYY", "Asia/Bangkok");
+
+    if (!baseDate.isValid()) {
+      return res
+        .status(400)
+        .send(`Định dạng hạn trả không hợp lệ: ${baseDeadline}`);
+    }
+
+    // Calculate new deadline (30 days from base deadline)
+    const newDeadline = baseDate.add(30, "days").format("DD-MM-YYYY");
+
+    // Update the extended deadline
+    document.extendedPaymentDeadline = newDeadline;
+    await document.save();
+
+    res.send(`Đã gia hạn hạn trả từ ${baseDeadline} đến ${newDeadline}`);
+  } catch (err) {
+    console.error("Error extending deadline:", err);
+    res.status(500).send("Lỗi khi gia hạn hạn trả");
+  }
+};
 //// END OF ADVANCE PAYMENT RECLAIM DOCUMENT CONTROLLER
 
 //// DELIVERY DOCUMENT CONTROLLER

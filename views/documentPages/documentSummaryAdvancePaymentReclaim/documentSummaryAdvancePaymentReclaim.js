@@ -375,6 +375,9 @@ async function fetchAdvancePaymentReclaimDocuments() {
             <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
               Phê duyệt
             </button>
+            <button class="approve-btn" onclick="extendDeadline('${doc._id}')" style="margin-right: 5px;">
+              Gia hạn
+            </button>
           `
               : ""
           }
@@ -418,6 +421,32 @@ async function fetchAdvancePaymentReclaimDocuments() {
   } catch (err) {
     console.error("Error fetching advance payment documents:", err);
     showMessage("Error fetching advance payment documents", true);
+  }
+}
+
+async function extendDeadline(documentId) {
+  try {
+    const response = await fetch(
+      `/extendAdvancePaymentReclaimDeadline/${documentId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const message = await response.text();
+
+    if (response.ok) {
+      showMessage(message);
+      fetchAdvancePaymentReclaimDocuments();
+    } else {
+      showMessage(message, true);
+    }
+  } catch (err) {
+    console.error("Error extending deadline:", err);
+    showMessage("Lỗi khi gia hạn hạn trả", true);
   }
 }
 
