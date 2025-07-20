@@ -618,6 +618,28 @@ input[type="checkbox"] {
   accent-color: var(--primary-color);
 }
 
+.deadline-passed {
+  background-color: rgba(255, 0, 0, 0.1) !important; /* Orange instead of red */
+}
+
+.deadline-passed-cell {
+  color: #ff0000; /* Orange instead of red */
+  font-weight: bold;
+}
+
+.deadline-passed:hover {
+  background-color: rgba(255, 0, 0, 0.15) !important;
+}
+
+/* Style for approved documents */
+.approved-row {
+  background-color: rgba(76, 175, 80, 0.1) !important;
+}
+
+.approved-row:hover {
+  background-color: rgba(76, 175, 80, 0.15) !important;
+}
+
 /* Responsive adjustments */
 @media screen and (max-width: 768px) {
   body {

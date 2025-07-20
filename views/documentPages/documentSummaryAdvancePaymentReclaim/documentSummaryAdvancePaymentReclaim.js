@@ -10,6 +10,30 @@ let currentTagFilter = "";
 let currentCostCenterFilter = "";
 let currentGroupFilter = "";
 let paginationEnabled = true; // Default to enabled
+let showOnlyPassedExtendedDeadline = false;
+
+function shouldCheckDeadline(doc) {
+  // Only check deadline for non-approved documents
+  return doc.status !== "Approved";
+}
+
+function hasDatePassed(dateString) {
+  if (!dateString) return false;
+
+  try {
+    const [day, month, year] = dateString.split("-").map(Number);
+    const deadlineDate = new Date(year, month - 1, day);
+    const today = new Date();
+
+    // Reset hours, minutes, seconds, milliseconds for accurate comparison
+    today.setHours(0, 0, 0, 0);
+
+    return deadlineDate < today;
+  } catch (error) {
+    console.error("Error parsing date:", error);
+    return false;
+  }
+}
 
 // Add the toggle switch creation function
 function createToggleSwitch() {
@@ -110,6 +134,14 @@ function filterDocumentsForCurrentUser(documents) {
 
     // Apply group filter
     if (currentGroupFilter && doc.groupName !== currentGroupFilter) {
+      return false;
+    }
+
+    // Apply passed extended deadline filter (only for non-approved documents)
+    if (
+      showOnlyPassedExtendedDeadline &&
+      (doc.status === "Approved" || !hasDatePassed(doc.extendedPaymentDeadline))
+    ) {
       return false;
     }
 
@@ -334,6 +366,17 @@ async function fetchAdvancePaymentReclaimDocuments() {
         .join("");
 
       const row = document.createElement("tr");
+      const shouldCheck = shouldCheckDeadline(doc);
+      const isDeadlinePassed =
+        shouldCheck && hasDatePassed(doc.paymentDeadline);
+      const isExtendedDeadlinePassed =
+        shouldCheck && hasDatePassed(doc.extendedPaymentDeadline);
+
+      // Add a class to the row if the extended deadline has passed
+      if (isExtendedDeadlinePassed) {
+        row.classList.add("deadline-passed");
+      }
+
       row.innerHTML = `
         <td><input type="checkbox" name="documentCheckbox" value="${
           doc._id
@@ -346,8 +389,12 @@ async function fetchAdvancePaymentReclaimDocuments() {
       }${doc.declaration ? `(Kê khai: ${doc.declaration})` : ""}</td>
         <td>${doc.paymentMethod || "-"}</td>
         <td>${doc.advancePaymentReclaim?.toLocaleString() || "-"}</td>
-        <td>${doc.paymentDeadline || "-"}</td>
-        <td>${doc.extendedPaymentDeadline || "-"}</td>
+        <td class="${isDeadlinePassed ? "deadline-passed-cell" : ""}">${
+        doc.paymentDeadline || "-"
+      }</td>
+        <td class="${isExtendedDeadlinePassed ? "deadline-passed-cell" : ""}">${
+        doc.extendedPaymentDeadline || "-"
+      }</td>
         <td>${renderStatus(doc.status)}</td>
         <td class="approval-status">${approvalStatus}</td>
         <td>
@@ -372,12 +419,23 @@ async function fetchAdvancePaymentReclaimDocuments() {
           ${
             doc.status === "Pending"
               ? `
-            <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
+            <button class="approve-btn" onclick="approveDocument('${
+              doc._id
+            }')" style="margin-right: 5px;">
               Phê duyệt
             </button>
-            <button class="approve-btn" onclick="extendDeadline('${doc._id}')" style="margin-right: 5px;">
-              Gia hạn
-            </button>
+            ${
+              // Show extend deadline button if:
+              // 1. Document is pending
+              // 2. Either:
+              //    a. No extended deadline is set yet, OR
+              //    b. Extended deadline is set but not passed yet
+              !doc.extendedPaymentDeadline || isExtendedDeadlinePassed
+                ? `<button class="approve-btn" onclick="extendDeadline('${doc._id}')" style="margin-right: 5px;">
+                    Gia hạn
+                  </button>`
+                : ""
+            }
           `
               : ""
           }
@@ -1052,13 +1110,13 @@ async function handleEditSubmit(event) {
         body: formData,
       }
     );
-    const result = await response.json();
+    const message = await response.text();
     if (response.ok) {
       showMessage("Cập nhật tài liệu thành công");
       closeEditModal();
       fetchAdvancePaymentReclaimDocuments();
     } else {
-      showMessage(result.message || "Lỗi khi cập nhật tài liệu", true);
+      showMessage(message);
     }
   } catch (err) {
     console.error("Error updating document:", err);
@@ -1425,6 +1483,14 @@ async function initializePage() {
   document
     .getElementById("paginationToggle")
     .addEventListener("change", togglePagination);
+
+  document
+    .getElementById("passedExtendedDeadlineToggle")
+    .addEventListener("change", (e) => {
+      showOnlyPassedExtendedDeadline = e.target.checked;
+      currentPage = 1;
+      fetchAdvancePaymentReclaimDocuments();
+    });
 
   fetchAdvancePaymentReclaimDocuments();
 }

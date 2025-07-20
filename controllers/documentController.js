@@ -3482,6 +3482,12 @@ exports.getAdvancePaymentReclaimDocument = async (req, res) => {
 exports.updateAdvancePaymentReclaimDocument = async (req, res) => {
   let tempFilePath = null;
   try {
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
     const { id } = req.params;
     const {
       name,
@@ -3601,12 +3607,10 @@ exports.updateAdvancePaymentReclaimDocumentDeclaration = async (req, res) => {
   const { declaration } = req.body;
 
   try {
-    if (
-      !["approver", "headOfAccounting", "headOfPurchasing"].includes(
-        req.user.role
-      )
-    ) {
-      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     const doc = await AdvancePaymentReclaimDocument.findById(id);
@@ -3631,11 +3635,7 @@ exports.massUpdateAdvancePaymentReclaimDocumentDeclaration = async (
 
   try {
     // Check user role
-    if (
-      !["approver", "headOfAccounting", "headOfPurchasing"].includes(
-        req.user.role
-      )
-    ) {
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
       return res
         .status(403)
         .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -3674,6 +3674,12 @@ exports.extendAdvancePaymentReclaimDeadline = async (req, res) => {
   const { id } = req.params;
 
   try {
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
     const document = await AdvancePaymentReclaimDocument.findById(id);
     if (!document) {
       return res.status(404).send("Không tìm thấy phiếu thu lại tạm ứng.");
