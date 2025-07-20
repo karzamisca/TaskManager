@@ -14,6 +14,7 @@ const advancePaymentReclaimDocumentSchema = new mongoose.Schema({
   paymentMethod: { type: String, required: true },
   advancePaymentReclaim: { type: Number, required: true },
   paymentDeadline: { type: String, default: "Not specified" },
+  extendedPaymentDeadline: { type: String, default: "Not specified" },
   fileMetadata: {
     driveFileId: { type: String },
     name: { type: String },

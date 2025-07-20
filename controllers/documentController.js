@@ -1459,6 +1459,7 @@ async function createAdvancePaymentReclaimAfterAdvancePaymentApproval(
       paymentMethod: advancePaymentDoc.paymentMethod,
       advancePaymentReclaim: advancePaymentDoc.advancePayment,
       paymentDeadline: paymentDeadline,
+      extendedPaymentDeadline: paymentDeadline,
       fileMetadata: fileMetadata, // This will be undefined if no file was attached
       submittedBy: advancePaymentDoc.submittedBy,
       approvers: [

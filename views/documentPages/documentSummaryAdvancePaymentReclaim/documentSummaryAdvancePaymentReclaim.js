@@ -347,6 +347,7 @@ async function fetchAdvancePaymentReclaimDocuments() {
         <td>${doc.paymentMethod || "-"}</td>
         <td>${doc.advancePaymentReclaim?.toLocaleString() || "-"}</td>
         <td>${doc.paymentDeadline || "-"}</td>
+        <td>${doc.extendedPaymentDeadline || "-"}</td>
         <td>${renderStatus(doc.status)}</td>
         <td class="approval-status">${approvalStatus}</td>
         <td>
