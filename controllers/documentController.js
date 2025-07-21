@@ -1466,7 +1466,7 @@ async function createAdvancePaymentReclaimAfterAdvancePaymentApproval(
         {
           approver: deputyDirector._id,
           username: deputyDirector.username,
-          subRole: "Phó giám đốc",
+          subRole: "Thủ quỹ",
         },
       ],
       appendedPurchasingDocuments:
