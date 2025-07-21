@@ -1,17 +1,17 @@
 <!-- views\documentPages\documentSummaryProjectProposal\documentSummaryProjectProposal.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Phiếu đề nghị mở dự án/Project Proposal Documents</title>
+    <title>Phiếu đề nghị mở dự án</title>
     <link
       rel="stylesheet"
       href="documentPages/documentSummaryProjectProposal/documentSummaryProjectProposal.css"
     />
   </head>
   <body>
-    <h1>Phiếu đề nghị mở dự án/Project Proposal Documents</h1>
+    <h1>Phiếu đề nghị mở dự án</h1>
     <div id="messageContainer" class="message"></div>
 
     <div style="margin-bottom: 1rem; display: inline-block; margin-left: 1rem">
@@ -25,39 +25,39 @@
           checked
           style="margin-right: 0.5rem"
         />
-        <span>Hiển thị phân trang/Enable pagination</span>
+        <span>Phân trang</span>
       </label>
     </div>
 
     <table>
       <thead>
         <tr>
-          <th>Tên/Name</th>
-          <th>Nội dung/Content</th>
-          <th>Tệp tin đính kèm/Attached File</th>
-          <th>Tình trạng/Status</th>
-          <th>Trạng thái phê duyệt/Approval Status</th>
-          <th>Hành động/Action</th>
+          <th>Tên</th>
+          <th>Nội dung</th>
+          <th>Tệp tin đính kèm</th>
+          <th>Tình trạng</th>
+          <th>Trạng thái phê duyệt</th>
+          <th>Hành động</th>
         </tr>
       </thead>
       <tbody id="projectProposalsTable">
-        <!-- Project proposals will be populated here -->
+        <!-- Danh sách đề xuất dự án sẽ được hiển thị ở đây -->
       </tbody>
     </table>
     <div id="fullViewModal" class="full-view-modal">
       <div class="full-view-content">
         <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
-        <h2 style="margin-bottom: 24px">Thông tin đầy đủ/Full Details</h2>
+        <h2 style="margin-bottom: 24px">Thông tin đầy đủ</h2>
         <div id="fullViewContent"></div>
       </div>
     </div>
     <div id="suspendModal" class="full-view-modal">
       <div class="full-view-content">
         <span class="close-btn" onclick="closeSuspendModal()">&times;</span>
-        <h2>Suspend Document</h2>
+        <h2>Từ chối tài liệu</h2>
         <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
           <div style="margin-bottom: 20px">
-            <label for="suspendReason">Lý do từ chối/Suspend Reason:</label>
+            <label for="suspendReason">Lý do từ chối:</label>
             <textarea
               id="suspendReason"
               required
@@ -65,30 +65,30 @@
             ></textarea>
           </div>
           <div style="display: flex; gap: 10px">
-            <button type="submit" class="approve-btn">Từ chối/Suspend</button>
+            <button type="submit" class="approve-btn">Từ chối</button>
             <button
               type="button"
               class="approve-btn"
               onclick="closeSuspendModal()"
             >
-              Hủy/Cancel
+              Hủy
             </button>
           </div>
         </form>
       </div>
     </div>
     <div class="summary">
-      <h2>Summary</h2>
+      <h2>Tổng quan</h2>
       <p>
-        Phiếu đã phê duyệt/Total Approved Proposals:
+        Phiếu đã phê duyệt:
         <span id="approvedDocument" class="approved">0</span>
       </p>
       <p>
-        Phiếu chưa phê duyệt/Total Unapproved Proposals:
+        Phiếu chưa phê duyệt:
         <span id="unapprovedDocument" class="unapproved">0</span>
       </p>
     </div>
-    <script src="documentPages/documentSummaryProjectProposal/documentSummaryProjectProposal.js?v=1.0"></script>
+    <script src="documentPages/documentSummaryProjectProposal/documentSummaryProjectProposal.js?v=1.1"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>

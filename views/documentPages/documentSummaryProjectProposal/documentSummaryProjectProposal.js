@@ -61,11 +61,11 @@ function showMessage(message, isError = false) {
 function renderStatus(status) {
   switch (status) {
     case "Approved":
-      return `<span class="status approved">Approved</span>`;
+      return `<span class="status approved">Đã phê duyệt</span>`;
     case "Suspended":
-      return `<span class="status suspended">Suspended</span>`;
+      return `<span class="status suspended">Bị từ chối</span>`;
     default:
-      return `<span class="status pending">Pending</span>`;
+      return `<span class="status pending">Đang chờ</span>`;
   }
 }
 
@@ -124,8 +124,8 @@ async function fetchProjectProposals() {
                 <div>${approver.username} (${approver.subRole})</div>
                 ${
                   hasApproved
-                    ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
-                    : '<div class="approval-date">Pending</div>'
+                    ? `<div class="approval-date">Duyệt vào: ${hasApproved.approvalDate}</div>`
+                    : '<div class="approval-date">Chờ duyệt</div>'
                 }
               </div>
             </div>
@@ -138,8 +138,8 @@ async function fetchProjectProposals() {
         <td>${doc.name || ""}</td>
         <td>
           ${renderContent(doc.content)}
-          ${doc.declaration ? `(Declaration: ${doc.declaration})` : ""}
-          ${doc.suspendReason ? `(Suspend Reason: ${doc.suspendReason})` : ""}
+          ${doc.declaration ? `(Kê khai: ${doc.declaration})` : ""}
+          ${doc.suspendReason ? `(Lý do từ chối: ${doc.suspendReason})` : ""}
         </td>
         <td>${
           doc.fileMetadata?.link
@@ -152,18 +152,18 @@ async function fetchProjectProposals() {
           <button class="approve-btn" onclick="showFullView('${
             doc._id
           }')" style="margin-right: 5px;">
-            Full View
+            Xem đầy đủ
           </button>
           <form action="/exportDocumentToDocx/${
             doc._id
           }" method="GET" style="display:inline;">
-              <button class="approve-btn">Export to DOCX</button>
+              <button class="approve-btn">Xuất DOCX</button>
           </form>
           ${
             doc.approvedBy.length === 0
               ? `
-            <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Edit</button>
-            <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Delete</button>
+            <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa</button>
+            <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa</button>
           `
               : ""
           }
@@ -171,7 +171,7 @@ async function fetchProjectProposals() {
             doc.status === "Pending"
               ? `
             <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
-              Approve
+              Phê duyệt
             </button>
           `
               : ""
@@ -180,18 +180,18 @@ async function fetchProjectProposals() {
             doc.status === "Approved"
               ? `
               <button class="approve-btn" onclick="editDeclaration('${doc._id}')" style="margin-right: 5px;">
-                Declaration
+                Kê khai
               </button>
             `
               : doc.status === "Suspended"
               ? `
               <button class="approve-btn" onclick="openDocument('${doc._id}')">
-                Open
+                Mở 
               </button>
             `
               : `
               <button class="approve-btn" onclick="suspendDocument('${doc._id}')">
-                Suspend
+                Từ chối
               </button>
             `
           }                      
@@ -297,25 +297,25 @@ function renderPagination() {
     paginationHTML += `
       <div class="pagination-controls">
         <button onclick="changePage(1)" ${currentPage === 1 ? "disabled" : ""}>
-          &laquo; First
+          &laquo; Đầu
         </button>
         <button onclick="changePage(${currentPage - 1})" ${
       currentPage === 1 ? "disabled" : ""
     }>
-          &lsaquo; Prev
+          &lsaquo; Trước
         </button>
         <span class="page-info">
-          Trang/Page ${currentPage} / ${totalPages}
+          Trang ${currentPage} / ${totalPages}
         </span>
         <button onclick="changePage(${currentPage + 1})" ${
       currentPage === totalPages ? "disabled" : ""
     }>
-          Next &rsaquo;
+          Sau &rsaquo;
         </button>
         <button onclick="changePage(${totalPages})" ${
       currentPage === totalPages ? "disabled" : ""
     }>
-          Last &raquo;
+          Cuối &raquo;
         </button>
       </div>
     `;
@@ -812,73 +812,63 @@ function showFullView(docId) {
     if (!doc) throw new Error("Document not found");
 
     const fullViewContent = document.getElementById("fullViewContent");
-    const submissionDate = doc.submissionDate || "Not specified";
+    const submissionDate = doc.submissionDate || "Không có";
 
     fullViewContent.innerHTML = `
       <!-- Basic Information Section -->
       <div class="full-view-section">
-        <h3>Basic Information</h3>
+        <h3>Thông tin cơ bản</h3>
         <div class="detail-grid">
           <div class="detail-item">
-            <span class="detail-label">Title:</span>
-            <span class="detail-value">${doc.title}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Name:</span>
+            <span class="detail-label">Tên:</span>
             <span class="detail-value">${doc.name}</span>
           </div>                
           <div class="detail-item">
-            <span class="detail-label">Group Name:</span>
-            <span class="detail-value">${
-              doc.groupName || "Not specified"
-            }</span>
+            <span class="detail-label">Nhóm:</span>
+            <span class="detail-value">${doc.groupName || "Không có"}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Project Name:</span>
-            <span class="detail-value">${
-              doc.projectName || "Not specified"
-            }</span>
+            <span class="detail-label">Dự án:</span>
+            <span class="detail-value">${doc.projectName || "Không có"}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Submission Date:</span>
+            <span class="detail-label">Ngày nộp:</span>
             <span class="detail-value">${submissionDate}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Declaration:</span>
-            <span class="detail-value">${
-              doc.declaration || "Not specified"
-            }</span>
+            <span class="detail-label">Kê khai:</span>
+            <span class="detail-value">${doc.declaration || "Không có"}</span>
           </div>
         </div>
       </div>
 
       <!-- Content Section -->
       <div class="full-view-section">
-        <h3>Content</h3>
+        <h3>Nội dung</h3>
         ${renderContent(doc.content)}
       </div>
 
       <!-- File Attachment Section -->
       <div class="full-view-section">
-        <h3>Attached File</h3>
+        <h3>Tệp kèm theo</h3>
         ${
           doc.fileMetadata
             ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-            : "No file attached"
+            : "Không có"
         }
       </div>
 
       <!-- Status Section -->
       <div class="full-view-section">
-        <h3>Status Information</h3>
+        <h3>Thông tin tình trạng</h3>
         <div class="detail-grid">
           <div class="detail-item">
-            <span class="detail-label">Status:</span>
+            <span class="detail-label">Tình trạng:</span>
             <span class="detail-value">${renderStatus(doc.status)}</span>
           </div>
         </div>
         <div style="margin-top: 16px;">
-          <h4>Approval Status:</h4>
+          <h4>Tình trạng phê duyệt:</h4>
           <div class="approval-status">
             ${doc.approvers
               .map((approver) => {
@@ -894,8 +884,8 @@ function showFullView(docId) {
                     <div>${approver.username} (${approver.subRole})</div>
                     ${
                       hasApproved
-                        ? `<div class="approval-date">Approved on: ${hasApproved.approvalDate}</div>`
-                        : '<div class="approval-date">Pending</div>'
+                        ? `<div class="approval-date">Duyệt vào: ${hasApproved.approvalDate}</div>`
+                        : '<div class="approval-date">Chờ duyệt</div>'
                     }
                   </div>
                 </div>
