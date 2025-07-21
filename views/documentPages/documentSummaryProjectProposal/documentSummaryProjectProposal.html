@@ -4,91 +4,116 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>Phiếu đề nghị mở dự án</title>
     <link
       rel="stylesheet"
-      href="documentPages/documentSummaryProjectProposal/documentSummaryProjectProposal.css"
+      href="documentPages/documentSummaryProjectProposal/documentSummaryProjectProposal.css?v=1.0"
     />
   </head>
   <body>
-    <h1>Phiếu đề nghị mở dự án</h1>
-    <div id="messageContainer" class="message"></div>
+    <div class="container">
+      <h1>Phiếu đề nghị mở dự án</h1>
 
-    <div style="margin-bottom: 1rem; display: inline-block; margin-left: 1rem">
-      <label
-        for="paginationToggle"
-        style="display: flex; align-items: center; cursor: pointer"
-      >
-        <input
-          type="checkbox"
-          id="paginationToggle"
-          checked
-          style="margin-right: 0.5rem"
-        />
-        <span>Phân trang</span>
-      </label>
-    </div>
+      <div id="messageContainer" class="message" style="display: none"></div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Tên</th>
-          <th>Nội dung</th>
-          <th>Tệp tin đính kèm</th>
-          <th>Tình trạng</th>
-          <th>Trạng thái phê duyệt</th>
-          <th>Hành động</th>
-        </tr>
-      </thead>
-      <tbody id="projectProposalsTable">
-        <!-- Danh sách đề xuất dự án sẽ được hiển thị ở đây -->
-      </tbody>
-    </table>
-    <div id="fullViewModal" class="full-view-modal">
-      <div class="full-view-content">
-        <span class="close-btn" onclick="closeFullViewModal()">&times;</span>
-        <h2 style="margin-bottom: 24px">Thông tin đầy đủ</h2>
-        <div id="fullViewContent"></div>
+      <div class="controls">
+        <div class="toggle-switch">
+          <input type="checkbox" id="pendingToggle" />
+          <label for="pendingToggle">Phiếu tôi cần duyệt</label>
+        </div>
+
+        <div class="toggle-switch">
+          <input type="checkbox" id="paginationToggle" checked />
+          <label for="paginationToggle">Phân trang</label>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Tên</th>
+              <th>Nội dung</th>
+              <th>Tệp tin đính kèm</th>
+              <th>Tình trạng</th>
+              <th>Trạng thái phê duyệt</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="projectProposalsTable">
+            <!-- Danh sách đề xuất dự án sẽ được hiển thị ở đây -->
+          </tbody>
+        </table>
+      </div>
+
+      <div id="paginationContainer"></div>
+
+      <div id="fullViewModal" class="modal">
+        <div class="modal-content">
+          <button
+            class="close-btn"
+            onclick="closeFullViewModal()"
+            aria-label="Close"
+          >
+            &times;
+          </button>
+          <h2>Thông tin đầy đủ</h2>
+          <div id="fullViewContent"></div>
+        </div>
+      </div>
+
+      <div id="suspendModal" class="modal">
+        <div class="modal-content" style="max-width: 500px">
+          <button
+            class="close-btn"
+            onclick="closeSuspendModal()"
+            aria-label="Close"
+          >
+            &times;
+          </button>
+          <h2>Từ chối tài liệu</h2>
+          <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
+            <div class="form-group">
+              <label for="suspendReason" class="form-label"
+                >Lý do từ chối:</label
+              >
+              <textarea
+                id="suspendReason"
+                class="form-control"
+                required
+              ></textarea>
+            </div>
+            <div class="btn-group">
+              <button type="submit" class="btn btn-primary">Từ chối</button>
+              <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="closeSuspendModal()"
+              >
+                Hủy
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="summary">
+        <h2>Tổng quan</h2>
+        <p>
+          <span>Phiếu đã phê duyệt:</span>
+          <span id="approvedDocument" class="approved">0</span>
+        </p>
+        <p>
+          <span>Phiếu chưa phê duyệt:</span>
+          <span id="unapprovedDocument" class="unapproved">0</span>
+        </p>
       </div>
     </div>
-    <div id="suspendModal" class="full-view-modal">
-      <div class="full-view-content">
-        <span class="close-btn" onclick="closeSuspendModal()">&times;</span>
-        <h2>Từ chối tài liệu</h2>
-        <form id="suspendForm" onsubmit="handleSuspendSubmit(event)">
-          <div style="margin-bottom: 20px">
-            <label for="suspendReason">Lý do từ chối:</label>
-            <textarea
-              id="suspendReason"
-              required
-              style="width: 100%; padding: 10px"
-            ></textarea>
-          </div>
-          <div style="display: flex; gap: 10px">
-            <button type="submit" class="approve-btn">Từ chối</button>
-            <button
-              type="button"
-              class="approve-btn"
-              onclick="closeSuspendModal()"
-            >
-              Hủy
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-    <div class="summary">
-      <h2>Tổng quan</h2>
-      <p>
-        Phiếu đã phê duyệt:
-        <span id="approvedDocument" class="approved">0</span>
-      </p>
-      <p>
-        Phiếu chưa phê duyệt:
-        <span id="unapprovedDocument" class="unapproved">0</span>
-      </p>
-    </div>
-    <script src="documentPages/documentSummaryProjectProposal/documentSummaryProjectProposal.js?v=1.1"></script>
+
+    <!-- Edit Modal will be added by JavaScript -->
+
+    <script src="documentPages/documentSummaryProjectProposal/documentSummaryProjectProposal.js?v=1.2"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>

@@ -8,18 +8,6 @@ const itemsPerPage = 10;
 let totalPages = 1;
 let paginationEnabled = true; // Default to enabled
 
-function createToggleSwitch() {
-  const toggleContainer = document.createElement("div");
-  toggleContainer.style.marginBottom = "1rem";
-  toggleContainer.innerHTML = `
-    <label class="toggle-switch" style="display: flex; align-items: center; cursor: pointer;">
-      <input type="checkbox" id="pendingToggle" style="margin-right: 0.5rem;">
-      <span>Phiếu tôi cần duyệt</span>
-    </label>
-  `;
-  return toggleContainer;
-}
-
 async function fetchCurrentUser() {
   try {
     const response = await fetch("/getCurrentUser");
@@ -396,38 +384,34 @@ function addEditModal() {
               ">&times;</span>
               
               <h2 style="font-size: clamp(18px, 2vw, 24px); margin-bottom: clamp(16px, 2vw, 24px);">
-                Edit Project Proposal
+                Sửa phiếu đề nghị mở dự án
               </h2>
               
               <form id="editForm" onsubmit="handleEditSubmit(event)">
                 <input type="hidden" id="editDocId">
                 <!-- Basic Fields -->
                 <div style="margin-bottom: 15px;">
-                  <label for="editTitle">Title:</label>
-                  <input type="text" id="editTitle" required style="width: 100%; padding: 8px;">
-                </div>
-                <div style="margin-bottom: 15px;">
-                  <label for="editName">Name:</label>
+                  <label for="editName">Tên:</label>
                   <input type="text" id="editName" required style="width: 100%; padding: 8px;">
                 </div>
                 <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label for="editGroupName" style="display: block; margin-bottom: 0.5em;">Group Name:</label>
+                  <label for="editGroupName" style="display: block; margin-bottom: 0.5em;">Nhóm:</label>
                   <input type="text" id="editGroupName" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
                 </div>
                 <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label for="editProjectName" style="display: block; margin-bottom: 0.5em;">Project Name:</label>
+                  <label for="editProjectName" style="display: block; margin-bottom: 0.5em;">Dự án:</label>
                   <input type="text" id="editProjectName" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
                 </div>
                 
                 <div id="contentContainer" style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label style="display: block; margin-bottom: 0.5em;">Content:</label>
+                  <label style="display: block; margin-bottom: 0.5em;">Nội dung:</label>
                   <div id="contentList"></div>
                   <button type="button" class="approve-btn" onclick="addContentField()" style="margin-top: 10px;">
-                    Add Content
+                    Thêm nội dung
                   </button>
                 </div>
                 <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label for="editFile" style="display: block; margin-bottom: 0.5em;">Update File:</label>
+                  <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay đổi tệp tin:</label>
                   <input type="file" id="editFile" style="
                     width: 100%;
                     padding: clamp(6px, 1vw, 12px);
@@ -436,19 +420,19 @@ function addEditModal() {
                 </div>
                 <!-- Current Approvers Section -->
                 <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label style="display: block; margin-bottom: 0.5em;">Current Approvers:</label>
+                  <label style="display: block; margin-bottom: 0.5em;">Người phê duyệt hiện tại:</label>
                   <div id="currentApproversList"></div>
                 </div>
                 <!-- Add New Approvers Section -->
                 <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-                  <label style="display: block; margin-bottom: 0.5em;">Add Approvers:</label>
+                  <label style="display: block; margin-bottom: 0.5em;">Thêm người duyệt:</label>
                   <select id="newApproversDropdown" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
-                    <option value="">Select an approver</option>
+                    <option value="">Chọn người duyệt</option>
                     <!-- Options will be populated dynamically -->
                   </select>
-                  <input type="text" id="newApproverSubRole" placeholder="Sub Role" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
+                  <input type="text" id="newApproverSubRole" placeholder="Vai trò" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
                   <button type="button" class="approve-btn" onclick="addNewApprover()" style="margin-top: 10px;">
-                    Add
+                    Thêm
                   </button>
                 </div>
                 <div style="
@@ -459,13 +443,13 @@ function addEditModal() {
                   <button type="submit" class="approve-btn" style="
                     padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
                     font-size: inherit;
-                  ">Save Changes</button>
+                  ">Lưu thay đổi</button>
                   
                   <button type="button" class="approve-btn" onclick="closeEditModal()" style="
                     background: #666;
                     padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
                     font-size: inherit;
-                  ">Cancel</button>
+                  ">Hủy</button>
                 </div>
               </form>
             </div>
@@ -514,7 +498,7 @@ function addContentField(content = null) {
   const removeButton = document.createElement("button");
   removeButton.type = "button";
   removeButton.className = "approve-btn";
-  removeButton.textContent = "Remove";
+  removeButton.textContent = "Xóa";
   removeButton.style.background = "#dc3545";
   removeButton.onclick = function () {
     this.parentElement.parentElement.remove();
@@ -541,7 +525,7 @@ function renderCurrentApprovers() {
         <div class="approver-item" data-id="${approver.approver}">
           <span>${approver.username} (${approver.subRole})</span>
           <input type="text" value="${approver.subRole}" onchange="updateApproverSubRole('${approver.approver}', this.value)" style="width: 100px; padding: 4px;">
-          <button type="button" class="approve-btn" onclick="removeApprover('${approver.approver}')" style="background: #dc3545; padding: 4px 8px;">Remove</button>
+          <button type="button" class="approve-btn" onclick="removeApprover('${approver.approver}')" style="background: #dc3545; padding: 4px 8px;">Xóa</button>
         </div>
       `
     )
@@ -566,7 +550,7 @@ function addNewApprover() {
   const newSubRole = document.getElementById("newApproverSubRole").value;
 
   if (!newApproverId || !newSubRole) {
-    alert("Please select an approver and enter a sub role.");
+    alert("Vui lòng chọn người phê duyệt và nhập vai trò phụ.");
     return;
   }
 
@@ -581,6 +565,7 @@ function addNewApprover() {
   currentApprovers.push(newApprover);
   renderCurrentApprovers();
   populateNewApproversDropdown();
+
   document.getElementById("newApproversDropdown").value = "";
   document.getElementById("newApproverSubRole").value = "";
 }
@@ -593,7 +578,7 @@ async function populateNewApproversDropdown() {
 
   const dropdown = document.getElementById("newApproversDropdown");
   dropdown.innerHTML = `
-    <option value="">Select an approver</option>
+    <option value="">Chọn người phê duyệt</option>
     ${availableApprovers
       .map(
         (approver) => `
@@ -610,7 +595,6 @@ async function editDocument(docId) {
     const doc = await response.json();
 
     document.getElementById("editDocId").value = docId;
-    document.getElementById("editTitle").value = doc.title;
     document.getElementById("editName").value = doc.name;
     document.getElementById("editGroupName").value = doc.groupName || "";
     document.getElementById("editProjectName").value = doc.projectName || "";
@@ -621,7 +605,11 @@ async function editDocument(docId) {
     doc.content.forEach((item) => addContentField(item));
 
     // Populate current approvers
-    currentApprovers = doc.approvers;
+    currentApprovers = doc.approvers.map((approver) => ({
+      approver: approver.approver?._id || approver.approver,
+      username: approver.approver?.username || approver.username,
+      subRole: approver.subRole,
+    }));
     renderCurrentApprovers();
 
     // Populate new approvers dropdown
@@ -645,7 +633,6 @@ async function handleEditSubmit(event) {
   const formData = new FormData();
 
   // Add basic fields
-  formData.append("title", document.getElementById("editTitle").value);
   formData.append("name", document.getElementById("editName").value);
   formData.append("groupName", document.getElementById("editGroupName").value);
   formData.append(
@@ -684,7 +671,7 @@ async function handleEditSubmit(event) {
     const result = await response.json();
 
     if (response.ok) {
-      showMessage("Document updated successfully");
+      showMessage("Phiếu được cập nhật thành công");
       closeEditModal();
       fetchProjectProposals();
     } else {
@@ -910,8 +897,6 @@ function closeFullViewModal() {
 
 async function initializePage() {
   await fetchCurrentUser();
-  const table = document.querySelector("table");
-  table.parentElement.insertBefore(createToggleSwitch(), table);
   document.getElementById("pendingToggle").addEventListener("change", (e) => {
     showOnlyPendingApprovals = e.target.checked;
     currentPage = 1;

@@ -4058,7 +4058,6 @@ exports.updateProjectProposal = async (req, res) => {
     }
 
     // Update basic fields
-    doc.title = req.body.title;
     doc.name = req.body.name;
     doc.content = content;
     doc.groupName = req.body.groupName;
