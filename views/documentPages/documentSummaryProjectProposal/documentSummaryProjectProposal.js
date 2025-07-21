@@ -17,6 +17,16 @@ async function fetchCurrentUser() {
   }
 }
 
+function filterDocumentsByName(documents, searchTerm) {
+  if (!searchTerm) return documents;
+
+  const lowerCaseSearchTerm = searchTerm.toLowerCase();
+  return documents.filter((doc) => {
+    const docName = doc.name ? doc.name.toLowerCase() : "";
+    return docName.includes(lowerCaseSearchTerm);
+  });
+}
+
 function filterDocumentsForCurrentUser(documents) {
   if (!currentUser || !showOnlyPendingApprovals) return documents;
   return documents.filter((doc) => {
@@ -79,17 +89,24 @@ async function fetchProjectProposals() {
     const response = await fetch("/getProjectProposalForSeparatedView");
     const data = await response.json();
     projectProposals = data.projectProposals;
-    const filteredDocuments = filterDocumentsForCurrentUser(projectProposals);
+
+    // Get the search term from the filter input
+    const searchTerm = document.getElementById("nameFilter").value;
+
+    // First filter by name
+    let filteredDocuments = filterDocumentsByName(projectProposals, searchTerm);
+
+    // Then filter by pending approvals if needed
+    filteredDocuments = filterDocumentsForCurrentUser(filteredDocuments);
 
     totalPages = Math.ceil(filteredDocuments.length / itemsPerPage);
     if (currentPage > totalPages) currentPage = totalPages;
     if (currentPage < 1) currentPage = 1;
 
-    // Calculate slice indexes for current page
+    // Rest of the function remains the same...
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
 
-    // Get documents for current page only if pagination is enabled, otherwise show all
     const pageDocuments = paginationEnabled
       ? filteredDocuments.slice(startIndex, endIndex)
       : filteredDocuments;
@@ -903,10 +920,14 @@ async function initializePage() {
     fetchProjectProposals();
   });
 
-  // Add pagination toggle event listener
   document
     .getElementById("paginationToggle")
     .addEventListener("change", togglePagination);
+
+  document.getElementById("nameFilter").addEventListener("input", () => {
+    currentPage = 1;
+    fetchProjectProposals();
+  });
 
   fetchProjectProposals();
 }
