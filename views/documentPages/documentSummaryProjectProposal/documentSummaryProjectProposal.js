@@ -14,7 +14,7 @@ function createToggleSwitch() {
   toggleContainer.innerHTML = `
     <label class="toggle-switch" style="display: flex; align-items: center; cursor: pointer;">
       <input type="checkbox" id="pendingToggle" style="margin-right: 0.5rem;">
-      <span>Show only documents pending my approval</span>
+      <span>Phiếu tôi cần duyệt</span>
     </label>
   `;
   return toggleContainer;
