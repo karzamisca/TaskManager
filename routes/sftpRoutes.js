@@ -78,6 +78,12 @@ router.post(
   authMiddleware,
   sftpController.renameFileForPurchasing
 );
+// Add this to the SFTP Purchasing Department Route
+router.post(
+  "/sftpPasteForPurchasing",
+  authMiddleware,
+  sftpController.pasteFilesForPurchasing
+);
 //END OF SFTP PURCHASING DEPARTMENT ROUTE
 
 //START OF SFTP TECHNICAL DEPARTMENT ROUTE

@@ -1,5 +1,6 @@
 // utils/sftpService.js
 const { Client } = require("ssh2");
+const path = require("path");
 
 class SFTPManager {
   constructor() {
@@ -230,32 +231,47 @@ class SFTPManager {
       throw new Error("Not connected to SFTP server");
     }
 
-    return new Promise((resolve, reject) => {
-      // First check if it's a directory
-      this.sftp.stat(remotePath, (err, stats) => {
-        if (err) {
-          reject(err);
-          return;
-        }
+    return new Promise(async (resolve, reject) => {
+      try {
+        // First check if it's a directory
+        const stats = await new Promise((res, rej) => {
+          this.sftp.stat(remotePath, (err, stats) => {
+            if (err) rej(err);
+            else res(stats);
+          });
+        });
 
         if (stats.isDirectory()) {
-          this.sftp.rmdir(remotePath, (err) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve();
+          // Get all files in directory
+          const files = await this.listFiles(remotePath);
+
+          // Delete all contents first
+          for (const file of files) {
+            const fullPath = path.posix.join(remotePath, file.name);
+            await this.deleteFile(fullPath);
+          }
+
+          // Now delete the empty directory
+          await new Promise((res, rej) => {
+            this.sftp.rmdir(remotePath, (err) => {
+              if (err) rej(err);
+              else res();
+            });
           });
         } else {
-          this.sftp.unlink(remotePath, (err) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-            resolve();
+          // Delete regular file
+          await new Promise((res, rej) => {
+            this.sftp.unlink(remotePath, (err) => {
+              if (err) rej(err);
+              else res();
+            });
           });
         }
-      });
+
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
     });
   }
 
@@ -271,6 +287,156 @@ class SFTPManager {
           return;
         }
         resolve();
+      });
+    });
+  }
+
+  async copyFile(sourcePath, targetPath) {
+    return new Promise((resolve, reject) => {
+      const readStream = this.sftp.createReadStream(sourcePath);
+      const writeStream = this.sftp.createWriteStream(targetPath);
+
+      let bytesCopied = 0;
+      let fileSize = 0;
+
+      // Get file size for progress tracking
+      this.sftp.stat(sourcePath, (err, stats) => {
+        if (err) return reject(err);
+        fileSize = stats.size;
+      });
+
+      readStream.on("error", reject);
+      writeStream.on("error", reject);
+
+      readStream.on("data", (chunk) => {
+        bytesCopied += chunk.length;
+        // Could emit progress event here if needed
+      });
+
+      writeStream.on("close", () =>
+        resolve({
+          bytesCopied,
+          fileSize,
+        })
+      );
+
+      readStream.pipe(writeStream);
+    });
+  }
+
+  async copyDirectory(sourcePath, targetPath) {
+    if (!this.connected || !this.sftp) {
+      throw new Error("Not connected to SFTP server");
+    }
+
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Create the target directory
+        await this.createDirectory(targetPath);
+
+        // Get all files in source directory
+        const files = await this.listFiles(sourcePath);
+
+        // Copy each file/directory
+        for (const file of files) {
+          const source = path.posix.join(sourcePath, file.name);
+          const target = path.posix.join(targetPath, file.name);
+
+          if (file.type === "directory") {
+            await this.copyDirectory(source, target);
+          } else {
+            await this.copyFile(source, target);
+          }
+        }
+
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  async copy(sourcePath, targetPath) {
+    if (!this.connected || !this.sftp) {
+      throw new Error("Not connected to SFTP server");
+    }
+
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Check if source exists and get its stats
+        const stats = await new Promise((res, rej) => {
+          this.sftp.stat(sourcePath, (err, stats) => {
+            if (err) rej(err);
+            else res(stats);
+          });
+        });
+
+        if (stats.isDirectory()) {
+          await this.copyDirectoryRecursive(sourcePath, targetPath);
+        } else {
+          await this.copyFile(sourcePath, targetPath);
+        }
+
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  async copyDirectoryRecursive(sourceDir, targetDir) {
+    // Create the target directory
+    await this.createDirectory(targetDir);
+
+    // List all files in source directory
+    const files = await this.listFiles(sourceDir);
+
+    // Copy each item
+    for (const file of files) {
+      const sourcePath = path.posix.join(sourceDir, file.name);
+      const targetPath = path.posix.join(targetDir, file.name);
+
+      if (file.type === "directory") {
+        await this.copyDirectoryRecursive(sourcePath, targetPath);
+      } else {
+        await this.copyFile(sourcePath, targetPath);
+      }
+    }
+  }
+
+  async move(sourcePath, targetPath) {
+    try {
+      // First copy recursively
+      await this.copy(sourcePath, targetPath);
+
+      // Then delete the original recursively
+      await this.deleteFile(sourcePath);
+
+      return { success: true };
+    } catch (err) {
+      console.error(`Move operation failed: ${err.message}`);
+
+      // Attempt to clean up partially copied files
+      try {
+        await this.deleteFile(targetPath);
+      } catch (cleanupErr) {
+        console.error(
+          `Cleanup after failed move also failed: ${cleanupErr.message}`
+        );
+      }
+
+      throw err;
+    }
+  }
+
+  async exists(remotePath) {
+    if (!this.connected || !this.sftp) {
+      throw new Error("Not connected to SFTP server");
+    }
+
+    return new Promise((resolve) => {
+      this.sftp.stat(remotePath, (err) => {
+        resolve(!err);
       });
     });
   }

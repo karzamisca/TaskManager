@@ -3,6 +3,11 @@
 let currentPath = "/purchasing";
 let selectedFiles = [];
 let fileListData = [];
+let clipboard = {
+  files: [],
+  operation: null, // 'cut' or 'copy'
+  sourcePath: "",
+};
 
 // DOM elements
 const fileListElement = document.getElementById("file-list");
@@ -47,6 +52,9 @@ function setupEventListeners() {
   document
     .getElementById("download-btn")
     .addEventListener("click", downloadSelectedFiles);
+  document.getElementById("cut-btn").addEventListener("click", cutFiles);
+  document.getElementById("copy-btn").addEventListener("click", copyFiles);
+  document.getElementById("paste-btn").addEventListener("click", pasteFiles);
   document
     .getElementById("select-all")
     .addEventListener("change", toggleSelectAll);
@@ -92,6 +100,16 @@ function setupEventListeners() {
 
   document.getElementById("ctx-delete").addEventListener("click", () => {
     deleteSelectedFiles();
+    hideContextMenu();
+  });
+
+  document.getElementById("ctx-cut").addEventListener("click", () => {
+    cutFiles();
+    hideContextMenu();
+  });
+
+  document.getElementById("ctx-copy").addEventListener("click", () => {
+    copyFiles();
     hideContextMenu();
   });
 
@@ -586,6 +604,85 @@ async function downloadSelectedFiles() {
   }
 }
 
+function cutFiles() {
+  if (selectedFiles.length === 0) return;
+
+  clipboard = {
+    files: [...selectedFiles],
+    operation: "cut",
+    sourcePath: currentPath,
+  };
+
+  updateActionButtons();
+  showNotification(`${selectedFiles.length} đối tượng đã cắt`, "success");
+}
+
+function copyFiles() {
+  if (selectedFiles.length === 0) return;
+
+  clipboard = {
+    files: [...selectedFiles],
+    operation: "copy",
+    sourcePath: currentPath,
+  };
+
+  updateActionButtons();
+  showNotification(`${selectedFiles.length} đối tượng đã sao chép`, "success");
+}
+
+async function pasteFiles() {
+  if (clipboard.files.length === 0 || !clipboard.operation) return;
+
+  showLoading();
+
+  try {
+    const isConnected = await checkConnectionStatus();
+    if (!isConnected) {
+      throw new Error("Not connected to SFTP server");
+    }
+
+    // Check if we're trying to paste into the same directory during a cut operation
+    if (clipboard.operation === "cut" && clipboard.sourcePath === currentPath) {
+      throw new Error(
+        "Cannot paste files into the same directory during cut operation"
+      );
+    }
+
+    const response = await fetch("/sftpPasteForPurchasing", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sourcePath: clipboard.sourcePath,
+        targetPath: currentPath,
+        files: clipboard.files,
+        operation: clipboard.operation,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+
+    const result = await response.json();
+    showNotification(`${result.pasted} đối tượng dán thành công`, "success");
+
+    // If it was a cut operation, clear the clipboard
+    if (clipboard.operation === "cut") {
+      clipboard = { files: [], operation: null, sourcePath: "" };
+    }
+
+    loadFileList(currentPath);
+    updateActionButtons();
+  } catch (error) {
+    console.error("Paste error:", error);
+    showNotification(`Failed to paste files: ${error.message}`, "error");
+  } finally {
+    hideLoading();
+  }
+}
+
 // Toggle select all files
 function toggleSelectAll(e) {
   const checkboxes = document.querySelectorAll(".file-checkbox");
@@ -617,20 +714,32 @@ function updateActionButtons() {
   const deleteBtn = document.getElementById("delete-btn");
   const renameBtn = document.getElementById("rename-btn");
   const downloadBtn = document.getElementById("download-btn");
+  const cutBtn = document.getElementById("cut-btn");
+  const copyBtn = document.getElementById("copy-btn");
+  const pasteBtn = document.getElementById("paste-btn");
 
   if (selectedFiles.length === 0) {
     deleteBtn.disabled = true;
     renameBtn.disabled = true;
     downloadBtn.disabled = true;
+    cutBtn.disabled = true;
+    copyBtn.disabled = true;
   } else if (selectedFiles.length === 1) {
     deleteBtn.disabled = false;
     renameBtn.disabled = false;
     downloadBtn.disabled = false;
+    cutBtn.disabled = false;
+    copyBtn.disabled = false;
   } else {
     deleteBtn.disabled = false;
     renameBtn.disabled = true;
-    downloadBtn.disabled = true; // Until we implement multi-file download
+    downloadBtn.disabled = true;
+    cutBtn.disabled = false;
+    copyBtn.disabled = false;
   }
+
+  // Enable paste button if there are files in clipboard
+  pasteBtn.disabled = !(clipboard.files.length > 0 && clipboard.operation);
 }
 
 // Show context menu

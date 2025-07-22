@@ -713,6 +713,82 @@ exports.renameFileForPurchasing = async function (req, res) {
     res.status(500).json({ error: error.message });
   }
 };
+exports.pasteFilesForPurchasing = async function (req, res) {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfPurchasing",
+        "captainOfPurchasing",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
+    if (!sftpManager.isConnected()) {
+      return res.status(400).json({ error: "Not connected to SFTP server" });
+    }
+
+    const { sourcePath, targetPath, files, operation } = req.body;
+
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ error: "Files array is required" });
+    }
+
+    if (!operation || !["cut", "copy"].includes(operation)) {
+      return res.status(400).json({ error: "Valid operation is required" });
+    }
+
+    const sanitizedSourcePath = sanitizePath(sourcePath || "/");
+    const sanitizedTargetPath = sanitizePath(targetPath || "/");
+
+    let pastedCount = 0;
+    const results = [];
+
+    for (const filename of files) {
+      const sourceFile = path.posix.join(sanitizedSourcePath, filename);
+      const targetFile = path.posix.join(sanitizedTargetPath, filename);
+
+      try {
+        if (operation === "copy") {
+          await sftpManager.copy(sourceFile, targetFile);
+        } else {
+          // cut operation (move)
+          await sftpManager.move(sourceFile, targetFile);
+        }
+        pastedCount++;
+        results.push({
+          name: filename,
+          status: "success",
+        });
+      } catch (error) {
+        console.error(`Failed to process ${filename}:`, error);
+        results.push({
+          name: filename,
+          status: "error",
+          message: error.message,
+        });
+      }
+    }
+
+    res.json({
+      status: "completed",
+      pasted: pastedCount,
+      total: files.length,
+      results,
+    });
+  } catch (error) {
+    console.error("Paste error:", error);
+    res.status(500).json({
+      error: error.message,
+      status: "failed",
+    });
+  }
+};
 //END OF SFTP PURCHASING DEPARTMENT CONTROLLER
 
 //START OF SFTP TECHNICAL DEPARTMENT CONTROLLER

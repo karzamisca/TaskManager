@@ -360,6 +360,15 @@ h1 {
   font-size: 12px;
 }
 
+.btn-info {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.btn-info:hover:not(:disabled) {
+  background-color: #138496;
+}
+
 .toolbar {
   display: flex;
   gap: 10px;
