@@ -955,7 +955,7 @@ function renderCurrentApprovers() {
         <div class="approver-item" data-id="${approver.approver}">
           <span>${approver.username} (${approver.subRole})</span>
           <input type="text" value="${approver.subRole}" onchange="updateApproverSubRole('${approver.approver}', this.value)" style="width: 100px; padding: 4px;">
-          <button type="button" class="approve-btn" onclick="removeApprover('${approver.approver}')" style="background: #dc3545; padding: 4px 8px;">Xóa/Remove</button>
+          <button type="button" class="approve-btn" onclick="removeApprover('${approver.approver}')" style="background: #dc3545; padding: 4px 8px;">Xóa</button>
         </div>
       `
     )
@@ -983,9 +983,7 @@ function addNewApprover() {
   const newSubRole = document.getElementById("newApproverSubRole").value;
 
   if (!newApproverId || !newSubRole) {
-    alert(
-      "Vui lòng chọn người phê duyệt và nhập vai trò phụ/Please select an approver and enter a sub role."
-    );
+    alert("Vui lòng chọn người phê duyệt và nhập vai trò phụ");
     return;
   }
 
@@ -1015,7 +1013,7 @@ async function populateNewApproversDropdown() {
 
   const dropdown = document.getElementById("newApproversDropdown");
   dropdown.innerHTML = `
-    <option value="">Chọn người phê duyệt/Select an approver</option>
+    <option value="">Chọn người phê duyệt</option>
     ${availableApprovers
       .map(
         (approver) => `
