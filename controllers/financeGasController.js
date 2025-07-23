@@ -201,10 +201,123 @@ const addYear = async (req, res) => {
   }
 };
 
+const deleteMonthEntry = async (req, res) => {
+  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+  }
+
+  const { centerId, year, monthName, entryIndex } = req.params;
+
+  try {
+    const center = await Center.findById(centerId);
+    if (!center) {
+      return res.status(404).json({ message: "Center not found" });
+    }
+
+    const yearData = center.years.find((y) => y.year === parseInt(year));
+    if (!yearData) {
+      return res.status(404).json({ message: "Year not found" });
+    }
+
+    const month = yearData.months.find((m) => m.name === monthName);
+    if (!month) {
+      return res.status(404).json({ message: "Month not found" });
+    }
+
+    if (entryIndex < 0 || entryIndex >= month.entries.length) {
+      return res.status(404).json({ message: "Entry index out of bounds" });
+    }
+
+    month.entries.splice(entryIndex, 1);
+    await center.save();
+    res.json(center);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+const updateMonthEntry = async (req, res) => {
+  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+  }
+
+  const { centerId, year, monthName, entryIndex } = req.params;
+  const entryData = req.body;
+
+  try {
+    const center = await Center.findById(centerId);
+    if (!center) {
+      return res.status(404).json({ message: "Center not found" });
+    }
+
+    const yearData = center.years.find((y) => y.year === parseInt(year));
+    if (!yearData) {
+      return res.status(404).json({ message: "Year not found" });
+    }
+
+    const month = yearData.months.find((m) => m.name === monthName);
+    if (!month) {
+      return res.status(404).json({ message: "Month not found" });
+    }
+
+    if (entryIndex < 0 || entryIndex >= month.entries.length) {
+      return res.status(404).json({ message: "Entry index out of bounds" });
+    }
+
+    // Calculate totals before updating
+    if (entryData.purchaseContract) {
+      entryData.purchaseContract.totalCost =
+        entryData.purchaseContract.amount * entryData.purchaseContract.unitCost;
+    }
+
+    if (entryData.saleContract) {
+      entryData.saleContract.totalCost =
+        entryData.saleContract.amount * entryData.saleContract.unitCost;
+    }
+
+    // Calculate commission bonuses
+    if (
+      entryData.commissionRatePurchase &&
+      entryData.purchaseContract &&
+      entryData.currencyExchangeRate
+    ) {
+      entryData.commissionBonus = entryData.commissionBonus || {};
+      entryData.commissionBonus.purchase =
+        entryData.commissionRatePurchase *
+        entryData.purchaseContract.amount *
+        entryData.currencyExchangeRate;
+    }
+
+    if (
+      entryData.commissionRateSale &&
+      entryData.saleContract &&
+      entryData.currencyExchangeRate
+    ) {
+      entryData.commissionBonus = entryData.commissionBonus || {};
+      entryData.commissionBonus.sale =
+        entryData.commissionRateSale *
+        entryData.saleContract.amount *
+        entryData.currencyExchangeRate;
+    }
+
+    month.entries[entryIndex] = entryData;
+    await center.save();
+    res.json(center);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
 module.exports = {
   getAllCenters,
   createCenter,
   addMonthEntry,
   deleteCenter,
   addYear,
+  deleteMonthEntry,
+  updateMonthEntry,
 };

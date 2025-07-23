@@ -33,5 +33,15 @@ router.post(
   authMiddleware,
   centersController.addYear
 );
+router.delete(
+  "/financeGasControl/:centerId/years/:year/months/:monthName/entries/:entryIndex",
+  authMiddleware,
+  centersController.deleteMonthEntry
+);
+router.put(
+  "/financeGasControl/:centerId/years/:year/months/:monthName/entries/:entryIndex",
+  authMiddleware,
+  centersController.updateMonthEntry
+);
 
 module.exports = router;

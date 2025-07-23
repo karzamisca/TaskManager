@@ -269,6 +269,113 @@ document.addEventListener("DOMContentLoaded", function () {
         showEntryModal(monthName, year);
       });
     });
+
+    // Add event listeners to delete buttons
+    document.querySelectorAll(".delete-entry-btn").forEach((btn) => {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        const monthName = this.getAttribute("data-month");
+        const year = this.getAttribute("data-year");
+        const entryIndex = this.getAttribute("data-index");
+        deleteMonthEntry(monthName, year, entryIndex);
+      });
+    });
+
+    // Add event listeners to edit buttons
+    document.querySelectorAll(".edit-entry-btn").forEach((btn) => {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        const monthName = this.getAttribute("data-month");
+        const year = this.getAttribute("data-year");
+        const entryIndex = this.getAttribute("data-index");
+        showEditEntryModal(monthName, year, entryIndex);
+      });
+    });
+  }
+
+  async function showEditEntryModal(monthName, year, entryIndex) {
+    if (!currentCenter) return;
+
+    const yearData = currentCenter.years.find((y) => y.year === parseInt(year));
+    if (!yearData) return;
+
+    const month = yearData.months.find((m) => m.name === monthName);
+    if (!month || entryIndex < 0 || entryIndex >= month.entries.length) return;
+
+    const entry = month.entries[entryIndex];
+
+    // Fill the form with existing data
+    document.getElementById("purchaseAmount").value =
+      entry.purchaseContract?.amount || 0;
+    document.getElementById("purchaseUnitCost").value =
+      entry.purchaseContract?.unitCost || 0;
+    document.getElementById("purchaseTotalCost").value =
+      entry.purchaseContract?.totalCost || 0;
+
+    document.getElementById("saleAmount").value =
+      entry.saleContract?.amount || 0;
+    document.getElementById("saleUnitCost").value =
+      entry.saleContract?.unitCost || 0;
+    document.getElementById("saleTotalCost").value =
+      entry.saleContract?.totalCost || 0;
+
+    document.getElementById("salary").value = entry.salary || 0;
+    document.getElementById("transportCost").value = entry.transportCost || 0;
+    document.getElementById("currencyExchangeRate").value =
+      entry.currencyExchangeRate || 1;
+
+    document.getElementById("commissionRatePurchase").value =
+      entry.commissionRatePurchase || 0;
+    document.getElementById("commissionRateSale").value =
+      entry.commissionRateSale || 0;
+    document.getElementById("commissionBonusPurchase").value =
+      entry.commissionBonus?.purchase || 0;
+    document.getElementById("commissionBonusSale").value =
+      entry.commissionBonus?.sale || 0;
+
+    // Set current center, year, month and entry index
+    currentCenterId.value = currentCenter._id;
+    currentMonthName.value = monthName;
+    document.getElementById("currentYear").value = year;
+    document.getElementById("currentEntryIndex").value = entryIndex;
+
+    document.getElementById(
+      "entryModalTitle"
+    ).textContent = `Edit Entry for ${monthName} ${year}`;
+    document.getElementById("saveEntryBtn").textContent = "Update Entry";
+
+    // Show modal
+    entryModal.show();
+  }
+
+  async function deleteMonthEntry(monthName, year, entryIndex) {
+    if (
+      !currentCenter ||
+      !confirm("Are you sure you want to delete this entry?")
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/financeGasControl/${currentCenter._id}/years/${year}/months/${monthName}/entries/${entryIndex}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (response.ok) {
+        const updatedCenter = await response.json();
+        currentCenter = updatedCenter;
+        showCenterDetails(updatedCenter);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.message}`);
+      }
+    } catch (error) {
+      console.error("Error deleting entry:", error);
+      alert("Failed to delete entry");
+    }
   }
 
   function renderYearContent(yearData) {
@@ -360,7 +467,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return totals;
   }
 
-  function renderMonthEntries(entries, monthName) {
+  function renderMonthEntries(entries, monthName, year) {
     if (entries.length === 0) {
       return '<p class="text-muted">No entries for this month</p>';
     }
@@ -374,10 +481,20 @@ document.addEventListener("DOMContentLoaded", function () {
           <div class="card-body p-2">
             <div class="d-flex justify-content-between">
               <small class="text-muted">Entry #${index + 1}</small>
-              <button class="btn btn-sm btn-outline-danger py-0 delete-entry-btn" 
-                data-month="${monthName}" data-index="${index}">
-                &times;
-              </button>
+              <div>
+                <button class="btn btn-sm btn-outline-primary py-0 edit-entry-btn" 
+                  data-month="${monthName}" 
+                  data-year="${year}"
+                  data-index="${index}">
+                  Edit
+                </button>
+                <button class="btn btn-sm btn-outline-danger py-0 delete-entry-btn" 
+                  data-month="${monthName}" 
+                  data-year="${year}"
+                  data-index="${index}">
+                  &times;
+                </button>
+              </div>
             </div>
             <div class="row small">
               <div class="col-6">
@@ -437,6 +554,8 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("commissionBonusPurchase").value = "0.00";
     document.getElementById("commissionBonusSale").value = "0.00";
     document.getElementById("currencyExchangeRate").value = "1";
+    document.getElementById("currentEntryIndex").value = "";
+    document.getElementById("saveEntryBtn").textContent = "Save Entry";
 
     // Set current center, year and month
     currentCenterId.value = currentCenter._id;
@@ -482,6 +601,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const centerId = currentCenterId.value;
     const monthName = currentMonthName.value;
     const year = document.getElementById("currentYear").value;
+    const entryIndex = document.getElementById("currentEntryIndex").value;
 
     const entryData = {
       purchaseContract: {
@@ -520,23 +640,38 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     try {
-      const response = await fetch(
-        `/financeGasControl/${centerId}/years/${year}/months/${monthName}/entries`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(entryData),
-        }
-      );
+      let response;
+      if (entryIndex) {
+        // Update existing entry
+        response = await fetch(
+          `/financeGasControl/${centerId}/years/${year}/months/${monthName}/entries/${entryIndex}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(entryData),
+          }
+        );
+      } else {
+        // Add new entry
+        response = await fetch(
+          `/financeGasControl/${centerId}/years/${year}/months/${monthName}/entries`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(entryData),
+          }
+        );
+      }
 
       if (response.ok) {
         entryModal.hide();
-        loadCenters();
-        if (currentCenter) {
-          showCenterDetails(currentCenter);
-        }
+        const updatedCenter = await response.json();
+        currentCenter = updatedCenter;
+        showCenterDetails(updatedCenter);
       } else {
         const error = await response.json();
         alert(`Error: ${error.message}`);
