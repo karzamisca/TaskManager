@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quản lý Trung tâm Chi phí</title>
+    <title>Quản lý Trạm</title>
     <link
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
       rel="stylesheet"
@@ -17,20 +17,20 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>Quản lý Trung tâm Chi phí</h1>
-        <p>Quản lý các trung tâm chi phí và quyền người dùng</p>
+        <h1>Quản lý Trạm</h1>
+        <p>Quản lý các trạm và quyền người dùng</p>
       </div>
 
-      <!-- Form thêm trung tâm chi phí mới -->
+      <!-- Form thêm trạm mới -->
       <div class="card">
         <div class="card-header">
           <i class="fas fa-plus-circle"></i>
-          <h2>Thêm Trung tâm Chi phí Mới</h2>
+          <h2>Thêm Trạm Mới</h2>
         </div>
         <form id="addCostCenterForm">
           <div class="form-group">
             <label class="form-label" for="name">
-              <i class="fas fa-building"></i> Tên Trung tâm Chi phí
+              <i class="fas fa-building"></i> Tên Trạm
             </label>
             <input
               type="text"
@@ -38,7 +38,7 @@
               name="name"
               class="form-input"
               required
-              placeholder="Nhập tên trung tâm chi phí..."
+              placeholder="Nhập tên trạm..."
             />
           </div>
           <div class="form-group">
@@ -55,7 +55,7 @@
             />
           </div>
           <button type="submit" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Thêm Trung tâm Chi phí
+            <i class="fas fa-plus"></i> Thêm Trạm
           </button>
         </form>
         <div class="note">
@@ -67,11 +67,11 @@
         </div>
       </div>
 
-      <!-- Các trung tâm chi phí hiện có -->
+      <!-- Các trạm hiện có -->
       <div class="card">
         <div class="card-header">
           <i class="fas fa-list"></i>
-          <h2>Trung tâm Chi phí Hiện có</h2>
+          <h2>Trạm Hiện có</h2>
         </div>
         <div class="table-container">
           <table class="table" id="costCentersTable">
@@ -94,7 +94,7 @@
     <div id="editModal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3><i class="fas fa-edit"></i> Chỉnh sửa Trung tâm Chi phí</h3>
+          <h3><i class="fas fa-edit"></i> Chỉnh sửa Trạm</h3>
           <button type="button" class="modal-close" onclick="closeModal()">
             <i class="fas fa-times"></i>
           </button>
@@ -103,7 +103,7 @@
           <div class="modal-body">
             <div class="form-group">
               <label class="form-label" for="editName">
-                <i class="fas fa-building"></i> Tên Trung tâm Chi phí
+                <i class="fas fa-building"></i> Tên Trạm
               </label>
               <input
                 type="text"
