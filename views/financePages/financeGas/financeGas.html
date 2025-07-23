@@ -4,7 +4,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Centers Finance Management</title>
+    <title>Quản tài chính mua bán khí</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -16,33 +16,33 @@
   </head>
   <body>
     <div class="container-fluid mt-3">
-      <h1 class="text-center mb-4">Centers Finance Management</h1>
+      <h1 class="text-center mb-4">Quản tài chính mua bán khí</h1>
 
       <!-- Center Management -->
       <div class="row">
         <div class="col-md-3">
           <div class="center-selector p-3">
-            <h5>Centers</h5>
+            <h5>Trạm</h5>
             <form id="addCenterForm" class="mb-3">
               <div class="input-group input-group-sm">
                 <input
                   type="text"
                   id="centerName"
                   class="form-control"
-                  placeholder="New center name"
+                  placeholder="Tên trạm mới"
                   required
                 />
-                <button type="submit" class="btn btn-success">Add</button>
+                <button type="submit" class="btn btn-success">Thêm</button>
               </div>
             </form>
             <select id="centerSelect" class="form-select form-select-sm">
-              <option value="">Select a center...</option>
+              <option value="">Chọn một trạm...</option>
             </select>
             <button
               id="deleteCenterBtn"
               class="btn btn-outline-danger btn-sm mt-2 w-100"
             >
-              Delete Center
+              Xóa trạm
             </button>
           </div>
         </div>
@@ -51,17 +51,11 @@
           <div class="toolbar">
             <div class="d-flex justify-content-between align-items-center">
               <div>
-                <h5 id="selectedCenterTitle" class="mb-0">Select a Center</h5>
+                <h5 id="selectedCenterTitle" class="mb-0">Chọn một trạm</h5>
               </div>
               <div>
                 <button id="addYearBtn" class="btn btn-outline-primary btn-sm">
-                  Add Year
-                </button>
-                <button id="exportBtn" class="btn btn-outline-success btn-sm">
-                  Export to Excel
-                </button>
-                <button id="saveAllBtn" class="btn btn-primary btn-sm">
-                  Save All Changes
+                  Thêm năm
                 </button>
               </div>
             </div>
@@ -79,7 +73,7 @@
       </div>
     </div>
 
-    <script src="financePages/financeGas/financeGas.js?v=1.4"></script>
+    <script src="financePages/financeGas/financeGas.js?v=1.5"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>

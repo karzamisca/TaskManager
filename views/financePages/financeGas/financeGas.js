@@ -2,18 +2,18 @@
 let centers = [];
 let currentCenter = null;
 const months = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  "Tháng Một",
+  "Tháng Hai",
+  "Tháng Ba",
+  "Tháng Tư",
+  "Tháng Năm",
+  "Tháng Sáu",
+  "Tháng Bảy",
+  "Tháng Tám",
+  "Tháng Chín",
+  "Tháng Mười",
+  "Tháng Mười Một",
+  "Tháng Mười Hai",
 ];
 
 // Initialize
@@ -35,10 +35,6 @@ function setupEventListeners() {
   document
     .getElementById("addYearBtn")
     .addEventListener("click", handleAddYear);
-  document
-    .getElementById("saveAllBtn")
-    .addEventListener("click", handleSaveAll);
-  document.getElementById("exportBtn").addEventListener("click", handleExport);
 }
 
 async function loadCenters() {
@@ -53,7 +49,7 @@ async function loadCenters() {
 
 function renderCenterSelect() {
   const select = document.getElementById("centerSelect");
-  select.innerHTML = '<option value="">Select a center...</option>';
+  select.innerHTML = '<option value="">Chọn một trạm...</option>';
 
   centers.forEach((center) => {
     const option = document.createElement("option");
@@ -94,7 +90,7 @@ function handleCenterSelect(e) {
   if (!centerId) {
     currentCenter = null;
     document.getElementById("selectedCenterTitle").textContent =
-      "Select a Center";
+      "Chọn một trạm";
     document.getElementById("financeContent").style.display = "none";
     return;
   }
@@ -111,7 +107,7 @@ function handleCenterSelect(e) {
 async function handleDeleteCenter() {
   if (
     !currentCenter ||
-    !confirm("Are you sure you want to delete this center and all its data?")
+    !confirm("Bạn muốn xóa trạm này vào tất cả dữ liệu của nó?")
   ) {
     return;
   }
@@ -125,7 +121,7 @@ async function handleDeleteCenter() {
       loadCenters();
       currentCenter = null;
       document.getElementById("selectedCenterTitle").textContent =
-        "Select a Center";
+        "Chọn một trạm";
       document.getElementById("financeContent").style.display = "none";
       document.getElementById("centerSelect").value = "";
     } else {
@@ -275,22 +271,22 @@ function renderYearTable(yearData) {
       <table class="table table-excel table-bordered table-hover">
         <thead>
           <tr>
-            <th style="min-width: 120px;">Month</th>
-            <th style="min-width: 80px;">Entry #</th>
-            <th style="min-width: 90px;">Purchase Amount</th>
-            <th style="min-width: 90px;">Purchase Unit Cost</th>
-            <th style="min-width: 90px;">Purchase Total</th>
-            <th style="min-width: 90px;">Sale Amount</th>
-            <th style="min-width: 90px;">Sale Unit Cost</th>
-            <th style="min-width: 90px;">Sale Total</th>
-            <th style="min-width: 80px;">Salary</th>
-            <th style="min-width: 90px;">Transport Cost</th>
-            <th style="min-width: 90px;">Exchange Rate</th>
-            <th style="min-width: 90px;">Purchase Comm. Rate</th>
-            <th style="min-width: 90px;">Purchase Comm. Bonus</th>
-            <th style="min-width: 90px;">Sale Comm. Rate</th>
-            <th style="min-width: 90px;">Sale Comm. Bonus</th>
-            <th style="min-width: 80px;">Actions</th>
+            <th style="min-width: 120px;">Tháng</th>
+            <th style="min-width: 80px;">Mục</th>
+            <th style="min-width: 90px;">Số lượng mua</th>
+            <th style="min-width: 90px;">Đơn giá mua</th>
+            <th style="min-width: 90px;">Tổng mua</th>
+            <th style="min-width: 90px;">Số lượng bán</th>
+            <th style="min-width: 90px;">Đơn giá bán</th>
+            <th style="min-width: 90px;">Tổng bán</th>
+            <th style="min-width: 80px;">Lương</th>
+            <th style="min-width: 90px;">Vận chuyển</th>
+            <th style="min-width: 90px;">Tỷ giá tiền</th>
+            <th style="min-width: 90px;">Tỷ suất hoa hồng mua</th>
+            <th style="min-width: 90px;">Hoa hồng mua</th>
+            <th style="min-width: 90px;">Tỷ suất hoa hồng bán</th>
+            <th style="min-width: 90px;">Hoa hồng bán</th>
+            <th style="min-width: 80px;">Hành động</th>
           </tr>
         </thead>
         <tbody>
@@ -306,11 +302,11 @@ function renderYearTable(yearData) {
         <tr data-month="${monthName}" data-year="${yearData.year}">
           <td>${monthName}</td>
           <td>-</td>
-          <td colspan="13" class="text-muted text-center">No entries</td>
+          <td colspan="13" class="text-muted text-center">Không có mục</td>
           <td>
             <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
                     data-month="${monthName}" data-year="${yearData.year}">
-                + Add
+                + Thêm
             </button>
           </td>
         </tr>
@@ -326,7 +322,7 @@ function renderYearTable(yearData) {
           <td colspan="14" class="text-center">
             <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
                     data-month="${monthName}" data-year="${yearData.year}">
-                + Add Entry
+                + Thêm mục
             </button>
           </td>
           <td></td>
@@ -413,7 +409,7 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
 function renderMonthTotalRow(monthName, entryCount, totals) {
   return `
     <tr class="total-row" data-month="${monthName}">
-      <td><strong>${monthName} Total</strong></td>
+      <td><strong>Tổng ${monthName}</strong></td>
       <td><strong>${entryCount}</strong></td>
       <td><strong>${totals.purchaseAmount.toFixed(2)}</strong></td>
       <td>-</td>
@@ -539,10 +535,7 @@ async function handleDeleteEntry(e) {
   const year = e.target.getAttribute("data-year");
   const entryIndex = e.target.getAttribute("data-entry");
 
-  if (
-    !currentCenter ||
-    !confirm("Are you sure you want to delete this entry?")
-  ) {
+  if (!currentCenter || !confirm("Bạn có muốn xóa mục này?")) {
     return;
   }
 
@@ -607,11 +600,11 @@ async function refreshMonthSection(monthName, year) {
       <tr data-month="${monthName}" data-year="${year}">
         <td>${monthName}</td>
         <td>-</td>
-        <td colspan="13" class="text-muted text-center">No entries</td>
+        <td colspan="13" class="text-muted text-center">Không có mục</td>
         <td>
           <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
                   data-month="${monthName}" data-year="${year}">
-              + Add
+              + Thêm
           </button>
         </td>
       </tr>
@@ -627,7 +620,7 @@ async function refreshMonthSection(monthName, year) {
         <td colspan="14" class="text-center">
           <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
                   data-month="${monthName}" data-year="${year}">
-              + Add Entry
+              + Thêm mục
           </button>
         </td>
         <td></td>
@@ -855,20 +848,4 @@ function collectRowData(row) {
       sale: saleAmount * saleCommRate * exchangeRate,
     },
   };
-}
-
-function handleSaveAll() {
-  console.log(
-    "All changes are automatically saved when you finish editing each field."
-  );
-}
-
-function handleExport() {
-  if (!currentCenter) {
-    console.log("Please select a center first.");
-    return;
-  }
-  console.log(
-    "Export functionality would be implemented here to generate Excel/CSV files."
-  );
 }
