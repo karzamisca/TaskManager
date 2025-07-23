@@ -755,7 +755,10 @@ async function handleInputBlur(e) {
       updateCurrentCenter(updatedCenter);
 
       // Update only the month totals row instead of full refresh
-      updateMonthTotalsInPlace(monthName, year);
+      // Add a small delay to ensure the data is properly updated
+      setTimeout(() => {
+        updateMonthTotalsInPlace(monthName, year);
+      }, 10);
     } else {
       const error = await response.json();
       console.log(`Error: ${error.message}`);
@@ -772,7 +775,10 @@ function updateMonthTotalsInPlace(monthName, year) {
   if (!yearData) return;
 
   const monthData = yearData.months.find((m) => m.name === monthName);
-  if (!monthData) return;
+  if (!monthData || monthData.entries.length === 0) {
+    // If no entries exist, there's no total row to update
+    return;
+  }
 
   const totals = calculateMonthTotals(monthData.entries);
   const totalRow = document.querySelector(
@@ -781,7 +787,8 @@ function updateMonthTotalsInPlace(monthName, year) {
 
   if (totalRow) {
     const cells = totalRow.querySelectorAll("td strong");
-    if (cells.length >= 10) {
+    // Verify we have enough cells before accessing them
+    if (cells.length >= 15) {
       cells[1].textContent = monthData.entries.length;
       cells[2].textContent = totals.purchaseAmount.toFixed(2);
       cells[4].textContent = totals.purchaseTotal.toFixed(2);
