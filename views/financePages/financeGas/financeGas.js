@@ -1,3 +1,4 @@
+//views/financePages/financeGas/financeGas.js
 document.addEventListener("DOMContentLoaded", function () {
   // DOM Elements
   const addCenterForm = document.getElementById("addCenterForm");
