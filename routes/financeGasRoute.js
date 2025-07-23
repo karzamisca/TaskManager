@@ -1,4 +1,3 @@
-//routes/financeGasRoute.js
 const express = require("express");
 const router = express.Router();
 const centersController = require("../controllers/financeGasController");
@@ -20,7 +19,7 @@ router.post(
   centersController.createCenter
 );
 router.post(
-  "/financeGasControl/:centerId/years/:year/months/:monthName/entries",
+  "/financeGasControl/:centerId/months/:monthName/entries",
   authMiddleware,
   centersController.addMonthEntry
 );

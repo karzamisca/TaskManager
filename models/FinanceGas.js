@@ -1,4 +1,3 @@
-//models/FinanceGas.js
 const mongoose = require("mongoose");
 
 const purchaseSaleSchema = new mongoose.Schema({
@@ -28,14 +27,9 @@ const monthSchema = new mongoose.Schema({
   entries: [monthEntrySchema],
 });
 
-const yearSchema = new mongoose.Schema({
-  year: { type: Number, required: true },
-  months: [monthSchema],
-});
-
 const centerSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
-  years: [yearSchema],
+  months: [monthSchema],
 });
 
 // Pre-save hooks to calculate totals
@@ -45,12 +39,12 @@ purchaseSaleSchema.pre("save", function (next) {
 });
 
 monthEntrySchema.pre("save", function (next) {
+  // Calculate commission bonuses
   if (
     this.purchaseContract &&
     this.commissionRatePurchase &&
     this.currencyExchangeRate
   ) {
-    this.commissionBonus = this.commissionBonus || {};
     this.commissionBonus.purchase =
       this.commissionRatePurchase *
       this.purchaseContract.amount *
@@ -62,7 +56,6 @@ monthEntrySchema.pre("save", function (next) {
     this.commissionRateSale &&
     this.currencyExchangeRate
   ) {
-    this.commissionBonus = this.commissionBonus || {};
     this.commissionBonus.sale =
       this.commissionRateSale *
       this.saleContract.amount *

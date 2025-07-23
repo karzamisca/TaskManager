@@ -1,4 +1,3 @@
-//controllers/financeGasController.js
 const Center = require("../models/FinanceGas");
 
 const getAllCenters = async (req, res) => {
@@ -24,11 +23,26 @@ const createCenter = async (req, res) => {
   }
 
   const { name } = req.body;
-  const currentYear = new Date().getFullYear();
+
+  // Initialize with all 12 months
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ].map((month) => ({ name: month, entries: [] }));
 
   const center = new Center({
     name,
-    years: [createYearData(currentYear)],
+    months,
   });
 
   try {
@@ -46,7 +60,7 @@ const addMonthEntry = async (req, res) => {
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
   }
 
-  const { centerId, year, monthName } = req.params;
+  const { centerId, monthName } = req.params;
   const entryData = req.body;
 
   try {
@@ -55,14 +69,7 @@ const addMonthEntry = async (req, res) => {
       return res.status(404).json({ message: "Center not found" });
     }
 
-    // Find or create the year
-    let yearData = center.years.find((y) => y.year == year);
-    if (!yearData) {
-      yearData = createYearData(year);
-      center.years.push(yearData);
-    }
-
-    const month = yearData.months.find((m) => m.name === monthName);
+    const month = center.months.find((m) => m.name === monthName);
     if (!month) {
       return res.status(404).json({ message: "Month not found" });
     }
@@ -125,29 +132,6 @@ const deleteCenter = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
-// Helper function to create a new year with all months
-function createYearData(year) {
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ].map((month) => ({ name: month, entries: [] }));
-
-  return {
-    year: parseInt(year),
-    months,
-  };
-}
 
 module.exports = {
   getAllCenters,
