@@ -7,14 +7,17 @@ document.addEventListener("DOMContentLoaded", function () {
   const selectedCenterTitle = document.getElementById("selectedCenterTitle");
   const entryModal = new bootstrap.Modal(document.getElementById("entryModal"));
   const saveEntryBtn = document.getElementById("saveEntryBtn");
+  const yearSelect = document.getElementById("yearSelect");
 
   // Form fields
   const currentCenterId = document.getElementById("currentCenterId");
   const currentMonthName = document.getElementById("currentMonthName");
+  const currentYear = document.getElementById("currentYear");
 
   // Current state
   let currentCenter = null;
   let centers = [];
+  let currentSelectedYear = new Date().getFullYear();
 
   // Initialize the app
   init();
@@ -22,6 +25,18 @@ document.addEventListener("DOMContentLoaded", function () {
   function init() {
     loadCenters();
     setupEventListeners();
+    populateYearSelect();
+  }
+
+  function populateYearSelect() {
+    const currentYear = new Date().getFullYear();
+    for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+      const option = document.createElement("option");
+      option.value = i;
+      option.textContent = i;
+      yearSelect.appendChild(option);
+    }
+    yearSelect.value = currentYear;
   }
 
   function setupEventListeners() {
@@ -30,6 +45,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Save entry button
     saveEntryBtn.addEventListener("click", handleSaveEntry);
+
+    // Year selection
+    yearSelect.addEventListener("change", function () {
+      currentSelectedYear = parseInt(this.value);
+      if (currentCenter) {
+        showCenterDetails(currentCenter);
+      }
+    });
 
     // Calculate totals when values change
     document
@@ -157,33 +180,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
   async function showCenterDetails(center) {
     currentCenter = center;
-    selectedCenterTitle.textContent = center.name;
+    selectedCenterTitle.textContent = `${center.name} - ${currentSelectedYear}`;
+
+    // Find the year data or create a new one if it doesn't exist
+    let yearData = center.years.find((y) => y.year === currentSelectedYear);
+    if (!yearData) {
+      yearData = {
+        year: currentSelectedYear,
+        months: createMonthsArray(),
+      };
+    }
 
     // Create months cards
     let html = '<div class="row">';
 
-    const months = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-
-    months.forEach((monthName) => {
-      const monthData = center.months.find((m) => m.name === monthName) || {
-        entries: [],
-      };
+    yearData.months.forEach((monthData) => {
+      const monthName = monthData.name;
+      const entries = monthData.entries || [];
 
       // Calculate totals for the month
-      const totals = calculateMonthTotals(monthData.entries);
+      const totals = calculateMonthTotals(entries);
 
       html += `
         <div class="col-md-4 mb-3">
@@ -192,7 +208,7 @@ document.addEventListener("DOMContentLoaded", function () {
               <h5>${monthName}</h5>
             </div>
             <div class="card-body">
-              <p class="card-text">Entries: ${monthData.entries.length}</p>
+              <p class="card-text">Entries: ${entries.length}</p>
               <div class="d-flex justify-content-between">
                 <span>Total Purchase: $${totals.purchase.toFixed(2)}</span>
                 <span>Total Sale: $${totals.sale.toFixed(2)}</span>
@@ -204,7 +220,7 @@ document.addEventListener("DOMContentLoaded", function () {
           </div>
           
           <div id="monthEntries-${monthName}" class="mt-2" style="display: none;">
-            ${renderMonthEntries(monthData.entries, monthName)}
+            ${renderMonthEntries(entries, monthName)}
           </div>
         </div>
       `;
@@ -231,6 +247,23 @@ document.addEventListener("DOMContentLoaded", function () {
         showEntryModal(monthName);
       });
     });
+  }
+
+  function createMonthsArray() {
+    return [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ].map((month) => ({ name: month, entries: [] }));
   }
 
   function calculateMonthTotals(entries) {
@@ -339,12 +372,13 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("commissionBonusSale").value = "0.00";
     document.getElementById("currencyExchangeRate").value = "1";
 
-    // Set current center and month
+    // Set current center, year and month
     currentCenterId.value = currentCenter._id;
+    currentYear.value = currentSelectedYear;
     currentMonthName.value = monthName;
     document.getElementById(
       "entryModalTitle"
-    ).textContent = `Add Entry to ${monthName}`;
+    ).textContent = `Add Entry to ${monthName} ${currentSelectedYear}`;
 
     // Show modal
     entryModal.show();
@@ -380,6 +414,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   async function handleSaveEntry() {
     const centerId = currentCenterId.value;
+    const year = currentYear.value;
     const monthName = currentMonthName.value;
 
     const entryData = {
@@ -420,7 +455,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     try {
       const response = await fetch(
-        `/financeGasControl/${centerId}/months/${monthName}/entries`,
+        `/financeGasControl/${centerId}/years/${year}/months/${monthName}/entries`,
         {
           method: "POST",
           headers: {
