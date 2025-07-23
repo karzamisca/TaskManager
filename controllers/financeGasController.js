@@ -24,7 +24,7 @@ const createCenter = async (req, res) => {
 
   const { name } = req.body;
 
-  // Initialize with all 12 months
+  const currentYear = new Date().getFullYear();
   const months = [
     "January",
     "February",
@@ -42,7 +42,7 @@ const createCenter = async (req, res) => {
 
   const center = new Center({
     name,
-    months,
+    years: [{ year: currentYear, months }],
   });
 
   try {
@@ -60,7 +60,7 @@ const addMonthEntry = async (req, res) => {
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
   }
 
-  const { centerId, monthName } = req.params;
+  const { centerId, year, monthName } = req.params;
   const entryData = req.body;
 
   try {
@@ -69,7 +69,30 @@ const addMonthEntry = async (req, res) => {
       return res.status(404).json({ message: "Center not found" });
     }
 
-    const month = center.months.find((m) => m.name === monthName);
+    // Find or create the year
+    let yearData = center.years.find((y) => y.year === parseInt(year));
+    if (!yearData) {
+      // If year doesn't exist, create it with all months
+      const months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ].map((month) => ({ name: month, entries: [] }));
+
+      yearData = { year: parseInt(year), months };
+      center.years.push(yearData);
+    }
+
+    const month = yearData.months.find((m) => m.name === monthName);
     if (!month) {
       return res.status(404).json({ message: "Month not found" });
     }
@@ -133,9 +156,55 @@ const deleteCenter = async (req, res) => {
   }
 };
 
+const addYear = async (req, res) => {
+  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+  }
+
+  const { centerId } = req.params;
+  const { year } = req.body;
+
+  try {
+    const center = await Center.findById(centerId);
+    if (!center) {
+      return res.status(404).json({ message: "Center not found" });
+    }
+
+    // Check if year already exists
+    if (center.years.some((y) => y.year === year)) {
+      return res.status(400).json({ message: "Year already exists" });
+    }
+
+    // Create months for the new year
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ].map((month) => ({ name: month, entries: [] }));
+
+    center.years.push({ year, months });
+    await center.save();
+    res.json(center);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
 module.exports = {
   getAllCenters,
   createCenter,
   addMonthEntry,
   deleteCenter,
+  addYear,
 };

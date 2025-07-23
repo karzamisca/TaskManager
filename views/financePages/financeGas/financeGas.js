@@ -159,7 +159,119 @@ document.addEventListener("DOMContentLoaded", function () {
     currentCenter = center;
     selectedCenterTitle.textContent = center.name;
 
-    // Create months cards
+    // Create year tabs
+    let html = '<ul class="nav nav-tabs" id="yearTabs" role="tablist">';
+
+    center.years.forEach((yearData, index) => {
+      html += `
+        <li class="nav-item" role="presentation">
+          <button class="nav-link ${index === 0 ? "active" : ""}" 
+                  id="year-${yearData.year}-tab" 
+                  data-bs-toggle="tab" 
+                  data-bs-target="#year-${yearData.year}" 
+                  type="button" 
+                  role="tab">
+            ${yearData.year}
+          </button>
+        </li>
+      `;
+    });
+
+    // Add button to add new year
+    html += `
+      <li class="nav-item">
+        <button class="nav-link text-success" id="addYearBtn">
+          + Add Year
+        </button>
+      </li>
+    `;
+
+    html += '</ul><div class="tab-content" id="yearTabsContent">';
+
+    center.years.forEach((yearData, index) => {
+      html += `
+        <div class="tab-pane fade ${index === 0 ? "show active" : ""}" 
+             id="year-${yearData.year}" 
+             role="tabpanel">
+          ${renderYearContent(yearData)}
+        </div>
+      `;
+    });
+
+    html += "</div>";
+    centerDetails.innerHTML = html;
+
+    // Add event listener for add year button
+    document.getElementById("addYearBtn").addEventListener("click", addNewYear);
+
+    // Add event listeners to month cards and entry buttons
+    setupMonthCardsEventListeners();
+  }
+
+  async function addNewYear() {
+    if (!currentCenter) return;
+
+    const currentYear = new Date().getFullYear();
+    const existingYears = currentCenter.years.map((y) => y.year);
+    let newYear = currentYear;
+
+    // Find the next available year (in case current year already exists)
+    while (existingYears.includes(newYear)) {
+      newYear++;
+    }
+
+    try {
+      const response = await fetch(
+        `/financeGasControl/${currentCenter._id}/years`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ year: newYear }),
+        }
+      );
+
+      if (response.ok) {
+        const updatedCenter = await response.json();
+        currentCenter = updatedCenter;
+        showCenterDetails(updatedCenter);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.message}`);
+      }
+    } catch (error) {
+      console.error("Error adding year:", error);
+      alert("Failed to add year");
+    }
+  }
+
+  function setupMonthCardsEventListeners() {
+    // Add event listeners to month cards
+    document.querySelectorAll(".month-card").forEach((card) => {
+      card.addEventListener("click", function () {
+        const monthName = this.getAttribute("data-month");
+        const year = this.getAttribute("data-year");
+        const entriesDiv = document.getElementById(
+          `monthEntries-${year}-${monthName}`
+        );
+        entriesDiv.style.display =
+          entriesDiv.style.display === "none" ? "block" : "none";
+      });
+    });
+
+    // Add event listeners to "Add Entry" buttons
+    document.querySelectorAll(".add-entry-btn").forEach((btn) => {
+      btn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        const monthName = this.getAttribute("data-month");
+        const year = this.getAttribute("data-year");
+        showEntryModal(monthName, year);
+      });
+    });
+  }
+
+  function renderYearContent(yearData) {
     let html = '<div class="row">';
 
     const months = [
@@ -178,7 +290,7 @@ document.addEventListener("DOMContentLoaded", function () {
     ];
 
     months.forEach((monthName) => {
-      const monthData = center.months.find((m) => m.name === monthName) || {
+      const monthData = yearData.months.find((m) => m.name === monthName) || {
         entries: [],
       };
 
@@ -187,7 +299,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
       html += `
         <div class="col-md-4 mb-3">
-          <div class="card month-card" data-month="${monthName}">
+          <div class="card month-card" data-month="${monthName}" data-year="${
+        yearData.year
+      }">
             <div class="card-header">
               <h5>${monthName}</h5>
             </div>
@@ -197,40 +311,25 @@ document.addEventListener("DOMContentLoaded", function () {
                 <span>Total Purchase: $${totals.purchase.toFixed(2)}</span>
                 <span>Total Sale: $${totals.sale.toFixed(2)}</span>
               </div>
-              <button class="btn btn-sm btn-primary mt-2 add-entry-btn" data-month="${monthName}">
+              <button class="btn btn-sm btn-primary mt-2 add-entry-btn" 
+                      data-month="${monthName}" 
+                      data-year="${yearData.year}">
                 Add Entry
               </button>
             </div>
           </div>
           
-          <div id="monthEntries-${monthName}" class="mt-2" style="display: none;">
-            ${renderMonthEntries(monthData.entries, monthName)}
+          <div id="monthEntries-${
+            yearData.year
+          }-${monthName}" class="mt-2" style="display: none;">
+            ${renderMonthEntries(monthData.entries, monthName, yearData.year)}
           </div>
         </div>
       `;
     });
 
     html += "</div>";
-    centerDetails.innerHTML = html;
-
-    // Add event listeners to month cards
-    document.querySelectorAll(".month-card").forEach((card) => {
-      card.addEventListener("click", function () {
-        const monthName = this.getAttribute("data-month");
-        const entriesDiv = document.getElementById(`monthEntries-${monthName}`);
-        entriesDiv.style.display =
-          entriesDiv.style.display === "none" ? "block" : "none";
-      });
-    });
-
-    // Add event listeners to "Add Entry" buttons
-    document.querySelectorAll(".add-entry-btn").forEach((btn) => {
-      btn.addEventListener("click", function (e) {
-        e.stopPropagation();
-        const monthName = this.getAttribute("data-month");
-        showEntryModal(monthName);
-      });
-    });
+    return html;
   }
 
   function calculateMonthTotals(entries) {
@@ -328,7 +427,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return html;
   }
 
-  function showEntryModal(monthName) {
+  function showEntryModal(monthName, year) {
     if (!currentCenter) return;
 
     // Reset form
@@ -339,12 +438,13 @@ document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("commissionBonusSale").value = "0.00";
     document.getElementById("currencyExchangeRate").value = "1";
 
-    // Set current center and month
+    // Set current center, year and month
     currentCenterId.value = currentCenter._id;
     currentMonthName.value = monthName;
+    document.getElementById("currentYear").value = year;
     document.getElementById(
       "entryModalTitle"
-    ).textContent = `Add Entry to ${monthName}`;
+    ).textContent = `Add Entry to ${monthName} ${year}`;
 
     // Show modal
     entryModal.show();
@@ -381,6 +481,7 @@ document.addEventListener("DOMContentLoaded", function () {
   async function handleSaveEntry() {
     const centerId = currentCenterId.value;
     const monthName = currentMonthName.value;
+    const year = document.getElementById("currentYear").value;
 
     const entryData = {
       purchaseContract: {
@@ -420,7 +521,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     try {
       const response = await fetch(
-        `/financeGasControl/${centerId}/months/${monthName}/entries`,
+        `/financeGasControl/${centerId}/years/${year}/months/${monthName}/entries`,
         {
           method: "POST",
           headers: {

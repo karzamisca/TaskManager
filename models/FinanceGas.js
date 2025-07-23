@@ -27,9 +27,14 @@ const monthSchema = new mongoose.Schema({
   entries: [monthEntrySchema],
 });
 
+const yearSchema = new mongoose.Schema({
+  year: { type: Number, required: true },
+  months: [monthSchema],
+});
+
 const centerSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
-  months: [monthSchema],
+  years: [yearSchema],
 });
 
 // Pre-save hooks to calculate totals
@@ -45,6 +50,7 @@ monthEntrySchema.pre("save", function (next) {
     this.commissionRatePurchase &&
     this.currencyExchangeRate
   ) {
+    this.commissionBonus = this.commissionBonus || {};
     this.commissionBonus.purchase =
       this.commissionRatePurchase *
       this.purchaseContract.amount *
@@ -56,6 +62,7 @@ monthEntrySchema.pre("save", function (next) {
     this.commissionRateSale &&
     this.currencyExchangeRate
   ) {
+    this.commissionBonus = this.commissionBonus || {};
     this.commissionBonus.sale =
       this.commissionRateSale *
       this.saleContract.amount *

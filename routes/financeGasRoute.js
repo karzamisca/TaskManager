@@ -19,7 +19,7 @@ router.post(
   centersController.createCenter
 );
 router.post(
-  "/financeGasControl/:centerId/months/:monthName/entries",
+  "/financeGasControl/:centerId/years/:year/months/:monthName/entries",
   authMiddleware,
   centersController.addMonthEntry
 );
@@ -27,6 +27,11 @@ router.delete(
   "/financeGasControl/:id",
   authMiddleware,
   centersController.deleteCenter
+);
+router.post(
+  "/financeGasControl/:centerId/years",
+  authMiddleware,
+  centersController.addYear
 );
 
 module.exports = router;
