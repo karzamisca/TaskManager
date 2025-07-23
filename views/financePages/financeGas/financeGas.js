@@ -72,9 +72,7 @@ async function handleAddCenter(e) {
   try {
     const response = await fetch("/financeGasControl", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: centerName }),
     });
 
@@ -83,11 +81,11 @@ async function handleAddCenter(e) {
       loadCenters();
     } else {
       const error = await response.json();
-      alert(`Error: ${error.message}`);
+      console.log(`Error: ${error.message}`);
     }
   } catch (error) {
     console.error("Error adding center:", error);
-    alert("Failed to add center");
+    console.log("Failed to add center");
   }
 }
 
@@ -132,11 +130,11 @@ async function handleDeleteCenter() {
       document.getElementById("centerSelect").value = "";
     } else {
       const error = await response.json();
-      alert(`Error: ${error.message}`);
+      console.log(`Error: ${error.message}`);
     }
   } catch (error) {
     console.error("Error deleting center:", error);
-    alert("Failed to delete center");
+    console.log("Failed to delete center");
   }
 }
 
@@ -156,98 +154,147 @@ async function handleAddYear() {
       `/financeGasControl/${currentCenter._id}/years`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ year: newYear }),
       }
     );
 
     if (response.ok) {
       const updatedCenter = await response.json();
-      currentCenter = updatedCenter;
-      // Update centers array
-      const centerIndex = centers.findIndex((c) => c._id === currentCenter._id);
-      if (centerIndex !== -1) {
-        centers[centerIndex] = updatedCenter;
-      }
-      renderFinanceTable();
+      updateCurrentCenter(updatedCenter);
+      // Only add new year tab instead of re-rendering everything
+      addNewYearTab(newYear);
     } else {
       const error = await response.json();
-      alert(`Error: ${error.message}`);
+      console.log(`Error: ${error.message}`);
     }
   } catch (error) {
     console.error("Error adding year:", error);
-    alert("Failed to add year");
+    console.log("Failed to add year");
   }
+}
+
+// NEW: Function to add a new year tab without full re-render
+function addNewYearTab(year) {
+  const yearData = currentCenter.years.find((y) => y.year === year);
+  if (!yearData) return;
+
+  // Add new tab
+  const tabsContainer = document.getElementById("yearTabs");
+  const newTab = document.createElement("li");
+  newTab.className = "nav-item";
+  newTab.setAttribute("role", "presentation");
+  newTab.innerHTML = `
+    <button class="nav-link" 
+            id="year-${year}-tab" 
+            data-bs-toggle="tab" 
+            data-bs-target="#year-${year}" 
+            type="button" 
+            role="tab">
+        ${year}
+    </button>
+  `;
+  tabsContainer.appendChild(newTab);
+
+  // Add new tab content
+  const contentContainer = document.getElementById("yearTabsContent");
+  const newContent = document.createElement("div");
+  newContent.className = "tab-pane fade";
+  newContent.id = `year-${year}`;
+  newContent.setAttribute("role", "tabpanel");
+  newContent.innerHTML = renderYearTable(yearData);
+  contentContainer.appendChild(newContent);
+
+  // Activate the new tab
+  const newTabButton = newTab.querySelector("button");
+  const tab = new bootstrap.Tab(newTabButton);
+  tab.show();
+
+  // Setup event listeners for the new content
+  setupTableEventListenersForContainer(newContent);
 }
 
 function renderFinanceTable() {
   if (!currentCenter) return;
+
+  // Store current scroll position and active tab
+  const activeTab = document.querySelector(".nav-tabs .nav-link.active");
+  const activeYear = activeTab ? activeTab.textContent.trim() : null;
+  const scrollPosition =
+    document.querySelector(".table-container")?.scrollTop || 0;
 
   // Render year tabs
   let tabsHtml = "";
   let contentHtml = "";
 
   currentCenter.years.forEach((yearData, index) => {
+    const isActive = activeYear
+      ? yearData.year.toString() === activeYear
+      : index === 0;
+
     tabsHtml += `
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link ${index === 0 ? "active" : ""}" 
-                                id="year-${yearData.year}-tab" 
-                                data-bs-toggle="tab" 
-                                data-bs-target="#year-${yearData.year}" 
-                                type="button" 
-                                role="tab">
-                            ${yearData.year}
-                        </button>
-                    </li>
-                `;
+      <li class="nav-item" role="presentation">
+        <button class="nav-link ${isActive ? "active" : ""}" 
+                id="year-${yearData.year}-tab" 
+                data-bs-toggle="tab" 
+                data-bs-target="#year-${yearData.year}" 
+                type="button" 
+                role="tab">
+            ${yearData.year}
+        </button>
+      </li>
+    `;
 
     contentHtml += `
-                    <div class="tab-pane fade ${
-                      index === 0 ? "show active" : ""
-                    }" 
-                         id="year-${yearData.year}" 
-                         role="tabpanel">
-                        ${renderYearTable(yearData)}
-                    </div>
-                `;
+      <div class="tab-pane fade ${isActive ? "show active" : ""}" 
+           id="year-${yearData.year}" 
+           role="tabpanel">
+          ${renderYearTable(yearData)}
+      </div>
+    `;
   });
 
   document.getElementById("yearTabs").innerHTML = tabsHtml;
   document.getElementById("yearTabsContent").innerHTML = contentHtml;
+
+  // Restore scroll position
+  setTimeout(() => {
+    const tableContainer = document.querySelector(".table-container");
+    if (tableContainer) {
+      tableContainer.scrollTop = scrollPosition;
+    }
+  }, 50);
 
   // Setup table event listeners
   setupTableEventListeners();
 }
 
 function renderYearTable(yearData) {
-  // Create table structure
   let html = `
-                <div class="table-container">
-                    <table class="table table-excel table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th style="min-width: 120px;">Month</th>
-                                <th style="min-width: 80px;">Entry #</th>
-                                <th style="min-width: 90px;">Purchase Amount</th>
-                                <th style="min-width: 90px;">Purchase Unit Cost</th>
-                                <th style="min-width: 90px;">Purchase Total</th>
-                                <th style="min-width: 90px;">Sale Amount</th>
-                                <th style="min-width: 90px;">Sale Unit Cost</th>
-                                <th style="min-width: 90px;">Sale Total</th>
-                                <th style="min-width: 80px;">Salary</th>
-                                <th style="min-width: 90px;">Transport Cost</th>
-                                <th style="min-width: 90px;">Exchange Rate</th>
-                                <th style="min-width: 90px;">Purchase Comm. Rate</th>
-                                <th style="min-width: 90px;">Purchase Comm. Bonus</th>
-                                <th style="min-width: 90px;">Sale Comm. Rate</th>
-                                <th style="min-width: 90px;">Sale Comm. Bonus</th>
-                                <th style="min-width: 80px;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
+    <div class="table-container">
+      <table class="table table-excel table-bordered table-hover">
+        <thead>
+          <tr>
+            <th style="min-width: 120px;">Month</th>
+            <th style="min-width: 80px;">Entry #</th>
+            <th style="min-width: 90px;">Purchase Amount</th>
+            <th style="min-width: 90px;">Purchase Unit Cost</th>
+            <th style="min-width: 90px;">Purchase Total</th>
+            <th style="min-width: 90px;">Sale Amount</th>
+            <th style="min-width: 90px;">Sale Unit Cost</th>
+            <th style="min-width: 90px;">Sale Total</th>
+            <th style="min-width: 80px;">Salary</th>
+            <th style="min-width: 90px;">Transport Cost</th>
+            <th style="min-width: 90px;">Exchange Rate</th>
+            <th style="min-width: 90px;">Purchase Comm. Rate</th>
+            <th style="min-width: 90px;">Purchase Comm. Bonus</th>
+            <th style="min-width: 90px;">Sale Comm. Rate</th>
+            <th style="min-width: 90px;">Sale Comm. Bonus</th>
+            <th style="min-width: 80px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
 
   months.forEach((monthName) => {
     const monthData = yearData.months.find((m) => m.name === monthName) || {
@@ -255,153 +302,135 @@ function renderYearTable(yearData) {
     };
 
     if (monthData.entries.length === 0) {
-      // Empty row for month
       html += `
-                        <tr data-month="${monthName}" data-year="${yearData.year}">
-                            <td>${monthName}</td>
-                            <td>-</td>
-                            <td colspan="13" class="text-muted text-center">No entries</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
-                                        data-month="${monthName}" data-year="${yearData.year}">
-                                    + Add
-                                </button>
-                            </td>
-                        </tr>
-                    `;
+        <tr data-month="${monthName}" data-year="${yearData.year}">
+          <td>${monthName}</td>
+          <td>-</td>
+          <td colspan="13" class="text-muted text-center">No entries</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
+                    data-month="${monthName}" data-year="${yearData.year}">
+                + Add
+            </button>
+          </td>
+        </tr>
+      `;
     } else {
-      // Render entries
       monthData.entries.forEach((entry, entryIndex) => {
-        html += `
-                            <tr data-month="${monthName}" data-year="${
-          yearData.year
-        }" data-entry="${entryIndex}">
-                                <td>${entryIndex === 0 ? monthName : ""}</td>
-                                <td>${entryIndex + 1}</td>
-                                <td><input type="number" class="input-cell" value="${
-                                  entry.purchaseContract?.amount || 0
-                                }" 
-                                           data-field="purchaseContract.amount" step="0.01"></td>
-                                <td><input type="number" class="input-cell" value="${
-                                  entry.purchaseContract?.unitCost || 0
-                                }" 
-                                           data-field="purchaseContract.unitCost" step="0.01"></td>
-                                <td class="calculated-field">${(
-                                  entry.purchaseContract?.totalCost || 0
-                                ).toFixed(2)}</td>
-                                <td><input type="number" class="input-cell" value="${
-                                  entry.saleContract?.amount || 0
-                                }" 
-                                           data-field="saleContract.amount" step="0.01"></td>
-                                <td><input type="number" class="input-cell" value="${
-                                  entry.saleContract?.unitCost || 0
-                                }" 
-                                           data-field="saleContract.unitCost" step="0.01"></td>
-                                <td class="calculated-field">${(
-                                  entry.saleContract?.totalCost || 0
-                                ).toFixed(2)}</td>
-                                <td><input type="number" class="input-cell" value="${
-                                  entry.salary || 0
-                                }" 
-                                           data-field="salary" step="0.01"></td>
-                                <td><input type="number" class="input-cell" value="${
-                                  entry.transportCost || 0
-                                }" 
-                                           data-field="transportCost" step="0.01"></td>
-                                <td><input type="number" class="input-cell" value="${
-                                  entry.currencyExchangeRate || 1
-                                }" 
-                                           data-field="currencyExchangeRate" step="0.0001"></td>
-                                <td><input type="number" class="input-cell" value="${
-                                  entry.commissionRatePurchase || 0
-                                }" 
-                                           data-field="commissionRatePurchase" step="0.0001"></td>
-                                <td class="calculated-field">${(
-                                  entry.commissionBonus?.purchase || 0
-                                ).toFixed(2)}</td>
-                                <td><input type="number" class="input-cell" value="${
-                                  entry.commissionRateSale || 0
-                                }" 
-                                           data-field="commissionRateSale" step="0.0001"></td>
-                                <td class="calculated-field">${(
-                                  entry.commissionBonus?.sale || 0
-                                ).toFixed(2)}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-danger btn-action delete-entry-btn" 
-                                            data-month="${monthName}" data-year="${
-          yearData.year
-        }" data-entry="${entryIndex}">
-                                        ×
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
+        html += renderEntryRow(entry, entryIndex, monthName, yearData.year);
       });
 
-      // Add "Add Entry" row for month
       html += `
-                        <tr data-month="${monthName}" data-year="${yearData.year}">
-                            <td></td>
-                            <td colspan="14" class="text-center">
-                                <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
-                                        data-month="${monthName}" data-year="${yearData.year}">
-                                    + Add Entry
-                                </button>
-                            </td>
-                            <td></td>
-                        </tr>
-                    `;
+        <tr data-month="${monthName}" data-year="${yearData.year}">
+          <td></td>
+          <td colspan="14" class="text-center">
+            <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
+                    data-month="${monthName}" data-year="${yearData.year}">
+                + Add Entry
+            </button>
+          </td>
+          <td></td>
+        </tr>
+      `;
 
-      // Calculate and show month totals
       const totals = calculateMonthTotals(monthData.entries);
-      html += `
-                        <tr class="total-row" data-month="${monthName}">
-                            <td><strong>${monthName} Total</strong></td>
-                            <td><strong>${
-                              monthData.entries.length
-                            }</strong></td>
-                            <td><strong>${totals.purchaseAmount.toFixed(
-                              2
-                            )}</strong></td>
-                            <td>-</td>
-                            <td><strong>${totals.purchaseTotal.toFixed(
-                              2
-                            )}</strong></td>
-                            <td><strong>${totals.saleAmount.toFixed(
-                              2
-                            )}</strong></td>
-                            <td>-</td>
-                            <td><strong>${totals.saleTotal.toFixed(
-                              2
-                            )}</strong></td>
-                            <td><strong>${totals.salary.toFixed(
-                              2
-                            )}</strong></td>
-                            <td><strong>${totals.transport.toFixed(
-                              2
-                            )}</strong></td>
-                            <td>-</td>
-                            <td>-</td>
-                            <td><strong>${totals.commissionPurchase.toFixed(
-                              2
-                            )}</strong></td>
-                            <td>-</td>
-                            <td><strong>${totals.commissionSale.toFixed(
-                              2
-                            )}</strong></td>
-                            <td></td>
-                        </tr>
-                    `;
+      html += renderMonthTotalRow(monthName, monthData.entries.length, totals);
     }
   });
 
   html += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
+        </tbody>
+      </table>
+    </div>
+  `;
 
   return html;
+}
+
+// NEW: Function to render a single entry row
+function renderEntryRow(entry, entryIndex, monthName, year) {
+  return `
+    <tr data-month="${monthName}" data-year="${year}" data-entry="${entryIndex}">
+      <td>${entryIndex === 0 ? monthName : ""}</td>
+      <td>${entryIndex + 1}</td>
+      <td><input type="number" class="input-cell" value="${
+        entry.purchaseContract?.amount || 0
+      }" 
+                 data-field="purchaseContract.amount" step="0.01"></td>
+      <td><input type="number" class="input-cell" value="${
+        entry.purchaseContract?.unitCost || 0
+      }" 
+                 data-field="purchaseContract.unitCost" step="0.01"></td>
+      <td class="calculated-field">${(
+        entry.purchaseContract?.totalCost || 0
+      ).toFixed(2)}</td>
+      <td><input type="number" class="input-cell" value="${
+        entry.saleContract?.amount || 0
+      }" 
+                 data-field="saleContract.amount" step="0.01"></td>
+      <td><input type="number" class="input-cell" value="${
+        entry.saleContract?.unitCost || 0
+      }" 
+                 data-field="saleContract.unitCost" step="0.01"></td>
+      <td class="calculated-field">${(
+        entry.saleContract?.totalCost || 0
+      ).toFixed(2)}</td>
+      <td><input type="number" class="input-cell" value="${entry.salary || 0}" 
+                 data-field="salary" step="0.01"></td>
+      <td><input type="number" class="input-cell" value="${
+        entry.transportCost || 0
+      }" 
+                 data-field="transportCost" step="0.01"></td>
+      <td><input type="number" class="input-cell" value="${
+        entry.currencyExchangeRate || 1
+      }" 
+                 data-field="currencyExchangeRate" step="0.0001"></td>
+      <td><input type="number" class="input-cell" value="${
+        entry.commissionRatePurchase || 0
+      }" 
+                 data-field="commissionRatePurchase" step="0.0001"></td>
+      <td class="calculated-field">${(
+        entry.commissionBonus?.purchase || 0
+      ).toFixed(2)}</td>
+      <td><input type="number" class="input-cell" value="${
+        entry.commissionRateSale || 0
+      }" 
+                 data-field="commissionRateSale" step="0.0001"></td>
+      <td class="calculated-field">${(entry.commissionBonus?.sale || 0).toFixed(
+        2
+      )}</td>
+      <td>
+        <button class="btn btn-sm btn-outline-danger btn-action delete-entry-btn" 
+                data-month="${monthName}" data-year="${year}" data-entry="${entryIndex}">
+            ×
+        </button>
+      </td>
+    </tr>
+  `;
+}
+
+// NEW: Function to render month total row
+function renderMonthTotalRow(monthName, entryCount, totals) {
+  return `
+    <tr class="total-row" data-month="${monthName}">
+      <td><strong>${monthName} Total</strong></td>
+      <td><strong>${entryCount}</strong></td>
+      <td><strong>${totals.purchaseAmount.toFixed(2)}</strong></td>
+      <td>-</td>
+      <td><strong>${totals.purchaseTotal.toFixed(2)}</strong></td>
+      <td><strong>${totals.saleAmount.toFixed(2)}</strong></td>
+      <td>-</td>
+      <td><strong>${totals.saleTotal.toFixed(2)}</strong></td>
+      <td><strong>${totals.salary.toFixed(2)}</strong></td>
+      <td><strong>${totals.transport.toFixed(2)}</strong></td>
+      <td>-</td>
+      <td>-</td>
+      <td><strong>${totals.commissionPurchase.toFixed(2)}</strong></td>
+      <td>-</td>
+      <td><strong>${totals.commissionSale.toFixed(2)}</strong></td>
+      <td></td>
+    </tr>
+  `;
 }
 
 function calculateMonthTotals(entries) {
@@ -431,18 +460,20 @@ function calculateMonthTotals(entries) {
 }
 
 function setupTableEventListeners() {
-  // Add entry buttons
-  document.querySelectorAll(".add-entry-btn").forEach((btn) => {
+  setupTableEventListenersForContainer(document);
+}
+
+// NEW: Setup event listeners for a specific container
+function setupTableEventListenersForContainer(container) {
+  container.querySelectorAll(".add-entry-btn").forEach((btn) => {
     btn.addEventListener("click", handleAddEntry);
   });
 
-  // Delete entry buttons
-  document.querySelectorAll(".delete-entry-btn").forEach((btn) => {
+  container.querySelectorAll(".delete-entry-btn").forEach((btn) => {
     btn.addEventListener("click", handleDeleteEntry);
   });
 
-  // Input field changes
-  document.querySelectorAll(".input-cell").forEach((input) => {
+  container.querySelectorAll(".input-cell").forEach((input) => {
     input.addEventListener("input", handleInputChange);
     input.addEventListener("blur", handleInputBlur);
   });
@@ -453,6 +484,10 @@ async function handleAddEntry(e) {
   const year = e.target.getAttribute("data-year");
 
   if (!currentCenter) return;
+
+  // Store current scroll position and focused element
+  const scrollPosition = document.querySelector(".table-container").scrollTop;
+  const focusedElement = document.activeElement;
 
   const entryData = {
     purchaseContract: { amount: 0, unitCost: 0, totalCost: 0 },
@@ -470,29 +505,32 @@ async function handleAddEntry(e) {
       `/financeGasControl/${currentCenter._id}/years/${year}/months/${monthName}/entries`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(entryData),
       }
     );
 
     if (response.ok) {
       const updatedCenter = await response.json();
-      currentCenter = updatedCenter;
-      // Update centers array
-      const centerIndex = centers.findIndex((c) => c._id === currentCenter._id);
-      if (centerIndex !== -1) {
-        centers[centerIndex] = updatedCenter;
-      }
-      renderFinanceTable();
+      updateCurrentCenter(updatedCenter);
+
+      // Only refresh the specific month section
+      await refreshMonthSection(monthName, year);
+
+      // Restore scroll position
+      setTimeout(() => {
+        const tableContainer = document.querySelector(".table-container");
+        if (tableContainer) {
+          tableContainer.scrollTop = scrollPosition;
+        }
+      }, 50);
     } else {
       const error = await response.json();
-      alert(`Error: ${error.message}`);
+      console.log(`Error: ${error.message}`);
     }
   } catch (error) {
     console.error("Error adding entry:", error);
-    alert("Failed to add entry");
+    console.log("Failed to add entry");
   }
 }
 
@@ -508,47 +546,151 @@ async function handleDeleteEntry(e) {
     return;
   }
 
+  // Store current scroll position
+  const scrollPosition = document.querySelector(".table-container").scrollTop;
+
   try {
     const response = await fetch(
       `/financeGasControl/${currentCenter._id}/years/${year}/months/${monthName}/entries/${entryIndex}`,
-      {
-        method: "DELETE",
-      }
+      { method: "DELETE" }
     );
 
     if (response.ok) {
       const updatedCenter = await response.json();
-      currentCenter = updatedCenter;
-      // Update centers array
-      const centerIndex = centers.findIndex((c) => c._id === currentCenter._id);
-      if (centerIndex !== -1) {
-        centers[centerIndex] = updatedCenter;
-      }
-      renderFinanceTable();
+      updateCurrentCenter(updatedCenter);
+
+      // Only refresh the specific month section
+      await refreshMonthSection(monthName, year);
+
+      // Restore scroll position
+      setTimeout(() => {
+        const tableContainer = document.querySelector(".table-container");
+        if (tableContainer) {
+          tableContainer.scrollTop = scrollPosition;
+        }
+      }, 50);
     } else {
       const error = await response.json();
-      alert(`Error: ${error.message}`);
+      console.log(`Error: ${error.message}`);
     }
   } catch (error) {
     console.error("Error deleting entry:", error);
-    alert("Failed to delete entry");
+    console.log("Failed to delete entry");
+  }
+}
+
+// NEW: Function to refresh only a specific month section
+async function refreshMonthSection(monthName, year) {
+  const yearData = currentCenter.years.find((y) => y.year === parseInt(year));
+  if (!yearData) return;
+
+  const monthData = yearData.months.find((m) => m.name === monthName) || {
+    entries: [],
+  };
+  const activeTabContent = document.querySelector(".tab-pane.active tbody");
+
+  if (!activeTabContent) return;
+
+  // Find all rows for this month
+  const monthRows = activeTabContent.querySelectorAll(
+    `tr[data-month="${monthName}"]`
+  );
+
+  // Remove existing month rows
+  monthRows.forEach((row) => row.remove());
+
+  // Generate new month content
+  let newRowsHtml = "";
+
+  if (monthData.entries.length === 0) {
+    newRowsHtml = `
+      <tr data-month="${monthName}" data-year="${year}">
+        <td>${monthName}</td>
+        <td>-</td>
+        <td colspan="13" class="text-muted text-center">No entries</td>
+        <td>
+          <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
+                  data-month="${monthName}" data-year="${year}">
+              + Add
+          </button>
+        </td>
+      </tr>
+    `;
+  } else {
+    monthData.entries.forEach((entry, entryIndex) => {
+      newRowsHtml += renderEntryRow(entry, entryIndex, monthName, year);
+    });
+
+    newRowsHtml += `
+      <tr data-month="${monthName}" data-year="${year}">
+        <td></td>
+        <td colspan="14" class="text-center">
+          <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
+                  data-month="${monthName}" data-year="${year}">
+              + Add Entry
+          </button>
+        </td>
+        <td></td>
+      </tr>
+    `;
+
+    const totals = calculateMonthTotals(monthData.entries);
+    newRowsHtml += renderMonthTotalRow(
+      monthName,
+      monthData.entries.length,
+      totals
+    );
+  }
+
+  // Find the insertion point (before the next month or at the end)
+  const nextMonthIndex = months.indexOf(monthName) + 1;
+  let insertionPoint = null;
+
+  if (nextMonthIndex < months.length) {
+    for (let i = nextMonthIndex; i < months.length; i++) {
+      const nextMonthRow = activeTabContent.querySelector(
+        `tr[data-month="${months[i]}"]`
+      );
+      if (nextMonthRow) {
+        insertionPoint = nextMonthRow;
+        break;
+      }
+    }
+  }
+
+  // Create a temporary container to parse the HTML
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = `<table><tbody>${newRowsHtml}</tbody></table>`;
+  const newRows = tempDiv.querySelectorAll("tr");
+
+  // Insert the new rows
+  newRows.forEach((row) => {
+    if (insertionPoint) {
+      activeTabContent.insertBefore(row, insertionPoint);
+    } else {
+      activeTabContent.appendChild(row);
+    }
+  });
+
+  // Setup event listeners for the new rows
+  setupTableEventListenersForContainer(activeTabContent);
+}
+
+// NEW: Update current center data
+function updateCurrentCenter(updatedCenter) {
+  currentCenter = updatedCenter;
+  const centerIndex = centers.findIndex((c) => c._id === currentCenter._id);
+  if (centerIndex !== -1) {
+    centers[centerIndex] = updatedCenter;
   }
 }
 
 function handleInputChange(e) {
   const row = e.target.closest("tr");
-  const monthName = row.getAttribute("data-month");
-  const year = row.getAttribute("data-year");
-  const entryIndex = row.getAttribute("data-entry");
-
-  if (entryIndex === null) return;
-
-  // Update calculations in real-time
   updateRowCalculations(row);
 }
 
 function updateRowCalculations(row) {
-  // Get input values
   const purchaseAmount =
     parseFloat(
       row.querySelector('[data-field="purchaseContract.amount"]').value
@@ -576,18 +718,16 @@ function updateRowCalculations(row) {
     parseFloat(row.querySelector('[data-field="commissionRateSale"]').value) ||
     0;
 
-  // Calculate totals
   const purchaseTotal = purchaseAmount * purchaseUnitCost;
   const saleTotal = saleAmount * saleUnitCost;
   const purchaseCommission = purchaseAmount * purchaseCommRate * exchangeRate;
   const saleCommission = saleAmount * saleCommRate * exchangeRate;
 
-  // Update calculated fields
   const calculatedFields = row.querySelectorAll(".calculated-field");
-  calculatedFields[0].textContent = purchaseTotal.toFixed(2); // Purchase Total
-  calculatedFields[1].textContent = saleTotal.toFixed(2); // Sale Total
-  calculatedFields[2].textContent = purchaseCommission.toFixed(2); // Purchase Commission
-  calculatedFields[3].textContent = saleCommission.toFixed(2); // Sale Commission
+  calculatedFields[0].textContent = purchaseTotal.toFixed(2);
+  calculatedFields[1].textContent = saleTotal.toFixed(2);
+  calculatedFields[2].textContent = purchaseCommission.toFixed(2);
+  calculatedFields[3].textContent = saleCommission.toFixed(2);
 }
 
 async function handleInputBlur(e) {
@@ -598,7 +738,6 @@ async function handleInputBlur(e) {
 
   if (!currentCenter || entryIndex === null) return;
 
-  // Collect all data from the row
   const entryData = collectRowData(row);
 
   try {
@@ -606,30 +745,53 @@ async function handleInputBlur(e) {
       `/financeGasControl/${currentCenter._id}/years/${year}/months/${monthName}/entries/${entryIndex}`,
       {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(entryData),
       }
     );
 
     if (response.ok) {
       const updatedCenter = await response.json();
-      currentCenter = updatedCenter;
-      // Update centers array
-      const centerIndex = centers.findIndex((c) => c._id === currentCenter._id);
-      if (centerIndex !== -1) {
-        centers[centerIndex] = updatedCenter;
-      }
-      // Update the totals row
-      updateMonthTotals(monthName, year);
+      updateCurrentCenter(updatedCenter);
+
+      // Update only the month totals row instead of full refresh
+      updateMonthTotalsInPlace(monthName, year);
     } else {
       const error = await response.json();
-      alert(`Error: ${error.message}`);
+      console.log(`Error: ${error.message}`);
     }
   } catch (error) {
     console.error("Error updating entry:", error);
-    alert("Failed to update entry");
+    console.log("Failed to update entry");
+  }
+}
+
+// NEW: Update month totals in place without full refresh
+function updateMonthTotalsInPlace(monthName, year) {
+  const yearData = currentCenter.years.find((y) => y.year === parseInt(year));
+  if (!yearData) return;
+
+  const monthData = yearData.months.find((m) => m.name === monthName);
+  if (!monthData) return;
+
+  const totals = calculateMonthTotals(monthData.entries);
+  const totalRow = document.querySelector(
+    `tr.total-row[data-month="${monthName}"]`
+  );
+
+  if (totalRow) {
+    const cells = totalRow.querySelectorAll("td strong");
+    if (cells.length >= 10) {
+      cells[1].textContent = monthData.entries.length;
+      cells[2].textContent = totals.purchaseAmount.toFixed(2);
+      cells[4].textContent = totals.purchaseTotal.toFixed(2);
+      cells[5].textContent = totals.saleAmount.toFixed(2);
+      cells[7].textContent = totals.saleTotal.toFixed(2);
+      cells[8].textContent = totals.salary.toFixed(2);
+      cells[9].textContent = totals.transport.toFixed(2);
+      cells[12].textContent = totals.commissionPurchase.toFixed(2);
+      cells[14].textContent = totals.commissionSale.toFixed(2);
+    }
   }
 }
 
@@ -688,48 +850,18 @@ function collectRowData(row) {
   };
 }
 
-function updateMonthTotals(monthName, year) {
-  const yearData = currentCenter.years.find((y) => y.year === parseInt(year));
-  if (!yearData) return;
-
-  const monthData = yearData.months.find((m) => m.name === monthName);
-  if (!monthData) return;
-
-  const totals = calculateMonthTotals(monthData.entries);
-  const totalRow = document.querySelector(
-    `tr.total-row[data-month="${monthName}"]`
-  );
-
-  if (totalRow) {
-    const cells = totalRow.querySelectorAll("td strong");
-    if (cells.length >= 8) {
-      cells[1].textContent = monthData.entries.length;
-      cells[2].textContent = totals.purchaseAmount.toFixed(2);
-      cells[3].textContent = totals.purchaseTotal.toFixed(2);
-      cells[4].textContent = totals.saleAmount.toFixed(2);
-      cells[5].textContent = totals.saleTotal.toFixed(2);
-      cells[6].textContent = totals.salary.toFixed(2);
-      cells[7].textContent = totals.transport.toFixed(2);
-      cells[8].textContent = totals.commissionPurchase.toFixed(2);
-      cells[9].textContent = totals.commissionSale.toFixed(2);
-    }
-  }
-}
-
 function handleSaveAll() {
-  alert(
+  console.log(
     "All changes are automatically saved when you finish editing each field."
   );
 }
 
 function handleExport() {
   if (!currentCenter) {
-    alert("Please select a center first.");
+    console.log("Please select a center first.");
     return;
   }
-
-  // This would implement CSV/Excel export functionality
-  alert(
+  console.log(
     "Export functionality would be implemented here to generate Excel/CSV files."
   );
 }
