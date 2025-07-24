@@ -345,56 +345,57 @@ function renderYearTable(yearData) {
 
 // NEW: Function to render a single entry row
 function renderEntryRow(entry, entryIndex, monthName, year) {
+  const formatNumber = (num) => Number(num || 0).toLocaleString(); // no forced decimal digits
+
   return `
     <tr data-month="${monthName}" data-year="${year}" data-entry="${entryIndex}">
       <td>${entryIndex === 0 ? monthName : ""}</td>
       <td>${entryIndex + 1}</td>
+
       <td><input type="number" class="input-cell" value="${
         entry.purchaseContract?.amount || 0
-      }" 
-                 data-field="purchaseContract.amount" step="0.01"></td>
+      }" data-field="purchaseContract.amount" step="0.01"></td>
       <td><input type="number" class="input-cell" value="${
         entry.purchaseContract?.unitCost || 0
-      }" 
-                 data-field="purchaseContract.unitCost" step="0.01"></td>
-      <td class="calculated-field">${(
-        entry.purchaseContract?.totalCost || 0
-      ).toFixed(2)}</td>
+      }" data-field="purchaseContract.unitCost" step="0.01"></td>
+      <td class="calculated-field">${formatNumber(
+        entry.purchaseContract?.totalCost
+      )}</td>
+
       <td><input type="number" class="input-cell" value="${
         entry.saleContract?.amount || 0
-      }" 
-                 data-field="saleContract.amount" step="0.01"></td>
+      }" data-field="saleContract.amount" step="0.01"></td>
       <td><input type="number" class="input-cell" value="${
         entry.saleContract?.unitCost || 0
-      }" 
-                 data-field="saleContract.unitCost" step="0.01"></td>
-      <td class="calculated-field">${(
-        entry.saleContract?.totalCost || 0
-      ).toFixed(2)}</td>
-      <td><input type="number" class="input-cell" value="${entry.salary || 0}" 
-                 data-field="salary" step="0.01"></td>
+      }" data-field="saleContract.unitCost" step="0.01"></td>
+      <td class="calculated-field">${formatNumber(
+        entry.saleContract?.totalCost
+      )}</td>
+
+      <td><input type="number" class="input-cell" value="${
+        entry.salary || 0
+      }" data-field="salary" step="0.01"></td>
       <td><input type="number" class="input-cell" value="${
         entry.transportCost || 0
-      }" 
-                 data-field="transportCost" step="0.01"></td>
+      }" data-field="transportCost" step="0.01"></td>
       <td><input type="number" class="input-cell" value="${
         entry.currencyExchangeRate || 1
-      }" 
-                 data-field="currencyExchangeRate" step="0.0001"></td>
+      }" data-field="currencyExchangeRate" step="0.0001"></td>
+
       <td><input type="number" class="input-cell" value="${
         entry.commissionRatePurchase || 0
-      }" 
-                 data-field="commissionRatePurchase" step="0.0001"></td>
-      <td class="calculated-field">${(
-        entry.commissionBonus?.purchase || 0
-      ).toFixed(2)}</td>
+      }" data-field="commissionRatePurchase" step="0.0001"></td>
+      <td class="calculated-field">${formatNumber(
+        entry.commissionBonus?.purchase
+      )}</td>
+
       <td><input type="number" class="input-cell" value="${
         entry.commissionRateSale || 0
-      }" 
-                 data-field="commissionRateSale" step="0.0001"></td>
-      <td class="calculated-field">${(entry.commissionBonus?.sale || 0).toFixed(
-        2
+      }" data-field="commissionRateSale" step="0.0001"></td>
+      <td class="calculated-field">${formatNumber(
+        entry.commissionBonus?.sale
       )}</td>
+
       <td>
         <button class="btn btn-sm btn-outline-danger btn-action delete-entry-btn" 
                 data-month="${monthName}" data-year="${year}" data-entry="${entryIndex}">
@@ -407,23 +408,25 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
 
 // NEW: Function to render month total row
 function renderMonthTotalRow(monthName, entryCount, totals) {
+  const formatNumber = (num) => Number(num || 0).toLocaleString();
+
   return `
     <tr class="total-row" data-month="${monthName}">
       <td><strong>Tổng ${monthName}</strong></td>
       <td><strong>${entryCount}</strong></td>
-      <td><strong>${totals.purchaseAmount.toFixed(2)}</strong></td>
+      <td><strong>${formatNumber(totals.purchaseAmount)}</strong></td>
       <td>-</td>
-      <td><strong>${totals.purchaseTotal.toFixed(2)}</strong></td>
-      <td><strong>${totals.saleAmount.toFixed(2)}</strong></td>
+      <td><strong>${formatNumber(totals.purchaseTotal)}</strong></td>
+      <td><strong>${formatNumber(totals.saleAmount)}</strong></td>
       <td>-</td>
-      <td><strong>${totals.saleTotal.toFixed(2)}</strong></td>
-      <td><strong>${totals.salary.toFixed(2)}</strong></td>
-      <td><strong>${totals.transport.toFixed(2)}</strong></td>
+      <td><strong>${formatNumber(totals.saleTotal)}</strong></td>
+      <td><strong>${formatNumber(totals.salary)}</strong></td>
+      <td><strong>${formatNumber(totals.transport)}</strong></td>
       <td>-</td>
       <td>-</td>
-      <td><strong>${totals.commissionPurchase.toFixed(2)}</strong></td>
+      <td><strong>${formatNumber(totals.commissionPurchase)}</strong></td>
       <td>-</td>
-      <td><strong>${totals.commissionSale.toFixed(2)}</strong></td>
+      <td><strong>${formatNumber(totals.commissionSale)}</strong></td>
       <td></td>
     </tr>
   `;
