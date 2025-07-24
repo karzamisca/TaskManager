@@ -1566,10 +1566,8 @@ exports.suspendDocument = async (req, res) => {
 
   try {
     // Restrict access to only users with the role of "director" or "headOfPurchasing"
-    if (req.user.role !== "director" && req.user.role !== "headOfPurchasing") {
-      return res.send(
-        "Truy cập bị từ chối. Chỉ giám đốc mới có quyền từ chối phiếu."
-      );
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Find the document in any of the collections
@@ -2036,10 +2034,8 @@ exports.suspendProposalDocument = async (req, res) => {
 
   try {
     // Restrict access to only users with the role of "director"
-    if (req.user.role !== "deputyDirector") {
-      return res.send(
-        "Truy cập bị từ chối. Chỉ phó giám đốc có quyền tạm dừng phiếu đề xuất."
-      );
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Find the document in any of the collections
