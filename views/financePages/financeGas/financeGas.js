@@ -345,7 +345,13 @@ function renderYearTable(yearData) {
 
 // NEW: Function to render a single entry row
 function renderEntryRow(entry, entryIndex, monthName, year) {
-  const formatNumber = (num) => Number(num || 0).toLocaleString(); // no forced decimal digits
+  const formatNumber = (num) => {
+    const rounded = Math.ceil(num * 100) / 100; // Round up to 2 decimal places
+    return rounded.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
 
   return `
     <tr data-month="${monthName}" data-year="${year}" data-entry="${entryIndex}">
@@ -359,7 +365,7 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
         entry.purchaseContract?.unitCost || 0
       }" data-field="purchaseContract.unitCost" step="0.01"></td>
       <td class="calculated-field">${formatNumber(
-        entry.purchaseContract?.totalCost
+        entry.purchaseContract?.totalCost || 0
       )}</td>
 
       <td><input type="number" class="input-cell" value="${
@@ -369,7 +375,7 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
         entry.saleContract?.unitCost || 0
       }" data-field="saleContract.unitCost" step="0.01"></td>
       <td class="calculated-field">${formatNumber(
-        entry.saleContract?.totalCost
+        entry.saleContract?.totalCost || 0
       )}</td>
 
       <td><input type="number" class="input-cell" value="${
@@ -386,14 +392,14 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
         entry.commissionRatePurchase || 0
       }" data-field="commissionRatePurchase" step="0.0001"></td>
       <td class="calculated-field">${formatNumber(
-        entry.commissionBonus?.purchase
+        entry.commissionBonus?.purchase || 0
       )}</td>
 
       <td><input type="number" class="input-cell" value="${
         entry.commissionRateSale || 0
       }" data-field="commissionRateSale" step="0.0001"></td>
       <td class="calculated-field">${formatNumber(
-        entry.commissionBonus?.sale
+        entry.commissionBonus?.sale || 0
       )}</td>
 
       <td>
@@ -408,7 +414,13 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
 
 // NEW: Function to render month total row
 function renderMonthTotalRow(monthName, entryCount, totals) {
-  const formatNumber = (num) => Number(num || 0).toLocaleString();
+  const formatNumber = (num) => {
+    const rounded = Math.ceil(num * 100) / 100; // Round up to 2 decimal places
+    return rounded.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
 
   return `
     <tr class="total-row" data-month="${monthName}">
@@ -719,11 +731,19 @@ function updateRowCalculations(row) {
   const purchaseCommission = purchaseAmount * purchaseCommRate * exchangeRate;
   const saleCommission = saleAmount * saleCommRate * exchangeRate;
 
+  const formatNumber = (num) => {
+    const rounded = Math.ceil(num * 100) / 100; // Round up to 2 decimal places
+    return rounded.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
   const calculatedFields = row.querySelectorAll(".calculated-field");
-  calculatedFields[0].textContent = purchaseTotal.toFixed(2);
-  calculatedFields[1].textContent = saleTotal.toFixed(2);
-  calculatedFields[2].textContent = purchaseCommission.toFixed(2);
-  calculatedFields[3].textContent = saleCommission.toFixed(2);
+  calculatedFields[0].textContent = formatNumber(purchaseTotal);
+  calculatedFields[1].textContent = formatNumber(saleTotal);
+  calculatedFields[2].textContent = formatNumber(purchaseCommission);
+  calculatedFields[3].textContent = formatNumber(saleCommission);
 }
 
 async function handleInputBlur(e) {
@@ -782,18 +802,26 @@ function updateMonthTotalsInPlace(monthName, year) {
   );
 
   if (totalRow) {
+    const formatNumber = (num) => {
+      const rounded = Math.ceil(num * 100) / 100; // Round up to 2 decimal places
+      return rounded.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    };
+
     const cells = totalRow.querySelectorAll("td strong");
     // Verify we have enough cells before accessing them
     if (cells.length >= 15) {
       cells[1].textContent = monthData.entries.length;
-      cells[2].textContent = totals.purchaseAmount.toFixed(2);
-      cells[4].textContent = totals.purchaseTotal.toFixed(2);
-      cells[5].textContent = totals.saleAmount.toFixed(2);
-      cells[7].textContent = totals.saleTotal.toFixed(2);
-      cells[8].textContent = totals.salary.toFixed(2);
-      cells[9].textContent = totals.transport.toFixed(2);
-      cells[12].textContent = totals.commissionPurchase.toFixed(2);
-      cells[14].textContent = totals.commissionSale.toFixed(2);
+      cells[2].textContent = formatNumber(totals.purchaseAmount);
+      cells[4].textContent = formatNumber(totals.purchaseTotal);
+      cells[5].textContent = formatNumber(totals.saleAmount);
+      cells[7].textContent = formatNumber(totals.saleTotal);
+      cells[8].textContent = formatNumber(totals.salary);
+      cells[9].textContent = formatNumber(totals.transport);
+      cells[12].textContent = formatNumber(totals.commissionPurchase);
+      cells[14].textContent = formatNumber(totals.commissionSale);
     }
   }
 }
