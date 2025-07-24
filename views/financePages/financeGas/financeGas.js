@@ -570,10 +570,10 @@ function setupTableEventListenersForContainer(container) {
       if (
         (e.shiftKey || e.keyCode < 48 || e.keyCode > 57) &&
         (e.keyCode < 96 || e.keyCode > 105) &&
-        e.keyCode !== 190 &&
-        e.keyCode !== 188
+        e.keyCode !== 190 && // Regular decimal point (.)
+        e.keyCode !== 110 && // Numpad decimal point (.)  <-- ADD THIS LINE
+        e.keyCode !== 188 // Comma (,)
       ) {
-        // Allow decimal point and comma
         e.preventDefault();
       }
     });
