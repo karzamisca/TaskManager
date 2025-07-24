@@ -336,10 +336,16 @@ function renderYearTable(yearData) {
         </tr>
       `;
     } else {
+      // Render month total row at the top
+      const totals = calculateMonthTotals(monthData.entries);
+      html += renderMonthTotalRow(monthName, monthData.entries.length, totals);
+
+      // Render individual entries
       monthData.entries.forEach((entry, entryIndex) => {
         html += renderEntryRow(entry, entryIndex, monthName, yearData.year);
       });
 
+      // Add entry button row
       html += `
         <tr data-month="${monthName}" data-year="${yearData.year}">
           <td></td>
@@ -352,9 +358,6 @@ function renderYearTable(yearData) {
           <td></td>
         </tr>
       `;
-
-      const totals = calculateMonthTotals(monthData.entries);
-      html += renderMonthTotalRow(monthName, monthData.entries.length, totals);
     }
   });
 
@@ -432,10 +435,10 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
   `;
 }
 
-// NEW: Function to render month total row
+// MODIFIED: Function to render month total row (now goes at the top)
 function renderMonthTotalRow(monthName, entryCount, totals) {
   return `
-    <tr class="total-row" data-month="${monthName}">
+    <tr class="total-row" data-month="${monthName}" style="background-color: #f8f9fa; font-weight: bold;">
       <td><strong>Tổng ${monthName}</strong></td>
       <td><strong>${entryCount}</strong></td>
       <td><strong>${formatNumberWithCommas(
@@ -674,7 +677,7 @@ async function handleDeleteEntry(e) {
   }
 }
 
-// NEW: Function to refresh only a specific month section
+// MODIFIED: Function to refresh only a specific month section (updated for totals on top)
 async function refreshMonthSection(monthName, year) {
   const yearData = currentCenter.years.find((y) => y.year === parseInt(year));
   if (!yearData) return;
@@ -712,10 +715,20 @@ async function refreshMonthSection(monthName, year) {
       </tr>
     `;
   } else {
+    // Month total row first
+    const totals = calculateMonthTotals(monthData.entries);
+    newRowsHtml += renderMonthTotalRow(
+      monthName,
+      monthData.entries.length,
+      totals
+    );
+
+    // Then individual entries
     monthData.entries.forEach((entry, entryIndex) => {
       newRowsHtml += renderEntryRow(entry, entryIndex, monthName, year);
     });
 
+    // Add entry button row
     newRowsHtml += `
       <tr data-month="${monthName}" data-year="${year}">
         <td></td>
@@ -728,13 +741,6 @@ async function refreshMonthSection(monthName, year) {
         <td></td>
       </tr>
     `;
-
-    const totals = calculateMonthTotals(monthData.entries);
-    newRowsHtml += renderMonthTotalRow(
-      monthName,
-      monthData.entries.length,
-      totals
-    );
   }
 
   // Find the insertion point (before the next month or at the end)
@@ -866,7 +872,7 @@ async function handleInputBlur(e) {
   }
 }
 
-// NEW: Update month totals in place without full refresh
+// MODIFIED: Update month totals in place without full refresh (updated for totals on top)
 function updateMonthTotalsInPlace(monthName, year) {
   const yearData = currentCenter.years.find((y) => y.year === parseInt(year));
   if (!yearData) return;
