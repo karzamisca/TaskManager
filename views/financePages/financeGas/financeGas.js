@@ -22,6 +22,23 @@ document.addEventListener("DOMContentLoaded", function () {
   setupEventListeners();
 });
 
+function showOptimisticState(element) {
+  element.classList.add("optimistic");
+  const spinner = document.createElement("span");
+  spinner.className = "optimistic-spinner";
+  element.parentNode.appendChild(spinner);
+  return spinner;
+}
+
+function clearOptimisticState(element, spinner, success = true) {
+  if (spinner) spinner.remove();
+  element.classList.remove("optimistic");
+  element.classList.add(success ? "success" : "error");
+  setTimeout(() => {
+    element.classList.remove("success", "error");
+  }, 1000);
+}
+
 // Utility functions for number formatting
 function formatNumberWithCommas(num, isOutput = false) {
   const numericValue = Number(num) || 0;
@@ -161,6 +178,13 @@ async function handleDeleteCenter() {
 async function handleAddYear() {
   if (!currentCenter) return;
 
+  // Disable the button during operation
+  const addYearBtn = document.getElementById("addYearBtn");
+  const originalText = addYearBtn.innerHTML;
+  addYearBtn.innerHTML =
+    '<span class="optimistic-spinner"></span> Đang thêm...';
+  addYearBtn.disabled = true;
+
   const currentYear = new Date().getFullYear();
   const existingYears = currentCenter.years.map((y) => y.year);
   let newYear = currentYear;
@@ -182,16 +206,32 @@ async function handleAddYear() {
     if (response.ok) {
       const updatedCenter = await response.json();
       updateCurrentCenter(updatedCenter);
-      // Only add new year tab instead of re-rendering everything
       addNewYearTab(newYear);
     } else {
       const error = await response.json();
       console.log(`Error: ${error.message}`);
+      // Show error state
+      addYearBtn.innerHTML = "Lỗi! Thử lại";
+      setTimeout(() => {
+        addYearBtn.innerHTML = originalText;
+        addYearBtn.disabled = false;
+      }, 2000);
+      return;
     }
   } catch (error) {
     console.error("Error adding year:", error);
     console.log("Failed to add year");
+    addYearBtn.innerHTML = "Lỗi! Thử lại";
+    setTimeout(() => {
+      addYearBtn.innerHTML = originalText;
+      addYearBtn.disabled = false;
+    }, 2000);
+    return;
   }
+
+  // Restore button state
+  addYearBtn.innerHTML = originalText;
+  addYearBtn.disabled = false;
 }
 
 // NEW: Function to add a new year tab without full re-render
@@ -586,9 +626,10 @@ async function handleAddEntry(e) {
 
   if (!currentCenter) return;
 
-  // Store current scroll position and focused element
-  const scrollPosition = document.querySelector(".table-container").scrollTop;
-  const focusedElement = document.activeElement;
+  // Show loading state on the button
+  const originalText = e.target.innerHTML;
+  e.target.innerHTML = '<span class="optimistic-spinner"></span> Đang thêm...';
+  e.target.disabled = true;
 
   const entryData = {
     purchaseContract: { amount: 0, unitCost: 0, totalCost: 0 },
@@ -614,25 +655,32 @@ async function handleAddEntry(e) {
     if (response.ok) {
       const updatedCenter = await response.json();
       updateCurrentCenter(updatedCenter);
-
-      // Only refresh the specific month section
       await refreshMonthSection(monthName, year);
-
-      // Restore scroll position
-      setTimeout(() => {
-        const tableContainer = document.querySelector(".table-container");
-        if (tableContainer) {
-          tableContainer.scrollTop = scrollPosition;
-        }
-      }, 50);
     } else {
       const error = await response.json();
       console.log(`Error: ${error.message}`);
+      // Show error state
+      e.target.innerHTML = "Lỗi! Thử lại";
+      setTimeout(() => {
+        e.target.innerHTML = originalText;
+        e.target.disabled = false;
+      }, 2000);
+      return;
     }
   } catch (error) {
     console.error("Error adding entry:", error);
     console.log("Failed to add entry");
+    e.target.innerHTML = "Lỗi! Thử lại";
+    setTimeout(() => {
+      e.target.innerHTML = originalText;
+      e.target.disabled = false;
+    }, 2000);
+    return;
   }
+
+  // Restore button state after successful addition
+  e.target.innerHTML = originalText;
+  e.target.disabled = false;
 }
 
 async function handleDeleteEntry(e) {
@@ -644,8 +692,10 @@ async function handleDeleteEntry(e) {
     return;
   }
 
-  // Store current scroll position
-  const scrollPosition = document.querySelector(".table-container").scrollTop;
+  // Optimistically remove the row
+  const row = e.target.closest("tr");
+  row.style.opacity = "0.5";
+  row.style.transition = "opacity 0.3s ease";
 
   try {
     const response = await fetch(
@@ -657,23 +707,30 @@ async function handleDeleteEntry(e) {
       const updatedCenter = await response.json();
       updateCurrentCenter(updatedCenter);
 
-      // Only refresh the specific month section
-      await refreshMonthSection(monthName, year);
+      // Animate removal
+      row.style.height = `${row.offsetHeight}px`;
+      row.style.margin = "0";
+      row.style.padding = "0";
+      row.style.overflow = "hidden";
+      row.style.transition = "all 0.3s ease";
 
-      // Restore scroll position
       setTimeout(() => {
-        const tableContainer = document.querySelector(".table-container");
-        if (tableContainer) {
-          tableContainer.scrollTop = scrollPosition;
-        }
+        row.style.height = "0";
+        setTimeout(() => {
+          // Only refresh the specific month section
+          refreshMonthSection(monthName, year);
+        }, 300);
       }, 50);
     } else {
       const error = await response.json();
       console.log(`Error: ${error.message}`);
+      // Revert the visual state if deletion failed
+      row.style.opacity = "1";
     }
   } catch (error) {
     console.error("Error deleting entry:", error);
     console.log("Failed to delete entry");
+    row.style.opacity = "1";
   }
 }
 
@@ -834,12 +891,16 @@ function updateRowCalculations(row) {
 }
 
 async function handleInputBlur(e) {
-  const row = e.target.closest("tr");
+  const input = e.target;
+  const row = input.closest("tr");
   const monthName = row.getAttribute("data-month");
   const year = row.getAttribute("data-year");
   const entryIndex = row.getAttribute("data-entry");
 
   if (!currentCenter || entryIndex === null) return;
+
+  // Show optimistic UI state
+  const spinner = showOptimisticState(input);
 
   const entryData = collectRowData(row);
 
@@ -856,19 +917,23 @@ async function handleInputBlur(e) {
     if (response.ok) {
       const updatedCenter = await response.json();
       updateCurrentCenter(updatedCenter);
+      clearOptimisticState(input, spinner, true);
 
       // Update only the month totals row instead of full refresh
-      // Add a small delay to ensure the data is properly updated
       setTimeout(() => {
         updateMonthTotalsInPlace(monthName, year);
       }, 10);
     } else {
       const error = await response.json();
       console.log(`Error: ${error.message}`);
+      clearOptimisticState(input, spinner, false);
+      // Optionally revert the value if the update failed
+      // input.value = previousValue;
     }
   } catch (error) {
     console.error("Error updating entry:", error);
     console.log("Failed to update entry");
+    clearOptimisticState(input, spinner, false);
   }
 }
 
