@@ -14,6 +14,7 @@ const state = {
   currentTagFilter: "",
   currentCostCenterFilter: "",
   currentGroupFilter: "",
+  currentGroupDeclarationFilter: "",
   currentPaymentMethodFilter: "",
 };
 
@@ -235,6 +236,13 @@ const filterDocumentsForCurrentUser = (documents) => {
     );
   }
 
+  // Apply declaration group filter if selected
+  if (state.currentGroupDeclarationFilter) {
+    filteredDocs = filteredDocs.filter(
+      (doc) => doc.groupDeclarationName === state.currentGroupDeclarationFilter
+    );
+  }
+
   // Apply payment method filter if selected
   if (state.currentPaymentMethodFilter) {
     filteredDocs = filteredDocs.filter(
@@ -280,6 +288,14 @@ const filterByGroup = () => {
   fetchPaymentDocuments();
 };
 
+const filterByGroupDeclaration = () => {
+  state.currentGroupDeclarationFilter = document.getElementById(
+    "groupDeclarationFilter"
+  ).value;
+  state.currentPage = 1;
+  fetchPaymentDocuments();
+};
+
 //Function to populate cost center filter
 const populateCostCenterFilter = async () => {
   try {
@@ -309,6 +325,29 @@ const fetchGroups = async () => {
     const response = await fetch("/getGroupDocument");
     const groups = await response.json();
     const filterDropdown = document.getElementById("groupFilter");
+
+    // Clear existing options except the first one
+    while (filterDropdown.options.length > 1) {
+      filterDropdown.remove(1);
+    }
+
+    // Add new options
+    groups.forEach((group) => {
+      const option = document.createElement("option");
+      option.value = group.name;
+      option.textContent = group.name;
+      filterDropdown.appendChild(option);
+    });
+  } catch (error) {
+    console.error("Error fetching groups:", error);
+  }
+};
+
+const fetchGroupDeclaration = async () => {
+  try {
+    const response = await fetch("/getGroupDeclaration");
+    const groups = await response.json();
+    const filterDropdown = document.getElementById("groupDeclarationFilter");
 
     // Clear existing options except the first one
     while (filterDropdown.options.length > 1) {
@@ -2374,6 +2413,11 @@ const setupEventListeners = () => {
     .getElementById("groupFilter")
     .addEventListener("change", filterByGroup);
 
+  // Declaration Group filter
+  document
+    .getElementById("groupDeclarationFilter")
+    .addEventListener("change", filterByGroupDeclaration);
+
   // Payment method filter
   document
     .getElementById("paymentMethodFilter")
@@ -2399,6 +2443,7 @@ const initialize = async () => {
   await fetchCurrentUser();
   await populateCostCenterFilter();
   await fetchGroups();
+  await fetchGroupDeclaration();
   setupEventListeners();
   await fetchPaymentDocuments();
 };

@@ -133,22 +133,33 @@ cron.schedule("0 */8 * * *", async () => {
 });
 
 // Assign declaration group name and declaration to approved payment and advance payment document
-cron.schedule("*/5 * * * *", async () => {
+cron.schedule("* * * * *", async () => {
   try {
-    // This includes both missing groupName and empty string groupName
+    // Helper function to check if document has only one approver left
+    const hasOneApproverLeft = (doc) => {
+      if (!doc.approvers || !doc.approvedBy) return false;
+
+      const totalApprovers = doc.approvers.length;
+      const currentApprovals = doc.approvedBy.length;
+
+      // Check if exactly one approver is left (not fully approved)
+      return totalApprovers > 0 && currentApprovals === totalApprovers - 1;
+    };
+
+    // This includes documents with one approver left (not fully approved)
     const ungroupedDocuments = await Promise.all([
-      // Regular payment documents
+      // Regular payment documents - one approver left
       PaymentDocument.find({
-        status: "Approved",
+        status: "Pending", // Still pending since not fully approved
         $or: [
           { groupDeclarationName: { $exists: false } },
           { groupDeclarationName: "" },
           { groupDeclarationName: null },
         ],
       }),
-      // Advance payment documents
+      // Advance payment documents - one approver left
       AdvancePaymentDocument.find({
-        status: "Approved",
+        status: "Pending", // Still pending since not fully approved
         $or: [
           { groupDeclarationName: { $exists: false } },
           { groupDeclarationName: "" },
@@ -160,7 +171,11 @@ cron.schedule("*/5 * * * *", async () => {
     // Combine both document types
     const allDocuments = [...ungroupedDocuments[0], ...ungroupedDocuments[1]];
 
-    if (allDocuments.length === 0) {
+    // Filter to only include documents with one approver left
+    const documentsWithOneApproverLeft =
+      allDocuments.filter(hasOneApproverLeft);
+
+    if (documentsWithOneApproverLeft.length === 0) {
       return;
     }
 
@@ -168,10 +183,9 @@ cron.schedule("*/5 * * * *", async () => {
     let documentsAssigned = 0;
     const groupsCreated = [];
 
-    // Group documents by date (DD-MM-YYYY)
+    // Group documents by date (DD-MM-YYYY) based on latest approval date
     const documentsByDate = {};
-
-    allDocuments.forEach((doc) => {
+    documentsWithOneApproverLeft.forEach((doc) => {
       // Get the latest approval date for the document
       if (doc.approvedBy && doc.approvedBy.length > 0) {
         // Sort approval dates in descending order
@@ -206,7 +220,7 @@ cron.schedule("*/5 * * * *", async () => {
       // Create a group name based on the date
       const groupDeclarationName = `PTT${date.replace(/-/g, "")}`;
 
-      // Generate a standard declaration for the group
+      // Generate a declaration for documents with one approver left
       const declaration = `Phiếu thanh toán phê duyệt vào ${date}`;
 
       // Check if the group already exists
@@ -243,7 +257,10 @@ cron.schedule("*/5 * * * *", async () => {
       }
     }
   } catch (err) {
-    console.error("Error in automatic document grouping:", err);
+    console.error(
+      "Error in automatic document grouping (one approver left):",
+      err
+    );
   }
 });
 
