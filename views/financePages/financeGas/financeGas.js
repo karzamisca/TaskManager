@@ -346,11 +346,8 @@ function renderYearTable(yearData) {
 // NEW: Function to render a single entry row
 function renderEntryRow(entry, entryIndex, monthName, year) {
   const formatNumber = (num) => {
-    const rounded = Math.ceil(num * 100) / 100; // Round up to 2 decimal places
-    return rounded.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+    const rounded = Math.ceil(Number(num) || 0); // Round up to nearest integer
+    return rounded.toLocaleString("en-US"); // Apply thousand separators
   };
 
   return `
@@ -360,44 +357,44 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
 
       <td><input type="number" class="input-cell" value="${
         entry.purchaseContract?.amount || 0
-      }" data-field="purchaseContract.amount" step="0.01"></td>
+      }" data-field="purchaseContract.amount" step="1"></td>
       <td><input type="number" class="input-cell" value="${
         entry.purchaseContract?.unitCost || 0
-      }" data-field="purchaseContract.unitCost" step="0.01"></td>
+      }" data-field="purchaseContract.unitCost" step="1"></td>
       <td class="calculated-field">${formatNumber(
         entry.purchaseContract?.totalCost || 0
       )}</td>
 
       <td><input type="number" class="input-cell" value="${
         entry.saleContract?.amount || 0
-      }" data-field="saleContract.amount" step="0.01"></td>
+      }" data-field="saleContract.amount" step="1"></td>
       <td><input type="number" class="input-cell" value="${
         entry.saleContract?.unitCost || 0
-      }" data-field="saleContract.unitCost" step="0.01"></td>
+      }" data-field="saleContract.unitCost" step="1"></td>
       <td class="calculated-field">${formatNumber(
         entry.saleContract?.totalCost || 0
       )}</td>
 
       <td><input type="number" class="input-cell" value="${
         entry.salary || 0
-      }" data-field="salary" step="0.01"></td>
+      }" data-field="salary" step="1"></td>
       <td><input type="number" class="input-cell" value="${
         entry.transportCost || 0
-      }" data-field="transportCost" step="0.01"></td>
+      }" data-field="transportCost" step="1"></td>
       <td><input type="number" class="input-cell" value="${
         entry.currencyExchangeRate || 1
-      }" data-field="currencyExchangeRate" step="0.0001"></td>
+      }" data-field="currencyExchangeRate" step="1"></td>
 
       <td><input type="number" class="input-cell" value="${
         entry.commissionRatePurchase || 0
-      }" data-field="commissionRatePurchase" step="0.0001"></td>
+      }" data-field="commissionRatePurchase" step="1"></td>
       <td class="calculated-field">${formatNumber(
         entry.commissionBonus?.purchase || 0
       )}</td>
 
       <td><input type="number" class="input-cell" value="${
         entry.commissionRateSale || 0
-      }" data-field="commissionRateSale" step="0.0001"></td>
+      }" data-field="commissionRateSale" step="1"></td>
       <td class="calculated-field">${formatNumber(
         entry.commissionBonus?.sale || 0
       )}</td>
@@ -415,11 +412,8 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
 // NEW: Function to render month total row
 function renderMonthTotalRow(monthName, entryCount, totals) {
   const formatNumber = (num) => {
-    const rounded = Math.ceil(num * 100) / 100; // Round up to 2 decimal places
-    return rounded.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+    const rounded = Math.ceil(Number(num) || 0); // Round up to nearest integer
+    return rounded.toLocaleString("en-US"); // Apply thousand separators
   };
 
   return `
@@ -732,11 +726,8 @@ function updateRowCalculations(row) {
   const saleCommission = saleAmount * saleCommRate * exchangeRate;
 
   const formatNumber = (num) => {
-    const rounded = Math.ceil(num * 100) / 100; // Round up to 2 decimal places
-    return rounded.toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+    const rounded = Math.ceil(Number(num) || 0); // Round up to nearest integer
+    return rounded.toLocaleString("en-US"); // Apply thousand separators
   };
 
   const calculatedFields = row.querySelectorAll(".calculated-field");
@@ -803,11 +794,8 @@ function updateMonthTotalsInPlace(monthName, year) {
 
   if (totalRow) {
     const formatNumber = (num) => {
-      const rounded = Math.ceil(num * 100) / 100; // Round up to 2 decimal places
-      return rounded.toLocaleString("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
+      const rounded = Math.ceil(Number(num)) || 0; // Round up to nearest integer
+      return rounded.toLocaleString("en-US"); // Apply thousand separators
     };
 
     const cells = totalRow.querySelectorAll("td strong");
