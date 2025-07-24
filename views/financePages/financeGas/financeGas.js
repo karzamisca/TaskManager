@@ -22,6 +22,30 @@ document.addEventListener("DOMContentLoaded", function () {
   setupEventListeners();
 });
 
+// Utility functions for number formatting
+function formatNumberWithCommas(num, isOutput = false) {
+  const numericValue = Number(num) || 0;
+  // For outputs (calculated fields), round up. For inputs, keep decimal precision
+  const finalValue = isOutput ? Math.ceil(numericValue) : numericValue;
+  return finalValue.toLocaleString("en-US", {
+    minimumFractionDigits: isOutput ? 0 : undefined,
+    maximumFractionDigits: isOutput ? 0 : undefined,
+  });
+}
+
+function parseNumberFromInput(value) {
+  // Remove commas and parse as float, maintaining decimal precision
+  return parseFloat(value.replace(/,/g, "")) || 0;
+}
+
+function formatInputValue(input, value) {
+  const numericValue = parseNumberFromInput(value);
+  // For input fields, preserve decimals
+  const formattedValue = numericValue.toLocaleString("en-US");
+  input.value = formattedValue;
+  return numericValue;
+}
+
 function setupEventListeners() {
   document
     .getElementById("addCenterForm")
@@ -345,58 +369,57 @@ function renderYearTable(yearData) {
 
 // NEW: Function to render a single entry row
 function renderEntryRow(entry, entryIndex, monthName, year) {
-  const formatNumber = (num) => {
-    const rounded = Math.ceil(Number(num) || 0); // Round up to nearest integer
-    return rounded.toLocaleString("en-US"); // Apply thousand separators
-  };
-
   return `
     <tr data-month="${monthName}" data-year="${year}" data-entry="${entryIndex}">
       <td>${entryIndex === 0 ? monthName : ""}</td>
       <td>${entryIndex + 1}</td>
 
-      <td><input type="number" class="input-cell" value="${
+      <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.purchaseContract?.amount || 0
-      }" data-field="purchaseContract.amount" step="1"></td>
-      <td><input type="number" class="input-cell" value="${
+      )}" data-field="purchaseContract.amount"></td>
+      <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.purchaseContract?.unitCost || 0
-      }" data-field="purchaseContract.unitCost" step="1"></td>
-      <td class="calculated-field">${formatNumber(
-        entry.purchaseContract?.totalCost || 0
+      )}" data-field="purchaseContract.unitCost"></td>
+      <td class="calculated-field">${formatNumberWithCommas(
+        entry.purchaseContract?.totalCost || 0,
+        true
       )}</td>
 
-      <td><input type="number" class="input-cell" value="${
+      <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.saleContract?.amount || 0
-      }" data-field="saleContract.amount" step="1"></td>
-      <td><input type="number" class="input-cell" value="${
+      )}" data-field="saleContract.amount"></td>
+      <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.saleContract?.unitCost || 0
-      }" data-field="saleContract.unitCost" step="1"></td>
-      <td class="calculated-field">${formatNumber(
-        entry.saleContract?.totalCost || 0
+      )}" data-field="saleContract.unitCost"></td>
+      <td class="calculated-field">${formatNumberWithCommas(
+        entry.saleContract?.totalCost || 0,
+        true
       )}</td>
 
-      <td><input type="number" class="input-cell" value="${
+      <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.salary || 0
-      }" data-field="salary" step="1"></td>
-      <td><input type="number" class="input-cell" value="${
+      )}" data-field="salary"></td>
+      <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.transportCost || 0
-      }" data-field="transportCost" step="1"></td>
-      <td><input type="number" class="input-cell" value="${
+      )}" data-field="transportCost"></td>
+      <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.currencyExchangeRate || 1
-      }" data-field="currencyExchangeRate" step="1"></td>
+      )}" data-field="currencyExchangeRate"></td>
 
-      <td><input type="number" class="input-cell" value="${
+      <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.commissionRatePurchase || 0
-      }" data-field="commissionRatePurchase" step="1"></td>
-      <td class="calculated-field">${formatNumber(
-        entry.commissionBonus?.purchase || 0
+      )}" data-field="commissionRatePurchase"></td>
+      <td class="calculated-field">${formatNumberWithCommas(
+        entry.commissionBonus?.purchase || 0,
+        true
       )}</td>
 
-      <td><input type="number" class="input-cell" value="${
+      <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.commissionRateSale || 0
-      }" data-field="commissionRateSale" step="1"></td>
-      <td class="calculated-field">${formatNumber(
-        entry.commissionBonus?.sale || 0
+      )}" data-field="commissionRateSale"></td>
+      <td class="calculated-field">${formatNumberWithCommas(
+        entry.commissionBonus?.sale || 0,
+        true
       )}</td>
 
       <td>
@@ -411,28 +434,44 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
 
 // NEW: Function to render month total row
 function renderMonthTotalRow(monthName, entryCount, totals) {
-  const formatNumber = (num) => {
-    const rounded = Math.ceil(Number(num) || 0); // Round up to nearest integer
-    return rounded.toLocaleString("en-US"); // Apply thousand separators
-  };
-
   return `
     <tr class="total-row" data-month="${monthName}">
       <td><strong>Tổng ${monthName}</strong></td>
       <td><strong>${entryCount}</strong></td>
-      <td><strong>${formatNumber(totals.purchaseAmount)}</strong></td>
+      <td><strong>${formatNumberWithCommas(
+        totals.purchaseAmount,
+        true
+      )}</strong></td>
       <td>-</td>
-      <td><strong>${formatNumber(totals.purchaseTotal)}</strong></td>
-      <td><strong>${formatNumber(totals.saleAmount)}</strong></td>
+      <td><strong>${formatNumberWithCommas(
+        totals.purchaseTotal,
+        true
+      )}</strong></td>
+      <td><strong>${formatNumberWithCommas(
+        totals.saleAmount,
+        true
+      )}</strong></td>
       <td>-</td>
-      <td><strong>${formatNumber(totals.saleTotal)}</strong></td>
-      <td><strong>${formatNumber(totals.salary)}</strong></td>
-      <td><strong>${formatNumber(totals.transport)}</strong></td>
+      <td><strong>${formatNumberWithCommas(
+        totals.saleTotal,
+        true
+      )}</strong></td>
+      <td><strong>${formatNumberWithCommas(totals.salary, true)}</strong></td>
+      <td><strong>${formatNumberWithCommas(
+        totals.transport,
+        true
+      )}</strong></td>
       <td>-</td>
       <td>-</td>
-      <td><strong>${formatNumber(totals.commissionPurchase)}</strong></td>
+      <td><strong>${formatNumberWithCommas(
+        totals.commissionPurchase,
+        true
+      )}</strong></td>
       <td>-</td>
-      <td><strong>${formatNumber(totals.commissionSale)}</strong></td>
+      <td><strong>${formatNumberWithCommas(
+        totals.commissionSale,
+        true
+      )}</strong></td>
       <td></td>
     </tr>
   `;
@@ -478,9 +517,63 @@ function setupTableEventListenersForContainer(container) {
     btn.addEventListener("click", handleDeleteEntry);
   });
 
-  container.querySelectorAll(".input-cell").forEach((input) => {
-    input.addEventListener("input", handleInputChange);
-    input.addEventListener("blur", handleInputBlur);
+  // Enhanced input handling for number inputs with thousand separators
+  container.querySelectorAll(".number-input").forEach((input) => {
+    // Format input on focus (select all for easy editing)
+    input.addEventListener("focus", function (e) {
+      // Remove commas for easier editing
+      const numericValue = parseNumberFromInput(e.target.value);
+      e.target.value = numericValue.toString();
+      e.target.select(); // Select all text for easy replacement
+    });
+
+    // Real-time input formatting and calculation
+    input.addEventListener("input", function (e) {
+      // Allow only numbers, commas, and decimal points during typing
+      let value = e.target.value.replace(/[^\d.,]/g, "");
+
+      // Prevent multiple decimal points
+      const parts = value.split(".");
+      if (parts.length > 2) {
+        value = parts[0] + "." + parts.slice(1).join("");
+      }
+
+      e.target.value = value;
+      handleInputChange(e);
+    });
+
+    // Format with commas on blur
+    input.addEventListener("blur", function (e) {
+      const numericValue = formatInputValue(e.target, e.target.value);
+      handleInputBlur(e);
+    });
+
+    // Handle keyboard events
+    input.addEventListener("keydown", function (e) {
+      // Allow: backspace, delete, tab, escape, enter
+      if (
+        [46, 8, 9, 27, 13].indexOf(e.keyCode) !== -1 ||
+        // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+        (e.keyCode === 65 && e.ctrlKey === true) ||
+        (e.keyCode === 67 && e.ctrlKey === true) ||
+        (e.keyCode === 86 && e.ctrlKey === true) ||
+        (e.keyCode === 88 && e.ctrlKey === true) ||
+        // Allow: home, end, left, right
+        (e.keyCode >= 35 && e.keyCode <= 39)
+      ) {
+        return;
+      }
+      // Ensure that it is a number and stop the keypress
+      if (
+        (e.shiftKey || e.keyCode < 48 || e.keyCode > 57) &&
+        (e.keyCode < 96 || e.keyCode > 105) &&
+        e.keyCode !== 190 &&
+        e.keyCode !== 188
+      ) {
+        // Allow decimal point and comma
+        e.preventDefault();
+      }
+    });
   });
 }
 
@@ -693,48 +786,45 @@ function handleInputChange(e) {
 }
 
 function updateRowCalculations(row) {
-  const purchaseAmount =
-    parseFloat(
-      row.querySelector('[data-field="purchaseContract.amount"]').value
-    ) || 0;
-  const purchaseUnitCost =
-    parseFloat(
-      row.querySelector('[data-field="purchaseContract.unitCost"]').value
-    ) || 0;
-  const saleAmount =
-    parseFloat(row.querySelector('[data-field="saleContract.amount"]').value) ||
-    0;
-  const saleUnitCost =
-    parseFloat(
-      row.querySelector('[data-field="saleContract.unitCost"]').value
-    ) || 0;
+  const purchaseAmount = parseNumberFromInput(
+    row.querySelector('[data-field="purchaseContract.amount"]').value
+  );
+  const purchaseUnitCost = parseNumberFromInput(
+    row.querySelector('[data-field="purchaseContract.unitCost"]').value
+  );
+  const saleAmount = parseNumberFromInput(
+    row.querySelector('[data-field="saleContract.amount"]').value
+  );
+  const saleUnitCost = parseNumberFromInput(
+    row.querySelector('[data-field="saleContract.unitCost"]').value
+  );
   const exchangeRate =
-    parseFloat(
+    parseNumberFromInput(
       row.querySelector('[data-field="currencyExchangeRate"]').value
     ) || 1;
-  const purchaseCommRate =
-    parseFloat(
-      row.querySelector('[data-field="commissionRatePurchase"]').value
-    ) || 0;
-  const saleCommRate =
-    parseFloat(row.querySelector('[data-field="commissionRateSale"]').value) ||
-    0;
+  const purchaseCommRate = parseNumberFromInput(
+    row.querySelector('[data-field="commissionRatePurchase"]').value
+  );
+  const saleCommRate = parseNumberFromInput(
+    row.querySelector('[data-field="commissionRateSale"]').value
+  );
 
   const purchaseTotal = purchaseAmount * purchaseUnitCost;
   const saleTotal = saleAmount * saleUnitCost;
   const purchaseCommission = purchaseAmount * purchaseCommRate * exchangeRate;
   const saleCommission = saleAmount * saleCommRate * exchangeRate;
 
-  const formatNumber = (num) => {
-    const rounded = Math.ceil(Number(num) || 0); // Round up to nearest integer
-    return rounded.toLocaleString("en-US"); // Apply thousand separators
-  };
-
   const calculatedFields = row.querySelectorAll(".calculated-field");
-  calculatedFields[0].textContent = formatNumber(purchaseTotal);
-  calculatedFields[1].textContent = formatNumber(saleTotal);
-  calculatedFields[2].textContent = formatNumber(purchaseCommission);
-  calculatedFields[3].textContent = formatNumber(saleCommission);
+  calculatedFields[0].textContent = formatNumberWithCommas(purchaseTotal, true);
+  calculatedFields[1].textContent = formatNumberWithCommas(saleTotal, true);
+  calculatedFields[2].textContent = formatNumberWithCommas(
+    purchaseCommission,
+    true
+  );
+  calculatedFields[3].textContent = formatNumberWithCommas(
+    saleCommission,
+    true
+  );
 }
 
 async function handleInputBlur(e) {
@@ -793,58 +883,60 @@ function updateMonthTotalsInPlace(monthName, year) {
   );
 
   if (totalRow) {
-    const formatNumber = (num) => {
-      const rounded = Math.ceil(Number(num)) || 0; // Round up to nearest integer
-      return rounded.toLocaleString("en-US"); // Apply thousand separators
-    };
-
     const cells = totalRow.querySelectorAll("td strong");
     // Verify we have enough cells before accessing them
     if (cells.length >= 15) {
       cells[1].textContent = monthData.entries.length;
-      cells[2].textContent = formatNumber(totals.purchaseAmount);
-      cells[4].textContent = formatNumber(totals.purchaseTotal);
-      cells[5].textContent = formatNumber(totals.saleAmount);
-      cells[7].textContent = formatNumber(totals.saleTotal);
-      cells[8].textContent = formatNumber(totals.salary);
-      cells[9].textContent = formatNumber(totals.transport);
-      cells[12].textContent = formatNumber(totals.commissionPurchase);
-      cells[14].textContent = formatNumber(totals.commissionSale);
+      cells[2].textContent = formatNumberWithCommas(
+        totals.purchaseAmount,
+        true
+      );
+      cells[4].textContent = formatNumberWithCommas(totals.purchaseTotal, true);
+      cells[5].textContent = formatNumberWithCommas(totals.saleAmount, true);
+      cells[7].textContent = formatNumberWithCommas(totals.saleTotal, true);
+      cells[8].textContent = formatNumberWithCommas(totals.salary, true);
+      cells[9].textContent = formatNumberWithCommas(totals.transport, true);
+      cells[12].textContent = formatNumberWithCommas(
+        totals.commissionPurchase,
+        true
+      );
+      cells[14].textContent = formatNumberWithCommas(
+        totals.commissionSale,
+        true
+      );
     }
   }
 }
 
 function collectRowData(row) {
-  const purchaseAmount =
-    parseFloat(
-      row.querySelector('[data-field="purchaseContract.amount"]').value
-    ) || 0;
-  const purchaseUnitCost =
-    parseFloat(
-      row.querySelector('[data-field="purchaseContract.unitCost"]').value
-    ) || 0;
-  const saleAmount =
-    parseFloat(row.querySelector('[data-field="saleContract.amount"]').value) ||
-    0;
-  const saleUnitCost =
-    parseFloat(
-      row.querySelector('[data-field="saleContract.unitCost"]').value
-    ) || 0;
-  const salary =
-    parseFloat(row.querySelector('[data-field="salary"]').value) || 0;
-  const transportCost =
-    parseFloat(row.querySelector('[data-field="transportCost"]').value) || 0;
+  const purchaseAmount = parseNumberFromInput(
+    row.querySelector('[data-field="purchaseContract.amount"]').value
+  );
+  const purchaseUnitCost = parseNumberFromInput(
+    row.querySelector('[data-field="purchaseContract.unitCost"]').value
+  );
+  const saleAmount = parseNumberFromInput(
+    row.querySelector('[data-field="saleContract.amount"]').value
+  );
+  const saleUnitCost = parseNumberFromInput(
+    row.querySelector('[data-field="saleContract.unitCost"]').value
+  );
+  const salary = parseNumberFromInput(
+    row.querySelector('[data-field="salary"]').value
+  );
+  const transportCost = parseNumberFromInput(
+    row.querySelector('[data-field="transportCost"]').value
+  );
   const exchangeRate =
-    parseFloat(
+    parseNumberFromInput(
       row.querySelector('[data-field="currencyExchangeRate"]').value
     ) || 1;
-  const purchaseCommRate =
-    parseFloat(
-      row.querySelector('[data-field="commissionRatePurchase"]').value
-    ) || 0;
-  const saleCommRate =
-    parseFloat(row.querySelector('[data-field="commissionRateSale"]').value) ||
-    0;
+  const purchaseCommRate = parseNumberFromInput(
+    row.querySelector('[data-field="commissionRatePurchase"]').value
+  );
+  const saleCommRate = parseNumberFromInput(
+    row.querySelector('[data-field="commissionRateSale"]').value
+  );
 
   return {
     purchaseContract: {

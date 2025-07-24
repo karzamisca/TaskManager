@@ -74,17 +74,51 @@ body {
   text-align: right;
   padding: 2px 4px;
   font-size: 13px;
+  transition: all 0.2s ease;
 }
 
 .input-cell:focus {
   background-color: #e3f2fd;
   outline: 2px solid #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+  border-radius: 3px;
+}
+
+/* Enhanced styling for number inputs */
+.number-input {
+  font-family: "Courier New", monospace;
+  font-weight: 500;
+}
+
+.number-input:focus {
+  background-color: #fff3e0;
+  outline: 2px solid #ff9800;
+  box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.2);
+}
+
+/* Visual indicator for edited fields */
+.number-input.modified {
+  background-color: #f0f8f0;
+  border-left: 3px solid #4caf50;
+}
+
+/* Error state for invalid inputs */
+.number-input.error {
+  background-color: #ffebee;
+  outline: 2px solid #f44336;
+  box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.2);
 }
 
 .btn-action {
   padding: 2px 6px;
   font-size: 11px;
   margin: 0 1px;
+  transition: all 0.2s ease;
+}
+
+.btn-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .center-selector {
@@ -97,6 +131,11 @@ body {
 .year-tabs .nav-link {
   border-radius: 4px 4px 0 0;
   margin-right: 2px;
+  transition: all 0.2s ease;
+}
+
+.year-tabs .nav-link:hover {
+  background-color: #e9ecef;
 }
 
 .year-tabs .nav-link.active {
@@ -108,6 +147,9 @@ body {
 .calculated-field {
   background-color: #f8f9fa;
   font-style: italic;
+  font-family: "Courier New", monospace;
+  font-weight: 600;
+  color: #495057;
 }
 
 .negative-value {
@@ -124,4 +166,99 @@ body {
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin-bottom: 15px;
+}
+
+/* Loading states */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Improved responsiveness */
+@media (max-width: 768px) {
+  .table-container {
+    max-height: 400px;
+  }
+
+  .table-excel th,
+  .table-excel td {
+    padding: 4px;
+    font-size: 11px;
+  }
+
+  .input-cell {
+    font-size: 11px;
+  }
+}
+
+/* Highlight row on hover */
+.table-excel tbody tr:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+}
+
+/* Better visual separation for month sections */
+.table-excel tr[data-month]:first-child td {
+  border-top: 2px solid #007bff;
+}
+
+/* Style for add entry buttons */
+.add-entry-btn {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  border: none;
+  color: white;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.add-entry-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+  color: white;
+}
+
+/* Style for delete buttons */
+.delete-entry-btn {
+  background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+  border: none;
+  color: white;
+  font-weight: bold;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.delete-entry-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.4);
+  color: white;
 }
