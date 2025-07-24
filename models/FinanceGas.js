@@ -54,7 +54,8 @@ monthEntrySchema.pre("save", function (next) {
     this.commissionBonus.purchase =
       this.commissionRatePurchase *
       this.purchaseContract.amount *
-      this.currencyExchangeRate;
+      this.purchaseContract.unitCost;
+    this.currencyExchangeRate;
   }
 
   if (
@@ -66,7 +67,8 @@ monthEntrySchema.pre("save", function (next) {
     this.commissionBonus.sale =
       this.commissionRateSale *
       this.saleContract.amount *
-      this.currencyExchangeRate;
+      this.saleContract.unitCost;
+    this.currencyExchangeRate;
   }
 
   next();
