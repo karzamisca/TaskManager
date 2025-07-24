@@ -39,6 +39,7 @@ exports.getSftpAccountingViews = (req, res) => {
       "deputyDirector",
       "headOfAccounting",
       "captainOfAccounting",
+      "submitterOfAccounting",
     ].includes(req.user.role)
   ) {
     return res
