@@ -622,25 +622,25 @@ function renderPagination() {
     paginationHTML += `
       <div class="pagination-controls">
         <button onclick="changePage(1)" ${currentPage === 1 ? "disabled" : ""}>
-          &laquo; First
+          &laquo; Đầu
         </button>
         <button onclick="changePage(${currentPage - 1})" ${
       currentPage === 1 ? "disabled" : ""
     }>
-          &lsaquo; Prev
+          &lsaquo; Trước
         </button>
         <span class="page-info">
-          Trang/Page ${currentPage} / ${totalPages}
+          Trang ${currentPage} / ${totalPages}
         </span>
         <button onclick="changePage(${currentPage + 1})" ${
       currentPage === totalPages ? "disabled" : ""
     }>
-          Next &rsaquo;
+          Sau &rsaquo;
         </button>
         <button onclick="changePage(${totalPages})" ${
       currentPage === totalPages ? "disabled" : ""
     }>
-          Last &raquo;
+          Cuối &raquo;
         </button>
       </div>
     `;

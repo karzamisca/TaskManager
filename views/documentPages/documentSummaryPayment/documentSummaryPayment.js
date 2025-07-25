@@ -736,7 +736,7 @@ const renderPagination = () => {
           <i class="fas fa-angle-left"></i> Trang trước
         </button>
         <span class="page-info">
-          Trang/Page ${state.currentPage} / ${state.totalPages}
+          Trang ${state.currentPage} / ${state.totalPages}
         </span>
         <div class="go-to-page">
           <span>Đến trang:</span>
