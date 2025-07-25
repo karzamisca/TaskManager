@@ -785,7 +785,7 @@ function addEditModal() {
         ">&times;</span>
         
         <h2 style="font-size: clamp(18px, 2vw, 24px); margin-bottom: clamp(16px, 2vw, 24px);">
-          Chỉnh sửa phiếu thu lại tạm ứng
+          Chỉnh sửa phiếu thu hồi tạm ứng
         </h2>
         
         <form id="editForm" onsubmit="handleEditSubmit(event)">
@@ -1193,7 +1193,7 @@ async function showFullView(docId) {
             }</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Số tiền thu lại tạm ứng:</span>
+            <span class="detail-label">Số tiền thu hồi tạm ứng:</span>
             <span class="detail-value">${
               doc.advancePaymentReclaim?.toLocaleString() || "Không có"
             }</span>

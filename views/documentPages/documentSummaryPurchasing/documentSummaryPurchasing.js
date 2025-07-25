@@ -1258,13 +1258,13 @@ const showDocumentsContainingPurchasing = async (purchasingId) => {
               </div>
               
               <div class="related-docs-section">
-                <h3><i class="fas fa-exchange-alt"></i> Thu lại tạm ứng</h3>
+                <h3><i class="fas fa-exchange-alt"></i> Thu hồi tạm ứng</h3>
                 ${
                   data.advancePaymentReclaimDocuments.length > 0
                     ? renderAdvancePaymentReclaimDocuments(
                         data.advancePaymentReclaimDocuments
                       )
-                    : "<p>Không có phiếu thu lại tạm ứng nào liên quan</p>"
+                    : "<p>Không có phiếu thu hồi tạm ứng nào liên quan</p>"
                 }
               </div>
             </div>
@@ -1370,7 +1370,7 @@ const renderAdvancePaymentReclaimDocuments = (reclaimDocs) => {
         .map(
           (doc) => `
           <div class="document-card">
-            <h4>Phiếu thu lại tạm ứng</h4>
+            <h4>Phiếu thu hồi tạm ứng</h4>
             <div class="document-details">
               <div><strong>Tem:</strong> ${doc.tag}</div>
               <div><strong>Tên:</strong> ${doc.name}</div>
@@ -1378,7 +1378,7 @@ const renderAdvancePaymentReclaimDocuments = (reclaimDocs) => {
               <div><strong>Phương thức thanh toán:</strong> ${
                 doc.paymentMethod
               }</div>
-              <div><strong>Thu lại tạm ứng:</strong> ${
+              <div><strong>Thu hồi tạm ứng:</strong> ${
                 doc.advancePaymentReclaim?.toLocaleString() || "-"
               }</div>
               <div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div>

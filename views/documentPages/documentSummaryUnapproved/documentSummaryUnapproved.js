@@ -287,7 +287,7 @@ function renderDocumentDetails(type, document) {
             </span></p>
             ${
               document.costCenter
-                ? `<p><strong>Trung tâm chi phí:</strong> ${document.costCenter}</p>`
+                ? `<p><strong>Trạm:</strong> ${document.costCenter}</p>`
                 : ""
             }
           </div>
@@ -391,7 +391,7 @@ async function showFullView(type, id) {
               </span></p>
               ${
                 document.costCenter
-                  ? `<p><strong>Trung tâm chi phí:</strong> ${document.costCenter}</p>`
+                  ? `<p><strong>Trạm:</strong> ${document.costCenter}</p>`
                   : ""
               }
             </div>
@@ -567,6 +567,7 @@ function addPaymentFullView(document) {
   let html = `
     <hr>
     <h6>Thông tin thanh toán</h6>
+    <p><strong>Nội dung:</strong> ${document.content}</p>
     <p><strong>Phương thức thanh toán:</strong> ${document.paymentMethod}</p>
     <p><strong>Tổng thanh toán:</strong> ${formatCurrency(
       document.totalPayment
@@ -891,6 +892,7 @@ function addAdvancePaymentFullView(document, isReclaim) {
   let html = `
     <hr>
     <h6>Thông tin ${title}</h6>
+    <p><strong>Nội dung:</strong> ${document.content}</p>
     <p><strong>Số tiền:</strong> ${formatCurrency(document[amountField])}</p>
     <p><strong>Phương thức thanh toán:</strong> ${document.paymentMethod}</p>
     <p><strong>Hạn thanh toán:</strong> ${
@@ -1158,6 +1160,7 @@ function addPaymentDetails(document) {
   let html = `
     <hr>
     <h6>Thông tin thanh toán</h6>
+    <p><strong>Nội dung:</strong> ${document.content}</p>
     <p><strong>Phương thức thanh toán:</strong> ${document.paymentMethod}</p>
     <p><strong>Tổng thanh toán:</strong> ${formatCurrency(
       document.totalPayment
@@ -1303,6 +1306,7 @@ function addAdvancePaymentDetails(document, type) {
   let html = `
     <hr>
     <h6>Thông tin ${title}</h6>
+    <p><strong>Nội dung:</strong> ${document.content}</p>
     <p><strong>Số tiền:</strong> ${formatCurrency(document[amountField])}</p>
     <p><strong>Phương thức thanh toán:</strong> ${document.paymentMethod}</p>
     <p><strong>Hạn thanh toán:</strong> ${
