@@ -838,13 +838,17 @@ function addEditModal() {
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
             <label for="editPaymentMethod" style="display: block; margin-bottom: 0.5em;">Hình thức thanh toán:</label>
-            <input type="text" id="editPaymentMethod" required style="
+            <select id="editPaymentMethod" required style="
               width: 100%;
               padding: clamp(6px, 1vw, 12px);
               font-size: inherit;
               border: 1px solid var(--border-color);
               border-radius: clamp(3px, 0.5vw, 6px);
             ">
+              <option value="Tiền mặt">Tiền mặt</option>
+              <option value="Chuyển khoản">Chuyển khoản</option>
+              <option value="Hợp đồng">Hợp đồng</option>
+            </select>
           </div>
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">

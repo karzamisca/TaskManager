@@ -159,7 +159,11 @@ function handleAdvancePaymentDocument() {
         <option value="">Chọn một trạm</option>
       </select>
       <label for="paymentMethod">Hình thức thanh toán</label>
-      <input type="text" name="paymentMethod" required />
+      <select name="paymentMethod">
+        <option value="Tiền mặt">Tiền mặt</option>
+        <option value="Chuyển khoản">Chuyển khoản</option>
+        <option value="Hợp đồng">Hợp đồng</option>
+      </select>
       <label for="advancePayment">Thanh toán trước:</label>
       <input type="number" step="0.01" name="advancePayment"/>
       <label for="paymentDeadline">Thời hạn trả</label>
@@ -203,7 +207,11 @@ function handleAdvancePaymentReclaimDocument() {
         <option value="">Chọn một trạm</option>
       </select>
       <label for="paymentMethod">Hình thức thanh toán</label>
-      <input type="text" name="paymentMethod" required />
+      <select name="paymentMethod">
+        <option value="Tiền mặt">Tiền mặt</option>
+        <option value="Chuyển khoản">Chuyển khoản</option>
+        <option value="Hợp đồng">Hợp đồng</option>
+      </select>
       <label for="advancePaymentReclaim">Số tiền thu lại:</label>
       <input type="number" step="0.01" name="advancePaymentReclaim"/>
       <label for="paymentDeadline">Thời hạn trả</label>
