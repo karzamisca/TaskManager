@@ -23,12 +23,22 @@ const sftpConfig = {
         cb(null, uploadDir);
       },
       filename: function (req, file, cb) {
-        // Keep original filename with timestamp to avoid conflicts
+        // Ensure the original filename is properly decoded
+        const originalName = Buffer.from(file.originalname, "latin1").toString(
+          "utf8"
+        );
         const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-        cb(null, uniqueSuffix + "-" + file.originalname);
+        cb(null, uniqueSuffix + "-" + originalName);
       },
     }),
-    // No file size limits
+    // Add file filter to handle encoding
+    fileFilter: function (req, file, cb) {
+      // Ensure proper encoding handling
+      file.originalname = Buffer.from(file.originalname, "latin1").toString(
+        "utf8"
+      );
+      cb(null, true);
+    },
   },
   paths: {
     tempDir: "temp",
