@@ -164,7 +164,7 @@ function handleAdvancePaymentDocument() {
         <option value="Chuyển khoản">Chuyển khoản</option>
         <option value="Hợp đồng">Hợp đồng</option>
       </select>
-      <label for="advancePayment">Thanh toán trước:</label>
+      <label for="advancePayment">Tạm ứng:</label>
       <input type="number" step="0.01" name="advancePayment"/>
       <label for="paymentDeadline">Thời hạn trả</label>
       <input type="text" name="paymentDeadline" id="paymentDeadline"/>

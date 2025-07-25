@@ -709,7 +709,7 @@ function addEditModal() {
           </div>
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label for="editAdvancePayment" style="display: block; margin-bottom: 0.5em;">Tạm ứng/Advance Payment:</label>
+            <label for="editAdvancePayment" style="display: block; margin-bottom: 0.5em;">Tạm ứng:</label>
             <input type="number" id="editAdvancePayment" required style="
               width: 100%;
               padding: clamp(6px, 1vw, 12px);
@@ -720,7 +720,7 @@ function addEditModal() {
           </div>
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label for="editDeadline" style="display: block; margin-bottom: 0.5em;">Hạn thanh toán/Payment Deadline (DD-MM-YYYY):</label>
+            <label for="editDeadline" style="display: block; margin-bottom: 0.5em;">Hạn thanh toán (DD-MM-YYYY):</label>
             <input type="text" 
                   id="editDeadline" 
                   required 
