@@ -1,87 +1,185 @@
-/* views\messagePages\messageMain.css */
+/* views/financePages/financeGas/financeGas.css */
+
+/* CSS Custom Properties for Light/Dark Mode */
+:root {
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e9ecef;
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --text-muted: #6c757d;
+  --border-color: #dee2e6;
+  --border-secondary: #ced4da;
+  --shadow-light: rgba(0, 0, 0, 0.1);
+  --shadow-medium: rgba(0, 0, 0, 0.15);
+  --accent-blue: #0d6efd;
+  --accent-blue-dark: #0b5ed7;
+  --accent-green: #28a745;
+  --accent-green-light: #20c997;
+  --accent-red: #dc3545;
+  --accent-orange: #fd7e14;
+  --accent-yellow: #ffc107;
+  --accent-yellow-light: #fff3cd;
+  --success-bg: #e8f5e9;
+  --success-border: #4caf50;
+  --warning-bg: #fff3e0;
+  --warning-border: #ff9800;
+  --error-bg: #ffebee;
+  --error-border: #f44336;
+  --focus-blue: #e3f2fd;
+  --focus-blue-border: #2196f3;
+  --hover-overlay: rgba(0, 123, 255, 0.05);
+}
+
+/* Dark Mode Variables */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #2d2d2d;
+    --bg-tertiary: #404040;
+    --text-primary: #ffffff;
+    --text-secondary: #e0e0e0;
+    --text-muted: #a0a0a0;
+    --border-color: #4a4a4a;
+    --border-secondary: #5a5a5a;
+    --shadow-light: rgba(0, 0, 0, 0.3);
+    --shadow-medium: rgba(0, 0, 0, 0.4);
+    --accent-blue: #4dabf7;
+    --accent-blue-dark: #339af0;
+    --accent-green: #51cf66;
+    --accent-green-light: #63e6be;
+    --accent-red: #ff6b6b;
+    --accent-orange: #ff8787;
+    --accent-yellow: #ffd43b;
+    --accent-yellow-light: #2d2a1f;
+    --success-bg: #1a3d1a;
+    --success-border: #51cf66;
+    --warning-bg: #2d2416;
+    --warning-border: #ffd43b;
+    --error-bg: #3d1a1a;
+    --error-border: #ff6b6b;
+    --focus-blue: #1a2332;
+    --focus-blue-border: #4dabf7;
+    --hover-overlay: rgba(77, 171, 247, 0.1);
+  }
+}
+
+/* Base Styles with Enhanced Scaling */
 body {
-  background-color: #f8f9fa;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-size: clamp(13px, 1.2vw, 16px);
+  line-height: 1.5;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Enhanced Container Scaling */
+.container-fluid {
+  max-width: 100%;
+  padding: clamp(8px, 2vw, 24px);
 }
 
 .finance-table {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background: var(--bg-secondary);
+  border-radius: clamp(6px, 1vw, 12px);
+  box-shadow: 0 2px 10px var(--shadow-light);
   overflow: hidden;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
 }
 
 .table-excel {
   margin-bottom: 0;
-  font-size: 13px;
+  font-size: clamp(11px, 1vw, 14px);
+  color: var(--text-primary);
 }
 
 .table-excel th {
-  background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
-  border: 1px solid #dee2e6;
+  background: linear-gradient(
+    180deg,
+    var(--bg-tertiary) 0%,
+    var(--border-color) 100%
+  );
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
   font-weight: 600;
-  font-size: 12px;
+  font-size: clamp(10px, 0.9vw, 13px);
   text-align: center;
-  padding: 8px 6px;
+  padding: clamp(6px, 1vw, 10px) clamp(4px, 0.8vw, 8px);
   white-space: nowrap;
   position: sticky;
   top: 0;
   z-index: 10;
+  transition: all 0.3s ease;
 }
 
 .table-excel td {
-  border: 1px solid #dee2e6;
-  padding: 6px;
+  border: 1px solid var(--border-color);
+  padding: clamp(4px, 0.8vw, 8px);
   text-align: right;
   vertical-align: middle;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
 }
 
 .table-excel td:first-child {
   text-align: left;
   font-weight: 500;
-  background-color: #f8f9fa;
+  background-color: var(--bg-tertiary);
   position: sticky;
   left: 0;
   z-index: 5;
 }
 
 .table-excel .month-header {
-  background: linear-gradient(180deg, #0d6efd 0%, #0b5ed7 100%);
+  background: linear-gradient(
+    180deg,
+    var(--accent-blue) 0%,
+    var(--accent-blue-dark) 100%
+  );
   color: white;
   font-weight: bold;
   text-align: center;
 }
 
 .table-excel .total-row {
-  background-color: #fff3cd;
+  background-color: var(--accent-yellow-light);
   font-weight: bold;
+  color: var(--text-primary);
 }
 
 .table-excel .total-row td {
-  border-top: 2px solid #ffc107;
+  border-top: 2px solid var(--accent-yellow);
+  background-color: var(--accent-yellow-light);
 }
 
 .table-container {
-  max-height: 600px;
+  max-height: clamp(400px, 60vh, 800px);
   overflow: auto;
-  border: 1px solid #dee2e6;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
 }
 
+/* Enhanced Input Styling */
 .input-cell {
   width: 100%;
   border: none;
   background: transparent;
+  color: var(--text-primary);
   text-align: right;
-  padding: 2px 4px;
-  font-size: 13px;
+  padding: clamp(2px, 0.4vw, 4px) clamp(3px, 0.6vw, 6px);
+  font-size: clamp(11px, 1vw, 14px);
   transition: all 0.2s ease;
 }
 
 .input-cell:focus {
-  background-color: #e3f2fd;
-  outline: 2px solid #2196f3;
-  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
-  border-radius: 3px;
+  background-color: var(--focus-blue);
+  outline: 2px solid var(--focus-blue-border);
+  box-shadow: 0 0 0 2px rgba(77, 171, 247, 0.2);
+  border-radius: clamp(2px, 0.4vw, 4px);
+  color: var(--text-primary);
 }
 
 /* Enhanced styling for number inputs */
@@ -91,91 +189,133 @@ body {
 }
 
 .number-input:focus {
-  background-color: #fff3e0;
-  outline: 2px solid #ff9800;
+  background-color: var(--warning-bg);
+  outline: 2px solid var(--warning-border);
   box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.2);
 }
 
 /* Visual indicator for edited fields */
 .number-input.modified {
-  background-color: #f0f8f0;
-  border-left: 3px solid #4caf50;
+  background-color: var(--success-bg);
+  border-left: 3px solid var(--success-border);
 }
 
 /* Error state for invalid inputs */
 .number-input.error {
-  background-color: #ffebee;
-  outline: 2px solid #f44336;
+  background-color: var(--error-bg);
+  outline: 2px solid var(--error-border);
   box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.2);
 }
 
+/* Enhanced Button Styling */
 .btn-action {
-  padding: 2px 6px;
-  font-size: 11px;
-  margin: 0 1px;
+  padding: clamp(2px, 0.4vw, 4px) clamp(4px, 0.8vw, 8px);
+  font-size: clamp(9px, 0.8vw, 12px);
+  margin: 0 clamp(1px, 0.2vw, 2px);
   transition: all 0.2s ease;
+  border-radius: clamp(3px, 0.5vw, 6px);
 }
 
 .btn-action:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px var(--shadow-light);
 }
 
 .center-selector {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-radius: clamp(6px, 1vw, 10px);
+  box-shadow: 0 2px 4px var(--shadow-light);
+  margin-bottom: clamp(15px, 3vw, 25px);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
 }
 
+/* Enhanced Form Controls */
+.form-control,
+.form-select {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+  font-size: clamp(12px, 1.1vw, 15px);
+  transition: all 0.3s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--bg-secondary);
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 0.2rem rgba(77, 171, 247, 0.25);
+  color: var(--text-primary);
+}
+
+.form-control::placeholder {
+  color: var(--text-muted);
+}
+
+/* Enhanced Tab Styling */
 .year-tabs .nav-link {
-  border-radius: 4px 4px 0 0;
-  margin-right: 2px;
+  border-radius: clamp(3px, 0.6vw, 6px) clamp(3px, 0.6vw, 6px) 0 0;
+  margin-right: clamp(1px, 0.3vw, 3px);
   transition: all 0.2s ease;
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+  font-size: clamp(12px, 1.1vw, 15px);
+  padding: clamp(6px, 1.2vw, 12px) clamp(10px, 2vw, 16px);
 }
 
 .year-tabs .nav-link:hover {
-  background-color: #e9ecef;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .year-tabs .nav-link.active {
-  background: linear-gradient(180deg, #0d6efd 0%, #0b5ed7 100%);
+  background: linear-gradient(
+    180deg,
+    var(--accent-blue) 0%,
+    var(--accent-blue-dark) 100%
+  );
   color: white;
-  border-color: #0d6efd;
+  border-color: var(--accent-blue);
 }
 
 .calculated-field {
-  background-color: #f8f9fa;
+  background-color: var(--bg-tertiary);
   font-style: italic;
   font-family: "Courier New", monospace;
   font-weight: 600;
-  color: #495057;
+  color: var(--text-secondary);
 }
 
 .negative-value {
-  color: #dc3545;
+  color: var(--accent-red);
 }
 
 .positive-value {
-  color: #198754;
+  color: var(--accent-green);
 }
 
 .toolbar {
-  background: white;
-  padding: 10px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-bottom: 15px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: clamp(8px, 1.5vw, 15px);
+  border-radius: clamp(6px, 1vw, 10px);
+  box-shadow: 0 2px 4px var(--shadow-light);
+  margin-bottom: clamp(10px, 2vw, 20px);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
 }
 
-/* Loading states */
+/* Enhanced Loading states */
 .loading-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--bg-secondary);
+  opacity: 0.8;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -183,10 +323,10 @@ body {
 }
 
 .loading-spinner {
-  width: 30px;
-  height: 30px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #007bff;
+  width: clamp(25px, 4vw, 35px);
+  height: clamp(25px, 4vw, 35px);
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--accent-blue);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -200,40 +340,93 @@ body {
   }
 }
 
-/* Improved responsiveness */
+/* Enhanced Responsiveness with Better Scaling */
+@media (max-width: 1200px) {
+  .table-container {
+    max-height: clamp(350px, 50vh, 600px);
+  }
+
+  .container-fluid {
+    padding: clamp(6px, 1.5vw, 18px);
+  }
+}
+
 @media (max-width: 768px) {
   .table-container {
-    max-height: 400px;
+    max-height: clamp(300px, 40vh, 500px);
   }
 
   .table-excel th,
   .table-excel td {
-    padding: 4px;
-    font-size: 11px;
+    padding: clamp(3px, 0.6vw, 6px);
+    font-size: clamp(9px, 0.8vw, 12px);
   }
 
   .input-cell {
-    font-size: 11px;
+    font-size: clamp(9px, 0.8vw, 12px);
+  }
+
+  .btn-action {
+    padding: clamp(1px, 0.3vw, 3px) clamp(3px, 0.6vw, 6px);
+    font-size: clamp(8px, 0.7vw, 10px);
+  }
+
+  .year-tabs .nav-link {
+    font-size: clamp(10px, 0.9vw, 13px);
+    padding: clamp(4px, 0.8vw, 8px) clamp(6px, 1.2vw, 12px);
   }
 }
 
-/* Highlight row on hover */
+@media (max-width: 480px) {
+  .table-excel th,
+  .table-excel td {
+    padding: clamp(2px, 0.4vw, 4px);
+    font-size: clamp(8px, 0.7vw, 10px);
+  }
+
+  .input-cell {
+    font-size: clamp(8px, 0.7vw, 10px);
+    padding: clamp(1px, 0.2vw, 2px) clamp(2px, 0.4vw, 3px);
+  }
+}
+
+/* Enhanced Large Screen Support */
+@media (min-width: 1400px) {
+  .table-container {
+    max-height: clamp(600px, 70vh, 900px);
+  }
+
+  body {
+    font-size: clamp(14px, 1.1vw, 17px);
+  }
+}
+
+/* Highlight row on hover with dark mode support */
 .table-excel tbody tr:hover {
-  background-color: rgba(0, 123, 255, 0.05);
+  background-color: var(--hover-overlay);
+}
+
+.table-excel tbody tr:hover td {
+  background-color: var(--hover-overlay);
 }
 
 /* Better visual separation for month sections */
 .table-excel tr[data-month]:first-child td {
-  border-top: 2px solid #007bff;
+  border-top: 2px solid var(--accent-blue);
 }
 
-/* Style for add entry buttons */
+/* Enhanced Button Styles */
 .add-entry-btn {
-  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  background: linear-gradient(
+    135deg,
+    var(--accent-green) 0%,
+    var(--accent-green-light) 100%
+  );
   border: none;
   color: white;
   font-weight: 500;
   transition: all 0.3s ease;
+  border-radius: clamp(4px, 0.6vw, 8px);
 }
 
 .add-entry-btn:hover {
@@ -242,19 +435,23 @@ body {
   color: white;
 }
 
-/* Style for delete buttons */
 .delete-entry-btn {
-  background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+  background: linear-gradient(
+    135deg,
+    var(--accent-red) 0%,
+    var(--accent-orange) 100%
+  );
   border: none;
   color: white;
   font-weight: bold;
-  width: 24px;
-  height: 24px;
+  width: clamp(20px, 3vw, 28px);
+  height: clamp(20px, 3vw, 28px);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
+  font-size: clamp(10px, 1.2vw, 14px);
 }
 
 .delete-entry-btn:hover {
@@ -263,35 +460,121 @@ body {
   color: white;
 }
 
+/* Enhanced State Indicators */
 .input-cell.optimistic {
-  background-color: #fff3e0;
-  border-left: 3px solid #ff9800;
+  background-color: var(--warning-bg);
+  border-left: 3px solid var(--warning-border);
 }
 
 .input-cell.success {
-  background-color: #e8f5e9;
-  border-left: 3px solid #4caf50;
+  background-color: var(--success-bg);
+  border-left: 3px solid var(--success-border);
   transition: all 0.3s ease;
 }
 
 .input-cell.error {
-  background-color: #ffebee;
-  border-left: 3px solid #f44336;
+  background-color: var(--error-bg);
+  border-left: 3px solid var(--error-border);
 }
 
 .optimistic-spinner {
   display: inline-block;
-  width: 12px;
-  height: 12px;
-  border: 2px solid rgba(0, 0, 0, 0.1);
+  width: clamp(10px, 1.5vw, 14px);
+  height: clamp(10px, 1.5vw, 14px);
+  border: 2px solid var(--border-secondary);
   border-radius: 50%;
-  border-top-color: #007bff;
+  border-top-color: var(--accent-blue);
   animation: spin 1s ease-in-out infinite;
-  margin-left: 5px;
+  margin-left: clamp(3px, 0.6vw, 6px);
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+/* Enhanced Bootstrap Component Dark Mode Support */
+.btn-primary {
+  background-color: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-blue-dark);
+  border-color: var(--accent-blue-dark);
+}
+
+.btn-success {
+  background-color: var(--accent-green);
+  border-color: var(--accent-green);
+}
+
+.btn-outline-primary {
+  color: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: white;
+}
+
+.btn-outline-danger {
+  color: var(--accent-red);
+  border-color: var(--accent-red);
+}
+
+.btn-outline-danger:hover {
+  background-color: var(--accent-red);
+  border-color: var(--accent-red);
+  color: white;
+}
+
+/* Enhanced Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: #000000;
+    --shadow-light: rgba(0, 0, 0, 0.5);
+    --shadow-medium: rgba(0, 0, 0, 0.7);
+  }
+
+  .table-excel th,
+  .table-excel td {
+    border-width: 2px;
+  }
+
+  .input-cell:focus {
+    outline-width: 3px;
+  }
+}
+
+/* Print styles */
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+
+  .finance-table {
+    box-shadow: none !important;
+    border: 2px solid black !important;
+  }
+
+  .table-excel th,
+  .table-excel td {
+    border: 1px solid black !important;
+    background-color: white !important;
+    color: black !important;
+  }
+
+  .btn-action,
+  .toolbar,
+  .center-selector {
+    display: none !important;
   }
 }
