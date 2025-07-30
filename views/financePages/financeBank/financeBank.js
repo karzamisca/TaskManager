@@ -549,27 +549,55 @@ function updateYearTotalsInPlace(year) {
   const yearTotals = {
     inflows: 0,
     outflows: 0,
-    balance: 0, // This will be the accumulated balance for the year
+    balance: 0,
   };
 
-  // Calculate totals for each month
-  months.forEach((monthName) => {
-    const monthData = yearData.months.find((m) => m.name === monthName);
-    if (monthData && monthData.entries.length > 0) {
-      const monthTotals = calculateMonthTotals(monthData.entries);
-      yearTotals.inflows += monthTotals.inflows;
-      yearTotals.outflows += monthTotals.outflows;
-      yearTotals.balance += monthTotals.balance; // Accumulate monthly balances
+  // Calculate totals from the current DOM state (real-time values from inputs)
+  // Get all entry rows in the current active tab
+  const activeTabContent = document.querySelector(".tab-pane.active");
+  if (!activeTabContent) return;
+
+  const entryRows = activeTabContent.querySelectorAll("tr[data-entry]");
+
+  entryRows.forEach((row) => {
+    const inflowsInput = row.querySelector('[data-field="inflows"]');
+    const outflowsInput = row.querySelector('[data-field="outflows"]');
+
+    if (inflowsInput && outflowsInput) {
+      const inflows = parseNumberFromInput(inflowsInput.value || "0");
+      const outflows = parseNumberFromInput(outflowsInput.value || "0");
+
+      yearTotals.inflows += inflows;
+      yearTotals.outflows += outflows;
     }
   });
+
+  // Calculate the year's net balance: total inflows minus total outflows
+  yearTotals.balance = yearTotals.inflows - yearTotals.outflows;
 
   // Update the year total row
   const yearTotalRow = document.querySelector(`tr.year-total-row`);
   if (yearTotalRow) {
     const cells = yearTotalRow.querySelectorAll("td strong");
-    cells[0].textContent = formatNumberWithCommas(yearTotals.inflows, true);
-    cells[1].textContent = formatNumberWithCommas(yearTotals.outflows, true);
-    cells[2].textContent = formatNumberWithCommas(yearTotals.balance, true);
+
+    // Add safety check to ensure we have enough cells
+    // The structure is: [year title, inflows, outflows, balance] (4 strong elements total)
+    if (cells.length >= 4) {
+      // cells[0] is the year title "Tổng cả năm..."
+      // cells[1] is inflows (Thu)
+      cells[1].textContent = formatNumberWithCommas(yearTotals.inflows, true);
+      // cells[2] is outflows (Chi)
+      cells[2].textContent = formatNumberWithCommas(yearTotals.outflows, true);
+      // cells[3] is balance (Số dư)
+      cells[3].textContent = formatNumberWithCommas(yearTotals.balance, true);
+    } else {
+      console.warn(
+        "Year total row does not have expected number of cells:",
+        cells.length
+      );
+    }
+  } else {
+    console.warn("Year total row not found");
   }
 }
 
@@ -590,9 +618,12 @@ function renderYearTable(yearData) {
       monthTotalsData[monthName] = totals;
       yearTotals.inflows += totals.inflows;
       yearTotals.outflows += totals.outflows;
-      yearTotals.balance = totals.balance; // Last month's balance is the current balance
+      // Don't use totals.balance here as that's cumulative within the month
     }
   });
+
+  // Calculate the year's net balance: total inflows minus total outflows
+  yearTotals.balance = yearTotals.inflows - yearTotals.outflows;
 
   let html = `
     <div class="table-container">
@@ -746,14 +777,16 @@ function calculateMonthTotals(entries) {
   const totals = {
     inflows: 0,
     outflows: 0,
-    balance: 0, // This will be the accumulated balance
+    balance: 0, // This will be the net balance for the month
   };
 
   entries.forEach((entry) => {
     totals.inflows += entry.inflows || 0;
     totals.outflows += entry.outflows || 0;
-    totals.balance += (entry.inflows || 0) - (entry.outflows || 0); // Accumulate balance
   });
+
+  // Calculate net balance: total inflows minus total outflows for this month
+  totals.balance = totals.inflows - totals.outflows;
 
   return totals;
 }
@@ -1014,7 +1047,7 @@ async function refreshMonthSection(monthName, year) {
       <tr data-month="${monthName}" data-year="${year}">
         <td>${monthName}</td>
         <td>-</td>
-        <td colspan="13" class="text-muted text-center">Không có mục</td>
+        <td colspan="6" class="text-muted text-center">Không có mục</td>
         <td>
           <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
                   data-month="${monthName}" data-year="${year}">
@@ -1041,7 +1074,7 @@ async function refreshMonthSection(monthName, year) {
     newRowsHtml += `
       <tr data-month="${monthName}" data-year="${year}">
         <td></td>
-        <td colspan="14" class="text-center">
+        <td colspan="7" class="text-center">
           <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
                   data-month="${monthName}" data-year="${year}">
               + Thêm mục
@@ -1084,6 +1117,9 @@ async function refreshMonthSection(monthName, year) {
 
   // Setup event listeners for the new rows
   setupTableEventListenersForContainer(activeTabContent);
+
+  // Update the year totals after refreshing the month
+  updateYearTotalsInPlace(year);
 }
 
 // NEW: Update current center data
@@ -1118,6 +1154,7 @@ function updateRowCalculations(row) {
   const monthName = row.getAttribute("data-month");
   const year = row.getAttribute("data-year");
   updateMonthTotalsInPlace(monthName, year);
+  updateYearTotalsInPlace(year);
 }
 
 async function handleInputBlur(e) {
@@ -1136,6 +1173,7 @@ async function handleInputBlur(e) {
 
   // Optimistically update the totals first
   updateMonthTotalsInPlace(monthName, year);
+  updateYearTotalsInPlace(year);
 
   try {
     const response = await fetch(
@@ -1174,37 +1212,51 @@ function updateMonthTotalsInPlace(monthName, year) {
 
   const monthData = yearData.months.find((m) => m.name === monthName);
   if (!monthData || monthData.entries.length === 0) {
-    // If no entries exist, there's no total row to update
     return;
   }
 
-  const totals = calculateMonthTotals(monthData.entries);
+  // Calculate totals from all entries in the month
+  const totals = {
+    inflows: 0,
+    outflows: 0,
+    balance: 0,
+  };
+
+  // Get all rows for this month
+  const monthRows = document.querySelectorAll(
+    `tr[data-month="${monthName}"]:not(.total-row)`
+  );
+
+  // Calculate totals from the current UI values (for real-time updates)
+  monthRows.forEach((row) => {
+    if (row.getAttribute("data-entry") !== null) {
+      // Only count entry rows, not the add button row
+      const inflows = parseNumberFromInput(
+        row.querySelector('[data-field="inflows"]')?.value || "0"
+      );
+      const outflows = parseNumberFromInput(
+        row.querySelector('[data-field="outflows"]')?.value || "0"
+      );
+
+      totals.inflows += inflows;
+      totals.outflows += outflows;
+    }
+  });
+
+  // Calculate net balance for this month: inflows - outflows
+  totals.balance = totals.inflows - totals.outflows;
+
+  // Update the month total row
   const totalRow = document.querySelector(
     `tr.total-row[data-month="${monthName}"]`
   );
 
   if (totalRow) {
     const cells = totalRow.querySelectorAll("td strong");
-    // Verify we have enough cells before accessing them
-    if (cells.length >= 15) {
-      cells[1].textContent = monthData.entries.length;
-      cells[2].textContent = formatNumberWithCommas(
-        totals.purchaseAmount,
-        true
-      );
-      cells[4].textContent = formatNumberWithCommas(totals.purchaseTotal, true);
-      cells[5].textContent = formatNumberWithCommas(totals.saleAmount, true);
-      cells[7].textContent = formatNumberWithCommas(totals.saleTotal, true);
-      cells[8].textContent = formatNumberWithCommas(totals.salary, true);
-      cells[9].textContent = formatNumberWithCommas(totals.transport, true);
-      cells[12].textContent = formatNumberWithCommas(
-        totals.commissionPurchase,
-        true
-      );
-      cells[14].textContent = formatNumberWithCommas(
-        totals.commissionSale,
-        true
-      );
+    if (cells.length >= 5) {
+      cells[2].textContent = formatNumberWithCommas(totals.inflows, true);
+      cells[3].textContent = formatNumberWithCommas(totals.outflows, true);
+      cells[4].textContent = formatNumberWithCommas(totals.balance, true);
     }
   }
 }
