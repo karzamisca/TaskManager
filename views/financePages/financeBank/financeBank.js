@@ -549,19 +549,21 @@ function updateYearTotalsInPlace(year) {
   const yearTotals = {
     inflows: 0,
     outflows: 0,
-    balance: 0,
+    balance: 0, // This will be the accumulated balance for the year
   };
 
+  // Calculate totals for each month
   months.forEach((monthName) => {
     const monthData = yearData.months.find((m) => m.name === monthName);
     if (monthData && monthData.entries.length > 0) {
       const monthTotals = calculateMonthTotals(monthData.entries);
       yearTotals.inflows += monthTotals.inflows;
       yearTotals.outflows += monthTotals.outflows;
-      yearTotals.balance = monthTotals.balance;
+      yearTotals.balance += monthTotals.balance; // Accumulate monthly balances
     }
   });
 
+  // Update the year total row
   const yearTotalRow = document.querySelector(`tr.year-total-row`);
   if (yearTotalRow) {
     const cells = yearTotalRow.querySelectorAll("td strong");
@@ -601,7 +603,7 @@ function renderYearTable(yearData) {
             <th style="min-width: 80px;">Mục</th>
             <th style="min-width: 90px;">Thu</th>
             <th style="min-width: 90px;">Chi</th>
-            <th style="min-width: 90px;">Số tiền hiện có</th>
+            <th style="min-width: 90px;">Số dư</th>
             <th style="min-width: 90px;">Nội dung thủ quỹ</th>
             <th style="min-width: 90px;">Nội dung ngân hàng</th>
             <th style="min-width: 90px;">Ghi chú</th>
@@ -700,8 +702,7 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
       )}" data-field="outflows"></td>
       
       <td class="calculated-field">${formatNumberWithCommas(
-        entry.balance || 0,
-        true
+        entry.balance || 0
       )}</td>
       
       <td><textarea class="form-control input-cell" data-field="treasurerNote">${
@@ -745,18 +746,14 @@ function calculateMonthTotals(entries) {
   const totals = {
     inflows: 0,
     outflows: 0,
-    balance: 0,
+    balance: 0, // This will be the accumulated balance
   };
 
   entries.forEach((entry) => {
     totals.inflows += entry.inflows || 0;
     totals.outflows += entry.outflows || 0;
+    totals.balance += (entry.inflows || 0) - (entry.outflows || 0); // Accumulate balance
   });
-
-  // The last entry's balance is the current balance
-  if (entries.length > 0) {
-    totals.balance = entries[entries.length - 1].balance || 0;
-  }
 
   return totals;
 }
@@ -1111,15 +1108,16 @@ function updateRowCalculations(row) {
     row.querySelector('[data-field="outflows"]').value
   );
 
-  // Balance is calculated by the server, but we can show a client-side estimate
+  // Calculate this entry's balance only (inflows - outflows)
   const balanceCell = row.querySelector(".calculated-field");
   if (balanceCell) {
-    const prevBalance = 0; // In a real app, you'd get this from the previous entry
-    balanceCell.textContent = formatNumberWithCommas(
-      prevBalance + inflows - outflows,
-      true
-    );
+    balanceCell.textContent = formatNumberWithCommas(inflows - outflows, true);
   }
+
+  // After updating this row, update the month totals
+  const monthName = row.getAttribute("data-month");
+  const year = row.getAttribute("data-year");
+  updateMonthTotalsInPlace(monthName, year);
 }
 
 async function handleInputBlur(e) {
