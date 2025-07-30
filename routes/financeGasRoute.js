@@ -38,6 +38,11 @@ router.put(
   authMiddleware,
   centersController.updateYear
 );
+router.put(
+  "/financeGasControl/:centerId/reorderYears",
+  authMiddleware,
+  centersController.reorderYears
+);
 router.delete(
   "/financeGasControl/:centerId/years/:year/months/:monthName/entries/:entryIndex",
   authMiddleware,

@@ -1,6 +1,6 @@
 const Center = require("../models/FinanceGas");
 
-const getAllCenters = async (req, res) => {
+exports.getAllCenters = async (req, res) => {
   try {
     if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
       return res
@@ -15,7 +15,7 @@ const getAllCenters = async (req, res) => {
   }
 };
 
-const createCenter = async (req, res) => {
+exports.createCenter = async (req, res) => {
   if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
     return res
       .status(403)
@@ -53,7 +53,7 @@ const createCenter = async (req, res) => {
   }
 };
 
-const addMonthEntry = async (req, res) => {
+exports.addMonthEntry = async (req, res) => {
   if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
     return res
       .status(403)
@@ -141,7 +141,7 @@ const addMonthEntry = async (req, res) => {
   }
 };
 
-const deleteCenter = async (req, res) => {
+exports.deleteCenter = async (req, res) => {
   try {
     if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
       return res
@@ -156,7 +156,7 @@ const deleteCenter = async (req, res) => {
   }
 };
 
-const addYear = async (req, res) => {
+exports.addYear = async (req, res) => {
   if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
     return res
       .status(403)
@@ -201,7 +201,7 @@ const addYear = async (req, res) => {
   }
 };
 
-const updateYear = async (req, res) => {
+exports.updateYear = async (req, res) => {
   if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
     return res
       .status(403)
@@ -236,7 +236,34 @@ const updateYear = async (req, res) => {
   }
 };
 
-const deleteMonthEntry = async (req, res) => {
+exports.reorderYears = async (req, res) => {
+  try {
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+    }
+    const { centerId } = req.params;
+    const { fromIndex, toIndex } = req.body;
+
+    const center = await Center.findById(centerId);
+    if (!center) {
+      return res.status(404).json({ message: "Center not found" });
+    }
+
+    // Reorder the years array
+    const [movedYear] = center.years.splice(fromIndex, 1);
+    center.years.splice(toIndex, 0, movedYear);
+
+    await center.save();
+    res.json(center);
+  } catch (error) {
+    console.error("Error reordering years:", error);
+    res.status(500).json({ message: "Error reordering years" });
+  }
+};
+
+exports.deleteMonthEntry = async (req, res) => {
   if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
     return res
       .status(403)
@@ -273,7 +300,7 @@ const deleteMonthEntry = async (req, res) => {
   }
 };
 
-const updateMonthEntry = async (req, res) => {
+exports.updateMonthEntry = async (req, res) => {
   if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
     return res
       .status(403)
@@ -345,15 +372,4 @@ const updateMonthEntry = async (req, res) => {
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
-};
-
-module.exports = {
-  getAllCenters,
-  createCenter,
-  addMonthEntry,
-  deleteCenter,
-  addYear,
-  updateYear,
-  deleteMonthEntry,
-  updateMonthEntry,
 };

@@ -254,6 +254,40 @@ body {
 }
 
 /* Enhanced Tab Styling */
+.year-tabs {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 2px; /* Space for the scrollbar */
+}
+
+.year-tabs .nav-item {
+  position: relative;
+  cursor: grab;
+  user-select: none;
+  touch-action: none; /* Prevent scrolling while dragging on touch devices */
+}
+
+.year-tabs .nav-item.dragging {
+  opacity: 0.8;
+  box-shadow: 0 4px 8px var(--shadow-medium);
+  cursor: grabbing;
+}
+
+.year-tabs .nav-item.drag-over {
+  border-bottom: 2px solid var(--accent-blue);
+}
+
+/* Hide the scrollbar when not needed */
+.year-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.year-tabs::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 2px;
+}
+
 .year-tabs .nav-link {
   border-radius: clamp(3px, 0.6vw, 6px) clamp(3px, 0.6vw, 6px) 0 0;
   margin-right: clamp(1px, 0.3vw, 3px);

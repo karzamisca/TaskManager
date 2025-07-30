@@ -15,6 +15,8 @@ const months = [
   "Tháng Mười Một",
   "Tháng Mười Hai",
 ];
+let draggedTab = null;
+let draggedTabIndex = -1;
 
 // Initialize
 document.addEventListener("DOMContentLoaded", function () {
@@ -387,7 +389,7 @@ function renderFinanceTable() {
       : index === 0;
 
     tabsHtml += `
-      <li class="nav-item" role="presentation">
+      <li class="nav-item" role="presentation" draggable="true" data-index="${index}">
         <button class="nav-link ${isActive ? "active" : ""}" 
                 id="year-${yearData.year}-tab" 
                 data-bs-toggle="tab" 
@@ -411,6 +413,9 @@ function renderFinanceTable() {
   document.getElementById("yearTabs").innerHTML = tabsHtml;
   document.getElementById("yearTabsContent").innerHTML = contentHtml;
 
+  // Setup drag and drop events for tabs
+  setupTabDragAndDrop();
+
   // Restore scroll position
   setTimeout(() => {
     const tableContainer = document.querySelector(".table-container");
@@ -421,6 +426,120 @@ function renderFinanceTable() {
 
   // Setup table event listeners
   setupTableEventListeners();
+}
+
+function setupTabDragAndDrop() {
+  const tabsContainer = document.getElementById("yearTabs");
+  const tabs = Array.from(tabsContainer.querySelectorAll(".nav-item"));
+
+  tabs.forEach((tab) => {
+    tab.addEventListener("dragstart", handleTabDragStart);
+    tab.addEventListener("dragover", handleTabDragOver);
+    tab.addEventListener("dragleave", handleTabDragLeave);
+    tab.addEventListener("drop", handleTabDrop);
+    tab.addEventListener("dragend", handleTabDragEnd);
+  });
+}
+
+function handleTabDragStart(e) {
+  draggedTab = this;
+  draggedTabIndex = parseInt(this.getAttribute("data-index"));
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/html", this.innerHTML);
+
+  // Add visual feedback
+  this.classList.add("dragging");
+  setTimeout(() => {
+    this.style.opacity = "0.4";
+  }, 0);
+}
+
+function handleTabDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+
+  // Highlight the drop target
+  this.classList.add("drag-over");
+}
+
+function handleTabDragLeave() {
+  this.classList.remove("drag-over");
+}
+
+async function handleTabDrop(e) {
+  e.preventDefault();
+  this.classList.remove("drag-over");
+
+  if (draggedTab !== this) {
+    const dropIndex = parseInt(this.getAttribute("data-index"));
+    const tabsContainer = document.getElementById("yearTabs");
+
+    // Reorder the DOM elements
+    if (draggedTabIndex < dropIndex) {
+      tabsContainer.insertBefore(draggedTab, this.nextSibling);
+    } else {
+      tabsContainer.insertBefore(draggedTab, this);
+    }
+
+    // Update the data model and save to server
+    await reorderYears(draggedTabIndex, dropIndex);
+
+    // Update data-index attributes
+    const tabs = Array.from(tabsContainer.querySelectorAll(".nav-item"));
+    tabs.forEach((tab, index) => {
+      tab.setAttribute("data-index", index);
+    });
+  }
+}
+
+function handleTabDragEnd() {
+  this.classList.remove("dragging");
+  this.style.opacity = "1";
+
+  // Remove drag-over class from all tabs
+  const tabs = document.querySelectorAll(".nav-item");
+  tabs.forEach((tab) => tab.classList.remove("drag-over"));
+}
+
+async function reorderYears(fromIndex, toIndex) {
+  if (!currentCenter || fromIndex === toIndex) return;
+
+  try {
+    // Create a new array with the reordered years
+    const reorderedYears = [...currentCenter.years];
+    const [movedYear] = reorderedYears.splice(fromIndex, 1);
+    reorderedYears.splice(toIndex, 0, movedYear);
+
+    // Update the current center data
+    const updatedCenter = {
+      ...currentCenter,
+      years: reorderedYears,
+    };
+
+    // Send the update to the server
+    const response = await fetch(
+      `/financeGasControl/${currentCenter._id}/reorderYears`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromIndex, toIndex }),
+      }
+    );
+
+    if (response.ok) {
+      updateCurrentCenter(updatedCenter);
+    } else {
+      const error = await response.json();
+      console.log(`Error reordering years: ${error.message}`);
+      // If the server update fails, revert the UI
+      renderFinanceTable();
+    }
+  } catch (error) {
+    console.error("Error reordering years:", error);
+    console.log("Failed to reorder years");
+    // If there's an error, revert the UI
+    renderFinanceTable();
+  }
 }
 
 function renderYearTable(yearData) {
