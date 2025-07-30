@@ -1,56 +1,56 @@
-//routes/financeGasRoute.js
+//routes/financeBankRoute.js
 const express = require("express");
 const router = express.Router();
-const centersController = require("../controllers/financeGasController");
+const centersController = require("../controllers/financeBankController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
-router.get("/financeGas", authMiddleware, (req, res) => {
-  res.sendFile("financeGas.html", {
-    root: "./views/financePages/financeGas",
+router.get("/financeBank", authMiddleware, (req, res) => {
+  res.sendFile("financeBank.html", {
+    root: "./views/financePages/financeBank",
   });
 });
 router.get(
-  "/financeGasControl",
+  "/financeBankControl",
   authMiddleware,
   centersController.getAllCenters
 );
 router.post(
-  "/financeGasControl",
+  "/financeBankControl",
   authMiddleware,
   centersController.createCenter
 );
 router.post(
-  "/financeGasControl/:centerId/years/:year/months/:monthName/entries",
+  "/financeBankControl/:centerId/years/:year/months/:monthName/entries",
   authMiddleware,
   centersController.addMonthEntry
 );
 router.delete(
-  "/financeGasControl/:id",
+  "/financeBankControl/:id",
   authMiddleware,
   centersController.deleteCenter
 );
 router.post(
-  "/financeGasControl/:centerId/years",
+  "/financeBankControl/:centerId/years",
   authMiddleware,
   centersController.addYear
 );
 router.put(
-  "/financeGasControl/:centerId/years/:year",
+  "/financeBankControl/:centerId/years/:year",
   authMiddleware,
   centersController.updateYear
 );
 router.put(
-  "/financeGasControl/:centerId/reorderYears",
+  "/financeBankControl/:centerId/reorderYears",
   authMiddleware,
   centersController.reorderYears
 );
 router.delete(
-  "/financeGasControl/:centerId/years/:year/months/:monthName/entries/:entryIndex",
+  "/financeBankControl/:centerId/years/:year/months/:monthName/entries/:entryIndex",
   authMiddleware,
   centersController.deleteMonthEntry
 );
 router.put(
-  "/financeGasControl/:centerId/years/:year/months/:monthName/entries/:entryIndex",
+  "/financeBankControl/:centerId/years/:year/months/:monthName/entries/:entryIndex",
   authMiddleware,
   centersController.updateMonthEntry
 );

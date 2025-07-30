@@ -1,5 +1,5 @@
-//controllers/financeGasController.js
-const Center = require("../models/FinanceGas");
+//controllers/financeBankController.js
+const Center = require("../models/FinanceBank");
 
 exports.getAllCenters = async (req, res) => {
   try {
@@ -98,41 +98,15 @@ exports.addMonthEntry = async (req, res) => {
       return res.status(404).json({ message: "Month not found" });
     }
 
-    // Calculate totals before adding
-    if (entryData.purchaseContract) {
-      entryData.purchaseContract.totalCost =
-        entryData.purchaseContract.amount * entryData.purchaseContract.unitCost;
-    }
-
-    if (entryData.saleContract) {
-      entryData.saleContract.totalCost =
-        entryData.saleContract.amount * entryData.saleContract.unitCost;
-    }
-
-    // Calculate commission bonuses
-    if (
-      entryData.commissionRatePurchase &&
-      entryData.purchaseContract &&
-      entryData.currencyExchangeRate
-    ) {
-      entryData.commissionBonus = entryData.commissionBonus || {};
-      entryData.commissionBonus.purchase =
-        entryData.commissionRatePurchase *
-        entryData.purchaseContract.amount *
-        entryData.currencyExchangeRate;
-    }
-
-    if (
-      entryData.commissionRateSale &&
-      entryData.saleContract &&
-      entryData.currencyExchangeRate
-    ) {
-      entryData.commissionBonus = entryData.commissionBonus || {};
-      entryData.commissionBonus.sale =
-        entryData.commissionRateSale *
-        entryData.saleContract.amount *
-        entryData.currencyExchangeRate;
-    }
+    // Set default values if not provided
+    const newEntry = {
+      inflows: entryData.inflows || 0,
+      outflows: entryData.outflows || 0,
+      balance: 0, // Will be calculated by pre-save hook
+      treasurerNote: entryData.treasurerNote || "",
+      bankNote: entryData.bankNote || "",
+      generalNote: entryData.generalNote || "",
+    };
 
     month.entries.push(entryData);
     await center.save();

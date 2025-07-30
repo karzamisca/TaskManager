@@ -1,3 +1,4 @@
+//models/FinanceGas.js
 const mongoose = require("mongoose");
 
 const purchaseSaleSchema = new mongoose.Schema({
