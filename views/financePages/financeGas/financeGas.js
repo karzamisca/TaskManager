@@ -76,6 +76,9 @@ function setupEventListeners() {
   document
     .getElementById("addYearBtn")
     .addEventListener("click", handleAddYear);
+  document
+    .getElementById("editYearBtn")
+    .addEventListener("click", handleEditYear);
 }
 
 async function loadCenters() {
@@ -272,6 +275,97 @@ function addNewYearTab(year) {
 
   // Setup event listeners for the new content
   setupTableEventListenersForContainer(newContent);
+}
+
+async function handleEditYear() {
+  if (!currentCenter) return;
+
+  const activeTab = document.querySelector(".nav-tabs .nav-link.active");
+  if (!activeTab) return;
+
+  const year = activeTab.textContent.trim();
+  const yearData = currentCenter.years.find((y) => y.year === parseInt(year));
+  if (!yearData) return;
+
+  // Create and show the edit modal
+  const modalHtml = `
+    <div class="year-edit-overlay">
+      <div class="year-edit-modal">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5>Sửa năm</h5>
+          <button type="button" class="btn-close" aria-label="Close"></button>
+        </div>
+        <form id="editYearForm">
+          <div class="mb-3">
+            <label for="editYearInput" class="form-label">Năm hiện tại</label>
+            <input type="number" class="form-control" id="editYearInput" value="${year}" min="2000" max="2100">
+          </div>
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-secondary btn-sm" id="cancelEditYear">Hủy</button>
+            <button type="submit" class="btn btn-primary btn-sm">Lưu</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  const modal = document.createElement("div");
+  modal.innerHTML = modalHtml;
+  document.body.appendChild(modal);
+
+  // Setup event listeners for the modal
+  modal
+    .querySelector(".btn-close")
+    .addEventListener("click", () => modal.remove());
+  modal
+    .querySelector("#cancelEditYear")
+    .addEventListener("click", () => modal.remove());
+
+  modal.querySelector("#editYearForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const newYear = parseInt(modal.querySelector("#editYearInput").value);
+
+    if (isNaN(newYear) || newYear < 2000 || newYear > 2100) {
+      alert("Vui lòng nhập năm hợp lệ (2000-2100)");
+      return;
+    }
+
+    if (newYear === yearData.year) {
+      modal.remove();
+      return;
+    }
+
+    // Check if year already exists
+    if (currentCenter.years.some((y) => y.year === newYear)) {
+      alert(`Năm ${newYear} đã tồn tại`);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/financeGasControl/${currentCenter._id}/years/${yearData.year}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ newYear }),
+        }
+      );
+
+      if (response.ok) {
+        const updatedCenter = await response.json();
+        updateCurrentCenter(updatedCenter);
+        modal.remove();
+        renderFinanceTable(); // Refresh the entire table to show the new year
+      } else {
+        const error = await response.json();
+        console.log(`Error: ${error.message}`);
+        alert(`Lỗi khi cập nhật năm: ${error.message}`);
+      }
+    } catch (error) {
+      console.error("Error updating year:", error);
+      alert("Lỗi khi cập nhật năm");
+    }
+  });
 }
 
 function renderFinanceTable() {

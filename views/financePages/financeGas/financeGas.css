@@ -331,6 +331,51 @@ body {
   animation: spin 1s linear infinite;
 }
 
+.year-edit-modal {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-radius: clamp(6px, 1vw, 12px);
+  box-shadow: 0 4px 20px var(--shadow-medium);
+  border: 1px solid var(--border-color);
+  padding: clamp(12px, 2vw, 20px);
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.year-edit-modal .form-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.year-edit-modal .form-control {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-secondary);
+  color: var(--text-primary);
+}
+
+.year-edit-modal .btn-close {
+  filter: invert(var(--dark-mode-invert))
+    brightness(var(--dark-mode-brightness));
+}
+
+.year-edit-modal .btn-primary {
+  background-color: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.year-edit-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+}
+
 @keyframes spin {
   0% {
     transform: rotate(0deg);

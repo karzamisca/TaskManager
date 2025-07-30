@@ -201,6 +201,41 @@ const addYear = async (req, res) => {
   }
 };
 
+const updateYear = async (req, res) => {
+  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+  }
+
+  const { centerId, year } = req.params;
+  const { newYear } = req.body;
+
+  try {
+    const center = await Center.findById(centerId);
+    if (!center) {
+      return res.status(404).json({ message: "Center not found" });
+    }
+
+    const yearData = center.years.find((y) => y.year === parseInt(year));
+    if (!yearData) {
+      return res.status(404).json({ message: "Year not found" });
+    }
+
+    // Check if new year already exists
+    if (center.years.some((y) => y.year === newYear)) {
+      return res.status(400).json({ message: "Year already exists" });
+    }
+
+    // Update the year
+    yearData.year = newYear;
+    await center.save();
+    res.json(center);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
 const deleteMonthEntry = async (req, res) => {
   if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
     return res
@@ -318,6 +353,7 @@ module.exports = {
   addMonthEntry,
   deleteCenter,
   addYear,
+  updateYear,
   deleteMonthEntry,
   updateMonthEntry,
 };
