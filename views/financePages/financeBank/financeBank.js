@@ -889,14 +889,12 @@ async function handleAddEntry(e) {
   e.target.disabled = true;
 
   const entryData = {
-    purchaseContract: { amount: 0, unitCost: 0, totalCost: 0 },
-    saleContract: { amount: 0, unitCost: 0, totalCost: 0 },
-    salary: 0,
-    transportCost: 0,
-    currencyExchangeRate: 1,
-    commissionRatePurchase: 0,
-    commissionRateSale: 0,
-    commissionBonus: { purchase: 0, sale: 0 },
+    inflows: 0,
+    outflows: 0,
+    balance: 0,
+    treasurerNote: "",
+    bankNote: "",
+    generalNote: "",
   };
 
   try {
