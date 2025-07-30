@@ -50,41 +50,9 @@ const centerSchema = new mongoose.Schema({
 });
 
 // Pre-save hook to calculate balance
-monthEntrySchema.pre("save", async function (next) {
-  try {
-    if (this.isNew) {
-      // For new entries, we need to get the previous balance
-      const Center = mongoose.model("FinanceBank");
-      const center = await Center.findOne({
-        "years.months.entries": this._id,
-      });
-
-      if (center) {
-        let prevBalance = 0;
-        // Find the previous month's last entry to get its balance
-        const allMonths = center.years.flatMap((y) => y.months);
-        const currentMonthIndex = allMonths.findIndex((m) =>
-          m.entries.some((e) => e._id.equals(this._id))
-        );
-
-        if (currentMonthIndex > 0) {
-          const prevMonth = allMonths[currentMonthIndex - 1];
-          if (prevMonth.entries.length > 0) {
-            prevBalance =
-              prevMonth.entries[prevMonth.entries.length - 1].balance;
-          }
-        }
-
-        this.balance = prevBalance + this.inflows - this.outflows;
-      }
-    } else {
-      // For updates, just recalculate based on current inflows/outflows
-      this.balance = this.balance + (this.inflows - this.outflows);
-    }
-    next();
-  } catch (err) {
-    next(err);
-  }
+monthEntrySchema.pre("save", function (next) {
+  this.balance = this.inflows - this.outflows;
+  next();
 });
 
 module.exports = mongoose.model("FinanceBank", centerSchema);
