@@ -2,6 +2,10 @@
 const mongoose = require("mongoose");
 
 const monthEntrySchema = new mongoose.Schema({
+  day: {
+    type: String,
+    default: "",
+  },
   inflows: {
     type: Number,
     default: 0,

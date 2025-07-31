@@ -635,6 +635,7 @@ function renderYearTable(yearData) {
             <th style="min-width: 90px;">Thu</th>
             <th style="min-width: 90px;">Chi</th>
             <th style="min-width: 90px;">Số dư</th>
+            <th style="min-width: 90px;">Ngày</th>
             <th style="min-width: 90px;">Nội dung thủ quỹ</th>
             <th style="min-width: 90px;">Nội dung ngân hàng</th>
             <th style="min-width: 90px;">Ghi chú</th>
@@ -723,7 +724,7 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
     <tr data-month="${monthName}" data-year="${year}" data-entry="${entryIndex}">
       <td>${entryIndex === 0 ? monthName : ""}</td>
       <td>${entryIndex + 1}</td>
-      
+
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.inflows || 0
       )}" data-field="inflows"></td>
@@ -735,6 +736,16 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
       <td class="calculated-field">${formatNumberWithCommas(
         entry.balance || 0
       )}</td>
+
+      <td>
+        <input type="text" 
+               class="input-cell date-input" 
+               value="${entry.day || ""}" 
+               data-field="day"
+               placeholder="DD-MM-YYYY"
+               data-input>
+      </td>
+      
       
       <td><textarea class="form-control input-cell" data-field="treasurerNote">${
         entry.treasurerNote || ""
@@ -795,8 +806,25 @@ function setupTableEventListeners() {
   setupTableEventListenersForContainer(document);
 }
 
+function initializeFlatpickr(container = document) {
+  container.querySelectorAll(".date-input").forEach((input) => {
+    flatpickr(input, {
+      dateFormat: "d-m-Y",
+      allowInput: true,
+      locale: "vn", // Vietnamese localization
+      disableMobile: true, // Better UX on desktop
+      onReady: function (selectedDates, dateStr, instance) {
+        // Add custom class to the calendar container
+        instance.calendarContainer.classList.add("finance-datepicker");
+      },
+    });
+  });
+}
+
 // NEW: Setup event listeners for a specific container
 function setupTableEventListenersForContainer(container) {
+  initializeFlatpickr(container);
+
   container.querySelectorAll(".add-entry-btn").forEach((btn) => {
     btn.addEventListener("click", handleAddEntry);
   });
@@ -807,6 +835,32 @@ function setupTableEventListenersForContainer(container) {
 
   container.querySelectorAll("textarea.input-cell").forEach((textarea) => {
     textarea.addEventListener("change", handleTextareaChange);
+  });
+
+  container.querySelectorAll(".date-input").forEach((input) => {
+    input.addEventListener("blur", function (e) {
+      const value = e.target.value.trim();
+      if (value === "") return;
+
+      // Validate day is correct for the month
+      const [day, month, year] = value.split("-").map(Number);
+      const date = new Date(year, month - 1, day);
+      if (
+        date.getDate() !== day ||
+        date.getMonth() + 1 !== month ||
+        date.getFullYear() !== year
+      ) {
+        alert("Ngày không hợp lệ cho tháng này");
+        e.target.focus();
+        return;
+      }
+
+      // Format with leading zeros if needed
+      const formattedDay = String(day).padStart(2, "0");
+      const formattedMonth = String(month).padStart(2, "0");
+      e.target.value = `${formattedDay}-${formattedMonth}-${year}`;
+      handleInputBlur(e);
+    });
   });
 
   // Enhanced input handling for number inputs with thousand separators
@@ -919,6 +973,7 @@ async function handleAddEntry(e) {
   e.target.disabled = true;
 
   const entryData = {
+    day: "",
     inflows: 0,
     outflows: 0,
     balance: 0,
@@ -1115,6 +1170,8 @@ async function refreshMonthSection(monthName, year) {
     }
   });
 
+  initializeFlatpickr(activeTabContent);
+
   // Setup event listeners for the new rows
   setupTableEventListenersForContainer(activeTabContent);
 
@@ -1138,19 +1195,19 @@ function handleInputChange(e) {
 
 function updateRowCalculations(row) {
   const inflows = parseNumberFromInput(
-    row.querySelector('[data-field="inflows"]').value
+    row.querySelector('[data-field="inflows"]').value || "0"
   );
   const outflows = parseNumberFromInput(
-    row.querySelector('[data-field="outflows"]').value
+    row.querySelector('[data-field="outflows"]').value || "0"
   );
 
-  // Calculate this entry's balance only (inflows - outflows)
+  // Calculate this entry's balance
   const balanceCell = row.querySelector(".calculated-field");
   if (balanceCell) {
     balanceCell.textContent = formatNumberWithCommas(inflows - outflows, true);
   }
 
-  // After updating this row, update the month totals
+  // Update the month and year totals
   const monthName = row.getAttribute("data-month");
   const year = row.getAttribute("data-year");
   updateMonthTotalsInPlace(monthName, year);
@@ -1207,62 +1264,57 @@ async function handleInputBlur(e) {
 
 // MODIFIED: Update month totals in place without full refresh (updated for totals on top)
 function updateMonthTotalsInPlace(monthName, year) {
-  const yearData = currentCenter.years.find((y) => y.year === parseInt(year));
-  if (!yearData) return;
+  const activeTabContent = document.querySelector(".tab-pane.active tbody");
+  if (!activeTabContent) return;
 
-  const monthData = yearData.months.find((m) => m.name === monthName);
-  if (!monthData || monthData.entries.length === 0) {
-    return;
-  }
-
-  // Calculate totals from all entries in the month
   const totals = {
     inflows: 0,
     outflows: 0,
     balance: 0,
   };
 
-  // Get all rows for this month
-  const monthRows = document.querySelectorAll(
-    `tr[data-month="${monthName}"]:not(.total-row)`
+  // Get all entry rows for this month
+  const entryRows = activeTabContent.querySelectorAll(
+    `tr[data-month="${monthName}"][data-entry]`
   );
 
-  // Calculate totals from the current UI values (for real-time updates)
-  monthRows.forEach((row) => {
-    if (row.getAttribute("data-entry") !== null) {
-      // Only count entry rows, not the add button row
-      const inflows = parseNumberFromInput(
-        row.querySelector('[data-field="inflows"]')?.value || "0"
-      );
-      const outflows = parseNumberFromInput(
-        row.querySelector('[data-field="outflows"]')?.value || "0"
-      );
+  // Calculate totals from current UI values
+  entryRows.forEach((row) => {
+    const inflowsInput = row.querySelector('[data-field="inflows"]');
+    const outflowsInput = row.querySelector('[data-field="outflows"]');
+
+    if (inflowsInput && outflowsInput) {
+      const inflows = parseNumberFromInput(inflowsInput.value || "0");
+      const outflows = parseNumberFromInput(outflowsInput.value || "0");
 
       totals.inflows += inflows;
       totals.outflows += outflows;
     }
   });
 
-  // Calculate net balance for this month: inflows - outflows
+  // Calculate net balance for this month
   totals.balance = totals.inflows - totals.outflows;
 
   // Update the month total row
-  const totalRow = document.querySelector(
+  const totalRow = activeTabContent.querySelector(
     `tr.total-row[data-month="${monthName}"]`
   );
 
   if (totalRow) {
     const cells = totalRow.querySelectorAll("td strong");
     if (cells.length >= 5) {
-      cells[2].textContent = formatNumberWithCommas(totals.inflows, true);
-      cells[3].textContent = formatNumberWithCommas(totals.outflows, true);
-      cells[4].textContent = formatNumberWithCommas(totals.balance, true);
+      // cells[0] is the month title "Tổng Tháng..."
+      // cells[1] is the entry count
+      cells[2].textContent = formatNumberWithCommas(totals.inflows, true); // Inflows
+      cells[3].textContent = formatNumberWithCommas(totals.outflows, true); // Outflows
+      cells[4].textContent = formatNumberWithCommas(totals.balance, true); // Balance
     }
   }
 }
 
 function collectRowData(row) {
   return {
+    day: row.querySelector('[data-field="day"]').value,
     inflows: parseNumberFromInput(
       row.querySelector('[data-field="inflows"]').value
     ),
