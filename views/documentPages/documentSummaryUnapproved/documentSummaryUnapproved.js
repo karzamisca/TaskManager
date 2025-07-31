@@ -1068,10 +1068,19 @@ function formatFileSize(bytes) {
 // Format currency
 function formatCurrency(amount) {
   if (typeof amount !== "number") return "N/A";
-  return new Intl.NumberFormat("vi-VN", {
-    style: "currency",
-    currency: "VND",
-  }).format(amount);
+
+  const isInteger = Number.isInteger(amount);
+  const [integerPart, decimalPart] = amount.toFixed(2).split(".");
+
+  // Format integer part with comma as thousand separator
+  const withThousandSeparator = integerPart.replace(
+    /\B(?=(\d{3})+(?!\d))/g,
+    ","
+  );
+
+  return isInteger
+    ? `${withThousandSeparator} ₫`
+    : `${withThousandSeparator}.${decimalPart} ₫`;
 }
 
 // Add proposal-specific details

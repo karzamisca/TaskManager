@@ -936,7 +936,7 @@ async function createPurchasingDocument(
       }
 
       const costPerUnit = parseFloat(product.costPerUnit) || 0;
-      const amount = parseInt(product.amount) || 0;
+      const amount = parseFloat(product.amount) || 0;
       const vat = parseFloat(product.vat) || 0;
       const totalCost = costPerUnit * amount;
       const totalCostAfterVat = totalCost * (1 + vat / 100);

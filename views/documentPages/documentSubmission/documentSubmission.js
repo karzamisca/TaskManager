@@ -61,8 +61,8 @@ function handlePurchasingDocument() {
       <div id="product-entries">
         <label>Tên sản phẩm</label><input type="text" name="products[0][productName]" required />
         <label>Đơn giá</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
-        <label>Số lượng</label><input type="number" name="products[0][amount]" required />
-        <label>Thuế (%)</label><input type="number" name="products[0][vat]" required />
+        <label>Số lượng</label><input type="number" step="0.01" name="products[0][amount]" required />
+        <label>Thuế (%)</label><input type="number" step="0.01" name="products[0][vat]" required />
         <label>Trạm sản phẩm</label>
         <select name="products[0][costCenter]" class="product-cost-center" required>
           <option value="">Chọn trạm</option>
@@ -252,8 +252,8 @@ function handleDeliveryDocument() {
       <div id="product-entries">
         <label>Tên sản phẩm</label><input type="text" name="products[0][productName]" required />
         <label>Đơn giá</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
-        <label>Số lượng</label><input type="number" name="products[0][amount]" required />
-        <label>Thuế (%)</label><input type="number" name="products[0][vat]" required />
+        <label>Số lượng</label><input type="number" step="0.01" name="products[0][amount]" required />
+        <label>Thuế (%)</label><input type="number" step="0.01" name="products[0][vat]" required />
         <label>Ghi chú</label><input type="text" name="products[0][note]" />
       </div>
       <button type="button" onclick="addProductEntry()">Thêm sản phẩm</button>
@@ -463,8 +463,8 @@ function addProductEntry() {
   const newEntry = `
       <label>Tên sản phẩm</label><input type="text" name="products[${productCount}][productName]" required />
       <label>Đơn giá</label><input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required />
-      <label>Số lượng</label><input type="number" name="products[${productCount}][amount]" required />
-      <label>Thuế VAT(%)</label><input type="number" name="products[${productCount}][vat]" required />
+      <label>Số lượng</label><input type="number" step="0.01" name="products[${productCount}][amount]" required />
+      <label>Thuế VAT(%)</label><input type="number" step="0.01" name="products[${productCount}][vat]" required />
       <label>Trạm sản phẩm</label>
       <select name="products[${productCount}][costCenter]" class="product-cost-center" required>
         <option value="">Chọn trạm</option>
