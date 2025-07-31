@@ -118,14 +118,43 @@ const renderProposals = (proposals) => {
             <div><strong>Công việc:</strong> ${proposal.task}</div>
             <div><strong>Trạм:</strong> ${proposal.costCenter}</div>
             <div><strong>Nhóm:</strong> ${proposal.groupName}</div>
+            <div><strong>Dự án:</strong> ${
+              proposal.projectName || "Không có"
+            }</div>
             <div><strong>Mô tả:</strong> ${proposal.detailsDescription}</div>
+            <div><strong>Ngày nộp:</strong> ${proposal.submissionDate}</div>
+            <div><strong>Người nộp:</strong> ${
+              proposal.submittedBy?.username || "Không rõ"
+            }</div>
+            <div><strong>Trạng thái:</strong> ${proposal.status}</div>
+            ${
+              proposal.declaration
+                ? `<div><strong>Kê khai:</strong> ${proposal.declaration}</div>`
+                : ""
+            }
+            ${
+              proposal.suspendReason
+                ? `<div><strong>Lý do tạm dừng:</strong> ${proposal.suspendReason}</div>`
+                : ""
+            }
             ${
               proposal.fileMetadata
                 ? `<div><strong>Tệp đính kèm:</strong> 
                  <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></div>`
                 : ""
-            }
-          </div>
+            }            
+            <div><strong>Đã phê duyệt bởi:</strong></div>
+            <ul>
+              ${proposal.approvedBy
+                .map(
+                  (approval) => `
+                <li>
+                  ${approval.username} - ${approval.approvalDate}
+                </li>
+              `
+                )
+                .join("")}
+            </ul>                        
         `
         )
         .join("")}

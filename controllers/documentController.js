@@ -977,6 +977,14 @@ async function createPurchasingDocument(
         direction: doc.direction,
         fileMetadata: doc.fileMetadata,
         proposalId: doc._id,
+        submissionDate: doc.submissionDate,
+        submittedBy: doc.submittedBy,
+        approvers: doc.approvers,
+        approvedBy: doc.approvedBy,
+        status: doc.status,
+        declaration: doc.declaration,
+        suspendReason: doc.suspendReason,
+        projectName: doc.projectName,
       }));
     }
 
@@ -1854,7 +1862,10 @@ exports.getDocumentsContainingProposal = async (req, res) => {
 };
 exports.getProposalDocumentById = async (req, res) => {
   try {
-    const proposal = await ProposalDocument.findById(req.params.id);
+    const proposal = await ProposalDocument.findById(req.params.id)
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
     if (!proposal) return res.send("Proposal document not found");
     res.json(proposal);
   } catch (err) {
@@ -2476,7 +2487,8 @@ exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
     )
       .populate("submittedBy", "username")
       .populate("approvers.approver", "username role")
-      .populate("approvedBy.user", "username");
+      .populate("approvedBy.user", "username")
+      .populate("appendedProposals.submittedBy", "username");
 
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(

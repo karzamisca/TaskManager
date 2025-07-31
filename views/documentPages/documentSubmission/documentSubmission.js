@@ -611,15 +611,43 @@ async function previewProposalContent(selectElement) {
       <p><strong>Công việc:</strong> ${proposal.task}</p>
       <p><strong>Trạm:</strong> ${proposal.costCenter}</p>
       <p><strong>Nhóm:</strong> ${proposal.groupName}</p>
+      <p><strong>Dự án:</strong> ${proposal.projectName || "Không có"}</p>
       <p><strong>Ngày xảy ra lỗi:</strong> ${proposal.dateOfError}</p>
       <p><strong>Mô tả chi tiết:</strong> ${proposal.detailsDescription}</p>
       <p><strong>Hướng xử lý:</strong> ${proposal.direction}</p>
+      <p><strong>Ngày nộp:</strong> ${proposal.submissionDate}</p>
+      <p><strong>Người nộp:</strong> ${
+        proposal.submittedBy?.username || "Không rõ"
+      }</p>
+      <p><strong>Trạng thái:</strong> ${proposal.status}</p>
+      ${
+        proposal.declaration
+          ? `<p><strong>Kê khai:</strong> ${proposal.declaration}</p>`
+          : ""
+      }
+      ${
+        proposal.suspendReason
+          ? `<p><strong>Lý do tạm dừng:</strong> ${proposal.suspendReason}</p>`
+          : ""
+      }
       ${
         proposal.fileMetadata
           ? `<p><strong>Tệp đính kèm:</strong>
         <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
           : ""
       }
+      <h4>Đã phê duyệt bởi:</h4>
+      <ul>
+        ${proposal.approvedBy
+          .map(
+            (approval) => `
+          <li>
+            ${approval.username} - ${approval.approvalDate}
+          </li>
+        `
+          )
+          .join("")}
+      </ul>
     `;
   // Insert the preview right after the select container
   selectContainer.appendChild(previewDiv);
