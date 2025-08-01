@@ -21,6 +21,7 @@ exports.getUserMainPage = (req, res) => {
         "headOfPurchasing",
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
+        "headOfSales",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -47,6 +48,7 @@ exports.getUserSalaryCalculationPage = (req, res) => {
         "headOfPurchasing",
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
+        "headOfSales",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -72,6 +74,7 @@ exports.getManagers = async (req, res) => {
       "headOfPurchasing",
       "headOfOperations",
       "headOfNorthernRepresentativeOffice",
+      "headOfSales",
     ];
 
     const managers = await User.find({
@@ -130,6 +133,7 @@ exports.getUserById = async (req, res) => {
         "headOfPurchasing",
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
+        "headOfSales",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -159,6 +163,7 @@ exports.createUser = async (req, res) => {
         "headOfPurchasing",
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
+        "headOfSales",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -236,6 +241,7 @@ exports.updateUser = async (req, res) => {
         "headOfPurchasing",
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
+        "headOfSales",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -351,6 +357,7 @@ exports.getAllCostCenters = async (req, res) => {
         "headOfPurchasing",
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
+        "headOfSales",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
