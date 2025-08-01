@@ -1,4 +1,5 @@
 //controllers/financeBankController.js
+const ExcelJS = require("exceljs");
 const Center = require("../models/FinanceBank");
 
 exports.getAllCenters = async (req, res) => {
@@ -346,5 +347,234 @@ exports.updateMonthEntry = async (req, res) => {
     res.json(center);
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+};
+
+exports.exportToExcel = async (req, res) => {
+  try {
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+    }
+
+    const { centerId } = req.params;
+    const center = await Center.findById(centerId);
+    if (!center) {
+      return res.status(404).json({ message: "Center not found" });
+    }
+
+    // Create a new workbook
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = "Finance System";
+    workbook.created = new Date();
+
+    // Add each year as a separate worksheet
+    center.years.forEach((yearData) => {
+      const worksheet = workbook.addWorksheet(`Năm ${yearData.year}`);
+
+      // Add header row
+      worksheet.addRow([
+        "Tháng",
+        "Mục",
+        "Thu",
+        "Chi",
+        "Số dư",
+        "Ngày",
+        "Nội dung thủ quỹ",
+        "Nội dung ngân hàng",
+        "Ghi chú",
+      ]);
+
+      // Style header row
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).alignment = { horizontal: "center" };
+
+      // Add data for each month
+      yearData.months.forEach((month) => {
+        if (month.entries.length === 0) {
+          worksheet.addRow([month.name, "-", "", "", "", "", "", "", ""]);
+        } else {
+          // Add month total row
+          const totals = month.entries.reduce(
+            (acc, entry) => {
+              acc.inflows += entry.inflows || 0;
+              acc.outflows += entry.outflows || 0;
+              return acc;
+            },
+            { inflows: 0, outflows: 0 }
+          );
+
+          const totalRow = worksheet.addRow([
+            month.name,
+            `Tổng ${month.name}`,
+            totals.inflows,
+            totals.outflows,
+            totals.inflows - totals.outflows,
+            "",
+            "",
+            "",
+            "",
+          ]);
+
+          // Style total row
+          totalRow.font = { bold: true };
+          totalRow.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFFFFF00" }, // Yellow background
+          };
+
+          // Add individual entries
+          month.entries.forEach((entry, index) => {
+            worksheet.addRow([
+              index === 0 ? month.name : "",
+              index + 1,
+              entry.inflows || 0,
+              entry.outflows || 0,
+              entry.balance || 0,
+              entry.day || "",
+              entry.treasurerNote || "",
+              entry.bankNote || "",
+              entry.generalNote || "",
+            ]);
+          });
+        }
+      });
+
+      // Auto-fit columns
+      worksheet.columns.forEach((column) => {
+        column.width = 15;
+      });
+    });
+
+    // Set response headers
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=${center.name.replace(
+        /\s+/g,
+        "_"
+      )}_finance_data.xlsx`
+    );
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    // Write to response
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error("Error exporting to Excel:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.importFromExcel = async (req, res) => {
+  try {
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+    }
+
+    const { centerId } = req.params;
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const center = await Center.findById(centerId);
+    if (!center) {
+      return res.status(404).json({ message: "Center not found" });
+    }
+
+    // Create workbook from buffer
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(req.file.buffer);
+
+    const updatedCenter = JSON.parse(JSON.stringify(center)); // Deep clone
+
+    // Process each worksheet (year)
+    workbook.eachSheet((worksheet, sheetId) => {
+      // Extract year from sheet name
+      const yearMatch = worksheet.name.match(/\d+/);
+      if (!yearMatch) return;
+      const year = parseInt(yearMatch[0]);
+
+      // Find or create year in center data
+      let yearData = updatedCenter.years.find((y) => y.year === year);
+      if (!yearData) {
+        yearData = {
+          year,
+          months: months.map((name) => ({ name, entries: [] })),
+        };
+        updatedCenter.years.push(yearData);
+      }
+
+      // Process data rows
+      let currentMonth = null;
+      let entryIndex = 0;
+
+      worksheet.eachRow((row, rowNumber) => {
+        // Skip header row
+        if (rowNumber === 1) return;
+
+        const [
+          monthCell,
+          itemCell,
+          inflows,
+          outflows,
+          balance,
+          day,
+          treasurerNote,
+          bankNote,
+          generalNote,
+        ] = row.values.slice(1); // Skip first empty value
+
+        // Skip empty rows
+        if (!monthCell && !itemCell) return;
+
+        // If month cell has value, it's either a month header or first entry of month
+        if (monthCell) {
+          const monthName = monthCell.toString().replace("Tổng ", "").trim();
+          currentMonth = yearData.months.find((m) => m.name === monthName);
+          entryIndex = 0;
+        }
+
+        if (!currentMonth) return;
+
+        // If item cell is numeric, it's an entry row
+        if (!isNaN(itemCell)) {
+          const entry = {
+            day: day ? day.toString() : "",
+            inflows: Number(inflows) || 0,
+            outflows: Number(outflows) || 0,
+            balance: Number(balance) || 0,
+            treasurerNote: treasurerNote ? treasurerNote.toString() : "",
+            bankNote: bankNote ? bankNote.toString() : "",
+            generalNote: generalNote ? generalNote.toString() : "",
+          };
+
+          // Update existing entry or add new one
+          if (entryIndex < currentMonth.entries.length) {
+            currentMonth.entries[entryIndex] = entry;
+          } else {
+            currentMonth.entries.push(entry);
+          }
+          entryIndex++;
+        }
+      });
+    });
+
+    // Save the updated center
+    const savedCenter = await Center.findByIdAndUpdate(
+      centerId,
+      updatedCenter,
+      { new: true }
+    );
+    res.json(savedCenter);
+  } catch (err) {
+    console.error("Error importing from Excel:", err);
+    res.status(500).json({ message: err.message });
   }
 };

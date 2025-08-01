@@ -3,6 +3,8 @@ const express = require("express");
 const router = express.Router();
 const centersController = require("../controllers/financeBankController");
 const authMiddleware = require("../middlewares/authMiddleware");
+const multer = require("multer");
+const upload = multer();
 
 router.get("/financeBank", authMiddleware, (req, res) => {
   res.sendFile("financeBank.html", {
@@ -53,6 +55,18 @@ router.put(
   "/financeBankControl/:centerId/years/:year/months/:monthName/entries/:entryIndex",
   authMiddleware,
   centersController.updateMonthEntry
+);
+router.get(
+  "/financeBankControl/:centerId/export",
+  authMiddleware,
+  centersController.exportToExcel
+);
+
+router.post(
+  "/financeBankControl/:centerId/import",
+  authMiddleware,
+  upload.single("file"),
+  centersController.importFromExcel
 );
 
 module.exports = router;

@@ -66,6 +66,13 @@ function formatInputValue(input, value) {
 }
 
 function setupEventListeners() {
+  document.getElementById("exportBtn").addEventListener("click", exportToExcel);
+  document.getElementById("importBtn").addEventListener("change", (e) => {
+    if (e.target.files.length > 0) {
+      importFromExcel(e.target.files[0]);
+      e.target.value = ""; // Reset file input
+    }
+  });
   document
     .getElementById("addCenterForm")
     .addEventListener("submit", handleAddCenter);
@@ -81,6 +88,66 @@ function setupEventListeners() {
   document
     .getElementById("editYearBtn")
     .addEventListener("click", handleEditYear);
+}
+
+async function exportToExcel() {
+  if (!currentCenter) return;
+
+  try {
+    const response = await fetch(
+      `/financeBankControl/${currentCenter._id}/export`
+    );
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${currentCenter.name.replace(
+        /\s+/g,
+        "_"
+      )}_finance_data.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    } else {
+      const error = await response.json();
+      console.log(`Error: ${error.message}`);
+    }
+  } catch (error) {
+    console.error("Error exporting to Excel:", error);
+    console.log("Failed to export data");
+  }
+}
+
+async function importFromExcel(file) {
+  if (!currentCenter || !file) return;
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const response = await fetch(
+      `/financeBankControl/${currentCenter._id}/import`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    if (response.ok) {
+      const updatedCenter = await response.json();
+      updateCurrentCenter(updatedCenter);
+      renderFinanceTable();
+      console.log("Data imported successfully");
+    } else {
+      const error = await response.json();
+      console.log(`Error: ${error.message}`);
+    }
+  } catch (error) {
+    console.error("Error importing from Excel:", error);
+    console.log("Failed to import data");
+  }
 }
 
 async function loadCenters() {
