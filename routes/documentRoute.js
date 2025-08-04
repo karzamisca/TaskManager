@@ -6,19 +6,35 @@ const documentController = require("../controllers/documentController");
 const Group = require("../models/Group");
 const Project = require("../models/Project");
 const authMiddleware = require("../middlewares/authMiddleware");
+const uploadDir = "uploads/";
 
 // Set up multer to handle in-memory file uploads
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/"); // Make sure this directory exists
+    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
+    // Ensure the original filename is properly decoded
+    const originalName = Buffer.from(file.originalname, "latin1").toString(
+      "utf8"
+    );
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + "-" + originalName);
   },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: storage,
+  // Add file filter to handle encoding
+  fileFilter: function (req, file, cb) {
+    // Ensure proper encoding handling
+    file.originalname = Buffer.from(file.originalname, "latin1").toString(
+      "utf8"
+    );
+    cb(null, true);
+  },
+});
 
 //// GENERAL ROUTE
 // Submit document route
