@@ -521,7 +521,12 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       return res.status(400).json({ message: "Thiếu tháng hoặc năm" });
     }
 
-    const privilegedRoles = ["superAdmin", "deputyDirector", "director"];
+    const privilegedRoles = [
+      "superAdmin",
+      "deputyDirector",
+      "director",
+      "headOfAccounting",
+    ];
     const fullAccessRoles = [
       "superAdmin",
       "deputyDirector",
@@ -796,7 +801,12 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       return res.status(400).json({ message: "Thiếu tháng hoặc năm" });
     }
 
-    const privilegedRoles = ["superAdmin", "deputyDirector", "director"];
+    const privilegedRoles = [
+      "superAdmin",
+      "deputyDirector",
+      "director",
+      "headOfAccounting",
+    ];
     const fullAccessRoles = [
       "superAdmin",
       "deputyDirector",
