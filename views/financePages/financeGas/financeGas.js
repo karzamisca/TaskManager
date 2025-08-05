@@ -849,7 +849,7 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
 // Function to render month total row (now goes at the top)
 function renderMonthTotalRow(monthName, entryCount, totals) {
   return `
-    <tr class="total-row" data-month="${monthName}" style="background-color: #f8f9fa; font-weight: bold;">
+    <tr class="total-row" data-month="${monthName}" data-month-total="true" style="background-color: #f8f9fa; font-weight: bold;">
       <td><strong>Tổng ${monthName}</strong></td>
       <td><strong>${entryCount}</strong></td>
       <td><strong>${formatNumberWithCommas(
@@ -1304,7 +1304,7 @@ async function handleInputBlur(e) {
   }
 }
 
-// MODIFIED: Update month totals in place without full refresh (updated for totals on top)
+// Update month totals in place without full refresh
 function updateMonthTotalsInPlace(monthName, year) {
   const yearData = currentCenter.years.find((y) => y.year === parseInt(year));
   if (!yearData) return;
@@ -1317,30 +1317,51 @@ function updateMonthTotalsInPlace(monthName, year) {
 
   const totals = calculateMonthTotals(monthData.entries);
   const totalRow = document.querySelector(
-    `tr.total-row[data-month="${monthName}"]`
+    `tr.total-row[data-month="${monthName}"][data-month-total="true"]`
   );
 
   if (totalRow) {
-    const cells = totalRow.querySelectorAll("td strong");
-    // Verify we have enough cells before accessing them
+    // Get all td elements in the total row
+    const cells = totalRow.querySelectorAll("td");
+
+    // Update the cells with new totals (based on the structure from renderMonthTotalRow)
     if (cells.length >= 15) {
-      cells[1].textContent = monthData.entries.length;
-      cells[2].textContent = formatNumberWithCommas(
+      // cells[0] = "Tổng ${monthName}" (skip)
+      cells[1].innerHTML = `<strong>${monthData.entries.length}</strong>`;
+      cells[2].innerHTML = `<strong>${formatNumberWithCommas(
         totals.purchaseAmount,
         true
-      );
-      cells[4].textContent = formatNumberWithCommas(totals.purchaseTotal, true);
-      cells[5].textContent = formatNumberWithCommas(totals.saleAmount, true);
-      cells[7].textContent = formatNumberWithCommas(totals.saleTotal, true);
-      cells[8].textContent = formatNumberWithCommas(totals.transport, true);
-      cells[12].textContent = formatNumberWithCommas(
+      )}</strong>`;
+      // cells[3] = "-" (skip)
+      cells[4].innerHTML = `<strong>${formatNumberWithCommas(
+        totals.purchaseTotal,
+        true
+      )}</strong>`;
+      cells[5].innerHTML = `<strong>${formatNumberWithCommas(
+        totals.saleAmount,
+        true
+      )}</strong>`;
+      // cells[6] = "-" (skip)
+      cells[7].innerHTML = `<strong>${formatNumberWithCommas(
+        totals.saleTotal,
+        true
+      )}</strong>`;
+      cells[8].innerHTML = `<strong>${formatNumberWithCommas(
+        totals.transport,
+        true
+      )}</strong>`;
+      // cells[9] = "-" (skip)
+      // cells[10] = "-" (skip)
+      cells[11].innerHTML = `<strong>${formatNumberWithCommas(
         totals.commissionPurchase,
         true
-      );
-      cells[14].textContent = formatNumberWithCommas(
+      )}</strong>`;
+      // cells[12] = "-" (skip)
+      cells[13].innerHTML = `<strong>${formatNumberWithCommas(
         totals.commissionSale,
         true
-      );
+      )}</strong>`;
+      // cells[14] = "" (skip - actions column)
     }
   }
 }
