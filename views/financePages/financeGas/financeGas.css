@@ -410,6 +410,80 @@ body {
   z-index: 1050;
 }
 
+.consolidated-totals-table {
+  margin-top: 20px;
+  background: var(--bg-secondary);
+  border-radius: clamp(6px, 1vw, 12px);
+  box-shadow: 0 2px 10px var(--shadow-light);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.consolidated-totals-table th {
+  background: linear-gradient(
+    180deg,
+    var(--bg-tertiary) 0%,
+    var(--border-color) 100%
+  );
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.consolidated-totals-table td:first-child {
+  font-weight: 500;
+  background-color: var(--bg-tertiary);
+  position: sticky;
+  left: 0;
+  z-index: 5;
+}
+
+.consolidated-total-row {
+  background-color: var(--accent-yellow-light);
+  font-weight: bold;
+}
+
+.consolidated-total-row td {
+  border-top: 2px solid var(--accent-yellow);
+}
+
+.consolidated-totals-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  padding: 20px;
+}
+
+.consolidated-totals-container {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-radius: clamp(6px, 1vw, 12px);
+  box-shadow: 0 4px 20px var(--shadow-medium);
+  border: 1px solid var(--border-color);
+  padding: clamp(12px, 2vw, 20px);
+  max-width: 95%;
+  width: 1200px;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.consolidated-totals-container h4 {
+  color: var(--text-primary);
+  margin-bottom: 15px;
+}
+
+.consolidated-totals-container .btn-close {
+  filter: invert(var(--dark-mode-invert))
+    brightness(var(--dark-mode-brightness));
+}
+
 @keyframes spin {
   0% {
     transform: rotate(0deg);

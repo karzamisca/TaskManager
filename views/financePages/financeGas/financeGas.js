@@ -18,6 +18,163 @@ const months = [
 let draggedTab = null;
 let draggedTabIndex = -1;
 
+async function showAllCentersTotals() {
+  try {
+    // Show loading state
+    const btn = document.getElementById("showAllTotalsBtn");
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="optimistic-spinner"></span> Đang tải...';
+    btn.disabled = true;
+
+    // Fetch all centers data
+    const response = await fetch("/financeGasControl");
+    const allCenters = await response.json();
+
+    // Create modal container
+    const modal = document.createElement("div");
+    modal.className = "consolidated-totals-modal";
+    modal.innerHTML = `
+      <div class="consolidated-totals-overlay">
+        <div class="consolidated-totals-container">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4>Tổng hợp tất cả trạm</h4>
+            <button type="button" class="btn-close" aria-label="Close"></button>
+          </div>
+          <div class="table-container" style="max-height: 70vh;">
+            <table class="table table-excel consolidated-totals-table">
+              <thead>
+                <tr>
+                  <th>Trạm</th>
+                  <th>Tháng</th>
+                  <th>Số lượng mua</th>
+                  <th>Tổng mua</th>
+                  <th>Số lượng bán</th>
+                  <th>Tổng bán</th>
+                  <th>Lương</th>
+                  <th>Vận chuyển</th>
+                  <th>Hoa hồng mua</th>
+                  <th>Hoa hồng bán</th>
+                </tr>
+              </thead>
+              <tbody id="consolidatedTotalsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Populate the table
+    const tbody = modal.querySelector("#consolidatedTotalsBody");
+    let grandTotals = {
+      purchaseAmount: 0,
+      purchaseTotal: 0,
+      saleAmount: 0,
+      saleTotal: 0,
+      salary: 0,
+      transport: 0,
+      commissionPurchase: 0,
+      commissionSale: 0,
+    };
+
+    allCenters.forEach((center) => {
+      center.years.forEach((yearData) => {
+        yearData.months.forEach((monthData) => {
+          if (monthData.entries.length > 0) {
+            const monthTotals = calculateMonthTotals(monthData.entries);
+
+            // Add to grand totals
+            Object.keys(grandTotals).forEach((key) => {
+              grandTotals[key] += monthTotals[key];
+            });
+
+            // Add row for this month
+            tbody.innerHTML += `
+              <tr>
+                <td>${center.name}</td>
+                <td>${monthData.name} ${yearData.year}</td>
+                <td>${formatNumberWithCommas(
+                  monthTotals.purchaseAmount,
+                  true
+                )}</td>
+                <td>${formatNumberWithCommas(
+                  monthTotals.purchaseTotal,
+                  true
+                )}</td>
+                <td>${formatNumberWithCommas(monthTotals.saleAmount, true)}</td>
+                <td>${formatNumberWithCommas(monthTotals.saleTotal, true)}</td>
+                <td>${formatNumberWithCommas(monthTotals.salary, true)}</td>
+                <td>${formatNumberWithCommas(monthTotals.transport, true)}</td>
+                <td>${formatNumberWithCommas(
+                  monthTotals.commissionPurchase,
+                  true
+                )}</td>
+                <td>${formatNumberWithCommas(
+                  monthTotals.commissionSale,
+                  true
+                )}</td>
+              </tr>
+            `;
+          }
+        });
+      });
+    });
+
+    // Add grand totals row
+    tbody.innerHTML += `
+      <tr class="consolidated-total-row">
+        <td colspan="2"><strong>TỔNG CỘNG</strong></td>
+        <td><strong>${formatNumberWithCommas(
+          grandTotals.purchaseAmount,
+          true
+        )}</strong></td>
+        <td><strong>${formatNumberWithCommas(
+          grandTotals.purchaseTotal,
+          true
+        )}</strong></td>
+        <td><strong>${formatNumberWithCommas(
+          grandTotals.saleAmount,
+          true
+        )}</strong></td>
+        <td><strong>${formatNumberWithCommas(
+          grandTotals.saleTotal,
+          true
+        )}</strong></td>
+        <td><strong>${formatNumberWithCommas(
+          grandTotals.salary,
+          true
+        )}</strong></td>
+        <td><strong>${formatNumberWithCommas(
+          grandTotals.transport,
+          true
+        )}</strong></td>
+        <td><strong>${formatNumberWithCommas(
+          grandTotals.commissionPurchase,
+          true
+        )}</strong></td>
+        <td><strong>${formatNumberWithCommas(
+          grandTotals.commissionSale,
+          true
+        )}</strong></td>
+      </tr>
+    `;
+
+    // Add close button functionality
+    modal.querySelector(".btn-close").addEventListener("click", () => {
+      modal.remove();
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    });
+
+    // Add to document
+    document.body.appendChild(modal);
+  } catch (error) {
+    console.error("Error loading consolidated totals:", error);
+    alert("Lỗi khi tải dữ liệu tổng hợp");
+    document.getElementById("showAllTotalsBtn").innerHTML = originalText;
+    document.getElementById("showAllTotalsBtn").disabled = false;
+  }
+}
+
 // Initialize
 document.addEventListener("DOMContentLoaded", function () {
   loadCenters();
@@ -66,6 +223,9 @@ function formatInputValue(input, value) {
 }
 
 function setupEventListeners() {
+  document
+    .getElementById("showAllTotalsBtn")
+    .addEventListener("click", showAllCentersTotals);
   document
     .getElementById("addCenterForm")
     .addEventListener("submit", handleAddCenter);
