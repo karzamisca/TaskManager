@@ -15,7 +15,6 @@ const commissionBonusSchema = new mongoose.Schema({
 const monthEntrySchema = new mongoose.Schema({
   purchaseContract: purchaseSaleSchema,
   saleContract: purchaseSaleSchema,
-  salary: { type: Number, default: 0 },
   transportCost: { type: Number, default: 0 },
   commissionBonus: commissionBonusSchema,
   commissionRatePurchase: { type: Number, default: 0 },

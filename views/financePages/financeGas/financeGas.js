@@ -53,7 +53,6 @@ async function showAllCentersTotals() {
                   <th>Tổng mua</th>
                   <th>Số lượng bán</th>
                   <th>Tổng bán</th>
-                  <th>Lương</th>
                   <th>Vận chuyển</th>
                   <th>Hoa hồng mua</th>
                   <th>Hoa hồng bán</th>
@@ -725,7 +724,6 @@ function renderYearTable(yearData) {
             <th style="min-width: 90px;">Số lượng bán</th>
             <th style="min-width: 90px;">Đơn giá bán</th>
             <th style="min-width: 90px;">Tổng bán</th>
-            <th style="min-width: 80px;">Lương</th>
             <th style="min-width: 90px;">Vận chuyển</th>
             <th style="min-width: 90px;">Tỷ giá tiền</th>
             <th style="min-width: 90px;">Tỷ suất hoa hồng mua</th>
@@ -792,7 +790,7 @@ function renderYearTable(yearData) {
   return html;
 }
 
-// NEW: Function to render a single entry row
+// Function to render a single entry row
 function renderEntryRow(entry, entryIndex, monthName, year) {
   return `
     <tr data-month="${monthName}" data-year="${year}" data-entry="${entryIndex}">
@@ -821,9 +819,6 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
         true
       )}</td>
 
-      <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
-        entry.salary || 0
-      )}" data-field="salary"></td>
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.transportCost || 0
       )}" data-field="transportCost"></td>
@@ -857,7 +852,7 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
   `;
 }
 
-// MODIFIED: Function to render month total row (now goes at the top)
+// Function to render month total row (now goes at the top)
 function renderMonthTotalRow(monthName, entryCount, totals) {
   return `
     <tr class="total-row" data-month="${monthName}" style="background-color: #f8f9fa; font-weight: bold;">
@@ -881,7 +876,6 @@ function renderMonthTotalRow(monthName, entryCount, totals) {
         totals.saleTotal,
         true
       )}</strong></td>
-      <td><strong>${formatNumberWithCommas(totals.salary, true)}</strong></td>
       <td><strong>${formatNumberWithCommas(
         totals.transport,
         true
@@ -1016,7 +1010,6 @@ async function handleAddEntry(e) {
   const entryData = {
     purchaseContract: { amount: 0, unitCost: 0, totalCost: 0 },
     saleContract: { amount: 0, unitCost: 0, totalCost: 0 },
-    salary: 0,
     transportCost: 0,
     currencyExchangeRate: 1,
     commissionRatePurchase: 0,
@@ -1374,9 +1367,6 @@ function collectRowData(row) {
   const saleUnitCost = parseNumberFromInput(
     row.querySelector('[data-field="saleContract.unitCost"]').value
   );
-  const salary = parseNumberFromInput(
-    row.querySelector('[data-field="salary"]').value
-  );
   const transportCost = parseNumberFromInput(
     row.querySelector('[data-field="transportCost"]').value
   );
@@ -1402,7 +1392,6 @@ function collectRowData(row) {
       unitCost: saleUnitCost,
       totalCost: saleAmount * saleUnitCost,
     },
-    salary: salary,
     transportCost: transportCost,
     currencyExchangeRate: exchangeRate,
     commissionRatePurchase: purchaseCommRate,
