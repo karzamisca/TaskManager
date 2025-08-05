@@ -896,7 +896,6 @@ function calculateMonthTotals(entries) {
     purchaseTotal: 0,
     saleAmount: 0,
     saleTotal: 0,
-    salary: 0,
     transport: 0,
     commissionPurchase: 0,
     commissionSale: 0,
@@ -907,7 +906,6 @@ function calculateMonthTotals(entries) {
     totals.purchaseTotal += entry.purchaseContract?.totalCost || 0;
     totals.saleAmount += entry.saleContract?.amount || 0;
     totals.saleTotal += entry.saleContract?.totalCost || 0;
-    totals.salary += entry.salary || 0;
     totals.transport += entry.transportCost || 0;
     totals.commissionPurchase += entry.commissionBonus?.purchase || 0;
     totals.commissionSale += entry.commissionBonus?.sale || 0;
