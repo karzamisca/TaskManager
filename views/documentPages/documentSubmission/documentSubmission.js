@@ -458,23 +458,33 @@ async function populateProductCostCenters() {
 
 function addProductEntry() {
   const productEntries = document.getElementById("product-entries");
-  const productCount = productEntries.children.length / 6; // Changed from 5 to 6 to account for cost center field
+  const productCount = productEntries.children.length / 5; // Changed back to 5 since we removed cost center field
+  const selectedTitle = document.getElementById("title-dropdown").value;
+
+  // Check if this is a Delivery Document (no cost center needed for products)
+  const isDeliveryDocument = selectedTitle === "Delivery Document";
 
   const newEntry = `
       <label>Tên sản phẩm</label><input type="text" name="products[${productCount}][productName]" required />
       <label>Đơn giá</label><input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required />
       <label>Số lượng</label><input type="number" step="0.01" name="products[${productCount}][amount]" required />
       <label>Thuế VAT(%)</label><input type="number" step="0.01" name="products[${productCount}][vat]" required />
-      <label>Trạm sản phẩm</label>
-      <select name="products[${productCount}][costCenter]" class="product-cost-center" required>
-        <option value="">Chọn trạm</option>
-      </select>
+      ${
+        !isDeliveryDocument
+          ? `<label>Trạm sản phẩm</label>
+             <select name="products[${productCount}][costCenter]" class="product-cost-center" required>
+               <option value="">Chọn trạm</option>
+             </select>`
+          : ""
+      }
       <label>Ghi chú</label><input type="text" name="products[${productCount}][note]" />
     `;
   productEntries.insertAdjacentHTML("beforeend", newEntry);
 
-  // Populate cost centers for the new product entry
-  populateProductCostCenters();
+  // Only populate cost centers if this is not a Delivery Document
+  if (!isDeliveryDocument) {
+    populateProductCostCenters();
+  }
 }
 
 async function fetchApprovers() {
