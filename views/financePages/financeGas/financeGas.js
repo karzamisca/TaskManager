@@ -72,7 +72,6 @@ async function showAllCentersTotals() {
       purchaseTotal: 0,
       saleAmount: 0,
       saleTotal: 0,
-      salary: 0,
       transport: 0,
       commissionPurchase: 0,
       commissionSale: 0,
@@ -104,7 +103,6 @@ async function showAllCentersTotals() {
                 )}</td>
                 <td>${formatNumberWithCommas(monthTotals.saleAmount, true)}</td>
                 <td>${formatNumberWithCommas(monthTotals.saleTotal, true)}</td>
-                <td>${formatNumberWithCommas(monthTotals.salary, true)}</td>
                 <td>${formatNumberWithCommas(monthTotals.transport, true)}</td>
                 <td>${formatNumberWithCommas(
                   monthTotals.commissionPurchase,
@@ -139,10 +137,6 @@ async function showAllCentersTotals() {
         )}</strong></td>
         <td><strong>${formatNumberWithCommas(
           grandTotals.saleTotal,
-          true
-        )}</strong></td>
-        <td><strong>${formatNumberWithCommas(
-          grandTotals.salary,
           true
         )}</strong></td>
         <td><strong>${formatNumberWithCommas(
@@ -1340,8 +1334,7 @@ function updateMonthTotalsInPlace(monthName, year) {
       cells[4].textContent = formatNumberWithCommas(totals.purchaseTotal, true);
       cells[5].textContent = formatNumberWithCommas(totals.saleAmount, true);
       cells[7].textContent = formatNumberWithCommas(totals.saleTotal, true);
-      cells[8].textContent = formatNumberWithCommas(totals.salary, true);
-      cells[9].textContent = formatNumberWithCommas(totals.transport, true);
+      cells[8].textContent = formatNumberWithCommas(totals.transport, true);
       cells[12].textContent = formatNumberWithCommas(
         totals.commissionPurchase,
         true
