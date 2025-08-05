@@ -1250,7 +1250,7 @@ function updateRowCalculations(row) {
   const purchaseTotal = purchaseAmount * purchaseUnitCost;
   const saleTotal = saleAmount * saleUnitCost;
   const purchaseCommission = purchaseAmount * purchaseCommRate * exchangeRate;
-  const saleCommission = saleAmount * saleCommRate * exchangeRate;
+  const saleCommission = saleAmount * saleCommRate * saleUnitCost;
 
   const calculatedFields = row.querySelectorAll(".calculated-field");
   calculatedFields[0].textContent = formatNumberWithCommas(purchaseTotal, true);
@@ -1398,7 +1398,7 @@ function collectRowData(row) {
     commissionRateSale: saleCommRate,
     commissionBonus: {
       purchase: purchaseAmount * purchaseCommRate * exchangeRate,
-      sale: saleAmount * saleCommRate * exchangeRate,
+      sale: saleAmount * saleCommRate * saleUnitCost,
     },
   };
 }
