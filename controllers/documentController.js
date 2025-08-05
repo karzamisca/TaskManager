@@ -1640,11 +1640,9 @@ exports.openDocument = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Restrict access to only users with the role of "director" or "headOfPurchasing"
-    if (req.user.role !== "director" && req.user.role !== "headOfPurchasing") {
-      return res.send(
-        "Truy cập bị từ chối. Chỉ giám đốc mới có quyền mở lại phiếu."
-      );
+    // Restrict access
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Find the document in any of the collections
