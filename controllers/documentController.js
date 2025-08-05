@@ -1594,7 +1594,7 @@ exports.suspendDocument = async (req, res) => {
   const { suspendReason } = req.body;
 
   try {
-    // Restrict access to only users with the role of "director" or "headOfPurchasing"
+    // Restrict access
     if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -2734,10 +2734,8 @@ exports.suspendPurchasingDocument = async (req, res) => {
 
   try {
     // Restrict access to only users with the role of "director"
-    if (req.user.role !== "headOfPurchasing") {
-      return res.send(
-        "Truy cập bị từ chối. Chỉ trưởng phòng mua hàng có quyền tạm dừng phiếu mua hàng."
-      );
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Find the document in any of the collections
@@ -4150,10 +4148,8 @@ exports.suspendProjectProposal = async (req, res) => {
   const { suspendReason } = req.body;
 
   try {
-    if (req.user.role !== "director") {
-      return res.send(
-        "Access denied. Only director can suspend project proposals."
-      );
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     const document = await ProjectProposalDocument.findById(id);
