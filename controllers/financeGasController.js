@@ -1,5 +1,6 @@
 //controllers/financeGasController.js
 const Center = require("../models/FinanceGas");
+const ExcelJS = require("exceljs");
 
 exports.getAllCenters = async (req, res) => {
   try {
@@ -15,6 +16,174 @@ exports.getAllCenters = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.exportAllCentersSummaryToExcel = async (req, res) => {
+  try {
+    // Fetch all centers data
+    const centers = await Center.find().lean();
+
+    // Create workbook and worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Tổng hợp tất cả trạm");
+
+    // Set columns
+    worksheet.columns = [
+      { header: "Trạm", key: "center", width: 20 },
+      { header: "Tháng", key: "month", width: 15 },
+      {
+        header: "Số lượng mua",
+        key: "purchaseAmount",
+        width: 15,
+        style: { numFmt: "#,##0" },
+      },
+      {
+        header: "Tổng mua",
+        key: "purchaseTotal",
+        width: 15,
+        style: { numFmt: "#,##0" },
+      },
+      {
+        header: "Số lượng bán",
+        key: "saleAmount",
+        width: 15,
+        style: { numFmt: "#,##0" },
+      },
+      {
+        header: "Tổng bán",
+        key: "saleTotal",
+        width: 15,
+        style: { numFmt: "#,##0" },
+      },
+      { header: "Lương", key: "salary", width: 15, style: { numFmt: "#,##0" } },
+      {
+        header: "Vận chuyển",
+        key: "transport",
+        width: 15,
+        style: { numFmt: "#,##0" },
+      },
+      {
+        header: "Hoa hồng mua",
+        key: "commissionPurchase",
+        width: 15,
+        style: { numFmt: "#,##0" },
+      },
+      {
+        header: "Hoa hồng bán",
+        key: "commissionSale",
+        width: 15,
+        style: { numFmt: "#,##0" },
+      },
+    ];
+
+    // Add data rows
+    let grandTotals = {
+      purchaseAmount: 0,
+      purchaseTotal: 0,
+      saleAmount: 0,
+      saleTotal: 0,
+      salary: 0,
+      transport: 0,
+      commissionPurchase: 0,
+      commissionSale: 0,
+    };
+
+    centers.forEach((center) => {
+      center.years.forEach((yearData) => {
+        yearData.months.forEach((monthData) => {
+          if (monthData.entries.length > 0) {
+            const monthTotals = calculateMonthTotals(monthData.entries);
+
+            // Add to grand totals
+            Object.keys(grandTotals).forEach((key) => {
+              grandTotals[key] += monthTotals[key];
+            });
+
+            // Add row
+            worksheet.addRow({
+              center: center.name,
+              month: `${monthData.name} ${yearData.year}`,
+              purchaseAmount: monthTotals.purchaseAmount,
+              purchaseTotal: monthTotals.purchaseTotal,
+              saleAmount: monthTotals.saleAmount,
+              saleTotal: monthTotals.saleTotal,
+              salary: monthTotals.salary,
+              transport: monthTotals.transport,
+              commissionPurchase: monthTotals.commissionPurchase,
+              commissionSale: monthTotals.commissionSale,
+            });
+          }
+        });
+      });
+    });
+
+    // Add grand totals row
+    worksheet.addRow({
+      center: "TỔNG CỘNG",
+      month: "",
+      purchaseAmount: grandTotals.purchaseAmount,
+      purchaseTotal: grandTotals.purchaseTotal,
+      saleAmount: grandTotals.saleAmount,
+      saleTotal: grandTotals.saleTotal,
+      salary: grandTotals.salary,
+      transport: grandTotals.transport,
+      commissionPurchase: grandTotals.commissionPurchase,
+      commissionSale: grandTotals.commissionSale,
+    });
+
+    // Style the grand totals row
+    const lastRow = worksheet.lastRow;
+    lastRow.font = { bold: true };
+    lastRow.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFFFFF00" }, // Yellow background
+    };
+
+    // Set response headers for file download
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=tong_hop_tat_ca_tram.xlsx"
+    );
+
+    // Write workbook to response
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error("Error exporting to Excel:", error);
+    res.status(500).json({ message: "Lỗi khi xuất file Excel" });
+  }
+};
+
+// Helper function to calculate month totals (same as frontend)
+function calculateMonthTotals(entries) {
+  const totals = {
+    purchaseAmount: 0,
+    purchaseTotal: 0,
+    saleAmount: 0,
+    saleTotal: 0,
+    salary: 0,
+    transport: 0,
+    commissionPurchase: 0,
+    commissionSale: 0,
+  };
+
+  entries.forEach((entry) => {
+    totals.purchaseAmount += entry.purchaseContract?.amount || 0;
+    totals.purchaseTotal += entry.purchaseContract?.totalCost || 0;
+    totals.saleAmount += entry.saleContract?.amount || 0;
+    totals.saleTotal += entry.saleContract?.totalCost || 0;
+    totals.salary += entry.salary || 0;
+    totals.transport += entry.transportCost || 0;
+    totals.commissionPurchase += entry.commissionBonus?.purchase || 0;
+    totals.commissionSale += entry.commissionBonus?.sale || 0;
+  });
+
+  return totals;
+}
 
 exports.createCenter = async (req, res) => {
   if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {

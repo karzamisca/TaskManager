@@ -38,6 +38,9 @@ async function showAllCentersTotals() {
         <div class="consolidated-totals-container">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h4>Tổng hợp tất cả trạm</h4>
+            <button id="exportExcelBtn" class="btn btn-sm btn-success me-2">
+              <i class="bi bi-file-earmark-excel"></i> Xuất Excel
+            </button>            
             <button type="button" class="btn-close" aria-label="Close"></button>
           </div>
           <div class="table-container" style="max-height: 70vh;">
@@ -163,6 +166,12 @@ async function showAllCentersTotals() {
       modal.remove();
       btn.innerHTML = originalText;
       btn.disabled = false;
+    });
+
+    // Add export button functionality
+    modal.querySelector("#exportExcelBtn").addEventListener("click", () => {
+      // Trigger file download
+      window.location.href = "/financeGasControlSummaryExportToExcel";
     });
 
     // Add to document

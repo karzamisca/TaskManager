@@ -10,6 +10,11 @@ router.get("/financeGas", authMiddleware, (req, res) => {
   });
 });
 router.get(
+  "/financeGasControlSummaryExportToExcel",
+  authMiddleware,
+  centersController.exportAllCentersSummaryToExcel
+);
+router.get(
   "/financeGasControl",
   authMiddleware,
   centersController.getAllCenters
