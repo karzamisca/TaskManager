@@ -10,9 +10,14 @@ router.get("/financeSummary", authMiddleware, (req, res) => {
   });
 });
 router.get(
-  "/revenue-by-cost-center",
+  "/financeSummaryRevenueByCostCenter",
+  authMiddleware,
   financeSummaryController.getRevenueByCostCenter
 );
-router.get("/cost-centers", financeSummaryController.getAllCostCenters);
+router.get(
+  "/financeSummaryCostCenters",
+  authMiddleware,
+  financeSummaryController.getAllCostCenters
+);
 
 module.exports = router;

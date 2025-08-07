@@ -77,7 +77,7 @@ app.use("/", authMiddleware, reportRoute);
 app.use("/", authMiddleware, sftpRoutes);
 app.use("/", authMiddleware, financeGasRoute);
 app.use("/", authMiddleware, financeBankRoute);
-app.use("/api", authMiddleware, financeSummaryRoute);
+app.use("/", authMiddleware, financeSummaryRoute);
 
 // Error handling for multer
 app.use((err, req, res, next) => {
