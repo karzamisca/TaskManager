@@ -30,6 +30,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
 
     // Get all cost centers
     const costCenters = await CostCenter.find().lean();
+    const costCenterNames = costCenters.map((cc) => cc.name);
 
     // Get all user monthly records for the specified year
     const userRecords = await UserMonthlyRecord.find({
@@ -60,79 +61,80 @@ exports.getRevenueByCostCenter = async (req, res) => {
     }
 
     // Second pass: Calculate net revenue
-    for (const record of userRecords) {
-      if (!record.costCenter) continue;
+    for (const costCenterName of costCenterNames) {
+      for (let month = 1; month <= 12; month++) {
+        // Calculate the actual month (previous month)
+        let actualMonthNumber = month - 1;
+        let actualYear = parseInt(year);
 
-      // Calculate the actual month (previous month)
-      let actualMonthNumber = record.recordMonth - 1;
-      let actualYear = record.recordYear;
-
-      if (actualMonthNumber === 0) {
-        actualMonthNumber = 12;
-        actualYear -= 1;
-      }
-
-      const vietnameseMonth = monthNumberToVietnamese[actualMonthNumber];
-
-      // Find matching finance data
-      for (const center of financeData) {
-        if (center.name === record.costCenter.name) {
-          const yearData = center.years.find((y) => y.year === actualYear);
-          if (!yearData) continue;
-
-          const monthData = yearData.months.find(
-            (m) => m.name === vietnameseMonth
-          );
-          if (!monthData) continue;
-
-          // Calculate total values across all entries
-          let totalSale = 0;
-          let totalPurchase = 0;
-          let totalTransport = 0;
-          let totalCommissionPurchase = 0;
-          let totalCommissionSale = 0;
-
-          monthData.entries.forEach((entry) => {
-            totalSale += entry.saleContract?.totalCost || 0;
-            totalPurchase += entry.purchaseContract?.totalCost || 0;
-            totalTransport += entry.transportCost || 0;
-            totalCommissionPurchase += entry.commissionBonus?.purchase || 0;
-            totalCommissionSale += entry.commissionBonus?.sale || 0;
-          });
-
-          // Get total salary for this cost center/month
-          const salaryKey = `${record.costCenter.name}-${record.recordMonth}-${record.recordYear}`;
-          const totalSalary = costCenterSalaryMap[salaryKey] || 0;
-
-          // Calculate net revenue
-          const netRevenue =
-            totalSale -
-            totalPurchase -
-            totalTransport -
-            totalCommissionPurchase -
-            totalCommissionSale -
-            totalSalary;
-
-          results.push({
-            costCenter: record.costCenter?.name || "N/A",
-            realName: record.realName || "N/A",
-            username: record.username || "N/A",
-            department: record.department || "N/A",
-            recordMonth: record.recordMonth,
-            recordYear: record.recordYear,
-            actualMonth: vietnameseMonth,
-            actualYear: actualYear,
-            grossSalary: record.grossSalary || 0,
-            totalSale: totalSale,
-            totalPurchase: totalPurchase,
-            totalTransport: totalTransport,
-            totalCommissionPurchase: totalCommissionPurchase,
-            totalCommissionSale: totalCommissionSale,
-            totalSalary: totalSalary,
-            netRevenue: netRevenue,
-            ratio: totalSale > 0 ? totalSalary / totalSale : 0,
-          });
+        if (actualMonthNumber === 0) {
+          actualMonthNumber = 12;
+          actualYear -= 1;
         }
+
+        const vietnameseMonth = monthNumberToVietnamese[actualMonthNumber];
+
+        // Initialize default values
+        let totalSale = 0;
+        let totalPurchase = 0;
+        let totalTransport = 0;
+        let totalCommissionPurchase = 0;
+        let totalCommissionSale = 0;
+        let totalSalary = 0;
+
+        // Find matching finance data
+        const center = financeData.find((c) => c.name === costCenterName);
+        if (center) {
+          const yearData = center.years.find((y) => y.year === actualYear);
+          if (yearData) {
+            const monthData = yearData.months.find(
+              (m) => m.name === vietnameseMonth
+            );
+            if (monthData) {
+              // Calculate total values across all entries
+              monthData.entries.forEach((entry) => {
+                totalSale += entry.saleContract?.totalCost || 0;
+                totalPurchase += entry.purchaseContract?.totalCost || 0;
+                totalTransport += entry.transportCost || 0;
+                totalCommissionPurchase += entry.commissionBonus?.purchase || 0;
+                totalCommissionSale += entry.commissionBonus?.sale || 0;
+              });
+            }
+          }
+        }
+
+        // Get total salary for this cost center/month
+        const salaryKey = `${costCenterName}-${month}-${year}`;
+        totalSalary = costCenterSalaryMap[salaryKey] || 0;
+
+        // Calculate net revenue
+        const netRevenue =
+          totalSale -
+          totalPurchase -
+          totalTransport -
+          totalCommissionPurchase -
+          totalCommissionSale -
+          totalSalary;
+
+        results.push({
+          costCenter: costCenterName,
+          realName: "N/A",
+          username: "N/A",
+          department: "N/A",
+          recordMonth: month,
+          recordYear: parseInt(year),
+          actualMonth: vietnameseMonth,
+          actualYear: actualYear,
+          grossSalary: totalSalary,
+          totalSale: totalSale,
+          totalPurchase: totalPurchase,
+          totalTransport: totalTransport,
+          totalCommissionPurchase: totalCommissionPurchase,
+          totalCommissionSale: totalCommissionSale,
+          totalSalary: totalSalary,
+          netRevenue: netRevenue,
+          ratio: totalSale > 0 ? totalSalary / totalSale : 0,
+        });
       }
     }
 
