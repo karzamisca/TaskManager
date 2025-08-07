@@ -1,0 +1,198 @@
+<!--views/financePages/financeSummary/financeSummary.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Revenue by Cost Center</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .ratio-cell {
+        font-weight: bold;
+      }
+      .good-ratio {
+        color: green;
+      }
+      .bad-ratio {
+        color: red;
+      }
+      .na-value {
+        color: #6c757d;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container mt-4">
+      <h1 class="mb-4">Revenue by Cost Center</h1>
+
+      <div class="card mb-4">
+        <div class="card-body">
+          <form id="filterForm">
+            <div class="row">
+              <div class="col-md-4">
+                <label for="yearSelect" class="form-label">Year</label>
+                <select class="form-select" id="yearSelect">
+                  <!-- Options will be populated by JavaScript -->
+                </select>
+              </div>
+              <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">Filter</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <table
+            id="revenueTable"
+            class="table table-striped"
+            style="width: 100%"
+          >
+            <thead>
+              <tr>
+                <th>Cost Center</th>
+                <th>Employee</th>
+                <th>Username</th>
+                <th>Department</th>
+                <th>Record Month</th>
+                <th>Actual Month</th>
+                <th>Gross Salary</th>
+                <th>Total Revenue</th>
+                <th>Salary/Revenue Ratio</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Data will be populated by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+      $(document).ready(function () {
+        // Initialize DataTable
+        const table = $("#revenueTable").DataTable({
+          responsive: true,
+          order: [
+            [0, "asc"],
+            [1, "asc"],
+          ],
+          columns: [
+            {
+              data: "costCenter",
+              render: function (data) {
+                return data === "N/A"
+                  ? '<span class="na-value">N/A</span>'
+                  : data;
+              },
+            },
+            {
+              data: "realName",
+              render: function (data) {
+                return data === "N/A"
+                  ? '<span class="na-value">N/A</span>'
+                  : data;
+              },
+            },
+            {
+              data: "username",
+              render: function (data) {
+                return data === "N/A"
+                  ? '<span class="na-value">N/A</span>'
+                  : data;
+              },
+            },
+            {
+              data: "department",
+              render: function (data) {
+                return data === "N/A"
+                  ? '<span class="na-value">N/A</span>'
+                  : data;
+              },
+            },
+            {
+              data: null,
+              render: function (data) {
+                return `${data.recordMonth}/${data.recordYear}`;
+              },
+            },
+            {
+              data: null,
+              render: function (data) {
+                return `${data.actualMonth} ${data.actualYear}`;
+              },
+            },
+            {
+              data: "grossSalary",
+              render: function (data) {
+                return data.toLocaleString() + " VND";
+              },
+            },
+            {
+              data: "totalRevenue",
+              render: function (data) {
+                return data.toLocaleString() + " VND";
+              },
+            },
+            {
+              data: null,
+              render: function (data) {
+                const ratio = data.ratio.toFixed(4);
+                const ratioClass = ratio <= 0.1 ? "good-ratio" : "bad-ratio";
+                return `<span class="ratio-cell ${ratioClass}">${ratio}</span>`;
+              },
+            },
+          ],
+        });
+
+        // Populate year dropdown
+        const currentYear = new Date().getFullYear();
+        const yearSelect = $("#yearSelect");
+
+        for (let year = currentYear; year >= currentYear - 5; year--) {
+          yearSelect.append(`<option value="${year}">${year}</option>`);
+        }
+
+        // Set default to current year
+        yearSelect.val(currentYear);
+
+        // Form submission handler
+        $("#filterForm").on("submit", function (e) {
+          e.preventDefault();
+          const year = $("#yearSelect").val();
+
+          $.ajax({
+            url: `/api/revenue-by-cost-center?year=${year}`,
+            method: "GET",
+            success: function (data) {
+              if (data.length === 0) {
+                alert("No data found for the selected year");
+              }
+              table.clear().rows.add(data).draw();
+            },
+            error: function (xhr, status, error) {
+              alert("Error fetching data: " + error);
+            },
+          });
+        });
+
+        // Trigger initial load
+        $("#filterForm").trigger("submit");
+      });
+    </script>
+  </body>
+</html>

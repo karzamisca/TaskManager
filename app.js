@@ -17,6 +17,7 @@ const messageRoute = require("./routes/messageRoute");
 const reportRoute = require("./routes/reportRoute");
 const financeGasRoute = require("./routes/financeGasRoute");
 const financeBankRoute = require("./routes/financeBankRoute");
+const financeSummaryRoute = require("./routes/financeSummaryRoute");
 const authMiddleware = require("./middlewares/authMiddleware"); // JWT middleware
 const path = require("path");
 const fs = require("fs");
@@ -76,6 +77,7 @@ app.use("/", authMiddleware, reportRoute);
 app.use("/", authMiddleware, sftpRoutes);
 app.use("/", authMiddleware, financeGasRoute);
 app.use("/", authMiddleware, financeBankRoute);
+app.use("/api", authMiddleware, financeSummaryRoute);
 
 // Error handling for multer
 app.use((err, req, res, next) => {
