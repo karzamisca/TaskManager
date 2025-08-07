@@ -14,24 +14,24 @@
       rel="stylesheet"
     />
     <style>
-      .ratio-cell {
-        font-weight: bold;
-      }
-      .good-ratio {
+      .positive {
         color: green;
       }
-      .bad-ratio {
+      .negative {
         color: red;
       }
       .na-value {
         color: #6c757d;
         font-style: italic;
       }
+      .details-row {
+        background-color: #f8f9fa;
+      }
     </style>
   </head>
   <body>
     <div class="container mt-4">
-      <h1 class="mb-4">Revenue by Cost Center</h1>
+      <h1 class="mb-4">Cost Center Net Revenue Analysis</h1>
 
       <div class="card mb-4">
         <div class="card-body">
@@ -39,12 +39,12 @@
             <div class="row">
               <div class="col-md-4">
                 <label for="yearSelect" class="form-label">Year</label>
-                <select class="form-select" id="yearSelect">
-                  <!-- Options will be populated by JavaScript -->
-                </select>
+                <select class="form-select" id="yearSelect"></select>
               </div>
               <div class="col-md-4 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary">Filter</button>
+                <button type="submit" class="btn btn-primary">
+                  Generate Report
+                </button>
               </div>
             </div>
           </form>
@@ -61,19 +61,18 @@
             <thead>
               <tr>
                 <th>Cost Center</th>
-                <th>Employee</th>
-                <th>Username</th>
-                <th>Department</th>
-                <th>Record Month</th>
                 <th>Actual Month</th>
-                <th>Gross Salary</th>
-                <th>Total Revenue</th>
-                <th>Salary/Revenue Ratio</th>
+                <th>Total Sales</th>
+                <th>Total Purchases</th>
+                <th>Transport Cost</th>
+                <th>Purchase Commission</th>
+                <th>Sales Commission</th>
+                <th>Total Salaries</th>
+                <th>Net Revenue</th>
+                <th>Salary/Sales Ratio</th>
               </tr>
             </thead>
-            <tbody>
-              <!-- Data will be populated by JavaScript -->
-            </tbody>
+            <tbody></tbody>
           </table>
         </div>
       </div>
@@ -84,7 +83,6 @@
     <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
     <script>
       $(document).ready(function () {
-        // Initialize DataTable
         const table = $("#revenueTable").DataTable({
           responsive: true,
           order: [
@@ -101,59 +99,62 @@
               },
             },
             {
-              data: "realName",
-              render: function (data) {
-                return data === "N/A"
-                  ? '<span class="na-value">N/A</span>'
-                  : data;
-              },
-            },
-            {
-              data: "username",
-              render: function (data) {
-                return data === "N/A"
-                  ? '<span class="na-value">N/A</span>'
-                  : data;
-              },
-            },
-            {
-              data: "department",
-              render: function (data) {
-                return data === "N/A"
-                  ? '<span class="na-value">N/A</span>'
-                  : data;
-              },
-            },
-            {
-              data: null,
-              render: function (data) {
-                return `${data.recordMonth}/${data.recordYear}`;
-              },
-            },
-            {
               data: null,
               render: function (data) {
                 return `${data.actualMonth} ${data.actualYear}`;
               },
             },
             {
-              data: "grossSalary",
+              data: "totalSale",
               render: function (data) {
-                return data.toLocaleString() + " VND";
+                return `<span class="${
+                  data >= 0 ? "positive" : "negative"
+                }">${data.toLocaleString()} VND</span>`;
               },
             },
             {
-              data: "totalRevenue",
+              data: "totalPurchase",
               render: function (data) {
-                return data.toLocaleString() + " VND";
+                return `<span>${data.toLocaleString()} VND</span>`;
               },
             },
             {
-              data: null,
+              data: "totalTransport",
               render: function (data) {
-                const ratio = data.ratio.toFixed(4);
-                const ratioClass = ratio <= 0.1 ? "good-ratio" : "bad-ratio";
-                return `<span class="ratio-cell ${ratioClass}">${ratio}</span>`;
+                return `<span>${data.toLocaleString()} VND</span>`;
+              },
+            },
+            {
+              data: "totalCommissionPurchase",
+              render: function (data) {
+                return `<span>${data.toLocaleString()} VND</span>`;
+              },
+            },
+            {
+              data: "totalCommissionSale",
+              render: function (data) {
+                return `<span>${data.toLocaleString()} VND</span>`;
+              },
+            },
+            {
+              data: "totalSalary",
+              render: function (data) {
+                return `<span>${data.toLocaleString()} VND</span>`;
+              },
+            },
+            {
+              data: "netRevenue",
+              render: function (data) {
+                return `<span class="${
+                  data >= 0 ? "positive" : "negative"
+                }">${data.toLocaleString()} VND</span>`;
+              },
+            },
+            {
+              data: "ratio",
+              render: function (data) {
+                const ratio = (data * 100).toFixed(2) + "%";
+                return `<span>${ratio}</span>`;
               },
             },
           ],
@@ -167,10 +168,8 @@
           yearSelect.append(`<option value="${year}">${year}</option>`);
         }
 
-        // Set default to current year
         yearSelect.val(currentYear);
 
-        // Form submission handler
         $("#filterForm").on("submit", function (e) {
           e.preventDefault();
           const year = $("#yearSelect").val();
@@ -182,7 +181,44 @@
               if (data.length === 0) {
                 alert("No data found for the selected year");
               }
-              table.clear().rows.add(data).draw();
+
+              // Group by cost center and month for summary view
+              const summaryData = data.reduce((acc, item) => {
+                const key = `${item.costCenter}-${item.actualMonth}-${item.actualYear}`;
+                if (!acc[key]) {
+                  acc[key] = {
+                    costCenter: item.costCenter,
+                    actualMonth: item.actualMonth,
+                    actualYear: item.actualYear,
+                    totalSale: 0,
+                    totalPurchase: 0,
+                    totalTransport: 0,
+                    totalCommissionPurchase: 0,
+                    totalCommissionSale: 0,
+                    totalSalary: 0,
+                    netRevenue: 0,
+                  };
+                }
+
+                acc[key].totalSale += item.totalSale;
+                acc[key].totalPurchase += item.totalPurchase;
+                acc[key].totalTransport += item.totalTransport;
+                acc[key].totalCommissionPurchase +=
+                  item.totalCommissionPurchase;
+                acc[key].totalCommissionSale += item.totalCommissionSale;
+                acc[key].totalSalary += item.grossSalary;
+                acc[key].netRevenue =
+                  acc[key].totalSale -
+                  acc[key].totalPurchase -
+                  acc[key].totalTransport -
+                  acc[key].totalCommissionPurchase -
+                  acc[key].totalCommissionSale -
+                  acc[key].totalSalary;
+
+                return acc;
+              }, {});
+
+              table.clear().rows.add(Object.values(summaryData)).draw();
             },
             error: function (xhr, status, error) {
               alert("Error fetching data: " + error);
@@ -190,7 +226,6 @@
           });
         });
 
-        // Trigger initial load
         $("#filterForm").trigger("submit");
       });
     </script>

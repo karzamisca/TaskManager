@@ -45,7 +45,21 @@ exports.getRevenueByCostCenter = async (req, res) => {
 
     // Process the data
     const results = [];
+    const costCenterSalaryMap = {}; // To accumulate salaries by cost center
 
+    // First pass: Calculate total salaries per cost center per month
+    for (const record of userRecords) {
+      if (!record.costCenter) continue;
+
+      const key = `${record.costCenter.name}-${record.recordMonth}-${record.recordYear}`;
+
+      if (!costCenterSalaryMap[key]) {
+        costCenterSalaryMap[key] = 0;
+      }
+      costCenterSalaryMap[key] += record.grossSalary || 0;
+    }
+
+    // Second pass: Calculate net revenue
     for (const record of userRecords) {
       if (!record.costCenter) continue;
 
@@ -71,13 +85,34 @@ exports.getRevenueByCostCenter = async (req, res) => {
           );
           if (!monthData) continue;
 
-          // Calculate total revenue (sum of all entries' saleContract.totalCost)
-          const totalRevenue = monthData.entries.reduce(
-            (sum, entry) => sum + (entry.saleContract?.totalCost || 0),
-            0
-          );
+          // Calculate total values across all entries
+          let totalSale = 0;
+          let totalPurchase = 0;
+          let totalTransport = 0;
+          let totalCommissionPurchase = 0;
+          let totalCommissionSale = 0;
 
-          // Ensure all required fields are present
+          monthData.entries.forEach((entry) => {
+            totalSale += entry.saleContract?.totalCost || 0;
+            totalPurchase += entry.purchaseContract?.totalCost || 0;
+            totalTransport += entry.transportCost || 0;
+            totalCommissionPurchase += entry.commissionBonus?.purchase || 0;
+            totalCommissionSale += entry.commissionBonus?.sale || 0;
+          });
+
+          // Get total salary for this cost center/month
+          const salaryKey = `${record.costCenter.name}-${record.recordMonth}-${record.recordYear}`;
+          const totalSalary = costCenterSalaryMap[salaryKey] || 0;
+
+          // Calculate net revenue
+          const netRevenue =
+            totalSale -
+            totalPurchase -
+            totalTransport -
+            totalCommissionPurchase -
+            totalCommissionSale -
+            totalSalary;
+
           results.push({
             costCenter: record.costCenter?.name || "N/A",
             realName: record.realName || "N/A",
@@ -88,8 +123,14 @@ exports.getRevenueByCostCenter = async (req, res) => {
             actualMonth: vietnameseMonth,
             actualYear: actualYear,
             grossSalary: record.grossSalary || 0,
-            totalRevenue: totalRevenue,
-            ratio: totalRevenue > 0 ? record.grossSalary / totalRevenue : 0,
+            totalSale: totalSale,
+            totalPurchase: totalPurchase,
+            totalTransport: totalTransport,
+            totalCommissionPurchase: totalCommissionPurchase,
+            totalCommissionSale: totalCommissionSale,
+            totalSalary: totalSalary,
+            netRevenue: netRevenue,
+            ratio: totalSale > 0 ? totalSalary / totalSale : 0,
           });
         }
       }
