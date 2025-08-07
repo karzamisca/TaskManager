@@ -1,4 +1,4 @@
-<!--views/financePages/financeSummary/financeSummary.html -->
+<!-- views/financePages/financeSummary/financeSummary.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -41,6 +41,14 @@
                 <label for="yearSelect" class="form-label">Year</label>
                 <select class="form-select" id="yearSelect"></select>
               </div>
+              <div class="col-md-4">
+                <label for="costCenterSelect" class="form-label"
+                  >Cost Center</label
+                >
+                <select class="form-select" id="costCenterSelect">
+                  <option value="all">All Cost Centers</option>
+                </select>
+              </div>
               <div class="col-md-4 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary">
                   Generate Report
@@ -69,7 +77,6 @@
                 <th>Sales Commission</th>
                 <th>Total Salaries</th>
                 <th>Net Revenue</th>
-                <th>Salary/Sales Ratio</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -150,13 +157,6 @@
                 }">${data.toLocaleString()} VND</span>`;
               },
             },
-            {
-              data: "ratio",
-              render: function (data) {
-                const ratio = (data * 100).toFixed(2) + "%";
-                return `<span>${ratio}</span>`;
-              },
-            },
           ],
         });
 
@@ -170,9 +170,27 @@
 
         yearSelect.val(currentYear);
 
+        // Fetch cost centers and populate dropdown
+        $.ajax({
+          url: "/api/cost-centers",
+          method: "GET",
+          success: function (data) {
+            const costCenterSelect = $("#costCenterSelect");
+            data.forEach((costCenter) => {
+              costCenterSelect.append(
+                `<option value="${costCenter.name}">${costCenter.name}</option>`
+              );
+            });
+          },
+          error: function () {
+            console.error("Failed to load cost centers");
+          },
+        });
+
         $("#filterForm").on("submit", function (e) {
           e.preventDefault();
           const year = $("#yearSelect").val();
+          const costCenter = $("#costCenterSelect").val();
 
           $.ajax({
             url: `/api/revenue-by-cost-center?year=${year}`,
@@ -180,6 +198,13 @@
             success: function (data) {
               if (data.length === 0) {
                 alert("No data found for the selected year");
+                table.clear().draw();
+                return;
+              }
+
+              // Filter by cost center if not "all"
+              if (costCenter !== "all") {
+                data = data.filter((item) => item.costCenter === costCenter);
               }
 
               // Group by cost center and month for summary view

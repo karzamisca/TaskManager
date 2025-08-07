@@ -1,7 +1,21 @@
-//controllers/financeSummaryController.js
+// controllers/financeSummaryController.js
 const UserMonthlyRecord = require("../models/UserMonthlyRecord");
 const FinanceGas = require("../models/FinanceGas");
 const CostCenter = require("../models/CostCenter");
+
+exports.getAllCostCenters = async (req, res) => {
+  try {
+    const costCenters = await CostCenter.find().select("name -_id"); // Only get the name field
+
+    const sortedCostCenters = costCenters.sort((a, b) => {
+      return a.name.localeCompare(b.name);
+    });
+    res.json(sortedCostCenters);
+  } catch (error) {
+    console.error("Error fetching cost centers:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
 
 // Map month numbers to Vietnamese month names
 const monthNumberToVietnamese = {
@@ -133,7 +147,6 @@ exports.getRevenueByCostCenter = async (req, res) => {
           totalCommissionSale: totalCommissionSale,
           totalSalary: totalSalary,
           netRevenue: netRevenue,
-          ratio: totalSale > 0 ? totalSalary / totalSale : 0,
         });
       }
     }

@@ -1,4 +1,4 @@
-//routes/financeSummaryRoute.js
+// routes/financeSummaryRoute.js
 const express = require("express");
 const router = express.Router();
 const financeSummaryController = require("../controllers/financeSummaryController");
@@ -13,5 +13,6 @@ router.get(
   "/revenue-by-cost-center",
   financeSummaryController.getRevenueByCostCenter
 );
+router.get("/cost-centers", financeSummaryController.getAllCostCenters);
 
 module.exports = router;
