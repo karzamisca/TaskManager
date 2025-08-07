@@ -67,13 +67,14 @@
             <thead>
               <tr>
                 <th>Trạm</th>
-                <th>Tháng Thực Tế</th>
-                <th>Tổng Doanh Thu</th>
+                <th>Tháng</th>
+                <th>Tổng Bán Hàng</th>
                 <th>Tổng Mua Hàng</th>
                 <th>Chi Phí Vận Chuyển</th>
                 <th>Hoa Hồng Mua Hàng</th>
                 <th>Hoa Hồng Bán Hàng</th>
                 <th>Tổng Lương</th>
+                <th>Tổng Thanh Toán</th>
                 <th>Doanh Thu Ròng</th>
               </tr>
             </thead>
@@ -210,6 +211,14 @@
               },
             },
             {
+              data: "totalPayments",
+              render: function (data) {
+                return `<span class="${
+                  data > 0 ? "negative" : ""
+                }">${data.toLocaleString("vi-VN")} VNĐ</span>`;
+              },
+            },
+            {
               data: "netRevenue",
               render: function (data) {
                 return `<span class="${
@@ -282,6 +291,7 @@
                     totalCommissionPurchase: 0,
                     totalCommissionSale: 0,
                     totalSalary: 0,
+                    totalPayments: 0,
                     netRevenue: 0,
                   };
                 }
@@ -293,13 +303,15 @@
                   item.totalCommissionPurchase;
                 acc[key].totalCommissionSale += item.totalCommissionSale;
                 acc[key].totalSalary += item.grossSalary;
+                acc[key].totalPayments += item.totalPayments;
                 acc[key].netRevenue =
                   acc[key].totalSale -
                   acc[key].totalPurchase -
                   acc[key].totalTransport -
                   acc[key].totalCommissionPurchase -
                   acc[key].totalCommissionSale -
-                  acc[key].totalSalary;
+                  acc[key].totalSalary -
+                  acc[key].totalPayments;
 
                 return acc;
               }, {});
