@@ -10,7 +10,7 @@ exports.getAllCenters = async (req, res) => {
         .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
     }
 
-    const centers = await Center.find();
+    const centers = await Center.find().sort({ name: 1 }); // 1 = ascending A-Z
     res.json(centers);
   } catch (err) {
     res.status(500).json({ message: err.message });
