@@ -77,29 +77,55 @@ const getMonthYearFromSubmissionDate = (submissionDate) => {
 // Get revenue by matching cost centers
 exports.getRevenueByCostCenter = async (req, res) => {
   try {
-    const { year } = req.query;
+    const { year, costCenters } = req.query;
 
     if (!year) {
       return res.status(400).json({ error: "Year parameter is required" });
     }
 
     // Get all cost centers
-    const costCenters = await CostCenter.find().lean();
-    const costCenterNames = costCenters.map((cc) => cc.name);
+    const allCostCenters = await CostCenter.find().lean();
+    let costCenterNames = allCostCenters.map((cc) => cc.name);
 
-    // Get all user monthly records for the specified year
+    // Filter by selected cost centers if provided
+    if (costCenters && costCenters.trim() !== "") {
+      const selectedCostCenters = costCenters
+        .split(",")
+        .map((cc) => cc.trim())
+        .filter((cc) => cc);
+      if (selectedCostCenters.length > 0) {
+        // Filter to only include selected cost centers that exist in the database
+        costCenterNames = costCenterNames.filter((name) =>
+          selectedCostCenters.includes(name)
+        );
+
+        // If no valid cost centers are found, return empty result
+        if (costCenterNames.length === 0) {
+          return res.json([]);
+        }
+      }
+    }
+
+    // Get all user monthly records for the specified year and cost centers
     const userRecords = await UserMonthlyRecord.find({
       recordYear: parseInt(year),
     })
       .populate("costCenter")
       .lean();
 
-    // Get all finance gas data for the specified year
+    // Filter user records by selected cost centers
+    const filteredUserRecords = userRecords.filter(
+      (record) =>
+        record.costCenter && costCenterNames.includes(record.costCenter.name)
+    );
+
+    // Get all finance gas data for the specified year and cost centers
     const financeData = await FinanceGas.find({
       "years.year": parseInt(year),
+      name: { $in: costCenterNames },
     }).lean();
 
-    // Get all payment documents for the specified year
+    // Get all payment documents for the specified year and cost centers
     const paymentDocuments = await DocumentPayment.find({
       costCenter: { $in: costCenterNames },
     }).lean();
@@ -142,7 +168,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
     const costCenterSalaryMap = {}; // To accumulate salaries by cost center
 
     // First pass: Calculate total salaries per cost center per month
-    for (const record of userRecords) {
+    for (const record of filteredUserRecords) {
       if (!record.costCenter) continue;
 
       const key = `${record.costCenter.name}-${record.recordMonth}-${record.recordYear}`;
@@ -236,6 +262,14 @@ exports.getRevenueByCostCenter = async (req, res) => {
         });
       }
     }
+
+    // Sort results by cost center name and then by month
+    results.sort((a, b) => {
+      if (a.costCenter !== b.costCenter) {
+        return a.costCenter.localeCompare(b.costCenter);
+      }
+      return a.recordMonth - b.recordMonth;
+    });
 
     res.json(results);
   } catch (error) {

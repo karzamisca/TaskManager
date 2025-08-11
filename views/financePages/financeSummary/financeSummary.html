@@ -13,6 +13,14 @@
       href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css"
       rel="stylesheet"
     />
+    <link
+      href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css"
+      rel="stylesheet"
+    />
     <style>
       .positive {
         color: green;
@@ -26,6 +34,9 @@
       }
       .details-row {
         background-color: #f8f9fa;
+      }
+      .select2-container--bootstrap-5 .select2-selection {
+        min-height: 38px;
       }
     </style>
   </head>
@@ -41,14 +52,27 @@
                 <label for="yearSelect" class="form-label">Năm</label>
                 <select class="form-select" id="yearSelect"></select>
               </div>
-              <div class="col-md-4">
+              <div class="col-md-6">
                 <label for="costCenterSelect" class="form-label">Trạm</label>
-                <select class="form-select" id="costCenterSelect">
+                <select
+                  class="form-select"
+                  id="costCenterSelect"
+                  multiple="multiple"
+                >
                   <option value="all">Tất Cả Trạm</option>
                 </select>
               </div>
-              <div class="col-md-4 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary">Áp dụng</button>
+              <div class="col-md-2 d-flex align-items-end">
+                <div class="d-grid w-100">
+                  <button type="submit" class="btn btn-primary">Áp dụng</button>
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm mt-2"
+                    id="clearSelection"
+                  >
+                    Xóa chọn
+                  </button>
+                </div>
               </div>
             </div>
           </form>
@@ -57,6 +81,9 @@
 
       <div class="card">
         <div class="card-body">
+          <div class="mb-3">
+            <small class="text-muted" id="selectedCentersInfo"></small>
+          </div>
           <table
             id="revenueTable"
             class="table table-striped"
@@ -85,6 +112,7 @@
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
     <script>
@@ -229,6 +257,15 @@
           ],
         });
 
+        // Initialize Select2 for cost center selection
+        $("#costCenterSelect").select2({
+          theme: "bootstrap-5",
+          placeholder: "Chọn trạm...",
+          allowClear: true,
+          closeOnSelect: false,
+          width: "100%",
+        });
+
         // Populate year dropdown
         const currentYear = new Date().getFullYear();
         const yearSelect = $("#yearSelect");
@@ -250,6 +287,9 @@
                 `<option value="${costCenter.name}">${costCenter.name}</option>`
               );
             });
+
+            // Set default to "all" and trigger Select2 update
+            costCenterSelect.val(["all"]).trigger("change");
           },
           error: function () {
             console.error("Không thể tải danh sách trạm");
@@ -257,24 +297,69 @@
           },
         });
 
+        // Handle "Tất Cả Trạm" selection logic
+        $("#costCenterSelect").on("change", function () {
+          const selectedValues = $(this).val();
+
+          if (selectedValues && selectedValues.includes("all")) {
+            // If "all" is selected, clear other selections
+            if (selectedValues.length > 1) {
+              $(this).val(["all"]).trigger("change");
+            }
+          }
+        });
+
+        // Clear selection button
+        $("#clearSelection").on("click", function () {
+          $("#costCenterSelect").val(["all"]).trigger("change");
+        });
+
+        // Update selected centers info
+        function updateSelectedCentersInfo() {
+          const selectedValues = $("#costCenterSelect").val();
+          const infoElement = $("#selectedCentersInfo");
+
+          if (
+            !selectedValues ||
+            selectedValues.length === 0 ||
+            selectedValues.includes("all")
+          ) {
+            infoElement.text("Hiển thị: Tất cả trạm");
+          } else {
+            infoElement.text(
+              `Hiển thị: ${
+                selectedValues.length
+              } trạm được chọn (${selectedValues.join(", ")})`
+            );
+          }
+        }
+
+        $("#costCenterSelect").on("change", updateSelectedCentersInfo);
+
         $("#filterForm").on("submit", function (e) {
           e.preventDefault();
           const year = $("#yearSelect").val();
-          const costCenter = $("#costCenterSelect").val();
+          const selectedCostCenters = $("#costCenterSelect").val();
+
+          // Build the query parameters for multiple cost centers
+          let queryParams = `year=${year}`;
+          if (
+            selectedCostCenters &&
+            selectedCostCenters.length > 0 &&
+            !selectedCostCenters.includes("all")
+          ) {
+            // Send selected cost centers as comma-separated string
+            queryParams += `&costCenters=${selectedCostCenters.join(",")}`;
+          }
 
           $.ajax({
-            url: `/financeSummaryRevenueByCostCenter?year=${year}`,
+            url: `/financeSummaryRevenueByCostCenter?${queryParams}`,
             method: "GET",
             success: function (data) {
               if (data.length === 0) {
                 alert("Không tìm thấy dữ liệu cho năm đã chọn");
                 table.clear().draw();
                 return;
-              }
-
-              // Filter by cost center if not "all"
-              if (costCenter !== "all") {
-                data = data.filter((item) => item.costCenter === costCenter);
               }
 
               // Group by cost center and month for summary view
@@ -317,6 +402,7 @@
               }, {});
 
               table.clear().rows.add(Object.values(summaryData)).draw();
+              updateSelectedCentersInfo();
             },
             error: function (xhr, status, error) {
               alert("Lỗi khi tải dữ liệu: " + error);
@@ -324,6 +410,7 @@
           });
         });
 
+        // Initial load
         $("#filterForm").trigger("submit");
       });
     </script>
