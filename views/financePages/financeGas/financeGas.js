@@ -229,14 +229,8 @@ function setupEventListeners() {
     .getElementById("showAllTotalsBtn")
     .addEventListener("click", showAllCentersTotals);
   document
-    .getElementById("addCenterForm")
-    .addEventListener("submit", handleAddCenter);
-  document
     .getElementById("centerSelect")
     .addEventListener("change", handleCenterSelect);
-  document
-    .getElementById("deleteCenterBtn")
-    .addEventListener("click", handleDeleteCenter);
   document
     .getElementById("addYearBtn")
     .addEventListener("click", handleAddYear);
@@ -267,32 +261,6 @@ function renderCenterSelect() {
   });
 }
 
-async function handleAddCenter(e) {
-  e.preventDefault();
-  const centerName = document.getElementById("centerName").value.trim();
-
-  if (!centerName) return;
-
-  try {
-    const response = await fetch("/financeGasControl", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: centerName }),
-    });
-
-    if (response.ok) {
-      document.getElementById("centerName").value = "";
-      loadCenters();
-    } else {
-      const error = await response.json();
-      console.log(`Error: ${error.message}`);
-    }
-  } catch (error) {
-    console.error("Error adding center:", error);
-    console.log("Failed to add center");
-  }
-}
-
 function handleCenterSelect(e) {
   const centerId = e.target.value;
   if (!centerId) {
@@ -309,36 +277,6 @@ function handleCenterSelect(e) {
       currentCenter.name;
     document.getElementById("financeContent").style.display = "block";
     renderFinanceTable();
-  }
-}
-
-async function handleDeleteCenter() {
-  if (
-    !currentCenter ||
-    !confirm("Bạn muốn xóa trạm này vào tất cả dữ liệu của nó?")
-  ) {
-    return;
-  }
-
-  try {
-    const response = await fetch(`/financeGasControl/${currentCenter._id}`, {
-      method: "DELETE",
-    });
-
-    if (response.ok) {
-      loadCenters();
-      currentCenter = null;
-      document.getElementById("selectedCenterTitle").textContent =
-        "Chọn một trạm";
-      document.getElementById("financeContent").style.display = "none";
-      document.getElementById("centerSelect").value = "";
-    } else {
-      const error = await response.json();
-      console.log(`Error: ${error.message}`);
-    }
-  } catch (error) {
-    console.error("Error deleting center:", error);
-    console.log("Failed to delete center");
   }
 }
 
