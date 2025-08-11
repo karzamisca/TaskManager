@@ -2,10 +2,12 @@ const ExcelJS = require("exceljs");
 const multer = require("multer");
 const CostCenter = require("../models/CostCenter");
 const Product = require("../models/Product");
+const FinanceGas = require("../models/FinanceGas");
 const fs = require("fs");
 const path = require("path");
 
 ////COST CENTER ADMIN CONTROLLERS
+
 // Serve the cost center admin page
 exports.getCostCenterAdminPage = (req, res) => {
   try {
@@ -23,6 +25,7 @@ exports.getCostCenterAdminPage = (req, res) => {
     res.send("Server error");
   }
 };
+
 // API to fetch all cost centers
 exports.getCostCenters = async (req, res) => {
   try {
@@ -31,44 +34,59 @@ exports.getCostCenters = async (req, res) => {
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
-
     // Fetch all cost centers
     const costCenters = await CostCenter.find();
-
     // Sort the cost centers alphabetically by name
-    // Assuming each cost center has a 'name' field - adjust if your field is named differently
     const sortedCostCenters = costCenters.sort((a, b) => {
       return a.name.localeCompare(b.name);
     });
-
     res.json(sortedCostCenters);
   } catch (error) {
     console.error("Error fetching cost centers:", error);
     res.json({ message: "Server error" });
   }
 };
+
 // Add a new cost center
 exports.addCostCenter = async (req, res) => {
   const { name, allowedUsers } = req.body;
-
   try {
     if (
       !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
+
+    // Create new cost center
     const newCostCenter = new CostCenter({
       name,
       allowedUsers: allowedUsers ? allowedUsers.split(",") : [],
     });
-
     await newCostCenter.save();
+
+    // Create corresponding FinanceGas entry
+    const newFinanceGas = new FinanceGas({
+      name: name,
+      years: [], // Start with empty years array
+    });
+    await newFinanceGas.save();
+
     res.redirect("/costCenterAdmin"); // Redirect to the cost center page after adding
   } catch (error) {
     console.error("Error adding cost center:", error);
+    // If cost center was created but FinanceGas failed, we should clean up
+    try {
+      await CostCenter.findOneAndDelete({ name });
+    } catch (cleanupError) {
+      console.error(
+        "Error cleaning up cost center after FinanceGas creation failed:",
+        cleanupError
+      );
+    }
     res.json({ message: "Server error" });
   }
 };
+
 // Edit an existing cost center
 exports.editCostCenter = async (req, res) => {
   try {
@@ -77,12 +95,21 @@ exports.editCostCenter = async (req, res) => {
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
+
     const { id } = req.params;
     const { name, allowedUsers } = req.body;
 
+    // Get the current cost center to check if name is changing
+    const currentCostCenter = await CostCenter.findById(id);
+    if (!currentCostCenter) {
+      return res.status(404).json({ message: "Cost center not found" });
+    }
+
+    const oldName = currentCostCenter.name;
+    const nameChanged = oldName !== name;
+
     // Ensure allowedUsers is a string
     let usersArray = [];
-
     if (typeof allowedUsers === "string" && allowedUsers.trim() !== "") {
       usersArray = allowedUsers
         .split(",")
@@ -91,7 +118,6 @@ exports.editCostCenter = async (req, res) => {
     } else if (Array.isArray(allowedUsers)) {
       usersArray = allowedUsers.filter((user) => user && user.trim() !== "");
     }
-    // If usersArray is empty, it represents "all users allowed"
 
     // Update cost center with the new allowed users list
     const updatedCostCenter = await CostCenter.findByIdAndUpdate(
@@ -100,15 +126,22 @@ exports.editCostCenter = async (req, res) => {
       { new: true }
     );
 
-    if (!updatedCostCenter) {
-      return res.status(404).json({ message: "Cost center not found" });
+    // If name changed, create new FinanceGas entry with the new name
+    if (nameChanged) {
+      const newFinanceGas = new FinanceGas({
+        name: name,
+        years: [], // Start with empty years array
+      });
+      await newFinanceGas.save();
     }
+
     res.redirect("/costCenterAdmin");
   } catch (error) {
     console.error("Error editing cost center:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 // Delete a cost center
 exports.deleteCostCenter = async (req, res) => {
   try {
@@ -124,6 +157,7 @@ exports.deleteCostCenter = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 ////END OF COST CENTER ADMIN CONTROLLERS
 
 ////PRODUCT ADMIN CONTROLLERS

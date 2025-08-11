@@ -199,11 +199,7 @@ const editCostCenter = (id, name, allowedUsers) => {
 
 // Delete a cost center
 const deleteCostCenter = (id) => {
-  if (
-    confirm(
-      "Are you sure you want to delete this cost center? This action cannot be undone."
-    )
-  ) {
+  if (confirm("Bạn có chắc muốn xóa trạm này?")) {
     fetch(`/deleteCostCenter/${id}`, { method: "DELETE" })
       .then((response) => response.json())
       .then((data) => {
