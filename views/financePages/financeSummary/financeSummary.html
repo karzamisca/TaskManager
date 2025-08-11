@@ -1,4 +1,3 @@
-<!-- views/financePages/financeSummary/financeSummary.html -->
 <!DOCTYPE html>
 <html lang="vi">
   <head>
@@ -11,6 +10,10 @@
     />
     <link
       href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css"
       rel="stylesheet"
     />
     <link
@@ -37,6 +40,16 @@
       }
       .select2-container--bootstrap-5 .select2-selection {
         min-height: 38px;
+      }
+      .dt-buttons .btn {
+        margin-right: 5px;
+      }
+      .dataTables_wrapper .dt-buttons {
+        float: right;
+        margin-bottom: 15px;
+      }
+      .dataTables_info {
+        padding-top: 0.85em !important;
       }
     </style>
   </head>
@@ -115,6 +128,9 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
     <script>
       $(document).ready(function () {
         // Month mapping for proper sorting
@@ -159,6 +175,103 @@
           order: [
             [0, "asc"],
             [1, "asc"],
+          ],
+          dom: '<"top"lBf>rt<"bottom"ip>',
+          buttons: [
+            {
+              extend: "excelHtml5",
+              text: "Xuất Excel",
+              className: "btn btn-success",
+              title: "Báo cáo doanh thu",
+              filename: function () {
+                const year = $("#yearSelect").val();
+                const selectedCostCenters = $("#costCenterSelect").val();
+                let fileName = `Bao_cao_doanh_thu_${year}`;
+
+                if (
+                  selectedCostCenters &&
+                  selectedCostCenters.length > 0 &&
+                  !selectedCostCenters.includes("all")
+                ) {
+                  fileName += `_${selectedCostCenters.join("_")}`;
+                }
+
+                return fileName;
+              },
+              customize: function (xlsx) {
+                const sheet = xlsx.xl.worksheets["sheet1.xml"];
+
+                // Format currency cells
+                $('row c[r^="C"]', sheet).attr("s", "2"); // Column C (totalSale)
+                $('row c[r^="D"]', sheet).attr("s", "2"); // Column D (totalPurchase)
+                $('row c[r^="E"]', sheet).attr("s", "2"); // Column E (totalTransport)
+                $('row c[r^="F"]', sheet).attr("s", "2"); // Column F (totalCommissionPurchase)
+                $('row c[r^="G"]', sheet).attr("s", "2"); // Column G (totalCommissionSale)
+                $('row c[r^="H"]', sheet).attr("s", "2"); // Column H (totalSalary)
+                $('row c[r^="I"]', sheet).attr("s", "2"); // Column I (totalPayments)
+                $('row c[r^="J"]', sheet).attr("s", "2"); // Column J (netRevenue)
+
+                // Add header information
+                const year = $("#yearSelect").val();
+                const selectedCostCenters = $("#costCenterSelect").val();
+                let costCenterText = "Tất cả trạm";
+
+                if (
+                  selectedCostCenters &&
+                  selectedCostCenters.length > 0 &&
+                  !selectedCostCenters.includes("all")
+                ) {
+                  costCenterText = selectedCostCenters.join(", ");
+                }
+
+                // Add two header rows
+                $("row:first c", sheet).attr("s", "20"); // Style for header
+                $("row:eq(1) c", sheet).attr("s", "20"); // Style for subheader
+
+                // Add title and filter information
+                const titleRow = $("<row></row>").append(
+                  $(
+                    '<c r="A1" t="inlineStr" s="20"><is><t>Báo cáo doanh thu năm ' +
+                      year +
+                      "</t></is></c>"
+                  )
+                );
+                const filterRow = $("<row></row>").append(
+                  $(
+                    '<c r="A2" t="inlineStr" s="20"><is><t>Trạm: ' +
+                      costCenterText +
+                      "</t></is></c>"
+                  )
+                );
+
+                $("sheetData", sheet).prepend(filterRow);
+                $("sheetData", sheet).prepend(titleRow);
+
+                // Merge title cells
+                const mergeCells = $('<mergeCells count="2"></mergeCells>');
+                mergeCells.append('<mergeCell ref="A1:J1"/>');
+                mergeCells.append('<mergeCell ref="A2:J2"/>');
+
+                if ($("mergeCells", sheet).length === 0) {
+                  $("worksheet", sheet).append(mergeCells);
+                } else {
+                  $("mergeCells", sheet).append('<mergeCell ref="A1:J1"/>');
+                  $("mergeCells", sheet).append('<mergeCell ref="A2:J2"/>');
+                  $("mergeCells", sheet).attr(
+                    "count",
+                    $("mergeCell", sheet).length
+                  );
+                }
+              },
+              exportOptions: {
+                format: {
+                  body: function (data, row, column, node) {
+                    // Remove the VNĐ suffix and HTML tags from the data
+                    return data.replace(/ VNĐ$/, "").replace(/<[^>]*>/g, "");
+                  },
+                },
+              },
+            },
           ],
           language: {
             decimal: "",
@@ -256,6 +369,12 @@
             },
           ],
         });
+
+        // Add the buttons to the DOM
+        table
+          .buttons()
+          .container()
+          .appendTo($(".dataTables_wrapper .col-md-6:eq(0)"));
 
         // Initialize Select2 for cost center selection
         $("#costCenterSelect").select2({
