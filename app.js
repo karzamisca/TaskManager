@@ -150,20 +150,22 @@ cron.schedule("* * * * *", async () => {
       return totalApprovers > 0 && currentApprovals === totalApprovers - 1;
     };
 
-    // This includes documents with one approver left (not fully approved)
+    // This includes documents with one approver left (not fully approved) AND cash payment method
     const ungroupedDocuments = await Promise.all([
-      // Regular payment documents - one approver left
+      // Regular payment documents - one approver left AND cash payment
       PaymentDocument.find({
         status: "Pending", // Still pending since not fully approved
+        paymentMethod: "Tiền mặt", // Only cash payment documents
         $or: [
           { groupDeclarationName: { $exists: false } },
           { groupDeclarationName: "" },
           { groupDeclarationName: null },
         ],
       }),
-      // Advance payment documents - one approver left
+      // Advance payment documents - one approver left AND cash payment
       AdvancePaymentDocument.find({
         status: "Pending", // Still pending since not fully approved
+        paymentMethod: "Tiền mặt", // Only cash payment documents
         $or: [
           { groupDeclarationName: { $exists: false } },
           { groupDeclarationName: "" },
