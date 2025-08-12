@@ -127,9 +127,8 @@ const documentUtils = {
   // New function to filter documents based on username constraints with hierarchy
   filterDocumentsByUsername: (documents, username) => {
     // HoangLong can see everything
-    if (username === "HoangLong") {
-      return documents;
-    }
+    if (["HoangLong", "NguyenHongNhuThuy"].includes(username)) return documents;
+
     // If username is not one of the restricted users, return all documents
     const restrictedUsers = [
       "NguyenHongNhuThuy",
