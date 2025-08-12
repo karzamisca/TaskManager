@@ -111,13 +111,14 @@ const documentUtils = {
       $or: [
         { submittedBy: userId },
         { "approvers.approver": userId },
-        ...(userRole === "headOfAccounting" ||
-        userRole === "superAdmin" ||
+        ...(userRole === "superAdmin" ||
         userRole === "director" ||
         userRole === "deputyDirector" ||
         userRole === "headOfPurchasing" ||
-        userRole === "captainOfPurchasing"
-          ? [{}] // Include all documents if user is headOfAccounting or superAdmin
+        userRole === "headOfAccounting" ||
+        userRole === "captainOfPurchasing" ||
+        userRole === "captainOfAccounting"
+          ? [{}] // Include all documents if user has included roles
           : []),
       ],
     };
