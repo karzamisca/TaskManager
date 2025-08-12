@@ -134,33 +134,72 @@ exports.getRevenueByCostCenter = async (req, res) => {
     const costCenterPaymentMap = {}; // To accumulate payments by cost center per month
 
     paymentDocuments.forEach((doc) => {
-      const dateInfo = getMonthYearFromSubmissionDate(doc.submissionDate);
-      if (!dateInfo) {
-        return; // Skip if invalid date
+      // Check if the document has stages
+      if (doc.stages && doc.stages.length > 0) {
+        // Process each stage separately
+        doc.stages.forEach((stage) => {
+          const dateInfo = getMonthYearFromSubmissionDate(stage.deadline);
+          if (!dateInfo) {
+            return; // Skip if invalid date
+          }
+
+          // Align with your existing month-shifting logic:
+          // Payment in March (month 3) should be attributed to recordMonth 4 of the target year
+          let recordMonth = dateInfo.month + 1;
+          let recordYear = dateInfo.year;
+
+          // Handle year boundary: December payments should be attributed to January of next year
+          if (recordMonth > 12) {
+            recordMonth = 1;
+            recordYear += 1;
+          }
+
+          // Only include payments that align with the requested year
+          if (recordYear !== parseInt(year)) {
+            return;
+          }
+
+          const key = `${doc.costCenter}-${recordMonth}-${recordYear}`;
+
+          if (!costCenterPaymentMap[key]) {
+            costCenterPaymentMap[key] = 0;
+          }
+
+          // Use stage amount instead of totalPayment
+          costCenterPaymentMap[key] += stage.amount || 0;
+        });
+      } else {
+        // Original logic for documents without stages
+        const dateInfo = getMonthYearFromSubmissionDate(doc.submissionDate);
+        if (!dateInfo) {
+          return; // Skip if invalid date
+        }
+
+        // Align with your existing month-shifting logic:
+        // Payment in March (month 3) should be attributed to recordMonth 4 of the target year
+        let recordMonth = dateInfo.month + 1;
+        let recordYear = dateInfo.year;
+
+        // Handle year boundary: December payments should be attributed to January of next year
+        if (recordMonth > 12) {
+          recordMonth = 1;
+          recordYear += 1;
+        }
+
+        // Only include payments that align with the requested year
+        if (recordYear !== parseInt(year)) {
+          return;
+        }
+
+        const key = `${doc.costCenter}-${recordMonth}-${recordYear}`;
+
+        if (!costCenterPaymentMap[key]) {
+          costCenterPaymentMap[key] = 0;
+        }
+
+        // Use totalPayment for documents without stages
+        costCenterPaymentMap[key] += doc.totalPayment || 0;
       }
-
-      // Align with your existing month-shifting logic:
-      // Payment in March (month 3) should be attributed to recordMonth 4 of the target year
-      let recordMonth = dateInfo.month + 1;
-      let recordYear = dateInfo.year;
-
-      // Handle year boundary: December payments should be attributed to January of next year
-      if (recordMonth > 12) {
-        recordMonth = 1;
-        recordYear += 1;
-      }
-
-      // Only include payments that align with the requested year
-      if (recordYear !== parseInt(year)) {
-        return;
-      }
-
-      const key = `${doc.costCenter}-${recordMonth}-${recordYear}`;
-
-      if (!costCenterPaymentMap[key]) {
-        costCenterPaymentMap[key] = 0;
-      }
-      costCenterPaymentMap[key] += doc.totalPayment || 0;
     });
 
     // Process the data
