@@ -126,13 +126,25 @@ exports.editCostCenter = async (req, res) => {
       { new: true }
     );
 
-    // If name changed, create new FinanceGas entry with the new name
+    // If name changed, update the corresponding FinanceGas entry instead of creating new one
     if (nameChanged) {
-      const newFinanceGas = new FinanceGas({
-        name: name,
-        years: [], // Start with empty years array
-      });
-      await newFinanceGas.save();
+      const updatedFinanceGas = await FinanceGas.findOneAndUpdate(
+        { name: oldName }, // Find by old name
+        { name: name }, // Update to new name
+        { new: true }
+      );
+
+      if (!updatedFinanceGas) {
+        console.warn(
+          `FinanceGas entry with name "${oldName}" not found. Creating new one.`
+        );
+        // If for some reason the FinanceGas entry doesn't exist, create it
+        const newFinanceGas = new FinanceGas({
+          name: name,
+          years: [], // Start with empty years array
+        });
+        await newFinanceGas.save();
+      }
     }
 
     res.redirect("/costCenterAdmin");
