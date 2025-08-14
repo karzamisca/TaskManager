@@ -1,4 +1,3 @@
-<!-- views/financePages/financeSummary/financeSummary.html -->
 <!DOCTYPE html>
 <html lang="vi">
   <head>
@@ -51,6 +50,26 @@
       }
       .dataTables_info {
         padding-top: 0.85em !important;
+      }
+      .budget-summary {
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        padding: 15px;
+        margin-top: 20px;
+      }
+      .budget-summary h5 {
+        margin-bottom: 15px;
+      }
+      .budget-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+      .budget-total {
+        font-weight: bold;
+        border-top: 1px solid #dee2e6;
+        padding-top: 10px;
+        margin-top: 10px;
       }
     </style>
   </head>
@@ -119,6 +138,18 @@
             </thead>
             <tbody></tbody>
           </table>
+
+          <!-- Budget Summary Section -->
+          <div
+            id="budgetSummaryContainer"
+            class="budget-summary mt-4"
+            style="display: none"
+          >
+            <h5>Tổng hợp ngân sách 2025</h5>
+            <div id="budgetDetails">
+              <!-- Budget details will be inserted here -->
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -134,6 +165,9 @@
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
     <script>
       $(document).ready(function () {
+        // Constants
+        const STARTING_BUDGET_2025 = 2866850896;
+
         // Month mapping for proper sorting
         const monthOrder = {
           "Tháng Một": 1,
@@ -153,13 +187,12 @@
         // Custom sorting function for Vietnamese months
         jQuery.extend(jQuery.fn.dataTableExt.oSort, {
           "vietnamese-month-pre": function (a) {
-            // Extract month and year from "Tháng Ba 2025" format
             const parts = a.split(" ");
             if (parts.length >= 3) {
-              const month = parts[0] + " " + parts[1]; // "Tháng Ba"
-              const year = parseInt(parts[2]); // 2025
+              const month = parts[0] + " " + parts[1];
+              const year = parseInt(parts[2]);
               const monthNum = monthOrder[month] || 0;
-              return year * 100 + monthNum; // 202503 for "Tháng Ba 2025"
+              return year * 100 + monthNum;
             }
             return 0;
           },
@@ -203,14 +236,14 @@
                 const sheet = xlsx.xl.worksheets["sheet1.xml"];
 
                 // Format currency cells
-                $('row c[r^="C"]', sheet).attr("s", "2"); // Column C (totalSale)
-                $('row c[r^="D"]', sheet).attr("s", "2"); // Column D (totalPurchase)
-                $('row c[r^="E"]', sheet).attr("s", "2"); // Column E (totalTransport)
-                $('row c[r^="F"]', sheet).attr("s", "2"); // Column F (totalCommissionPurchase)
-                $('row c[r^="G"]', sheet).attr("s", "2"); // Column G (totalCommissionSale)
-                $('row c[r^="H"]', sheet).attr("s", "2"); // Column H (totalSalary)
-                $('row c[r^="I"]', sheet).attr("s", "2"); // Column I (totalPayments)
-                $('row c[r^="J"]', sheet).attr("s", "2"); // Column J (netRevenue)
+                $('row c[r^="C"]', sheet).attr("s", "2");
+                $('row c[r^="D"]', sheet).attr("s", "2");
+                $('row c[r^="E"]', sheet).attr("s", "2");
+                $('row c[r^="F"]', sheet).attr("s", "2");
+                $('row c[r^="G"]', sheet).attr("s", "2");
+                $('row c[r^="H"]', sheet).attr("s", "2");
+                $('row c[r^="I"]', sheet).attr("s", "2");
+                $('row c[r^="J"]', sheet).attr("s", "2");
 
                 // Add header information
                 const year = $("#yearSelect").val();
@@ -225,11 +258,9 @@
                   costCenterText = selectedCostCenters.join(", ");
                 }
 
-                // Add two header rows
-                $("row:first c", sheet).attr("s", "20"); // Style for header
-                $("row:eq(1) c", sheet).attr("s", "20"); // Style for subheader
+                $("row:first c", sheet).attr("s", "20");
+                $("row:eq(1) c", sheet).attr("s", "20");
 
-                // Add title and filter information
                 const titleRow = $("<row></row>").append(
                   $(
                     '<c r="A1" t="inlineStr" s="20"><is><t>Báo cáo doanh thu năm ' +
@@ -248,7 +279,6 @@
                 $("sheetData", sheet).prepend(filterRow);
                 $("sheetData", sheet).prepend(titleRow);
 
-                // Merge title cells
                 const mergeCells = $('<mergeCells count="2"></mergeCells>');
                 mergeCells.append('<mergeCell ref="A1:J1"/>');
                 mergeCells.append('<mergeCell ref="A2:J2"/>');
@@ -267,7 +297,6 @@
               exportOptions: {
                 format: {
                   body: function (data, row, column, node) {
-                    // Remove the VNĐ suffix and HTML tags from the data
                     return data.replace(/ VNĐ$/, "").replace(/<[^>]*>/g, "");
                   },
                 },
@@ -456,6 +485,98 @@
 
         $("#costCenterSelect").on("change", updateSelectedCentersInfo);
 
+        // Function to update budget summary
+        function updateBudgetSummary(data, year) {
+          const budgetContainer = $("#budgetSummaryContainer");
+          const budgetDetails = $("#budgetDetails");
+
+          if (year != 2025) {
+            budgetContainer.hide();
+            return;
+          }
+
+          let totalNetRevenue = 0;
+          let totalSales = 0;
+          let totalPurchases = 0;
+          let totalTransport = 0;
+          let totalCommissionPurchase = 0;
+          let totalCommissionSale = 0;
+          let totalSalary = 0;
+          let totalPayments = 0;
+
+          // Calculate totals
+          Object.values(data).forEach((item) => {
+            totalSales += item.totalSale;
+            totalPurchases += item.totalPurchase;
+            totalTransport += item.totalTransport;
+            totalCommissionPurchase += item.totalCommissionPurchase;
+            totalCommissionSale += item.totalCommissionSale;
+            totalSalary += item.totalSalary;
+            totalPayments += item.totalPayments;
+            totalNetRevenue += item.netRevenue;
+          });
+
+          const currentBudget = STARTING_BUDGET_2025 + totalNetRevenue;
+
+          // Format numbers
+          const format = (num) => num.toLocaleString("vi-VN");
+
+          // Build HTML
+          const html = `
+            <div class="budget-item">
+              <span>Ngân sách ban đầu:</span>
+              <span>${format(STARTING_BUDGET_2025)} VNĐ</span>
+            </div>
+            <div class="budget-item">
+              <span>Tổng doanh thu bán hàng:</span>
+              <span class="positive">${format(totalSales)} VNĐ</span>
+            </div>
+            <div class="budget-item">
+              <span>Tổng chi phí mua hàng:</span>
+              <span class="negative">-${format(totalPurchases)} VNĐ</span>
+            </div>
+            <div class="budget-item">
+              <span>Tổng chi phí vận chuyển:</span>
+              <span class="negative">-${format(totalTransport)} VNĐ</span>
+            </div>
+            <div class="budget-item">
+              <span>Tổng hoa hồng mua hàng:</span>
+              <span class="negative">-${format(
+                totalCommissionPurchase
+              )} VNĐ</span>
+            </div>
+            <div class="budget-item">
+              <span>Tổng hoa hồng bán hàng:</span>
+              <span class="negative">-${format(totalCommissionSale)} VNĐ</span>
+            </div>
+            <div class="budget-item">
+              <span>Tổng chi phí lương:</span>
+              <span class="negative">-${format(totalSalary)} VNĐ</span>
+            </div>
+            <div class="budget-item">
+              <span>Tổng thanh toán khác:</span>
+              <span class="negative">-${format(totalPayments)} VNĐ</span>
+            </div>
+            <div class="budget-item">
+              <span>Tổng doanh thu ròng (2025):</span>
+              <span class="${totalNetRevenue >= 0 ? "positive" : "negative"}">
+                ${totalNetRevenue >= 0 ? "+" : ""}${format(totalNetRevenue)} VNĐ
+              </span>
+            </div>
+            <div class="budget-item budget-total">
+              <span>Ngân sách hiện tại:</span>
+              <span class="${
+                currentBudget >= STARTING_BUDGET_2025 ? "positive" : "negative"
+              }">
+                ${format(currentBudget)} VNĐ
+              </span>
+            </div>
+          `;
+
+          budgetDetails.html(html);
+          budgetContainer.show();
+        }
+
         $("#filterForm").on("submit", function (e) {
           e.preventDefault();
           const year = $("#yearSelect").val();
@@ -468,7 +589,6 @@
             selectedCostCenters.length > 0 &&
             !selectedCostCenters.includes("all")
           ) {
-            // Send selected cost centers as comma-separated string
             queryParams += `&costCenters=${selectedCostCenters.join(",")}`;
           }
 
@@ -479,6 +599,7 @@
               if (data.length === 0) {
                 alert("Không tìm thấy dữ liệu cho năm đã chọn");
                 table.clear().draw();
+                $("#budgetSummaryContainer").hide();
                 return;
               }
 
@@ -523,6 +644,7 @@
 
               table.clear().rows.add(Object.values(summaryData)).draw();
               updateSelectedCentersInfo();
+              updateBudgetSummary(summaryData, year);
             },
             error: function (xhr, status, error) {
               alert("Lỗi khi tải dữ liệu: " + error);
