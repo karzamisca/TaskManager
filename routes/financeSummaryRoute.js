@@ -19,5 +19,20 @@ router.get(
   authMiddleware,
   financeSummaryController.getAllCostCenters
 );
+router.post(
+  "/financeSummaryCostCenterGroups",
+  authMiddleware,
+  financeSummaryController.createCostCenterGroup
+);
+router.get(
+  "/financeSummaryCostCenterGroups",
+  authMiddleware,
+  financeSummaryController.getCostCenterGroups
+);
+router.delete(
+  "/financeSummaryCostCenterGroups/:id",
+  authMiddleware,
+  financeSummaryController.deleteCostCenterGroup
+);
 
 module.exports = router;

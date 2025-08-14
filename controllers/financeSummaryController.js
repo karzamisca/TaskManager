@@ -2,6 +2,7 @@
 const UserMonthlyRecord = require("../models/UserMonthlyRecord");
 const FinanceGas = require("../models/FinanceGas");
 const CostCenter = require("../models/CostCenter");
+const CostCenterGroup = require("../models/CostCenterGroup");
 const DocumentPayment = require("../models/DocumentPayment");
 
 exports.getAllCostCenters = async (req, res) => {
@@ -313,6 +314,53 @@ exports.getRevenueByCostCenter = async (req, res) => {
     res.json(results);
   } catch (error) {
     console.error("Error in getRevenueByCostCenter:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.createCostCenterGroup = async (req, res) => {
+  try {
+    const { name, costCenters } = req.body;
+    const createdBy = req.user._id;
+
+    const newGroup = new CostCenterGroup({
+      name,
+      costCenters,
+      createdBy,
+    });
+
+    await newGroup.save();
+    res.status(201).json(newGroup);
+  } catch (error) {
+    console.error("Error creating cost center group:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.getCostCenterGroups = async (req, res) => {
+  try {
+    const groups = await CostCenterGroup.find();
+    res.json(groups);
+  } catch (error) {
+    console.error("Error fetching cost center groups:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.deleteCostCenterGroup = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const group = await CostCenterGroup.findOneAndDelete({
+      _id: id,
+    });
+
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    res.json({ message: "Group deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting cost center group:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

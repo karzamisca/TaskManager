@@ -71,6 +71,10 @@
         padding-top: 10px;
         margin-top: 10px;
       }
+      .group-item:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -98,13 +102,24 @@
               <div class="col-md-2 d-flex align-items-end">
                 <div class="d-grid w-100">
                   <button type="submit" class="btn btn-primary">Áp dụng</button>
-                  <button
-                    type="button"
-                    class="btn btn-outline-secondary btn-sm mt-2"
-                    id="clearSelection"
-                  >
-                    Xóa chọn
-                  </button>
+                  <div class="d-flex justify-content-between mt-2">
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary btn-sm"
+                      id="clearSelection"
+                    >
+                      Xóa chọn
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary btn-sm"
+                      id="manageGroups"
+                      data-bs-toggle="modal"
+                      data-bs-target="#groupModal"
+                    >
+                      Nhóm trạm
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -139,7 +154,6 @@
             <tbody></tbody>
           </table>
 
-          <!-- Budget Summary Section -->
           <div
             id="budgetSummaryContainer"
             class="budget-summary mt-4"
@@ -149,6 +163,71 @@
             <div id="budgetDetails">
               <!-- Budget details will be inserted here -->
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group Management Modal -->
+    <div class="modal fade" id="groupModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Quản lý nhóm trạm</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="groupName" class="form-label">Tên nhóm</label>
+                  <input type="text" class="form-control" id="groupName" />
+                </div>
+                <div class="mb-3">
+                  <label for="groupCostCenters" class="form-label"
+                    >Chọn trạm</label
+                  >
+                  <select
+                    class="form-select"
+                    id="groupCostCenters"
+                    multiple="multiple"
+                  ></select>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-primary w-100"
+                  id="saveGroup"
+                >
+                  Lưu nhóm
+                </button>
+              </div>
+              <div class="col-md-6">
+                <h6>Nhóm trạm của bạn:</h6>
+                <div
+                  id="groupList"
+                  class="list-group mt-2"
+                  style="max-height: 300px; overflow-y: auto"
+                >
+                  <div class="list-group-item text-muted text-center">
+                    Đang tải nhóm...
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Đóng
+            </button>
           </div>
         </div>
       </div>
@@ -651,6 +730,152 @@
             },
           });
         });
+
+        // Group Management Functions
+        function loadCostCenterGroups() {
+          $("#groupList").html(
+            '<div class="list-group-item text-muted text-center">Đang tải nhóm...</div>'
+          );
+
+          $.ajax({
+            url: "/financeSummaryCostCenterGroups",
+            method: "GET",
+            success: function (groups) {
+              const groupList = $("#groupList");
+              groupList.empty();
+
+              if (groups.length === 0) {
+                groupList.html(
+                  '<div class="list-group-item text-muted text-center">Bạn chưa có nhóm nào</div>'
+                );
+                return;
+              }
+
+              groups.forEach((group) => {
+                const groupItem = $(`
+                  <div class="list-group-item group-item d-flex justify-content-between align-items-center">
+                    <div>
+                      <strong>${group.name}</strong>
+                      <div class="text-muted small">${group.costCenters.length} trạm</div>
+                    </div>
+                    <div>
+                      <button class="btn btn-sm btn-outline-danger delete-group" data-id="${group._id}">
+                        Xóa
+                      </button>
+                    </div>
+                  </div>
+                `);
+
+                groupItem.on("click", ".delete-group", function (e) {
+                  e.stopPropagation();
+                  const groupId = $(this).data("id");
+                  deleteCostCenterGroup(groupId);
+                });
+
+                groupItem.on("click", function () {
+                  applyGroupFilter(group.costCenters);
+                });
+
+                groupList.append(groupItem);
+              });
+            },
+            error: function () {
+              $("#groupList").html(
+                '<div class="list-group-item text-danger text-center">Lỗi khi tải nhóm</div>'
+              );
+            },
+          });
+        }
+
+        function applyGroupFilter(costCenters) {
+          $("#costCenterSelect").val(costCenters).trigger("change");
+          $("#groupModal").modal("hide");
+          $("#filterForm").trigger("submit");
+        }
+
+        function deleteCostCenterGroup(groupId) {
+          if (!confirm("Bạn có chắc chắn muốn xóa nhóm này không?")) return;
+
+          $.ajax({
+            url: `/financeSummaryCostCenterGroups/${groupId}`,
+            method: "DELETE",
+            success: function () {
+              loadCostCenterGroups();
+            },
+            error: function () {
+              alert("Lỗi khi xóa nhóm");
+            },
+          });
+        }
+
+        function saveCostCenterGroup() {
+          const name = $("#groupName").val().trim();
+          const costCenters = $("#groupCostCenters").val();
+
+          if (!name) {
+            alert("Vui lòng nhập tên nhóm");
+            return;
+          }
+
+          if (!costCenters || costCenters.length === 0) {
+            alert("Vui lòng chọn ít nhất một trạm");
+            return;
+          }
+
+          $.ajax({
+            url: "/financeSummaryCostCenterGroups",
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+              name,
+              costCenters,
+            }),
+            success: function () {
+              $("#groupName").val("");
+              $("#groupCostCenters").val(null).trigger("change");
+              loadCostCenterGroups();
+            },
+            error: function () {
+              alert("Lỗi khi lưu nhóm");
+            },
+          });
+        }
+
+        // Initialize the group management modal
+        function initGroupModal() {
+          // Initialize Select2 for group cost centers
+          $("#groupCostCenters").select2({
+            theme: "bootstrap-5",
+            placeholder: "Chọn trạm...",
+            allowClear: true,
+            closeOnSelect: false,
+            width: "100%",
+          });
+
+          // Populate group cost centers dropdown
+          $.ajax({
+            url: "/financeSummaryCostCenters",
+            method: "GET",
+            success: function (data) {
+              const groupCostCenterSelect = $("#groupCostCenters");
+              groupCostCenterSelect.empty();
+              data.forEach((costCenter) => {
+                groupCostCenterSelect.append(
+                  `<option value="${costCenter.name}">${costCenter.name}</option>`
+                );
+              });
+            },
+          });
+
+          // Save group button handler
+          $("#saveGroup").on("click", saveCostCenterGroup);
+
+          // Load existing groups when modal is shown
+          $("#groupModal").on("shown.bs.modal", loadCostCenterGroups);
+        }
+
+        // Initialize group management
+        initGroupModal();
 
         // Initial load
         $("#filterForm").trigger("submit");
