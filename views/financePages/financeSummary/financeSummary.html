@@ -35,9 +35,6 @@
         color: #6c757d;
         font-style: italic;
       }
-      .details-row {
-        background-color: #f8f9fa;
-      }
       .select2-container--bootstrap-5 .select2-selection {
         min-height: 38px;
       }
@@ -75,10 +72,45 @@
         background-color: #f8f9fa;
         cursor: pointer;
       }
+      .metric-row {
+        font-weight: bold;
+      }
+      .metric-row td:first-child {
+        background-color: #f8f9fa;
+        border-right: 2px solid #dee2e6;
+      }
+      .center-header {
+        background-color: #e9ecef;
+        font-weight: bold;
+        text-align: center;
+      }
+      .month-subheader {
+        background-color: #f8f9fa;
+        font-size: 0.9em;
+        text-align: center;
+      }
+      .pivot-table {
+        font-size: 0.9em;
+      }
+      .pivot-table th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .pivot-table td:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 5;
+        background-color: #f8f9fa;
+      }
+      .table-container {
+        max-height: 600px;
+        overflow: auto;
+      }
     </style>
   </head>
   <body>
-    <div class="container mt-4">
+    <div class="container-fluid mt-4">
       <h1 class="mb-4">Bảng Doanh Thu</h1>
 
       <div class="card mb-4">
@@ -132,27 +164,20 @@
           <div class="mb-3">
             <small class="text-muted" id="selectedCentersInfo"></small>
           </div>
-          <table
-            id="revenueTable"
-            class="table table-striped"
-            style="width: 100%"
-          >
-            <thead>
-              <tr>
-                <th>Trạm</th>
-                <th>Tháng</th>
-                <th>Tổng Bán Hàng</th>
-                <th>Tổng Mua Hàng</th>
-                <th>Chi Phí Vận Chuyển</th>
-                <th>Hoa Hồng Mua Hàng</th>
-                <th>Hoa Hồng Bán Hàng</th>
-                <th>Tổng Lương</th>
-                <th>Tổng Thanh Toán</th>
-                <th>Doanh Thu Ròng</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
+          <div class="table-container">
+            <table
+              id="revenueTable"
+              class="table table-striped table-bordered pivot-table"
+              style="width: 100%"
+            >
+              <thead id="tableHead">
+                <!-- Dynamic header will be inserted here -->
+              </thead>
+              <tbody id="tableBody">
+                <!-- Dynamic body will be inserted here -->
+              </tbody>
+            </table>
+          </div>
 
           <div
             id="budgetSummaryContainer"
@@ -263,227 +288,31 @@
           "Tháng Mười Hai": 12,
         };
 
-        // Custom sorting function for Vietnamese months
-        jQuery.extend(jQuery.fn.dataTableExt.oSort, {
-          "vietnamese-month-pre": function (a) {
-            const parts = a.split(" ");
-            if (parts.length >= 3) {
-              const month = parts[0] + " " + parts[1];
-              const year = parseInt(parts[2]);
-              const monthNum = monthOrder[month] || 0;
-              return year * 100 + monthNum;
-            }
-            return 0;
+        // Metrics configuration
+        const metrics = [
+          { key: "totalSale", label: "Tổng Bán Hàng", isPositive: true },
+          { key: "totalPurchase", label: "Tổng Mua Hàng", isPositive: false },
+          {
+            key: "totalTransport",
+            label: "Chi Phí Vận Chuyển",
+            isPositive: false,
           },
-          "vietnamese-month-asc": function (a, b) {
-            return a - b;
+          {
+            key: "totalCommissionPurchase",
+            label: "Hoa Hồng Mua Hàng",
+            isPositive: false,
           },
-          "vietnamese-month-desc": function (a, b) {
-            return b - a;
+          {
+            key: "totalCommissionSale",
+            label: "Hoa Hồng Bán Hàng",
+            isPositive: false,
           },
-        });
+          { key: "totalSalary", label: "Tổng Lương", isPositive: false },
+          { key: "totalPayments", label: "Tổng Thanh Toán", isPositive: false },
+          { key: "netRevenue", label: "Doanh Thu Ròng", isPositive: true },
+        ];
 
-        const table = $("#revenueTable").DataTable({
-          responsive: true,
-          order: [
-            [0, "asc"],
-            [1, "asc"],
-          ],
-          dom: '<"top"lBf>rt<"bottom"ip>',
-          buttons: [
-            {
-              extend: "excelHtml5",
-              text: "Xuất Excel",
-              className: "btn btn-success",
-              title: "Báo cáo doanh thu",
-              filename: function () {
-                const year = $("#yearSelect").val();
-                const selectedCostCenters = $("#costCenterSelect").val();
-                let fileName = `Bao_cao_doanh_thu_${year}`;
-
-                if (
-                  selectedCostCenters &&
-                  selectedCostCenters.length > 0 &&
-                  !selectedCostCenters.includes("all")
-                ) {
-                  fileName += `_${selectedCostCenters.join("_")}`;
-                }
-
-                return fileName;
-              },
-              customize: function (xlsx) {
-                const sheet = xlsx.xl.worksheets["sheet1.xml"];
-
-                // Format currency cells
-                $('row c[r^="C"]', sheet).attr("s", "2");
-                $('row c[r^="D"]', sheet).attr("s", "2");
-                $('row c[r^="E"]', sheet).attr("s", "2");
-                $('row c[r^="F"]', sheet).attr("s", "2");
-                $('row c[r^="G"]', sheet).attr("s", "2");
-                $('row c[r^="H"]', sheet).attr("s", "2");
-                $('row c[r^="I"]', sheet).attr("s", "2");
-                $('row c[r^="J"]', sheet).attr("s", "2");
-
-                // Add header information
-                const year = $("#yearSelect").val();
-                const selectedCostCenters = $("#costCenterSelect").val();
-                let costCenterText = "Tất cả trạm";
-
-                if (
-                  selectedCostCenters &&
-                  selectedCostCenters.length > 0 &&
-                  !selectedCostCenters.includes("all")
-                ) {
-                  costCenterText = selectedCostCenters.join(", ");
-                }
-
-                $("row:first c", sheet).attr("s", "20");
-                $("row:eq(1) c", sheet).attr("s", "20");
-
-                const titleRow = $("<row></row>").append(
-                  $(
-                    '<c r="A1" t="inlineStr" s="20"><is><t>Báo cáo doanh thu năm ' +
-                      year +
-                      "</t></is></c>"
-                  )
-                );
-                const filterRow = $("<row></row>").append(
-                  $(
-                    '<c r="A2" t="inlineStr" s="20"><is><t>Trạm: ' +
-                      costCenterText +
-                      "</t></is></c>"
-                  )
-                );
-
-                $("sheetData", sheet).prepend(filterRow);
-                $("sheetData", sheet).prepend(titleRow);
-
-                const mergeCells = $('<mergeCells count="2"></mergeCells>');
-                mergeCells.append('<mergeCell ref="A1:J1"/>');
-                mergeCells.append('<mergeCell ref="A2:J2"/>');
-
-                if ($("mergeCells", sheet).length === 0) {
-                  $("worksheet", sheet).append(mergeCells);
-                } else {
-                  $("mergeCells", sheet).append('<mergeCell ref="A1:J1"/>');
-                  $("mergeCells", sheet).append('<mergeCell ref="A2:J2"/>');
-                  $("mergeCells", sheet).attr(
-                    "count",
-                    $("mergeCell", sheet).length
-                  );
-                }
-              },
-              exportOptions: {
-                format: {
-                  body: function (data, row, column, node) {
-                    return data.replace(/ VNĐ$/, "").replace(/<[^>]*>/g, "");
-                  },
-                },
-              },
-            },
-          ],
-          language: {
-            decimal: "",
-            emptyTable: "Không có dữ liệu trong bảng",
-            info: "Hiển thị _START_ đến _END_ của _TOTAL_ mục",
-            infoEmpty: "Hiển thị 0 đến 0 của 0 mục",
-            infoFiltered: "(lọc từ _MAX_ tổng số mục)",
-            infoPostFix: "",
-            thousands: ",",
-            lengthMenu: "Hiển thị _MENU_ mục",
-            loadingRecords: "Đang tải...",
-            processing: "Đang xử lý...",
-            search: "Tìm kiếm:",
-            zeroRecords: "Không tìm thấy kết quả phù hợp",
-            paginate: {
-              first: "Đầu tiên",
-              last: "Cuối cùng",
-              next: "Tiếp theo",
-              previous: "Trước",
-            },
-            aria: {
-              sortAscending: ": sắp xếp tăng dần",
-              sortDescending: ": sắp xếp giảm dần",
-            },
-          },
-          columns: [
-            {
-              data: "costCenter",
-              render: function (data) {
-                return data === "N/A"
-                  ? '<span class="na-value">N/A</span>'
-                  : data;
-              },
-            },
-            {
-              data: null,
-              type: "vietnamese-month",
-              render: function (data) {
-                return `${data.actualMonth} ${data.actualYear}`;
-              },
-            },
-            {
-              data: "totalSale",
-              render: function (data) {
-                return `<span class="${
-                  data >= 0 ? "positive" : "negative"
-                }">${data.toLocaleString("vi-VN")} VNĐ</span>`;
-              },
-            },
-            {
-              data: "totalPurchase",
-              render: function (data) {
-                return `<span>${data.toLocaleString("vi-VN")} VNĐ</span>`;
-              },
-            },
-            {
-              data: "totalTransport",
-              render: function (data) {
-                return `<span>${data.toLocaleString("vi-VN")} VNĐ</span>`;
-              },
-            },
-            {
-              data: "totalCommissionPurchase",
-              render: function (data) {
-                return `<span>${data.toLocaleString("vi-VN")} VNĐ</span>`;
-              },
-            },
-            {
-              data: "totalCommissionSale",
-              render: function (data) {
-                return `<span>${data.toLocaleString("vi-VN")} VNĐ</span>`;
-              },
-            },
-            {
-              data: "totalSalary",
-              render: function (data) {
-                return `<span>${data.toLocaleString("vi-VN")} VNĐ</span>`;
-              },
-            },
-            {
-              data: "totalPayments",
-              render: function (data) {
-                return `<span class="${
-                  data > 0 ? "negative" : ""
-                }">${data.toLocaleString("vi-VN")} VNĐ</span>`;
-              },
-            },
-            {
-              data: "netRevenue",
-              render: function (data) {
-                return `<span class="${
-                  data >= 0 ? "positive" : "negative"
-                }">${data.toLocaleString("vi-VN")} VNĐ</span>`;
-              },
-            },
-          ],
-        });
-
-        // Add the buttons to the DOM
-        table
-          .buttons()
-          .container()
-          .appendTo($(".dataTables_wrapper .col-md-6:eq(0)"));
+        let currentTable = null;
 
         // Initialize Select2 for cost center selection
         $("#costCenterSelect").select2({
@@ -564,6 +393,237 @@
 
         $("#costCenterSelect").on("change", updateSelectedCentersInfo);
 
+        // Function to create pivot table
+        function createPivotTable(data) {
+          // Destroy existing DataTable if it exists
+          if (currentTable) {
+            currentTable.destroy();
+            currentTable = null;
+          }
+
+          // Group data by cost center and month
+          const pivotData = {};
+          const costCenters = new Set();
+          const months = new Set();
+
+          data.forEach((item) => {
+            const centerMonthKey = `${item.costCenter}_${item.actualMonth}_${item.actualYear}`;
+            costCenters.add(item.costCenter);
+            months.add(`${item.actualMonth} ${item.actualYear}`);
+
+            if (!pivotData[centerMonthKey]) {
+              pivotData[centerMonthKey] = {
+                costCenter: item.costCenter,
+                month: `${item.actualMonth} ${item.actualYear}`,
+                monthOrder: monthOrder[item.actualMonth] || 0,
+                year: item.actualYear,
+                totalSale: 0,
+                totalPurchase: 0,
+                totalTransport: 0,
+                totalCommissionPurchase: 0,
+                totalCommissionSale: 0,
+                totalSalary: 0,
+                totalPayments: 0,
+                netRevenue: 0,
+              };
+            }
+
+            const entry = pivotData[centerMonthKey];
+            entry.totalSale += item.totalSale;
+            entry.totalPurchase += item.totalPurchase;
+            entry.totalTransport += item.totalTransport;
+            entry.totalCommissionPurchase += item.totalCommissionPurchase;
+            entry.totalCommissionSale += item.totalCommissionSale;
+            entry.totalSalary += item.grossSalary;
+            entry.totalPayments += item.totalPayments;
+            entry.netRevenue =
+              entry.totalSale -
+              entry.totalPurchase -
+              entry.totalTransport -
+              entry.totalCommissionPurchase -
+              entry.totalCommissionSale -
+              entry.totalSalary -
+              entry.totalPayments;
+          });
+
+          // Sort cost centers and months
+          const sortedCostCenters = Array.from(costCenters).sort();
+          const sortedMonths = Array.from(months).sort((a, b) => {
+            const [monthA, yearA] = a.split(" ");
+            const [monthB, yearB] = b.split(" ");
+            const yearDiff = parseInt(yearA) - parseInt(yearB);
+            if (yearDiff !== 0) return yearDiff;
+            return (monthOrder[monthA] || 0) - (monthOrder[monthB] || 0);
+          });
+
+          // Create table header
+          const tableHead = $("#tableHead");
+          tableHead.empty();
+
+          const headerRow = $("<tr></tr>");
+          headerRow.append(
+            '<th rowspan="2" class="metric-row" style="min-width: 180px; width: 180px;">Chi tiêu</th>'
+          );
+
+          sortedCostCenters.forEach((center) => {
+            headerRow.append(
+              `<th colspan="${sortedMonths.length}" class="center-header">${center}</th>`
+            );
+          });
+
+          const subHeaderRow = $("<tr></tr>");
+          sortedCostCenters.forEach((center) => {
+            sortedMonths.forEach((month) => {
+              subHeaderRow.append(
+                `<th class="month-subheader" style="min-width: 120px;">${month}</th>`
+              );
+            });
+          });
+
+          tableHead.append(headerRow);
+          tableHead.append(subHeaderRow);
+
+          // Create table body
+          const tableBody = $("#tableBody");
+          tableBody.empty();
+
+          metrics.forEach((metric) => {
+            const row = $('<tr class="metric-row"></tr>');
+            row.append(
+              `<td style="min-width: 180px; width: 180px;">${metric.label}</td>`
+            );
+
+            sortedCostCenters.forEach((center) => {
+              sortedMonths.forEach((month) => {
+                const centerMonthKey = `${center}_${month.replace(" ", "_")}`;
+                const entry = Object.values(pivotData).find(
+                  (item) => item.costCenter === center && item.month === month
+                );
+
+                let value = 0;
+                if (entry) {
+                  value = entry[metric.key];
+                }
+
+                let cellClass = "";
+                if (metric.isPositive && value > 0) cellClass = "positive";
+                else if (!metric.isPositive && value > 0)
+                  cellClass = "negative";
+                else if (value < 0) cellClass = "negative";
+
+                const formattedValue =
+                  value === 0 ? "-" : value.toLocaleString("vi-VN");
+                row.append(
+                  `<td class="${cellClass}" style="min-width: 120px; text-align: right;">${formattedValue}</td>`
+                );
+              });
+            });
+
+            tableBody.append(row);
+          });
+
+          // Wait for DOM to be ready before initializing DataTable
+          setTimeout(() => {
+            // Initialize DataTable with specific configuration for pivot table
+            currentTable = $("#revenueTable").DataTable({
+              responsive: false,
+              scrollX: true,
+              scrollY: "500px",
+              paging: false,
+              searching: false,
+              ordering: false,
+              info: false,
+              autoWidth: false,
+              fixedColumns: {
+                leftColumns: 1,
+              },
+              dom: "Bt",
+              buttons: [
+                {
+                  extend: "excelHtml5",
+                  text: "Xuất Excel",
+                  className: "btn btn-success",
+                  title: "Báo cáo doanh thu",
+                  filename: function () {
+                    const year = $("#yearSelect").val();
+                    const selectedCostCenters = $("#costCenterSelect").val();
+                    let fileName = `Bao_cao_doanh_thu_${year}`;
+
+                    if (
+                      selectedCostCenters &&
+                      selectedCostCenters.length > 0 &&
+                      !selectedCostCenters.includes("all")
+                    ) {
+                      fileName += `_${selectedCostCenters.join("_")}`;
+                    }
+
+                    return fileName;
+                  },
+                  customize: function (xlsx) {
+                    const sheet = xlsx.xl.worksheets["sheet1.xml"];
+
+                    // Add header information
+                    const year = $("#yearSelect").val();
+                    const selectedCostCenters = $("#costCenterSelect").val();
+                    let costCenterText = "Tất cả trạm";
+
+                    if (
+                      selectedCostCenters &&
+                      selectedCostCenters.length > 0 &&
+                      !selectedCostCenters.includes("all")
+                    ) {
+                      costCenterText = selectedCostCenters.join(", ");
+                    }
+
+                    const titleRow = $("<row></row>").append(
+                      $(
+                        '<c r="A1" t="inlineStr" s="20"><is><t>Báo cáo doanh thu năm ' +
+                          year +
+                          " (Pivot)</t></is></c>"
+                      )
+                    );
+                    const filterRow = $("<row></row>").append(
+                      $(
+                        '<c r="A2" t="inlineStr" s="20"><is><t>Trạm: ' +
+                          costCenterText +
+                          "</t></is></c>"
+                      )
+                    );
+
+                    $("sheetData", sheet).prepend(filterRow);
+                    $("sheetData", sheet).prepend(titleRow);
+                  },
+                  exportOptions: {
+                    format: {
+                      body: function (data, row, column, node) {
+                        return data.replace(/\./g, "").replace(/,/g, "");
+                      },
+                    },
+                  },
+                },
+              ],
+              language: {
+                decimal: "",
+                emptyTable: "Không có dữ liệu trong bảng",
+                processing: "Đang xử lý...",
+                zeroRecords: "Không tìm thấy kết quả phù hợp",
+              },
+            });
+
+            // Add the buttons to the DOM
+            currentTable.buttons().container().appendTo($(".card-body .mb-3"));
+
+            // Force column adjustment after initialization
+            setTimeout(() => {
+              if (currentTable) {
+                currentTable.columns.adjust();
+              }
+            }, 100);
+          }, 50);
+
+          return Object.values(pivotData);
+        }
+
         // Function to update budget summary
         function updateBudgetSummary(data, year) {
           const budgetContainer = $("#budgetSummaryContainer");
@@ -584,7 +644,7 @@
           let totalPayments = 0;
 
           // Calculate totals
-          Object.values(data).forEach((item) => {
+          data.forEach((item) => {
             totalSales += item.totalSale;
             totalPurchases += item.totalPurchase;
             totalTransport += item.totalTransport;
@@ -677,53 +737,16 @@
             success: function (data) {
               if (data.length === 0) {
                 alert("Không tìm thấy dữ liệu cho năm đã chọn");
-                table.clear().draw();
+                $("#tableBody").html(
+                  '<tr><td colspan="100%" class="text-center text-muted">Không có dữ liệu</td></tr>'
+                );
                 $("#budgetSummaryContainer").hide();
                 return;
               }
 
-              // Group by cost center and month for summary view
-              const summaryData = data.reduce((acc, item) => {
-                const key = `${item.costCenter}-${item.actualMonth}-${item.actualYear}`;
-                if (!acc[key]) {
-                  acc[key] = {
-                    costCenter: item.costCenter,
-                    actualMonth: item.actualMonth,
-                    actualYear: item.actualYear,
-                    totalSale: 0,
-                    totalPurchase: 0,
-                    totalTransport: 0,
-                    totalCommissionPurchase: 0,
-                    totalCommissionSale: 0,
-                    totalSalary: 0,
-                    totalPayments: 0,
-                    netRevenue: 0,
-                  };
-                }
-
-                acc[key].totalSale += item.totalSale;
-                acc[key].totalPurchase += item.totalPurchase;
-                acc[key].totalTransport += item.totalTransport;
-                acc[key].totalCommissionPurchase +=
-                  item.totalCommissionPurchase;
-                acc[key].totalCommissionSale += item.totalCommissionSale;
-                acc[key].totalSalary += item.grossSalary;
-                acc[key].totalPayments += item.totalPayments;
-                acc[key].netRevenue =
-                  acc[key].totalSale -
-                  acc[key].totalPurchase -
-                  acc[key].totalTransport -
-                  acc[key].totalCommissionPurchase -
-                  acc[key].totalCommissionSale -
-                  acc[key].totalSalary -
-                  acc[key].totalPayments;
-
-                return acc;
-              }, {});
-
-              table.clear().rows.add(Object.values(summaryData)).draw();
+              const pivotData = createPivotTable(data);
               updateSelectedCentersInfo();
-              updateBudgetSummary(summaryData, year);
+              updateBudgetSummary(pivotData, year);
             },
             error: function (xhr, status, error) {
               alert("Lỗi khi tải dữ liệu: " + error);
@@ -731,7 +754,7 @@
           });
         });
 
-        // Group Management Functions
+        // Group Management Functions (keeping the same logic)
         function loadCostCenterGroups() {
           $("#groupList").html(
             '<div class="list-group-item text-muted text-center">Đang tải nhóm...</div>'
