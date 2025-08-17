@@ -108,6 +108,56 @@
         overflow: auto;
       }
 
+      /* Chart Styles */
+      .chart-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+        margin-bottom: 20px;
+        position: relative;
+        height: 400px; /* Fixed height */
+      }
+
+      .chart-container canvas {
+        max-width: 100% !important;
+        max-height: 350px !important;
+        width: 100% !important;
+        height: auto !important;
+      }
+
+      .chart-container.small {
+        height: 300px;
+      }
+
+      .chart-container.small canvas {
+        max-height: 250px !important;
+      }
+
+      .chart-controls {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+
+      .chart-title {
+        font-size: 1.1em;
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #495057;
+        height: 20px; /* Fixed height for title */
+      }
+
+      /* View Toggle Buttons */
+      .view-toggle {
+        margin-bottom: 20px;
+      }
+
+      .view-toggle .btn-group .btn {
+        min-width: 120px;
+      }
+
       /* Improved Group Modal Styles */
       #groupModal .modal-dialog {
         max-width: 900px;
@@ -200,6 +250,10 @@
           padding-top: 20px;
           margin-top: 20px;
         }
+
+        .chart-container canvas {
+          max-height: 300px !important;
+        }
       }
     </style>
   </head>
@@ -253,34 +307,115 @@
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-body">
-          <div class="mb-3">
-            <small class="text-muted" id="selectedCentersInfo"></small>
-          </div>
-          <div class="table-container">
-            <table
-              id="revenueTable"
-              class="table table-striped table-bordered pivot-table"
-              style="width: 100%"
-            >
-              <thead id="tableHead">
-                <!-- Dynamic header will be inserted here -->
-              </thead>
-              <tbody id="tableBody">
-                <!-- Dynamic body will be inserted here -->
-              </tbody>
-            </table>
-          </div>
-
-          <div
-            id="budgetSummaryContainer"
-            class="budget-summary mt-4"
-            style="display: none"
+      <!-- View Toggle -->
+      <div class="view-toggle d-flex justify-content-center">
+        <div class="btn-group" role="group" aria-label="View toggle">
+          <input
+            type="radio"
+            class="btn-check"
+            name="viewOptions"
+            id="tableView"
+            autocomplete="off"
+            checked
+          />
+          <label class="btn btn-outline-primary" for="tableView"
+            >Bảng dữ liệu</label
           >
-            <h5>Tổng hợp ngân sách 2025</h5>
-            <div id="budgetDetails">
-              <!-- Budget details will be inserted here -->
+
+          <input
+            type="radio"
+            class="btn-check"
+            name="viewOptions"
+            id="chartView"
+            autocomplete="off"
+          />
+          <label class="btn btn-outline-primary" for="chartView">Biểu đồ</label>
+        </div>
+      </div>
+
+      <!-- Table View -->
+      <div id="tableViewContainer">
+        <div class="card">
+          <div class="card-body">
+            <div class="mb-3">
+              <small class="text-muted" id="selectedCentersInfo"></small>
+            </div>
+            <div class="table-container">
+              <table
+                id="revenueTable"
+                class="table table-striped table-bordered pivot-table"
+                style="width: 100%"
+              >
+                <thead id="tableHead">
+                  <!-- Dynamic header will be inserted here -->
+                </thead>
+                <tbody id="tableBody">
+                  <!-- Dynamic body will be inserted here -->
+                </tbody>
+              </table>
+            </div>
+
+            <div
+              id="budgetSummaryContainer"
+              class="budget-summary mt-4"
+              style="display: none"
+            >
+              <h5>Tổng hợp ngân sách 2025</h5>
+              <div id="budgetDetails">
+                <!-- Budget details will be inserted here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart View -->
+      <div id="chartViewContainer" style="display: none">
+        <!-- Chart Controls -->
+        <div class="chart-controls">
+          <div class="row">
+            <div class="col-md-4">
+              <label for="chartType" class="form-label">Loại biểu đồ</label>
+              <select class="form-select" id="chartType">
+                <option value="line">Đường</option>
+                <option value="bar">Cột</option>
+                <option value="area">Vùng</option>
+                <option value="pie">Tròn</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="chartMetric" class="form-label">Chỉ số</label>
+              <select class="form-select" id="chartMetric">
+                <option value="netRevenue">Doanh Thu Ròng</option>
+                <option value="totalSale">Tổng Bán Hàng</option>
+                <option value="totalPurchase">Tổng Mua Hàng</option>
+                <option value="totalTransport">Chi Phí Vận Chuyển</option>
+                <option value="totalCommissionPurchase">
+                  Hoa Hồng Mua Hàng
+                </option>
+                <option value="totalCommissionSale">Hoa Hồng Bán Hàng</option>
+                <option value="totalSalary">Tổng Lương</option>
+                <option value="totalPayments">Tổng Thanh Toán</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="chartGroupBy" class="form-label">Nhóm theo</label>
+              <select class="form-select" id="chartGroupBy">
+                <option value="month">Tháng</option>
+                <option value="costCenter">Trạm</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Container -->
+        <div class="row">
+          <div class="col-12">
+            <div class="chart-container">
+              <div class="chart-title" id="mainChartTitle">
+                Doanh Thu Ròng theo Tháng
+              </div>
+              <canvas id="mainChart"></canvas>
             </div>
           </div>
         </div>
@@ -406,10 +541,31 @@
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
     <script>
       $(document).ready(function () {
+        // Ensure Chart.js is loaded
+        if (typeof Chart === "undefined") {
+          console.error("Chart.js not loaded");
+          alert(
+            "Lỗi: Chart.js không tải được. Vui lòng kiểm tra kết nối internet."
+          );
+          return;
+        }
+
+        // Chart.js default configuration
+        Chart.defaults.font.family = "'Segoe UI', 'Roboto', sans-serif";
+        Chart.defaults.color = "#495057";
+
         // Constants
         const STARTING_BUDGET_2025 = 2866850896;
+
+        // Chart variables
+        let mainChart = null;
+        let comparisonChart = null;
+        let netRevenueChart = null;
+        let trendChart = null;
+        let currentChartData = [];
 
         // Month mapping for proper sorting
         const monthOrder = {
@@ -429,31 +585,68 @@
 
         // Metrics configuration
         const metrics = [
-          { key: "totalSale", label: "Tổng Bán Hàng", isPositive: true },
-          { key: "totalPurchase", label: "Tổng Mua Hàng", isPositive: false },
+          {
+            key: "totalSale",
+            label: "Tổng Bán Hàng",
+            isPositive: true,
+            color: "#28a745",
+          },
+          {
+            key: "totalPurchase",
+            label: "Tổng Mua Hàng",
+            isPositive: false,
+            color: "#dc3545",
+          },
           {
             key: "totalTransport",
             label: "Chi Phí Vận Chuyển",
             isPositive: false,
+            color: "#ffc107",
           },
           {
             key: "totalCommissionPurchase",
             label: "Hoa Hồng Mua Hàng",
             isPositive: false,
+            color: "#fd7e14",
           },
           {
             key: "totalCommissionSale",
             label: "Hoa Hồng Bán Hàng",
             isPositive: false,
+            color: "#e83e8c",
           },
-          { key: "totalSalary", label: "Tổng Lương", isPositive: false },
-          { key: "totalPayments", label: "Tổng Thanh Toán", isPositive: false },
-          { key: "netRevenue", label: "Doanh Thu Ròng", isPositive: true },
+          {
+            key: "totalSalary",
+            label: "Tổng Lương",
+            isPositive: false,
+            color: "#6f42c1",
+          },
+          {
+            key: "totalPayments",
+            label: "Tổng Thanh Toán",
+            isPositive: false,
+            color: "#6c757d",
+          },
+          {
+            key: "netRevenue",
+            label: "Doanh Thu Ròng",
+            isPositive: true,
+            color: "#007bff",
+          },
         ];
 
         let currentTable = null;
         let allCostCenters = [];
         let selectedCostCenters = new Set();
+
+        // Chart.js default configuration (wait for Chart to be available)
+        $(document).ready(function () {
+          // Ensure Chart.js is loaded before setting defaults
+          if (typeof Chart !== "undefined") {
+            Chart.defaults.font.family = "'Segoe UI', 'Roboto', sans-serif";
+            Chart.defaults.color = "#495057";
+          }
+        });
 
         // Initialize Select2 for cost center selection
         $("#costCenterSelect").select2({
@@ -473,6 +666,23 @@
         }
 
         yearSelect.val(currentYear);
+
+        // View toggle functionality
+        $('input[name="viewOptions"]').on("change", function () {
+          if ($(this).attr("id") === "tableView") {
+            $("#tableViewContainer").show();
+            $("#chartViewContainer").hide();
+          } else {
+            $("#tableViewContainer").hide();
+            $("#chartViewContainer").show();
+            updateCharts();
+          }
+        });
+
+        // Chart control handlers
+        $("#chartType, #chartMetric, #chartGroupBy").on("change", function () {
+          updateCharts();
+        });
 
         // Fetch cost centers and populate dropdown
         $.ajax({
@@ -534,6 +744,489 @@
         }
 
         $("#costCenterSelect").on("change", updateSelectedCentersInfo);
+
+        // Chart creation functions
+        function createMainChart(data, chartType, metric, groupBy) {
+          // Double-check Chart.js is available
+          if (typeof Chart === "undefined") {
+            console.error("Chart.js not available when creating main chart");
+            return;
+          }
+
+          const ctx = document.getElementById("mainChart").getContext("2d");
+
+          if (mainChart) {
+            mainChart.destroy();
+          }
+
+          const metricInfo = metrics.find((m) => m.key === metric);
+          let chartData, labels;
+
+          if (groupBy === "month") {
+            // Group by month
+            const monthData = {};
+            data.forEach((item) => {
+              const monthKey = `${item.month}`;
+              if (!monthData[monthKey]) {
+                monthData[monthKey] = 0;
+              }
+              monthData[monthKey] += item[metric] || 0;
+            });
+
+            labels = Object.keys(monthData).sort((a, b) => {
+              const [monthA, yearA] = a.split(" ");
+              const [monthB, yearB] = b.split(" ");
+              const yearDiff = parseInt(yearA) - parseInt(yearB);
+              if (yearDiff !== 0) return yearDiff;
+              return (monthOrder[monthA] || 0) - (monthOrder[monthB] || 0);
+            });
+
+            chartData = labels.map((label) => monthData[label]);
+          } else {
+            // Group by cost center
+            const centerData = {};
+            data.forEach((item) => {
+              if (!centerData[item.costCenter]) {
+                centerData[item.costCenter] = 0;
+              }
+              centerData[item.costCenter] += item[metric] || 0;
+            });
+
+            labels = Object.keys(centerData).sort();
+            chartData = labels.map((label) => centerData[label]);
+          }
+
+          // Create gradient for area charts
+          let backgroundColors;
+          if (chartType === "area") {
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, metricInfo.color + "80");
+            gradient.addColorStop(1, metricInfo.color + "20");
+            backgroundColors = gradient;
+          } else if (chartType === "pie") {
+            backgroundColors = generateColors(labels.length);
+          } else {
+            backgroundColors = metricInfo.color;
+          }
+
+          const config = {
+            type: chartType === "area" ? "line" : chartType,
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: metricInfo.label,
+                  data: chartData,
+                  backgroundColor: backgroundColors,
+                  borderColor: metricInfo.color,
+                  borderWidth: 2,
+                  fill: chartType === "area",
+                  tension: 0.4,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  display: chartType === "pie",
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      const value = context.parsed.y || context.parsed;
+                      return `${context.dataset.label}: ${value.toLocaleString(
+                        "vi-VN"
+                      )} VNĐ`;
+                    },
+                  },
+                },
+              },
+              scales:
+                chartType !== "pie"
+                  ? {
+                      y: {
+                        beginAtZero: true,
+                        ticks: {
+                          callback: function (value) {
+                            return value.toLocaleString("vi-VN");
+                          },
+                        },
+                      },
+                    }
+                  : {},
+              // Force canvas size constraints
+              onResize: function (chart, size) {
+                chart.canvas.style.maxHeight = "350px";
+              },
+            },
+          };
+
+          mainChart = new Chart(ctx, config);
+
+          // Update chart title
+          $("#mainChartTitle").text(
+            `${metricInfo.label} theo ${groupBy === "month" ? "Tháng" : "Trạm"}`
+          );
+        }
+
+        function createNetRevenueChart(data) {
+          if (typeof Chart === "undefined") {
+            console.error(
+              "Chart.js not available when creating net revenue chart"
+            );
+            return;
+          }
+
+          const ctx = document
+            .getElementById("netRevenueChart")
+            .getContext("2d");
+
+          if (netRevenueChart) {
+            netRevenueChart.destroy();
+          }
+
+          // Group data by month for net revenue only
+          const monthlyData = {};
+          data.forEach((item) => {
+            const monthKey = `${item.month}`;
+            if (!monthlyData[monthKey]) {
+              monthlyData[monthKey] = 0;
+            }
+            monthlyData[monthKey] += item.netRevenue || 0;
+          });
+
+          const labels = Object.keys(monthlyData).sort((a, b) => {
+            const [monthA, yearA] = a.split(" ");
+            const [monthB, yearB] = b.split(" ");
+            const yearDiff = parseInt(yearA) - parseInt(yearB);
+            if (yearDiff !== 0) return yearDiff;
+            return (monthOrder[monthA] || 0) - (monthOrder[monthB] || 0);
+          });
+
+          const chartData = labels.map((label) => monthlyData[label]);
+
+          // Create gradient
+          const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+          gradient.addColorStop(0, "#007bff80");
+          gradient.addColorStop(1, "#007bff20");
+
+          netRevenueChart = new Chart(ctx, {
+            type: "line",
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: "Doanh Thu Ròng",
+                  data: chartData,
+                  backgroundColor: gradient,
+                  borderColor: "#007bff",
+                  borderWidth: 3,
+                  fill: true,
+                  tension: 0.4,
+                  pointBackgroundColor: "#007bff",
+                  pointBorderColor: "#ffffff",
+                  pointBorderWidth: 2,
+                  pointRadius: 5,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  display: false,
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      const value = context.parsed.y;
+                      return `Doanh thu ròng: ${value.toLocaleString(
+                        "vi-VN"
+                      )} VNĐ`;
+                    },
+                  },
+                },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    callback: function (value) {
+                      return value.toLocaleString("vi-VN");
+                    },
+                  },
+                },
+              },
+              onResize: function (chart, size) {
+                chart.canvas.style.maxHeight = "250px";
+              },
+            },
+          });
+        }
+
+        function createComparisonChart(data) {
+          if (typeof Chart === "undefined") {
+            console.error(
+              "Chart.js not available when creating comparison chart"
+            );
+            return;
+          }
+
+          const ctx = document
+            .getElementById("comparisonChart")
+            .getContext("2d");
+
+          if (comparisonChart) {
+            comparisonChart.destroy();
+          }
+
+          const totals = {
+            totalSale: 0,
+            totalPurchase: 0,
+            totalTransport: 0,
+            totalCommissionPurchase: 0,
+            totalCommissionSale: 0,
+            totalSalary: 0,
+            totalPayments: 0,
+          };
+
+          data.forEach((item) => {
+            totals.totalSale += item.totalSale || 0;
+            totals.totalPurchase += item.totalPurchase || 0;
+            totals.totalTransport += item.totalTransport || 0;
+            totals.totalCommissionPurchase += item.totalCommissionPurchase || 0;
+            totals.totalCommissionSale += item.totalCommissionSale || 0;
+            totals.totalSalary += item.totalSalary || 0;
+            totals.totalPayments += item.totalPayments || 0;
+          });
+
+          const labels = ["Thu nhập", "Chi phí"];
+          const chartData = [
+            totals.totalSale,
+            totals.totalPurchase +
+              totals.totalTransport +
+              totals.totalCommissionPurchase +
+              totals.totalCommissionSale +
+              totals.totalSalary +
+              totals.totalPayments,
+          ];
+
+          comparisonChart = new Chart(ctx, {
+            type: "bar",
+            data: {
+              labels: labels,
+              datasets: [
+                {
+                  label: "VNĐ",
+                  data: chartData,
+                  backgroundColor: ["#28a745", "#dc3545"],
+                  borderColor: ["#28a745", "#dc3545"],
+                  borderWidth: 2,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  display: false,
+                },
+                tooltip: {
+                  callbacks: {
+                    label: function (context) {
+                      return `${
+                        context.label
+                      }: ${context.parsed.y.toLocaleString("vi-VN")} VNĐ`;
+                    },
+                  },
+                },
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    callback: function (value) {
+                      return value.toLocaleString("vi-VN");
+                    },
+                  },
+                },
+              },
+              // Force canvas size constraints
+              onResize: function (chart, size) {
+                chart.canvas.style.maxHeight = "250px";
+              },
+            },
+          });
+        }
+
+        function createTrendChart(data) {
+          if (typeof Chart === "undefined") {
+            console.error("Chart.js not available when creating trend chart");
+            return;
+          }
+
+          const ctx = document.getElementById("trendChart").getContext("2d");
+
+          if (trendChart) {
+            trendChart.destroy();
+          }
+
+          // Group data by month for all metrics
+          const monthlyData = {};
+          data.forEach((item) => {
+            const monthKey = `${item.month}`;
+            if (!monthlyData[monthKey]) {
+              monthlyData[monthKey] = {
+                totalSale: 0,
+                totalPurchase: 0,
+                netRevenue: 0,
+                totalTransport: 0,
+              };
+            }
+            monthlyData[monthKey].totalSale += item.totalSale || 0;
+            monthlyData[monthKey].totalPurchase += item.totalPurchase || 0;
+            monthlyData[monthKey].netRevenue += item.netRevenue || 0;
+            monthlyData[monthKey].totalTransport += item.totalTransport || 0;
+          });
+
+          const labels = Object.keys(monthlyData).sort((a, b) => {
+            const [monthA, yearA] = a.split(" ");
+            const [monthB, yearB] = b.split(" ");
+            const yearDiff = parseInt(yearA) - parseInt(yearB);
+            if (yearDiff !== 0) return yearDiff;
+            return (monthOrder[monthA] || 0) - (monthOrder[monthB] || 0);
+          });
+
+          const datasets = [
+            {
+              label: "Doanh Thu Ròng",
+              data: labels.map((label) => monthlyData[label].netRevenue),
+              borderColor: "#007bff",
+              backgroundColor: "#007bff20",
+              fill: false,
+              tension: 0.4,
+            },
+            {
+              label: "Tổng Bán Hàng",
+              data: labels.map((label) => monthlyData[label].totalSale),
+              borderColor: "#28a745",
+              backgroundColor: "#28a74520",
+              fill: false,
+              tension: 0.4,
+            },
+            {
+              label: "Tổng Mua Hàng",
+              data: labels.map((label) => monthlyData[label].totalPurchase),
+              borderColor: "#dc3545",
+              backgroundColor: "#dc354520",
+              fill: false,
+              tension: 0.4,
+            },
+          ];
+
+          trendChart = new Chart(ctx, {
+            type: "line",
+            data: {
+              labels: labels,
+              datasets: datasets,
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: "top",
+                },
+                tooltip: {
+                  mode: "index",
+                  intersect: false,
+                  callbacks: {
+                    label: function (context) {
+                      return `${
+                        context.dataset.label
+                      }: ${context.parsed.y.toLocaleString("vi-VN")} VNĐ`;
+                    },
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  display: true,
+                  title: {
+                    display: true,
+                    text: "Tháng",
+                  },
+                },
+                y: {
+                  display: true,
+                  title: {
+                    display: true,
+                    text: "VNĐ",
+                  },
+                  ticks: {
+                    callback: function (value) {
+                      return value.toLocaleString("vi-VN");
+                    },
+                  },
+                },
+              },
+              interaction: {
+                mode: "nearest",
+                axis: "x",
+                intersect: false,
+              },
+              // Force canvas size constraints
+              onResize: function (chart, size) {
+                chart.canvas.style.maxHeight = "350px";
+              },
+            },
+          });
+        }
+
+        function generateColors(count) {
+          const colors = [
+            "#FF6384",
+            "#36A2EB",
+            "#FFCE56",
+            "#4BC0C0",
+            "#9966FF",
+            "#FF9F40",
+            "#FF6384",
+            "#C9CBCF",
+            "#4BC0C0",
+            "#FF6384",
+            "#36A2EB",
+            "#FFCE56",
+          ];
+
+          const result = [];
+          for (let i = 0; i < count; i++) {
+            result.push(colors[i % colors.length]);
+          }
+          return result;
+        }
+
+        function updateCharts() {
+          if (!currentChartData.length || typeof Chart === "undefined") {
+            if (typeof Chart === "undefined") {
+              console.error("Chart.js not available when updating charts");
+            }
+            return;
+          }
+
+          const chartType = $("#chartType").val();
+          const metric = $("#chartMetric").val();
+          const groupBy = $("#chartGroupBy").val();
+
+          createMainChart(currentChartData, chartType, metric, groupBy);
+          createPieChart(currentChartData);
+          createComparisonChart(currentChartData);
+          createTrendChart(currentChartData);
+        }
 
         // Improved Group Modal Functions
         function initializeCostCenterGrid() {
@@ -1065,12 +1758,19 @@
                   '<tr><td colspan="100%" class="text-center text-muted">Không có dữ liệu</td></tr>'
                 );
                 $("#budgetSummaryContainer").hide();
+                currentChartData = [];
                 return;
               }
 
               const pivotData = createPivotTable(data);
+              currentChartData = pivotData;
               updateSelectedCentersInfo();
               updateBudgetSummary(pivotData, year);
+
+              // Update charts if chart view is active
+              if ($("#chartView").is(":checked")) {
+                updateCharts();
+              }
             },
             error: function (xhr, status, error) {
               alert("Lỗi khi tải dữ liệu: " + error);
