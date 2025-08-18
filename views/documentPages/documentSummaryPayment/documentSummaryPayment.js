@@ -1081,6 +1081,8 @@ const renderPaymentStages = () => {
   state.currentEditDoc.stages.forEach((stage, index) => {
     const isPartiallyApproved = stage.approvedBy?.length > 0;
     const isFullyApproved = stage.status === "Approved";
+    const isNewStage = !stage._id; // Check if this is a new stage (has no ID)
+
     const stageElement = document.createElement("div");
     stageElement.className = `payment-stage ${
       isPartiallyApproved ? "locked-stage" : ""
@@ -1148,28 +1150,33 @@ const renderPaymentStages = () => {
       stage.notes || ""
     }</textarea>
       </div>
-      <div class="form-group">
-        <label>Tệp đính kèm:</label>
-        ${
-          stage.fileMetadata
-            ? `<div class="file-attachment">
-                <a href="${stage.fileMetadata.link}" target="_blank">${stage.fileMetadata.name}</a>
-                <button type="button" class="btn btn-danger btn-sm" onclick="removeStageFile(${index})">
-                  <i class="fas fa-trash"></i> Xóa
-                </button>
-              </div>`
-            : '<div class="file-upload-container">' +
-              '<input type="file" id="stageFileInput' +
-              index +
-              '" class="form-input" style="display: none;">' +
-              '<button type="button" class="btn btn-primary btn-sm" onclick="uploadStageFile(' +
-              index +
-              ')">' +
-              '<i class="fas fa-upload"></i> Tải lên tệp' +
-              "</button>" +
-              "</div>"
-        }
-      </div>
+      ${
+        // Only show file upload section if this is not a new stage
+        !isNewStage
+          ? `<div class="form-group">
+              <label>Tệp đính kèm:</label>
+              ${
+                stage.fileMetadata
+                  ? `<div class="file-attachment">
+                      <a href="${stage.fileMetadata.link}" target="_blank">${stage.fileMetadata.name}</a>
+                      <button type="button" class="btn btn-danger btn-sm" onclick="removeStageFile(${index})">
+                        <i class="fas fa-trash"></i> Xóa
+                      </button>
+                    </div>`
+                  : '<div class="file-upload-container">' +
+                    '<input type="file" id="stageFileInput' +
+                    index +
+                    '" class="form-input" style="display: none;">' +
+                    '<button type="button" class="btn btn-primary btn-sm" onclick="uploadStageFile(' +
+                    index +
+                    ')">' +
+                    '<i class="fas fa-upload"></i> Tải lên tệp' +
+                    "</button>" +
+                    "</div>"
+              }
+            </div>`
+          : ""
+      }
       <div class="form-group">
         <label>Người phê duyệt:</label>
         <div class="stage-approvers-container" id="stageApproversContainer${index}">
