@@ -44,6 +44,12 @@ const paymentDocumentSchema = new mongoose.Schema({
       },
       paymentMethod: { type: String },
       notes: { type: String },
+      fileMetadata: {
+        driveFileId: { type: String },
+        name: { type: String },
+        link: { type: String },
+        path: { type: String },
+      },
     },
   ],
   submissionDate: { type: String, required: true },
@@ -74,7 +80,7 @@ const paymentDocumentSchema = new mongoose.Schema({
   ],
   status: {
     type: String,
-    enum: ["Pending", "Approved", "Suspended"], // Possible states
+    enum: ["Pending", "Approved", "Suspended"],
     default: "Pending",
   },
   suspendReason: { type: String, default: "" },

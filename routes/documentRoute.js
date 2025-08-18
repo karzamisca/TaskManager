@@ -245,6 +245,17 @@ router.post(
   documentController.updatePaymentDocument
 );
 router.post(
+  "/uploadStageFile/:docId/:stageIndex",
+  upload.single("file"),
+  authMiddleware,
+  documentController.uploadStageFile
+);
+router.post(
+  "/removeStageFile/:docId/:stageIndex",
+  authMiddleware,
+  documentController.removeStageFile
+);
+router.post(
   "/updatePaymentDocumentDeclaration/:id",
   authMiddleware,
   documentController.updatePaymentDocumentDeclaration
