@@ -1116,7 +1116,7 @@ const renderPaymentStages = () => {
           stage.amount || 0
         }" 
                onchange="updateStageField(${index}, 'amount', this.value)"
-               ${isPartiallyApproved ? "disabled" : ""}>
+               ${isFullyApproved ? "disabled" : ""}>
       </div>
       <div class="form-group">
         <label>Hạn thanh toán:</label>
@@ -1144,7 +1144,7 @@ const renderPaymentStages = () => {
         <label>Ghi chú:</label>
         <textarea class="form-textarea stage-notes" 
                   onchange="updateStageField(${index}, 'notes', this.value)"
-                  ${isPartiallyApproved ? "disabled" : ""}>${
+                  ${isFullyApproved ? "disabled" : ""}>${
       stage.notes || ""
     }</textarea>
       </div>

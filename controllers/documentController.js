@@ -2949,11 +2949,11 @@ exports.updatePaymentDocument = async (req, res) => {
             const existingStage = existingDoc.stages[i];
             const newStage = parsedStages[i];
 
+            // Only prevent edits if stage is fully approved
             if (
-              existingStage.approvedBy &&
-              existingStage.approvedBy.length > 0
+              existingStage.approvedBy?.length ===
+              existingStage.approvers?.length
             ) {
-              // Check if any critical fields are being modified
               const criticalFields = [
                 "name",
                 "amount",
@@ -2967,7 +2967,7 @@ exports.updatePaymentDocument = async (req, res) => {
                   JSON.stringify(newStage[field])
                 ) {
                   return res.status(400).json({
-                    message: `Không thể chỉnh sửa giai đoạn đã có người phê duyệt (Giai đoạn ${
+                    message: `Không thể chỉnh sửa giai đoạn đã được phê duyệt hoàn toàn (Giai đoạn ${
                       i + 1
                     })`,
                   });
