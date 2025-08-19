@@ -1081,6 +1081,8 @@ const renderPaymentStages = () => {
   state.currentEditDoc.stages.forEach((stage, index) => {
     const isPartiallyApproved = stage.approvedBy?.length > 0;
     const isFullyApproved = stage.status === "Approved";
+    const isNewStage = !stage._id; // Check if this is a new stage (has no ID)
+
     const stageElement = document.createElement("div");
     stageElement.className = `payment-stage ${
       isPartiallyApproved ? "locked-stage" : ""
@@ -1116,7 +1118,7 @@ const renderPaymentStages = () => {
           stage.amount || 0
         }" 
                onchange="updateStageField(${index}, 'amount', this.value)"
-               ${isPartiallyApproved ? "disabled" : ""}>
+               ${isFullyApproved ? "disabled" : ""}>
       </div>
       <div class="form-group">
         <label>Hạn thanh toán:</label>
@@ -1144,10 +1146,37 @@ const renderPaymentStages = () => {
         <label>Ghi chú:</label>
         <textarea class="form-textarea stage-notes" 
                   onchange="updateStageField(${index}, 'notes', this.value)"
-                  ${isPartiallyApproved ? "disabled" : ""}>${
+                  ${isFullyApproved ? "disabled" : ""}>${
       stage.notes || ""
     }</textarea>
       </div>
+      ${
+        // Only show file upload section if this is not a new stage
+        !isNewStage
+          ? `<div class="form-group">
+              <label>Tệp đính kèm:</label>
+              ${
+                stage.fileMetadata
+                  ? `<div class="file-attachment">
+                      <a href="${stage.fileMetadata.link}" target="_blank">${stage.fileMetadata.name}</a>
+                      <button type="button" class="btn btn-danger btn-sm" onclick="removeStageFile(${index})">
+                        <i class="fas fa-trash"></i> Xóa
+                      </button>
+                    </div>`
+                  : '<div class="file-upload-container">' +
+                    '<input type="file" id="stageFileInput' +
+                    index +
+                    '" class="form-input" style="display: none;">' +
+                    '<button type="button" class="btn btn-primary btn-sm" onclick="uploadStageFile(' +
+                    index +
+                    ')">' +
+                    '<i class="fas fa-upload"></i> Tải lên tệp' +
+                    "</button>" +
+                    "</div>"
+              }
+            </div>`
+          : ""
+      }
       <div class="form-group">
         <label>Người phê duyệt:</label>
         <div class="stage-approvers-container" id="stageApproversContainer${index}">
@@ -1182,6 +1211,92 @@ const renderPaymentStages = () => {
       populateStageApproversDropdown(index);
     }
   });
+};
+
+const uploadStageFile = async (stageIndex) => {
+  const fileInput = document.getElementById(`stageFileInput${stageIndex}`);
+
+  // If no file is selected, trigger the file selection dialog
+  if (!fileInput.files[0]) {
+    fileInput.click(); // This opens the file selection dialog
+
+    // Add event listener to handle file selection
+    fileInput.onchange = async () => {
+      const file = fileInput.files[0];
+      if (file) {
+        await handleStageFileUpload(stageIndex, file);
+      }
+    };
+    return;
+  }
+
+  // If file is already selected, proceed with upload
+  const file = fileInput.files[0];
+  await handleStageFileUpload(stageIndex, file);
+};
+
+// Separate function to handle the actual file upload
+const handleStageFileUpload = async (stageIndex, file) => {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    showLoading(true);
+    const response = await fetch(
+      `/uploadStageFile/${state.currentEditDoc._id}/${stageIndex}`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const result = await response.json();
+    if (response.ok) {
+      showMessage("Tệp đã được tải lên thành công");
+      // Update the local state
+      state.currentEditDoc.stages[stageIndex].fileMetadata =
+        result.fileMetadata;
+      renderPaymentStages();
+
+      // Clear the file input for future uploads
+      document.getElementById(`stageFileInput${stageIndex}`).value = "";
+    }
+  } catch (error) {
+    console.error("Error uploading stage file:", error);
+  } finally {
+    showLoading(false);
+  }
+};
+
+const removeStageFile = async (stageIndex) => {
+  if (!confirm("Bạn có chắc chắn muốn xóa tệp đính kèm này?")) {
+    return;
+  }
+
+  try {
+    showLoading(true);
+    const response = await fetch(
+      `/removeStageFile/${state.currentEditDoc._id}/${stageIndex}`,
+      {
+        method: "POST",
+      }
+    );
+
+    const result = await response.json();
+    if (response.ok) {
+      showMessage(result.message);
+      // Update the local state
+      state.currentEditDoc.stages[stageIndex].fileMetadata = null;
+      renderPaymentStages();
+    } else {
+      showMessage(result.message || "Error removing file", true);
+    }
+  } catch (error) {
+    console.error("Error removing stage file:", error);
+    showMessage("Lỗi khi xóa tệp", true);
+  } finally {
+    showLoading(false);
+  }
 };
 
 const renderStageApprovers = (approvers, approvedBy, stageIndex, isLocked) => {
@@ -1369,11 +1484,11 @@ const editDocument = async (docId) => {
     document.getElementById("editGroupName").value = doc.groupName;
 
     state.currentApprovers = doc.approvers;
-    state.currentEditDoc = doc; // Store the full document for stage management
+    state.currentEditDoc = doc;
 
     renderCurrentApprovers();
     await populateNewApproversDropdown();
-    renderPaymentStages(); // Render the payment stages
+    renderPaymentStages();
 
     document.getElementById("editModal").style.display = "block";
   } catch (err) {
@@ -1743,6 +1858,13 @@ const showFullView = async (docId) => {
                 <div><strong>Ghi chú:</strong> ${
                   stage.notes || "Không có"
                 }</div>
+                ${
+                  stage.fileMetadata
+                    ? `<div><strong>Tệp đính kèm:</strong> 
+                        <a href="${stage.fileMetadata.link}" target="_blank">${stage.fileMetadata.name}</a>
+                       </div>`
+                    : ""
+                }
               </div>
               <div class="stage-approval-status">
                 <h5>Trạng thái phê duyệt:</h5>

@@ -2950,11 +2950,11 @@ exports.updatePaymentDocument = async (req, res) => {
             const existingStage = existingDoc.stages[i];
             const newStage = parsedStages[i];
 
+            // Only prevent edits if stage is fully approved
             if (
-              existingStage.approvedBy &&
-              existingStage.approvedBy.length > 0
+              existingStage.approvedBy?.length ===
+              existingStage.approvers?.length
             ) {
-              // Check if any critical fields are being modified
               const criticalFields = [
                 "name",
                 "amount",
@@ -2968,7 +2968,7 @@ exports.updatePaymentDocument = async (req, res) => {
                   JSON.stringify(newStage[field])
                 ) {
                   return res.status(400).json({
-                    message: `Không thể chỉnh sửa giai đoạn đã có người phê duyệt (Giai đoạn ${
+                    message: `Không thể chỉnh sửa giai đoạn đã được phê duyệt hoàn toàn (Giai đoạn ${
                       i + 1
                     })`,
                   });
@@ -3037,6 +3037,100 @@ exports.updatePaymentDocument = async (req, res) => {
   } catch (error) {
     console.error("Error updating payment document:", error);
     res.status(500).json({ message: "Error updating document" });
+  }
+};
+exports.uploadStageFile = async (req, res) => {
+  const { docId, stageIndex } = req.params;
+
+  try {
+    // Check if file was uploaded
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    // Find the payment document
+    const doc = await PaymentDocument.findById(docId);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Check if stage exists
+    if (!doc.stages || doc.stages.length <= stageIndex) {
+      return res.status(404).json({ message: "Stage not found" });
+    }
+
+    // Handle file upload
+    let uploadedFileData = null;
+    if (req.file) {
+      req.body.title = "Payment Document";
+      uploadedFileData = await handleFileUpload(req);
+    }
+
+    // Update the stage with file metadata
+    doc.stages[stageIndex].fileMetadata = uploadedFileData;
+    await doc.save();
+
+    res.json({
+      success: true,
+      message: "File uploaded successfully",
+      fileMetadata: uploadedFileData,
+    });
+  } catch (error) {
+    console.error("Error uploading stage file:", error);
+    res.status(500).json({
+      message: "Error uploading file",
+      error: error.message, // Add error details for debugging
+    });
+  }
+};
+exports.removeStageFile = async (req, res) => {
+  const { docId, stageIndex } = req.params;
+
+  try {
+    // Find the payment document
+    const document = await PaymentDocument.findById(docId);
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Check if the stage exists
+    if (!document.stages || document.stages.length <= stageIndex) {
+      return res.status(404).json({ message: "Stage not found" });
+    }
+
+    const stage = document.stages[stageIndex];
+
+    // Check if there's a file to remove
+    if (!stage.fileMetadata?.path) {
+      return res.status(400).json({ message: "No file to remove" });
+    }
+
+    // Check if the stage has been approved (prevent deletion of approved files)
+    if (stage.status == "Approved") {
+      return res.status(403).json({
+        message:
+          "Không được phép xóa tệp tin trong giai đoạn đã phê duyệt hoàn toàn",
+      });
+    }
+
+    // Delete the file from storage
+    const client = await getFileBrowserClient();
+    await client.deleteFile(stage.fileMetadata.path);
+
+    // Remove the file metadata from the stage
+    document.stages[stageIndex].fileMetadata = null;
+    await document.save();
+
+    res.json({
+      success: true,
+      message: "Tệp tin trong giai đoạn đã xóa thành công",
+    });
+  } catch (error) {
+    console.error("Error removing stage file:", error);
+    res.status(500).json({
+      message: "Error removing stage file",
+      error: error.message,
+    });
   }
 };
 exports.updatePaymentDocumentDeclaration = async (req, res) => {
