@@ -275,6 +275,11 @@ router.post(
   authMiddleware,
   documentController.approvePaymentStage
 );
+router.post(
+  "/approvePaymentDocument/:id",
+  authMiddleware,
+  documentController.approvePaymentDocument
+);
 //// END OF PAYMENT DOCUMENT ROUTE
 
 //// ADVANCE PAYMENT DOCUMENT ROUTE

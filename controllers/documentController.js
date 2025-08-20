@@ -3305,6 +3305,232 @@ exports.approvePaymentStage = async (req, res) => {
     return res.send("Lỗi phê duyệt giai đoạn thanh toán.");
   }
 };
+exports.approvePaymentDocument = async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (
+      ![
+        "approver",
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+        "headOfNorthernRepresentativeOffice",
+        "captainOfMechanical",
+        "captainOfTechnical",
+        "captainOfPurchasing",
+        "captainOfAccounting",
+        "captainOfBusiness",
+        "transporterOfAccounting",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
+    // Check if the document is a Generic, Proposal, or Purchasing Document
+    let document =
+      (await Document.findById(id)) ||
+      (await ProposalDocument.findById(id)) ||
+      (await PurchasingDocument.findById(id)) ||
+      (await PaymentDocument.findById(id)) ||
+      (await AdvancePaymentDocument.findById(id)) ||
+      (await AdvancePaymentReclaimDocument.findById(id)) ||
+      (await ProjectProposalDocument.findById(id)) ||
+      (await DeliveryDocument.findById(id));
+
+    if (!document) {
+      return res.send("Không tìm thấy phiếu.");
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.send("Không tìm thấy người dùng/User not found");
+    }
+
+    const isChosenApprover = document.approvers.some(
+      (approver) => approver.approver.toString() === req.user.id
+    );
+
+    if (!isChosenApprover) {
+      return res.send(
+        "Truy cập bị từ chối. Bạn không có quyền phê duyệt phiếu này."
+      );
+    }
+
+    const hasApproved = document.approvedBy.some(
+      (approver) => approver.user.toString() === req.user.id
+    );
+
+    if (hasApproved) {
+      return res.send("Bạn đã phê duyệt phiếu rồi.");
+    }
+
+    // Define the approval hierarchy: other approvers -> director -> captainOfAccounting -> deputyDirector
+    const getApprovalOrder = async (approvers, approvedBy) => {
+      // Get all approver details from the document's approvers list
+      const approverDetails = [];
+      for (const app of approvers) {
+        const approverUser = await User.findById(app.approver);
+        if (approverUser) {
+          approverDetails.push({
+            id: approverUser._id.toString(),
+            role: approverUser.role,
+            username: approverUser.username,
+          });
+        }
+      }
+
+      const approvedRoles = approvedBy.map((app) => app.role);
+      const approvedUserIds = approvedBy.map((app) => app.user.toString());
+
+      // Roles in required hierarchy order
+      const hierarchyOrder = [
+        "director",
+        "captainOfAccounting",
+        "deputyDirector",
+      ];
+
+      // Get only the hierarchy roles that are actually assigned to this document
+      const assignedHierarchyRoles = hierarchyOrder.filter((role) =>
+        approverDetails.some((approver) => approver.role === role)
+      );
+
+      // Get other approvers (not in hierarchy)
+      const otherApprovers = approverDetails.filter(
+        (approver) => !hierarchyOrder.includes(approver.role)
+      );
+
+      return {
+        otherApprovers,
+        assignedHierarchyRoles,
+        approvedRoles,
+        approvedUserIds,
+        approverDetails,
+      };
+    };
+
+    // Check if current user can approve based on the sequential order
+    const canApproveNow = async (userRole, userId, document) => {
+      const {
+        otherApprovers,
+        assignedHierarchyRoles,
+        approvedRoles,
+        approvedUserIds,
+        approverDetails,
+      } = await getApprovalOrder(document.approvers, document.approvedBy);
+
+      // If user is not in the approval hierarchy, they can approve anytime (other approvers)
+      if (!assignedHierarchyRoles.includes(userRole)) {
+        return { canApprove: true };
+      }
+
+      // For hierarchy roles, check if all other approvers are done first
+      const otherApproversCompleted = otherApprovers.every((approver) =>
+        approvedUserIds.includes(approver.id)
+      );
+
+      if (!otherApproversCompleted) {
+        const pendingOthers = otherApprovers
+          .filter((approver) => !approvedUserIds.includes(approver.id))
+          .map((approver) => approver.username || approver.role);
+        return {
+          canApprove: false,
+          waitingFor: `các approver khác (${pendingOthers.join(", ")})`,
+        };
+      }
+
+      // Find the current user's position in the assigned hierarchy
+      const userHierarchyIndex = assignedHierarchyRoles.indexOf(userRole);
+
+      // Check if all previous hierarchy role groups have ALL members approved
+      for (let i = 0; i < userHierarchyIndex; i++) {
+        const requiredRole = assignedHierarchyRoles[i];
+
+        // Get all users from this role group
+        const roleGroupMembers = approverDetails.filter(
+          (approver) => approver.role === requiredRole
+        );
+
+        // Check if ALL members from this role group have approved
+        const allRoleGroupMembersApproved = roleGroupMembers.every((member) =>
+          approvedUserIds.includes(member.id)
+        );
+
+        if (!allRoleGroupMembersApproved) {
+          // Get pending users from this role group
+          const pendingFromRole = roleGroupMembers
+            .filter((member) => !approvedUserIds.includes(member.id))
+            .map((member) => member.username || member.role);
+
+          return {
+            canApprove: false,
+            waitingFor: `tất cả ${requiredRole} (${pendingFromRole.join(
+              ", "
+            )})`,
+          };
+        }
+      }
+
+      return { canApprove: true };
+    };
+
+    // Check if the current user can approve now
+    const approvalCheck = await canApproveNow(user.role, user.id, document);
+    if (!approvalCheck.canApprove) {
+      return res.send(`Bạn chưa thể phê duyệt`);
+    }
+
+    // Add the current approver to the list of approvedBy
+    document.approvedBy.push({
+      user: user.id,
+      username: user.username,
+      role: user.role,
+      approvalDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+    });
+
+    // If all approvers have approved, mark it as fully approved
+    if (document.approvedBy.length === document.approvers.length) {
+      document.status = "Approved"; // Update status to Approved
+      // Check if this is an AdvancePaymentDocument that needs a reclaim document
+      if (document instanceof AdvancePaymentDocument) {
+        await createAdvancePaymentReclaimAfterAdvancePaymentApproval(document);
+      }
+    }
+
+    // Save document in the correct collection
+    if (document instanceof PurchasingDocument) {
+      await PurchasingDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof ProposalDocument) {
+      await ProposalDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof PaymentDocument) {
+      await PaymentDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof AdvancePaymentDocument) {
+      await AdvancePaymentDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof AdvancePaymentReclaimDocument) {
+      await AdvancePaymentReclaimDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof DeliveryDocument) {
+      await DeliveryDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof ProjectProposalDocument) {
+      await ProjectProposalDocument.findByIdAndUpdate(id, document);
+    } else {
+      await Document.findByIdAndUpdate(id, document);
+    }
+
+    const successMessage =
+      document.status === "Approved"
+        ? "Phiếu đã được phê duyệt hoàn toàn."
+        : "Phiếu đã được phê duyệt thành công.";
+
+    return res.send(successMessage);
+  } catch (err) {
+    console.error("Error approving document:", err);
+    return res.send("Lỗi phê duyệt phiếu.");
+  }
+};
 //// END OF PAYMENT DOCUMENT CONTROLLER
 
 //// ADVANCE PAYMENT DOCUMENT CONTROLLER

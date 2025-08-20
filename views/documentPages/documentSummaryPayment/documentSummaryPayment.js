@@ -801,7 +801,7 @@ const changePage = (newPage) => {
 // Document actions
 const approveDocument = async (documentId) => {
   try {
-    const response = await fetch(`/approveDocument/${documentId}`, {
+    const response = await fetch(`/approvePaymentDocument/${documentId}`, {
       method: "POST",
     });
 
