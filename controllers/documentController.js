@@ -124,9 +124,9 @@ const documentUtils = {
     };
   },
 
-  // New function to filter documents based on username constraints with hierarchy
+  // Filter documents based on username constraints with hierarchy
   filterDocumentsByUsername: (documents, username) => {
-    // HoangLong can see everything
+    // Who can see everything
     if (["HoangLong", "NguyenHongNhuThuy"].includes(username)) return documents;
 
     // If username is not one of the restricted users, return all documents
@@ -134,7 +134,6 @@ const documentUtils = {
       "NguyenHongNhuThuy",
       "HoangNam",
       "PhongTran",
-      "HoaVu",
       "HoangLong",
     ];
 
@@ -146,9 +145,7 @@ const documentUtils = {
     const prerequisiteApprovers = {
       PhongTran: ["HoangNam"],
       NguyenHongNhuThuy: ["HoangNam", "PhongTran"],
-      HuynhDiep: ["HoangNam", "PhongTran", "NguyenHongNhuThuy"],
-      HoaVu: ["HoangNam", "PhongTran", "NguyenHongNhuThuy"],
-      HoangLong: ["HoangNam", "PhongTran", "NguyenHongNhuThuy", "HoaVu"],
+      HoangLong: ["HoangNam", "PhongTran", "NguyenHongNhuThuy"],
     };
 
     return documents.filter((doc) => {
