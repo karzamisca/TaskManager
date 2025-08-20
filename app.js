@@ -139,22 +139,20 @@ cron.schedule("0 */8 * * *", async () => {
 // Assign declaration group name and declaration to approved payment and advance payment document
 cron.schedule("* * * * *", async () => {
   try {
-    // Helper function to check if document has only one approver left
-    const hasOneApproverLeft = (doc) => {
-      if (!doc.approvers || !doc.approvedBy) return false;
+    // Helper function to check if PhongTran has approved the document
+    const hasPhongTranApproved = (doc) => {
+      if (!doc.approvedBy || doc.approvedBy.length === 0) return false;
 
-      const totalApprovers = doc.approvers.length;
-      const currentApprovals = doc.approvedBy.length;
-
-      // Check if exactly one approver is left (not fully approved)
-      return totalApprovers > 0 && currentApprovals === totalApprovers - 1;
+      // Check if any approval is from PhongTran
+      return doc.approvedBy.some(
+        (approval) => approval.username === "PhongTran"
+      );
     };
 
-    // This includes documents with one approver left (not fully approved) AND without stages
+    // This includes documents where PhongTran has approved AND without stages
     const ungroupedDocuments = await Promise.all([
-      // Regular payment documents - one approver left AND without stages
+      // Regular payment documents - PhongTran approved AND without stages
       PaymentDocument.find({
-        status: "Pending", // Still pending since not fully approved
         $and: [
           {
             $or: [
@@ -172,9 +170,8 @@ cron.schedule("* * * * *", async () => {
           },
         ],
       }),
-      // Advance payment documents - one approver left AND without stages
+      // Advance payment documents - PhongTran approved AND without stages
       AdvancePaymentDocument.find({
-        status: "Pending", // Still pending since not fully approved
         $and: [
           {
             $or: [
@@ -197,11 +194,11 @@ cron.schedule("* * * * *", async () => {
     // Combine both document types
     const allDocuments = [...ungroupedDocuments[0], ...ungroupedDocuments[1]];
 
-    // Filter to only include documents with one approver left
-    const documentsWithOneApproverLeft =
-      allDocuments.filter(hasOneApproverLeft);
+    // Filter to only include documents where PhongTran has approved
+    const documentsWithPhongTranApproval =
+      allDocuments.filter(hasPhongTranApproved);
 
-    if (documentsWithOneApproverLeft.length === 0) {
+    if (documentsWithPhongTranApproval.length === 0) {
       return;
     }
 
@@ -209,29 +206,17 @@ cron.schedule("* * * * *", async () => {
     let documentsAssigned = 0;
     const groupsCreated = [];
 
-    // Group documents by date (DD-MM-YYYY) based on latest approval date
+    // Group documents by date (DD-MM-YYYY) based on PhongTran's approval date
     const documentsByDate = {};
-    documentsWithOneApproverLeft.forEach((doc) => {
-      // Get the latest approval date for the document
-      if (doc.approvedBy && doc.approvedBy.length > 0) {
-        // Sort approval dates in descending order
-        const sortedApprovals = [...doc.approvedBy].sort((a, b) => {
-          // Parse date strings in format "DD-MM-YYYY HH:MM:SS"
-          const parseCustomDate = (dateStr) => {
-            const [datePart, timePart] = dateStr.split(" ");
-            const [day, month, year] = datePart.split("-");
-            const [hour, minute, second] = timePart.split(":");
-            // Month is 0-indexed in JavaScript Date constructor
-            return new Date(year, month - 1, day, hour, minute, second);
-          };
-          return (
-            parseCustomDate(b.approvalDate) - parseCustomDate(a.approvalDate)
-          );
-        });
+    documentsWithPhongTranApproval.forEach((doc) => {
+      // Find PhongTran's approval date
+      const phongTranApproval = doc.approvedBy.find(
+        (approval) => approval.username === "PhongTran"
+      );
 
+      if (phongTranApproval) {
         // Get just the date part (DD-MM-YYYY) for grouping
-        const latestApprovalDate = sortedApprovals[0].approvalDate;
-        const datePart = latestApprovalDate.split(" ")[0];
+        const datePart = phongTranApproval.approvalDate.split(" ")[0];
 
         // Add document to its date group
         if (!documentsByDate[datePart]) {
@@ -246,7 +231,7 @@ cron.schedule("* * * * *", async () => {
       // Create a group name based on the date
       const groupDeclarationName = `PTT${date.replace(/-/g, "")}`;
 
-      // Generate a declaration for documents with one approver left
+      // Generate a declaration for documents approved by PhongTran
       const declaration = `Phiếu thanh toán phê duyệt vào ${date}`;
 
       // Check if the group already exists
@@ -283,10 +268,7 @@ cron.schedule("* * * * *", async () => {
       }
     }
   } catch (err) {
-    console.error(
-      "Error in automatic document grouping (one approver left):",
-      err
-    );
+    console.error("Error in automatic document grouping:", err);
   }
 });
 
