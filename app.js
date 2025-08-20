@@ -159,6 +159,36 @@ cron.schedule("* * * * *", async () => {
       );
     };
 
+    // Helper function to get the work day date based on approval time
+    const getWorkDayDate = (approvalDateString) => {
+      // Parse the approval date string (format: "DD-MM-YYYY HH:mm:ss")
+      const [datePart, timePart] = approvalDateString.split(" ");
+      const [day, month, year] = datePart.split("-");
+      const [hours, minutes, seconds] = timePart.split(":");
+
+      // Create a date object
+      const approvalDate = new Date(
+        year,
+        month - 1,
+        day,
+        hours,
+        minutes,
+        seconds
+      );
+
+      // If approval time is after 12:00 (noon), move to next day
+      if (approvalDate.getHours() >= 12) {
+        approvalDate.setDate(approvalDate.getDate() + 1);
+      }
+
+      // Return the work day date in DD-MM-YYYY format
+      const workDay = String(approvalDate.getDate()).padStart(2, "0");
+      const workMonth = String(approvalDate.getMonth() + 1).padStart(2, "0");
+      const workYear = approvalDate.getFullYear();
+
+      return `${workDay}-${workMonth}-${workYear}`;
+    };
+
     // Get documents without stages
     const ungroupedDocuments = await Promise.all([
       // Regular payment documents - PhongTran approved AND without stages
@@ -233,9 +263,9 @@ cron.schedule("* * * * *", async () => {
     let stagesAssigned = 0;
     const groupsCreated = [];
 
-    // Process documents WITHOUT stages (existing logic)
+    // Process documents WITHOUT stages (updated logic)
     if (documentsWithPhongTranApproval.length > 0) {
-      // Group documents by date (DD-MM-YYYY) based on PhongTran's approval date
+      // Group documents by work day date based on PhongTran's approval date
       const documentsByDate = {};
       documentsWithPhongTranApproval.forEach((doc) => {
         // Find PhongTran's approval date
@@ -244,20 +274,20 @@ cron.schedule("* * * * *", async () => {
         );
 
         if (phongTranApproval) {
-          // Get just the date part (DD-MM-YYYY) for grouping
-          const datePart = phongTranApproval.approvalDate.split(" ")[0];
+          // Get the work day date (considering 12 AM cutoff)
+          const workDayDate = getWorkDayDate(phongTranApproval.approvalDate);
 
-          // Add document to its date group
-          if (!documentsByDate[datePart]) {
-            documentsByDate[datePart] = [];
+          // Add document to its work day group
+          if (!documentsByDate[workDayDate]) {
+            documentsByDate[workDayDate] = [];
           }
-          documentsByDate[datePart].push(doc);
+          documentsByDate[workDayDate].push(doc);
         }
       });
 
       // Process each date group
       for (const [date, documents] of Object.entries(documentsByDate)) {
-        // Create a group name based on the date
+        // Create a group name based on the work day date
         const groupDeclarationName = `PTT${date.replace(/-/g, "")}`;
 
         // Generate a declaration for documents approved by PhongTran
@@ -298,7 +328,7 @@ cron.schedule("* * * * *", async () => {
       }
     }
 
-    // Process documents WITH stages - assign group to individual stages
+    // Process documents WITH stages - assign group to individual stages (updated logic)
     if (allDocumentsWithStages.length > 0) {
       // Collect all stages that PhongTran has approved and don't have groupDeclarationName
       const stagesByDate = {};
@@ -321,14 +351,16 @@ cron.schedule("* * * * *", async () => {
               );
 
               if (phongTranApproval) {
-                // Get just the date part (DD-MM-YYYY) for grouping
-                const datePart = phongTranApproval.approvalDate.split(" ")[0];
+                // Get the work day date (considering 12 AM cutoff)
+                const workDayDate = getWorkDayDate(
+                  phongTranApproval.approvalDate
+                );
 
-                // Add stage reference to its date group
-                if (!stagesByDate[datePart]) {
-                  stagesByDate[datePart] = [];
+                // Add stage reference to its work day group
+                if (!stagesByDate[workDayDate]) {
+                  stagesByDate[workDayDate] = [];
                 }
-                stagesByDate[datePart].push({
+                stagesByDate[workDayDate].push({
                   document: doc,
                   stageIndex: i,
                   stage: stage,
@@ -341,7 +373,7 @@ cron.schedule("* * * * *", async () => {
 
       // Process each date group for stages
       for (const [date, stageRefs] of Object.entries(stagesByDate)) {
-        // Create a group name based on the date
+        // Create a group name based on the work day date
         const groupDeclarationName = `PTT${date.replace(/-/g, "")}`;
 
         // Generate a declaration for stages approved by PhongTran
