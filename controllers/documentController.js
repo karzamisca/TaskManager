@@ -1363,6 +1363,7 @@ exports.approveDocument = async (req, res) => {
         "captainOfPurchasing",
         "captainOfAccounting",
         "captainOfBusiness",
+        "transporterOfAccounting",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
