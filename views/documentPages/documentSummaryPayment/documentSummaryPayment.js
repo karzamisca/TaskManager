@@ -1976,6 +1976,32 @@ const exportSelectedToExcel = () => {
     return;
   }
 
+  // Helper function to calculate optimal column width
+  const calculateColumnWidth = (data, key, minWidth = 10, maxWidth = 50) => {
+    let maxLength = key.length; // Start with header length
+
+    data.forEach((row) => {
+      const cellValue = String(row[key] || "");
+      maxLength = Math.max(maxLength, cellValue.length);
+    });
+
+    // Add some padding and apply min/max constraints
+    const calculatedWidth = Math.min(
+      Math.max(maxLength + 2, minWidth),
+      maxWidth
+    );
+    return { wch: calculatedWidth };
+  };
+
+  // Helper function to auto-size all columns in a worksheet
+  const autoSizeColumns = (worksheet, data) => {
+    if (!data || data.length === 0) return;
+
+    const columns = Object.keys(data[0]);
+    const colWidths = columns.map((key) => calculateColumnWidth(data, key));
+    worksheet["!cols"] = colWidths;
+  };
+
   try {
     // Filter the selected documents from the state
     const documentsToExport = state.paymentDocuments.filter((doc) =>
@@ -1989,16 +2015,12 @@ const exportSelectedToExcel = () => {
     const overviewData = documentsToExport.map((doc, index) => ({
       STT: index + 1,
       "Tem phiếu": doc.tag || "Không có",
-      "Tên phiếu": doc.name || "Không có",
+      "Nội dung": doc.content || "Không có",
       Nhóm: doc.groupName || "Không có",
+      Trạm: doc.costCenter || "Không có",
       "Ngày nộp": doc.submissionDate || "Không có",
       "Hạn thanh toán": doc.paymentDeadline || "Không có",
       "Tổng thanh toán": doc.totalPayment || 0,
-      "Tạm ứng": doc.advancePayment || 0,
-      "Bù trừ":
-        doc.totalPayment && doc.advancePayment
-          ? doc.totalPayment - doc.advancePayment
-          : 0,
       "Trạng thái":
         doc.status === "Approved"
           ? "Đã phê duyệt"
@@ -2009,19 +2031,8 @@ const exportSelectedToExcel = () => {
     }));
 
     const overviewWs = XLSX.utils.json_to_sheet(overviewData);
-    overviewWs["!cols"] = [
-      { wch: 5 },
-      { wch: 15 },
-      { wch: 30 },
-      { wch: 20 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 20 },
-    ];
+    // Auto-size columns for overview sheet
+    autoSizeColumns(overviewWs, overviewData);
     XLSX.utils.book_append_sheet(wb, overviewWs, "Tổng quan");
 
     // Sheet 2: Detailed Information (Multiple rows per document)
@@ -2267,14 +2278,19 @@ const exportSelectedToExcel = () => {
     });
 
     const detailedWs = XLSX.utils.json_to_sheet(detailedData);
-    detailedWs["!cols"] = [
-      { wch: 5 }, // STT
-      { wch: 15 }, // Tem phiếu
-      { wch: 25 }, // Loại thông tin
-      { wch: 40 }, // Chi tiết
-      { wch: 15 }, // Giá trị
-      { wch: 50 }, // Ghi chú
+    // Custom auto-sizing for detailed sheet with specific constraints
+    const detailedColumns = [
+      { key: "STT", min: 5, max: 8 },
+      { key: "Tem phiếu", min: 10, max: 20 },
+      { key: "Loại thông tin", min: 15, max: 35 },
+      { key: "Chi tiết", min: 20, max: 60 },
+      { key: "Giá trị", min: 10, max: 15 },
+      { key: "Ghi chú", min: 20, max: 80 },
     ];
+
+    detailedWs["!cols"] = detailedColumns.map((col) =>
+      calculateColumnWidth(detailedData, col.key, col.min, col.max)
+    );
     XLSX.utils.book_append_sheet(wb, detailedWs, "Chi tiết đầy đủ");
 
     // Sheet 3: Approval Tracking
@@ -2303,18 +2319,7 @@ const exportSelectedToExcel = () => {
 
     if (approvalData.length > 0) {
       const approvalWs = XLSX.utils.json_to_sheet(approvalData);
-      approvalWs["!cols"] = [
-        { wch: 5 },
-        { wch: 15 },
-        { wch: 25 },
-        { wch: 20 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 8 },
-        { wch: 12 },
-        { wch: 8 },
-      ];
+      autoSizeColumns(approvalWs, approvalData);
       XLSX.utils.book_append_sheet(wb, approvalWs, "Theo dõi phê duyệt");
     }
 
@@ -2407,18 +2412,7 @@ const exportSelectedToExcel = () => {
     );
 
     const financialWs = XLSX.utils.json_to_sheet(financialData);
-    financialWs["!cols"] = [
-      { wch: 5 },
-      { wch: 15 },
-      { wch: 25 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 30 },
-    ];
+    autoSizeColumns(financialWs, financialData);
     XLSX.utils.book_append_sheet(wb, financialWs, "Tổng hợp tài chính");
 
     // Generate the Excel file and trigger download
