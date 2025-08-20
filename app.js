@@ -150,26 +150,46 @@ cron.schedule("* * * * *", async () => {
       return totalApprovers > 0 && currentApprovals === totalApprovers - 1;
     };
 
-    // This includes documents with one approver left (not fully approved) AND cash payment method
+    // This includes documents with one approver left (not fully approved) AND without stages
     const ungroupedDocuments = await Promise.all([
-      // Regular payment documents - one approver left AND cash payment
+      // Regular payment documents - one approver left AND without stages
       PaymentDocument.find({
         status: "Pending", // Still pending since not fully approved
-        paymentMethod: "Tiền mặt", // Only cash payment documents
-        $or: [
-          { groupDeclarationName: { $exists: false } },
-          { groupDeclarationName: "" },
-          { groupDeclarationName: null },
+        $and: [
+          {
+            $or: [
+              { stages: { $exists: false } }, // stages field doesn't exist
+              { stages: { $size: 0 } }, // stages array is empty
+              { stages: null }, // stages is null
+            ],
+          },
+          {
+            $or: [
+              { groupDeclarationName: { $exists: false } },
+              { groupDeclarationName: "" },
+              { groupDeclarationName: null },
+            ],
+          },
         ],
       }),
-      // Advance payment documents - one approver left AND cash payment
+      // Advance payment documents - one approver left AND without stages
       AdvancePaymentDocument.find({
         status: "Pending", // Still pending since not fully approved
-        paymentMethod: "Tiền mặt", // Only cash payment documents
-        $or: [
-          { groupDeclarationName: { $exists: false } },
-          { groupDeclarationName: "" },
-          { groupDeclarationName: null },
+        $and: [
+          {
+            $or: [
+              { stages: { $exists: false } }, // stages field doesn't exist
+              { stages: { $size: 0 } }, // stages array is empty
+              { stages: null }, // stages is null
+            ],
+          },
+          {
+            $or: [
+              { groupDeclarationName: { $exists: false } },
+              { groupDeclarationName: "" },
+              { groupDeclarationName: null },
+            ],
+          },
         ],
       }),
     ]);
