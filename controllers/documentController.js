@@ -3225,23 +3225,31 @@ exports.approvePaymentStage = async (req, res) => {
         "captainOfBusiness",
       ].includes(req.user.role)
     ) {
-      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+      return res.status(403).json({
+        message: "Truy cập bị từ chối. Bạn không có quyền truy cập.",
+      });
     }
 
     const document = await PaymentDocument.findById(docId);
     if (!document) {
-      return res.send("Không tìm thấy phiếu thanh toán.");
+      return res.status(404).json({
+        message: "Không tìm thấy phiếu thanh toán.",
+      });
     }
 
     // Check if stage exists
     if (!document.stages || document.stages.length <= stageIndex) {
-      return res.send("Không tìm thấy giai đoạn thanh toán.");
+      return res.status(404).json({
+        message: "Không tìm thấy giai đoạn thanh toán.",
+      });
     }
 
     const stage = document.stages[stageIndex];
     const user = await User.findById(req.user.id);
     if (!user) {
-      return res.send("Không tìm thấy người dùng.");
+      return res.status(404).json({
+        message: "Không tìm thấy người dùng.",
+      });
     }
 
     // Check if user is an approver for this stage
@@ -3250,9 +3258,10 @@ exports.approvePaymentStage = async (req, res) => {
     );
 
     if (!isStageApprover) {
-      return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền phê duyệt giai đoạn này."
-      );
+      return res.status(403).json({
+        message:
+          "Truy cập bị từ chối. Bạn không có quyền phê duyệt giai đoạn này.",
+      });
     }
 
     // Check if user has already approved this stage
@@ -3261,7 +3270,130 @@ exports.approvePaymentStage = async (req, res) => {
     );
 
     if (hasApproved) {
-      return res.send("Bạn đã phê duyệt giai đoạn này rồi.");
+      return res.status(400).json({
+        message: "Bạn đã phê duyệt giai đoạn này rồi.",
+      });
+    }
+
+    // Define the approval hierarchy: other approvers -> director -> captainOfAccounting -> deputyDirector
+    const getStageApprovalOrder = async (approvers, approvedBy) => {
+      // Get all approver details from the stage's approvers list
+      const approverDetails = [];
+      for (const app of approvers) {
+        const approverUser = await User.findById(app.approver);
+        if (approverUser) {
+          approverDetails.push({
+            id: approverUser._id.toString(),
+            role: approverUser.role,
+            username: approverUser.username,
+          });
+        }
+      }
+
+      const approvedRoles = approvedBy.map((app) => app.role);
+      const approvedUserIds = approvedBy.map((app) => app.user.toString());
+
+      // Roles in required hierarchy order
+      const hierarchyOrder = [
+        "director",
+        "captainOfAccounting",
+        "deputyDirector",
+      ];
+
+      // Get only the hierarchy roles that are actually assigned to this stage
+      const assignedHierarchyRoles = hierarchyOrder.filter((role) =>
+        approverDetails.some((approver) => approver.role === role)
+      );
+
+      // Get other approvers (not in hierarchy)
+      const otherApprovers = approverDetails.filter(
+        (approver) => !hierarchyOrder.includes(approver.role)
+      );
+
+      return {
+        otherApprovers,
+        assignedHierarchyRoles,
+        approvedRoles,
+        approvedUserIds,
+        approverDetails,
+      };
+    };
+
+    // Check if current user can approve this stage based on the sequential order
+    const canApproveStageNow = async (userRole, userId, stage) => {
+      const {
+        otherApprovers,
+        assignedHierarchyRoles,
+        approvedRoles,
+        approvedUserIds,
+        approverDetails,
+      } = await getStageApprovalOrder(stage.approvers, stage.approvedBy);
+
+      // If user is not in the approval hierarchy, they can approve anytime (other approvers)
+      if (!assignedHierarchyRoles.includes(userRole)) {
+        return { canApprove: true };
+      }
+
+      // For hierarchy roles, check if all other approvers are done first
+      const otherApproversCompleted = otherApprovers.every((approver) =>
+        approvedUserIds.includes(approver.id)
+      );
+
+      if (!otherApproversCompleted) {
+        const pendingOthers = otherApprovers
+          .filter((approver) => !approvedUserIds.includes(approver.id))
+          .map((approver) => approver.username || approver.role);
+        return {
+          canApprove: false,
+          waitingFor: `các approver khác (${pendingOthers.join(", ")})`,
+        };
+      }
+
+      // Find the current user's position in the assigned hierarchy
+      const userHierarchyIndex = assignedHierarchyRoles.indexOf(userRole);
+
+      // Check if all previous hierarchy role groups have ALL members approved
+      for (let i = 0; i < userHierarchyIndex; i++) {
+        const requiredRole = assignedHierarchyRoles[i];
+
+        // Get all users from this role group
+        const roleGroupMembers = approverDetails.filter(
+          (approver) => approver.role === requiredRole
+        );
+
+        // Check if ALL members from this role group have approved
+        const allRoleGroupMembersApproved = roleGroupMembers.every((member) =>
+          approvedUserIds.includes(member.id)
+        );
+
+        if (!allRoleGroupMembersApproved) {
+          // Get pending users from this role group
+          const pendingFromRole = roleGroupMembers
+            .filter((member) => !approvedUserIds.includes(member.id))
+            .map((member) => member.username || member.role);
+
+          return {
+            canApprove: false,
+            waitingFor: `tất cả ${requiredRole} (${pendingFromRole.join(
+              ", "
+            )})`,
+          };
+        }
+      }
+
+      return { canApprove: true };
+    };
+
+    // Check if the current user can approve this stage now
+    const stageApprovalCheck = await canApproveStageNow(
+      user.role,
+      user.id,
+      stage
+    );
+    if (!stageApprovalCheck.canApprove) {
+      return res.status(400).json({
+        message: `Bạn chưa thể phê duyệt giai đoạn này`,
+      });
     }
 
     // Add approval
@@ -3286,14 +3418,14 @@ exports.approvePaymentStage = async (req, res) => {
 
     // If all stages are approved and document has approvers, allow document approval
     if (allStagesApproved && document.approvers.length > 0) {
-      return res.send({
+      return res.status(200).json({
         message:
           "Giai đoạn đã được phê duyệt. Bạn có thể phê duyệt toàn bộ phiếu thanh toán.",
         canApproveDocument: true,
       });
     }
 
-    return res.send({
+    return res.status(200).json({
       message:
         stage.status === "Approved"
           ? "Giai đoạn đã được phê duyệt hoàn toàn."
@@ -3302,7 +3434,9 @@ exports.approvePaymentStage = async (req, res) => {
     });
   } catch (err) {
     console.error("Error approving payment stage:", err);
-    return res.send("Lỗi phê duyệt giai đoạn thanh toán.");
+    return res.status(500).json({
+      message: "Lỗi phê duyệt giai đoạn thanh toán.",
+    });
   }
 };
 exports.approvePaymentDocument = async (req, res) => {
