@@ -238,9 +238,20 @@ const filterDocumentsForCurrentUser = (documents) => {
 
   // Apply declaration group filter if selected
   if (state.currentGroupDeclarationFilter) {
-    filteredDocs = filteredDocs.filter(
-      (doc) => doc.groupDeclarationName === state.currentGroupDeclarationFilter
-    );
+    filteredDocs = filteredDocs.filter((doc) => {
+      // Check document-level group declaration
+      const docLevelMatch =
+        doc.groupDeclarationName === state.currentGroupDeclarationFilter;
+
+      // Check stage-level group declarations
+      const stageLevelMatch = doc.stages?.some(
+        (stage) =>
+          stage.groupDeclarationName === state.currentGroupDeclarationFilter
+      );
+
+      // Return true if either document-level or any stage-level matches
+      return docLevelMatch || stageLevelMatch;
+    });
   }
 
   // Apply payment method filter if selected

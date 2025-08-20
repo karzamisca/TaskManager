@@ -50,6 +50,8 @@ const paymentDocumentSchema = new mongoose.Schema({
         link: { type: String },
         path: { type: String },
       },
+      declaration: { type: String, default: "" },
+      groupDeclarationName: { type: String },
     },
   ],
   submissionDate: { type: String, required: true },

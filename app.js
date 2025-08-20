@@ -149,7 +149,17 @@ cron.schedule("* * * * *", async () => {
       );
     };
 
-    // This includes documents where PhongTran has approved AND without stages
+    // Helper function to check if PhongTran has approved a stage
+    const hasPhongTranApprovedStage = (stage) => {
+      if (!stage.approvedBy || stage.approvedBy.length === 0) return false;
+
+      // Check if any approval is from PhongTran
+      return stage.approvedBy.some(
+        (approval) => approval.username === "PhongTran"
+      );
+    };
+
+    // Get documents without stages
     const ungroupedDocuments = await Promise.all([
       // Regular payment documents - PhongTran approved AND without stages
       PaymentDocument.find({
@@ -191,80 +201,189 @@ cron.schedule("* * * * *", async () => {
       }),
     ]);
 
-    // Combine both document types
-    const allDocuments = [...ungroupedDocuments[0], ...ungroupedDocuments[1]];
+    // Get documents WITH stages that need processing
+    const documentsWithStages = await Promise.all([
+      // Regular payment documents with stages
+      PaymentDocument.find({
+        stages: { $exists: true, $not: { $size: 0 } },
+      }),
+      // Advance payment documents with stages
+      AdvancePaymentDocument.find({
+        stages: { $exists: true, $not: { $size: 0 } },
+      }),
+    ]);
 
-    // Filter to only include documents where PhongTran has approved
+    // Combine documents without stages
+    const allDocumentsWithoutStages = [
+      ...ungroupedDocuments[0],
+      ...ungroupedDocuments[1],
+    ];
+
+    // Combine documents with stages
+    const allDocumentsWithStages = [
+      ...documentsWithStages[0],
+      ...documentsWithStages[1],
+    ];
+
+    // Filter to only include documents where PhongTran has approved (for documents without stages)
     const documentsWithPhongTranApproval =
-      allDocuments.filter(hasPhongTranApproved);
+      allDocumentsWithoutStages.filter(hasPhongTranApproved);
 
-    if (documentsWithPhongTranApproval.length === 0) {
-      return;
-    }
-
-    // Process each document
     let documentsAssigned = 0;
+    let stagesAssigned = 0;
     const groupsCreated = [];
 
-    // Group documents by date (DD-MM-YYYY) based on PhongTran's approval date
-    const documentsByDate = {};
-    documentsWithPhongTranApproval.forEach((doc) => {
-      // Find PhongTran's approval date
-      const phongTranApproval = doc.approvedBy.find(
-        (approval) => approval.username === "PhongTran"
-      );
+    // Process documents WITHOUT stages (existing logic)
+    if (documentsWithPhongTranApproval.length > 0) {
+      // Group documents by date (DD-MM-YYYY) based on PhongTran's approval date
+      const documentsByDate = {};
+      documentsWithPhongTranApproval.forEach((doc) => {
+        // Find PhongTran's approval date
+        const phongTranApproval = doc.approvedBy.find(
+          (approval) => approval.username === "PhongTran"
+        );
 
-      if (phongTranApproval) {
-        // Get just the date part (DD-MM-YYYY) for grouping
-        const datePart = phongTranApproval.approvalDate.split(" ")[0];
+        if (phongTranApproval) {
+          // Get just the date part (DD-MM-YYYY) for grouping
+          const datePart = phongTranApproval.approvalDate.split(" ")[0];
 
-        // Add document to its date group
-        if (!documentsByDate[datePart]) {
-          documentsByDate[datePart] = [];
+          // Add document to its date group
+          if (!documentsByDate[datePart]) {
+            documentsByDate[datePart] = [];
+          }
+          documentsByDate[datePart].push(doc);
         }
-        documentsByDate[datePart].push(doc);
-      }
-    });
-
-    // Process each date group
-    for (const [date, documents] of Object.entries(documentsByDate)) {
-      // Create a group name based on the date
-      const groupDeclarationName = `PTT${date.replace(/-/g, "")}`;
-
-      // Generate a declaration for documents approved by PhongTran
-      const declaration = `Phiếu thanh toán phê duyệt vào ${date}`;
-
-      // Check if the group already exists
-      let group = await GroupDeclaration.findOne({
-        name: groupDeclarationName,
       });
 
-      // If group doesn't exist, create it
-      if (!group) {
-        group = new GroupDeclaration({
+      // Process each date group
+      for (const [date, documents] of Object.entries(documentsByDate)) {
+        // Create a group name based on the date
+        const groupDeclarationName = `PTT${date.replace(/-/g, "")}`;
+
+        // Generate a declaration for documents approved by PhongTran
+        const declaration = `Phiếu thanh toán phê duyệt vào ${date}`;
+
+        // Check if the group already exists
+        let group = await GroupDeclaration.findOne({
           name: groupDeclarationName,
-          description: `Phiếu thanh toán phê duyệt vào ${date}`,
         });
-        await group.save();
-        groupsCreated.push(groupDeclarationName);
-      }
 
-      // Assign all documents in this date group to the group
-      for (const doc of documents) {
-        doc.groupDeclarationName = groupDeclarationName;
-
-        // Only update declaration if it's empty, null, or doesn't exist
-        if (
-          !doc.declaration ||
-          doc.declaration === "" ||
-          !("declaration" in doc)
-        ) {
-          doc.declaration = declaration;
+        // If group doesn't exist, create it
+        if (!group) {
+          group = new GroupDeclaration({
+            name: groupDeclarationName,
+            description: `Phiếu thanh toán phê duyệt vào ${date}`,
+          });
+          await group.save();
+          groupsCreated.push(groupDeclarationName);
         }
 
-        // Save the document using the appropriate model
-        await doc.save();
-        documentsAssigned++;
+        // Assign all documents in this date group to the group
+        for (const doc of documents) {
+          doc.groupDeclarationName = groupDeclarationName;
+
+          // Only update declaration if it's empty, null, or doesn't exist
+          if (
+            !doc.declaration ||
+            doc.declaration === "" ||
+            !("declaration" in doc)
+          ) {
+            doc.declaration = declaration;
+          }
+
+          // Save the document using the appropriate model
+          await doc.save();
+          documentsAssigned++;
+        }
+      }
+    }
+
+    // Process documents WITH stages - assign group to individual stages
+    if (allDocumentsWithStages.length > 0) {
+      // Collect all stages that PhongTran has approved and don't have groupDeclarationName
+      const stagesByDate = {};
+
+      for (const doc of allDocumentsWithStages) {
+        if (doc.stages && doc.stages.length > 0) {
+          for (let i = 0; i < doc.stages.length; i++) {
+            const stage = doc.stages[i];
+
+            // Check if PhongTran has approved this stage and it doesn't have a group
+            if (
+              hasPhongTranApprovedStage(stage) &&
+              (!stage.groupDeclarationName ||
+                stage.groupDeclarationName === "" ||
+                stage.groupDeclarationName === null)
+            ) {
+              // Find PhongTran's approval date for this stage
+              const phongTranApproval = stage.approvedBy.find(
+                (approval) => approval.username === "PhongTran"
+              );
+
+              if (phongTranApproval) {
+                // Get just the date part (DD-MM-YYYY) for grouping
+                const datePart = phongTranApproval.approvalDate.split(" ")[0];
+
+                // Add stage reference to its date group
+                if (!stagesByDate[datePart]) {
+                  stagesByDate[datePart] = [];
+                }
+                stagesByDate[datePart].push({
+                  document: doc,
+                  stageIndex: i,
+                  stage: stage,
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // Process each date group for stages
+      for (const [date, stageRefs] of Object.entries(stagesByDate)) {
+        // Create a group name based on the date
+        const groupDeclarationName = `PTT${date.replace(/-/g, "")}`;
+
+        // Generate a declaration for stages approved by PhongTran
+        const declaration = `Phiếu thanh toán phê duyệt vào ${date}`;
+
+        // Check if the group already exists
+        let group = await GroupDeclaration.findOne({
+          name: groupDeclarationName,
+        });
+
+        // If group doesn't exist, create it
+        if (!group) {
+          group = new GroupDeclaration({
+            name: groupDeclarationName,
+            description: `Phiếu thanh toán phê duyệt vào ${date}`,
+          });
+          await group.save();
+          if (!groupsCreated.includes(groupDeclarationName)) {
+            groupsCreated.push(groupDeclarationName);
+          }
+        }
+
+        // Assign group to all stages in this date group
+        for (const stageRef of stageRefs) {
+          const { document: doc, stageIndex, stage } = stageRef;
+
+          // Assign group to the stage
+          doc.stages[stageIndex].groupDeclarationName = groupDeclarationName;
+
+          // Only update stage declaration if it's empty, null, or doesn't exist
+          if (
+            !doc.stages[stageIndex].declaration ||
+            doc.stages[stageIndex].declaration === "" ||
+            !("declaration" in doc.stages[stageIndex])
+          ) {
+            doc.stages[stageIndex].declaration = declaration;
+          }
+
+          // Save the document (this will save the updated stage)
+          await doc.save();
+          stagesAssigned++;
+        }
       }
     }
   } catch (err) {
