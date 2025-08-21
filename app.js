@@ -176,8 +176,11 @@ cron.schedule("* * * * *", async () => {
         seconds
       );
 
-      // If approval time is after 12:00 (noon), move to next day
-      if (approvalDate.getHours() >= 12) {
+      // If approval time is at or after 12:30 PM, move to next day
+      const approvalHour = approvalDate.getHours();
+      const approvalMinute = approvalDate.getMinutes();
+
+      if (approvalHour > 12 || (approvalHour === 12 && approvalMinute >= 30)) {
         approvalDate.setDate(approvalDate.getDate() + 1);
       }
 
@@ -274,7 +277,7 @@ cron.schedule("* * * * *", async () => {
         );
 
         if (phongTranApproval) {
-          // Get the work day date (considering 12 AM cutoff)
+          // Get the work day date (considering 12:30 PM cutoff)
           const workDayDate = getWorkDayDate(phongTranApproval.approvalDate);
 
           // Add document to its work day group
@@ -351,7 +354,7 @@ cron.schedule("* * * * *", async () => {
               );
 
               if (phongTranApproval) {
-                // Get the work day date (considering 12 AM cutoff)
+                // Get the work day date (considering 12:30 PM cutoff)
                 const workDayDate = getWorkDayDate(
                   phongTranApproval.approvalDate
                 );
