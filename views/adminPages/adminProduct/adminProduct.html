@@ -1,84 +1,160 @@
+<!-- views/adminPages/adminProduct/adminProduct.html -->
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Phân mã sản phẩm/Product Code Assignment</title>
-    <link rel="stylesheet" href="adminPages/adminProduct/adminProduct.css" />
+
+    <!-- Load Bootstrap only once in the header -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
+    />
+
+    <!-- Then load your custom CSS with more specific scoping -->
+    <link
+      rel="stylesheet"
+      href="adminPages/adminProduct/adminProduct.css?v=1.0"
+    />
+
+    <style>
+      /* Additional isolation for product management */
+      body.product-management-page {
+        background-color: #f8f9fa;
+      }
+
+      /* Ensure header doesn't interfere with product container */
+      .dashboard-header + .product-management-container {
+        margin-top: 20px;
+      }
+    </style>
   </head>
-  <body>
-    <h1>Phân mã sản phẩm/Product Code Assignment</h1>
+  <body class="product-management-page">
+    <!-- Header will be loaded here by headerLoader.js -->
 
-    <div class="container">
-      <div class="action-buttons">
-        <button id="exportBtn" class="export-btn">
-          Xuất ra Excel/Export to Excel
-        </button>
-      </div>
-      <div id="productList">
-        <table id="productsTable">
-          <thead>
-            <tr>
-              <th>Tên/Name</th>
-              <th>Mã/Code</th>
-              <th>Hành động/Actions</th>
-            </tr>
-          </thead>
-          <tbody id="productsTableBody">
-            <!-- Products will be loaded here -->
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <!-- Product Management Container - isolated from header -->
+    <div class="product-management-container">
+      <h1>Phân mã sản phẩm</h1>
 
-    <div class="container">
-      <h2 id="formTitle">Thêm sản phẩm mới/Add New Product</h2>
-      <form id="productForm">
-        <input type="hidden" id="productId" />
-        <div class="form-group">
-          <label for="name">Tên sản phẩm/Product Name:</label>
-          <input type="text" id="name" name="name" required />
-        </div>
-        <div class="form-group">
-          <label for="code">Mã sản phẩm/Product Code:</label>
-          <input type="text" id="code" name="code" required />
-        </div>
-        <button type="submit" id="submitBtn">Add Product</button>
-        <button type="button" id="cancelBtn" class="hidden">Cancel</button>
-      </form>
-      <div id="formMessage"></div>
-    </div>
-
-    <div class="container">
-      <h2>Nhập từ Excel/Import Products from Excel</h2>
-      <div class="import-container">
-        <p>
-          Tải lên tệp Excel bao gồm thông tin sản phẩm/Upload an Excel file
-          (.xlsx) containing product data
-        </p>
-        <p>
-          <small
-            >Tệp tin Excel phải có cột: name, code/File must have columns: name,
-            code</small
-          >
-        </p>
-        <form id="importForm" enctype="multipart/form-data">
-          <input
-            type="file"
-            id="excelFile"
-            name="excelFile"
-            accept=".xlsx, .xls"
-          />
-          <button type="submit" id="importBtn">
-            Nhập sản phẩm/Import Products
+      <!-- Top section with Add Product and Import options -->
+      <div class="top-section">
+        <div class="section-tabs">
+          <button class="tab-btn active" onclick="switchTab('add')">
+            Thêm sản phẩm mới
           </button>
-        </form>
-      </div>
-      <div id="importMessage"></div>
-    </div>
+          <button class="tab-btn" onclick="switchTab('import')">
+            Nhập từ Excel
+          </button>
+        </div>
 
-    <script src="adminPages/adminProduct/adminProduct.js"></script>
-    <script src="/components/header/headerLoader.js?v=1.0"></script>
+        <!-- Add Product Tab -->
+        <div id="add-tab" class="tab-content active">
+          <form id="productForm">
+            <div class="product-form-group">
+              <label for="name">Tên sản phẩm:</label>
+              <input type="text" id="name" name="name" required />
+            </div>
+            <div class="product-form-group">
+              <label for="code">Mã sản phẩm:</label>
+              <input type="text" id="code" name="code" required />
+            </div>
+            <button type="submit" class="product-btn">Thêm sản phẩm</button>
+          </form>
+          <div id="formMessage"></div>
+        </div>
+
+        <!-- Import Tab -->
+        <div id="import-tab" class="tab-content">
+          <div class="import-container">
+            <p>Tải lên tệp Excel bao gồm thông tin sản phẩm</p>
+            <p>
+              <small> Tệp tin Excel phải có cột: name, code </small>
+            </p>
+            <form id="importForm" enctype="multipart/form-data">
+              <div class="product-form-group">
+                <input
+                  type="file"
+                  id="excelFile"
+                  name="excelFile"
+                  accept=".xlsx, .xls"
+                />
+              </div>
+              <button type="submit" class="product-btn">Nhập sản phẩm</button>
+            </form>
+          </div>
+          <div id="importMessage"></div>
+        </div>
+      </div>
+
+      <!-- Export and Product List -->
+      <div class="product-container">
+        <div class="action-buttons">
+          <button id="exportBtn" class="product-btn export-btn">
+            Xuất ra Excel
+          </button>
+        </div>
+
+        <div id="productList">
+          <table class="product-table" id="productsTable">
+            <thead>
+              <tr>
+                <th>Tên</th>
+                <th>Mã</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="productsTableBody">
+              <!-- Products will be loaded here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Edit Product Modal -->
+      <div id="editModal" class="modal-overlay product-hidden">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Chỉnh sửa sản phẩm</h2>
+            <button class="modal-close" onclick="closeEditModal()">
+              &times;
+            </button>
+          </div>
+          <form id="editProductForm">
+            <input type="hidden" id="editProductId" />
+            <div class="product-form-group">
+              <label for="editName">Tên sản phẩm:</label>
+              <input type="text" id="editName" name="name" required />
+            </div>
+            <div class="product-form-group">
+              <label for="editCode">Mã sản phẩm:</label>
+              <input type="text" id="editCode" name="code" required />
+            </div>
+            <div class="modal-buttons">
+              <button
+                type="button"
+                class="product-btn"
+                style="background-color: #6c757d"
+                onclick="closeEditModal()"
+              >
+                Hủy
+              </button>
+              <button type="submit" class="product-btn">Cập nhật</button>
+            </div>
+          </form>
+          <div id="editFormMessage"></div>
+        </div>
+      </div>
+    </div>
+    <!-- End product-management-container -->
+
+    <!-- Load scripts in correct order -->
+    <script src="/components/header/headerLoader.js?v=1.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="adminPages/adminProduct/adminProduct.js?v=1.0"></script>
   </body>
 </html>

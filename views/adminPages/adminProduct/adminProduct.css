@@ -1,55 +1,89 @@
-body {
+/* views/adminPages/adminProduct/adminProduct.css */
+/* Reset and isolate styles for product management */
+.product-management-container {
   font-family: Arial, sans-serif;
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 1200px;
+  margin: 20px auto;
   padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  /* Reset any inherited styles */
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
 }
-h1,
-h2 {
+
+/* More specific selector to prevent header interference */
+body .product-management-container * {
+  box-sizing: border-box;
+}
+
+body .product-management-container h1,
+body .product-management-container h2 {
   color: #333;
+  margin-bottom: 1rem;
+  font-weight: normal;
 }
-.container {
+
+body .product-management-container .product-container {
   margin-bottom: 30px;
 }
-table {
+
+body .product-management-container .product-table {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 20px;
+  font-size: 14px;
 }
-table,
-th,
-td {
+
+body .product-management-container .product-table,
+body .product-management-container .product-table th,
+body .product-management-container .product-table td {
   border: 1px solid #ddd;
 }
-th,
-td {
+
+body .product-management-container .product-table th,
+body .product-management-container .product-table td {
   padding: 12px;
   text-align: left;
 }
-th {
+
+body .product-management-container .product-table th {
   background-color: #f2f2f2;
+  font-weight: bold;
 }
-tr:nth-child(even) {
+
+body .product-management-container .product-table tr:nth-child(even) {
   background-color: #f9f9f9;
 }
-tr:hover {
+
+body .product-management-container .product-table tr:hover {
   background-color: #f1f1f1;
 }
-.form-group {
+
+body .product-management-container .product-form-group {
   margin-bottom: 15px;
 }
-label {
+
+body .product-management-container .product-form-group label {
   display: block;
   margin-bottom: 5px;
   font-weight: bold;
+  color: #333;
 }
-input[type="text"] {
+
+body .product-management-container .product-form-group input[type="text"],
+body .product-management-container .product-form-group input[type="file"] {
   width: 100%;
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 14px;
 }
-button {
+
+body .product-management-container .product-btn {
   background-color: #4caf50;
   color: white;
   padding: 10px 15px;
@@ -57,39 +91,202 @@ button {
   border-radius: 4px;
   cursor: pointer;
   margin-right: 5px;
+  font-size: 14px;
+  text-decoration: none;
+  display: inline-block;
 }
-button:hover {
+
+body .product-management-container .product-btn:hover {
   background-color: #45a049;
+  text-decoration: none;
 }
-.delete-btn {
+
+body .product-management-container .product-btn.delete-btn {
   background-color: #f44336;
 }
-.delete-btn:hover {
+
+body .product-management-container .product-btn.delete-btn:hover {
   background-color: #d32f2f;
 }
-.import-container {
+
+body .product-management-container .product-btn.edit-btn {
+  background-color: #2196f3;
+}
+
+body .product-management-container .product-btn.edit-btn:hover {
+  background-color: #0b7dda;
+}
+
+body .product-management-container .product-btn.export-btn {
+  background-color: #2196f3;
+}
+
+body .product-management-container .product-btn.export-btn:hover {
+  background-color: #0b7dda;
+}
+
+body .product-management-container .import-container {
   border: 2px dashed #ccc;
   padding: 20px;
   text-align: center;
   margin-bottom: 20px;
+  background-color: #fafafa;
 }
-.hidden {
-  display: none;
+
+body .product-management-container .product-hidden {
+  display: none !important;
 }
-.error {
+
+body .product-management-container .product-error {
   color: red;
   margin-top: 10px;
+  padding: 10px;
+  background-color: #ffebee;
+  border: 1px solid #ffcdd2;
+  border-radius: 4px;
 }
-.success {
+
+body .product-management-container .product-success {
   color: green;
   margin-top: 10px;
+  padding: 10px;
+  background-color: #e8f5e8;
+  border: 1px solid #c8e6c9;
+  border-radius: 4px;
 }
-.action-buttons {
+
+body .product-management-container .action-buttons {
   margin-bottom: 20px;
 }
-.export-btn {
-  background-color: #2196f3;
+
+/* Modal styles with more specific selectors */
+body .modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000; /* Higher z-index to appear above header */
 }
-.export-btn:hover {
-  background-color: #0b7dda;
+
+body .modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  border: 1px solid #ddd;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 10001;
+}
+
+body .modal-header {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+body .modal-header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+body .modal-close {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body .modal-close:hover {
+  color: #333;
+  background-color: #f5f5f5;
+  border-radius: 50%;
+}
+
+body .modal-buttons {
+  margin-top: 20px;
+  text-align: right;
+}
+
+/* Top section with tabs/toggles */
+body .product-management-container .top-section {
+  background: #f8f9fa;
+  padding: 20px;
+  margin-bottom: 30px;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+body .product-management-container .section-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+body .product-management-container .tab-btn {
+  background-color: #e9ecef;
+  color: #495057;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+body .product-management-container .tab-btn.active {
+  background-color: #007bff;
+  color: white;
+}
+
+body .product-management-container .tab-btn:hover {
+  background-color: #007bff;
+  color: white;
+}
+
+body .product-management-container .tab-content {
+  display: none;
+}
+
+body .product-management-container .tab-content.active {
+  display: block;
+}
+
+/* Prevent header styles from affecting product management */
+.dashboard-header ~ .product-management-container .btn,
+.dashboard-header ~ .product-management-container .form-control,
+.dashboard-header ~ .product-management-container .table {
+  /* Reset any Bootstrap styles that might be interfering */
+  all: unset;
+}
+
+/* Ensure our product styles take precedence */
+.product-management-container .product-btn {
+  all: unset;
+  background-color: #4caf50 !important;
+  color: white !important;
+  padding: 10px 15px !important;
+  border: none !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  margin-right: 5px !important;
+  font-size: 14px !important;
+  text-decoration: none !important;
+  display: inline-block !important;
 }

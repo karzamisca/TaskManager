@@ -1,29 +1,48 @@
+//views/adminPages/adminProduct/adminProduct.js
 // Keep track of current products
 let products = [];
-let editMode = false;
 
 // DOM elements
 const productForm = document.getElementById("productForm");
-const productId = document.getElementById("productId");
 const nameInput = document.getElementById("name");
 const codeInput = document.getElementById("code");
-const submitBtn = document.getElementById("submitBtn");
-const cancelBtn = document.getElementById("cancelBtn");
-const formTitle = document.getElementById("formTitle");
 const formMessage = document.getElementById("formMessage");
 const productsTableBody = document.getElementById("productsTableBody");
 const importForm = document.getElementById("importForm");
 const importMessage = document.getElementById("importMessage");
 const exportBtn = document.getElementById("exportBtn");
 
+// Edit modal elements
+const editModal = document.getElementById("editModal");
+const editProductForm = document.getElementById("editProductForm");
+const editProductId = document.getElementById("editProductId");
+const editNameInput = document.getElementById("editName");
+const editCodeInput = document.getElementById("editCode");
+const editFormMessage = document.getElementById("editFormMessage");
+
 // Load products when page loads
 document.addEventListener("DOMContentLoaded", fetchProducts);
 
 // Event listeners
 productForm.addEventListener("submit", handleProductSubmit);
-cancelBtn.addEventListener("click", resetForm);
 importForm.addEventListener("submit", handleExcelImport);
 exportBtn.addEventListener("click", exportProducts);
+editProductForm.addEventListener("submit", handleEditProductSubmit);
+
+// Tab switching
+function switchTab(tab) {
+  // Update tab buttons
+  document
+    .querySelectorAll(".tab-btn")
+    .forEach((btn) => btn.classList.remove("active"));
+  event.target.classList.add("active");
+
+  // Update tab content
+  document
+    .querySelectorAll(".tab-content")
+    .forEach((content) => content.classList.remove("active"));
+  document.getElementById(tab + "-tab").classList.add("active");
+}
 
 // Fetch all products from the server
 function fetchProducts() {
@@ -42,7 +61,7 @@ function fetchProducts() {
       console.error("Error fetching products:", error);
       showFormMessage(
         "Failed to load products from the server. Check your connection to MongoDB.",
-        "error"
+        "product-error"
       );
     });
 }
@@ -53,28 +72,32 @@ function renderProductTable() {
 
   if (products.length === 0) {
     productsTableBody.innerHTML = `
-                    <tr>
-                        <td colspan="3" style="text-align:center">No products found</td>
-                    </tr>
-                `;
+          <tr>
+            <td colspan="3" style="text-align:center">Không có sản phẩm</td>
+          </tr>
+        `;
     return;
   }
 
   products.forEach((product) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-                    <td>${product.name}</td>
-                    <td>${product.code}</td>
-                    <td>
-                        <button onclick="editProduct('${product._id}')" class="edit-btn">Edit</button>
-                        <button onclick="deleteProduct('${product._id}')" class="delete-btn">Delete</button>
-                    </td>
-                `;
+          <td>${product.name}</td>
+          <td>${product.code}</td>
+          <td>
+            <button onclick="editProduct('${product._id}')" class="product-btn edit-btn">
+              Sửa
+            </button>
+            <button onclick="deleteProduct('${product._id}')" class="product-btn delete-btn">
+              Xóa
+            </button>
+          </td>
+        `;
     productsTableBody.appendChild(tr);
   });
 }
 
-// Handle product form submission
+// Handle product form submission (Add new product)
 function handleProductSubmit(e) {
   e.preventDefault();
 
@@ -83,14 +106,20 @@ function handleProductSubmit(e) {
     code: codeInput.value,
   };
 
-  if (editMode) {
-    // Update existing product
-    product._id = productId.value;
-    updateProduct(product);
-  } else {
-    // Add new product
-    createProduct(product);
-  }
+  createProduct(product);
+}
+
+// Handle edit product form submission
+function handleEditProductSubmit(e) {
+  e.preventDefault();
+
+  const product = {
+    _id: editProductId.value,
+    name: editNameInput.value,
+    code: editCodeInput.value,
+  };
+
+  updateProduct(product);
 }
 
 // Create a new product
@@ -113,13 +142,13 @@ function createProduct(product) {
     .then((data) => {
       fetchProducts(); // Refresh the products list
       resetForm();
-      showFormMessage("Product added successfully!", "success");
+      showFormMessage("Product added successfully!", "product-success");
     })
     .catch((error) => {
       console.error("Error creating product:", error);
       showFormMessage(
         error.message || "Error creating product. Please try again.",
-        "error"
+        "product-error"
       );
     });
 }
@@ -143,21 +172,24 @@ function updateProduct(product) {
     })
     .then((data) => {
       fetchProducts(); // Refresh the products list
-      resetForm();
-      showFormMessage("Product updated successfully!", "success");
+      closeEditModal();
+      showEditFormMessage("Product updated successfully!", "product-success");
+      setTimeout(() => {
+        editFormMessage.innerHTML = "";
+      }, 3000);
     })
     .catch((error) => {
       console.error("Error updating product:", error);
-      showFormMessage(
+      showEditFormMessage(
         error.message || "Error updating product. Please try again.",
-        "error"
+        "product-error"
       );
     });
 }
 
 // Delete a product
 function deleteProduct(id) {
-  if (!confirm("Are you sure you want to delete this product?")) {
+  if (!confirm("Bạn muốn xóa sản phẩm này không?")) {
     return;
   }
 
@@ -174,46 +206,51 @@ function deleteProduct(id) {
     })
     .then((data) => {
       fetchProducts(); // Refresh the products list
-      showFormMessage("Product deleted successfully!", "success");
+      showFormMessage("Product deleted successfully!", "product-success");
     })
     .catch((error) => {
       console.error("Error deleting product:", error);
       showFormMessage(
         error.message || "Error deleting product. Please try again.",
-        "error"
+        "product-error"
       );
     });
 }
 
-// Edit a product
+// Edit a product (open modal)
 function editProduct(id) {
   const product = products.find((product) => product._id === id);
   if (!product) return;
 
-  // Set form to edit mode
-  editMode = true;
-  formTitle.textContent = "Edit Product";
-  submitBtn.textContent = "Update Product";
-  cancelBtn.classList.remove("hidden");
+  // Fill modal form with product data
+  editProductId.value = product._id;
+  editNameInput.value = product.name;
+  editCodeInput.value = product.code;
 
-  // Fill form with product data
-  productId.value = product._id;
-  nameInput.value = product.name;
-  codeInput.value = product.code;
+  // Clear any previous messages
+  editFormMessage.innerHTML = "";
 
-  // Scroll to form
-  productForm.scrollIntoView({ behavior: "smooth" });
+  // Show modal
+  editModal.classList.remove("product-hidden");
 }
+
+// Close edit modal
+function closeEditModal() {
+  editModal.classList.add("product-hidden");
+  editProductForm.reset();
+  editFormMessage.innerHTML = "";
+}
+
+// Close modal when clicking outside
+editModal.addEventListener("click", function (e) {
+  if (e.target === editModal) {
+    closeEditModal();
+  }
+});
 
 // Reset the form
 function resetForm() {
-  editMode = false;
-  formTitle.textContent = "Add New Product";
-  submitBtn.textContent = "Add Product";
-  cancelBtn.classList.add("hidden");
-
   productForm.reset();
-  productId.value = "";
   formMessage.innerHTML = "";
 }
 
@@ -223,6 +260,11 @@ function showFormMessage(message, type) {
   setTimeout(() => {
     formMessage.innerHTML = "";
   }, 3000);
+}
+
+// Show edit form message
+function showEditFormMessage(message, type) {
+  editFormMessage.innerHTML = `<div class="${type}">${message}</div>`;
 }
 
 // Show import message
@@ -241,7 +283,7 @@ function handleExcelImport(e) {
   const file = fileInput.files[0];
 
   if (!file) {
-    showImportMessage("Please select an Excel file", "error");
+    showImportMessage("Please select an Excel file", "product-error");
     return;
   }
 
@@ -249,7 +291,7 @@ function handleExcelImport(e) {
   formData.append("excelFile", file);
 
   // Show loading message
-  showImportMessage("Importing products...", "success");
+  showImportMessage("Importing products...", "product-success");
 
   fetch("/products/import/file", {
     method: "POST",
@@ -273,16 +315,16 @@ function handleExcelImport(e) {
         data.results.errors.length > 0
       ) {
         const errorList = data.results.errors.join("<br>");
-        showImportMessage(`${data.message}<br>${errorList}`, "error");
+        showImportMessage(`${data.message}<br>${errorList}`, "product-error");
       } else {
-        showImportMessage(data.message, "success");
+        showImportMessage(data.message, "product-success");
       }
     })
     .catch((error) => {
       console.error("Error importing products:", error);
       showImportMessage(
         error.message || "Error importing products. Please try again.",
-        "error"
+        "product-error"
       );
       fileInput.value = "";
     });
