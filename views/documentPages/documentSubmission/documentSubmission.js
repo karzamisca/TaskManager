@@ -59,7 +59,10 @@ function handlePurchasingDocument() {
         <option value="">Chọn một trạm</option>
       </select>
       <div id="product-entries">
-        <label>Tên sản phẩm</label><input type="text" name="products[0][productName]" required />
+        <label>Tên sản phẩm</label>
+        <select name="products[0][productName]" class="product-dropdown" required>
+          <option value="">Chọn sản phẩm</option>
+        </select>        
         <label>Đơn giá</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
         <label>Số lượng</label><input type="number" step="0.01" name="products[0][amount]" required />
         <label>Thuế (%)</label><input type="number" step="0.01" name="products[0][vat]" required />
@@ -77,6 +80,7 @@ function handlePurchasingDocument() {
         <option value="">Chọn dự án</option>
       </select>     
     `;
+  populateProductDropdowns();
   populateGroupDropdown();
   populateProjectDropdown();
   approvedProposalSection.style.display = "block";
@@ -250,7 +254,10 @@ function handleDeliveryDocument() {
         <option value="">Chọn một trạm</option>
       </select>
       <div id="product-entries">
-        <label>Tên sản phẩm</label><input type="text" name="products[0][productName]" required />
+        <label>Tên sản phẩm</label>
+        <select name="products[0][productName]" class="product-dropdown" required>
+          <option value="">Chọn sản phẩm</option>
+        </select>           
         <label>Đơn giá</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
         <label>Số lượng</label><input type="number" step="0.01" name="products[0][amount]" required />
         <label>Thuế (%)</label><input type="number" step="0.01" name="products[0][vat]" required />
@@ -265,6 +272,7 @@ function handleDeliveryDocument() {
       </select>             
     `;
 
+  populateProductDropdowns();
   populateGroupDropdown();
   populateProjectDropdown();
   approvedProposalSection.style.display = "block";
@@ -365,6 +373,41 @@ function fetchCostCenters() {
     });
 }
 
+async function fetchProducts() {
+  try {
+    const response = await fetch("/documentProduct");
+    if (!response.ok) {
+      throw new Error("Failed to fetch products");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return [];
+  }
+}
+
+// Function to populate product dropdowns
+async function populateProductDropdowns() {
+  try {
+    const products = await fetchProducts();
+
+    document.querySelectorAll(".product-dropdown").forEach((select) => {
+      // Only populate if empty (has only the default option)
+      if (select.options.length <= 1) {
+        products.forEach((product) => {
+          const option = document.createElement("option");
+          option.value = product.name;
+          option.textContent = `${product.name} (${product.code})`;
+          option.dataset.productCode = product.code;
+          select.appendChild(option);
+        });
+      }
+    });
+  } catch (error) {
+    console.error("Error populating product dropdowns:", error);
+  }
+}
+
 // Main event listener for document type dropdown
 document
   .getElementById("title-dropdown")
@@ -459,7 +502,6 @@ async function populateProductCostCenters() {
 function addProductEntry() {
   const productEntries = document.getElementById("product-entries");
   const selectedTitle = document.getElementById("title-dropdown").value;
-
   // Count products differently based on whether cost center field exists
   let productCount;
   if (selectedTitle === "Purchasing Document") {
@@ -470,9 +512,11 @@ function addProductEntry() {
 
   let newEntry;
   if (selectedTitle === "Purchasing Document") {
-    // Include cost center field for purchasing documents
     newEntry = `
-      <label>Tên sản phẩm</label><input type="text" name="products[${productCount}][productName]" required />
+      <label>Tên sản phẩm</label>
+      <select name="products[${productCount}][productName]" class="product-dropdown" required>
+        <option value="">Chọn sản phẩm</option>
+      </select>
       <label>Đơn giá</label><input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required />
       <label>Số lượng</label><input type="number" step="0.01" name="products[${productCount}][amount]" required />
       <label>Thuế VAT(%)</label><input type="number" step="0.01" name="products[${productCount}][vat]" required />
@@ -483,9 +527,11 @@ function addProductEntry() {
       <label>Ghi chú</label><input type="text" name="products[${productCount}][note]" />
     `;
   } else {
-    // Exclude cost center field for delivery documents
     newEntry = `
-      <label>Tên sản phẩm</label><input type="text" name="products[${productCount}][productName]" required />
+      <label>Tên sản phẩm</label>
+      <select name="products[${productCount}][productName]" class="product-dropdown" required>
+        <option value="">Chọn sản phẩm</option>
+      </select>
       <label>Đơn giá</label><input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required />
       <label>Số lượng</label><input type="number" step="0.01" name="products[${productCount}][amount]" required />
       <label>Thuế (%)</label><input type="number" step="0.01" name="products[${productCount}][vat]" required />
@@ -494,6 +540,9 @@ function addProductEntry() {
   }
 
   productEntries.insertAdjacentHTML("beforeend", newEntry);
+
+  // Populate the new dropdown with products
+  populateProductDropdowns();
 
   // Only populate cost centers for purchasing documents
   if (selectedTitle === "Purchasing Document") {
