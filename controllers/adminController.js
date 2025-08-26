@@ -177,7 +177,12 @@ exports.deleteCostCenter = async (req, res) => {
 exports.getProductAdminPage = (req, res) => {
   try {
     if (
-      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfPurchasing",
+      ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
