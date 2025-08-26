@@ -195,7 +195,12 @@ exports.getProductAdminPage = (req, res) => {
 exports.getProducts = async (req, res) => {
   try {
     if (
-      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfPurchasing",
+      ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -210,7 +215,12 @@ exports.getProducts = async (req, res) => {
 exports.getProductById = async (req, res) => {
   try {
     if (
-      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfPurchasing",
+      ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -228,7 +238,12 @@ exports.getProductById = async (req, res) => {
 exports.createProduct = async (req, res) => {
   try {
     if (
-      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfPurchasing",
+      ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -258,7 +273,12 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     if (
-      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfPurchasing",
+      ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -296,7 +316,12 @@ exports.updateProduct = async (req, res) => {
 exports.deleteProduct = async (req, res) => {
   try {
     if (
-      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfPurchasing",
+      ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -316,7 +341,12 @@ exports.deleteProduct = async (req, res) => {
 exports.importProducts = async (req, res) => {
   try {
     if (
-      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfPurchasing",
+      ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -382,7 +412,12 @@ exports.importProductsFromFile = async (req, res) => {
 
   try {
     if (
-      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfPurchasing",
+      ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
@@ -500,7 +535,12 @@ exports.importProductsFromFile = async (req, res) => {
 exports.exportProducts = async (req, res) => {
   try {
     if (
-      !["superAdmin", "director", "headOfPurchasing"].includes(req.user.role)
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfPurchasing",
+      ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
