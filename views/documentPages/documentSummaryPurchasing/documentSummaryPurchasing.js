@@ -77,7 +77,7 @@ const renderProducts = (products) => {
             <th class="text-right">Thành tiền</th>
             <th class="text-right">Sau VAT</th>
             <th>Trạm</th>
-            <th>Ghi chú</th>
+            <th>Ghi chú/Notes</th>
           </tr>
         </thead>
         <tbody>
