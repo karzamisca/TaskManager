@@ -406,19 +406,7 @@ async function deleteDocument(documentId) {
   }
 }
 
-async function fetchProducts() {
-  try {
-    const response = await fetch("/documentProduct");
-    const products = await response.json();
-    return products;
-  } catch (error) {
-    console.error("Lỗi khi lấy danh sách sản phẩm:", error);
-    return [];
-  }
-}
-
-// Updated addProductField function with product dropdown
-async function addProductField(product = null) {
+function addProductField(product = null) {
   const productsList = document.getElementById("productsList");
   const productDiv = document.createElement("div");
   productDiv.className = "product-item";
@@ -431,48 +419,16 @@ async function addProductField(product = null) {
   container.style.gap = "10px";
   productDiv.appendChild(container);
 
-  // Product dropdown instead of text input
-  const productDropdown = document.createElement("select");
-  productDropdown.required = true;
-  productDropdown.style.width = "100%";
-  productDropdown.style.padding = "8px";
-
-  // Add default option
-  const defaultOption = document.createElement("option");
-  defaultOption.value = "";
-  defaultOption.textContent = "Chọn sản phẩm";
-  productDropdown.appendChild(defaultOption);
-
-  // Fetch and populate products
-  try {
-    const products = await fetchProducts();
-    products.forEach((prod) => {
-      const option = document.createElement("option");
-      option.value = prod.name;
-      option.textContent = `${prod.name} (${prod.code})`;
-      productDropdown.appendChild(option);
-    });
-
-    // Set selected value if editing existing product
-    if (product && product.productName !== undefined) {
-      productDropdown.value = product.productName;
-    }
-  } catch (error) {
-    console.error("Error loading products:", error);
-    // Fallback: create a text input if products can't be loaded
-    const nameInput = document.createElement("input");
-    nameInput.type = "text";
-    nameInput.placeholder = "Tên sản phẩm";
-    nameInput.required = true;
-    nameInput.style.width = "100%";
-    nameInput.style.padding = "8px";
-    if (product && product.productName !== undefined) {
-      nameInput.value = product.productName;
-    }
-    container.replaceChild(nameInput, productDropdown);
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.placeholder = "Tên sản phẩm";
+  nameInput.required = true;
+  nameInput.style.width = "100%";
+  nameInput.style.padding = "8px";
+  if (product && product.productName !== undefined) {
+    nameInput.value = product.productName;
   }
-
-  container.appendChild(productDropdown);
+  container.appendChild(nameInput);
 
   const costInput = document.createElement("input");
   costInput.type = "number";
@@ -718,33 +674,21 @@ async function handleEditSubmit(event) {
   const productItems = document.querySelectorAll(".product-item");
 
   productItems.forEach((item) => {
-    const productDropdown = item.querySelector("select");
     const productInputs = item.querySelectorAll("input");
-
-    // Handle both dropdown (select) and input cases
-    let productName = "";
-    if (productDropdown) {
-      productName = productDropdown.value;
-    } else {
-      // Fallback to input if dropdown failed to load
-      productName = productInputs[0].value;
-    }
-
-    if (productInputs.length >= 4 && productName) {
-      const costPerUnit = parseFloat(productInputs[0].value) || 0;
-      const amount = parseInt(productInputs[1].value) || 0;
-      const vat = parseFloat(productInputs[2].value) || 0;
-      const note = productInputs[3].value || "";
+    if (productInputs.length >= 4) {
+      const costPerUnit = parseFloat(productInputs[1].value) || 0;
+      const amount = parseInt(productInputs[2].value) || 0;
+      const vat = parseFloat(productInputs[3].value) || 0;
 
       const product = {
-        productName: productName,
+        productName: productInputs[0].value,
         costPerUnit: costPerUnit,
         amount: amount,
         vat: vat,
         totalCost: costPerUnit * amount,
         totalCostAfterVat:
           costPerUnit * amount + costPerUnit * amount * (vat / 100),
-        note: note,
+        note: productInputs[3].value,
       };
       products.push(product);
     }
