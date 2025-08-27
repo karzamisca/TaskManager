@@ -1,6 +1,5 @@
 // controllers/financeSummaryController.js
 const UserMonthlyRecord = require("../models/UserMonthlyRecord");
-const FinanceGas = require("../models/FinanceGas");
 const CostCenter = require("../models/CostCenter");
 const CostCenterGroup = require("../models/CostCenterGroup");
 const DocumentPayment = require("../models/DocumentPayment");
@@ -120,8 +119,8 @@ exports.getRevenueByCostCenter = async (req, res) => {
         record.costCenter && costCenterNames.includes(record.costCenter.name)
     );
 
-    // Get all finance gas data for the specified year and cost centers
-    const financeData = await FinanceGas.find({
+    // Get all finance data from the merged CostCenter model
+    const financeData = await CostCenter.find({
       "years.year": parseInt(year),
       name: { $in: costCenterNames },
     }).lean();

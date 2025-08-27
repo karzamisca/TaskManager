@@ -1,5 +1,5 @@
-//controllers/financeGasController.js
-const Center = require("../models/FinanceGas");
+// controllers/financeGasController.js
+const Center = require("../models/CostCenter"); // Changed from FinanceGas to CostCenter
 const ExcelJS = require("exceljs");
 
 exports.getAllCenters = async (req, res) => {
