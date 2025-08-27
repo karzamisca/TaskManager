@@ -189,7 +189,7 @@ exports.createCenter = async (req, res) => {
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
   }
 
-  const { name } = req.body;
+  const { name, category = "Mua bán khí" } = req.body; // Add category with default
 
   const currentYear = new Date().getFullYear();
   const months = [
@@ -209,6 +209,7 @@ exports.createCenter = async (req, res) => {
 
   const center = new Center({
     name,
+    category,
     years: [{ year: currentYear, months }],
   });
 
@@ -535,6 +536,31 @@ exports.updateMonthEntry = async (req, res) => {
 
     month.entries[entryIndex] = entryData;
     await center.save();
+    res.json(center);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+exports.updateCenter = async (req, res) => {
+  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+  }
+
+  try {
+    const { category } = req.body;
+    const center = await Center.findByIdAndUpdate(
+      req.params.id,
+      { category },
+      { new: true, runValidators: true }
+    );
+
+    if (!center) {
+      return res.status(404).json({ message: "Center not found" });
+    }
+
     res.json(center);
   } catch (err) {
     res.status(400).json({ message: err.message });

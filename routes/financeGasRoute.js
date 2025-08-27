@@ -59,5 +59,10 @@ router.put(
   authMiddleware,
   centersController.updateMonthEntry
 );
+router.put(
+  "/financeGasControl/:id",
+  authMiddleware,
+  centersController.updateCenter
+);
 
 module.exports = router;

@@ -237,6 +237,118 @@ function setupEventListeners() {
   document
     .getElementById("editYearBtn")
     .addEventListener("click", handleEditYear);
+  document
+    .getElementById("categorySelect")
+    .addEventListener("change", handleCategoryChange);
+}
+
+async function handleCategoryChange(e) {
+  if (!currentCenter) return;
+
+  const newCategory = e.target.value;
+  if (newCategory === currentCenter.category) return;
+
+  try {
+    const response = await fetch(`/financeGasControl/${currentCenter._id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category: newCategory }),
+    });
+
+    if (response.ok) {
+      const updatedCenter = await response.json();
+      updateCurrentCenter(updatedCenter);
+      document.getElementById(
+        "centerCategory"
+      ).textContent = `Loại: ${newCategory}`;
+      updateFieldLockState(); // Update field lock state
+    } else {
+      // Revert dropdown if update fails
+      e.target.value = currentCenter.category;
+      alert("Lỗi khi cập nhật loại hình");
+    }
+  } catch (error) {
+    console.error("Error updating category:", error);
+    e.target.value = currentCenter.category;
+    alert("Lỗi khi cập nhật loại hình");
+  }
+}
+
+// Update function to lock/unlock fields based on category
+function updateFieldLockState() {
+  if (!currentCenter) return;
+
+  const category = currentCenter.category;
+  const isRental = category === "Thuê trạm" || category === "Thuê bồn";
+
+  // Lock only purchase-related fields for rental categories
+  const purchaseInputsToLock = document.querySelectorAll(`
+    [data-field="purchaseContract.amount"],
+    [data-field="purchaseContract.unitCost"],
+    [data-field="commissionRatePurchase"]
+  `);
+
+  // Transport cost should also be locked for rental categories
+  const transportInputsToLock = document.querySelectorAll(`
+    [data-field="transportCost"]
+  `);
+
+  // Lock purchase fields and transport cost
+  purchaseInputsToLock.forEach((input) => {
+    input.disabled = isRental;
+    input.title = isRental ? "Không khả dụng cho loại hình này" : "";
+    input.style.cursor = isRental ? "not-allowed" : "";
+    input.style.backgroundColor = isRental ? "#f8f9fa" : "";
+  });
+
+  transportInputsToLock.forEach((input) => {
+    input.disabled = isRental;
+    input.title = isRental ? "Không khả dụng cho loại hình này" : "";
+    input.style.cursor = isRental ? "not-allowed" : "";
+    input.style.backgroundColor = isRental ? "#f8f9fa" : "";
+  });
+
+  // Keep sale fields enabled for all categories
+  const saleInputs = document.querySelectorAll(`
+    [data-field="saleContract.amount"],
+    [data-field="saleContract.unitCost"],
+    [data-field="commissionRateSale"]
+  `);
+
+  saleInputs.forEach((input) => {
+    input.disabled = false;
+    input.title = "";
+    input.style.cursor = "";
+    input.style.backgroundColor = "";
+  });
+
+  // Currency exchange rate should always be enabled
+  const exchangeRateInputs = document.querySelectorAll(`
+    [data-field="currencyExchangeRate"]
+  `);
+
+  exchangeRateInputs.forEach((input) => {
+    input.disabled = false;
+    input.title = "";
+    input.style.cursor = "";
+    input.style.backgroundColor = "";
+  });
+
+  // Disable the "Thêm mục" button for rental categories
+  const addButtons = document.querySelectorAll(".add-entry-btn");
+  addButtons.forEach((button) => {
+    button.disabled = isRental;
+    button.title = isRental ? "Không khả dụng cho loại hình này" : "";
+    button.style.cursor = isRental ? "not-allowed" : "";
+  });
+
+  // Disable delete buttons for rental categories
+  const deleteButtons = document.querySelectorAll(".delete-entry-btn");
+  deleteButtons.forEach((button) => {
+    button.disabled = isRental;
+    button.title = isRental ? "Không khả dụng cho loại hình này" : "";
+    button.style.cursor = isRental ? "not-allowed" : "";
+  });
 }
 
 async function loadCenters() {
@@ -268,6 +380,8 @@ function handleCenterSelect(e) {
     document.getElementById("selectedCenterTitle").textContent =
       "Chọn một trạm";
     document.getElementById("financeContent").style.display = "none";
+    document.getElementById("categorySection").style.display = "none";
+    document.getElementById("centerCategory").textContent = "";
     return;
   }
 
@@ -276,7 +390,17 @@ function handleCenterSelect(e) {
     document.getElementById("selectedCenterTitle").textContent =
       currentCenter.name;
     document.getElementById("financeContent").style.display = "block";
+    document.getElementById("categorySection").style.display = "block";
+
+    // Set category dropdown and display
+    document.getElementById("categorySelect").value =
+      currentCenter.category || "Mua bán khí";
+    document.getElementById(
+      "centerCategory"
+    ).textContent = `Loại: ${currentCenter.category}`;
+
     renderFinanceTable();
+    updateFieldLockState(); // Lock fields based on category
   }
 }
 
@@ -724,22 +848,31 @@ function renderYearTable(yearData) {
 
 // Function to render a single entry row
 function renderEntryRow(entry, entryIndex, monthName, year) {
+  const category = currentCenter?.category || "Mua bán khí";
+  const isRental = category === "Thuê trạm" || category === "Thuê bồn";
+
   return `
     <tr data-month="${monthName}" data-year="${year}" data-entry="${entryIndex}">
       <td>${entryIndex === 0 ? monthName : ""}</td>
       <td>${entryIndex + 1}</td>
 
+      <!-- Purchase fields - locked for rental -->
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.purchaseContract?.amount || 0
-      )}" data-field="purchaseContract.amount"></td>
+      )}" data-field="purchaseContract.amount" ${
+    isRental ? "disabled" : ""
+  }></td>
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.purchaseContract?.unitCost || 0
-      )}" data-field="purchaseContract.unitCost"></td>
+      )}" data-field="purchaseContract.unitCost" ${
+    isRental ? "disabled" : ""
+  }></td>
       <td class="calculated-field">${formatNumberWithCommas(
         entry.purchaseContract?.totalCost || 0,
         true
       )}</td>
 
+      <!-- Sale fields - always enabled -->
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.saleContract?.amount || 0
       )}" data-field="saleContract.amount"></td>
@@ -751,21 +884,28 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
         true
       )}</td>
 
+      <!-- Transport cost - locked for rental -->
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.transportCost || 0
-      )}" data-field="transportCost"></td>
+      )}" data-field="transportCost" ${isRental ? "disabled" : ""}></td>
+      
+      <!-- Currency exchange rate - always enabled -->
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.currencyExchangeRate || 1
       )}" data-field="currencyExchangeRate"></td>
 
+      <!-- Purchase commission rate - locked for rental -->
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.commissionRatePurchase || 0
-      )}" data-field="commissionRatePurchase"></td>
+      )}" data-field="commissionRatePurchase" ${
+    isRental ? "disabled" : ""
+  }></td>
       <td class="calculated-field">${formatNumberWithCommas(
         entry.commissionBonus?.purchase || 0,
         true
       )}</td>
 
+      <!-- Sale commission rate - always enabled -->
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.commissionRateSale || 0
       )}" data-field="commissionRateSale"></td>
@@ -776,7 +916,8 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
 
       <td>
         <button class="btn btn-sm btn-outline-danger btn-action delete-entry-btn" 
-                data-month="${monthName}" data-year="${year}" data-entry="${entryIndex}">
+                data-month="${monthName}" data-year="${year}" data-entry="${entryIndex}"
+                ${isRental ? "disabled" : ""}>
             ×
         </button>
       </td>
@@ -1146,6 +1287,7 @@ function updateCurrentCenter(updatedCenter) {
   if (centerIndex !== -1) {
     centers[centerIndex] = updatedCenter;
   }
+  updateFieldLockState(); // Update field lock state when center changes
 }
 
 function handleInputChange(e) {
