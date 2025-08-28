@@ -6,7 +6,7 @@ const DocumentPayment = require("../models/DocumentPayment");
 
 exports.getAllCostCenters = async (req, res) => {
   try {
-    const costCenters = await CostCenter.find().select("name -_id"); // Only get the name field
+    const costCenters = await CostCenter.find().select("name category -_id"); // Include category field
 
     const sortedCostCenters = costCenters.sort((a, b) => {
       return a.name.localeCompare(b.name);
@@ -77,14 +77,19 @@ const getMonthYearFromSubmissionDate = (submissionDate) => {
 // Get revenue by matching cost centers
 exports.getRevenueByCostCenter = async (req, res) => {
   try {
-    const { year, costCenters } = req.query;
+    const { year, costCenters, category } = req.query;
 
     if (!year) {
       return res.status(400).json({ error: "Year parameter is required" });
     }
 
-    // Get all cost centers
-    const allCostCenters = await CostCenter.find().lean();
+    // Get all cost centers with optional category filter
+    let query = {};
+    if (category && category !== "all") {
+      query.category = category;
+    }
+
+    const allCostCenters = await CostCenter.find(query).lean();
     let costCenterNames = allCostCenters.map((cc) => cc.name);
 
     // Filter by selected cost centers if provided
