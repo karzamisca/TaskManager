@@ -919,8 +919,25 @@ $(document).ready(function () {
             exportOptions: {
               format: {
                 body: function (data, row, column, node) {
-                  return data.replace(/\./g, "").replace(/,/g, "");
+                  // Clean up HTML tags and normalize numbers
+                  let cleanData = $(data).text() || data; // Extract text content from HTML
+
+                  // If it's the first column (cost center names), clean up the text
+                  if (column === 0) {
+                    // Remove any extra whitespace and return just the cost center name
+                    cleanData = cleanData.replace(/^\s*▶?\s*/, "").trim();
+                  } else {
+                    // For other columns, handle number formatting
+                    cleanData = cleanData.replace(/\./g, "").replace(/,/g, "");
+                  }
+
+                  return cleanData;
                 },
+              },
+              rows: function (idx, data, node) {
+                // Export ALL rows - both cost center headers and all metric detail rows
+                // This will include all attributes regardless of expand/collapse state
+                return true;
               },
             },
           },
