@@ -261,7 +261,7 @@ async function handleCategoryChange(e) {
       document.getElementById(
         "centerCategory"
       ).textContent = `Loại: ${newCategory}`;
-      updateFieldLockState(); // Update field lock state
+      updateFieldLockState(); // Update field lock state and column visibility
     } else {
       // Revert dropdown if update fails
       e.target.value = currentCenter.category;
@@ -272,6 +272,52 @@ async function handleCategoryChange(e) {
     e.target.value = currentCenter.category;
     alert("Lỗi khi cập nhật loại hình");
   }
+}
+
+function updateColumnVisibility() {
+  if (!currentCenter) return;
+
+  const category = currentCenter.category;
+  const isRental = category === "Thuê trạm" || category === "Thuê bồn";
+
+  // Define columns to hide for rental categories
+  const columnsToHide = isRental
+    ? [
+        2, // Số lượng mua
+        3, // Đơn giá mua
+        4, // Tổng mua
+        8, // Vận chuyển
+        10, // Tỷ suất hoa hồng mua
+        11, // Hoa hồng mua
+      ]
+    : [];
+
+  // Get all tables in the current view
+  const tables = document.querySelectorAll(".table-excel");
+
+  tables.forEach((table) => {
+    // Hide/show header columns
+    const headerRows = table.querySelectorAll("thead tr");
+    headerRows.forEach((row) => {
+      const cells = row.querySelectorAll("th");
+      columnsToHide.forEach((colIndex) => {
+        if (cells[colIndex]) {
+          cells[colIndex].style.display = isRental ? "none" : "";
+        }
+      });
+    });
+
+    // Hide/show body columns
+    const bodyRows = table.querySelectorAll("tbody tr");
+    bodyRows.forEach((row) => {
+      const cells = row.querySelectorAll("td");
+      columnsToHide.forEach((colIndex) => {
+        if (cells[colIndex]) {
+          cells[colIndex].style.display = isRental ? "none" : "";
+        }
+      });
+    });
+  });
 }
 
 // Update function to lock/unlock fields based on category
@@ -314,7 +360,6 @@ function updateFieldLockState() {
     [data-field="saleContract.unitCost"],
     [data-field="commissionRateSale"]
   `);
-
   saleInputs.forEach((input) => {
     input.disabled = false;
     input.title = "";
@@ -326,7 +371,6 @@ function updateFieldLockState() {
   const exchangeRateInputs = document.querySelectorAll(`
     [data-field="currencyExchangeRate"]
   `);
-
   exchangeRateInputs.forEach((input) => {
     input.disabled = false;
     input.title = "";
@@ -349,6 +393,9 @@ function updateFieldLockState() {
     button.title = isRental ? "Không khả dụng cho loại hình này" : "";
     button.style.cursor = isRental ? "not-allowed" : "";
   });
+
+  // Update column visibility
+  updateColumnVisibility();
 }
 
 async function loadCenters() {
@@ -400,7 +447,7 @@ function handleCenterSelect(e) {
     ).textContent = `Loại: ${currentCenter.category}`;
 
     renderFinanceTable();
-    updateFieldLockState(); // Lock fields based on category
+    updateFieldLockState(); // Lock fields and hide columns based on category
   }
 }
 
@@ -463,7 +510,7 @@ async function handleAddYear() {
   addYearBtn.disabled = false;
 }
 
-// NEW: Function to add a new year tab without full re-render
+// Function to add a new year tab without full re-render
 function addNewYearTab(year) {
   const yearData = currentCenter.years.find((y) => y.year === year);
   if (!yearData) return;
@@ -474,13 +521,13 @@ function addNewYearTab(year) {
   newTab.className = "nav-item";
   newTab.setAttribute("role", "presentation");
   newTab.innerHTML = `
-    <button class="nav-link" 
-            id="year-${year}-tab" 
-            data-bs-toggle="tab" 
-            data-bs-target="#year-${year}" 
-            type="button" 
-            role="tab">
-        ${year}
+    <button class="nav-link"
+      id="year-${year}-tab"
+      data-bs-toggle="tab"
+      data-bs-target="#year-${year}"
+      type="button"
+      role="tab">
+      ${year}
     </button>
   `;
   tabsContainer.appendChild(newTab);
@@ -501,6 +548,11 @@ function addNewYearTab(year) {
 
   // Setup event listeners for the new content
   setupTableEventListenersForContainer(newContent);
+
+  // Update column visibility for the new tab
+  setTimeout(() => {
+    updateColumnVisibility();
+  }, 100);
 }
 
 async function handleEditYear() {
@@ -614,22 +666,22 @@ function renderFinanceTable() {
 
     tabsHtml += `
       <li class="nav-item" role="presentation" draggable="true" data-index="${index}">
-        <button class="nav-link ${isActive ? "active" : ""}" 
-                id="year-${yearData.year}-tab" 
-                data-bs-toggle="tab" 
-                data-bs-target="#year-${yearData.year}" 
-                type="button" 
-                role="tab">
-            ${yearData.year}
+        <button class="nav-link ${isActive ? "active" : ""}"
+          id="year-${yearData.year}-tab"
+          data-bs-toggle="tab"
+          data-bs-target="#year-${yearData.year}"
+          type="button"
+          role="tab">
+          ${yearData.year}
         </button>
       </li>
     `;
 
     contentHtml += `
-      <div class="tab-pane fade ${isActive ? "show active" : ""}" 
-           id="year-${yearData.year}" 
-           role="tabpanel">
-          ${renderYearTable(yearData)}
+      <div class="tab-pane fade ${isActive ? "show active" : ""}"
+        id="year-${yearData.year}"
+        role="tabpanel">
+        ${renderYearTable(yearData)}
       </div>
     `;
   });
@@ -650,6 +702,11 @@ function renderFinanceTable() {
 
   // Setup table event listeners
   setupTableEventListeners();
+
+  // Update column visibility after rendering
+  setTimeout(() => {
+    updateColumnVisibility();
+  }, 100);
 }
 
 function setupTabDragAndDrop() {
@@ -1180,7 +1237,7 @@ async function handleDeleteEntry(e) {
   }
 }
 
-// MODIFIED: Function to refresh only a specific month section (updated for totals on top)
+// Function to refresh only a specific month section
 async function refreshMonthSection(monthName, year) {
   const yearData = currentCenter.years.find((y) => y.year === parseInt(year));
   if (!yearData) return;
@@ -1188,8 +1245,8 @@ async function refreshMonthSection(monthName, year) {
   const monthData = yearData.months.find((m) => m.name === monthName) || {
     entries: [],
   };
-  const activeTabContent = document.querySelector(".tab-pane.active tbody");
 
+  const activeTabContent = document.querySelector(".tab-pane.active tbody");
   if (!activeTabContent) return;
 
   // Find all rows for this month
@@ -1202,7 +1259,6 @@ async function refreshMonthSection(monthName, year) {
 
   // Generate new month content
   let newRowsHtml = "";
-
   if (monthData.entries.length === 0) {
     newRowsHtml = `
       <tr data-month="${monthName}" data-year="${year}">
@@ -1210,9 +1266,9 @@ async function refreshMonthSection(monthName, year) {
         <td>-</td>
         <td colspan="13" class="text-muted text-center">Không có mục</td>
         <td>
-          <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
-                  data-month="${monthName}" data-year="${year}">
-              + Thêm
+          <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn"
+            data-month="${monthName}" data-year="${year}">
+            + Thêm
           </button>
         </td>
       </tr>
@@ -1236,9 +1292,9 @@ async function refreshMonthSection(monthName, year) {
       <tr data-month="${monthName}" data-year="${year}">
         <td></td>
         <td colspan="14" class="text-center">
-          <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
-                  data-month="${monthName}" data-year="${year}">
-              + Thêm mục
+          <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn"
+            data-month="${monthName}" data-year="${year}">
+            + Thêm mục
           </button>
         </td>
         <td></td>
@@ -1249,7 +1305,6 @@ async function refreshMonthSection(monthName, year) {
   // Find the insertion point (before the next month or at the end)
   const nextMonthIndex = months.indexOf(monthName) + 1;
   let insertionPoint = null;
-
   if (nextMonthIndex < months.length) {
     for (let i = nextMonthIndex; i < months.length; i++) {
       const nextMonthRow = activeTabContent.querySelector(
@@ -1278,6 +1333,11 @@ async function refreshMonthSection(monthName, year) {
 
   // Setup event listeners for the new rows
   setupTableEventListenersForContainer(activeTabContent);
+
+  // Update column visibility
+  setTimeout(() => {
+    updateColumnVisibility();
+  }, 50);
 }
 
 // NEW: Update current center data
