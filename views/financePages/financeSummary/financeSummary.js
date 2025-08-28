@@ -108,49 +108,40 @@ $(document).ready(function () {
   // Format cost center with category for dropdown
   function formatCostCenter(costCenter) {
     if (!costCenter.id) return costCenter.text;
-
     const $container = $("<span></span>");
     $container.text(costCenter.text);
-
     if (costCenter.element && $(costCenter.element).data("category")) {
       const category = $(costCenter.element).data("category");
       $container.append(
         $('<span class="cost-center-category"></span>').text(` (${category})`)
       );
     }
-
     return $container;
   }
 
   // Format selected cost centers
   function formatCostCenterSelection(costCenter) {
     if (!costCenter.id) return costCenter.text;
-
     if (costCenter.id === "all") {
       return $("<span></span>").text("Tất Cả Trạm");
     }
-
     const $container = $("<span></span>");
     $container.text(costCenter.text);
-
     if (costCenter.element && $(costCenter.element).data("category")) {
       const category = $(costCenter.element).data("category");
       $container.append(
         $('<span class="cost-center-category"></span>').text(` (${category})`)
       );
     }
-
     return $container;
   }
 
   // Populate year dropdown
   const currentYear = new Date().getFullYear();
   const yearSelect = $("#yearSelect");
-
   for (let year = currentYear; year >= currentYear - 5; year--) {
     yearSelect.append(`<option value="${year}">${year}</option>`);
   }
-
   yearSelect.val(currentYear);
 
   // View toggle functionality
@@ -192,7 +183,6 @@ $(document).ready(function () {
         const option = $(
           `<option value="${costCenter.name}">${costCenter.name}</option>`
         );
-
         // Add category info as data attribute
         option.data("category", costCenter.category);
         costCenterSelect.append(option);
@@ -203,7 +193,6 @@ $(document).ready(function () {
     const validSelections = currentSelections.filter(
       (value) => costCenterSelect.find(`option[value="${value}"]`).length > 0
     );
-
     if (validSelections.length > 0) {
       costCenterSelect.val(validSelections).trigger("change");
     } else if (
@@ -234,14 +223,12 @@ $(document).ready(function () {
   // Handle "Tất Cả Trạm" selection logic
   $("#costCenterSelect").on("change", function () {
     const selectedValues = $(this).val();
-
     if (selectedValues && selectedValues.includes("all")) {
       // If "all" is selected, clear other selections
       if (selectedValues.length > 1) {
         $(this).val(["all"]).trigger("change");
       }
     }
-
     updateSelectedCentersInfo();
   });
 
@@ -273,16 +260,14 @@ $(document).ready(function () {
     }
   }
 
-  // Chart creation functions
+  // Chart creation functions (keeping original chart functions)
   function createMainChart(data, chartType, metric, groupBy) {
-    // Double-check Chart.js is available
     if (typeof Chart === "undefined") {
       console.error("Chart.js not available when creating main chart");
       return;
     }
 
     const ctx = document.getElementById("mainChart").getContext("2d");
-
     if (mainChart) {
       mainChart.destroy();
     }
@@ -291,7 +276,6 @@ $(document).ready(function () {
     let chartData, labels;
 
     if (groupBy === "month") {
-      // Group by month
       const monthData = {};
       data.forEach((item) => {
         const monthKey = `${item.month}`;
@@ -308,10 +292,8 @@ $(document).ready(function () {
         if (yearDiff !== 0) return yearDiff;
         return (monthOrder[monthA] || 0) - (monthOrder[monthB] || 0);
       });
-
       chartData = labels.map((label) => monthData[label]);
     } else {
-      // Group by cost center
       const centerData = {};
       data.forEach((item) => {
         if (!centerData[item.costCenter]) {
@@ -319,12 +301,10 @@ $(document).ready(function () {
         }
         centerData[item.costCenter] += item[metric] || 0;
       });
-
       labels = Object.keys(centerData).sort();
       chartData = labels.map((label) => centerData[label]);
     }
 
-    // Create gradient for area charts
     let backgroundColors;
     if (chartType === "area") {
       const gradient = ctx.createLinearGradient(0, 0, 0, 400);
@@ -384,7 +364,6 @@ $(document).ready(function () {
                 },
               }
             : {},
-        // Force canvas size constraints
         onResize: function (chart, size) {
           chart.canvas.style.maxHeight = "350px";
         },
@@ -392,11 +371,31 @@ $(document).ready(function () {
     };
 
     mainChart = new Chart(ctx, config);
-
-    // Update chart title
     $("#mainChartTitle").text(
       `${metricInfo.label} theo ${groupBy === "month" ? "Tháng" : "Trạm"}`
     );
+  }
+
+  function generateColors(count) {
+    const colors = [
+      "#FF6384",
+      "#36A2EB",
+      "#FFCE56",
+      "#4BC0C0",
+      "#9966FF",
+      "#FF9F40",
+      "#FF6384",
+      "#C9CBCF",
+      "#4BC0C0",
+      "#FF6384",
+      "#36A2EB",
+      "#FFCE56",
+    ];
+    const result = [];
+    for (let i = 0; i < count; i++) {
+      result.push(colors[i % colors.length]);
+    }
+    return result;
   }
 
   function createNetRevenueChart(data) {
@@ -404,9 +403,7 @@ $(document).ready(function () {
       console.error("Chart.js not available when creating net revenue chart");
       return;
     }
-
     const ctx = document.getElementById("netRevenueChart").getContext("2d");
-
     if (netRevenueChart) {
       netRevenueChart.destroy();
     }
@@ -428,7 +425,6 @@ $(document).ready(function () {
       if (yearDiff !== 0) return yearDiff;
       return (monthOrder[monthA] || 0) - (monthOrder[monthB] || 0);
     });
-
     const chartData = labels.map((label) => monthlyData[label]);
 
     // Create gradient
@@ -494,9 +490,7 @@ $(document).ready(function () {
       console.error("Chart.js not available when creating comparison chart");
       return;
     }
-
     const ctx = document.getElementById("comparisonChart").getContext("2d");
-
     if (comparisonChart) {
       comparisonChart.destroy();
     }
@@ -573,7 +567,6 @@ $(document).ready(function () {
             },
           },
         },
-        // Force canvas size constraints
         onResize: function (chart, size) {
           chart.canvas.style.maxHeight = "250px";
         },
@@ -586,9 +579,7 @@ $(document).ready(function () {
       console.error("Chart.js not available when creating trend chart");
       return;
     }
-
     const ctx = document.getElementById("trendChart").getContext("2d");
-
     if (trendChart) {
       trendChart.destroy();
     }
@@ -697,7 +688,6 @@ $(document).ready(function () {
           axis: "x",
           intersect: false,
         },
-        // Force canvas size constraints
         onResize: function (chart, size) {
           chart.canvas.style.maxHeight = "350px";
         },
@@ -705,27 +695,9 @@ $(document).ready(function () {
     });
   }
 
-  function generateColors(count) {
-    const colors = [
-      "#FF6384",
-      "#36A2EB",
-      "#FFCE56",
-      "#4BC0C0",
-      "#9966FF",
-      "#FF9F40",
-      "#FF6384",
-      "#C9CBCF",
-      "#4BC0C0",
-      "#FF6384",
-      "#36A2EB",
-      "#FFCE56",
-    ];
-
-    const result = [];
-    for (let i = 0; i < count; i++) {
-      result.push(colors[i % colors.length]);
-    }
-    return result;
+  function createPieChart(data) {
+    // This function can be added if you have a pie chart element in your HTML
+    // For now, it's a placeholder to match the updateCharts() call
   }
 
   function updateCharts() {
@@ -746,7 +718,326 @@ $(document).ready(function () {
     createTrendChart(currentChartData);
   }
 
-  // Improved Group Modal Functions
+  // NEW: Function to create vertical stacked table with cost center dropdowns
+  function createVerticalStackedTable(data) {
+    // Destroy existing DataTable if it exists
+    if (currentTable) {
+      currentTable.destroy();
+      currentTable = null;
+    }
+
+    // Group data by cost center and month
+    const pivotData = {};
+    const costCenters = new Set();
+    const months = new Set();
+
+    data.forEach((item) => {
+      const centerMonthKey = `${item.costCenter}_${item.actualMonth}_${item.actualYear}`;
+      costCenters.add(item.costCenter);
+      months.add(`${item.actualMonth} ${item.actualYear}`);
+
+      if (!pivotData[centerMonthKey]) {
+        pivotData[centerMonthKey] = {
+          costCenter: item.costCenter,
+          month: `${item.actualMonth} ${item.actualYear}`,
+          monthOrder: monthOrder[item.actualMonth] || 0,
+          year: item.actualYear,
+          totalSale: 0,
+          totalPurchase: 0,
+          totalTransport: 0,
+          totalCommissionPurchase: 0,
+          totalCommissionSale: 0,
+          totalSalary: 0,
+          totalPayments: 0,
+          netRevenue: 0,
+        };
+      }
+
+      const entry = pivotData[centerMonthKey];
+      entry.totalSale += item.totalSale;
+      entry.totalPurchase += item.totalPurchase;
+      entry.totalTransport += item.totalTransport;
+      entry.totalCommissionPurchase += item.totalCommissionPurchase;
+      entry.totalCommissionSale += item.totalCommissionSale;
+      entry.totalSalary += item.grossSalary;
+      entry.totalPayments += item.totalPayments;
+      entry.netRevenue =
+        entry.totalSale -
+        entry.totalPurchase -
+        entry.totalTransport -
+        entry.totalCommissionPurchase -
+        entry.totalCommissionSale -
+        entry.totalSalary -
+        entry.totalPayments;
+    });
+
+    // Sort cost centers and months
+    const sortedCostCenters = Array.from(costCenters).sort();
+    const sortedMonths = Array.from(months).sort((a, b) => {
+      const [monthA, yearA] = a.split(" ");
+      const [monthB, yearB] = b.split(" ");
+      const yearDiff = parseInt(yearA) - parseInt(yearB);
+      if (yearDiff !== 0) return yearDiff;
+      return (monthOrder[monthA] || 0) - (monthOrder[monthB] || 0);
+    });
+
+    // Create table header
+    const tableHead = $("#tableHead");
+    tableHead.empty();
+
+    const headerRow = $("<tr></tr>");
+    headerRow.append(
+      '<th style="min-width: 200px; width: 200px;">Trạm / Chỉ số</th>'
+    );
+    sortedMonths.forEach((month) => {
+      headerRow.append(
+        `<th class="month-subheader" style="min-width: 120px;">${month}</th>`
+      );
+    });
+    tableHead.append(headerRow);
+
+    // Create table body
+    const tableBody = $("#tableBody");
+    tableBody.empty();
+
+    sortedCostCenters.forEach((costCenter) => {
+      // Cost center header row (clickable)
+      const costCenterRow = $(
+        `<tr class="cost-center-row" data-cost-center="${costCenter}"></tr>`
+      );
+      costCenterRow.append(
+        `<td style="min-width: 200px; width: 200px;">
+          <span class="cost-center-toggle">▶</span>
+          <strong>${costCenter}</strong>
+        </td>`
+      );
+
+      // Add summary cells for the cost center
+      sortedMonths.forEach((month) => {
+        const entry = Object.values(pivotData).find(
+          (item) => item.costCenter === costCenter && item.month === month
+        );
+        const netRevenue = entry ? entry.netRevenue : 0;
+        let cellClass = "";
+        if (netRevenue > 0) cellClass = "positive";
+        else if (netRevenue < 0) cellClass = "negative";
+
+        const formattedValue =
+          netRevenue === 0 ? "-" : netRevenue.toLocaleString("vi-VN");
+        costCenterRow.append(
+          `<td class="${cellClass}" style="min-width: 120px; text-align: right; font-weight: bold;">${formattedValue}</td>`
+        );
+      });
+
+      tableBody.append(costCenterRow);
+
+      // Add metric detail rows (initially hidden)
+      metrics.forEach((metric) => {
+        const metricRow = $(
+          `<tr class="monthly-data-row" data-parent="${costCenter}"></tr>`
+        );
+        metricRow.append(
+          `<td style="min-width: 200px; width: 200px;">${metric.label}</td>`
+        );
+
+        sortedMonths.forEach((month) => {
+          const entry = Object.values(pivotData).find(
+            (item) => item.costCenter === costCenter && item.month === month
+          );
+          let value = 0;
+          if (entry) {
+            value = entry[metric.key];
+          }
+
+          let cellClass = "";
+          if (metric.isPositive && value > 0) cellClass = "positive";
+          else if (!metric.isPositive && value > 0) cellClass = "negative";
+          else if (value < 0) cellClass = "negative";
+
+          const formattedValue =
+            value === 0 ? "-" : value.toLocaleString("vi-VN");
+          metricRow.append(
+            `<td class="${cellClass}" style="min-width: 120px; text-align: right;">${formattedValue}</td>`
+          );
+        });
+
+        tableBody.append(metricRow);
+      });
+    });
+
+    // Add click handlers for cost center rows
+    $(".cost-center-row").on("click", function () {
+      const costCenter = $(this).data("cost-center");
+      const toggle = $(this).find(".cost-center-toggle");
+      const isExpanded = $(this).hasClass("expanded");
+
+      if (isExpanded) {
+        // Collapse
+        $(this).removeClass("expanded");
+        toggle.removeClass("expanded");
+        $(`.monthly-data-row[data-parent="${costCenter}"]`).removeClass("show");
+      } else {
+        // Expand
+        $(this).addClass("expanded");
+        toggle.addClass("expanded");
+        $(`.monthly-data-row[data-parent="${costCenter}"]`).addClass("show");
+      }
+    });
+
+    // Wait for DOM to be ready before initializing DataTable
+    setTimeout(() => {
+      // Initialize DataTable with specific configuration
+      currentTable = $("#revenueTable").DataTable({
+        responsive: false,
+        scrollX: true,
+        scrollY: "500px",
+        paging: false,
+        searching: false,
+        ordering: false,
+        info: false,
+        autoWidth: false,
+        dom: "Bt",
+        buttons: [
+          {
+            extend: "excelHtml5",
+            text: "Xuất Excel",
+            className: "btn btn-success",
+            title: "Báo cáo doanh thu",
+            filename: function () {
+              const year = $("#yearSelect").val();
+              const selectedCostCenters = $("#costCenterSelect").val();
+              let fileName = `Bao_cao_doanh_thu_${year}`;
+              if (
+                selectedCostCenters &&
+                selectedCostCenters.length > 0 &&
+                !selectedCostCenters.includes("all")
+              ) {
+                fileName += `_${selectedCostCenters.join("_")}`;
+              }
+              return fileName;
+            },
+            exportOptions: {
+              format: {
+                body: function (data, row, column, node) {
+                  return data.replace(/\./g, "").replace(/,/g, "");
+                },
+              },
+            },
+          },
+        ],
+        language: {
+          decimal: "",
+          emptyTable: "Không có dữ liệu trong bảng",
+          processing: "Đang xử lý...",
+          zeroRecords: "Không tìm thấy kết quả phù hợp",
+        },
+      });
+
+      // Add the buttons to the DOM
+      currentTable.buttons().container().appendTo($(".card-body .mb-3"));
+
+      // Force column adjustment after initialization
+      setTimeout(() => {
+        if (currentTable) {
+          currentTable.columns.adjust();
+        }
+      }, 100);
+    }, 50);
+
+    return Object.values(pivotData);
+  }
+
+  // Function to update budget summary
+  function updateBudgetSummary(data, year) {
+    const budgetContainer = $("#budgetSummaryContainer");
+    const budgetDetails = $("#budgetDetails");
+
+    if (year != 2025) {
+      budgetContainer.hide();
+      return;
+    }
+
+    let totalNetRevenue = 0;
+    let totalSales = 0;
+    let totalPurchases = 0;
+    let totalTransport = 0;
+    let totalCommissionPurchase = 0;
+    let totalCommissionSale = 0;
+    let totalSalary = 0;
+    let totalPayments = 0;
+
+    // Calculate totals
+    data.forEach((item) => {
+      totalSales += item.totalSale;
+      totalPurchases += item.totalPurchase;
+      totalTransport += item.totalTransport;
+      totalCommissionPurchase += item.totalCommissionPurchase;
+      totalCommissionSale += item.totalCommissionSale;
+      totalSalary += item.totalSalary;
+      totalPayments += item.totalPayments;
+      totalNetRevenue += item.netRevenue;
+    });
+
+    const currentBudget = STARTING_BUDGET_2025 + totalNetRevenue;
+
+    // Format numbers
+    const format = (num) => num.toLocaleString("vi-VN");
+
+    // Build HTML
+    const html = `
+      <div class="budget-item">
+        <span>Ngân sách ban đầu:</span>
+        <span>${format(STARTING_BUDGET_2025)} VNĐ</span>
+      </div>
+      <div class="budget-item">
+        <span>Tổng doanh thu bán hàng:</span>
+        <span class="positive">${format(totalSales)} VNĐ</span>
+      </div>
+      <div class="budget-item">
+        <span>Tổng chi phí mua hàng:</span>
+        <span class="negative">-${format(totalPurchases)} VNĐ</span>
+      </div>
+      <div class="budget-item">
+        <span>Tổng chi phí vận chuyển:</span>
+        <span class="negative">-${format(totalTransport)} VNĐ</span>
+      </div>
+      <div class="budget-item">
+        <span>Tổng hoa hồng mua hàng:</span>
+        <span class="negative">-${format(totalCommissionPurchase)} VNĐ</span>
+      </div>
+      <div class="budget-item">
+        <span>Tổng hoa hồng bán hàng:</span>
+        <span class="negative">-${format(totalCommissionSale)} VNĐ</span>
+      </div>
+      <div class="budget-item">
+        <span>Tổng chi phí lương:</span>
+        <span class="negative">-${format(totalSalary)} VNĐ</span>
+      </div>
+      <div class="budget-item">
+        <span>Tổng thanh toán khác:</span>
+        <span class="negative">-${format(totalPayments)} VNĐ</span>
+      </div>
+      <div class="budget-item">
+        <span>Tổng doanh thu ròng (2025):</span>
+        <span class="${totalNetRevenue >= 0 ? "positive" : "negative"}">
+          ${totalNetRevenue >= 0 ? "+" : ""}${format(totalNetRevenue)} VNĐ
+        </span>
+      </div>
+      <div class="budget-item budget-total">
+        <span>Ngân sách hiện tại:</span>
+        <span class="${
+          currentBudget >= STARTING_BUDGET_2025 ? "positive" : "negative"
+        }">
+          ${format(currentBudget)} VNĐ
+        </span>
+      </div>
+    `;
+
+    budgetDetails.html(html);
+    budgetContainer.show();
+  }
+
+  // Group Management Functions
   function initializeCostCenterGrid() {
     const grid = $("#costCenterGrid");
     grid.empty();
@@ -768,31 +1059,30 @@ $(document).ready(function () {
     // Add category sections
     Object.keys(categorizedCenters).forEach((category) => {
       const categoryHeader = $(`
-              <div class="category-header mt-3 mb-2">
-                <strong>${category}</strong>
-                <hr class="my-1">
-              </div>
-            `);
+        <div class="category-header mt-3 mb-2">
+          <strong>${category}</strong>
+          <hr class="my-1">
+        </div>
+      `);
       grid.append(categoryHeader);
 
       categorizedCenters[category].forEach((costCenter) => {
         const item = $(`
-              <div class="cost-center-item" data-value="${
-                costCenter.name
-              }" data-category="${costCenter.category}">
-                <input type="checkbox" id="cc_${costCenter.name.replace(
-                  /\s/g,
-                  "_"
-                )}" />
-                <label for="cc_${costCenter.name.replace(
-                  /\s/g,
-                  "_"
-                )}" style="margin-bottom: 0; cursor: pointer; flex: 1;">
-                  ${costCenter.name}
-                </label>
-              </div>
-            `);
-
+          <div class="cost-center-item" data-value="${
+            costCenter.name
+          }" data-category="${costCenter.category}">
+            <input type="checkbox" id="cc_${costCenter.name.replace(
+              /\s/g,
+              "_"
+            )}" />
+            <label for="cc_${costCenter.name.replace(
+              /\s/g,
+              "_"
+            )}" style="margin-bottom: 0; cursor: pointer; flex: 1;">
+              ${costCenter.name}
+            </label>
+          </div>
+        `);
         grid.append(item);
       });
     });
@@ -803,7 +1093,6 @@ $(document).ready(function () {
         const checkbox = $(this).find('input[type="checkbox"]');
         checkbox.prop("checked", !checkbox.prop("checked"));
       }
-
       const costCenterName = $(this).data("value");
       const isChecked = $(this).find('input[type="checkbox"]').prop("checked");
 
@@ -814,7 +1103,6 @@ $(document).ready(function () {
         selectedCostCenters.delete(costCenterName);
         $(this).removeClass("selected");
       }
-
       updateSelectedCount();
     });
 
@@ -830,7 +1118,6 @@ $(document).ready(function () {
         selectedCostCenters.delete(costCenterName);
         $(this).closest(".cost-center-item").removeClass("selected");
       }
-
       updateSelectedCount();
     });
   }
@@ -838,7 +1125,6 @@ $(document).ready(function () {
   function updateSelectedCount() {
     const count = selectedCostCenters.size;
     $("#selectedCount").text(`${count} trạm được chọn`);
-
     // Enable/disable save button
     $("#saveGroup").prop(
       "disabled",
@@ -938,380 +1224,6 @@ $(document).ready(function () {
 
   $("#saveGroup").on("click", saveCostCenterGroup);
 
-  // Function to create pivot table
-  function createPivotTable(data) {
-    // Destroy existing DataTable if it exists
-    if (currentTable) {
-      currentTable.destroy();
-      currentTable = null;
-    }
-
-    // Group data by cost center and month
-    const pivotData = {};
-    const costCenters = new Set();
-    const months = new Set();
-
-    data.forEach((item) => {
-      const centerMonthKey = `${item.costCenter}_${item.actualMonth}_${item.actualYear}`;
-      costCenters.add(item.costCenter);
-      months.add(`${item.actualMonth} ${item.actualYear}`);
-
-      if (!pivotData[centerMonthKey]) {
-        pivotData[centerMonthKey] = {
-          costCenter: item.costCenter,
-          month: `${item.actualMonth} ${item.actualYear}`,
-          monthOrder: monthOrder[item.actualMonth] || 0,
-          year: item.actualYear,
-          totalSale: 0,
-          totalPurchase: 0,
-          totalTransport: 0,
-          totalCommissionPurchase: 0,
-          totalCommissionSale: 0,
-          totalSalary: 0,
-          totalPayments: 0,
-          netRevenue: 0,
-        };
-      }
-
-      const entry = pivotData[centerMonthKey];
-      entry.totalSale += item.totalSale;
-      entry.totalPurchase += item.totalPurchase;
-      entry.totalTransport += item.totalTransport;
-      entry.totalCommissionPurchase += item.totalCommissionPurchase;
-      entry.totalCommissionSale += item.totalCommissionSale;
-      entry.totalSalary += item.grossSalary;
-      entry.totalPayments += item.totalPayments;
-      entry.netRevenue =
-        entry.totalSale -
-        entry.totalPurchase -
-        entry.totalTransport -
-        entry.totalCommissionPurchase -
-        entry.totalCommissionSale -
-        entry.totalSalary -
-        entry.totalPayments;
-    });
-
-    // Sort cost centers and months
-    const sortedCostCenters = Array.from(costCenters).sort();
-    const sortedMonths = Array.from(months).sort((a, b) => {
-      const [monthA, yearA] = a.split(" ");
-      const [monthB, yearB] = b.split(" ");
-      const yearDiff = parseInt(yearA) - parseInt(yearB);
-      if (yearDiff !== 0) return yearDiff;
-      return (monthOrder[monthA] || 0) - (monthOrder[monthB] || 0);
-    });
-
-    // Create table header
-    const tableHead = $("#tableHead");
-    tableHead.empty();
-
-    const headerRow = $("<tr></tr>");
-    headerRow.append(
-      '<th rowspan="2" class="metric-row" style="min-width: 180px; width: 180px;">Chi tiêu</th>'
-    );
-
-    sortedCostCenters.forEach((center) => {
-      headerRow.append(
-        `<th colspan="${sortedMonths.length}" class="center-header">${center}</th>`
-      );
-    });
-
-    const subHeaderRow = $("<tr></tr>");
-    sortedCostCenters.forEach((center) => {
-      sortedMonths.forEach((month) => {
-        subHeaderRow.append(
-          `<th class="month-subheader" style="min-width: 120px;">${month}</th>`
-        );
-      });
-    });
-
-    tableHead.append(headerRow);
-    tableHead.append(subHeaderRow);
-
-    // Create table body
-    const tableBody = $("#tableBody");
-    tableBody.empty();
-
-    metrics.forEach((metric) => {
-      const row = $('<tr class="metric-row"></tr>');
-      row.append(
-        `<td style="min-width: 180px; width: 180px;">${metric.label}</td>`
-      );
-
-      sortedCostCenters.forEach((center) => {
-        sortedMonths.forEach((month) => {
-          const centerMonthKey = `${center}_${month.replace(" ", "_")}`;
-          const entry = Object.values(pivotData).find(
-            (item) => item.costCenter === center && item.month === month
-          );
-
-          let value = 0;
-          if (entry) {
-            value = entry[metric.key];
-          }
-
-          let cellClass = "";
-          if (metric.isPositive && value > 0) cellClass = "positive";
-          else if (!metric.isPositive && value > 0) cellClass = "negative";
-          else if (value < 0) cellClass = "negative";
-
-          const formattedValue =
-            value === 0 ? "-" : value.toLocaleString("vi-VN");
-          row.append(
-            `<td class="${cellClass}" style="min-width: 120px; text-align: right;">${formattedValue}</td>`
-          );
-        });
-      });
-
-      tableBody.append(row);
-    });
-
-    // Wait for DOM to be ready before initializing DataTable
-    setTimeout(() => {
-      // Initialize DataTable with specific configuration for pivot table
-      currentTable = $("#revenueTable").DataTable({
-        responsive: false,
-        scrollX: true,
-        scrollY: "500px",
-        paging: false,
-        searching: false,
-        ordering: false,
-        info: false,
-        autoWidth: false,
-        fixedColumns: {
-          leftColumns: 1,
-        },
-        dom: "Bt",
-        buttons: [
-          {
-            extend: "excelHtml5",
-            text: "Xuất Excel",
-            className: "btn btn-success",
-            title: "Báo cáo doanh thu",
-            filename: function () {
-              const year = $("#yearSelect").val();
-              const selectedCostCenters = $("#costCenterSelect").val();
-              let fileName = `Bao_cao_doanh_thu_${year}`;
-
-              if (
-                selectedCostCenters &&
-                selectedCostCenters.length > 0 &&
-                !selectedCostCenters.includes("all")
-              ) {
-                fileName += `_${selectedCostCenters.join("_")}`;
-              }
-
-              return fileName;
-            },
-            customize: function (xlsx) {
-              const sheet = xlsx.xl.worksheets["sheet1.xml"];
-
-              // Add header information
-              const year = $("#yearSelect").val();
-              const selectedCostCenters = $("#costCenterSelect").val();
-              let costCenterText = "Tất cả trạm";
-
-              if (
-                selectedCostCenters &&
-                selectedCostCenters.length > 0 &&
-                !selectedCostCenters.includes("all")
-              ) {
-                costCenterText = selectedCostCenters.join(", ");
-              }
-
-              const titleRow = $("<row></row>").append(
-                $(
-                  '<c r="A1" t="inlineStr" s="20"><is><t>Báo cáo doanh thu năm ' +
-                    year +
-                    " (Pivot)</t></is></c>"
-                )
-              );
-              const filterRow = $("<row></row>").append(
-                $(
-                  '<c r="A2" t="inlineStr" s="20"><is><t>Trạm: ' +
-                    costCenterText +
-                    "</t></is></c>"
-                )
-              );
-
-              $("sheetData", sheet).prepend(filterRow);
-              $("sheetData", sheet).prepend(titleRow);
-            },
-            exportOptions: {
-              format: {
-                body: function (data, row, column, node) {
-                  return data.replace(/\./g, "").replace(/,/g, "");
-                },
-              },
-            },
-          },
-        ],
-        language: {
-          decimal: "",
-          emptyTable: "Không có dữ liệu trong bảng",
-          processing: "Đang xử lý...",
-          zeroRecords: "Không tìm thấy kết quả phù hợp",
-        },
-      });
-
-      // Add the buttons to the DOM
-      currentTable.buttons().container().appendTo($(".card-body .mb-3"));
-
-      // Force column adjustment after initialization
-      setTimeout(() => {
-        if (currentTable) {
-          currentTable.columns.adjust();
-        }
-      }, 100);
-    }, 50);
-
-    return Object.values(pivotData);
-  }
-
-  // Function to update budget summary
-  function updateBudgetSummary(data, year) {
-    const budgetContainer = $("#budgetSummaryContainer");
-    const budgetDetails = $("#budgetDetails");
-
-    if (year != 2025) {
-      budgetContainer.hide();
-      return;
-    }
-
-    let totalNetRevenue = 0;
-    let totalSales = 0;
-    let totalPurchases = 0;
-    let totalTransport = 0;
-    let totalCommissionPurchase = 0;
-    let totalCommissionSale = 0;
-    let totalSalary = 0;
-    let totalPayments = 0;
-
-    // Calculate totals
-    data.forEach((item) => {
-      totalSales += item.totalSale;
-      totalPurchases += item.totalPurchase;
-      totalTransport += item.totalTransport;
-      totalCommissionPurchase += item.totalCommissionPurchase;
-      totalCommissionSale += item.totalCommissionSale;
-      totalSalary += item.totalSalary;
-      totalPayments += item.totalPayments;
-      totalNetRevenue += item.netRevenue;
-    });
-
-    const currentBudget = STARTING_BUDGET_2025 + totalNetRevenue;
-
-    // Format numbers
-    const format = (num) => num.toLocaleString("vi-VN");
-
-    // Build HTML
-    const html = `
-            <div class="budget-item">
-              <span>Ngân sách ban đầu:</span>
-              <span>${format(STARTING_BUDGET_2025)} VNĐ</span>
-            </div>
-            <div class="budget-item">
-              <span>Tổng doanh thu bán hàng:</span>
-              <span class="positive">${format(totalSales)} VNĐ</span>
-            </div>
-            <div class="budget-item">
-              <span>Tổng chi phí mua hàng:</span>
-              <span class="negative">-${format(totalPurchases)} VNĐ</span>
-            </div>
-            <div class="budget-item">
-              <span>Tổng chi phí vận chuyển:</span>
-              <span class="negative">-${format(totalTransport)} VNĐ</span>
-            </div>
-            <div class="budget-item">
-              <span>Tổng hoa hồng mua hàng:</span>
-              <span class="negative">-${format(
-                totalCommissionPurchase
-              )} VNĐ</span>
-            </div>
-            <div class="budget-item">
-              <span>Tổng hoa hồng bán hàng:</span>
-              <span class="negative">-${format(totalCommissionSale)} VNĐ</span>
-            </div>
-            <div class="budget-item">
-              <span>Tổng chi phí lương:</span>
-              <span class="negative">-${format(totalSalary)} VNĐ</span>
-            </div>
-            <div class="budget-item">
-              <span>Tổng thanh toán khác:</span>
-              <span class="negative">-${format(totalPayments)} VNĐ</span>
-            </div>
-            <div class="budget-item">
-              <span>Tổng doanh thu ròng (2025):</span>
-              <span class="${totalNetRevenue >= 0 ? "positive" : "negative"}">
-                ${totalNetRevenue >= 0 ? "+" : ""}${format(totalNetRevenue)} VNĐ
-              </span>
-            </div>
-            <div class="budget-item budget-total">
-              <span>Ngân sách hiện tại:</span>
-              <span class="${
-                currentBudget >= STARTING_BUDGET_2025 ? "positive" : "negative"
-              }">
-                ${format(currentBudget)} VNĐ
-              </span>
-            </div>
-          `;
-
-    budgetDetails.html(html);
-    budgetContainer.show();
-  }
-
-  $("#filterForm").on("submit", function (e) {
-    e.preventDefault();
-    const year = $("#yearSelect").val();
-    const selectedCostCenters = $("#costCenterSelect").val();
-    const category = $("#categoryFilter").val();
-
-    // Build the query parameters for multiple cost centers
-    let queryParams = `year=${year}`;
-    if (
-      selectedCostCenters &&
-      selectedCostCenters.length > 0 &&
-      !selectedCostCenters.includes("all")
-    ) {
-      queryParams += `&costCenters=${selectedCostCenters.join(",")}`;
-    }
-
-    // Add category to query if filtering by category
-    if (category !== "all") {
-      queryParams += `&category=${category}`;
-    }
-
-    $.ajax({
-      url: `/financeSummaryRevenueByCostCenter?${queryParams}`,
-      method: "GET",
-      success: function (data) {
-        if (data.length === 0) {
-          alert("Không tìm thấy dữ liệu cho năm đã chọn");
-          $("#tableBody").html(
-            '<tr><td colspan="100%" class="text-center text-muted">Không có dữ liệu</td></tr>'
-          );
-          $("#budgetSummaryContainer").hide();
-          currentChartData = [];
-          return;
-        }
-
-        const pivotData = createPivotTable(data);
-        currentChartData = pivotData;
-        updateSelectedCentersInfo();
-        updateBudgetSummary(pivotData, year);
-
-        // Update charts if chart view is active
-        if ($("#chartView").is(":checked")) {
-          updateCharts();
-        }
-      },
-      error: function (xhr, status, error) {
-        alert("Lỗi khi tải dữ liệu: " + error);
-      },
-    });
-  });
-
-  // Group Management Functions
   function loadCostCenterGroups() {
     $("#groupList").html(
       '<div class="list-group-item text-muted text-center">Đang tải nhóm...</div>'
@@ -1333,25 +1245,25 @@ $(document).ready(function () {
 
         groups.forEach((group) => {
           const groupItem = $(`
-                  <div class="list-group-item group-item d-flex justify-content-between align-items-center">
-                    <div style="flex: 1; cursor: pointer;">
-                      <strong>${group.name}</strong>
-                      <div class="text-muted small">${
-                        group.costCenters.length
-                      } trạm</div>
-                      <div class="text-muted small" style="font-size: 0.75em;">${group.costCenters.join(
-                        ", "
-                      )}</div>
-                    </div>
-                    <div>
-                      <button class="btn btn-sm btn-outline-danger delete-group" data-id="${
-                        group._id
-                      }" title="Xóa nhóm">
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                `);
+            <div class="list-group-item group-item d-flex justify-content-between align-items-center">
+              <div style="flex: 1; cursor: pointer;">
+                <strong>${group.name}</strong>
+                <div class="text-muted small">${
+                  group.costCenters.length
+                } trạm</div>
+                <div class="text-muted small" style="font-size: 0.75em;">${group.costCenters.join(
+                  ", "
+                )}</div>
+              </div>
+              <div>
+                <button class="btn btn-sm btn-outline-danger delete-group" data-id="${
+                  group._id
+                }" title="Xóa nhóm">
+                  ✕
+                </button>
+              </div>
+            </div>
+          `);
 
           groupItem.on("click", ".delete-group", function (e) {
             e.stopPropagation();
@@ -1402,10 +1314,8 @@ $(document).ready(function () {
   $("#groupModal").on("shown.bs.modal", function () {
     // Initialize the cost center grid
     initializeCostCenterGrid();
-
     // Load existing groups
     loadCostCenterGroups();
-
     // Reset form state
     selectedCostCenters.clear();
     $("#groupName").val("");
@@ -1417,6 +1327,60 @@ $(document).ready(function () {
     selectedCostCenters.clear();
     $("#groupName").val("");
     $("#costCenterGrid").empty();
+  });
+
+  // Form submission handler - UPDATED to use new vertical stacked table function
+  $("#filterForm").on("submit", function (e) {
+    e.preventDefault();
+    const year = $("#yearSelect").val();
+    const selectedCostCenters = $("#costCenterSelect").val();
+    const category = $("#categoryFilter").val();
+
+    // Build the query parameters for multiple cost centers
+    let queryParams = `year=${year}`;
+    if (
+      selectedCostCenters &&
+      selectedCostCenters.length > 0 &&
+      !selectedCostCenters.includes("all")
+    ) {
+      queryParams += `&costCenters=${selectedCostCenters.join(",")}`;
+    }
+
+    // Add category to query if filtering by category
+    if (category !== "all") {
+      queryParams += `&category=${category}`;
+    }
+
+    $.ajax({
+      url: `/financeSummaryRevenueByCostCenter?${queryParams}`,
+      method: "GET",
+      success: function (data) {
+        if (data.length === 0) {
+          alert("Không tìm thấy dữ liệu cho năm đã chọn");
+          $("#tableBody").html(
+            '<tr><td colspan="100%" class="text-center text-muted">Không có dữ liệu</td></tr>'
+          );
+          $("#budgetSummaryContainer").hide();
+          currentChartData = [];
+          return;
+        }
+
+        // Use the new vertical stacked table function
+        const pivotData = createVerticalStackedTable(data);
+        currentChartData = pivotData;
+
+        updateSelectedCentersInfo();
+        updateBudgetSummary(pivotData, year);
+
+        // Update charts if chart view is active
+        if ($("#chartView").is(":checked")) {
+          updateCharts();
+        }
+      },
+      error: function (xhr, status, error) {
+        alert("Lỗi khi tải dữ liệu: " + error);
+      },
+    });
   });
 
   // Initial load

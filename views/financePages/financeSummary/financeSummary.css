@@ -63,6 +63,8 @@
   font-size: 0.9em;
   text-align: center;
 }
+
+/* Updated pivot table styles for vertical cost center layout */
 .pivot-table {
   font-size: 0.9em;
 }
@@ -71,12 +73,50 @@
   top: 0;
   z-index: 10;
 }
-.pivot-table td:first-child {
-  position: sticky;
-  left: 0;
-  z-index: 5;
-  background-color: #f8f9fa;
+
+/* Cost center row styling */
+.cost-center-row {
+  background-color: #e3f2fd;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
+.cost-center-row:hover {
+  background-color: #bbdefb;
+}
+.cost-center-row.expanded {
+  background-color: #2196f3;
+  color: white;
+}
+.cost-center-row.expanded:hover {
+  background-color: #1976d2;
+}
+
+/* Cost center toggle icon */
+.cost-center-toggle {
+  font-weight: bold;
+  margin-right: 8px;
+  display: inline-block;
+  width: 16px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+.cost-center-toggle.expanded {
+  transform: rotate(90deg);
+}
+
+/* Monthly data rows - initially hidden */
+.monthly-data-row {
+  display: none;
+}
+.monthly-data-row.show {
+  display: table-row;
+}
+.monthly-data-row td:first-child {
+  padding-left: 30px;
+  background-color: #f8f9fa;
+  border-left: 3px solid #2196f3;
+}
+
 .table-container {
   max-height: 600px;
   overflow: auto;
@@ -90,44 +130,38 @@
   padding: 20px;
   margin-bottom: 20px;
   position: relative;
-  height: 400px; /* Fixed height */
+  height: 400px;
 }
-
 .chart-container canvas {
   max-width: 100% !important;
   max-height: 350px !important;
   width: 100% !important;
   height: auto !important;
 }
-
 .chart-container.small {
   height: 300px;
 }
-
 .chart-container.small canvas {
   max-height: 250px !important;
 }
-
 .chart-controls {
   background: #f8f9fa;
   padding: 15px;
   border-radius: 8px;
   margin-bottom: 20px;
 }
-
 .chart-title {
   font-size: 1.1em;
   font-weight: bold;
   margin-bottom: 15px;
   color: #495057;
-  height: 20px; /* Fixed height for title */
+  height: 20px;
 }
 
 /* View Toggle Buttons */
 .view-toggle {
   margin-bottom: 20px;
 }
-
 .view-toggle .btn-group .btn {
   min-width: 120px;
 }
@@ -136,7 +170,6 @@
 #groupModal .modal-dialog {
   max-width: 900px;
 }
-
 .cost-center-selection {
   border: 1px solid #dee2e6;
   border-radius: 8px;
@@ -145,13 +178,11 @@
   max-height: 400px;
   overflow-y: auto;
 }
-
 .cost-center-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 8px;
 }
-
 .cost-center-item {
   display: flex;
   align-items: center;
@@ -163,23 +194,19 @@
   transition: all 0.2s;
   user-select: none;
 }
-
 .cost-center-item:hover {
   background-color: #e3f2fd;
   border-color: #2196f3;
 }
-
 .cost-center-item.selected {
   background-color: #1976d2;
   border-color: #1976d2;
   color: white;
 }
-
 .cost-center-item input[type="checkbox"] {
   margin-right: 8px;
   cursor: pointer;
 }
-
 .selected-count {
   background-color: #1976d2;
   color: white;
@@ -189,24 +216,20 @@
   display: inline-block;
   margin-bottom: 10px;
 }
-
 .selection-actions {
   display: flex;
   gap: 10px;
   margin-bottom: 15px;
   flex-wrap: wrap;
 }
-
 .selection-actions button {
   padding: 4px 12px;
   font-size: 0.85em;
 }
-
 .group-creation-section {
   border-left: 2px solid #dee2e6;
   padding-left: 20px;
 }
-
 .category-filter {
   background-color: #f8f9fa;
   border-radius: 5px;
@@ -232,12 +255,10 @@
   .cost-center-grid {
     grid-template-columns: 1fr;
   }
-
   #groupModal .modal-dialog {
     max-width: 95%;
     margin: 10px auto;
   }
-
   .group-creation-section {
     border-left: none;
     border-top: 2px solid #dee2e6;
@@ -245,7 +266,6 @@
     padding-top: 20px;
     margin-top: 20px;
   }
-
   .chart-container canvas {
     max-height: 300px !important;
   }
