@@ -37,55 +37,63 @@ $(document).ready(function () {
     "Tháng Mười Hai": 12,
   };
 
-  // Metrics configuration
+  // Metrics configuration - Updated with category-specific visibility
   const metrics = [
     {
       key: "totalSale",
       label: "Tổng Bán Hàng",
       isPositive: true,
       color: "#28a745",
+      hiddenForCategories: [], // Always show
     },
     {
       key: "totalPurchase",
       label: "Tổng Mua Hàng",
       isPositive: false,
       color: "#dc3545",
+      hiddenForCategories: ["Thuê bồn", "Thuê trạm"], // Hide for these categories
     },
     {
       key: "totalTransport",
       label: "Chi Phí Vận Chuyển",
       isPositive: false,
       color: "#ffc107",
+      hiddenForCategories: ["Thuê bồn", "Thuê trạm"], // Hide for these categories
     },
     {
       key: "totalCommissionPurchase",
       label: "Hoa Hồng Mua Hàng",
       isPositive: false,
       color: "#fd7e14",
+      hiddenForCategories: ["Thuê bồn", "Thuê trạm"], // Hide for these categories
     },
     {
       key: "totalCommissionSale",
       label: "Hoa Hồng Bán Hàng",
       isPositive: false,
       color: "#e83e8c",
+      hiddenForCategories: [], // Always show
     },
     {
       key: "totalSalary",
       label: "Tổng Lương",
       isPositive: false,
       color: "#6f42c1",
+      hiddenForCategories: [], // Always show
     },
     {
       key: "totalPayments",
       label: "Tổng Thanh Toán",
       isPositive: false,
       color: "#6c757d",
+      hiddenForCategories: [], // Always show
     },
     {
       key: "netRevenue",
       label: "Doanh Thu Ròng",
       isPositive: true,
       color: "#007bff",
+      hiddenForCategories: [], // Always show
     },
   ];
 
@@ -134,6 +142,18 @@ $(document).ready(function () {
       );
     }
     return $container;
+  }
+
+  // Function to get cost center category
+  function getCostCenterCategory(costCenterName) {
+    const costCenter = allCostCenters.find((cc) => cc.name === costCenterName);
+    return costCenter ? costCenter.category : null;
+  }
+
+  // Function to check if metric should be hidden for a category
+  function shouldHideMetricForCategory(metricKey, category) {
+    const metric = metrics.find((m) => m.key === metricKey);
+    return metric && metric.hiddenForCategories.includes(category);
   }
 
   // Populate year dropdown
@@ -718,7 +738,7 @@ $(document).ready(function () {
     createTrendChart(currentChartData);
   }
 
-  // NEW: Function to create vertical stacked table with cost center dropdowns
+  // Function to create vertical stacked table with category-aware row hiding
   function createVerticalStackedTable(data) {
     // Destroy existing DataTable if it exists
     if (currentTable) {
@@ -801,14 +821,24 @@ $(document).ready(function () {
     tableBody.empty();
 
     sortedCostCenters.forEach((costCenter) => {
+      // Get the category for this cost center
+      const costCenterCategory = getCostCenterCategory(costCenter);
+
       // Cost center header row (clickable)
       const costCenterRow = $(
-        `<tr class="cost-center-row" data-cost-center="${costCenter}"></tr>`
+        `<tr class="cost-center-row" data-cost-center="${costCenter}" data-category="${
+          costCenterCategory || ""
+        }"></tr>`
       );
       costCenterRow.append(
         `<td style="min-width: 200px; width: 200px;">
           <span class="cost-center-toggle">▶</span>
           <strong>${costCenter}</strong>
+          ${
+            costCenterCategory
+              ? `<span class="cost-center-category"> (${costCenterCategory})</span>`
+              : ""
+          }
         </td>`
       );
 
@@ -831,10 +861,18 @@ $(document).ready(function () {
 
       tableBody.append(costCenterRow);
 
-      // Add metric detail rows (initially hidden)
+      // Add metric detail rows (initially hidden) - UPDATED with category filtering
       metrics.forEach((metric) => {
+        // Check if this metric should be hidden for this cost center's category
+        if (
+          costCenterCategory &&
+          shouldHideMetricForCategory(metric.key, costCenterCategory)
+        ) {
+          return; // Skip this metric row entirely
+        }
+
         const metricRow = $(
-          `<tr class="monthly-data-row" data-parent="${costCenter}"></tr>`
+          `<tr class="monthly-data-row" data-parent="${costCenter}" data-metric="${metric.key}"></tr>`
         );
         metricRow.append(
           `<td style="min-width: 200px; width: 200px;">${metric.label}</td>`
@@ -964,7 +1002,7 @@ $(document).ready(function () {
     return Object.values(pivotData);
   }
 
-  // Function to update budget summary
+  // Function to update budget summary - UPDATED to respect category-specific metrics
   function updateBudgetSummary(data, year) {
     const budgetContainer = $("#budgetSummaryContainer");
     const budgetDetails = $("#budgetDetails");
@@ -983,15 +1021,31 @@ $(document).ready(function () {
     let totalSalary = 0;
     let totalPayments = 0;
 
-    // Calculate totals
+    // Calculate totals with category awareness
     data.forEach((item) => {
+      const costCenterCategory = getCostCenterCategory(item.costCenter);
+
       totalSales += item.totalSale;
-      totalPurchases += item.totalPurchase;
-      totalTransport += item.totalTransport;
-      totalCommissionPurchase += item.totalCommissionPurchase;
       totalCommissionSale += item.totalCommissionSale;
       totalSalary += item.totalSalary;
       totalPayments += item.totalPayments;
+
+      // Only include these metrics if not hidden for this category
+      if (!shouldHideMetricForCategory("totalPurchase", costCenterCategory)) {
+        totalPurchases += item.totalPurchase;
+      }
+      if (!shouldHideMetricForCategory("totalTransport", costCenterCategory)) {
+        totalTransport += item.totalTransport;
+      }
+      if (
+        !shouldHideMetricForCategory(
+          "totalCommissionPurchase",
+          costCenterCategory
+        )
+      ) {
+        totalCommissionPurchase += item.totalCommissionPurchase;
+      }
+
       totalNetRevenue += item.netRevenue;
     });
 
@@ -1000,8 +1054,8 @@ $(document).ready(function () {
     // Format numbers
     const format = (num) => num.toLocaleString("vi-VN");
 
-    // Build HTML
-    const html = `
+    // Build HTML - conditionally show expense items
+    let html = `
       <div class="budget-item">
         <span>Ngân sách ban đầu:</span>
         <span>${format(STARTING_BUDGET_2025)} VNĐ</span>
@@ -1009,19 +1063,34 @@ $(document).ready(function () {
       <div class="budget-item">
         <span>Tổng doanh thu bán hàng:</span>
         <span class="positive">${format(totalSales)} VNĐ</span>
-      </div>
+      </div>`;
+
+    // Only show purchase-related expenses if they have values (not hidden for all selected cost centers)
+    if (totalPurchases > 0) {
+      html += `
       <div class="budget-item">
         <span>Tổng chi phí mua hàng:</span>
         <span class="negative">-${format(totalPurchases)} VNĐ</span>
-      </div>
+      </div>`;
+    }
+
+    if (totalTransport > 0) {
+      html += `
       <div class="budget-item">
         <span>Tổng chi phí vận chuyển:</span>
         <span class="negative">-${format(totalTransport)} VNĐ</span>
-      </div>
+      </div>`;
+    }
+
+    if (totalCommissionPurchase > 0) {
+      html += `
       <div class="budget-item">
         <span>Tổng hoa hồng mua hàng:</span>
         <span class="negative">-${format(totalCommissionPurchase)} VNĐ</span>
-      </div>
+      </div>`;
+    }
+
+    html += `
       <div class="budget-item">
         <span>Tổng hoa hồng bán hàng:</span>
         <span class="negative">-${format(totalCommissionSale)} VNĐ</span>
