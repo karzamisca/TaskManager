@@ -2,6 +2,7 @@
 const mongoose = require("mongoose");
 
 const proposalDocumentSchema = new mongoose.Schema({
+  tag: { type: String, required: true, unique: true },
   title: { type: String, default: "Proposal Document", required: true },
   task: { type: String, required: true },
   costCenter: { type: String, required: true },

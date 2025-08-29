@@ -2,7 +2,7 @@
 const mongoose = require("mongoose");
 
 const advancePaymentReclaimDocumentSchema = new mongoose.Schema({
-  tag: { type: String, required: true },
+  tag: { type: String, required: true, unique: true },
   title: {
     type: String,
     default: "Advance Payment Reclaim Document",

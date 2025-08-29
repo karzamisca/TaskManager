@@ -872,7 +872,14 @@ async function handleFileUpload(req) {
 
 // Create a Proposal Document
 async function createProposalDocument(req, approverDetails, uploadedFileData) {
+  // Format the submission date for both display and the tag
+  const now = moment().tz("Asia/Bangkok");
+  const submissionDateForTag = now.format("DDMMYYYYHHmmss");
+  // Create the tag by combining name and formatted date
+  const tag = `${req.body.task}${submissionDateForTag}`;
+
   return new ProposalDocument({
+    tag,
     title: req.body.title,
     task: req.body.task,
     costCenter: req.body.costCenter,
@@ -985,8 +992,15 @@ async function createPurchasingDocument(
       }));
     }
 
+    // Format the submission date for both display and the tag
+    const now = moment().tz("Asia/Bangkok");
+    const submissionDateForTag = now.format("DDMMYYYYHHmmss");
+    // Create the tag by combining name and formatted date
+    const tag = `${req.body.name}${submissionDateForTag}`;
+
     // 5. Create and return the document
     return new PurchasingDocument({
+      tag,
       title: req.body.title || "Purchasing Document",
       name: req.body.name,
       costCenter,
@@ -1022,7 +1036,14 @@ async function createDeliveryDocument(req, approverDetails, uploadedFileData) {
   // Process appended proposals
   const appendedProposals = await processAppendedProposals(approvedProposals);
 
+  // Format the submission date for both display and the tag
+  const now = moment().tz("Asia/Bangkok");
+  const submissionDateForTag = now.format("DDMMYYYYHHmmss");
+  // Create the tag by combining name and formatted date
+  const tag = `${req.body.name}${submissionDateForTag}`;
+
   return new DeliveryDocument({
+    tag,
     title: req.body.title,
     name: req.body.name,
     costCenter: req.body.costCenter,
