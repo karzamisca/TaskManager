@@ -3296,8 +3296,12 @@ exports.approvePaymentStage = async (req, res) => {
       });
     }
 
-    // Define the approval hierarchy: other approvers -> director -> captainOfAccounting -> deputyDirector
-    const getStageApprovalOrder = async (approvers, approvedBy) => {
+    // Define the approval hierarchy based on stage payment amount
+    const getStageApprovalOrder = async (
+      approvers,
+      approvedBy,
+      stageAmount
+    ) => {
       // Get all approver details from the stage's approvers list
       const approverDetails = [];
       for (const app of approvers) {
@@ -3314,12 +3318,15 @@ exports.approvePaymentStage = async (req, res) => {
       const approvedRoles = approvedBy.map((app) => app.role);
       const approvedUserIds = approvedBy.map((app) => app.user.toString());
 
-      // Roles in required hierarchy order
-      const hierarchyOrder = [
-        "director",
-        "captainOfAccounting",
-        "deputyDirector",
-      ];
+      // Dynamic hierarchy order based on stage payment amount
+      let hierarchyOrder;
+      if (stageAmount < 100000000) {
+        // For stage amounts < 100M: deputyDirector -> director -> captainOfAccounting
+        hierarchyOrder = ["deputyDirector", "director", "captainOfAccounting"];
+      } else {
+        // For stage amounts >= 100M: director -> captainOfAccounting -> deputyDirector
+        hierarchyOrder = ["director", "captainOfAccounting", "deputyDirector"];
+      }
 
       // Get only the hierarchy roles that are actually assigned to this stage
       const assignedHierarchyRoles = hierarchyOrder.filter((role) =>
@@ -3341,14 +3348,18 @@ exports.approvePaymentStage = async (req, res) => {
     };
 
     // Check if current user can approve this stage based on the sequential order
-    const canApproveStageNow = async (userRole, userId, stage) => {
+    const canApproveStageNow = async (userRole, userId, stage, stageAmount) => {
       const {
         otherApprovers,
         assignedHierarchyRoles,
         approvedRoles,
         approvedUserIds,
         approverDetails,
-      } = await getStageApprovalOrder(stage.approvers, stage.approvedBy);
+      } = await getStageApprovalOrder(
+        stage.approvers,
+        stage.approvedBy,
+        stageAmount
+      );
 
       // If user is not in the approval hierarchy, they can approve anytime (other approvers)
       if (!assignedHierarchyRoles.includes(userRole)) {
@@ -3409,11 +3420,16 @@ exports.approvePaymentStage = async (req, res) => {
     const stageApprovalCheck = await canApproveStageNow(
       user.role,
       user.id,
-      stage
+      stage,
+      stage.amount
     );
     if (!stageApprovalCheck.canApprove) {
       return res.status(400).json({
-        message: `Bạn chưa thể phê duyệt giai đoạn này`,
+        message: `Bạn chưa thể phê duyệt giai đoạn này${
+          stageApprovalCheck.waitingFor
+            ? `. Đang chờ phê duyệt từ: ${stageApprovalCheck.waitingFor}`
+            : ""
+        }`,
       });
     }
 
@@ -3524,8 +3540,8 @@ exports.approvePaymentDocument = async (req, res) => {
       return res.send("Bạn đã phê duyệt phiếu rồi.");
     }
 
-    // Define the approval hierarchy: other approvers -> director -> captainOfAccounting -> deputyDirector
-    const getApprovalOrder = async (approvers, approvedBy) => {
+    // Define the approval hierarchy with conditional order for payment documents
+    const getApprovalOrder = async (approvers, approvedBy, document) => {
       // Get all approver details from the document's approvers list
       const approverDetails = [];
       for (const app of approvers) {
@@ -3542,12 +3558,19 @@ exports.approvePaymentDocument = async (req, res) => {
       const approvedRoles = approvedBy.map((app) => app.role);
       const approvedUserIds = approvedBy.map((app) => app.user.toString());
 
-      // Roles in required hierarchy order
-      const hierarchyOrder = [
-        "director",
-        "captainOfAccounting",
-        "deputyDirector",
-      ];
+      // Determine hierarchy order based on document type and payment amount
+      let hierarchyOrder;
+
+      if (
+        document instanceof PaymentDocument &&
+        document.totalPayment < 100000000
+      ) {
+        // For payment documents under 100,000,000: deputyDirector comes before director
+        hierarchyOrder = ["deputyDirector", "captainOfAccounting", "director"];
+      } else {
+        // Default hierarchy: director -> captainOfAccounting -> deputyDirector
+        hierarchyOrder = ["director", "captainOfAccounting", "deputyDirector"];
+      }
 
       // Get only the hierarchy roles that are actually assigned to this document
       const assignedHierarchyRoles = hierarchyOrder.filter((role) =>
@@ -3576,7 +3599,11 @@ exports.approvePaymentDocument = async (req, res) => {
         approvedRoles,
         approvedUserIds,
         approverDetails,
-      } = await getApprovalOrder(document.approvers, document.approvedBy);
+      } = await getApprovalOrder(
+        document.approvers,
+        document.approvedBy,
+        document
+      );
 
       // If user is not in the approval hierarchy, they can approve anytime (other approvers)
       if (!assignedHierarchyRoles.includes(userRole)) {
