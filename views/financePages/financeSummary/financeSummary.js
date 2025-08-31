@@ -746,18 +746,24 @@ $(document).ready(function () {
       currentTable = null;
     }
 
-    // Group data by cost center and month
+    // Group data by category, metric, cost center and month
     const pivotData = {};
+    const categories = new Set();
     const costCenters = new Set();
     const months = new Set();
 
     data.forEach((item) => {
-      const centerMonthKey = `${item.costCenter}_${item.actualMonth}_${item.actualYear}`;
+      const category =
+        getCostCenterCategory(item.costCenter) || "Không phân loại";
+      const centerMonthKey = `${category}_${item.costCenter}_${item.actualMonth}_${item.actualYear}`;
+
+      categories.add(category);
       costCenters.add(item.costCenter);
       months.add(`${item.actualMonth} ${item.actualYear}`);
 
       if (!pivotData[centerMonthKey]) {
         pivotData[centerMonthKey] = {
+          category: category,
           costCenter: item.costCenter,
           month: `${item.actualMonth} ${item.actualYear}`,
           monthOrder: monthOrder[item.actualMonth] || 0,
@@ -791,7 +797,8 @@ $(document).ready(function () {
         entry.totalPayments;
     });
 
-    // Sort cost centers and months
+    // Sort categories, cost centers and months
+    const sortedCategories = Array.from(categories).sort();
     const sortedCostCenters = Array.from(costCenters).sort();
     const sortedMonths = Array.from(months).sort((a, b) => {
       const [monthA, yearA] = a.split(" ");
@@ -801,17 +808,17 @@ $(document).ready(function () {
       return (monthOrder[monthA] || 0) - (monthOrder[monthB] || 0);
     });
 
-    // Create table header
+    // Create table header with auto-scaling columns
     const tableHead = $("#tableHead");
     tableHead.empty();
 
     const headerRow = $("<tr></tr>");
-    headerRow.append(
-      '<th style="min-width: 200px; width: 200px;">Trạm / Chỉ số</th>'
-    );
+    // Auto-scaling first column
+    headerRow.append('<th class="first-column">Loại / Chỉ số / Trạm</th>');
     sortedMonths.forEach((month) => {
+      // Auto-scaling month columns
       headerRow.append(
-        `<th class="month-subheader" style="min-width: 120px;">${month}</th>`
+        `<th class="month-column" style="text-align: center;">${month}</th>`
       );
     });
     tableHead.append(headerRow);
@@ -820,111 +827,179 @@ $(document).ready(function () {
     const tableBody = $("#tableBody");
     tableBody.empty();
 
-    sortedCostCenters.forEach((costCenter) => {
-      // Get the category for this cost center
-      const costCenterCategory = getCostCenterCategory(costCenter);
+    // Group cost centers by category
+    const costCentersByCategory = {};
+    Object.values(pivotData).forEach((item) => {
+      if (!costCentersByCategory[item.category]) {
+        costCentersByCategory[item.category] = new Set();
+      }
+      costCentersByCategory[item.category].add(item.costCenter);
+    });
 
-      // Cost center header row (clickable)
-      const costCenterRow = $(
-        `<tr class="cost-center-row" data-cost-center="${costCenter}" data-category="${
-          costCenterCategory || ""
-        }"></tr>`
+    sortedCategories.forEach((category) => {
+      // Category header row (clickable) with auto-scaling
+      const categoryRow = $(
+        `<tr class="category-row" data-category="${category}"></tr>`
       );
-      costCenterRow.append(
-        `<td style="min-width: 200px; width: 200px;">
-          <span class="cost-center-toggle">▶</span>
-          <strong>${costCenter}</strong>
-          ${
-            costCenterCategory
-              ? `<span class="cost-center-category"> (${costCenterCategory})</span>`
-              : ""
-          }
-        </td>`
+      categoryRow.append(
+        `<td class="first-column">
+        <span class="category-toggle">▶</span>
+        <strong class="text-primary">${category}</strong>
+      </td>`
       );
 
-      // Add summary cells for the cost center
-      sortedMonths.forEach((month) => {
-        const entry = Object.values(pivotData).find(
-          (item) => item.costCenter === costCenter && item.month === month
-        );
-        const netRevenue = entry ? entry.netRevenue : 0;
-        let cellClass = "";
-        if (netRevenue > 0) cellClass = "positive";
-        else if (netRevenue < 0) cellClass = "negative";
-
-        const formattedValue =
-          netRevenue === 0 ? "-" : netRevenue.toLocaleString("vi-VN");
-        costCenterRow.append(
-          `<td class="${cellClass}" style="min-width: 120px; text-align: right; font-weight: bold;">${formattedValue}</td>`
+      // Add empty cells for months in category header
+      sortedMonths.forEach(() => {
+        categoryRow.append(
+          `<td class="month-column" style="text-align: right; font-weight: bold;"></td>`
         );
       });
 
-      tableBody.append(costCenterRow);
+      tableBody.append(categoryRow);
 
-      // Add metric detail rows (initially hidden) - UPDATED with category filtering
+      // Add metrics for this category (initially hidden)
       metrics.forEach((metric) => {
-        // Check if this metric should be hidden for this cost center's category
-        if (
-          costCenterCategory &&
-          shouldHideMetricForCategory(metric.key, costCenterCategory)
-        ) {
+        // Check if this metric should be hidden for this category
+        if (shouldHideMetricForCategory(metric.key, category)) {
           return; // Skip this metric row entirely
         }
 
+        // Metric header row (clickable, nested under category)
         const metricRow = $(
-          `<tr class="monthly-data-row" data-parent="${costCenter}" data-metric="${metric.key}"></tr>`
+          `<tr class="metric-row" data-category="${category}" data-metric="${metric.key}" style="display: none;"></tr>`
         );
         metricRow.append(
-          `<td style="min-width: 200px; width: 200px;">${metric.label}</td>`
+          `<td class="first-column" style="width: 250px; min-width: 250px; max-width: 250px; padding-left: 30px; white-space: nowrap;">
+          <span class="metric-toggle">▶</span>
+          <strong>${metric.label}</strong>
+        </td>`
         );
 
+        // Calculate and add total for this metric across all cost centers in the category
         sortedMonths.forEach((month) => {
-          const entry = Object.values(pivotData).find(
-            (item) => item.costCenter === costCenter && item.month === month
+          let totalValue = 0;
+          const categoryCostCenters = Array.from(
+            costCentersByCategory[category] || []
           );
-          let value = 0;
-          if (entry) {
-            value = entry[metric.key];
-          }
+
+          categoryCostCenters.forEach((costCenter) => {
+            const entry = Object.values(pivotData).find(
+              (item) =>
+                item.costCenter === costCenter &&
+                item.month === month &&
+                item.category === category
+            );
+            if (entry) {
+              totalValue += entry[metric.key] || 0;
+            }
+          });
 
           let cellClass = "";
-          if (metric.isPositive && value > 0) cellClass = "positive";
-          else if (!metric.isPositive && value > 0) cellClass = "negative";
-          else if (value < 0) cellClass = "negative";
+          if (metric.isPositive && totalValue > 0) cellClass = "positive";
+          else if (!metric.isPositive && totalValue > 0) cellClass = "negative";
+          else if (totalValue < 0) cellClass = "negative";
 
           const formattedValue =
-            value === 0 ? "-" : value.toLocaleString("vi-VN");
+            totalValue === 0 ? "-" : totalValue.toLocaleString("vi-VN");
           metricRow.append(
-            `<td class="${cellClass}" style="min-width: 120px; text-align: right;">${formattedValue}</td>`
+            `<td class="month-column ${cellClass}" style="width: 150px; min-width: 150px; max-width: 150px; text-align: right; font-weight: bold; white-space: nowrap;">${formattedValue}</td>`
           );
         });
 
         tableBody.append(metricRow);
+
+        // Add cost centers for this category and metric (initially hidden)
+        const categoryCostCenters = Array.from(
+          costCentersByCategory[category] || []
+        ).sort();
+
+        categoryCostCenters.forEach((costCenter) => {
+          // Cost center row (nested under metric)
+          const costCenterRow = $(
+            `<tr class="cost-center-row" data-category="${category}" data-metric="${metric.key}" data-cost-center="${costCenter}" style="display: none;"></tr>`
+          );
+          costCenterRow.append(
+            `<td class="first-column" style="padding-left: 60px;">
+            <strong>${costCenter}</strong>
+          </td>`
+          );
+
+          // Add values for this cost center and metric
+          sortedMonths.forEach((month) => {
+            const entry = Object.values(pivotData).find(
+              (item) =>
+                item.costCenter === costCenter &&
+                item.month === month &&
+                item.category === category
+            );
+            let value = entry ? entry[metric.key] || 0 : 0;
+
+            let cellClass = "";
+            if (metric.isPositive && value > 0) cellClass = "positive";
+            else if (!metric.isPositive && value > 0) cellClass = "negative";
+            else if (value < 0) cellClass = "negative";
+
+            const formattedValue =
+              value === 0 ? "-" : value.toLocaleString("vi-VN");
+            costCenterRow.append(
+              `<td class="month-column ${cellClass}" style="text-align: right;">${formattedValue}</td>`
+            );
+          });
+
+          tableBody.append(costCenterRow);
+        });
       });
     });
 
-    // Add click handlers for cost center rows
-    $(".cost-center-row").on("click", function () {
-      const costCenter = $(this).data("cost-center");
-      const toggle = $(this).find(".cost-center-toggle");
+    // Add click handlers for category rows
+    $(".category-row").on("click", function () {
+      const category = $(this).data("category");
+      const toggle = $(this).find(".category-toggle");
+      const isExpanded = $(this).hasClass("expanded");
+
+      if (isExpanded) {
+        // Collapse category and all its metrics and cost centers
+        $(this).removeClass("expanded");
+        toggle.removeClass("expanded");
+        $(`.metric-row[data-category="${category}"]`).hide();
+        $(`.cost-center-row[data-category="${category}"]`).hide();
+      } else {
+        // Expand category (metrics remain collapsed)
+        $(this).addClass("expanded");
+        toggle.addClass("expanded");
+        $(`.metric-row[data-category="${category}"]`).show();
+      }
+    });
+
+    // Add click handlers for metric rows
+    $(".metric-row").on("click", function (e) {
+      e.stopPropagation(); // Prevent triggering category click
+
+      const metric = $(this).data("metric");
+      const category = $(this).data("category");
+      const toggle = $(this).find(".metric-toggle");
       const isExpanded = $(this).hasClass("expanded");
 
       if (isExpanded) {
         // Collapse
         $(this).removeClass("expanded");
         toggle.removeClass("expanded");
-        $(`.monthly-data-row[data-parent="${costCenter}"]`).removeClass("show");
+        $(
+          `.cost-center-row[data-category="${category}"][data-metric="${metric}"]`
+        ).hide();
       } else {
         // Expand
         $(this).addClass("expanded");
         toggle.addClass("expanded");
-        $(`.monthly-data-row[data-parent="${costCenter}"]`).addClass("show");
+        $(
+          `.cost-center-row[data-category="${category}"][data-metric="${metric}"]`
+        ).show();
       }
     });
 
     // Wait for DOM to be ready before initializing DataTable
     setTimeout(() => {
-      // Initialize DataTable with specific configuration
+      // Initialize DataTable with auto-scaling columns
       currentTable = $("#revenueTable").DataTable({
         responsive: false,
         scrollX: true,
@@ -933,7 +1008,10 @@ $(document).ready(function () {
         searching: false,
         ordering: false,
         info: false,
-        autoWidth: false,
+        autoWidth: true, // Enable auto width calculation
+        fixedColumns: {
+          leftColumns: 1, // Fix the first column
+        },
         dom: "Bt",
         buttons: [
           {
@@ -960,9 +1038,9 @@ $(document).ready(function () {
                   // Clean up HTML tags and normalize numbers
                   let cleanData = $(data).text() || data; // Extract text content from HTML
 
-                  // If it's the first column (cost center names), clean up the text
+                  // If it's the first column (category/metric/cost center names), clean up the text
                   if (column === 0) {
-                    // Remove any extra whitespace and return just the cost center name
+                    // Remove any extra whitespace and return just the name
                     cleanData = cleanData.replace(/^\s*▶?\s*/, "").trim();
                   } else {
                     // For other columns, handle number formatting
@@ -973,7 +1051,7 @@ $(document).ready(function () {
                 },
               },
               rows: function (idx, data, node) {
-                // Export ALL rows - both cost center headers and all metric detail rows
+                // Export ALL rows - both category headers, metric headers and all cost center rows
                 // This will include all attributes regardless of expand/collapse state
                 return true;
               },
@@ -995,6 +1073,8 @@ $(document).ready(function () {
       setTimeout(() => {
         if (currentTable) {
           currentTable.columns.adjust();
+          // Use auto table layout for natural column sizing
+          $("#revenueTable").css("table-layout", "auto");
         }
       }, 100);
     }, 50);

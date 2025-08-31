@@ -251,6 +251,31 @@
   margin-left: 8px;
 }
 
+.first-column {
+  width: 350px !important;
+  min-width: 350px !important;
+  max-width: 350px !important;
+  white-space: nowrap !important;
+}
+
+.month-column {
+  width: 150px !important;
+  min-width: 150px !important;
+  max-width: 150px !important;
+  white-space: nowrap !important;
+}
+
+#revenueTable {
+  table-layout: fixed !important;
+}
+
+/* Ensure proper text display */
+#revenueTable th,
+#revenueTable td {
+  overflow: visible;
+  white-space: nowrap;
+}
+
 @media (max-width: 768px) {
   .cost-center-grid {
     grid-template-columns: 1fr;
