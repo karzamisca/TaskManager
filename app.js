@@ -139,23 +139,51 @@ cron.schedule("0 */8 * * *", async () => {
 // Assign declaration group name and declaration to approved payment and advance payment document
 cron.schedule("* * * * *", async () => {
   try {
-    // Helper function to check if PhongTran has approved the document
-    const hasPhongTranApproved = (doc) => {
+    // Helper function to check if the deciding approver has approved the document
+    const hasDecidingApproverApproved = (doc) => {
       if (!doc.approvedBy || doc.approvedBy.length === 0) return false;
 
-      // Check if any approval is from PhongTran
+      // Determine the deciding approver based on totalPayment
+      const decidingApprover = doc.totalPayment < 100000000 ? "HoangLong" : "PhongTran";
+
+      // Check if the deciding approver has approved
       return doc.approvedBy.some(
-        (approval) => approval.username === "PhongTran"
+        (approval) => approval.username === decidingApprover
       );
     };
 
-    // Helper function to check if PhongTran has approved a stage
-    const hasPhongTranApprovedStage = (stage) => {
+    // Helper function to check if the deciding approver has approved a stage
+    const hasDecidingApproverApprovedStage = (stage) => {
       if (!stage.approvedBy || stage.approvedBy.length === 0) return false;
 
-      // Check if any approval is from PhongTran
+      // Determine the deciding approver based on stage amount
+      const decidingApprover = stage.amount < 100000000 ? "HoangLong" : "PhongTran";
+
+      // Check if the deciding approver has approved this stage
       return stage.approvedBy.some(
-        (approval) => approval.username === "PhongTran"
+        (approval) => approval.username === decidingApprover
+      );
+    };
+
+    // Helper function to get the deciding approver's approval info for a document
+    const getDecidingApproverInfo = (doc) => {
+      if (!doc.approvedBy || doc.approvedBy.length === 0) return null;
+
+      const decidingApprover = doc.totalPayment < 100000000 ? "HoangLong" : "PhongTran";
+      
+      return doc.approvedBy.find(
+        (approval) => approval.username === decidingApprover
+      );
+    };
+
+    // Helper function to get the deciding approver's approval info for a stage
+    const getDecidingApproverStageInfo = (stage) => {
+      if (!stage.approvedBy || stage.approvedBy.length === 0) return null;
+
+      const decidingApprover = stage.amount < 100000000 ? "HoangLong" : "PhongTran";
+      
+      return stage.approvedBy.find(
+        (approval) => approval.username === decidingApprover
       );
     };
 
@@ -192,9 +220,15 @@ cron.schedule("* * * * *", async () => {
       return `${workDay}-${workMonth}-${workYear}`;
     };
 
+    // Helper function to generate group name based on approver and date
+    const generateGroupName = (approver, date) => {
+      const prefix = approver === "HoangLong" ? "PTT" : "PTT";
+      return `${prefix}${date.replace(/-/g, "")}`;
+    };
+
     // Get documents without stages
     const ungroupedDocuments = await Promise.all([
-      // Regular payment documents - PhongTran approved AND without stages
+      // Regular payment documents - deciding approver approved AND without stages
       PaymentDocument.find({
         $and: [
           {
@@ -213,7 +247,7 @@ cron.schedule("* * * * *", async () => {
           },
         ],
       }),
-      // Advance payment documents - PhongTran approved AND without stages
+      // Advance payment documents - deciding approver approved AND without stages
       AdvancePaymentDocument.find({
         $and: [
           {
@@ -258,42 +292,52 @@ cron.schedule("* * * * *", async () => {
       ...documentsWithStages[1],
     ];
 
-    // Filter to only include documents where PhongTran has approved (for documents without stages)
-    const documentsWithPhongTranApproval =
-      allDocumentsWithoutStages.filter(hasPhongTranApproved);
+    // Filter to only include documents where the deciding approver has approved (for documents without stages)
+    const documentsWithDecidingApproval =
+      allDocumentsWithoutStages.filter(hasDecidingApproverApproved);
 
     let documentsAssigned = 0;
     let stagesAssigned = 0;
     const groupsCreated = [];
 
     // Process documents WITHOUT stages (updated logic)
-    if (documentsWithPhongTranApproval.length > 0) {
-      // Group documents by work day date based on PhongTran's approval date
-      const documentsByDate = {};
-      documentsWithPhongTranApproval.forEach((doc) => {
-        // Find PhongTran's approval date
-        const phongTranApproval = doc.approvedBy.find(
-          (approval) => approval.username === "PhongTran"
-        );
+    if (documentsWithDecidingApproval.length > 0) {
+      // Group documents by approver and work day date
+      const documentsByApproverAndDate = {};
+      
+      documentsWithDecidingApproval.forEach((doc) => {
+        // Get the deciding approver's approval info
+        const decidingApprovalInfo = getDecidingApproverInfo(doc);
 
-        if (phongTranApproval) {
+        if (decidingApprovalInfo) {
+          const decidingApprover = doc.totalPayment < 100000000 ? "HoangLong" : "PhongTran";
+          
           // Get the work day date (considering 12:30 PM cutoff)
-          const workDayDate = getWorkDayDate(phongTranApproval.approvalDate);
+          const workDayDate = getWorkDayDate(decidingApprovalInfo.approvalDate);
 
-          // Add document to its work day group
-          if (!documentsByDate[workDayDate]) {
-            documentsByDate[workDayDate] = [];
+          // Create a key combining approver and date
+          const key = `${decidingApprover}_${workDayDate}`;
+
+          // Add document to its approver-date group
+          if (!documentsByApproverAndDate[key]) {
+            documentsByApproverAndDate[key] = {
+              approver: decidingApprover,
+              date: workDayDate,
+              documents: []
+            };
           }
-          documentsByDate[workDayDate].push(doc);
+          documentsByApproverAndDate[key].documents.push(doc);
         }
       });
 
-      // Process each date group
-      for (const [date, documents] of Object.entries(documentsByDate)) {
-        // Create a group name based on the work day date
-        const groupDeclarationName = `PTT${date.replace(/-/g, "")}`;
+      // Process each approver-date group
+      for (const [key, groupInfo] of Object.entries(documentsByApproverAndDate)) {
+        const { approver, date, documents } = groupInfo;
+        
+        // Create a group name based on the approver and work day date
+        const groupDeclarationName = generateGroupName(approver, date);
 
-        // Generate a declaration for documents approved by PhongTran
+        // Generate a declaration for documents approved by the deciding approver
         const declaration = `Phiếu thanh toán phê duyệt vào ${date}`;
 
         // Check if the group already exists
@@ -311,7 +355,7 @@ cron.schedule("* * * * *", async () => {
           groupsCreated.push(groupDeclarationName);
         }
 
-        // Assign all documents in this date group to the group
+        // Assign all documents in this approver-date group to the group
         for (const doc of documents) {
           doc.groupDeclarationName = groupDeclarationName;
 
@@ -333,37 +377,42 @@ cron.schedule("* * * * *", async () => {
 
     // Process documents WITH stages - assign group to individual stages (updated logic)
     if (allDocumentsWithStages.length > 0) {
-      // Collect all stages that PhongTran has approved and don't have groupDeclarationName
-      const stagesByDate = {};
+      // Collect all stages that the deciding approver has approved and don't have groupDeclarationName
+      const stagesByApproverAndDate = {};
 
       for (const doc of allDocumentsWithStages) {
         if (doc.stages && doc.stages.length > 0) {
           for (let i = 0; i < doc.stages.length; i++) {
             const stage = doc.stages[i];
 
-            // Check if PhongTran has approved this stage and it doesn't have a group
+            // Check if the deciding approver has approved this stage and it doesn't have a group
             if (
-              hasPhongTranApprovedStage(stage) &&
+              hasDecidingApproverApprovedStage(stage) &&
               (!stage.groupDeclarationName ||
                 stage.groupDeclarationName === "" ||
                 stage.groupDeclarationName === null)
             ) {
-              // Find PhongTran's approval date for this stage
-              const phongTranApproval = stage.approvedBy.find(
-                (approval) => approval.username === "PhongTran"
-              );
+              // Get the deciding approver's approval info for this stage
+              const decidingApprovalInfo = getDecidingApproverStageInfo(stage);
 
-              if (phongTranApproval) {
+              if (decidingApprovalInfo) {
+                const decidingApprover = stage.amount < 100000000 ? "HoangLong" : "PhongTran";
+                
                 // Get the work day date (considering 12:30 PM cutoff)
-                const workDayDate = getWorkDayDate(
-                  phongTranApproval.approvalDate
-                );
+                const workDayDate = getWorkDayDate(decidingApprovalInfo.approvalDate);
 
-                // Add stage reference to its work day group
-                if (!stagesByDate[workDayDate]) {
-                  stagesByDate[workDayDate] = [];
+                // Create a key combining approver and date
+                const key = `${decidingApprover}_${workDayDate}`;
+
+                // Add stage reference to its approver-date group
+                if (!stagesByApproverAndDate[key]) {
+                  stagesByApproverAndDate[key] = {
+                    approver: decidingApprover,
+                    date: workDayDate,
+                    stageRefs: []
+                  };
                 }
-                stagesByDate[workDayDate].push({
+                stagesByApproverAndDate[key].stageRefs.push({
                   document: doc,
                   stageIndex: i,
                   stage: stage,
@@ -374,12 +423,14 @@ cron.schedule("* * * * *", async () => {
         }
       }
 
-      // Process each date group for stages
-      for (const [date, stageRefs] of Object.entries(stagesByDate)) {
-        // Create a group name based on the work day date
-        const groupDeclarationName = `PTT${date.replace(/-/g, "")}`;
+      // Process each approver-date group for stages
+      for (const [key, groupInfo] of Object.entries(stagesByApproverAndDate)) {
+        const { approver, date, stageRefs } = groupInfo;
+        
+        // Create a group name based on the approver and work day date
+        const groupDeclarationName = generateGroupName(approver, date);
 
-        // Generate a declaration for stages approved by PhongTran
+        // Generate a declaration for stages approved by the deciding approver
         const declaration = `Phiếu thanh toán phê duyệt vào ${date}`;
 
         // Check if the group already exists
@@ -399,7 +450,7 @@ cron.schedule("* * * * *", async () => {
           }
         }
 
-        // Assign group to all stages in this date group
+        // Assign group to all stages in this approver-date group
         for (const stageRef of stageRefs) {
           const { document: doc, stageIndex, stage } = stageRef;
 
