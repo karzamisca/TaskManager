@@ -46,7 +46,7 @@ const costCenterSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ["Mua bán khí", "Thuê trạm", "Thuê bồn"],
+    enum: ["Mua bán khí", "Thuê trạm", "Thuê bồn", "Đội"],
     default: "Mua bán khí",
   },
   allowedUsers: {

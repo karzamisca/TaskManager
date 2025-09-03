@@ -279,18 +279,37 @@ function updateColumnVisibility() {
 
   const category = currentCenter.category;
   const isRental = category === "Thuê trạm" || category === "Thuê bồn";
+  const isTeam = category === "Đội";
 
-  // Define columns to hide for rental categories
-  const columnsToHide = isRental
-    ? [
-        2, // Số lượng mua
-        3, // Đơn giá mua
-        4, // Tổng mua
-        8, // Vận chuyển
-        10, // Tỷ suất hoa hồng mua
-        11, // Hoa hồng mua
-      ]
-    : [];
+  // Define columns to hide for rental categories and team categories
+  let columnsToHide = [];
+
+  if (isRental) {
+    columnsToHide = [
+      2, // Số lượng mua
+      3, // Đơn giá mua
+      4, // Tổng mua
+      8, // Vận chuyển
+      10, // Tỷ suất hoa hồng mua
+      11, // Hoa hồng mua
+    ];
+  } else if (isTeam) {
+    // For "Đội" category, hide most columns as it has minimal functionality
+    columnsToHide = [
+      2, // Số lượng mua
+      3, // Đơn giá mua
+      4, // Tổng mua
+      5, // Số lượng bán
+      6, // Đơn giá bán
+      7, // Tổng bán
+      8, // Vận chuyển
+      9, // Tỷ giá tiền
+      10, // Tỷ suất hoa hồng mua
+      11, // Hoa hồng mua
+      12, // Tỷ suất hoa hồng bán
+      13, // Hoa hồng bán
+    ];
+  }
 
   // Get all tables in the current view
   const tables = document.querySelectorAll(".table-excel");
@@ -302,7 +321,7 @@ function updateColumnVisibility() {
       const cells = row.querySelectorAll("th");
       columnsToHide.forEach((colIndex) => {
         if (cells[colIndex]) {
-          cells[colIndex].style.display = isRental ? "none" : "";
+          cells[colIndex].style.display = isRental || isTeam ? "none" : "";
         }
       });
     });
@@ -313,7 +332,7 @@ function updateColumnVisibility() {
       const cells = row.querySelectorAll("td");
       columnsToHide.forEach((colIndex) => {
         if (cells[colIndex]) {
-          cells[colIndex].style.display = isRental ? "none" : "";
+          cells[colIndex].style.display = isRental || isTeam ? "none" : "";
         }
       });
     });
@@ -326,72 +345,78 @@ function updateFieldLockState() {
 
   const category = currentCenter.category;
   const isRental = category === "Thuê trạm" || category === "Thuê bồn";
+  const isTeam = category === "Đội";
+  const shouldLock = isRental || isTeam;
 
-  // Lock only purchase-related fields for rental categories
+  // Lock purchase-related fields for rental and team categories
   const purchaseInputsToLock = document.querySelectorAll(`
     [data-field="purchaseContract.amount"],
     [data-field="purchaseContract.unitCost"],
     [data-field="commissionRatePurchase"]
   `);
 
-  // Transport cost should also be locked for rental categories
+  // Lock transport cost for rental and team categories
   const transportInputsToLock = document.querySelectorAll(`
     [data-field="transportCost"]
   `);
 
-  // Lock purchase fields and transport cost
-  purchaseInputsToLock.forEach((input) => {
-    input.disabled = isRental;
-    input.title = isRental ? "Không khả dụng cho loại hình này" : "";
-    input.style.cursor = isRental ? "not-allowed" : "";
-    input.style.backgroundColor = isRental ? "#f8f9fa" : "";
-  });
-
-  transportInputsToLock.forEach((input) => {
-    input.disabled = isRental;
-    input.title = isRental ? "Không khả dụng cho loại hình này" : "";
-    input.style.cursor = isRental ? "not-allowed" : "";
-    input.style.backgroundColor = isRental ? "#f8f9fa" : "";
-  });
-
-  // Keep sale fields enabled for all categories
-  const saleInputs = document.querySelectorAll(`
+  // Lock sale fields for team category only
+  const saleInputsToLock = document.querySelectorAll(`
     [data-field="saleContract.amount"],
     [data-field="saleContract.unitCost"],
     [data-field="commissionRateSale"]
   `);
-  saleInputs.forEach((input) => {
-    input.disabled = false;
-    input.title = "";
-    input.style.cursor = "";
-    input.style.backgroundColor = "";
-  });
 
-  // Currency exchange rate should always be enabled
+  // Lock currency exchange rate for team category only
   const exchangeRateInputs = document.querySelectorAll(`
     [data-field="currencyExchangeRate"]
   `);
-  exchangeRateInputs.forEach((input) => {
-    input.disabled = false;
-    input.title = "";
-    input.style.cursor = "";
-    input.style.backgroundColor = "";
+
+  // Lock purchase fields and transport cost for rental and team
+  purchaseInputsToLock.forEach((input) => {
+    input.disabled = shouldLock;
+    input.title = shouldLock ? "Không khả dụng cho loại hình này" : "";
+    input.style.cursor = shouldLock ? "not-allowed" : "";
+    input.style.backgroundColor = shouldLock ? "#f8f9fa" : "";
   });
 
-  // Disable the "Thêm mục" button for rental categories
+  transportInputsToLock.forEach((input) => {
+    input.disabled = shouldLock;
+    input.title = shouldLock ? "Không khả dụng cho loại hình này" : "";
+    input.style.cursor = shouldLock ? "not-allowed" : "";
+    input.style.backgroundColor = shouldLock ? "#f8f9fa" : "";
+  });
+
+  // Lock sale fields only for team category
+  saleInputsToLock.forEach((input) => {
+    input.disabled = isTeam;
+    input.title = isTeam ? "Không khả dụng cho loại hình này" : "";
+    input.style.cursor = isTeam ? "not-allowed" : "";
+    input.style.backgroundColor = isTeam ? "#f8f9fa" : "";
+  });
+
+  // Lock currency exchange rate only for team category
+  exchangeRateInputs.forEach((input) => {
+    input.disabled = isTeam;
+    input.title = isTeam ? "Không khả dụng cho loại hình này" : "";
+    input.style.cursor = isTeam ? "not-allowed" : "";
+    input.style.backgroundColor = isTeam ? "#f8f9fa" : "";
+  });
+
+  // Disable the "Thêm mục" button for rental and team categories
   const addButtons = document.querySelectorAll(".add-entry-btn");
   addButtons.forEach((button) => {
-    button.disabled = isRental;
-    button.title = isRental ? "Không khả dụng cho loại hình này" : "";
-    button.style.cursor = isRental ? "not-allowed" : "";
+    button.disabled = shouldLock;
+    button.title = shouldLock ? "Không khả dụng cho loại hình này" : "";
+    button.style.cursor = shouldLock ? "not-allowed" : "";
   });
 
-  // Disable delete buttons for rental categories
+  // Disable delete buttons for rental and team categories
   const deleteButtons = document.querySelectorAll(".delete-entry-btn");
   deleteButtons.forEach((button) => {
-    button.disabled = isRental;
-    button.title = isRental ? "Không khả dụng cho loại hình này" : "";
-    button.style.cursor = isRental ? "not-allowed" : "";
+    button.disabled = shouldLock;
+    button.title = shouldLock ? "Không khả dụng cho loại hình này" : "";
+    button.style.cursor = shouldLock ? "not-allowed" : "";
   });
 
   // Update column visibility

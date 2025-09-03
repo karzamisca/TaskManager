@@ -857,8 +857,23 @@ $(document).ready(function () {
 
       tableBody.append(categoryRow);
 
+      // Filter metrics based on category
+      let filteredMetrics = [...metrics];
+
+      if (category === "Thuê bồn") {
+        // Remove "Tổng lương" for "Thuê bồn" category
+        filteredMetrics = filteredMetrics.filter(
+          (metric) => metric.key !== "totalSalary"
+        );
+      } else if (category === "Đội") {
+        // Only show specific metrics for "Đội" category
+        filteredMetrics = filteredMetrics.filter((metric) =>
+          ["totalSalary", "totalPayments", "netRevenue"].includes(metric.key)
+        );
+      }
+
       // Add metrics for this category (initially hidden)
-      metrics.forEach((metric) => {
+      filteredMetrics.forEach((metric) => {
         // Check if this metric should be hidden for this category
         if (shouldHideMetricForCategory(metric.key, category)) {
           return; // Skip this metric row entirely
