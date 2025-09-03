@@ -762,6 +762,28 @@ tr:hover {
   font-size: 0.9em;
 }
 
+.partially-approved-stage {
+  background-color: #fffaf0;
+  border-left: 4px solid #ff9800;
+}
+
+.partially-approved-stage .stage-header {
+  color: #ff9800;
+}
+
+.partially-approved-stage .form-input:not(:disabled),
+.partially-approved-stage .form-textarea:not(:disabled),
+.partially-approved-stage .form-select:not(:disabled) {
+  background-color: #fffaf0;
+}
+
+/* Ensure approver section remains editable even in partially approved stages */
+.partially-approved-stage .stage-approvers-container,
+.partially-approved-stage .add-stage-approver {
+  opacity: 1;
+  pointer-events: all;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .control-panel {

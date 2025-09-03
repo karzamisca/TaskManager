@@ -1092,11 +1092,11 @@ const renderPaymentStages = () => {
   state.currentEditDoc.stages.forEach((stage, index) => {
     const isPartiallyApproved = stage.approvedBy?.length > 0;
     const isFullyApproved = stage.status === "Approved";
-    const isNewStage = !stage._id; // Check if this is a new stage (has no ID)
+    const isNewStage = !stage._id;
 
     const stageElement = document.createElement("div");
     stageElement.className = `payment-stage ${
-      isPartiallyApproved ? "locked-stage" : ""
+      isPartiallyApproved ? "partially-approved-stage" : ""
     } ${isFullyApproved ? "approved-stage" : ""}`;
     stageElement.dataset.index = index;
 
@@ -1108,7 +1108,7 @@ const renderPaymentStages = () => {
         : ""
     } ${isFullyApproved ? "(Đã phê duyệt hoàn toàn)" : ""}</h4>
         ${
-          !isPartiallyApproved
+          !isFullyApproved
             ? `<button type="button" class="btn btn-danger btn-sm" onclick="removeSpecificStage(${index})">
                 <i class="fas fa-trash"></i> Xóa
               </button>`
@@ -1121,7 +1121,7 @@ const renderPaymentStages = () => {
           stage.name || ""
         }" 
                onchange="updateStageField(${index}, 'name', this.value)"
-               ${isPartiallyApproved ? "disabled" : ""}>
+               ${isFullyApproved ? "disabled" : ""}>
       </div>
       <div class="form-group">
         <label>Số tiền:</label>
@@ -1138,13 +1138,13 @@ const renderPaymentStages = () => {
         }" 
                placeholder="DD-MM-YYYY" pattern="(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[012])-[0-9]{4}"
                onchange="updateStageField(${index}, 'deadline', this.value)"
-               ${isPartiallyApproved ? "disabled" : ""}>
+               ${isFullyApproved ? "disabled" : ""}>
       </div>
       <div class="form-group">
         <label>Hình thức thanh toán:</label>
         <select class="form-input stage-payment-method"
                 onchange="updateStageField(${index}, 'paymentMethod', this.value)"
-                ${isPartiallyApproved ? "disabled" : ""}>
+                ${isFullyApproved ? "disabled" : ""}>
           <option value="Chuyển khoản" ${
             stage.paymentMethod === "Chuyển khoản" ? "selected" : ""
           }>Chuyển khoản</option>
@@ -1195,11 +1195,11 @@ const renderPaymentStages = () => {
             stage.approvers || [],
             stage.approvedBy || [],
             index,
-            isPartiallyApproved
+            isFullyApproved // Only lock if fully approved
           )}
         </div>
         ${
-          !isPartiallyApproved
+          !isFullyApproved
             ? `<div class="add-stage-approver">
                 <select class="form-select stage-approver-select" id="stageApproverSelect${index}">
                   <option value="">Chọn người phê duyệt</option>
@@ -1218,7 +1218,7 @@ const renderPaymentStages = () => {
     `;
 
     container.appendChild(stageElement);
-    if (!isPartiallyApproved) {
+    if (!isFullyApproved) {
       populateStageApproversDropdown(index);
     }
   });
@@ -1310,7 +1310,12 @@ const removeStageFile = async (stageIndex) => {
   }
 };
 
-const renderStageApprovers = (approvers, approvedBy, stageIndex, isLocked) => {
+const renderStageApprovers = (
+  approvers,
+  approvedBy,
+  stageIndex,
+  isFullyApproved
+) => {
   return approvers
     .map((approver) => {
       const hasApproved = approvedBy.some(
@@ -1330,7 +1335,7 @@ const renderStageApprovers = (approvers, approvedBy, stageIndex, isLocked) => {
           }
         </div>
         ${
-          !isLocked
+          !isFullyApproved
             ? `<button type="button" class="btn btn-danger btn-sm" 
                     onclick="removeStageApprover(${stageIndex}, '${approver.approver}')">
                 <i class="fas fa-trash"></i> Xóa
