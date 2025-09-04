@@ -139,29 +139,25 @@ cron.schedule("0 */8 * * *", async () => {
 // Assign declaration group name and declaration to approved payment and advance payment document
 cron.schedule("* * * * *", async () => {
   try {
-    // Helper function to check if the deciding approver has approved the document
+    // Helper function to check if either deciding approver has approved the document
     const hasDecidingApproverApproved = (doc) => {
       if (!doc.approvedBy || doc.approvedBy.length === 0) return false;
 
-      // Determine the deciding approver based on totalPayment
-      const decidingApprover = doc.totalPayment < 100000000 ? "HoangLong" : "PhongTran";
-
-      // Check if the deciding approver has approved
+      // Check if either HoangLong or PhongTran has approved
       return doc.approvedBy.some(
-        (approval) => approval.username === decidingApprover
+        (approval) =>
+          approval.username === "HoangLong" || approval.username === "PhongTran"
       );
     };
 
-    // Helper function to check if the deciding approver has approved a stage
+    // Helper function to check if either deciding approver has approved a stage
     const hasDecidingApproverApprovedStage = (stage) => {
       if (!stage.approvedBy || stage.approvedBy.length === 0) return false;
 
-      // Determine the deciding approver based on stage amount
-      const decidingApprover = stage.amount < 100000000 ? "HoangLong" : "PhongTran";
-
-      // Check if the deciding approver has approved this stage
+      // Check if either HoangLong or PhongTran has approved this stage
       return stage.approvedBy.some(
-        (approval) => approval.username === decidingApprover
+        (approval) =>
+          approval.username === "HoangLong" || approval.username === "PhongTran"
       );
     };
 
@@ -169,10 +165,10 @@ cron.schedule("* * * * *", async () => {
     const getDecidingApproverInfo = (doc) => {
       if (!doc.approvedBy || doc.approvedBy.length === 0) return null;
 
-      const decidingApprover = doc.totalPayment < 100000000 ? "HoangLong" : "PhongTran";
-      
+      // Return the first approval from either HoangLong or PhongTran
       return doc.approvedBy.find(
-        (approval) => approval.username === decidingApprover
+        (approval) =>
+          approval.username === "HoangLong" || approval.username === "PhongTran"
       );
     };
 
@@ -180,10 +176,10 @@ cron.schedule("* * * * *", async () => {
     const getDecidingApproverStageInfo = (stage) => {
       if (!stage.approvedBy || stage.approvedBy.length === 0) return null;
 
-      const decidingApprover = stage.amount < 100000000 ? "HoangLong" : "PhongTran";
-      
+      // Return the first approval from either HoangLong or PhongTran
       return stage.approvedBy.find(
-        (approval) => approval.username === decidingApprover
+        (approval) =>
+          approval.username === "HoangLong" || approval.username === "PhongTran"
       );
     };
 
@@ -222,7 +218,7 @@ cron.schedule("* * * * *", async () => {
 
     // Helper function to generate group name based on approver and date
     const generateGroupName = (approver, date) => {
-      const prefix = approver === "HoangLong" ? "PTT" : "PTT";
+      const prefix = "PTT"; // Same prefix for both approvers
       return `${prefix}${date.replace(/-/g, "")}`;
     };
 
@@ -292,9 +288,10 @@ cron.schedule("* * * * *", async () => {
       ...documentsWithStages[1],
     ];
 
-    // Filter to only include documents where the deciding approver has approved (for documents without stages)
-    const documentsWithDecidingApproval =
-      allDocumentsWithoutStages.filter(hasDecidingApproverApproved);
+    // Filter to only include documents where either deciding approver has approved (for documents without stages)
+    const documentsWithDecidingApproval = allDocumentsWithoutStages.filter(
+      hasDecidingApproverApproved
+    );
 
     let documentsAssigned = 0;
     let stagesAssigned = 0;
@@ -304,14 +301,14 @@ cron.schedule("* * * * *", async () => {
     if (documentsWithDecidingApproval.length > 0) {
       // Group documents by approver and work day date
       const documentsByApproverAndDate = {};
-      
+
       documentsWithDecidingApproval.forEach((doc) => {
         // Get the deciding approver's approval info
         const decidingApprovalInfo = getDecidingApproverInfo(doc);
 
         if (decidingApprovalInfo) {
-          const decidingApprover = doc.totalPayment < 100000000 ? "HoangLong" : "PhongTran";
-          
+          const decidingApprover = decidingApprovalInfo.username; // Either HoangLong or PhongTran
+
           // Get the work day date (considering 12:30 PM cutoff)
           const workDayDate = getWorkDayDate(decidingApprovalInfo.approvalDate);
 
@@ -323,7 +320,7 @@ cron.schedule("* * * * *", async () => {
             documentsByApproverAndDate[key] = {
               approver: decidingApprover,
               date: workDayDate,
-              documents: []
+              documents: [],
             };
           }
           documentsByApproverAndDate[key].documents.push(doc);
@@ -331,9 +328,11 @@ cron.schedule("* * * * *", async () => {
       });
 
       // Process each approver-date group
-      for (const [key, groupInfo] of Object.entries(documentsByApproverAndDate)) {
+      for (const [key, groupInfo] of Object.entries(
+        documentsByApproverAndDate
+      )) {
         const { approver, date, documents } = groupInfo;
-        
+
         // Create a group name based on the approver and work day date
         const groupDeclarationName = generateGroupName(approver, date);
 
@@ -377,7 +376,7 @@ cron.schedule("* * * * *", async () => {
 
     // Process documents WITH stages - assign group to individual stages (updated logic)
     if (allDocumentsWithStages.length > 0) {
-      // Collect all stages that the deciding approver has approved and don't have groupDeclarationName
+      // Collect all stages that either deciding approver has approved and don't have groupDeclarationName
       const stagesByApproverAndDate = {};
 
       for (const doc of allDocumentsWithStages) {
@@ -385,7 +384,7 @@ cron.schedule("* * * * *", async () => {
           for (let i = 0; i < doc.stages.length; i++) {
             const stage = doc.stages[i];
 
-            // Check if the deciding approver has approved this stage and it doesn't have a group
+            // Check if either deciding approver has approved this stage and it doesn't have a group
             if (
               hasDecidingApproverApprovedStage(stage) &&
               (!stage.groupDeclarationName ||
@@ -396,10 +395,12 @@ cron.schedule("* * * * *", async () => {
               const decidingApprovalInfo = getDecidingApproverStageInfo(stage);
 
               if (decidingApprovalInfo) {
-                const decidingApprover = stage.amount < 100000000 ? "HoangLong" : "PhongTran";
-                
+                const decidingApprover = decidingApprovalInfo.username; // Either HoangLong or PhongTran
+
                 // Get the work day date (considering 12:30 PM cutoff)
-                const workDayDate = getWorkDayDate(decidingApprovalInfo.approvalDate);
+                const workDayDate = getWorkDayDate(
+                  decidingApprovalInfo.approvalDate
+                );
 
                 // Create a key combining approver and date
                 const key = `${decidingApprover}_${workDayDate}`;
@@ -409,7 +410,7 @@ cron.schedule("* * * * *", async () => {
                   stagesByApproverAndDate[key] = {
                     approver: decidingApprover,
                     date: workDayDate,
-                    stageRefs: []
+                    stageRefs: [],
                   };
                 }
                 stagesByApproverAndDate[key].stageRefs.push({
@@ -426,7 +427,7 @@ cron.schedule("* * * * *", async () => {
       // Process each approver-date group for stages
       for (const [key, groupInfo] of Object.entries(stagesByApproverAndDate)) {
         const { approver, date, stageRefs } = groupInfo;
-        
+
         // Create a group name based on the approver and work day date
         const groupDeclarationName = generateGroupName(approver, date);
 
