@@ -3322,10 +3322,10 @@ exports.approvePaymentStage = async (req, res) => {
       let hierarchyOrder;
       if (stageAmount < 100000000) {
         // For stage amounts < 100M: deputyDirector -> director -> captainOfAccounting
-        hierarchyOrder = ["deputyDirector", "director", "captainOfAccounting"];
+        hierarchyOrder = ["deputyDirector", "captainOfAccounting", "director"];
       } else {
         // For stage amounts >= 100M: director -> captainOfAccounting -> deputyDirector
-        hierarchyOrder = ["director", "captainOfAccounting", "deputyDirector"];
+        hierarchyOrder = ["director", "captainOfAccounting"];
       }
 
       // Get only the hierarchy roles that are actually assigned to this stage
@@ -3569,7 +3569,7 @@ exports.approvePaymentDocument = async (req, res) => {
         hierarchyOrder = ["deputyDirector", "captainOfAccounting", "director"];
       } else {
         // Default hierarchy: director -> captainOfAccounting -> deputyDirector
-        hierarchyOrder = ["director", "captainOfAccounting", "deputyDirector"];
+        hierarchyOrder = ["director", "captainOfAccounting"];
       }
 
       // Get only the hierarchy roles that are actually assigned to this document
