@@ -127,11 +127,11 @@ const documentUtils = {
   // Filter documents based on username constraints with hierarchy
   filterDocumentsByUsername: (documents, username) => {
     // Who can see everything
-    if (["HoangLong", "NguyenHongNhuThuy"].includes(username)) return documents;
+    if (["HoangLong", "QuangKimNgan"].includes(username)) return documents;
 
     // If username is not one of the restricted users, return all documents
     const restrictedUsers = [
-      "NguyenHongNhuThuy",
+      "QuangKimNgan",
       "HoangNam",
       "PhongTran",
       "HoangLong",
@@ -144,8 +144,8 @@ const documentUtils = {
     // Define who must approve BEFORE each user
     const prerequisiteApprovers = {
       PhongTran: ["HoangNam"],
-      NguyenHongNhuThuy: ["HoangNam", "PhongTran"],
-      HoangLong: ["HoangNam", "PhongTran", "NguyenHongNhuThuy"],
+      QuangKimNgan: ["HoangNam", "PhongTran"],
+      HoangLong: ["HoangNam", "PhongTran", "QuangKimNgan"],
     };
 
     return documents.filter((doc) => {
@@ -3325,7 +3325,7 @@ exports.approvePaymentStage = async (req, res) => {
         hierarchyOrder = ["deputyDirector", "captainOfAccounting", "director"];
       } else {
         // For stage amounts >= 100M: director -> captainOfAccounting -> deputyDirector
-        hierarchyOrder = ["director", "captainOfAccounting"];
+        hierarchyOrder = ["deputyDirector", "director", "captainOfAccounting"];
       }
 
       // Get only the hierarchy roles that are actually assigned to this stage
@@ -3569,7 +3569,7 @@ exports.approvePaymentDocument = async (req, res) => {
         hierarchyOrder = ["deputyDirector", "captainOfAccounting", "director"];
       } else {
         // Default hierarchy: director -> captainOfAccounting -> deputyDirector
-        hierarchyOrder = ["director", "captainOfAccounting"];
+        hierarchyOrder = ["deputyDirector", "director", "captainOfAccounting"];
       }
 
       // Get only the hierarchy roles that are actually assigned to this document
