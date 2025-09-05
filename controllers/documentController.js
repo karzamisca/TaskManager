@@ -3325,7 +3325,7 @@ exports.approvePaymentStage = async (req, res) => {
         hierarchyOrder = ["deputyDirector", "captainOfAccounting", "director"];
       } else {
         // For stage amounts >= 100M: director -> captainOfAccounting -> deputyDirector
-        hierarchyOrder = ["deputyDirector", "director", "captainOfAccounting"];
+        hierarchyOrder = ["director", "deputyDirector", "captainOfAccounting"];
       }
 
       // Get only the hierarchy roles that are actually assigned to this stage
@@ -3360,6 +3360,11 @@ exports.approvePaymentStage = async (req, res) => {
         stage.approvedBy,
         stageAmount
       );
+
+      // Special rule: Director can approve anytime for amounts under 100M
+      if (userRole === "director" && stageAmount < 100000000) {
+        return { canApprove: true };
+      }
 
       // If user is not in the approval hierarchy, they can approve anytime (other approvers)
       if (!assignedHierarchyRoles.includes(userRole)) {
@@ -3569,7 +3574,7 @@ exports.approvePaymentDocument = async (req, res) => {
         hierarchyOrder = ["deputyDirector", "captainOfAccounting", "director"];
       } else {
         // Default hierarchy: director -> captainOfAccounting -> deputyDirector
-        hierarchyOrder = ["deputyDirector", "director", "captainOfAccounting"];
+        hierarchyOrder = ["director", "deputyDirector", "captainOfAccounting"];
       }
 
       // Get only the hierarchy roles that are actually assigned to this document
@@ -3604,6 +3609,15 @@ exports.approvePaymentDocument = async (req, res) => {
         document.approvedBy,
         document
       );
+
+      // Special rule: Director can approve anytime for payment documents under 100M
+      if (
+        userRole === "director" &&
+        document instanceof PaymentDocument &&
+        document.totalPayment < 100000000
+      ) {
+        return { canApprove: true };
+      }
 
       // If user is not in the approval hierarchy, they can approve anytime (other approvers)
       if (!assignedHierarchyRoles.includes(userRole)) {
