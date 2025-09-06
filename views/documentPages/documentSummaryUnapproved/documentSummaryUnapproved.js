@@ -213,22 +213,39 @@ function showDocuments(typeKey, typeName) {
       .join("");
   }
 
-  new bootstrap.Modal(document.getElementById("documentsModal")).show();
+  // Only show modal if it's not already shown
+  const modal = bootstrap.Modal.getInstance(
+    document.getElementById("documentsModal")
+  );
+  if (!modal || !modal._isShown) {
+    new bootstrap.Modal(document.getElementById("documentsModal")).show();
+  }
 }
 
 // View document details in modal
 async function viewDocumentDetails(type, id) {
   try {
-    showLoadingInDetailsModal();
+    // Only show loading if this is not a refresh (modal not already shown)
+    const detailsModal = bootstrap.Modal.getInstance(
+      elements.documentDetailsModal
+    );
+    const isRefresh = detailsModal && detailsModal._isShown;
+
+    if (!isRefresh) {
+      showLoadingInDetailsModal();
+      const modal = new bootstrap.Modal(elements.documentDetailsModal);
+      modal.show();
+    } else {
+      // For refresh, just update the title to indicate loading
+      elements.documentDetailsTitle.innerHTML = `<i class="bi bi-arrow-clockwise"></i> Đang cập nhật...`;
+    }
 
     const typeConfig = documentTypes[type] || documentTypes.generic;
-    elements.documentDetailsTitle.innerHTML = `<i class="bi ${typeConfig.icon}"></i> Đang tải chi tiết phiếu...`;
-
-    const modal = new bootstrap.Modal(elements.documentDetailsModal);
-    modal.show();
-
     const response = await fetch(`${typeConfig.endpoint}/${id}`);
-    if (!response.ok) throw new Error("Failed to fetch document");
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch document");
+    }
 
     const document = await response.json();
     renderDocumentDetails(type, document);
@@ -1591,17 +1608,25 @@ async function approvePaymentStage(docId, stageIndex) {
 
     if (result.message) {
       showToast("success", result.message);
-      loadDashboardData();
-      // Close modals if open
-      const docsModal = bootstrap.Modal.getInstance(
-        document.getElementById("documentsModal")
-      );
-      if (docsModal) docsModal.hide();
 
+      // Refresh dashboard data
+      await loadDashboardData();
+
+      // Refresh the document details modal if it's open
       const detailsModal = bootstrap.Modal.getInstance(
         document.getElementById("documentDetailsModal")
       );
-      if (detailsModal) detailsModal.hide();
+      if (detailsModal && detailsModal._isShown) {
+        await viewDocumentDetails("payment", docId);
+      }
+
+      // Refresh the documents list modal if it's open
+      const docsModal = bootstrap.Modal.getInstance(
+        document.getElementById("documentsModal")
+      );
+      if (docsModal && docsModal._isShown) {
+        showDocuments("payment", "Thanh toán");
+      }
     } else {
       showToast("danger", "Lỗi khi phê duyệt giai đoạn");
     }
@@ -1657,24 +1682,90 @@ async function approveDocument(type, id) {
 
     if (result.includes("thành công") || result.includes("hoàn toàn")) {
       showToast("success", result);
-      loadDashboardData(); // Refresh the dashboard
 
-      // Close modals if open
+      // Refresh dashboard data
+      await loadDashboardData();
+
+      // Check which modals are open and refresh them
       const docsModal = bootstrap.Modal.getInstance(
         document.getElementById("documentsModal")
       );
-      if (docsModal) docsModal.hide();
-
       const detailsModal = bootstrap.Modal.getInstance(
         document.getElementById("documentDetailsModal")
       );
-      if (detailsModal) detailsModal.hide();
+
+      // If documents list modal is open, refresh it
+      if (docsModal && docsModal._isShown) {
+        const typeConfig = documentTypes[type] || documentTypes.generic;
+        showDocuments(type, typeConfig.name);
+      }
+
+      // If details modal is open, refresh it or close it if document no longer needs approval
+      if (detailsModal && detailsModal._isShown) {
+        // Check if this document still exists in our summaries (meaning it still needs approval)
+        const summary = appData.summaries[type];
+        const documentStillExists =
+          summary && summary.documents.some((doc) => doc.id === id);
+
+        if (documentStillExists) {
+          // Refresh the details view
+          await viewDocumentDetails(type, id);
+        } else {
+          // Document no longer needs approval, close details modal
+          detailsModal.hide();
+          showToast(
+            "info",
+            "Phiếu đã được phê duyệt hoàn toàn và không còn cần xem xét"
+          );
+        }
+      }
     } else {
       showToast("danger", result);
     }
   } catch (error) {
     console.error("Error approving document:", error);
     showToast("danger", "Lỗi khi phê duyệt phiếu");
+  }
+}
+
+// Helper function to refresh modal content after approval
+async function refreshModalContent(type, id) {
+  try {
+    // Refresh dashboard data first
+    await loadDashboardData();
+
+    // Check which modals are currently shown
+    const docsModal = bootstrap.Modal.getInstance(
+      document.getElementById("documentsModal")
+    );
+    const detailsModal = bootstrap.Modal.getInstance(
+      document.getElementById("documentDetailsModal")
+    );
+
+    // Refresh documents list modal if open
+    if (docsModal && docsModal._isShown) {
+      const typeConfig = documentTypes[type] || documentTypes.generic;
+      showDocuments(type, typeConfig.name);
+    }
+
+    // Refresh document details modal if open
+    if (detailsModal && detailsModal._isShown) {
+      const summary = appData.summaries[type];
+      const documentStillExists =
+        summary && summary.documents.some((doc) => doc.id === id);
+
+      if (documentStillExists) {
+        await viewDocumentDetails(type, id);
+      } else {
+        detailsModal.hide();
+        showToast(
+          "info",
+          "Phiếu đã được xử lý xong và không còn hiển thị trong danh sách cần phê duyệt"
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Error refreshing modal content:", error);
   }
 }
 
