@@ -3361,11 +3361,16 @@ exports.approvePaymentStage = async (req, res) => {
         stageAmount
       );
 
-      // Special rule: Director can approve anytime for amounts under 100M
+      // Special rule: Director and deputyDirector can approve anytime for amounts under 100M
       if (
         (userRole === "director" || userRole === "deputyDirector") &&
         stageAmount < 100000000
       ) {
+        return { canApprove: true };
+      }
+
+      // Special rule: deputyDirector can approve anytime for amounts over 100M
+      if (userRole === "deputyDirector" && stageAmount > 100000000) {
         return { canApprove: true };
       }
 
@@ -3613,12 +3618,21 @@ exports.approvePaymentDocument = async (req, res) => {
         document
       );
 
-      // Special rule: Director can approve anytime for payment documents under 100M
+      // Special rule: Director and deputyDirector can approve anytime for payment documents under 100M
       if (
         userRole === "director" ||
         (userRole === "deputyDirector" &&
           document instanceof PaymentDocument &&
           document.totalPayment < 100000000)
+      ) {
+        return { canApprove: true };
+      }
+
+      // Special rule: deputyDirector can approve anytime for payment documents over 100M
+      if (
+        userRole === "deputyDirector" &&
+        document instanceof PaymentDocument &&
+        document.totalPayment > 100000000
       ) {
         return { canApprove: true };
       }
