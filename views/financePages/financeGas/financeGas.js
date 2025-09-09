@@ -290,8 +290,7 @@ function updateColumnVisibility() {
       3, // Đơn giá mua
       4, // Tổng mua
       8, // Vận chuyển
-      10, // Tỷ suất hoa hồng mua
-      11, // Hoa hồng mua
+      9, // Hoa hồng mua
     ];
   } else if (isTeam) {
     // For "Đội" category, hide most columns as it has minimal functionality
@@ -303,11 +302,8 @@ function updateColumnVisibility() {
       6, // Đơn giá bán
       7, // Tổng bán
       8, // Vận chuyển
-      9, // Tỷ giá tiền
-      10, // Tỷ suất hoa hồng mua
-      11, // Hoa hồng mua
-      12, // Tỷ suất hoa hồng bán
-      13, // Hoa hồng bán
+      9, // Hoa hồng mua
+      10, // Hoa hồng bán
     ];
   }
 
@@ -352,7 +348,7 @@ function updateFieldLockState() {
   const purchaseInputsToLock = document.querySelectorAll(`
     [data-field="purchaseContract.amount"],
     [data-field="purchaseContract.unitCost"],
-    [data-field="commissionRatePurchase"]
+    [data-field="commissionBonus.purchase"]
   `);
 
   // Lock transport cost for rental and team categories
@@ -364,12 +360,7 @@ function updateFieldLockState() {
   const saleInputsToLock = document.querySelectorAll(`
     [data-field="saleContract.amount"],
     [data-field="saleContract.unitCost"],
-    [data-field="commissionRateSale"]
-  `);
-
-  // Lock currency exchange rate for team category only
-  const exchangeRateInputs = document.querySelectorAll(`
-    [data-field="currencyExchangeRate"]
+    [data-field="commissionBonus.sale"]
   `);
 
   // Lock purchase fields and transport cost for rental and team
@@ -389,14 +380,6 @@ function updateFieldLockState() {
 
   // Lock sale fields only for team category
   saleInputsToLock.forEach((input) => {
-    input.disabled = isTeam;
-    input.title = isTeam ? "Không khả dụng cho loại hình này" : "";
-    input.style.cursor = isTeam ? "not-allowed" : "";
-    input.style.backgroundColor = isTeam ? "#f8f9fa" : "";
-  });
-
-  // Lock currency exchange rate only for team category
-  exchangeRateInputs.forEach((input) => {
     input.disabled = isTeam;
     input.title = isTeam ? "Không khả dụng cho loại hình này" : "";
     input.style.cursor = isTeam ? "not-allowed" : "";
@@ -863,10 +846,7 @@ function renderYearTable(yearData) {
             <th style="min-width: 90px;">Đơn giá bán</th>
             <th style="min-width: 90px;">Tổng bán</th>
             <th style="min-width: 90px;">Vận chuyển</th>
-            <th style="min-width: 90px;">Tỷ giá tiền</th>
-            <th style="min-width: 90px;">Tỷ suất hoa hồng mua</th>
             <th style="min-width: 90px;">Hoa hồng mua</th>
-            <th style="min-width: 90px;">Tỷ suất hoa hồng bán</th>
             <th style="min-width: 90px;">Hoa hồng bán</th>
             <th style="min-width: 80px;">Hành động</th>
           </tr>
@@ -884,7 +864,7 @@ function renderYearTable(yearData) {
         <tr data-month="${monthName}" data-year="${yearData.year}">
           <td>${monthName}</td>
           <td>-</td>
-          <td colspan="13" class="text-muted text-center">Không có mục</td>
+          <td colspan="10" class="text-muted text-center">Không có mục</td>
           <td>
             <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
                     data-month="${monthName}" data-year="${yearData.year}">
@@ -907,7 +887,7 @@ function renderYearTable(yearData) {
       html += `
         <tr data-month="${monthName}" data-year="${yearData.year}">
           <td></td>
-          <td colspan="14" class="text-center">
+          <td colspan="11" class="text-center">
             <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn" 
                     data-month="${monthName}" data-year="${yearData.year}">
                 + Thêm mục
@@ -971,30 +951,15 @@ function renderEntryRow(entry, entryIndex, monthName, year) {
         entry.transportCost || 0
       )}" data-field="transportCost" ${isRental ? "disabled" : ""}></td>
       
-      <!-- Currency exchange rate - always enabled -->
+      <!-- Commission bonus inputs - direct user input -->
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
-        entry.currencyExchangeRate || 1
-      )}" data-field="currencyExchangeRate"></td>
-
-      <!-- Purchase commission rate - locked for rental -->
-      <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
-        entry.commissionRatePurchase || 0
-      )}" data-field="commissionRatePurchase" ${
+        entry.commissionBonus?.purchase || 0
+      )}" data-field="commissionBonus.purchase" ${
     isRental ? "disabled" : ""
   }></td>
-      <td class="calculated-field">${formatNumberWithCommas(
-        entry.commissionBonus?.purchase || 0,
-        true
-      )}</td>
-
-      <!-- Sale commission rate - always enabled -->
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
-        entry.commissionRateSale || 0
-      )}" data-field="commissionRateSale"></td>
-      <td class="calculated-field">${formatNumberWithCommas(
-        entry.commissionBonus?.sale || 0,
-        true
-      )}</td>
+        entry.commissionBonus?.sale || 0
+      )}" data-field="commissionBonus.sale"></td>
 
       <td>
         <button class="btn btn-sm btn-outline-danger btn-action delete-entry-btn" 
@@ -1035,13 +1000,10 @@ function renderMonthTotalRow(monthName, entryCount, totals) {
         totals.transport,
         true
       )}</strong></td>
-      <td>-</td>
-      <td>-</td>
       <td><strong>${formatNumberWithCommas(
         totals.commissionPurchase,
         true
       )}</strong></td>
-      <td>-</td>
       <td><strong>${formatNumberWithCommas(
         totals.commissionSale,
         true
@@ -1140,7 +1102,7 @@ function setupTableEventListenersForContainer(container) {
         (e.shiftKey || e.keyCode < 48 || e.keyCode > 57) &&
         (e.keyCode < 96 || e.keyCode > 105) &&
         e.keyCode !== 190 && // Regular decimal point (.)
-        e.keyCode !== 110 && // Numpad decimal point (.)  <-- ADD THIS LINE
+        e.keyCode !== 110 && // Numpad decimal point (.)
         e.keyCode !== 188 // Comma (,)
       ) {
         e.preventDefault();
@@ -1164,9 +1126,6 @@ async function handleAddEntry(e) {
     purchaseContract: { amount: 0, unitCost: 0, totalCost: 0 },
     saleContract: { amount: 0, unitCost: 0, totalCost: 0 },
     transportCost: 0,
-    currencyExchangeRate: 1,
-    commissionRatePurchase: 0,
-    commissionRateSale: 0,
     commissionBonus: { purchase: 0, sale: 0 },
   };
 
@@ -1289,7 +1248,7 @@ async function refreshMonthSection(monthName, year) {
       <tr data-month="${monthName}" data-year="${year}">
         <td>${monthName}</td>
         <td>-</td>
-        <td colspan="13" class="text-muted text-center">Không có mục</td>
+        <td colspan="10" class="text-muted text-center">Không có mục</td>
         <td>
           <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn"
             data-month="${monthName}" data-year="${year}">
@@ -1316,7 +1275,7 @@ async function refreshMonthSection(monthName, year) {
     newRowsHtml += `
       <tr data-month="${monthName}" data-year="${year}">
         <td></td>
-        <td colspan="14" class="text-center">
+        <td colspan="11" class="text-center">
           <button class="btn btn-sm btn-outline-primary btn-action add-entry-btn"
             data-month="${monthName}" data-year="${year}">
             + Thêm mục
@@ -1393,33 +1352,13 @@ function updateRowCalculations(row) {
   const saleUnitCost = parseNumberFromInput(
     row.querySelector('[data-field="saleContract.unitCost"]').value
   );
-  const exchangeRate =
-    parseNumberFromInput(
-      row.querySelector('[data-field="currencyExchangeRate"]').value
-    ) || 1;
-  const purchaseCommRate = parseNumberFromInput(
-    row.querySelector('[data-field="commissionRatePurchase"]').value
-  );
-  const saleCommRate = parseNumberFromInput(
-    row.querySelector('[data-field="commissionRateSale"]').value
-  );
 
   const purchaseTotal = purchaseAmount * purchaseUnitCost;
   const saleTotal = saleAmount * saleUnitCost;
-  const purchaseCommission = purchaseAmount * purchaseCommRate * exchangeRate;
-  const saleCommission = saleAmount * saleCommRate * saleUnitCost;
 
   const calculatedFields = row.querySelectorAll(".calculated-field");
   calculatedFields[0].textContent = formatNumberWithCommas(purchaseTotal, true);
   calculatedFields[1].textContent = formatNumberWithCommas(saleTotal, true);
-  calculatedFields[2].textContent = formatNumberWithCommas(
-    purchaseCommission,
-    true
-  );
-  calculatedFields[3].textContent = formatNumberWithCommas(
-    saleCommission,
-    true
-  );
 }
 
 async function handleInputBlur(e) {
@@ -1490,7 +1429,7 @@ function updateMonthTotalsInPlace(monthName, year) {
     const cells = totalRow.querySelectorAll("td");
 
     // Update the cells with new totals (based on the structure from renderMonthTotalRow)
-    if (cells.length >= 15) {
+    if (cells.length >= 12) {
       // cells[0] = "Tổng ${monthName}" (skip)
       cells[1].innerHTML = `<strong>${monthData.entries.length}</strong>`;
       cells[2].innerHTML = `<strong>${formatNumberWithCommas(
@@ -1515,18 +1454,15 @@ function updateMonthTotalsInPlace(monthName, year) {
         totals.transport,
         true
       )}</strong>`;
-      // cells[9] = "-" (skip)
-      // cells[10] = "-" (skip)
-      cells[11].innerHTML = `<strong>${formatNumberWithCommas(
+      cells[9].innerHTML = `<strong>${formatNumberWithCommas(
         totals.commissionPurchase,
         true
       )}</strong>`;
-      // cells[12] = "-" (skip)
-      cells[13].innerHTML = `<strong>${formatNumberWithCommas(
+      cells[10].innerHTML = `<strong>${formatNumberWithCommas(
         totals.commissionSale,
         true
       )}</strong>`;
-      // cells[14] = "" (skip - actions column)
+      // cells[11] = "" (skip - actions column)
     }
   }
 }
@@ -1547,15 +1483,13 @@ function collectRowData(row) {
   const transportCost = parseNumberFromInput(
     row.querySelector('[data-field="transportCost"]').value
   );
-  const exchangeRate =
-    parseNumberFromInput(
-      row.querySelector('[data-field="currencyExchangeRate"]').value
-    ) || 1;
-  const purchaseCommRate = parseNumberFromInput(
-    row.querySelector('[data-field="commissionRatePurchase"]').value
+
+  // Get commission values directly from input
+  const purchaseCommission = parseNumberFromInput(
+    row.querySelector('[data-field="commissionBonus.purchase"]').value
   );
-  const saleCommRate = parseNumberFromInput(
-    row.querySelector('[data-field="commissionRateSale"]').value
+  const saleCommission = parseNumberFromInput(
+    row.querySelector('[data-field="commissionBonus.sale"]').value
   );
 
   return {
@@ -1570,12 +1504,9 @@ function collectRowData(row) {
       totalCost: saleAmount * saleUnitCost,
     },
     transportCost: transportCost,
-    currencyExchangeRate: exchangeRate,
-    commissionRatePurchase: purchaseCommRate,
-    commissionRateSale: saleCommRate,
     commissionBonus: {
-      purchase: purchaseAmount * purchaseCommRate * exchangeRate,
-      sale: saleAmount * saleCommRate * saleUnitCost,
+      purchase: purchaseCommission,
+      sale: saleCommission,
     },
   };
 }

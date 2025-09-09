@@ -20,9 +20,6 @@ const monthEntrySchema = new mongoose.Schema({
   saleContract: purchaseSaleSchema,
   transportCost: { type: Number, default: 0 },
   commissionBonus: commissionBonusSchema,
-  commissionRatePurchase: { type: Number, default: 0 },
-  commissionRateSale: { type: Number, default: 0 },
-  currencyExchangeRate: { type: Number, default: 1 },
 });
 
 // Define the schema for monthly data

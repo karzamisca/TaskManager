@@ -276,31 +276,6 @@ exports.addMonthEntry = async (req, res) => {
         entryData.saleContract.amount * entryData.saleContract.unitCost;
     }
 
-    // Calculate commission bonuses
-    if (
-      entryData.commissionRatePurchase &&
-      entryData.purchaseContract &&
-      entryData.currencyExchangeRate
-    ) {
-      entryData.commissionBonus = entryData.commissionBonus || {};
-      entryData.commissionBonus.purchase =
-        entryData.commissionRatePurchase *
-        entryData.purchaseContract.amount *
-        entryData.currencyExchangeRate;
-    }
-
-    if (
-      entryData.commissionRateSale &&
-      entryData.saleContract &&
-      entryData.currencyExchangeRate
-    ) {
-      entryData.commissionBonus = entryData.commissionBonus || {};
-      entryData.commissionBonus.sale =
-        entryData.commissionRateSale *
-        entryData.saleContract.amount *
-        entryData.currencyExchangeRate;
-    }
-
     month.entries.push(entryData);
     await center.save();
     res.json(center);
@@ -507,31 +482,6 @@ exports.updateMonthEntry = async (req, res) => {
     if (entryData.saleContract) {
       entryData.saleContract.totalCost =
         entryData.saleContract.amount * entryData.saleContract.unitCost;
-    }
-
-    // Calculate commission bonuses
-    if (
-      entryData.commissionRatePurchase &&
-      entryData.purchaseContract &&
-      entryData.currencyExchangeRate
-    ) {
-      entryData.commissionBonus = entryData.commissionBonus || {};
-      entryData.commissionBonus.purchase =
-        entryData.commissionRatePurchase *
-        entryData.purchaseContract.amount *
-        entryData.currencyExchangeRate;
-    }
-
-    if (
-      entryData.commissionRateSale &&
-      entryData.saleContract &&
-      entryData.currencyExchangeRate
-    ) {
-      entryData.commissionBonus = entryData.commissionBonus || {};
-      entryData.commissionBonus.sale =
-        entryData.commissionRateSale *
-        entryData.saleContract.amount *
-        entryData.currencyExchangeRate;
     }
 
     month.entries[entryIndex] = entryData;
