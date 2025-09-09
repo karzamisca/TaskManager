@@ -1134,8 +1134,8 @@ async function showFullView(docId) {
     const fullViewContent = document.getElementById("fullViewContent");
 
     // Format date strings
-    const submissionDate = doc.submissionDate || "Not specified";
-    const paymentDeadline = doc.paymentDeadline || "Not specified";
+    const submissionDate = doc.submissionDate || "Không có";
+    const paymentDeadline = doc.paymentDeadline || "Không có";
 
     fullViewContent.innerHTML = `
       <!-- Basic Information Section -->
