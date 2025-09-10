@@ -281,7 +281,6 @@ function updateColumnVisibility() {
   const isRental = category === "Thuê trạm" || category === "Thuê bồn";
   const isTeam = category === "Đội";
 
-  // Define columns to hide for rental categories and team categories
   let columnsToHide = [];
 
   if (isRental) {
@@ -293,7 +292,6 @@ function updateColumnVisibility() {
       9, // Hoa hồng mua
     ];
   } else if (isTeam) {
-    // For "Đội" category, hide most columns as it has minimal functionality
     columnsToHide = [
       2, // Số lượng mua
       3, // Đơn giá mua
@@ -304,31 +302,31 @@ function updateColumnVisibility() {
       8, // Vận chuyển
       9, // Hoa hồng mua
       10, // Hoa hồng bán
+      // 🚫 DO NOT hide col 11 (actions)
     ];
   }
 
-  // Get all tables in the current view
   const tables = document.querySelectorAll(".table-excel");
 
   tables.forEach((table) => {
-    // Hide/show header columns
     const headerRows = table.querySelectorAll("thead tr");
     headerRows.forEach((row) => {
       const cells = row.querySelectorAll("th");
       columnsToHide.forEach((colIndex) => {
-        if (cells[colIndex]) {
-          cells[colIndex].style.display = isRental || isTeam ? "none" : "";
+        // never hide the action column (last one)
+        if (colIndex < cells.length - 1 && cells[colIndex]) {
+          cells[colIndex].style.display = "none";
         }
       });
     });
 
-    // Hide/show body columns
     const bodyRows = table.querySelectorAll("tbody tr");
     bodyRows.forEach((row) => {
       const cells = row.querySelectorAll("td");
       columnsToHide.forEach((colIndex) => {
-        if (cells[colIndex]) {
-          cells[colIndex].style.display = isRental || isTeam ? "none" : "";
+        // never hide the action column (last one)
+        if (colIndex < cells.length - 1 && cells[colIndex]) {
+          cells[colIndex].style.display = "none";
         }
       });
     });
@@ -342,7 +340,6 @@ function updateFieldLockState() {
   const category = currentCenter.category;
   const isRental = category === "Thuê trạm" || category === "Thuê bồn";
   const isTeam = category === "Đội";
-  const shouldLock = isRental || isTeam;
 
   // Lock purchase-related fields for rental and team categories
   const purchaseInputsToLock = document.querySelectorAll(`
@@ -365,6 +362,7 @@ function updateFieldLockState() {
 
   // Lock purchase fields and transport cost for rental and team
   purchaseInputsToLock.forEach((input) => {
+    const shouldLock = isRental || isTeam;
     input.disabled = shouldLock;
     input.title = shouldLock ? "Không khả dụng cho loại hình này" : "";
     input.style.cursor = shouldLock ? "not-allowed" : "";
@@ -372,6 +370,7 @@ function updateFieldLockState() {
   });
 
   transportInputsToLock.forEach((input) => {
+    const shouldLock = isRental || isTeam;
     input.disabled = shouldLock;
     input.title = shouldLock ? "Không khả dụng cho loại hình này" : "";
     input.style.cursor = shouldLock ? "not-allowed" : "";
@@ -386,20 +385,20 @@ function updateFieldLockState() {
     input.style.backgroundColor = isTeam ? "#f8f9fa" : "";
   });
 
-  // Disable the "Thêm mục" button for rental and team categories
+  // Only disable the "Thêm mục" button for team categories (NOT for rental)
   const addButtons = document.querySelectorAll(".add-entry-btn");
   addButtons.forEach((button) => {
-    button.disabled = shouldLock;
-    button.title = shouldLock ? "Không khả dụng cho loại hình này" : "";
-    button.style.cursor = shouldLock ? "not-allowed" : "";
+    button.disabled = isTeam; // Only team category disables add buttons
+    button.title = isTeam ? "Không khả dụng cho loại hình này" : "";
+    button.style.cursor = isTeam ? "not-allowed" : "";
   });
 
-  // Disable delete buttons for rental and team categories
+  // Only disable delete buttons for team categories (NOT for rental)
   const deleteButtons = document.querySelectorAll(".delete-entry-btn");
   deleteButtons.forEach((button) => {
-    button.disabled = shouldLock;
-    button.title = shouldLock ? "Không khả dụng cho loại hình này" : "";
-    button.style.cursor = shouldLock ? "not-allowed" : "";
+    button.disabled = isTeam; // Only team category disables delete buttons
+    button.title = isTeam ? "Không khả dụng cho loại hình này" : "";
+    button.style.cursor = isTeam ? "not-allowed" : "";
   });
 
   // Update column visibility
@@ -912,59 +911,62 @@ function renderYearTable(yearData) {
 function renderEntryRow(entry, entryIndex, monthName, year) {
   const category = currentCenter?.category || "Mua bán khí";
   const isRental = category === "Thuê trạm" || category === "Thuê bồn";
+  const isTeam = category === "Đội";
 
   return `
     <tr data-month="${monthName}" data-year="${year}" data-entry="${entryIndex}">
       <td>${entryIndex === 0 ? monthName : ""}</td>
       <td>${entryIndex + 1}</td>
 
-      <!-- Purchase fields - locked for rental -->
+      <!-- Purchase fields - locked for rental and team -->
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.purchaseContract?.amount || 0
       )}" data-field="purchaseContract.amount" ${
-    isRental ? "disabled" : ""
+    isRental || isTeam ? "disabled" : ""
   }></td>
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.purchaseContract?.unitCost || 0
       )}" data-field="purchaseContract.unitCost" ${
-    isRental ? "disabled" : ""
+    isRental || isTeam ? "disabled" : ""
   }></td>
       <td class="calculated-field">${formatNumberWithCommas(
         entry.purchaseContract?.totalCost || 0,
         true
       )}</td>
 
-      <!-- Sale fields - always enabled -->
+      <!-- Sale fields - locked only for team -->
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.saleContract?.amount || 0
-      )}" data-field="saleContract.amount"></td>
+      )}" data-field="saleContract.amount" ${isTeam ? "disabled" : ""}></td>
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.saleContract?.unitCost || 0
-      )}" data-field="saleContract.unitCost"></td>
+      )}" data-field="saleContract.unitCost" ${isTeam ? "disabled" : ""}></td>
       <td class="calculated-field">${formatNumberWithCommas(
         entry.saleContract?.totalCost || 0,
         true
       )}</td>
 
-      <!-- Transport cost - locked for rental -->
+      <!-- Transport cost - locked for rental and team -->
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.transportCost || 0
-      )}" data-field="transportCost" ${isRental ? "disabled" : ""}></td>
+      )}" data-field="transportCost" ${
+    isRental || isTeam ? "disabled" : ""
+  }></td>
       
       <!-- Commission bonus inputs - direct user input -->
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.commissionBonus?.purchase || 0
       )}" data-field="commissionBonus.purchase" ${
-    isRental ? "disabled" : ""
+    isRental || isTeam ? "disabled" : ""
   }></td>
       <td><input type="text" class="input-cell number-input" value="${formatNumberWithCommas(
         entry.commissionBonus?.sale || 0
-      )}" data-field="commissionBonus.sale"></td>
+      )}" data-field="commissionBonus.sale" ${isTeam ? "disabled" : ""}></td>
 
       <td>
         <button class="btn btn-sm btn-outline-danger btn-action delete-entry-btn" 
                 data-month="${monthName}" data-year="${year}" data-entry="${entryIndex}"
-                ${isRental ? "disabled" : ""}>
+                ${isTeam ? "disabled" : ""}>
             ×
         </button>
       </td>
