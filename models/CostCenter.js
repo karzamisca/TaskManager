@@ -72,6 +72,12 @@ purchaseSaleSchema.pre("save", function (next) {
   next();
 });
 
+constructionSchema.pre("save", function (next) {
+  // Calculate net for construction entries
+  this.net = this.income - this.expense;
+  next();
+});
+
 monthEntrySchema.pre("save", function (next) {
   // Calculate commission bonuses
   if (

@@ -37,7 +37,7 @@ $(document).ready(function () {
     "Tháng Mười Hai": 12,
   };
 
-  // Metrics configuration - Updated with category-specific visibility
+  // Metrics configuration
   const metrics = [
     {
       key: "totalSale",
@@ -94,6 +94,28 @@ $(document).ready(function () {
       isPositive: true,
       color: "#007bff",
       hiddenForCategories: [], // Always show
+    },
+  ];
+
+  // Construction metrics
+  const constructionMetrics = [
+    {
+      key: "constructionIncome",
+      label: "Thu Xây Dựng",
+      isPositive: true,
+      color: "#20c997",
+    },
+    {
+      key: "constructionExpense",
+      label: "Chi Xây Dựng",
+      isPositive: false,
+      color: "#fd7e14",
+    },
+    {
+      key: "constructionNet",
+      label: "Lợi Nhuận Xây Dựng",
+      isPositive: true,
+      color: "#0dcaf0",
     },
   ];
 
@@ -280,7 +302,7 @@ $(document).ready(function () {
     }
   }
 
-  // Chart creation functions (keeping original chart functions)
+  // Chart creation functions
   function createMainChart(data, chartType, metric, groupBy) {
     if (typeof Chart === "undefined") {
       console.error("Chart.js not available when creating main chart");
@@ -292,7 +314,9 @@ $(document).ready(function () {
       mainChart.destroy();
     }
 
-    const metricInfo = metrics.find((m) => m.key === metric);
+    const metricInfo = [...metrics, ...constructionMetrics].find(
+      (m) => m.key === metric
+    );
     let chartData, labels;
 
     if (groupBy === "month") {
@@ -523,6 +547,9 @@ $(document).ready(function () {
       totalCommissionSale: 0,
       totalSalary: 0,
       totalPayments: 0,
+      constructionIncome: 0,
+      constructionExpense: 0,
+      constructionNet: 0,
     };
 
     data.forEach((item) => {
@@ -533,17 +560,29 @@ $(document).ready(function () {
       totals.totalCommissionSale += item.totalCommissionSale || 0;
       totals.totalSalary += item.totalSalary || 0;
       totals.totalPayments += item.totalPayments || 0;
+      totals.constructionIncome += item.constructionIncome || 0;
+      totals.constructionExpense += item.constructionExpense || 0;
+      totals.constructionNet += item.constructionNet || 0;
     });
 
-    const labels = ["Thu nhập", "Chi phí"];
+    const labels = [
+      "Thu nhập",
+      "Chi phí",
+      "Thu Xây dựng",
+      "Chi Xây dựng",
+      "Lợi nhuận Xây dựng",
+    ];
     const chartData = [
-      totals.totalSale,
+      totals.totalSale, // Total sales income
       totals.totalPurchase +
         totals.totalTransport +
         totals.totalCommissionPurchase +
         totals.totalCommissionSale +
         totals.totalSalary +
-        totals.totalPayments,
+        totals.totalPayments, // Total expenses
+      totals.constructionIncome, // Construction income
+      totals.constructionExpense, // Construction expense
+      totals.constructionNet, // Construction net profit
     ];
 
     comparisonChart = new Chart(ctx, {
@@ -554,8 +593,20 @@ $(document).ready(function () {
           {
             label: "VNĐ",
             data: chartData,
-            backgroundColor: ["#28a745", "#dc3545"],
-            borderColor: ["#28a745", "#dc3545"],
+            backgroundColor: [
+              "#28a745",
+              "#dc3545",
+              "#20c997",
+              "#fd7e14",
+              "#0dcaf0",
+            ],
+            borderColor: [
+              "#28a745",
+              "#dc3545",
+              "#20c997",
+              "#fd7e14",
+              "#0dcaf0",
+            ],
             borderWidth: 2,
           },
         ],
@@ -614,12 +665,19 @@ $(document).ready(function () {
           totalPurchase: 0,
           netRevenue: 0,
           totalTransport: 0,
+          constructionIncome: 0,
+          constructionExpense: 0,
+          constructionNet: 0,
         };
       }
       monthlyData[monthKey].totalSale += item.totalSale || 0;
       monthlyData[monthKey].totalPurchase += item.totalPurchase || 0;
       monthlyData[monthKey].netRevenue += item.netRevenue || 0;
       monthlyData[monthKey].totalTransport += item.totalTransport || 0;
+      monthlyData[monthKey].constructionIncome += item.constructionIncome || 0;
+      monthlyData[monthKey].constructionExpense +=
+        item.constructionExpense || 0;
+      monthlyData[monthKey].constructionNet += item.constructionNet || 0;
     });
 
     const labels = Object.keys(monthlyData).sort((a, b) => {
@@ -652,6 +710,30 @@ $(document).ready(function () {
         data: labels.map((label) => monthlyData[label].totalPurchase),
         borderColor: "#dc3545",
         backgroundColor: "#dc354520",
+        fill: false,
+        tension: 0.4,
+      },
+      {
+        label: "Thu Xây Dựng",
+        data: labels.map((label) => monthlyData[label].constructionIncome),
+        borderColor: "#20c997",
+        backgroundColor: "#20c99720",
+        fill: false,
+        tension: 0.4,
+      },
+      {
+        label: "Chi Xây Dựng",
+        data: labels.map((label) => monthlyData[label].constructionExpense),
+        borderColor: "#fd7e14",
+        backgroundColor: "#fd7e1420",
+        fill: false,
+        tension: 0.4,
+      },
+      {
+        label: "Lợi Nhuận Xây Dựng",
+        data: labels.map((label) => monthlyData[label].constructionNet),
+        borderColor: "#0dcaf0",
+        backgroundColor: "#0dcaf020",
         fill: false,
         tension: 0.4,
       },
@@ -716,8 +798,7 @@ $(document).ready(function () {
   }
 
   function createPieChart(data) {
-    // This function can be added if you have a pie chart element in your HTML
-    // For now, it's a placeholder to match the updateCharts() call
+    // Placeholder function - can be implemented if needed
   }
 
   function updateCharts() {
@@ -738,7 +819,7 @@ $(document).ready(function () {
     createTrendChart(currentChartData);
   }
 
-  // Function to create vertical stacked table with category-aware row hiding
+  // Function to create vertical stacked table with construction as separate category
   function createVerticalStackedTable(data) {
     // Destroy existing DataTable if it exists
     if (currentTable) {
@@ -775,6 +856,9 @@ $(document).ready(function () {
           totalCommissionSale: 0,
           totalSalary: 0,
           totalPayments: 0,
+          constructionIncome: 0,
+          constructionExpense: 0,
+          constructionNet: 0,
           netRevenue: 0,
         };
       }
@@ -787,6 +871,9 @@ $(document).ready(function () {
       entry.totalCommissionSale += item.totalCommissionSale;
       entry.totalSalary += item.grossSalary;
       entry.totalPayments += item.totalPayments;
+      entry.constructionIncome += item.constructionIncome;
+      entry.constructionExpense += item.constructionExpense;
+      entry.constructionNet += item.constructionNet;
       entry.netRevenue =
         entry.totalSale -
         entry.totalPurchase -
@@ -794,7 +881,8 @@ $(document).ready(function () {
         entry.totalCommissionPurchase -
         entry.totalCommissionSale -
         entry.totalSalary -
-        entry.totalPayments;
+        entry.totalPayments +
+        entry.constructionNet;
     });
 
     // Sort categories, cost centers and months
@@ -836,7 +924,24 @@ $(document).ready(function () {
       costCentersByCategory[item.category].add(item.costCenter);
     });
 
+    // Separate construction data
+    const constructionData = {};
+    Object.values(pivotData).forEach((item) => {
+      if (!constructionData[item.costCenter]) {
+        constructionData[item.costCenter] = {};
+      }
+      constructionData[item.costCenter][item.month] = {
+        constructionIncome: item.constructionIncome,
+        constructionExpense: item.constructionExpense,
+        constructionNet: item.constructionNet,
+      };
+    });
+
+    // Add regular categories first
     sortedCategories.forEach((category) => {
+      // Skip construction for now - it will be added as a separate category
+      if (category === "Xây Dựng") return;
+
       // Category header row (clickable) with auto-scaling
       const categoryRow = $(
         `<tr class="category-row" data-category="${category}"></tr>`
@@ -966,6 +1071,96 @@ $(document).ready(function () {
       });
     });
 
+    // Add Construction as a separate category
+    const constructionCategoryRow = $(
+      `<tr class="category-row" data-category="Xây Dựng"></tr>`
+    );
+    constructionCategoryRow.append(
+      `<td class="first-column">
+        <span class="category-toggle">▶</span>
+        <strong class="text-primary">Mua bán và Xây dựng</strong>
+      </td>`
+    );
+
+    // Add empty cells for months in construction category header
+    sortedMonths.forEach(() => {
+      constructionCategoryRow.append(
+        `<td class="month-column" style="text-align: right; font-weight: bold;"></td>`
+      );
+    });
+
+    tableBody.append(constructionCategoryRow);
+
+    // Add construction metrics
+    constructionMetrics.forEach((metric) => {
+      const metricRow = $(
+        `<tr class="metric-row" data-category="Xây Dựng" data-metric="${metric.key}" style="display: none;"></tr>`
+      );
+      metricRow.append(
+        `<td class="first-column" style="width: 250px; min-width: 250px; max-width: 250px; padding-left: 30px; white-space: nowrap;">
+          <span class="metric-toggle">▶</span>
+          <strong>${metric.label}</strong>
+        </td>`
+      );
+
+      // Calculate and add total for this construction metric across all cost centers
+      sortedMonths.forEach((month) => {
+        let totalValue = 0;
+        Object.keys(constructionData).forEach((costCenter) => {
+          if (constructionData[costCenter][month]) {
+            totalValue += constructionData[costCenter][month][metric.key] || 0;
+          }
+        });
+
+        let cellClass = "";
+        if (metric.isPositive && totalValue > 0) cellClass = "positive";
+        else if (!metric.isPositive && totalValue > 0) cellClass = "negative";
+        else if (totalValue < 0) cellClass = "negative";
+
+        const formattedValue =
+          totalValue === 0 ? "-" : totalValue.toLocaleString("vi-VN");
+        metricRow.append(
+          `<td class="month-column ${cellClass}" style="width: 150px; min-width: 150px; max-width: 150px; text-align: right; font-weight: bold; white-space: nowrap;">${formattedValue}</td>`
+        );
+      });
+
+      tableBody.append(metricRow);
+
+      // Add cost centers for construction metrics
+      const constructionCostCenters = Object.keys(constructionData).sort();
+      constructionCostCenters.forEach((costCenter) => {
+        const costCenterRow = $(
+          `<tr class="cost-center-row" data-category="Xây Dựng" data-metric="${metric.key}" data-cost-center="${costCenter}" style="display: none;"></tr>`
+        );
+        costCenterRow.append(
+          `<td class="first-column" style="padding-left: 60px;">
+            <strong>${costCenter}</strong>
+          </td>`
+        );
+
+        // Add values for this cost center and construction metric
+        sortedMonths.forEach((month) => {
+          let value = 0;
+          if (constructionData[costCenter][month]) {
+            value = constructionData[costCenter][month][metric.key] || 0;
+          }
+
+          let cellClass = "";
+          if (metric.isPositive && value > 0) cellClass = "positive";
+          else if (!metric.isPositive && value > 0) cellClass = "negative";
+          else if (value < 0) cellClass = "negative";
+
+          const formattedValue =
+            value === 0 ? "-" : value.toLocaleString("vi-VN");
+          costCenterRow.append(
+            `<td class="month-column ${cellClass}" style="text-align: right;">${formattedValue}</td>`
+          );
+        });
+
+        tableBody.append(costCenterRow);
+      });
+    });
+
     // Add click handlers for category rows
     $(".category-row").on("click", function () {
       const category = $(this).data("category");
@@ -1071,6 +1266,10 @@ $(document).ready(function () {
                 return true;
               },
             },
+            customize: function (xlsx) {
+              var sheet = xlsx.xl.worksheets["sheet1.xml"];
+              $("row:first c", sheet).attr("s", "2"); // Make header row bold
+            },
           },
         ],
         language: {
@@ -1097,7 +1296,7 @@ $(document).ready(function () {
     return Object.values(pivotData);
   }
 
-  // Function to update budget summary - UPDATED to respect category-specific metrics
+  // Function to update budget summary
   function updateBudgetSummary(data, year) {
     const budgetContainer = $("#budgetSummaryContainer");
     const budgetDetails = $("#budgetDetails");
@@ -1115,6 +1314,9 @@ $(document).ready(function () {
     let totalCommissionSale = 0;
     let totalSalary = 0;
     let totalPayments = 0;
+    let totalConstructionIncome = 0;
+    let totalConstructionExpense = 0;
+    let totalConstructionNet = 0;
 
     // Calculate totals with category awareness
     data.forEach((item) => {
@@ -1124,6 +1326,9 @@ $(document).ready(function () {
       totalCommissionSale += item.totalCommissionSale;
       totalSalary += item.totalSalary;
       totalPayments += item.totalPayments;
+      totalConstructionIncome += item.constructionIncome || 0;
+      totalConstructionExpense += item.constructionExpense || 0;
+      totalConstructionNet += item.constructionNet || 0;
 
       // Only include these metrics if not hidden for this category
       if (!shouldHideMetricForCategory("totalPurchase", costCenterCategory)) {
@@ -1197,6 +1402,22 @@ $(document).ready(function () {
       <div class="budget-item">
         <span>Tổng thanh toán khác:</span>
         <span class="negative">-${format(totalPayments)} VNĐ</span>
+      </div>
+      <div class="budget-item">
+        <span>Thu từ mua bán và xây dựng:</span>
+        <span class="positive">+${format(totalConstructionIncome)} VNĐ</span>
+      </div>
+      <div class="budget-item">
+        <span>Chi từ mua bán và xây dựng:</span>
+        <span class="negative">-${format(totalConstructionExpense)} VNĐ</span>
+      </div>
+      <div class="budget-item">
+        <span>Lợi nhuận mua bán và xây dựng:</span>
+        <span class="${totalConstructionNet >= 0 ? "positive" : "negative"}">
+          ${totalConstructionNet >= 0 ? "+" : ""}${format(
+      totalConstructionNet
+    )} VNĐ
+        </span>
       </div>
       <div class="budget-item">
         <span>Tổng doanh thu ròng (2025):</span>
@@ -1325,7 +1546,7 @@ $(document).ready(function () {
   });
 
   $("#clearAll").on("click", function () {
-    $(".cost-center-item").each(function () {
+    $(".costCenter-item").each(function () {
       const costCenterName = $(this).data("value");
       selectedCostCenters.delete(costCenterName);
       $(this).removeClass("selected");
@@ -1510,7 +1731,7 @@ $(document).ready(function () {
     $("#costCenterGrid").empty();
   });
 
-  // Form submission handler - UPDATED to use new vertical stacked table function
+  // Form submission handler
   $("#filterForm").on("submit", function (e) {
     e.preventDefault();
     const year = $("#yearSelect").val();

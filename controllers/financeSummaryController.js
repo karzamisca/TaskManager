@@ -135,6 +135,12 @@ exports.getRevenueByCostCenter = async (req, res) => {
       costCenter: { $in: costCenterNames },
     }).lean();
 
+    // Get construction data for the specified year
+    const constructionData = await CostCenter.find({
+      "construction.date": { $regex: `/${year}$` }, // Match dates ending with the year
+      name: { $in: costCenterNames },
+    }).select("name construction");
+
     // Filter payment documents by submission year and create a map
     const costCenterPaymentMap = {}; // To accumulate payments by cost center per month
 
@@ -207,6 +213,32 @@ exports.getRevenueByCostCenter = async (req, res) => {
       }
     });
 
+    // Process construction data by month
+    const costCenterConstructionMap = {};
+
+    constructionData.forEach((center) => {
+      center.construction.forEach((construction) => {
+        // Parse the date (DD/MM/YYYY format)
+        const [day, month, year] = construction.date.split("/");
+        const monthKey = `${parseInt(month)}-${year}`;
+        const recordKey = `${center.name}-${monthKey}`;
+
+        if (!costCenterConstructionMap[recordKey]) {
+          costCenterConstructionMap[recordKey] = {
+            income: 0,
+            expense: 0,
+            net: 0,
+          };
+        }
+
+        costCenterConstructionMap[recordKey].income += construction.income || 0;
+        costCenterConstructionMap[recordKey].expense +=
+          construction.expense || 0;
+        costCenterConstructionMap[recordKey].net +=
+          construction.income - construction.expense || 0;
+      });
+    });
+
     // Process the data
     const results = [];
     const costCenterSalaryMap = {}; // To accumulate salaries by cost center
@@ -223,7 +255,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
       costCenterSalaryMap[key] += record.grossSalary || 0;
     }
 
-    // Second pass: Calculate net revenue including payment documents
+    // Second pass: Calculate net revenue including payment documents AND construction
     for (const costCenterName of costCenterNames) {
       for (let month = 1; month <= 12; month++) {
         // Calculate the actual month (previous month)
@@ -245,6 +277,11 @@ exports.getRevenueByCostCenter = async (req, res) => {
         let totalCommissionSale = 0;
         let totalSalary = 0;
         let totalPayments = 0;
+
+        // Initialize construction values
+        let constructionIncome = 0;
+        let constructionExpense = 0;
+        let constructionNet = 0;
 
         // Find matching finance data
         const center = financeData.find((c) => c.name === costCenterName);
@@ -275,7 +312,17 @@ exports.getRevenueByCostCenter = async (req, res) => {
         const paymentKey = `${costCenterName}-${month}-${year}`;
         totalPayments = costCenterPaymentMap[paymentKey] || 0;
 
-        // Calculate net revenue (subtract payments from the calculation)
+        // Get construction data for this cost center and month
+        const constructionKey = `${costCenterName}-${month}-${year}`;
+        const constructionDataForMonth =
+          costCenterConstructionMap[constructionKey];
+        if (constructionDataForMonth) {
+          constructionIncome = constructionDataForMonth.income;
+          constructionExpense = constructionDataForMonth.expense;
+          constructionNet = constructionDataForMonth.net;
+        }
+
+        // Calculate net revenue (ADD construction net income)
         const netRevenue =
           totalSale -
           totalPurchase -
@@ -283,7 +330,8 @@ exports.getRevenueByCostCenter = async (req, res) => {
           totalCommissionPurchase -
           totalCommissionSale -
           totalSalary -
-          totalPayments;
+          totalPayments +
+          constructionNet; // Add construction net income
 
         results.push({
           costCenter: costCenterName,
@@ -301,7 +349,10 @@ exports.getRevenueByCostCenter = async (req, res) => {
           totalCommissionPurchase: totalCommissionPurchase,
           totalCommissionSale: totalCommissionSale,
           totalSalary: totalSalary,
-          totalPayments: totalPayments, // Add this new field
+          totalPayments: totalPayments,
+          constructionIncome: constructionIncome,
+          constructionExpense: constructionExpense,
+          constructionNet: constructionNet,
           netRevenue: netRevenue,
         });
       }
