@@ -34,6 +34,18 @@ const yearSchema = new mongoose.Schema({
   months: [monthSchema],
 });
 
+// Define the schema for construction entries
+const constructionSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  income: { type: Number, default: 0 },
+  expense: { type: Number, default: 0 },
+  date: {
+    type: String,
+    required: true,
+    match: [/^\d{2}\/\d{2}\/\d{4}$/, "Date must be in DD/MM/YYYY format"],
+  },
+});
+
 // Define the merged cost center schema
 const costCenterSchema = new mongoose.Schema({
   name: {
@@ -51,6 +63,7 @@ const costCenterSchema = new mongoose.Schema({
     default: [],
   },
   years: [yearSchema],
+  construction: [constructionSchema], // New field for construction entries
 });
 
 // Pre-save hooks to calculate totals
