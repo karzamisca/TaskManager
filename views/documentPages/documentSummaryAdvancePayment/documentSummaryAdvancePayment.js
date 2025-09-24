@@ -1054,6 +1054,10 @@ async function showFullView(docId) {
             <span class="detail-value">${submissionDate}</span>
           </div>
           <div class="detail-item">
+            <span class="detail-label">Người nộp:</span>
+            <span class="detail-value">${doc.submittedBy.username}</span>
+          </div>
+          <div class="detail-item">
             <span class="detail-label">Hạn trả:</span>
             <span class="detail-value">${paymentDeadline}</span>
           </div>
