@@ -2563,7 +2563,8 @@ exports.getPurchasingDocument = async (req, res) => {
     const document = await PurchasingDocument.findById(id)
       .populate("submittedBy", "username")
       .populate("approvers.approver", "username role")
-      .populate("approvedBy.user", "username");
+      .populate("approvedBy.user", "username")
+      .populate("appendedProposals.submittedBy", "username");
     if (!document) {
       return res.status(404).json({ message: "Document not found" });
     }
@@ -2888,6 +2889,8 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
 exports.getPaymentDocument = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // First, get the document with basic population
     const document = await PaymentDocument.findById(id)
       .populate("submittedBy", "username")
       .populate("approvers.approver", "username role")
@@ -2895,6 +2898,49 @@ exports.getPaymentDocument = async (req, res) => {
 
     if (!document) {
       return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Manually populate submittedBy for appendedPurchasingDocuments and their appendedProposals
+    if (
+      document.appendedPurchasingDocuments &&
+      document.appendedPurchasingDocuments.length > 0
+    ) {
+      for (let purchasingDoc of document.appendedPurchasingDocuments) {
+        // Populate submittedBy for the purchasing document
+        if (purchasingDoc.submittedBy) {
+          const submittedByUser = await mongoose
+            .model("User")
+            .findById(purchasingDoc.submittedBy)
+            .select("username");
+          if (submittedByUser) {
+            purchasingDoc.submittedBy = {
+              _id: purchasingDoc.submittedBy,
+              username: submittedByUser.username,
+            };
+          }
+        }
+
+        // Populate submittedBy for appendedProposals within the purchasing document
+        if (
+          purchasingDoc.appendedProposals &&
+          purchasingDoc.appendedProposals.length > 0
+        ) {
+          for (let proposal of purchasingDoc.appendedProposals) {
+            if (proposal.submittedBy) {
+              const proposalSubmittedBy = await mongoose
+                .model("User")
+                .findById(proposal.submittedBy)
+                .select("username");
+              if (proposalSubmittedBy) {
+                proposal.submittedBy = {
+                  _id: proposal.submittedBy,
+                  username: proposalSubmittedBy.username,
+                };
+              }
+            }
+          }
+        }
+      }
     }
 
     res.json(document);

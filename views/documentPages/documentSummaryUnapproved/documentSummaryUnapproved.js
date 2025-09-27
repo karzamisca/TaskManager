@@ -534,7 +534,7 @@ function addPurchasingFullView(document) {
                 proposal.task || "Đề xuất không có tiêu đề"
               }</h5>
               <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-6">            
                   <p><strong>Trạm:</strong> ${
                     proposal.costCenter || "Không có"
                   }</p>
@@ -688,6 +688,9 @@ function addPaymentFullView(document) {
               <h5 class="card-title">${purchDoc.name || "Phiếu mua hàng"}</h5>
               <div class="row">
                 <div class="col-md-6">
+                  <p><strong>Người gửi:</strong> ${
+                    purchDoc.submittedBy?.username || "Không rõ"
+                  }</p>                
                   <p><strong>Trạm:</strong> ${
                     purchDoc.costCenter || "Không có"
                   }</p>
@@ -757,6 +760,9 @@ function addPaymentFullView(document) {
                             <h6 class="card-title">${
                               proposal.task || "Đề xuất"
                             }</h6>
+                            <p><strong>Người gửi:</strong> ${
+                              proposal.submittedBy?.username || "Không rõ"
+                            }</p>                              
                             <p><strong>Trạm:</strong> ${proposal.costCenter}</p>
                             <p><strong>Mô tả:</strong> ${
                               proposal.detailsDescription
@@ -856,7 +862,7 @@ function addDeliveryFullView(document) {
                 proposal.task || "Đề xuất không có tiêu đề"
               }</h5>
               <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-6">               
                   <p><strong>Trạm:</strong> ${
                     proposal.costCenter || "Không có"
                   }</p>
@@ -931,9 +937,12 @@ function addAdvancePaymentFullView(document, isReclaim) {
               <h5 class="card-title">${purchDoc.name || "Phiếu mua hàng"}</h5>
               <div class="row">
                 <div class="col-md-6">
+                  <p><strong>Người gửi:</strong> ${
+                    purchDoc.submittedBy?.username || "Không rõ"
+                  }</p>                
                   <p><strong>Trạm:</strong> ${
                     purchDoc.costCenter || "Không có"
-                  }</p>
+                  }</p>                
                   <p><strong>Nhóm:</strong> ${
                     purchDoc.groupName || "Không có"
                   }</p>
@@ -1000,6 +1009,9 @@ function addAdvancePaymentFullView(document, isReclaim) {
                             <h6 class="card-title">${
                               proposal.task || "Đề xuất"
                             }</h6>
+                            <p><strong>Người gửi:</strong> ${
+                              proposal.submittedBy?.username || "Không rõ"
+                            }</p>                             
                             <p><strong>Trạm:</strong> ${proposal.costCenter}</p>
                             <p><strong>Mô tả:</strong> ${
                               proposal.detailsDescription
@@ -1354,6 +1366,9 @@ function addAdvancePaymentDetails(document, type) {
               <h5 class="card-title">${purchDoc.name || "Phiếu mua hàng"}</h5>
               <div class="row">
                 <div class="col-md-6">
+                  <p><strong>Người gửi:</strong> ${
+                    purchDoc.submittedBy?.username || "Không rõ"
+                  }</p>                
                   <p><strong>Trạm:</strong> ${
                     purchDoc.costCenter || "Không có"
                   }</p>
@@ -1499,7 +1514,7 @@ function addDeliveryDetails(document) {
                 proposal.task || "Đề xuất không có tiêu đề"
               }</h5>
               <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-6">               
                   <p><strong>Trạm:</strong> ${
                     proposal.costCenter || "Không có"
                   }</p>
