@@ -66,40 +66,26 @@ const CHATFUEL_BOT_ID = process.env.CHATFUEL_BOT_ID;
 const CHATFUEL_TOKEN = process.env.CHATFUEL_TOKEN;
 const CHATFUEL_BLOCK_ID = process.env.CHATFUEL_BLOCK_ID;
 
-const DOCUMENT_TYPE_FOLDERS = {
-  "Generic Document": process.env.FILEBROWSER_DOCUMENT_GENERIC_UPLOAD_FOLDER,
-  "Proposal Document": process.env.FILEBROWSER_DOCUMENT_PROPOSAL_UPLOAD_FOLDER,
-  "Purchasing Document":
-    process.env.FILEBROWSER_DOCUMENT_PURCHASING_UPLOAD_FOLDER,
-  "Delivery Document": process.env.FILEBROWSER_DOCUMENT_DELIVERY_UPLOAD_FOLDER,
-  "Payment Document": process.env.FILEBROWSER_DOCUMENT_PAYMENT_UPLOAD_FOLDER,
-  "Advance Payment Document":
-    process.env.FILEBROWSER_DOCUMENT_PAYMENT_ADVANCE_UPLOAD_FOLDER,
-  "Advance Payment Reclaim Document":
-    process.env.FILEBROWSER_DOCUMENT_PAYMENT_ADVANCE_RECLAIM_UPLOAD_FOLDER,
-  "Project Proposal Document":
-    process.env.FILEBROWSER_DOCUMENT_PROPOSAL_PROJECT_UPLOAD_FOLDER,
-};
+// Nextcloud configuration
+const NEXTCLOUD_BASE_URL = process.env.NEXTCLOUD_BASE_URL;
+const NEXTCLOUD_USERNAME = process.env.NEXTCLOUD_USERNAME;
+const NEXTCLOUD_PASSWORD = process.env.NEXTCLOUD_PASSWORD;
+const NEXTCLOUD_WEBDAV_URL = `${NEXTCLOUD_BASE_URL}/remote.php/dav/files/${NEXTCLOUD_USERNAME}`;
 
-// Document type to share code mapping
-const DOCUMENT_TYPE_SHARE_CODES = {
-  "Generic Document":
-    process.env.FILEBROWSER_DOCUMENT_GENERIC_UPLOAD_FOLDER_SHARE_CODE,
-  "Proposal Document":
-    process.env.FILEBROWSER_DOCUMENT_PROPOSAL_UPLOAD_FOLDER_SHARE_CODE,
+// Document type to Nextcloud folder mapping
+const DOCUMENT_TYPE_FOLDERS = {
+  "Generic Document": process.env.NEXTCLOUD_DOCUMENT_GENERIC_UPLOAD_FOLDER,
+  "Proposal Document": process.env.NEXTCLOUD_DOCUMENT_PROPOSAL_UPLOAD_FOLDER,
   "Purchasing Document":
-    process.env.FILEBROWSER_DOCUMENT_PURCHASING_UPLOAD_FOLDER_SHARE_CODE,
-  "Delivery Document":
-    process.env.FILEBROWSER_DOCUMENT_DELIVERY_UPLOAD_FOLDER_SHARE_CODE,
-  "Payment Document":
-    process.env.FILEBROWSER_DOCUMENT_PAYMENT_UPLOAD_FOLDER_SHARE_CODE,
+    process.env.NEXTCLOUD_DOCUMENT_PURCHASING_UPLOAD_FOLDER,
+  "Delivery Document": process.env.NEXTCLOUD_DOCUMENT_DELIVERY_UPLOAD_FOLDER,
+  "Payment Document": process.env.NEXTCLOUD_DOCUMENT_PAYMENT_UPLOAD_FOLDER,
   "Advance Payment Document":
-    process.env.FILEBROWSER_DOCUMENT_PAYMENT_ADVANCE_UPLOAD_FOLDER_SHARE_CODE,
+    process.env.NEXTCLOUD_DOCUMENT_PAYMENT_ADVANCE_UPLOAD_FOLDER,
   "Advance Payment Reclaim Document":
-    process.env
-      .FILEBROWSER_DOCUMENT_PAYMENT_ADVANCE_RECLAIM_UPLOAD_FOLDER_SHARE_CODE,
+    process.env.NEXTCLOUD_DOCUMENT_PAYMENT_ADVANCE_RECLAIM_UPLOAD_FOLDER,
   "Project Proposal Document":
-    process.env.FILEBROWSER_DOCUMENT_PROPOSAL_PROJECT_UPLOAD_FOLDER_SHARE_CODE,
+    process.env.NEXTCLOUD_DOCUMENT_PROPOSAL_PROJECT_UPLOAD_FOLDER,
 };
 
 //// GENERAL CONTROLLER
@@ -587,285 +573,497 @@ async function processApprovers(req) {
   );
 }
 
-class FileBrowserClient {
-  constructor(baseUrl) {
+class NextcloudClient {
+  constructor(baseUrl, username, password) {
     this.baseUrl = baseUrl;
-    this.token = null;
+    this.username = username;
+    this.password = password;
+    this.auth = Buffer.from(`${username}:${password}`).toString("base64");
+    // Store cookies for session management
+    this.cookies = {};
   }
 
-  // Authenticate and get JWT token
-  async authenticate(username, password) {
-    try {
-      const response = await axios.post(`${this.baseUrl}/api/login`, {
-        username: username,
-        password: password,
+  // Extract and store cookies from response
+  storeCookies(response) {
+    const setCookieHeader = response.headers["set-cookie"];
+    if (setCookieHeader) {
+      setCookieHeader.forEach((cookie) => {
+        const [nameValue] = cookie.split(";");
+        const [name, value] = nameValue.split("=");
+        if (name && value) {
+          this.cookies[name.trim()] = value.trim();
+        }
       });
-
-      this.token = response.data.token || response.data;
-      return this.token;
-    } catch (error) {
-      console.error(
-        "Authentication failed:",
-        error.response?.data || error.message
-      );
-      throw error;
     }
   }
 
-  // Upload a file from local path with custom filename
-  async uploadFile(
-    destinationPath,
-    filePath,
-    customFileName = null,
-    override = true
-  ) {
-    if (!this.token) {
-      throw new Error("Not authenticated. Call authenticate() first.");
-    }
+  // Get cookie header string
+  getCookieHeader() {
+    return Object.entries(this.cookies)
+      .map(([name, value]) => `${name}=${value}`)
+      .join("; ");
+  }
 
+  // Create directory if it doesn't exist
+  async ensureDirectoryExists(path) {
     try {
-      // Use custom filename if provided, otherwise use the file's basename
-      const fileName = customFileName || path.basename(filePath);
-      const fullPath = destinationPath.endsWith("/")
-        ? `${destinationPath}${fileName}`
-        : `${destinationPath}/${fileName}`;
-
-      const uploadUrl = `${this.baseUrl}/api/resources${fullPath}${
-        override ? "?override=true" : ""
-      }`;
-
-      // Create a read stream instead of reading entire file into memory
-      const fileStream = fs.createReadStream(filePath);
-      const mimeType = this.getMimeType(fileName);
-
-      const response = await axios.post(uploadUrl, fileStream, {
+      const response = await axios.request({
+        method: "MKCOL",
+        url: `${this.baseUrl}/${path}`,
         headers: {
-          "X-Auth": this.token,
-          "Content-Type": mimeType,
-          // Add content length if needed
-          "Content-Length": fs.statSync(filePath).size,
+          Authorization: `Basic ${this.auth}`,
+          "Content-Type": "application/xml",
+          ...(Object.keys(this.cookies).length > 0 && {
+            Cookie: this.getCookieHeader(),
+          }),
         },
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
-        // Important: Don't let axios transform the data
-        transformRequest: [(data) => data],
       });
-
-      return {
-        success: true,
-        fileName: fileName,
-        path: fullPath,
-        downloadUrl: `${this.baseUrl}/api/raw${fullPath}`,
-        size: fs.statSync(filePath).size,
-      };
+      this.storeCookies(response);
+      return true;
     } catch (error) {
+      if (error.response && error.response.status === 405) {
+        // Directory already exists
+        return true;
+      }
       console.error(
-        "Failed to upload file:",
+        "Error creating directory:",
         error.response?.data || error.message
       );
       throw error;
     }
   }
 
-  // Alternative method using form data with custom filename
-  async uploadFileWithFormData(
-    destinationPath,
-    filePath,
-    customFileName = null,
-    override = true
-  ) {
-    if (!this.token) {
-      throw new Error("Not authenticated. Call authenticate() first.");
-    }
-
+  // Upload file to Nextcloud
+  async uploadFile(localFilePath, remotePath, customFileName = null) {
     try {
-      const FormData = require("form-data");
-      // Ensure destination path starts with a slash
-      const normalizedPath = destinationPath.startsWith("/")
-        ? destinationPath
-        : `/${destinationPath}`;
+      // Ensure directory exists
+      const remoteDir = path.dirname(remotePath);
+      await this.ensureDirectoryExists(remoteDir);
 
-      const fileName = customFileName || path.basename(filePath);
-      const fullPath = normalizedPath.endsWith("/")
-        ? `${normalizedPath}${fileName}`
-        : `${normalizedPath}/${fileName}`;
+      const fileName = customFileName || path.basename(localFilePath);
+      const fullRemotePath = remotePath.endsWith("/")
+        ? `${remotePath}${fileName}`
+        : `${remotePath}/${fileName}`;
 
-      const uploadUrl = `${this.baseUrl}/api/resources${fullPath}${
-        override ? "?override=true" : ""
-      }`;
+      const fileData = fs.readFileSync(localFilePath);
 
-      const form = new FormData();
-      form.append("file", fs.createReadStream(filePath), {
-        filename: fileName,
-        contentType: this.getMimeType(fileName),
-      });
-
-      const response = await axios.post(uploadUrl, form, {
-        headers: {
-          "X-Auth": this.token,
-          ...form.getHeaders(),
-        },
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
-      });
-
-      return {
-        success: true,
-        fileName: fileName,
-        path: fullPath,
-        downloadUrl: `${this.baseUrl}/api/raw${fullPath}`,
-        size: fs.statSync(filePath).size,
-      };
-    } catch (error) {
-      console.error(
-        "Failed to upload file with form data:",
-        error.response?.data || error.message
-      );
-      throw error;
-    }
-  }
-
-  // Delete a file
-  async deleteFile(filePath) {
-    if (!this.token) {
-      throw new Error("Not authenticated. Call authenticate() first.");
-    }
-
-    try {
-      const response = await axios.delete(
-        `${this.baseUrl}/api/resources${filePath}`,
+      const response = await axios.put(
+        `${this.baseUrl}/${fullRemotePath}`,
+        fileData,
         {
           headers: {
-            "X-Auth": this.token,
+            Authorization: `Basic ${this.auth}`,
+            "Content-Type": "application/octet-stream",
+            ...(Object.keys(this.cookies).length > 0 && {
+              Cookie: this.getCookieHeader(),
+            }),
           },
         }
       );
-      return { success: true };
+
+      this.storeCookies(response);
+
+      // Get permanent share link - use enhanced method
+      const shareLink = await this.ensurePermanentShare(fullRemotePath);
+
+      return {
+        success: true,
+        fileName: fileName,
+        path: fullRemotePath,
+        downloadUrl: shareLink,
+        size: fs.statSync(localFilePath).size,
+        mimeType: this.getMimeType(fileName),
+      };
     } catch (error) {
       console.error(
-        "Failed to delete file:",
+        "Failed to upload file to Nextcloud:",
         error.response?.data || error.message
       );
       throw error;
     }
   }
 
-  // Enhanced MIME type detection
+  // Method 1: Create permanent public share link with proper authentication
+  async createPublicShare(filePath) {
+    try {
+      // First, try to get CSRF token if needed
+      await this.initializeSession();
+
+      // Create permanent share with no expiration date
+      const shareParams = new URLSearchParams({
+        path: filePath,
+        shareType: "3", // Public link
+        permissions: "1", // Read permission
+        publicUpload: "false", // Disable upload
+        password: "", // No password protection
+        expireDate: "", // No expiration date (permanent)
+      });
+
+      const response = await axios.post(
+        `${this.baseUrl.replace(
+          "/remote.php/dav/files/" + this.username,
+          ""
+        )}/ocs/v2.php/apps/files_sharing/api/v1/shares`,
+        shareParams.toString(),
+        {
+          headers: {
+            Authorization: `Basic ${this.auth}`,
+            "OCS-APIRequest": "true",
+            "Content-Type": "application/x-www-form-urlencoded",
+            Accept: "application/json",
+            ...(Object.keys(this.cookies).length > 0 && {
+              Cookie: this.getCookieHeader(),
+            }),
+          },
+        }
+      );
+
+      this.storeCookies(response);
+
+      // Handle JSON response
+      if (response.data && response.data.ocs && response.data.ocs.data) {
+        const shareData = response.data.ocs.data;
+        if (shareData.url) {
+          console.log(`Created permanent share link: ${shareData.url}`);
+          return shareData.url;
+        }
+      }
+
+      // Handle XML response
+      if (typeof response.data === "string") {
+        const shareUrlMatch = response.data.match(/<url>(.*?)<\/url>/);
+        if (shareUrlMatch) {
+          console.log(`Created permanent share link: ${shareUrlMatch[1]}`);
+          return shareUrlMatch[1];
+        }
+      }
+
+      throw new Error("No share URL found in response");
+    } catch (error) {
+      console.error(
+        "Failed to create public share:",
+        error.response?.data || error.message
+      );
+
+      // Try alternative methods
+      return await this.getAlternativeShareLink(filePath);
+    }
+  }
+
+  // Method 2: Initialize session to get proper cookies
+  async initializeSession() {
+    try {
+      const response = await axios.get(
+        `${this.baseUrl.replace(
+          "/remote.php/dav/files/" + this.username,
+          ""
+        )}/login`,
+        {
+          headers: {
+            Authorization: `Basic ${this.auth}`,
+          },
+          maxRedirects: 0,
+          validateStatus: (status) => status < 400,
+        }
+      );
+      this.storeCookies(response);
+    } catch (error) {
+      // Ignore errors, this is just for session initialization
+    }
+  }
+
+  // Method 3: Alternative share link approaches
+  async getAlternativeShareLink(filePath) {
+    const alternatives = [
+      // Try with different API versions
+      () => this.createShareV1(filePath),
+      () => this.createShareDirect(filePath),
+      // Fallback to direct download
+      () => Promise.resolve(this.getDirectDownloadUrl(filePath)),
+    ];
+
+    for (const alternative of alternatives) {
+      try {
+        const result = await alternative();
+        if (result) return result;
+      } catch (error) {
+        console.log(`Alternative method failed: ${error.message}`);
+      }
+    }
+
+    // Final fallback
+    return this.getDirectDownloadUrl(filePath);
+  }
+
+  // Alternative API v1 approach for permanent shares
+  async createShareV1(filePath) {
+    const shareParams = new URLSearchParams({
+      path: filePath,
+      shareType: "3", // Public link
+      permissions: "1", // Read permission
+      publicUpload: "false", // No upload
+      password: "", // No password
+      expireDate: "", // No expiration (permanent)
+    });
+
+    const response = await axios.post(
+      `${this.baseUrl.replace(
+        "/remote.php/dav/files/" + this.username,
+        ""
+      )}/ocs/v1.php/apps/files_sharing/api/v1/shares`,
+      shareParams,
+      {
+        headers: {
+          Authorization: `Basic ${this.auth}`,
+          "OCS-APIRequest": "true",
+          "Content-Type": "application/x-www-form-urlencoded",
+          ...(Object.keys(this.cookies).length > 0 && {
+            Cookie: this.getCookieHeader(),
+          }),
+        },
+      }
+    );
+
+    this.storeCookies(response);
+
+    // Parse response
+    if (response.data) {
+      const urlMatch = response.data.toString().match(/<url>(.*?)<\/url>/);
+      if (urlMatch) {
+        console.log(`Created permanent share link (v1): ${urlMatch[1]}`);
+        return urlMatch[1];
+      }
+    }
+    throw new Error("No share URL in v1 response");
+  }
+
+  // Direct share creation for permanent links
+  async createShareDirect(filePath) {
+    const baseNextcloudUrl = this.baseUrl.replace(
+      "/remote.php/dav/files/" + this.username,
+      ""
+    );
+
+    const shareParams = new URLSearchParams({
+      action: "share",
+      itemSource: filePath,
+      itemType: "file",
+      shareType: 3, // Public link
+      permissions: 1, // Read permission
+      publicUpload: false, // No upload
+      password: "", // No password
+      expiration: "", // No expiration (permanent)
+    });
+
+    const response = await axios({
+      method: "POST",
+      url: `${baseNextcloudUrl}/index.php/apps/files_sharing/ajax/share.php`,
+      data: shareParams,
+      headers: {
+        Authorization: `Basic ${this.auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Requested-With": "XMLHttpRequest",
+        ...(Object.keys(this.cookies).length > 0 && {
+          Cookie: this.getCookieHeader(),
+        }),
+      },
+    });
+
+    this.storeCookies(response);
+
+    if (response.data && response.data.data && response.data.data.url) {
+      console.log(
+        `Created permanent share link (direct): ${response.data.data.url}`
+      );
+      return response.data.data.url;
+    }
+
+    throw new Error("No share URL in direct response");
+  }
+
+  // Check if share link exists and is permanent, create if not
+  async ensurePermanentShare(filePath) {
+    try {
+      // First check if file already has a public share
+      const existingShares = await this.getExistingShares(filePath);
+
+      // Look for permanent public shares
+      const permanentShare = existingShares.find(
+        (share) =>
+          share.share_type === 3 && // Public link
+          (!share.expiration ||
+            share.expiration === null ||
+            share.expiration === "")
+      );
+
+      if (permanentShare) {
+        console.log(`Found existing permanent share: ${permanentShare.url}`);
+        return permanentShare.url;
+      }
+
+      // No permanent share found, create one
+      return await this.createPublicShare(filePath);
+    } catch (error) {
+      console.log(
+        "Error checking existing shares, creating new one:",
+        error.message
+      );
+      return await this.createPublicShare(filePath);
+    }
+  }
+
+  // Get existing shares for a file
+  async getExistingShares(filePath) {
+    try {
+      const response = await axios.get(
+        `${this.baseUrl.replace(
+          "/remote.php/dav/files/" + this.username,
+          ""
+        )}/ocs/v2.php/apps/files_sharing/api/v1/shares`,
+        {
+          params: {
+            path: filePath,
+            format: "json",
+          },
+          headers: {
+            Authorization: `Basic ${this.auth}`,
+            "OCS-APIRequest": "true",
+            Accept: "application/json",
+            ...(Object.keys(this.cookies).length > 0 && {
+              Cookie: this.getCookieHeader(),
+            }),
+          },
+        }
+      );
+
+      this.storeCookies(response);
+
+      if (response.data && response.data.ocs && response.data.ocs.data) {
+        return Array.isArray(response.data.ocs.data)
+          ? response.data.ocs.data
+          : [response.data.ocs.data];
+      }
+
+      return [];
+    } catch (error) {
+      console.log("Could not get existing shares:", error.message);
+      return [];
+    }
+  }
+  getDirectDownloadUrl(filePath) {
+    // Create a direct download URL that includes authentication
+    const encodedPath = encodeURIComponent(filePath);
+    return `${this.baseUrl}/${encodedPath}`;
+  }
+
+  // Delete file from Nextcloud
+  async deleteFile(filePath) {
+    try {
+      const response = await axios.delete(`${this.baseUrl}/${filePath}`, {
+        headers: {
+          Authorization: `Basic ${this.auth}`,
+          ...(Object.keys(this.cookies).length > 0 && {
+            Cookie: this.getCookieHeader(),
+          }),
+        },
+      });
+      this.storeCookies(response);
+      return { success: true };
+    } catch (error) {
+      console.error(
+        "Failed to delete file from Nextcloud:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  // Get MIME type
   getMimeType(fileName) {
     const ext = path.extname(fileName).toLowerCase();
     const mimeTypes = {
       ".txt": "text/plain",
       ".json": "application/json",
-      ".js": "text/javascript",
-      ".html": "text/html",
-      ".css": "text/css",
-      ".jpg": "image/jpeg",
-      ".jpeg": "image/jpeg",
-      ".png": "image/png",
-      ".gif": "image/gif",
       ".pdf": "application/pdf",
-      ".zip": "application/zip",
-      ".mp4": "video/mp4",
-      ".mp3": "audio/mpeg",
       ".doc": "application/msword",
       ".docx":
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       ".xls": "application/vnd.ms-excel",
       ".xlsx":
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      ".ppt": "application/vnd.ms-powerpoint",
-      ".pptx":
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".zip": "application/zip",
     };
     return mimeTypes[ext] || "application/octet-stream";
   }
 }
 
-// Always create a fresh client - simple and reliable
-async function getFileBrowserClient() {
-  const client = new FileBrowserClient(process.env.FILEBROWSER_URL);
-  await client.authenticate(
-    process.env.FILEBROWSER_USERNAME,
-    process.env.FILEBROWSER_PASSWORD
+// Enhanced client factory with session management
+function getNextcloudClient() {
+  return new NextcloudClient(
+    NEXTCLOUD_WEBDAV_URL,
+    NEXTCLOUD_USERNAME,
+    NEXTCLOUD_PASSWORD
   );
-  return client;
 }
-// Enhanced file upload handler that preserves original filename with timestamp
+
+// Enhanced file upload handler
 async function handleFileUpload(req) {
   if (!req.file) return null;
 
   try {
-    // Validate file exists and is readable
+    // Validate file exists
     if (!fs.existsSync(req.file.path)) {
       throw new Error("Uploaded file not found");
     }
 
-    // Get file stats for validation
-    const fileStats = fs.statSync(req.file.path);
-
-    // Get authenticated FileBrowser client
-    const client = await getFileBrowserClient();
+    // Get Nextcloud client
+    const client = getNextcloudClient();
 
     // Determine target folder based on document type
     const title = req.body.title;
-    const targetFolder =
-      DOCUMENT_TYPE_FOLDERS[title] ||
-      process.env.FILEBROWSER_DEFAULT_UPLOAD_FOLDER;
+    const targetFolder = DOCUMENT_TYPE_FOLDERS[title] || "/Documents";
 
-    // Create unique filename with timestamp while preserving original name
+    // Create unique filename with timestamp
     const originalFilename = req.file.originalname;
     const timestamp = new Date()
       .toISOString()
       .replace(/[:.]/g, "-")
-      .slice(0, -1); // Format: 2024-12-29T10-30-45-123
+      .slice(0, -1);
     const fileExtension = path.extname(originalFilename);
     const baseName = path.basename(originalFilename, fileExtension);
     const uniqueFilename = `${baseName}_${timestamp}${fileExtension}`;
 
-    let uploadResult;
-    try {
-      // Try the stream method first with unique filename
-      uploadResult = await client.uploadFile(
-        targetFolder,
-        req.file.path,
-        uniqueFilename
-      );
-    } catch (streamError) {
-      // If stream method fails, try form data method with unique filename
-      uploadResult = await client.uploadFileWithFormData(
-        targetFolder,
-        req.file.path,
-        uniqueFilename
-      );
-    }
+    // Upload to Nextcloud
+    const uploadResult = await client.uploadFile(
+      req.file.path,
+      targetFolder,
+      uniqueFilename
+    );
 
-    // Cleanup: Remove the local temp file
+    // Cleanup local file
     fs.unlinkSync(req.file.path);
-
-    // Generate public download URL using environment variable
-    const shareCode = DOCUMENT_TYPE_SHARE_CODES[title];
-    const publicDownloadUrl = shareCode
-      ? `${client.baseUrl}/api/public/dl/${shareCode}/${uniqueFilename}`
-      : uploadResult.downloadUrl;
 
     return {
       driveFileId: uniqueFilename,
       name: originalFilename,
       displayName: originalFilename,
       actualFilename: uniqueFilename,
-      link: publicDownloadUrl,
+      link: uploadResult.downloadUrl,
       path: uploadResult.path,
       size: uploadResult.size,
-      mimeType: req.file.mimetype,
+      mimeType: uploadResult.mimeType,
       uploadTimestamp: timestamp,
     };
   } catch (error) {
-    // Cleanup local file even if upload fails
+    // Cleanup local file on error
     if (req.file && req.file.path && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
 
-    console.error("File upload failed:", error.message);
+    console.error("Nextcloud file upload failed:", error.message);
     throw new Error(`File upload failed: ${error.message}`);
   }
 }
@@ -1572,18 +1770,21 @@ exports.deleteDocument = async (req, res) => {
       return res.send("Document not found");
     }
 
-    // Delete associated file if it exists
+    // Delete associated file from Nextcloud if it exists
     if (document.fileMetadata?.path) {
       try {
-        const client = await getFileBrowserClient();
+        const client = getNextcloudClient();
         await client.deleteFile(document.fileMetadata.path);
       } catch (fileError) {
-        console.error("Warning: Could not delete associated file:", fileError);
+        console.error(
+          "Warning: Could not delete associated file from Nextcloud:",
+          fileError
+        );
         // Continue with document deletion even if file deletion fails
       }
     }
 
-    // Delete the document based on its type
+    // Delete the document based on its type (same as before)
     if (documentType === "Proposal") {
       await ProposalDocument.findByIdAndDelete(id);
     } else if (documentType === "Purchasing") {
@@ -1602,7 +1803,6 @@ exports.deleteDocument = async (req, res) => {
       await Document.findByIdAndDelete(id);
     }
 
-    // Send success message after deletion
     res.send(`Phiếu đã xóa thành công.`);
   } catch (err) {
     console.error("Error deleting document:", err);
@@ -1960,7 +2160,7 @@ exports.updateProposalDocument = async (req, res) => {
       // Delete old file if exists
       if (doc.fileMetadata?.path) {
         try {
-          const client = await getFileBrowserClient();
+          const client = await getNextcloudClient();
           await client.deleteFile(doc.fileMetadata.path);
         } catch (error) {
           console.error("Warning: Could not delete old file", error);
@@ -2676,7 +2876,7 @@ exports.updatePurchasingDocument = async (req, res) => {
       // Delete old file if exists
       if (doc.fileMetadata?.path) {
         try {
-          const client = await getFileBrowserClient();
+          const client = await getNextcloudClient();
           await client.deleteFile(doc.fileMetadata.path);
         } catch (error) {
           console.error("Warning: Could not delete old file", error);
@@ -3067,7 +3267,7 @@ exports.updatePaymentDocument = async (req, res) => {
       // Delete old file if exists
       if (doc.fileMetadata?.path) {
         try {
-          const client = await getFileBrowserClient();
+          const client = await getNextcloudClient();
           await client.deleteFile(doc.fileMetadata.path);
         } catch (error) {
           console.error("Warning: Could not delete old file", error);
@@ -3182,7 +3382,7 @@ exports.removeStageFile = async (req, res) => {
       return res.status(400).json({ message: "No file to remove" });
     }
 
-    // Check if the stage has been approved (prevent deletion of approved files)
+    // Check if the stage has been approved
     if (stage.status == "Approved") {
       return res.status(403).json({
         message:
@@ -3190,8 +3390,8 @@ exports.removeStageFile = async (req, res) => {
       });
     }
 
-    // Delete the file from storage
-    const client = await getFileBrowserClient();
+    // Delete the file from Nextcloud
+    const client = getNextcloudClient();
     await client.deleteFile(stage.fileMetadata.path);
 
     // Remove the file metadata from the stage
@@ -3928,7 +4128,7 @@ exports.updateAdvancePaymentDocument = async (req, res) => {
       // Delete old file if exists
       if (doc.fileMetadata?.path) {
         try {
-          const client = await getFileBrowserClient();
+          const client = await getNextcloudClient();
           await client.deleteFile(doc.fileMetadata.path);
         } catch (error) {
           console.error("Warning: Could not delete old file", error);
@@ -4177,7 +4377,7 @@ exports.updateAdvancePaymentReclaimDocument = async (req, res) => {
       // Delete old file if exists
       if (doc.fileMetadata?.path) {
         try {
-          const client = await getFileBrowserClient();
+          const client = await getNextcloudClient();
           await client.deleteFile(doc.fileMetadata.path);
         } catch (error) {
           console.error("Warning: Could not delete old file", error);
@@ -4487,7 +4687,7 @@ exports.updateDeliveryDocument = async (req, res) => {
       // Delete old file if exists
       if (doc.fileMetadata?.path) {
         try {
-          const client = await getFileBrowserClient();
+          const client = await getNextcloudClient();
           await client.deleteFile(doc.fileMetadata.path);
         } catch (error) {
           console.error("Warning: Could not delete old file", error);
@@ -4667,7 +4867,7 @@ exports.updateProjectProposal = async (req, res) => {
       // Delete old file if exists
       if (doc.fileMetadata?.path) {
         try {
-          const client = await getFileBrowserClient();
+          const client = await getNextcloudClient();
           await client.deleteFile(doc.fileMetadata.path);
         } catch (error) {
           console.error("Warning: Could not delete old file", error);

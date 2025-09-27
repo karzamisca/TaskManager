@@ -13,8 +13,13 @@ const projectProposalDocumentSchema = new mongoose.Schema({
   fileMetadata: {
     driveFileId: { type: String },
     name: { type: String },
+    displayName: { type: String },
+    actualFilename: { type: String },
     link: { type: String },
     path: { type: String },
+    size: { type: String },
+    mimeType: { type: String },
+    uploadTimestamp: { type: String },
   },
   stages: [
     {
