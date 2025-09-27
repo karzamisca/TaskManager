@@ -1232,7 +1232,31 @@ async function createDeliveryDocument(req, approverDetails, uploadedFileData) {
   );
 
   // Process appended proposals
-  const appendedProposals = await processAppendedProposals(approvedProposals);
+  let processedProposals = [];
+  if (approvedProposals && Array.isArray(approvedProposals)) {
+    const proposalDocs = await ProposalDocument.find({
+      _id: { $in: approvedProposals },
+    }).lean();
+
+    processedProposals = proposalDocs.map((doc) => ({
+      task: doc.task,
+      costCenter: doc.costCenter,
+      groupName: doc.groupName,
+      dateOfError: doc.dateOfError,
+      detailsDescription: doc.detailsDescription,
+      direction: doc.direction,
+      fileMetadata: doc.fileMetadata,
+      proposalId: doc._id,
+      submissionDate: doc.submissionDate,
+      submittedBy: doc.submittedBy,
+      approvers: doc.approvers,
+      approvedBy: doc.approvedBy,
+      status: doc.status,
+      declaration: doc.declaration,
+      suspendReason: doc.suspendReason,
+      projectName: doc.projectName,
+    }));
+  }
 
   // Format the submission date for both display and the tag
   const now = moment().tz("Asia/Bangkok");
@@ -1247,7 +1271,7 @@ async function createDeliveryDocument(req, approverDetails, uploadedFileData) {
     costCenter: req.body.costCenter,
     products: productEntries,
     grandTotalCost,
-    appendedProposals,
+    appendedProposals: processedProposals,
     groupName: req.body.groupName,
     projectName: req.body.projectName,
     submittedBy: req.user.id,
@@ -4042,6 +4066,8 @@ exports.getAdvancePaymentDocumentForSeparatedView = async (req, res) => {
 exports.getAdvancePaymentDocument = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // First, get the document with basic population
     const document = await AdvancePaymentDocument.findById(id)
       .populate("submittedBy", "username")
       .populate("approvers.approver", "username role")
@@ -4051,9 +4077,70 @@ exports.getAdvancePaymentDocument = async (req, res) => {
       return res.status(404).json({ message: "Document not found" });
     }
 
+    // Manually populate submittedBy for appendedPurchasingDocuments and their appendedProposals
+    if (
+      document.appendedPurchasingDocuments &&
+      document.appendedPurchasingDocuments.length > 0
+    ) {
+      for (let purchasingDoc of document.appendedPurchasingDocuments) {
+        // Populate submittedBy for the purchasing document
+        if (purchasingDoc.submittedBy) {
+          const submittedByUser = await mongoose
+            .model("User")
+            .findById(purchasingDoc.submittedBy)
+            .select("username");
+          if (submittedByUser) {
+            purchasingDoc.submittedBy = {
+              _id: purchasingDoc.submittedBy,
+              username: submittedByUser.username,
+            };
+          }
+        }
+
+        // Populate submittedBy for appendedProposals within the purchasing document
+        if (
+          purchasingDoc.appendedProposals &&
+          purchasingDoc.appendedProposals.length > 0
+        ) {
+          for (let proposal of purchasingDoc.appendedProposals) {
+            if (proposal.submittedBy) {
+              const proposalSubmittedBy = await mongoose
+                .model("User")
+                .findById(proposal.submittedBy)
+                .select("username");
+              if (proposalSubmittedBy) {
+                proposal.submittedBy = {
+                  _id: proposal.submittedBy,
+                  username: proposalSubmittedBy.username,
+                };
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Populate submittedBy for appendedProposals (if they exist directly on advance document)
+    if (document.appendedProposals && document.appendedProposals.length > 0) {
+      for (let proposal of document.appendedProposals) {
+        if (proposal.submittedBy) {
+          const proposalSubmittedBy = await mongoose
+            .model("User")
+            .findById(proposal.submittedBy)
+            .select("username");
+          if (proposalSubmittedBy) {
+            proposal.submittedBy = {
+              _id: proposal.submittedBy,
+              username: proposalSubmittedBy.username,
+            };
+          }
+        }
+      }
+    }
+
     res.json(document);
   } catch (error) {
-    console.error("Error fetching payment document:", error);
+    console.error("Error fetching advance payment document:", error);
     res.status(500).json({ message: "Error fetching document" });
   }
 };
@@ -4285,6 +4372,8 @@ exports.getAdvancePaymentReclaimDocumentForSeparatedView = async (req, res) => {
 exports.getAdvancePaymentReclaimDocument = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // First, get the document with basic population
     const document = await AdvancePaymentReclaimDocument.findById(id)
       .populate("submittedBy", "username")
       .populate("approvers.approver", "username role")
@@ -4294,9 +4383,156 @@ exports.getAdvancePaymentReclaimDocument = async (req, res) => {
       return res.status(404).json({ message: "Document not found" });
     }
 
+    // Populate submittedBy for appendedAdvanceDocuments
+    if (
+      document.appendedAdvanceDocuments &&
+      document.appendedAdvanceDocuments.length > 0
+    ) {
+      for (let advanceDoc of document.appendedAdvanceDocuments) {
+        // Populate submittedBy for the advance document
+        if (advanceDoc.submittedBy) {
+          const submittedByUser = await mongoose
+            .model("User")
+            .findById(advanceDoc.submittedBy)
+            .select("username");
+          if (submittedByUser) {
+            advanceDoc.submittedBy = {
+              _id: advanceDoc.submittedBy,
+              username: submittedByUser.username,
+            };
+          }
+        }
+
+        // Populate submittedBy for appendedPurchasingDocuments within the advance document
+        if (
+          advanceDoc.appendedPurchasingDocuments &&
+          advanceDoc.appendedPurchasingDocuments.length > 0
+        ) {
+          for (let purchasingDoc of advanceDoc.appendedPurchasingDocuments) {
+            // Populate submittedBy for the purchasing document
+            if (purchasingDoc.submittedBy) {
+              const purchasingSubmittedBy = await mongoose
+                .model("User")
+                .findById(purchasingDoc.submittedBy)
+                .select("username");
+              if (purchasingSubmittedBy) {
+                purchasingDoc.submittedBy = {
+                  _id: purchasingDoc.submittedBy,
+                  username: purchasingSubmittedBy.username,
+                };
+              }
+            }
+
+            // Populate submittedBy for appendedProposals within the purchasing document
+            if (
+              purchasingDoc.appendedProposals &&
+              purchasingDoc.appendedProposals.length > 0
+            ) {
+              for (let proposal of purchasingDoc.appendedProposals) {
+                if (proposal.submittedBy) {
+                  const proposalSubmittedBy = await mongoose
+                    .model("User")
+                    .findById(proposal.submittedBy)
+                    .select("username");
+                  if (proposalSubmittedBy) {
+                    proposal.submittedBy = {
+                      _id: proposal.submittedBy,
+                      username: proposalSubmittedBy.username,
+                    };
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Populate submittedBy for appendedProposals directly on advance document
+        if (
+          advanceDoc.appendedProposals &&
+          advanceDoc.appendedProposals.length > 0
+        ) {
+          for (let proposal of advanceDoc.appendedProposals) {
+            if (proposal.submittedBy) {
+              const proposalSubmittedBy = await mongoose
+                .model("User")
+                .findById(proposal.submittedBy)
+                .select("username");
+              if (proposalSubmittedBy) {
+                proposal.submittedBy = {
+                  _id: proposal.submittedBy,
+                  username: proposalSubmittedBy.username,
+                };
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Populate submittedBy for appendedPurchasingDocuments (if they exist directly on reclaim document)
+    if (
+      document.appendedPurchasingDocuments &&
+      document.appendedPurchasingDocuments.length > 0
+    ) {
+      for (let purchasingDoc of document.appendedPurchasingDocuments) {
+        // Populate submittedBy for the purchasing document
+        if (purchasingDoc.submittedBy) {
+          const submittedByUser = await mongoose
+            .model("User")
+            .findById(purchasingDoc.submittedBy)
+            .select("username");
+          if (submittedByUser) {
+            purchasingDoc.submittedBy = {
+              _id: purchasingDoc.submittedBy,
+              username: submittedByUser.username,
+            };
+          }
+        }
+
+        // Populate submittedBy for appendedProposals within the purchasing document
+        if (
+          purchasingDoc.appendedProposals &&
+          purchasingDoc.appendedProposals.length > 0
+        ) {
+          for (let proposal of purchasingDoc.appendedProposals) {
+            if (proposal.submittedBy) {
+              const proposalSubmittedBy = await mongoose
+                .model("User")
+                .findById(proposal.submittedBy)
+                .select("username");
+              if (proposalSubmittedBy) {
+                proposal.submittedBy = {
+                  _id: proposal.submittedBy,
+                  username: proposalSubmittedBy.username,
+                };
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Populate submittedBy for appendedProposals (if they exist directly on reclaim document)
+    if (document.appendedProposals && document.appendedProposals.length > 0) {
+      for (let proposal of document.appendedProposals) {
+        if (proposal.submittedBy) {
+          const proposalSubmittedBy = await mongoose
+            .model("User")
+            .findById(proposal.submittedBy)
+            .select("username");
+          if (proposalSubmittedBy) {
+            proposal.submittedBy = {
+              _id: proposal.submittedBy,
+              username: proposalSubmittedBy.username,
+            };
+          }
+        }
+      }
+    }
+
     res.json(document);
   } catch (error) {
-    console.error("Error fetching payment document:", error);
+    console.error("Error fetching advance payment reclaim document:", error);
     res.status(500).json({ message: "Error fetching document" });
   }
 };
@@ -4588,7 +4824,8 @@ exports.getDeliveryDocument = async (req, res) => {
     const document = await DeliveryDocument.findById(id)
       .populate("submittedBy", "username")
       .populate("approvers.approver", "username role")
-      .populate("approvedBy.user", "username");
+      .populate("approvedBy.user", "username")
+      .populate("appendedProposals.submittedBy", "username");
     if (!document) {
       return res.status(404).json({ message: "Document not found" });
     }

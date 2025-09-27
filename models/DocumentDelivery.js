@@ -28,12 +28,46 @@ const deliveryDocumentSchema = new mongoose.Schema({
       fileMetadata: {
         driveFileId: { type: String },
         name: { type: String },
+        displayName: { type: String },
+        actualFilename: { type: String },
         link: { type: String },
+        path: { type: String },
+        size: { type: String },
+        mimeType: { type: String },
+        uploadTimestamp: { type: String },
       },
       proposalId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "ProposalDocument",
       },
+      submissionDate: String,
+      submittedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+      approvers: [
+        {
+          approver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+          username: { type: String, required: true },
+          subRole: { type: String, required: true },
+        },
+      ],
+      approvedBy: [
+        {
+          user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+          username: { type: String, required: true },
+          role: { type: String, required: true },
+          approvalDate: { type: String, required: true },
+        },
+      ],
+      status: {
+        type: String,
+        enum: ["Pending", "Approved", "Suspended"],
+        default: "Pending",
+      },
+      declaration: { type: String, default: "" },
+      suspendReason: { type: String, default: "" },
+      projectName: String,
     },
   ],
   fileMetadata: {
