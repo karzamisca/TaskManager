@@ -639,6 +639,9 @@ function addPaymentFullView(document) {
                 <p><strong>Hạn thanh toán:</strong> ${
                   stage.deadline || "Không xác định"
                 }</p>
+                <p><strong>Mức độ ưu tiên:</strong> ${
+                  stage.priority || "Không xác định"
+                }</p>                
                 <p><strong>Phương thức thanh toán:</strong> ${
                   stage.paymentMethod || document.paymentMethod
                 }</p>
@@ -1256,6 +1259,9 @@ function addPaymentDetails(document) {
                 <p><strong>Hạn thanh toán:</strong> ${
                   stage.deadline || "Không xác định"
                 }</p>
+                <p><strong>Mức độ ưu tiên:</strong> ${
+                  stage.priority || "Không xác định"
+                }</p>                    
                 <p><strong>Phương thức thanh toán:</strong> ${
                   stage.paymentMethod || document.paymentMethod
                 }</p>

@@ -1132,6 +1132,22 @@ const renderPaymentStages = () => {
                ${isFullyApproved ? "disabled" : ""}>
       </div>
       <div class="form-group">
+        <label>Mức độ ưu tiên:</label>
+        <select class="form-select stage-priority"
+                onchange="updateStageField(${index}, 'priority', this.value)"
+                ${isFullyApproved ? "disabled" : ""}>
+          <option value="Thấp" ${
+            stage.priority === "Thấp" ? "selected" : ""
+          }>Thấp</option>
+          <option value="Trung bình" ${
+            stage.priority === "Trung bình" ? "selected" : ""
+          }>Trung bình</option>
+          <option value="Cao" ${
+            stage.priority === "Cao" ? "selected" : ""
+          }>Cao</option>
+        </select>
+      </div>
+      <div class="form-group">
         <label>Hạn thanh toán:</label>
         <input type="text" class="form-input stage-deadline" value="${
           stage.deadline || ""
@@ -1377,6 +1393,7 @@ const addPaymentStage = () => {
   state.currentEditDoc.stages.push({
     name: `Giai đoạn ${state.currentEditDoc.stages.length + 1}`,
     amount: 0,
+    priority: "Thấp", // Default priority
     deadline: "",
     paymentMethod: "",
     notes: "",
@@ -1868,6 +1885,15 @@ const showFullView = async (docId) => {
                     ? "Đã phê duyệt"
                     : "Chưa phê duyệt"
                 }</span>
+                <span class="priority-badge" style="margin-left: 10px; background-color: ${
+                  stage.priority === "Cao"
+                    ? "#f44336"
+                    : stage.priority === "Trung bình"
+                    ? "#ff9800"
+                    : "#4caf50"
+                }; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">
+                  ${stage.priority}
+                </span>                
               </div>
               <div class="stage-details">
                 <div><strong>Số tiền:</strong> ${formatCurrency(
@@ -1876,6 +1902,9 @@ const showFullView = async (docId) => {
                 <div><strong>Hạn thanh toán:</strong> ${
                   stage.deadline || "Không có"
                 }</div>
+                <div><strong>Mức độ ưu tiên:</strong> ${
+                  stage.priority
+                }</div>                
                 <div><strong>Hình thức thanh toán:</strong> ${
                   stage.paymentMethod || "Không có"
                 }</div>

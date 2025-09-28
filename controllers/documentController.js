@@ -3091,7 +3091,9 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
     )
       .populate("submittedBy", "username")
       .populate("approvers.approver", "username role")
-      .populate("approvedBy.user", "username");
+      .populate("approvedBy.user", "username")
+      .populate("stages.approvers.approver", "username role")
+      .populate("stages.approvedBy.user", "username role");
 
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
@@ -3099,29 +3101,52 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
       username
     );
 
+    // Helper function to get effective priority for sorting
+    const getEffectivePriority = (doc) => {
+      const priorityOrder = { Cao: 1, "Trung bình": 2, Thấp: 3 };
+
+      // Check if document has unapproved stages
+      const unapprovedStages = doc.stages
+        ? doc.stages.filter((stage) => stage.status !== "Approved")
+        : [];
+
+      if (unapprovedStages.length > 0) {
+        // Use the highest priority (lowest number) from unapproved stages
+        const highestStagePriority = Math.min(
+          ...unapprovedStages.map(
+            (stage) => priorityOrder[stage.priority] || 999
+          )
+        );
+        return highestStagePriority;
+      } else {
+        // Use document's own priority if no unapproved stages
+        return priorityOrder[doc.priority] || 999;
+      }
+    };
+
     // Separate approved and non-approved documents
     const approvedDocuments = filteredDocuments.filter(
       (doc) => doc.status === "Approved"
     );
+
     const nonApprovedDocuments = filteredDocuments.filter(
       (doc) => doc.status !== "Approved"
     );
 
-    // Sort non-approved documents by priority first
-    const priorityOrder = { Cao: 1, "Trung bình": 2, Thấp: 3 };
+    // Sort non-approved documents by effective priority (stage priority if unapproved stages exist, otherwise document priority)
     const sortedNonApproved = nonApprovedDocuments.sort((a, b) => {
-      const priorityA = priorityOrder[a.priority] || 999;
-      const priorityB = priorityOrder[b.priority] || 999;
+      const priorityA = getEffectivePriority(a);
+      const priorityB = getEffectivePriority(b);
       return priorityA - priorityB;
     });
 
     // Apply existing sort function to both groups
-    const finalApproved =
-      documentUtils.sortDocumentsByStatusAndDate(approvedDocuments);
     const finalNonApproved =
       documentUtils.sortDocumentsByStatusAndDate(sortedNonApproved);
+    const finalApproved =
+      documentUtils.sortDocumentsByStatusAndDate(approvedDocuments);
 
-    // Combine: non-approved first (priority sorted), then approved
+    // Combine: non-approved first (with effective priority sorting), then approved
     const sortedDocuments = [...finalNonApproved, ...finalApproved];
 
     res.json({
@@ -3284,6 +3309,7 @@ exports.updatePaymentDocument = async (req, res) => {
                 "amount",
                 "deadline",
                 "paymentMethod",
+                "priority",
                 "approvers",
               ];
               for (const field of criticalFields) {
@@ -5272,6 +5298,25 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
       return priorityMap[priority] || 4; // Unknown priorities go last
     };
 
+    // Helper function to get effective priority for sorting (stage priority if unapproved stages exist, otherwise document priority)
+    const getEffectivePriority = (doc) => {
+      // Check if document has unapproved stages
+      const unapprovedStages = doc.stages
+        ? doc.stages.filter((stage) => stage.status !== "Approved")
+        : [];
+
+      if (unapprovedStages.length > 0) {
+        // Use the highest priority (lowest number) from unapproved stages
+        const highestStagePriority = Math.min(
+          ...unapprovedStages.map((stage) => getPriorityOrder(stage.priority))
+        );
+        return highestStagePriority;
+      } else {
+        // Use document's own priority if no unapproved stages
+        return getPriorityOrder(doc.priority);
+      }
+    };
+
     // Enhanced helper function to get unapproved documents with more details
     const getUnapprovedDocs = async (model, type) => {
       let queryConditions = {
@@ -5326,20 +5371,18 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
           return true;
         });
 
-      // Sort by priority if this is a Payment document type
-      if (type === "Payment") {
-        filteredDocs = filteredDocs.sort((a, b) => {
-          const priorityA = getPriorityOrder(a.priority);
-          const priorityB = getPriorityOrder(b.priority);
+      // Sort by effective priority (stage priority if unapproved stages exist, otherwise document priority)
+      filteredDocs = filteredDocs.sort((a, b) => {
+        const priorityA = getEffectivePriority(a);
+        const priorityB = getEffectivePriority(b);
 
-          if (priorityA !== priorityB) {
-            return priorityA - priorityB; // Sort by priority first
-          }
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB; // Sort by effective priority first
+        }
 
-          // If priorities are the same, sort by submission date (newest first)
-          return new Date(b.submissionDate) - new Date(a.submissionDate);
-        });
-      }
+        // If priorities are the same, sort by submission date (newest first)
+        return new Date(b.submissionDate) - new Date(a.submissionDate);
+      });
 
       return {
         count: filteredDocs.length,
@@ -5350,12 +5393,14 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
           name: doc.name ?? null,
           task: doc.task ?? null,
           priority: doc.priority ?? null, // Include priority in response
+          effectivePriority: getEffectivePriority(doc), // Include effective priority for debugging
           submittedBy: doc.submittedBy?.username || "Unknown",
           submissionDate: doc.submissionDate,
           stages: doc.stages?.map((stage) => ({
             name: stage.name,
             amount: stage.amount,
             status: stage.status,
+            priority: stage.priority, // Include stage priority
             approvers: stage.approvers.map((a) => ({
               username:
                 typeof a.approver === "object"

@@ -33,6 +33,12 @@ const paymentDocumentSchema = new mongoose.Schema({
       name: { type: String, required: true },
       amount: { type: Number, required: true },
       deadline: { type: String },
+      priority: {
+        type: String,
+        enum: ["Cao", "Trung bình", "Thấp"],
+        default: "Thấp",
+        required: true,
+      },
       approvers: [
         {
           approver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
