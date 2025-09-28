@@ -599,6 +599,9 @@ function addPaymentFullView(document) {
     <p><strong>Hạn thanh toán:</strong> ${
       document.paymentDeadline || "Không xác định"
     }</p>
+    <p><strong>Mức độ ưu tiên:</strong> ${
+      document.priority || "Không xác định"
+    }</p>
   `;
 
   if (document.stages?.length > 0) {
@@ -1213,6 +1216,9 @@ function addPaymentDetails(document) {
     <p><strong>Hạn thanh toán:</strong> ${
       document.paymentDeadline || "Không xác định"
     }</p>
+    <p><strong>Mức độ ưu tiên:</strong> ${
+      document.priority || "Không xác định"
+    }</p>    
   `;
 
   if (document.stages?.length > 0) {

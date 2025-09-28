@@ -120,6 +120,12 @@ function handlePaymentDocument() {
       <input type="number" step="0.01" name="totalPayment" required />
       <label for="paymentDeadline">Thời hạn trả</label>
       <input type="text" name="paymentDeadline" id="paymentDeadline"/>
+      <label for="priority">Mức độ ưu tiên</label>
+      <select name="priority" id="priority" required>
+        <option value="Thấp" selected>Thấp</option>
+        <option value="Trung bình">Trung bình</option>
+        <option value="Cao">Cao</option>
+      </select>
       <select name="groupName" id="groupName">
         <option value="">Chọn nhóm</option>
       </select>

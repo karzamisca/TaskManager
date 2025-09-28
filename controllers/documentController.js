@@ -1316,6 +1316,7 @@ async function createPaymentDocument(req, approverDetails, uploadedFileData) {
     totalPayment: req.body.totalPayment,
     advancePayment: req.body.advancePayment || 0,
     paymentDeadline: req.body.paymentDeadline || "Not specified",
+    priority: req.body.priority || "Thấp",
     groupName: req.body.groupName,
     projectName: req.body.projectName,
     submittedBy: req.user.id,
@@ -3098,9 +3099,30 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
       username
     );
 
-    // Sort the documents by status priority and approval date
-    const sortedDocuments =
-      documentUtils.sortDocumentsByStatusAndDate(filteredDocuments);
+    // Separate approved and non-approved documents
+    const approvedDocuments = filteredDocuments.filter(
+      (doc) => doc.status === "Approved"
+    );
+    const nonApprovedDocuments = filteredDocuments.filter(
+      (doc) => doc.status !== "Approved"
+    );
+
+    // Sort non-approved documents by priority first
+    const priorityOrder = { Cao: 1, "Trung bình": 2, Thấp: 3 };
+    const sortedNonApproved = nonApprovedDocuments.sort((a, b) => {
+      const priorityA = priorityOrder[a.priority] || 999;
+      const priorityB = priorityOrder[b.priority] || 999;
+      return priorityA - priorityB;
+    });
+
+    // Apply existing sort function to both groups
+    const finalApproved =
+      documentUtils.sortDocumentsByStatusAndDate(approvedDocuments);
+    const finalNonApproved =
+      documentUtils.sortDocumentsByStatusAndDate(sortedNonApproved);
+
+    // Combine: non-approved first (priority sorted), then approved
+    const sortedDocuments = [...finalNonApproved, ...finalApproved];
 
     res.json({
       paymentDocuments: sortedDocuments,
@@ -3184,6 +3206,7 @@ exports.updatePaymentDocument = async (req, res) => {
       paymentMethod,
       totalPayment,
       paymentDeadline,
+      priority,
       approvers,
       stages,
       groupName,
@@ -3316,6 +3339,7 @@ exports.updatePaymentDocument = async (req, res) => {
     doc.paymentMethod = paymentMethod;
     doc.totalPayment = parseFloat(totalPayment);
     doc.paymentDeadline = paymentDeadline;
+    doc.priority = priority;
     doc.groupName = groupName;
 
     // Update file metadata if new file uploaded
@@ -5238,6 +5262,16 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
     const username = req.user.username;
     const userRole = req.user.role;
 
+    // Helper function to get priority order for sorting
+    const getPriorityOrder = (priority) => {
+      const priorityMap = {
+        Cao: 1, // High priority
+        "Trung bình": 2, // Medium priority
+        Thấp: 3, // Low priority
+      };
+      return priorityMap[priority] || 4; // Unknown priorities go last
+    };
+
     // Enhanced helper function to get unapproved documents with more details
     const getUnapprovedDocs = async (model, type) => {
       let queryConditions = {
@@ -5258,7 +5292,7 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
         .populate("stages.approvedBy.user", "username");
 
       // Apply username-specific filtering for restricted users
-      const filteredDocs = documentUtils
+      let filteredDocs = documentUtils
         .filterDocumentsByUsername(docs, username, userRole)
         .filter((doc) => {
           // Additional filtering for stage approvers
@@ -5292,6 +5326,21 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
           return true;
         });
 
+      // Sort by priority if this is a Payment document type
+      if (type === "Payment") {
+        filteredDocs = filteredDocs.sort((a, b) => {
+          const priorityA = getPriorityOrder(a.priority);
+          const priorityB = getPriorityOrder(b.priority);
+
+          if (priorityA !== priorityB) {
+            return priorityA - priorityB; // Sort by priority first
+          }
+
+          // If priorities are the same, sort by submission date (newest first)
+          return new Date(b.submissionDate) - new Date(a.submissionDate);
+        });
+      }
+
       return {
         count: filteredDocs.length,
         documents: filteredDocs.map((doc) => ({
@@ -5300,6 +5349,7 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
           tag: doc.tag ?? null,
           name: doc.name ?? null,
           task: doc.task ?? null,
+          priority: doc.priority ?? null, // Include priority in response
           submittedBy: doc.submittedBy?.username || "Unknown",
           submissionDate: doc.submissionDate,
           stages: doc.stages?.map((stage) => ({

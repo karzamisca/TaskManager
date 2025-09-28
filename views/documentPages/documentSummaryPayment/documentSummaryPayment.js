@@ -1493,6 +1493,9 @@ const editDocument = async (docId) => {
     document.getElementById("editTotalPayment").value = doc.totalPayment || "";
     document.getElementById("editDeadline").value = doc.paymentDeadline || "";
 
+    // Populate priority field
+    document.getElementById("editPriority").value = doc.priority;
+
     await populateCostCenterDropdownForEditing();
     document.getElementById("editCostCenter").value = doc.costCenter;
 
@@ -1667,6 +1670,7 @@ const handleEditSubmit = async (event) => {
     document.getElementById("editCostCenter").value
   );
   formData.append("groupName", document.getElementById("editGroupName").value);
+  formData.append("priority", document.getElementById("editPriority").value);
   formData.append(
     "paymentMethod",
     document.getElementById("editPaymentMethod").value
@@ -1746,6 +1750,10 @@ const showFullView = async (docId) => {
           <div class="detail-item">
             <span class="detail-label">Nhóm:</span>
             <span class="detail-value">${doc.groupName || "Không có"}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Mức độ ưu tiên:</span>
+            <span class="detail-value">${doc.priority}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Người nộp:</span>

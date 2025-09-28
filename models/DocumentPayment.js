@@ -11,6 +11,12 @@ const paymentDocumentSchema = new mongoose.Schema({
   totalPayment: { type: Number, required: true },
   advancePayment: { type: Number, default: 0 },
   paymentDeadline: { type: String, default: "Not specified" },
+  priority: {
+    type: String,
+    enum: ["Cao", "Trung bình", "Thấp"],
+    default: "Thấp",
+    required: true,
+  },
   fileMetadata: {
     driveFileId: { type: String },
     name: { type: String },
