@@ -1450,7 +1450,7 @@ const addStageApprover = async (stageIndex) => {
     `stageApproverSubRole${stageIndex}`
   ).value;
 
-  if (!approverId || !subRole) {
+  if (!approverId || !subRole.trim()) {
     showMessage("Vui lòng chọn người phê duyệt và nhập vai trò phụ.", true);
     return;
   }
@@ -1459,13 +1459,28 @@ const addStageApprover = async (stageIndex) => {
   const approver = allApprovers.find((a) => a._id === approverId);
 
   if (approver) {
+    // Check if approver already exists in this stage
+    const existingApprover = state.currentEditDoc.stages[
+      stageIndex
+    ].approvers.find((a) => a.approver === approverId);
+
+    if (existingApprover) {
+      showMessage("Người phê duyệt này đã được thêm vào giai đoạn này.", true);
+      return;
+    }
+
     state.currentEditDoc.stages[stageIndex].approvers.push({
       approver: approverId,
       username: approver.username,
-      subRole: subRole,
+      subRole: subRole.trim(),
     });
 
+    // Clear the input fields
+    document.getElementById(`stageApproverSelect${stageIndex}`).value = "";
+    document.getElementById(`stageApproverSubRole${stageIndex}`).value = "";
+
     renderPaymentStages();
+    showMessage(`Đã thêm người phê duyệt vào giai đoạn ${stageIndex + 1}.`);
   }
 };
 
@@ -1474,11 +1489,43 @@ const removeStageApprover = (stageIndex, approverId) => {
     state.currentEditDoc.stages &&
     state.currentEditDoc.stages.length > stageIndex
   ) {
+    const stage = state.currentEditDoc.stages[stageIndex];
+
+    // Check if this is the last approver
+    if (stage.approvers.length === 1) {
+      showMessage(
+        "Không thể xóa người phê duyệt cuối cùng. Mỗi giai đoạn phải có ít nhất một người phê duyệt.",
+        true
+      );
+      return;
+    }
+
+    // Check if the approver to be removed has already approved
+    const approverToRemove = stage.approvers.find(
+      (a) => a.approver === approverId
+    );
+    const hasAlreadyApproved = stage.approvedBy.some(
+      (a) => a.username === approverToRemove?.username
+    );
+
+    if (hasAlreadyApproved) {
+      showMessage(
+        "Không thể xóa người phê duyệt đã thực hiện phê duyệt.",
+        true
+      );
+      return;
+    }
+
+    if (!confirm("Bạn có chắc chắn muốn xóa người phê duyệt này không?")) {
+      return;
+    }
+
     state.currentEditDoc.stages[stageIndex].approvers =
       state.currentEditDoc.stages[stageIndex].approvers.filter(
         (a) => a.approver !== approverId
       );
     renderPaymentStages();
+    showMessage("Đã xóa người phê duyệt khỏi giai đoạn.");
   }
 };
 
@@ -1674,8 +1721,58 @@ const addNewApprover = () => {
   document.getElementById("newApproverSubRole").value = "";
 };
 
+// Enhanced validation function for stages
+const validatePaymentStages = () => {
+  if (
+    !state.currentEditDoc.stages ||
+    state.currentEditDoc.stages.length === 0
+  ) {
+    return { isValid: true, errors: [] };
+  }
+
+  const errors = [];
+
+  state.currentEditDoc.stages.forEach((stage, index) => {
+    const stageNum = index + 1;
+
+    // Check if stage has at least one approver
+    if (!stage.approvers || stage.approvers.length === 0) {
+      errors.push(`Giai đoạn ${stageNum}: Phải có ít nhất một người phê duyệt`);
+    }
+
+    // Check required fields
+    if (!stage.name || stage.name.trim() === "") {
+      errors.push(`Giai đoạn ${stageNum}: Tên giai đoạn không được để trống`);
+    }
+
+    if (!stage.amount || stage.amount <= 0) {
+      errors.push(`Giai đoạn ${stageNum}: Số tiền phải lớn hơn 0`);
+    }
+
+    if (!stage.deadline || stage.deadline.trim() === "") {
+      errors.push(`Giai đoạn ${stageNum}: Hạn thanh toán không được để trống`);
+    }
+  });
+
+  return {
+    isValid: errors.length === 0,
+    errors: errors,
+  };
+};
+
 const handleEditSubmit = async (event) => {
   event.preventDefault();
+
+  // Validate payment stages first
+  const stageValidation = validatePaymentStages();
+  if (!stageValidation.isValid) {
+    const errorMessage =
+      "Lỗi trong các giai đoạn thanh toán:\n" +
+      stageValidation.errors.join("\n");
+    showMessage(errorMessage, true);
+    return; // Stop submission
+  }
+
   const docId = document.getElementById("editDocId").value;
   const formData = new FormData();
 
