@@ -3555,6 +3555,57 @@ exports.massUpdatePaymentDocumentDeclaration = async (req, res) => {
     res.status(500).json({ message: "Error updating declaration" });
   }
 };
+exports.updatePaymentDocumentPriority = async (req, res) => {
+  const { id } = req.params;
+  const { priority } = req.body;
+
+  try {
+    // Check user permissions - adjust roles as needed
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "captainOfAccounting",
+        "captainOfPurchasing",
+      ].includes(req.user.role)
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
+    const doc = await PaymentDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Không tìm thấy tài liệu" });
+    }
+
+    // Check if document is partially approved
+    const approvedCount = doc.approvedBy.length;
+    const totalApprovers = doc.approvers.length;
+
+    if (
+      doc.status !== "Pending" ||
+      approvedCount === 0 ||
+      approvedCount >= totalApprovers
+    ) {
+      return res.status(400).json({
+        message:
+          "Chỉ có thể cập nhật ưu tiên cho tài liệu đang được phê duyệt một phần",
+      });
+    }
+
+    // Update priority
+    doc.priority = priority;
+    await doc.save();
+
+    res.send("Mức độ ưu tiên cập nhật thành công.");
+  } catch (error) {
+    console.error("Error updating document priority:", error);
+    res.status(500).json({ message: "Lỗi khi cập nhật mức độ ưu tiên" });
+  }
+};
+
 exports.approvePaymentStage = async (req, res) => {
   const { docId, stageIndex } = req.params;
 

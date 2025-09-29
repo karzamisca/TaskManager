@@ -461,6 +461,22 @@ const getDocumentPriorityForBadge = (doc) => {
 };
 
 // Update the renderDocumentsTable function
+// Check if document is partially approved (some but not all document approvers have approved)
+const isDocumentPartiallyApproved = (doc) => {
+  // Document must be in pending status
+  if (doc.status !== "Pending") return false;
+
+  // Must have document-level approvers
+  if (!doc.approvers || doc.approvers.length === 0) return false;
+
+  // Must have some but not all approvers approved
+  const approvedCount = doc.approvedBy?.length || 0;
+  const totalApprovers = doc.approvers.length;
+
+  return approvedCount > 0 && approvedCount < totalApprovers;
+};
+
+// Update the renderDocumentsTable function to include priority update button
 const renderDocumentsTable = (documents) => {
   const tableBody = document
     .getElementById("paymentDocumentsTable")
@@ -468,7 +484,7 @@ const renderDocumentsTable = (documents) => {
   tableBody.innerHTML = "";
 
   documents.forEach((doc) => {
-    // Check if user can approve the document (only show if all stages are approved)
+    // Check if user can approve the document
     const canApproveDocument =
       doc.approvers.some(
         (approver) => approver.username === state.currentUser?.username
@@ -505,9 +521,15 @@ const renderDocumentsTable = (documents) => {
       ? getDocumentPriorityForBadge(doc)
       : null;
 
+    // Check if document is partially approved
+    const isPartiallyApproved = isDocumentPartiallyApproved(doc);
+
     const row = document.createElement("tr");
     if (priorityClass) {
       row.className = priorityClass;
+    }
+    if (isPartiallyApproved) {
+      row.classList.add("partially-approved-doc");
     }
 
     row.innerHTML = `
@@ -623,6 +645,16 @@ const renderDocumentsTable = (documents) => {
               : ""
           }
           ${
+            // Priority update button for partially approved documents
+            isPartiallyApproved
+              ? `
+                <button class="btn btn-priority btn-sm" onclick="openPriorityUpdateModal('${doc._id}')">
+                  <i class="fas fa-exclamation-triangle"></i> Cập nhật ưu tiên
+                </button>
+              `
+              : ""
+          }
+          ${
             doc.status === "Approved"
               ? `
                 <button class="btn btn-primary btn-sm" onclick="editDeclaration('${doc._id}')">
@@ -668,6 +700,83 @@ const renderDocumentsTable = (documents) => {
   });
 
   updateSelectAllCheckbox();
+};
+
+// Priority Update Modal Functions
+const openPriorityUpdateModal = (docId) => {
+  const doc = state.paymentDocuments.find((d) => d._id === docId);
+  if (!doc) return;
+
+  // Populate modal with document info
+  document.getElementById("priorityUpdateDocTag").textContent =
+    doc.tag || doc.name;
+  document.getElementById("documentPriorityUpdate").value =
+    doc.priority || "Thấp";
+
+  // Show current approval status
+  const approvalStatusContainer = document.getElementById(
+    "currentApprovalStatus"
+  );
+  approvalStatusContainer.innerHTML = `
+    <div style="font-size: 0.9rem;">
+      <div>Đã phê duyệt: ${doc.approvedBy?.length || 0}/${
+    doc.approvers.length
+  }</div>
+      <div>Người chưa phê duyệt: ${
+        doc.approvers.length - (doc.approvedBy?.length || 0)
+      }</div>
+    </div>
+  `;
+
+  // Store current document ID for update
+  document.getElementById("priorityUpdateModal").dataset.docId = docId;
+
+  // Show modal
+  document.getElementById("priorityUpdateModal").style.display = "block";
+};
+
+const closePriorityUpdateModal = () => {
+  document.getElementById("priorityUpdateModal").style.display = "none";
+  document.getElementById("priorityUpdateModal").dataset.docId = "";
+};
+
+const updateDocumentPriority = async () => {
+  const docId = document.getElementById("priorityUpdateModal").dataset.docId;
+  const newPriority = document.getElementById("documentPriorityUpdate").value;
+
+  if (!docId) {
+    showMessage("Không tìm thấy tài liệu để cập nhật", true);
+    return;
+  }
+
+  try {
+    const response = await fetch(`/updatePaymentDocumentPriority/${docId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ priority: newPriority }),
+    });
+
+    const message = await response.text();
+
+    if (response.ok) {
+      showMessage(message);
+      closePriorityUpdateModal();
+
+      // Update local state and refresh view
+      const docIndex = state.paymentDocuments.findIndex((d) => d._id === docId);
+      if (docIndex !== -1) {
+        state.paymentDocuments[docIndex].priority = newPriority;
+      }
+      fetchPaymentDocuments();
+    } else {
+      showMessage(message, true);
+    }
+  } catch (err) {
+    console.error("Error updating document priority:", err);
+    showMessage("Lỗi khi cập nhật ưu tiên", true);
+  }
 };
 
 const parseDateFromString = (dateStr) => {

@@ -265,6 +265,11 @@ router.post(
   authMiddleware,
   documentController.massUpdatePaymentDocumentDeclaration
 );
+router.post(
+  "/updatePaymentDocumentPriority/:id",
+  authMiddleware,
+  documentController.updatePaymentDocumentPriority
+);
 router.get(
   "/getPaymentDocument/:id",
   authMiddleware,
