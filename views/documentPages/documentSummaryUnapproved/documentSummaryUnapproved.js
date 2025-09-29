@@ -170,7 +170,56 @@ function renderSummaryCards() {
     .join("");
 }
 
-// Show documents modal for a specific type
+function getDocumentPriority(document, type) {
+  // If document is already approved, return 'approved'
+  if (document.status === "approved" || document.fullyApproved) {
+    return "approved";
+  }
+
+  // For documents with stages, find the highest priority among unapproved stages
+  if (document.stages && document.stages.length > 0) {
+    const unapprovedStages = document.stages.filter(
+      (stage) => stage.status !== "approved" && stage.status !== "Approved"
+    );
+
+    if (unapprovedStages.length > 0) {
+      // Get priorities of unapproved stages (already in Vietnamese)
+      const stagePriorities = unapprovedStages.map((stage) =>
+        stage.priority ? stage.priority.toLowerCase() : "trung bình"
+      );
+
+      // Determine highest priority (Vietnamese values)
+      if (stagePriorities.includes("cao")) return "cao";
+      if (stagePriorities.includes("trung bình")) return "trung bình";
+      return "thấp";
+    }
+  }
+
+  // For documents without stages, use document's priority (already in Vietnamese)
+  const docPriority = document.priority
+    ? document.priority.toLowerCase()
+    : "trung bình";
+
+  if (docPriority === "cao") return "cao";
+  if (docPriority === "trung bình") return "trung bình";
+  if (docPriority === "thấp") return "thấp";
+
+  // Default to trung bình if no priority specified
+  return "trung bình";
+}
+
+// Helper function to convert Vietnamese priority to English key for CSS classes
+function getEnglishPriorityKey(vietnamesePriority) {
+  const mapping = {
+    cao: "high",
+    "trung bình": "medium",
+    thấp: "low",
+    approved: "approved",
+  };
+  return mapping[vietnamesePriority] || "medium";
+}
+
+// Update the showDocuments function to apply priority coloring
 function showDocuments(typeKey, typeName) {
   const summary = appData.summaries[typeKey];
   const typeConfig = documentTypes[typeKey];
@@ -189,10 +238,19 @@ function showDocuments(typeKey, typeName) {
     `;
   } else {
     elements.modalDocumentList.innerHTML = summary.documents
-      .map(
-        (doc) => `
-        <tr>
-          <td>${doc.tag || doc.name || doc.task}</td>
+      .map((doc) => {
+        const priority = getDocumentPriority(doc, typeKey);
+        const priorityClass = `priority-${getEnglishPriorityKey(priority)}`;
+        const priorityBadge = getPriorityBadge(priority, doc);
+
+        return `
+        <tr class="${priorityClass}">
+          <td>
+            <div class="d-flex align-items-center">
+              ${doc.tag || doc.name || doc.task}
+              ${priorityBadge}
+            </div>
+          </td>
           <td>${doc.submittedBy}</td>
           <td>${doc.submissionDate}</td>
           <td>
@@ -208,8 +266,8 @@ function showDocuments(typeKey, typeName) {
             </div>
           </td>
         </tr>
-      `
-      )
+      `;
+      })
       .join("");
   }
 
@@ -220,6 +278,27 @@ function showDocuments(typeKey, typeName) {
   if (!modal || !modal._isShown) {
     new bootstrap.Modal(document.getElementById("documentsModal")).show();
   }
+}
+
+// Helper function to create priority badges
+function getPriorityBadge(priority, document) {
+  if (priority === "approved") {
+    return '<span class="badge bg-success ms-2"><i class="bi bi-check-lg"></i> Đã duyệt</span>';
+  }
+
+  const badgeColors = {
+    cao: "danger",
+    "trung bình": "warning",
+    thấp: "success",
+  };
+
+  // Check if this is a staged document
+  const hasStages = document.stages && document.stages.length > 0;
+  const badgeText = hasStages
+    ? `${getPriorityDisplayName(priority)}`
+    : getPriorityDisplayName(priority);
+
+  return `<span class="badge bg-${badgeColors[priority]} ms-2">${badgeText}</span>`;
 }
 
 // View document details in modal
@@ -278,15 +357,22 @@ function showErrorInDetailsModal(message) {
 // Render document details in modal
 function renderDocumentDetails(type, document) {
   const typeConfig = documentTypes[type] || documentTypes.generic;
+  const priority = getDocumentPriority(document, type);
 
   elements.documentDetailsTitle.innerHTML = `<i class="bi ${
     typeConfig.icon
-  }"></i> ${document.name || document.title || "Chi tiết phiếu"}`;
+  }"></i> ${document.name || document.title || "Chi tiết phiếu"}
+  ${getPriorityBadge(priority, document)}`;
 
   let detailsHtml = `
     <div class="card mb-3">
       <div class="card-header bg-light">
-        <h5 class="mb-0">Thông tin cơ bản</h5>
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Thông tin cơ bản</h5>
+          <div>
+            ${getPriorityBadge(priority, document)}
+          </div>
+        </div>
       </div>
       <div class="card-body">
         <div class="row">
@@ -302,6 +388,9 @@ function renderDocumentDetails(type, document) {
             )}">
               ${document.status || "Pending"}
             </span></p>
+            <p><strong>Mức độ ưu tiên:</strong> ${getPriorityDisplayName(
+              priority
+            )}</p>
             ${
               document.costCenter
                 ? `<p><strong>Trạm:</strong> ${document.costCenter}</p>`
@@ -1199,7 +1288,18 @@ function addPurchasingDetails(document) {
   return html;
 }
 
-// Add payment-specific details
+// Helper function to get display name for priority
+function getPriorityDisplayName(priority) {
+  const names = {
+    cao: "Cao",
+    "trung bình": "Trung bình",
+    thấp: "Thấp",
+    approved: "Đã duyệt",
+  };
+  return names[priority] || "Trung bình";
+}
+
+// Update payment stage display to show priority
 function addPaymentDetails(document) {
   let html = `
     <hr>
@@ -1219,9 +1319,9 @@ function addPaymentDetails(document) {
     <p><strong>Hạn thanh toán:</strong> ${
       document.paymentDeadline || "Không xác định"
     }</p>
-    <p><strong>Mức độ ưu tiên:</strong> ${
-      document.priority || "Không xác định"
-    }</p>    
+    <p><strong>Mức độ ưu tiên tổng thể:</strong> ${getPriorityDisplayName(
+      getDocumentPriority(document, "payment")
+    )}</p>    
   `;
 
   if (document.stages?.length > 0) {
@@ -1239,6 +1339,9 @@ function addPaymentDetails(document) {
             );
             const canApprove =
               isApprover && !hasApproved && stage.status === "Pending";
+            const stagePriority = stage.priority
+              ? stage.priority.toLowerCase()
+              : "trung bình";
 
             return `
             <div class="stage-card card mb-3 ${
@@ -1246,22 +1349,29 @@ function addPaymentDetails(document) {
             }">
               <div class="card-header d-flex justify-content-between align-items-center">
                 <h6 class="mb-0">Giai đoạn ${index + 1}: ${stage.name}</h6>
-                <span class="badge bg-${getStatusBadgeColor(stage.status)}">
-                  ${
-                    stage.status === "Approved"
-                      ? "Đã phê duyệt"
-                      : "Chờ phê duyệt"
-                  }
-                </span>
+                <div>
+                  <span class="badge bg-${getPriorityBadgeColor(
+                    stagePriority
+                  )} me-2">
+                    ${getPriorityDisplayName(stagePriority)}
+                  </span>
+                  <span class="badge bg-${getStatusBadgeColor(stage.status)}">
+                    ${
+                      stage.status === "Approved"
+                        ? "Đã phê duyệt"
+                        : "Chờ phê duyệt"
+                    }
+                  </span>
+                </div>
               </div>
               <div class="card-body">
                 <p><strong>Số tiền:</strong> ${formatCurrency(stage.amount)}</p>
                 <p><strong>Hạn thanh toán:</strong> ${
                   stage.deadline || "Không xác định"
                 }</p>
-                <p><strong>Mức độ ưu tiên:</strong> ${
-                  stage.priority || "Không xác định"
-                }</p>                    
+                <p><strong>Mức độ ưu tiên:</strong> ${getPriorityDisplayName(
+                  stagePriority
+                )}</p>                    
                 <p><strong>Phương thức thanh toán:</strong> ${
                   stage.paymentMethod || document.paymentMethod
                 }</p>
@@ -1345,6 +1455,17 @@ function addPaymentDetails(document) {
   }
 
   return html;
+}
+
+// Helper function for priority badge colors
+function getPriorityBadgeColor(priority) {
+  const colors = {
+    cao: "danger",
+    "trung bình": "warning",
+    thấp: "success",
+    approved: "success",
+  };
+  return colors[priority] || "secondary";
 }
 
 // Add advance payment details

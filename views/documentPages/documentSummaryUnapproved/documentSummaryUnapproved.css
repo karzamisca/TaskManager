@@ -54,6 +54,22 @@ body {
     color: #f8f9fa;
   }
 
+  /* Priority color styles */
+  .priority-high {
+    background-color: #dc3545 !important;
+    color: white !important;
+  }
+
+  .priority-medium {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+  }
+
+  .priority-low {
+    background-color: #198754 !important;
+    color: white !important;
+  }
+
   /* Tables - General */
   .table {
     color: #f8f9fa;
@@ -209,6 +225,36 @@ body {
 
 .nav-actions .btn {
   white-space: nowrap;
+}
+
+/* Priority color styles */
+.priority-high {
+  background-color: #e74a3b !important; /* Red */
+  color: white !important;
+}
+
+.priority-medium {
+  background-color: #f6c23e !important; /* Yellow */
+  color: #212529 !important;
+}
+
+.priority-low {
+  background-color: #1cc88a !important; /* Green */
+  color: white !important;
+}
+
+/* Hover effects for priority rows */
+.table tbody tr.priority-high:hover {
+  background-color: #d32f2f !important;
+}
+
+.table tbody tr.priority-medium:hover {
+  background-color: #f57c00 !important;
+  color: white !important;
+}
+
+.table tbody tr.priority-low:hover {
+  background-color: #388e3c !important;
 }
 
 /* Summary cards */
