@@ -385,7 +385,82 @@ const filterByPaymentMethod = () => {
   fetchPaymentDocuments();
 };
 
-// Rendering functions
+const getDocumentPriority = (doc) => {
+  // If document is already approved, return null (no special coloring)
+  if (doc.status === "Approved") {
+    return null;
+  }
+
+  // For documents with stages, find the highest priority among unapproved stages
+  if (doc.stages && doc.stages.length > 0) {
+    const unapprovedStages = doc.stages.filter(
+      (stage) => stage.status !== "Approved" && stage.priority
+    );
+
+    if (unapprovedStages.length > 0) {
+      // Find the highest priority among unapproved stages
+      const priorities = {
+        Cao: 3,
+        "Trung bình": 2,
+        Thấp: 1,
+      };
+
+      let highestPriority = "Thấp";
+      let highestPriorityValue = 1;
+
+      unapprovedStages.forEach((stage) => {
+        const currentPriorityValue = priorities[stage.priority] || 1;
+        if (currentPriorityValue > highestPriorityValue) {
+          highestPriorityValue = currentPriorityValue;
+          highestPriority = stage.priority;
+        }
+      });
+
+      return highestPriority;
+    }
+  }
+
+  // For documents without stages or all stages approved, use document priority
+  return doc.priority || "Thấp";
+};
+
+// Add this helper function to determine if a document should show priority badge
+const shouldShowPriorityBadge = (doc) => {
+  // Only show badge for unapproved documents
+  if (doc.status === "Approved") {
+    return false;
+  }
+
+  // For documents with stages, only show badge if all stages are approved
+  if (doc.stages && doc.stages.length > 0) {
+    const allStagesApproved = doc.stages.every(
+      (stage) => stage.status === "Approved"
+    );
+    return allStagesApproved;
+  }
+
+  // For documents without stages, show badge
+  return true;
+};
+
+// Update the getDocumentPriority function to handle badge priority specifically
+const getDocumentPriorityForBadge = (doc) => {
+  // For documents with stages where all are approved, use document priority
+  if (doc.stages && doc.stages.length > 0) {
+    const allStagesApproved = doc.stages.every(
+      (stage) => stage.status === "Approved"
+    );
+    if (allStagesApproved) {
+      return doc.priority || "Thấp";
+    }
+    return null; // Don't show badge if there are unapproved stages
+  }
+
+  // For documents without stages, use document priority
+  return doc.priority || "Thấp";
+};
+
+// Update the renderDocumentsTable function
 const renderDocumentsTable = (documents) => {
   const tableBody = document
     .getElementById("paymentDocumentsTable")
@@ -418,12 +493,41 @@ const renderDocumentsTable = (documents) => {
         })
         .filter((stage) => stage.canApprove) || [];
 
+    // Determine priority for coloring and badge
+    const priority = getDocumentPriority(doc);
+    const priorityClass = priority
+      ? `priority-${priority.toLowerCase().replace(" ", "-")}`
+      : "";
+
+    // Check if we should show priority badge next to tag
+    const showPriorityBadge = shouldShowPriorityBadge(doc);
+    const badgePriority = showPriorityBadge
+      ? getDocumentPriorityForBadge(doc)
+      : null;
+
     const row = document.createElement("tr");
+    if (priorityClass) {
+      row.className = priorityClass;
+    }
+
     row.innerHTML = `
       <td><input type="checkbox" class="doc-checkbox" data-doc-id="${
         doc._id
       }" ${state.selectedDocuments.has(doc._id) ? "checked" : ""}></td>
-      <td>${doc.tag || "-"}</td>
+      <td>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          ${doc.tag || "-"}
+          ${
+            badgePriority
+              ? `<span class="priority-badge priority-${badgePriority
+                  .toLowerCase()
+                  .replace(" ", "-")}">
+                  ${badgePriority}
+                </span>`
+              : ""
+          }
+        </div>
+      </td>
       <td>
         <div>${doc.content || "-"}</div>
         ${
@@ -451,6 +555,16 @@ const renderDocumentsTable = (documents) => {
                     <span class="status-badge">${
                       stage.status === "Approved" ? "Đã duyệt" : "Chờ duyệt"
                     }</span>
+                    ${
+                      stage.priority && stage.status !== "Approved"
+                        ? `<span class="priority-badge priority-${stage.priority
+                            .toLowerCase()
+                            .replace(" ", "-")}" 
+                              style="margin-left: 8px; font-size: 0.7em;">
+                            ${stage.priority}
+                          </span>`
+                        : ""
+                    }
                   </div>`
                   )
                   .join("")}

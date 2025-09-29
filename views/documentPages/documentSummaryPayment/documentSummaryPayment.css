@@ -72,6 +72,48 @@
     --table-stripe: #1e1e1e;
     --table-hover: #2d2d2d;
   }
+
+  .priority-high {
+    background-color: #3c1a1a !important;
+    border-left-color: #d32f2f !important;
+  }
+
+  .priority-medium {
+    background-color: #3c2e1a !important;
+    border-left-color: #f57c00 !important;
+  }
+
+  .priority-low {
+    background-color: #1a3c1f !important;
+    border-left-color: #388e3c !important;
+  }
+
+  .priority-high:hover {
+    background-color: #4c2525 !important;
+  }
+
+  .priority-medium:hover {
+    background-color: #4c3d25 !important;
+  }
+
+  .priority-low:hover {
+    background-color: #254c2a !important;
+  }
+
+  .priority-badge.priority-cao {
+    background-color: #d32f2f;
+    border-color: #b71c1c;
+  }
+
+  .priority-badge.priority-trung-bình {
+    background-color: #f57c00;
+    border-color: #e65100;
+  }
+
+  .priority-badge.priority-thấp {
+    background-color: #388e3c;
+    border-color: #1b5e20;
+  }
 }
 
 /* Base Styles */
@@ -787,22 +829,76 @@ tr:hover {
 .priority-badge {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.8em;
+  border-radius: 12px;
+  font-size: 0.75em;
   font-weight: bold;
   color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.priority-high {
+.priority-badge.priority-cao {
+  background-color: #f44336;
+  border: 1px solid #d32f2f;
+}
+
+.priority-badge.priority-trung-bình {
+  background-color: #ff9800;
+  border: 1px solid #f57c00;
+}
+
+.priority-badge.priority-thấp {
+  background-color: #4caf50;
+  border: 1px solid #388e3c;
+}
+
+.stage-summary-item .priority-badge {
+  display: inline-block;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.7em;
+  font-weight: bold;
+  color: white;
+  margin-left: 8px;
+}
+
+.stage-summary-item .priority-badge.priority-cao {
   background-color: #f44336;
 }
 
-.priority-medium {
+.stage-summary-item .priority-badge.priority-trung-bình {
   background-color: #ff9800;
 }
 
-.priority-low {
+.stage-summary-item .priority-badge.priority-thấp {
   background-color: #4caf50;
+}
+
+.priority-high {
+  background-color: #ffebee !important; /* Light red */
+  border-left: 4px solid #f44336 !important;
+}
+
+.priority-medium {
+  background-color: #fff8e1 !important; /* Light yellow */
+  border-left: 4px solid #ff9800 !important;
+}
+
+.priority-low {
+  background-color: #e8f5e9 !important; /* Light green */
+  border-left: 4px solid #4caf50 !important;
+}
+
+.priority-high:hover {
+  background-color: #ffcdd2 !important;
+}
+
+.priority-medium:hover {
+  background-color: #ffecb3 !important;
+}
+
+.priority-low:hover {
+  background-color: #c8e6c9 !important;
 }
 
 .stage-priority {
