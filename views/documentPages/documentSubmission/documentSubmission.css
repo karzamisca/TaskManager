@@ -226,6 +226,43 @@ button {
   margin-top: 1rem;
 }
 
+/* File list styles for preview sections */
+.proposal-preview ul,
+#purchasingDocumentsList ul {
+  list-style-type: none;
+  padding-left: 0;
+  margin: 0.5rem 0;
+}
+
+.proposal-preview li,
+#purchasingDocumentsList li {
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.proposal-preview li ul li,
+#purchasingDocumentsList li ul li {
+  background: #f8fafc;
+  border: none;
+  box-shadow: none;
+  margin-bottom: 0.25rem;
+}
+
+.proposal-preview a,
+#purchasingDocumentsList a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.proposal-preview a:hover,
+#purchasingDocumentsList a:hover {
+  text-decoration: underline;
+}
+
 /* Footer styles */
 .main-footer {
   background-color: var(--dark-color);
@@ -333,5 +370,16 @@ button {
     background-color: #333;
     color: #f1f1f1;
     border-color: #444;
+  }
+
+  .proposal-preview li,
+  #purchasingDocumentsList li {
+    background: #2d3748;
+    border-color: #4a5568;
+  }
+
+  .proposal-preview li ul li,
+  #purchasingDocumentsList li ul li {
+    background: #374151;
   }
 }

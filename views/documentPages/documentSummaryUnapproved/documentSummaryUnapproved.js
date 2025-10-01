@@ -1084,9 +1084,11 @@ function addDeliveryFullView(document) {
               <p><strong>Mô tả:</strong> ${proposal.detailsDescription}</p>
               <p><strong>Hướng giải quyết:</strong> ${proposal.direction}</p>
               ${
-                proposal.fileMetadata
-                  ? `<p><strong>Tệp đính kèm:</strong> 
-                     <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
+                proposal.fileMetadata && proposal.fileMetadata.length > 0
+                  ? `<div class="file-section mt-3">
+                      <strong>Tệp đính kèm:</strong>
+                      ${renderFileAttachments(proposal.fileMetadata)}
+                    </div>`
                   : ""
               }
             </div>
@@ -1779,9 +1781,11 @@ function addDeliveryDetails(document) {
               <p><strong>Mô tả:</strong> ${proposal.detailsDescription}</p>
               <p><strong>Hướng giải quyết:</strong> ${proposal.direction}</p>
               ${
-                proposal.fileMetadata
-                  ? `<p><strong>Tệp đính kèm:</strong> 
-                     <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
+                proposal.fileMetadata && proposal.fileMetadata.length > 0
+                  ? `<div class="file-section mt-3">
+                      <strong>Tệp đính kèm:</strong>
+                      ${renderFileAttachments(proposal.fileMetadata)}
+                    </div>`
                   : ""
               }
             </div>

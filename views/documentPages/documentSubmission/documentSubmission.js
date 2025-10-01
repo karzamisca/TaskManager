@@ -635,6 +635,29 @@ async function previewProposalContent(selectElement) {
 
   const previewDiv = document.createElement("div");
   previewDiv.className = "proposal-preview";
+
+  // Handle multiple files
+  let filesHtml = "<p>Không có tệp đính kèm</p>";
+  if (proposal.fileMetadata && proposal.fileMetadata.length > 0) {
+    filesHtml = `
+      <p><strong>Tệp đính kèm:</strong></p>
+      <ul>
+        ${proposal.fileMetadata
+          .map(
+            (file) => `
+          <li>
+            <a href="${file.link}" target="_blank">${
+              file.name || file.displayName || file.actualFilename
+            }</a>
+            ${file.size ? ` (${file.size})` : ""}
+          </li>
+        `
+          )
+          .join("")}
+      </ul>
+    `;
+  }
+
   previewDiv.innerHTML = `
       <h3>Xem trước phiếu đề xuất ${documentId}</h3>
       <p><strong>Tình trạng phê duyệt:</strong> ${proposal.status}<br></p>
@@ -660,25 +683,19 @@ async function previewProposalContent(selectElement) {
           ? `<p><strong>Lý do tạm dừng:</strong> ${proposal.suspendReason}</p>`
           : ""
       }
-      ${
-        proposal.fileMetadata
-          ? `<p><strong>Tệp đính kèm:</strong>
-        <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
-          : ""
-      }
+      ${filesHtml}
       <h4>Đã phê duyệt bởi:</h4>
       <ul>
         ${proposal.approvedBy
           .map(
             (approval) => `
-          <li>
-            ${approval.username} - ${approval.approvalDate}
-          </li>
+          <li>${approval.username} - ${approval.approvalDate}</li>
         `
           )
           .join("")}
       </ul>
     `;
+
   // Insert the preview right after the select container
   selectContainer.appendChild(previewDiv);
 }
@@ -749,65 +766,100 @@ document
       if (!response.ok) throw new Error("Failed to fetch document details.");
       const doc = await response.json();
 
+      // Handle multiple files for purchasing document
+      const purchasingFilesHtml =
+        doc.fileMetadata && doc.fileMetadata.length > 0
+          ? `
+        <p><strong>Tệp đính kèm phiếu mua hàng:</strong></p>
+        <ul>
+          ${doc.fileMetadata
+            .map(
+              (file) => `
+            <li>
+              <a href="${file.link}" target="_blank">${
+                file.name || file.displayName || file.actualFilename
+              }</a>
+              ${file.size ? ` (${file.size})` : ""}
+            </li>
+          `
+            )
+            .join("")}
+        </ul>
+      `
+          : "<p>Không có tệp đính kèm</p>";
+
+      // Handle multiple files for appended proposals
+      const appendedProposalsHtml =
+        doc.appendedProposals.length > 0
+          ? doc.appendedProposals
+              .map((proposal) => {
+                const proposalFilesHtml =
+                  proposal.fileMetadata && proposal.fileMetadata.length > 0
+                    ? `
+              <p><strong>Tệp đính kèm phiếu đề xuất:</strong></p>
+              <ul>
+                ${proposal.fileMetadata
+                  .map(
+                    (file) => `
+                  <li>
+                    <a href="${file.link}" target="_blank">${
+                      file.name || file.displayName || file.actualFilename
+                    }</a>
+                    ${file.size ? ` (${file.size})` : ""}
+                  </li>
+                `
+                  )
+                  .join("")}
+              </ul>
+            `
+                    : "<p>Không có tệp đính kèm</p>";
+
+                return `
+            <li>
+              <strong>${proposal.task}</strong><br>
+              Trạm: ${proposal.costCenter}<br>
+              Nhóm: ${proposal.groupName}<br>
+              Ngày xảy ra lỗi: ${proposal.dateOfError}<br>
+              Mô tả chi tiết: ${proposal.detailsDescription} <br>
+              Hướng xử lý: ${proposal.direction}<br>
+              ${proposalFilesHtml}
+            </li>
+          `;
+              })
+              .join("")
+          : "<p>Không có phiếu đề xuất đính kèm</p>";
+
       const listItem = document.createElement("li");
       listItem.id = `doc-${selectedDocId}`;
       listItem.innerHTML = `
-          <strong>Mã:</strong> ${doc._id}<br>
-          <strong>Tình trạng phê duyệt:</strong> ${doc.status}<br>
-          <strong>Trạm:</strong> ${doc.costCenter ? doc.costCenter : ""}<br>
-          <strong>Nhóm:</strong> ${doc.groupName ? doc.groupName : ""}<br>
-          <strong>Chi phí:</strong> ${doc.grandTotalCost.toLocaleString()}<br>
-          <h3>Sản phẩm:</h3>
-          <ul>
-              ${doc.products
-                .map(
-                  (product) => `
-                    <li>
-                        <strong>${product.productName}</strong><br>
-                        Đơn giá: ${product.costPerUnit.toLocaleString()}<br>
-                        Số lượng: ${product.amount.toLocaleString()}<br>
-                        Thuế (%): ${product.vat.toLocaleString()}<br>
-                        Thành tiền: ${product.totalCost.toLocaleString()}<br>
-                        Thành tiền sau thuế: ${product.totalCostAfterVat.toLocaleString()}<br>
-                        Ghi chú: ${product.note || "None"}
-                    </li>
-                `
-                )
-                .join("")}
-          </ul>
-          <h2>Các phiếu đề xuất đính kèm:</h2>
-          ${
-            doc.appendedProposals.length > 0
-              ? doc.appendedProposals
-                  .map(
-                    (proposal) => `
-                      <li>
-                        <strong>${proposal.task}</strong><br>
-                        Trạm: ${proposal.costCenter}<br>
-                        Nhóm: ${proposal.groupName}<br>
-                        Ngày xảy ra lỗi: ${proposal.dateOfError}<br>
-                        Mô tả chi tiết: ${proposal.detailsDescription} <br>
-                        Hướng xử lý: ${proposal.direction}<br>
-                        ${
-                          proposal.fileMetadata
-                            ? `Tệp đính kèm phiếu đề xuất:
-                                <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
-                            : ""
-                        }<br>
-                      </li>
-                  `
-                  )
-                  .join("")
-              : "<p>Không có phiếu đề xuất đính kèm</p>"
-          }
-          ${
-            doc.fileMetadata
-              ? `<p><strong>Tệp đính kèm phiếu thanh toán:</strong>
-                    <a href="${doc.fileMetadata.link}" target="_blank">${doc.fileMetadata.name}</a></p>`
-              : "<p>Không có tệp đính kèm</p>"
-          }
-          <button type="button" onclick="removePurchasingDocument('${selectedDocId}')">Xóa</button>
-      `;
+        <strong>Mã:</strong> ${doc._id}<br>
+        <strong>Tình trạng phê duyệt:</strong> ${doc.status}<br>
+        <strong>Trạm:</strong> ${doc.costCenter ? doc.costCenter : ""}<br>
+        <strong>Nhóm:</strong> ${doc.groupName ? doc.groupName : ""}<br>
+        <strong>Chi phí:</strong> ${doc.grandTotalCost.toLocaleString()}<br>
+        <h3>Sản phẩm:</h3>
+        <ul>
+            ${doc.products
+              .map(
+                (product) => `
+                <li>
+                    <strong>${product.productName}</strong><br>
+                    Đơn giá: ${product.costPerUnit.toLocaleString()}<br>
+                    Số lượng: ${product.amount.toLocaleString()}<br>
+                    Thuế (%): ${product.vat.toLocaleString()}<br>
+                    Thành tiền: ${product.totalCost.toLocaleString()}<br>
+                    Thành tiền sau thuế: ${product.totalCostAfterVat.toLocaleString()}<br>
+                    Ghi chú: ${product.note || "None"}
+                </li>
+            `
+              )
+              .join("")}
+        </ul>
+        <h2>Các phiếu đề xuất đính kèm:</h2>
+        <ul>${appendedProposalsHtml}</ul>
+        ${purchasingFilesHtml}
+        <button type="button" onclick="removePurchasingDocument('${selectedDocId}')">Xóa</button>
+    `;
 
       purchasingDocumentsList.appendChild(listItem);
 
