@@ -1841,21 +1841,27 @@ exports.deleteDocument = async (req, res) => {
       return res.send("Document not found");
     }
 
-    // Delete associated file from Nextcloud if it exists
-    if (document.fileMetadata?.path) {
+    // Delete associated files from Nextcloud if they exist
+    if (document.fileMetadata && document.fileMetadata.length > 0) {
       try {
         const client = getNextcloudClient();
-        await client.deleteFile(document.fileMetadata.path);
+
+        // Delete all files in the fileMetadata array
+        for (const fileMeta of document.fileMetadata) {
+          if (fileMeta.path) {
+            await client.deleteFile(fileMeta.path);
+          }
+        }
       } catch (fileError) {
         console.error(
-          "Warning: Could not delete associated file from Nextcloud:",
+          "Warning: Could not delete associated files from Nextcloud:",
           fileError
         );
         // Continue with document deletion even if file deletion fails
       }
     }
 
-    // Delete the document based on its type (same as before)
+    // Delete the document based on its type
     if (documentType === "Proposal") {
       await ProposalDocument.findByIdAndDelete(id);
     } else if (documentType === "Purchasing") {
