@@ -142,6 +142,45 @@ h6 {
   color: var(--text-primary);
 }
 
+/* Multiple files styles */
+.current-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px;
+  background-color: var(--table-stripe);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.file-name {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.file-size {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.file-actions {
+  display: flex;
+  gap: 4px;
+}
+
 /* Layout */
 .page-header {
   display: flex;

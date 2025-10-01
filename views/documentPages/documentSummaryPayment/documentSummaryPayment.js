@@ -93,10 +93,16 @@ const renderPaymentDetails = (doc) => {
     html += `<span>Hạn trả: <span class="payment-deadline">${doc.paymentDeadline}</span></span>`;
   }
 
-  if (doc.fileMetadata?.link) {
-    html += `<a href="${doc.fileMetadata.link}" class="payment-file-link" target="_blank">
-      <i class="fas fa-paperclip"></i> ${doc.fileMetadata.name}
-    </a>`;
+  // Handle multiple files
+  if (doc.fileMetadata && doc.fileMetadata.length > 0) {
+    html += `<div class="file-attachments">`;
+    doc.fileMetadata.forEach((file, index) => {
+      html += `<a href="${file.link}" class="payment-file-link" target="_blank">
+        <i class="fas fa-paperclip"></i> ${file.name}
+        ${file.size ? ` (${file.size})` : ""}
+      </a>${index < doc.fileMetadata.length - 1 ? "<br>" : ""}`;
+    });
+    html += `</div>`;
   }
 
   html += `</div>`;
@@ -2066,6 +2072,29 @@ const showFullView = async (docId) => {
     // Format date strings
     const submissionDate = doc.submissionDate || "Không có";
     const paymentDeadline = doc.paymentDeadline || "Không có";
+    const filesSection = `
+      <div class="full-view-section">
+        <h3><i class="fas fa-paperclip"></i> Tệp tin kèm theo</h3>
+        ${
+          doc.fileMetadata && doc.fileMetadata.length > 0
+            ? `<div class="file-attachments">
+                ${doc.fileMetadata
+                  .map(
+                    (file) => `
+                  <div class="file-item">
+                    <a href="${file.link}" class="file-link" target="_blank">
+                      <i class="fas fa-file"></i> ${file.name}
+                      ${file.size ? ` (${file.size})` : ""}
+                    </a>
+                  </div>
+                `
+                  )
+                  .join("")}
+              </div>`
+            : "Không có tệp tin đính kèm"
+        }
+      </div>
+    `;
 
     fullViewContent.innerHTML = `
       <!-- Basic Information Section -->
@@ -2154,12 +2183,7 @@ const showFullView = async (docId) => {
       
       <!-- File Attachment Section -->
       <div class="full-view-section">
-        <h3><i class="fas fa-paperclip"></i> Tệp tin kèm theo</h3>
-        ${
-          doc.fileMetadata
-            ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-            : "Không có tệp tin đính kèm"
-        }
+        ${filesSection}
       </div>
       
       <!-- Purchasing Documents Section -->
