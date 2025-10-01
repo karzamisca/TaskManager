@@ -100,6 +100,65 @@ h6 {
   color: var(--text-primary);
 }
 
+/* Multiple Files Styles */
+.files-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-secondary);
+  transition: var(--transition);
+}
+
+.file-item:hover {
+  background-color: var(--table-hover);
+}
+
+.file-link {
+  color: var(--secondary-color);
+  text-decoration: none;
+  flex: 1;
+  word-break: break-word;
+}
+
+.file-link:hover {
+  color: var(--secondary-hover);
+  text-decoration: underline;
+}
+
+.file-size {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.file-actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+/* Modal file list styles */
+.modal-file-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+}
+
+/* Full view file section */
+.full-view-files {
+  display: grid;
+  gap: var(--space-sm);
+}
+
 /* Layout */
 .page-header {
   display: flex;
@@ -634,6 +693,16 @@ tr:hover {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .file-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+  }
+
+  .file-actions {
+    align-self: flex-end;
+  }
+
   .control-panel {
     flex-direction: column;
     gap: var(--space-md);

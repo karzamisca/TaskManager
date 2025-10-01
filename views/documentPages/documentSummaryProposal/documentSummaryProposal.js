@@ -219,6 +219,55 @@ const populateGroupFilter = async () => {
   }
 };
 
+// Helper function to render multiple files
+const renderFilesList = (fileMetadata) => {
+  if (!fileMetadata || fileMetadata.length === 0) {
+    return "-";
+  }
+
+  if (fileMetadata.length === 1) {
+    const file = fileMetadata[0];
+    return `<a href="${file.link}" class="file-link" target="_blank" title="${file.name}">${file.name}</a>`;
+  }
+
+  // For multiple files, show a compact list with expandable view
+  return `
+    <div class="files-container">
+      ${fileMetadata
+        .slice(0, 2)
+        .map(
+          (file) => `
+          <div class="file-item">
+            <a href="${file.link}" class="file-link" target="_blank" title="${
+            file.name
+          }">
+              ${file.name}
+            </a>
+            ${file.size ? `<span class="file-size">${file.size}</span>` : ""}
+          </div>
+        `
+        )
+        .join("")}
+      ${
+        fileMetadata.length > 2
+          ? `
+        <div class="file-item">
+          <span class="file-link">... và ${
+            fileMetadata.length - 2
+          } tệp khác</span>
+          <button class="btn btn-sm" onclick="showAllFiles(event, '${JSON.stringify(
+            fileMetadata
+          ).replace(/'/g, "\\'")}')">
+            <i class="fas fa-expand"></i> Xem tất cả
+          </button>
+        </div>
+      `
+          : ""
+      }
+    </div>
+  `;
+};
+
 // Rendering functions
 const renderDocumentsTable = (documents) => {
   const tableBody = document
@@ -250,6 +299,9 @@ const renderDocumentsTable = (documents) => {
       })
       .join("");
 
+    // Render multiple files
+    const filesHtml = renderFilesList(doc.fileMetadata);
+
     const row = document.createElement("tr");
     row.innerHTML = `
       <td><input type="checkbox" class="doc-checkbox" data-doc-id="${
@@ -272,11 +324,7 @@ const renderDocumentsTable = (documents) => {
       <td>${doc.dateOfError || ""}</td>
       <td>${doc.detailsDescription || ""}</td>
       <td>${doc.direction || ""}</td>
-      <td>${
-        doc.fileMetadata?.link
-          ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-          : "-"
-      }</td>
+      <td>${filesHtml}</td>
       <td>${doc.submissionDate || ""}</td>
       <td>${renderStatus(doc.status)}</td>
       <td class="approval-status">${approvalStatus}</td>
@@ -653,6 +701,9 @@ const showFullView = (docId) => {
     // Format date strings
     const submissionDate = doc.submissionDate || "Không có";
 
+    // Render multiple files for full view
+    const filesHtml = renderFullViewFiles(doc.fileMetadata);
+
     fullViewContent.innerHTML = `
       <!-- Basic Information Section -->
       <div class="full-view-section">
@@ -705,12 +756,10 @@ const showFullView = (docId) => {
       
       <!-- File Attachment Section -->
       <div class="full-view-section">
-        <h3><i class="fas fa-paperclip"></i> Tệp tin kèm theo</h3>
-        ${
-          doc.fileMetadata
-            ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-            : "Không có tệp tin đính kèm"
-        }
+        <h3><i class="fas fa-paperclip"></i> Tệp tin kèm theo (${
+          doc.fileMetadata?.length || 0
+        })</h3>
+        ${filesHtml}
       </div>
       
       <!-- Status Section -->
@@ -719,7 +768,7 @@ const showFullView = (docId) => {
         <div class="detail-grid">
           <div class="detail-item">
             <span class="detail-label">Tình trạng:</span>
-            <span class="detail-value ${renderStatus(doc.status)}</span>
+            <span class="detail-value ${renderStatus(doc.status)}"></span>
           </div>
         </div>
         <div class="approval-section">
@@ -756,6 +805,94 @@ const showFullView = (docId) => {
   } catch (err) {
     console.error("Error showing full view:", err);
     showMessage("Error loading full document details", true);
+  }
+};
+
+// Helper function to render files in full view
+const renderFullViewFiles = (fileMetadata) => {
+  if (!fileMetadata || fileMetadata.length === 0) {
+    return "Không có tệp tin đính kèm";
+  }
+
+  return `
+    <div class="full-view-files">
+      ${fileMetadata
+        .map(
+          (file) => `
+        <div class="file-item">
+          <a href="${file.link}" class="file-link" target="_blank">
+            <i class="fas fa-file"></i> ${file.name}
+          </a>
+          ${file.size ? `<span class="file-size">${file.size}</span>` : ""}
+          <div class="file-actions">
+            <a href="${
+              file.link
+            }" class="btn btn-sm" target="_blank" title="Tải xuống">
+              <i class="fas fa-download"></i>
+            </a>
+          </div>
+        </div>
+      `
+        )
+        .join("")}
+    </div>
+  `;
+};
+
+// Function to show all files in a modal
+const showAllFiles = (event, filesJson) => {
+  event.stopPropagation();
+
+  try {
+    const files = JSON.parse(filesJson);
+
+    const modalHTML = `
+      <div id="filesModal" class="modal" style="display: block;">
+        <div class="modal-content">
+          <span class="modal-close" onclick="closeFilesModal()">&times;</span>
+          <h2 class="modal-title"><i class="fas fa-files"></i> Tất cả tệp tin</h2>
+          <div class="modal-body">
+            <div class="modal-file-list">
+              ${files
+                .map(
+                  (file) => `
+                <div class="file-item">
+                  <a href="${file.link}" class="file-link" target="_blank">
+                    <i class="fas fa-file"></i> ${file.name}
+                  </a>
+                  ${
+                    file.size
+                      ? `<span class="file-size">${file.size}</span>`
+                      : ""
+                  }
+                  <div class="file-actions">
+                    <a href="${
+                      file.link
+                    }" class="btn btn-sm" target="_blank" title="Tải xuống">
+                      <i class="fas fa-download"></i>
+                    </a>
+                  </div>
+                </div>
+              `
+                )
+                .join("")}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML("beforeend", modalHTML);
+  } catch (error) {
+    console.error("Error showing files modal:", error);
+    showMessage("Error loading files", true);
+  }
+};
+
+const closeFilesModal = () => {
+  const modal = document.getElementById("filesModal");
+  if (modal) {
+    modal.remove();
   }
 };
 
@@ -1226,7 +1363,8 @@ const exportSelectedToExcel = async () => {
       "Ngày lỗi": doc.dateOfError || "",
       "Mô tả chi tiết": doc.detailsDescription || "",
       "Hướng xử lý": doc.direction || "",
-      "Tệp tin kèm theo": doc.fileMetadata?.name || "",
+      "Tệp tin kèm theo": doc.fileMetadata?.map((f) => f.name).join(", ") || "",
+      "Số lượng tệp": doc.fileMetadata?.length || 0,
       "Ngày nộp phiếu": doc.submissionDate || "",
       Nhóm: doc.groupName || "",
       "Tình trạng": doc.status || "",
