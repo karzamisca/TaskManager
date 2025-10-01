@@ -78,15 +78,19 @@
           </button>
 
           <div class="form-section">
-            <label for="file"
-              ><i class="fas fa-paperclip"></i> Đính kèm tệp:</label
+            <label for="files"
+              ><i class="fas fa-paperclip"></i> Đính kèm tệp (nhiều tệp):</label
             >
             <input
               type="file"
-              name="file"
-              id="file"
+              name="files"
+              id="files"
               class="default-file-input"
+              multiple
             />
+            <small class="file-hint"
+              >Có thể chọn nhiều tệp bằng cách giữ Ctrl hoặc Shift</small
+            >
           </div>
 
           <!-- Dropdown for appending approved documents -->
@@ -203,7 +207,7 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="documentPages/documentSubmission/documentSubmission.js?v=1.8"></script>
+    <script src="documentPages/documentSubmission/documentSubmission.js?v=1.9"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>

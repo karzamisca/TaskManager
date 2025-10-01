@@ -466,9 +466,11 @@ exports.exportDocumentToDocx = async (req, res) => {
 };
 // Main export function that handles file upload and routes to specific document handlers
 exports.submitDocument = async (req, res) => {
-  upload.single("file")(req, res, async (err) => {
+  // Change from upload.single to upload.array
+  upload.array("files", 10)(req, res, async (err) => {
     if (err) {
-      return res.send("Error uploading file.");
+      console.error("Error uploading files:", err);
+      return res.send("Error uploading files.");
     }
 
     const { title } = req.body;
@@ -477,8 +479,8 @@ exports.submitDocument = async (req, res) => {
       // Process approvers data
       const approverDetails = await processApprovers(req);
 
-      // Handle file upload if present
-      const uploadedFileData = await handleFileUpload(req);
+      // Handle multiple file uploads
+      const uploadedFilesData = await handleMultipleFileUploads(req);
 
       // Route to appropriate document handler based on title
       let newDocument;
@@ -488,56 +490,56 @@ exports.submitDocument = async (req, res) => {
           newDocument = await createProposalDocument(
             req,
             approverDetails,
-            uploadedFileData
+            uploadedFilesData
           );
           break;
         case "Purchasing Document":
           newDocument = await createPurchasingDocument(
             req,
             approverDetails,
-            uploadedFileData
+            uploadedFilesData
           );
           break;
         case "Delivery Document":
           newDocument = await createDeliveryDocument(
             req,
             approverDetails,
-            uploadedFileData
+            uploadedFilesData
           );
           break;
         case "Payment Document":
           newDocument = await createPaymentDocument(
             req,
             approverDetails,
-            uploadedFileData
+            uploadedFilesData
           );
           break;
         case "Advance Payment Document":
           newDocument = await createAdvancePaymentDocument(
             req,
             approverDetails,
-            uploadedFileData
+            uploadedFilesData
           );
           break;
         case "Advance Payment Reclaim Document":
           newDocument = await createAdvancePaymentReclaimDocument(
             req,
             approverDetails,
-            uploadedFileData
+            uploadedFilesData
           );
           break;
         case "Project Proposal Document":
           newDocument = await createProjectProposalDocument(
             req,
             approverDetails,
-            uploadedFileData
+            uploadedFilesData
           );
           break;
         default:
           newDocument = await createStandardDocument(
             req,
             approverDetails,
-            uploadedFileData
+            uploadedFilesData
           );
           break;
       }
@@ -552,6 +554,70 @@ exports.submitDocument = async (req, res) => {
     }
   });
 };
+
+async function handleMultipleFileUploads(req) {
+  if (!req.files || req.files.length === 0) return [];
+
+  try {
+    const client = getNextcloudClient();
+    const title = req.body.title;
+    const targetFolder = DOCUMENT_TYPE_FOLDERS[title] || "/Documents";
+
+    const uploadPromises = req.files.map(async (file) => {
+      // Validate file exists
+      if (!fs.existsSync(file.path)) {
+        throw new Error(`Uploaded file not found: ${file.originalname}`);
+      }
+
+      // Create unique filename with timestamp
+      const originalFilename = file.originalname;
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")
+        .slice(0, -1);
+      const fileExtension = path.extname(originalFilename);
+      const baseName = path.basename(originalFilename, fileExtension);
+      const uniqueFilename = `${baseName}_${timestamp}${fileExtension}`;
+
+      // Upload to Nextcloud
+      const uploadResult = await client.uploadFile(
+        file.path,
+        targetFolder,
+        uniqueFilename
+      );
+
+      // Cleanup local file
+      fs.unlinkSync(file.path);
+
+      return {
+        driveFileId: uniqueFilename,
+        name: originalFilename,
+        displayName: originalFilename,
+        actualFilename: uniqueFilename,
+        link: uploadResult.downloadUrl,
+        path: uploadResult.path,
+        size: uploadResult.size,
+        mimeType: uploadResult.mimeType,
+        uploadTimestamp: timestamp,
+      };
+    });
+
+    const uploadedFiles = await Promise.all(uploadPromises);
+    return uploadedFiles;
+  } catch (error) {
+    // Cleanup all local files on error
+    if (req.files) {
+      req.files.forEach((file) => {
+        if (file.path && fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      });
+    }
+
+    console.error("Nextcloud multiple file upload failed:", error.message);
+    throw new Error(`File upload failed: ${error.message}`);
+  }
+}
 
 // Process approvers data from request
 async function processApprovers(req) {
@@ -1069,7 +1135,7 @@ async function handleFileUpload(req) {
 }
 
 // Create a Proposal Document
-async function createProposalDocument(req, approverDetails, uploadedFileData) {
+async function createProposalDocument(req, approverDetails, uploadedFilesData) {
   // Format the submission date for both display and the tag
   const now = moment().tz("Asia/Bangkok");
   const submissionDateForTag = now.format("DDMMYYYYHHmmss");
@@ -1088,7 +1154,7 @@ async function createProposalDocument(req, approverDetails, uploadedFileData) {
     projectName: req.body.projectName,
     submittedBy: req.user.id,
     approvers: approverDetails,
-    fileMetadata: uploadedFileData,
+    fileMetadata: uploadedFilesData, // This should now be an array
     submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
   });
 }
@@ -1097,7 +1163,7 @@ async function createProposalDocument(req, approverDetails, uploadedFileData) {
 async function createPurchasingDocument(
   req,
   approverDetails,
-  uploadedFileData
+  uploadedFilesData
 ) {
   try {
     const { products, approvedProposals, costCenter } = req.body;
@@ -1150,7 +1216,7 @@ async function createPurchasingDocument(
         vat,
         totalCost,
         totalCostAfterVat,
-        costCenter: product.costCenter, // Store product-level cost center
+        costCenter: product.costCenter,
         note: product.note || "",
       };
     });
@@ -1163,7 +1229,7 @@ async function createPurchasingDocument(
       )
     );
 
-    // 4. Process appended proposals
+    // 4. Process appended proposals with multiple file support
     let processedProposals = [];
     if (approvedProposals && Array.isArray(approvedProposals)) {
       const proposalDocs = await ProposalDocument.find({
@@ -1177,7 +1243,7 @@ async function createPurchasingDocument(
         dateOfError: doc.dateOfError,
         detailsDescription: doc.detailsDescription,
         direction: doc.direction,
-        fileMetadata: doc.fileMetadata,
+        fileMetadata: doc.fileMetadata || [],
         proposalId: doc._id,
         submissionDate: doc.submissionDate,
         submittedBy: doc.submittedBy,
@@ -1193,11 +1259,9 @@ async function createPurchasingDocument(
     // Format the submission date for both display and the tag
     const now = moment().tz("Asia/Bangkok");
     const submissionDateForTag = now.format("DDMMYYYYHHmmss");
-    // Create the tag by combining name and formatted date
     const tag = `${req.body.name}${submissionDateForTag}`;
 
-    // 5. Create and return the document
-    return new PurchasingDocument({
+    const documentData = {
       tag,
       title: req.body.title || "Purchasing Document",
       name: req.body.name,
@@ -1209,18 +1273,28 @@ async function createPurchasingDocument(
       projectName: req.body.projectName,
       submittedBy: req.user.id,
       approvers: approverDetails,
-      fileMetadata: uploadedFileData,
+      fileMetadata: uploadedFilesData, // Array of files for main document
       submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
       status: "Pending",
+    };
+
+    processedProposals.forEach((proposal, index) => {
+      console.log(
+        `  Proposal ${index + 1}: ${proposal.task} with ${
+          proposal.fileMetadata?.length || 0
+        } files`
+      );
     });
+
+    return new PurchasingDocument(documentData);
   } catch (error) {
     console.error("Error creating purchasing document:", error);
-    throw error; // Re-throw for route handler to catch
+    throw error;
   }
 }
 
 // Create a Delivery Document
-async function createDeliveryDocument(req, approverDetails, uploadedFileData) {
+async function createDeliveryDocument(req, approverDetails, uploadedFilesData) {
   const { products, approvedProposals } = req.body;
 
   // Process product entries
@@ -1231,7 +1305,7 @@ async function createDeliveryDocument(req, approverDetails, uploadedFileData) {
     productEntries.reduce((acc, product) => acc + product.totalCostAfterVat, 0)
   );
 
-  // Process appended proposals
+  // Process appended proposals with multiple file support
   let processedProposals = [];
   if (approvedProposals && Array.isArray(approvedProposals)) {
     const proposalDocs = await ProposalDocument.find({
@@ -1245,7 +1319,7 @@ async function createDeliveryDocument(req, approverDetails, uploadedFileData) {
       dateOfError: doc.dateOfError,
       detailsDescription: doc.detailsDescription,
       direction: doc.direction,
-      fileMetadata: doc.fileMetadata,
+      fileMetadata: doc.fileMetadata || [],
       proposalId: doc._id,
       submissionDate: doc.submissionDate,
       submittedBy: doc.submittedBy,
@@ -1261,10 +1335,9 @@ async function createDeliveryDocument(req, approverDetails, uploadedFileData) {
   // Format the submission date for both display and the tag
   const now = moment().tz("Asia/Bangkok");
   const submissionDateForTag = now.format("DDMMYYYYHHmmss");
-  // Create the tag by combining name and formatted date
   const tag = `${req.body.name}${submissionDateForTag}`;
 
-  return new DeliveryDocument({
+  const documentData = {
     tag,
     title: req.body.title,
     name: req.body.name,
@@ -1274,15 +1347,25 @@ async function createDeliveryDocument(req, approverDetails, uploadedFileData) {
     appendedProposals: processedProposals,
     groupName: req.body.groupName,
     projectName: req.body.projectName,
-    submittedBy: req.user.id,
+    submittedBy: req.body.user ? req.body.user.id : req.user.id,
     approvers: approverDetails,
-    fileMetadata: uploadedFileData,
+    fileMetadata: uploadedFilesData, // Array of files for main document
     submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+  };
+
+  processedProposals.forEach((proposal, index) => {
+    console.log(
+      `  Proposal ${index + 1}: ${proposal.task} with ${
+        proposal.fileMetadata?.length || 0
+      } files`
+    );
   });
+
+  return new DeliveryDocument(documentData);
 }
 
 // Create a Payment Document
-async function createPaymentDocument(req, approverDetails, uploadedFileData) {
+async function createPaymentDocument(req, approverDetails, uploadedFilesData) {
   // Process appended purchasing documents
   let appendedPurchasingDocuments = [];
   if (
@@ -1321,7 +1404,7 @@ async function createPaymentDocument(req, approverDetails, uploadedFileData) {
     projectName: req.body.projectName,
     submittedBy: req.user.id,
     approvers: approverDetails,
-    fileMetadata: uploadedFileData,
+    fileMetadata: uploadedFilesData,
     appendedPurchasingDocuments,
     submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
   });
@@ -1331,7 +1414,7 @@ async function createPaymentDocument(req, approverDetails, uploadedFileData) {
 async function createAdvancePaymentDocument(
   req,
   approverDetails,
-  uploadedFileData
+  uploadedFilesData
 ) {
   // Process appended purchasing documents
   let appendedPurchasingDocuments = [];
@@ -1369,7 +1452,7 @@ async function createAdvancePaymentDocument(
     projectName: req.body.projectName,
     submittedBy: req.user.id,
     approvers: approverDetails,
-    fileMetadata: uploadedFileData,
+    fileMetadata: uploadedFilesData,
     appendedPurchasingDocuments,
     submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
   });
@@ -1379,7 +1462,7 @@ async function createAdvancePaymentDocument(
 async function createAdvancePaymentReclaimDocument(
   req,
   approverDetails,
-  uploadedFileData
+  uploadedFilesData
 ) {
   // Process appended purchasing documents
   let appendedPurchasingDocuments = [];
@@ -1417,7 +1500,7 @@ async function createAdvancePaymentReclaimDocument(
     projectName: req.body.projectName,
     submittedBy: req.user.id,
     approvers: approverDetails,
-    fileMetadata: uploadedFileData,
+    fileMetadata: uploadedFilesData,
     appendedPurchasingDocuments,
     submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
   });
@@ -1427,7 +1510,7 @@ async function createAdvancePaymentReclaimDocument(
 async function createProjectProposalDocument(
   req,
   approverDetails,
-  uploadedFileData
+  uploadedFilesData
 ) {
   const { contentName, contentText, approvedDocuments } = req.body;
 
@@ -1458,13 +1541,13 @@ async function createProjectProposalDocument(
     projectName: req.body.projectName,
     submittedBy: req.user.id,
     approvers: approverDetails,
-    fileMetadata: uploadedFileData,
+    fileMetadata: uploadedFilesData,
     submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
   });
 }
 
 // Create a Standard Document
-async function createStandardDocument(req, approverDetails, uploadedFileData) {
+async function createStandardDocument(req, approverDetails, uploadedFilesData) {
   const { contentName, contentText, approvedDocuments } = req.body;
 
   // Process content array
@@ -1493,7 +1576,7 @@ async function createStandardDocument(req, approverDetails, uploadedFileData) {
     projectName: req.body.projectName,
     submittedBy: req.user.id,
     approvers: approverDetails,
-    fileMetadata: uploadedFileData,
+    fileMetadata: uploadedFilesData,
     submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
   });
 }
@@ -1511,43 +1594,6 @@ function processProducts(products) {
   }));
 }
 
-// Process appended proposals
-async function processAppendedProposals(approvedProposals) {
-  if (!approvedProposals || approvedProposals.length === 0) {
-    return [];
-  }
-
-  const appendedProposals = await Promise.all(
-    approvedProposals.map(async (proposalId) => {
-      const proposal = await ProposalDocument.findById(proposalId);
-      if (proposal) {
-        const proposalFileMetadata =
-          proposal.fileMetadata && Object.keys(proposal.fileMetadata).length > 0
-            ? {
-                driveFileId: proposal.fileMetadata.driveFileId || "",
-                name: proposal.fileMetadata.name || "",
-                link: proposal.fileMetadata.link || "",
-              }
-            : undefined;
-
-        return {
-          task: proposal.task,
-          costCenter: proposal.costCenter,
-          groupName: proposal.groupName,
-          dateOfError: proposal.dateOfError,
-          detailsDescription: proposal.detailsDescription,
-          direction: proposal.direction,
-          fileMetadata: proposalFileMetadata,
-          proposalId: proposal._id,
-        };
-      }
-      return null;
-    })
-  );
-
-  // Filter out any null values from failed lookups
-  return appendedProposals.filter((proposal) => proposal !== null);
-}
 exports.getPendingDocument = async (req, res) => {
   try {
     const pendingPurchasingDocs = await PurchasingDocument.find({

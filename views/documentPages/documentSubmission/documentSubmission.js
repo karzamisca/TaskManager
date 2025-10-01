@@ -965,3 +965,30 @@ document
     contentFields.appendChild(textLabel);
     contentFields.appendChild(textArea);
   });
+
+document.getElementById("files").addEventListener("change", function (e) {
+  const files = e.target.files;
+  const fileList = document.getElementById("file-list");
+
+  if (!fileList) {
+    const fileListDiv = document.createElement("div");
+    fileListDiv.id = "file-list";
+    fileListDiv.className = "file-list";
+    this.parentNode.appendChild(fileListDiv);
+  }
+
+  const fileListElement = document.getElementById("file-list");
+  fileListElement.innerHTML = "<h4>Tệp sẽ được tải lên:</h4>";
+
+  Array.from(files).forEach((file) => {
+    const fileItem = document.createElement("div");
+    fileItem.className = "file-item";
+    fileItem.innerHTML = `
+      <span class="file-name">${file.name}</span>
+      <span class="file-size">(${(file.size / 1024 / 1024).toFixed(
+        2
+      )} MB)</span>
+    `;
+    fileListElement.appendChild(fileItem);
+  });
+});
