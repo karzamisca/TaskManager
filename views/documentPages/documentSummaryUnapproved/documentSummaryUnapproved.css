@@ -54,6 +54,14 @@ body {
     color: #f8f9fa;
   }
 
+  .file-item {
+    border-bottom-color: #495057;
+  }
+
+  .file-size {
+    color: #adb5bd;
+  }
+
   /* Priority color styles */
   .priority-high {
     background-color: #dc3545 !important;
@@ -225,6 +233,42 @@ body {
 
 .nav-actions .btn {
   white-space: nowrap;
+}
+
+.file-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.file-item:last-child {
+  border-bottom: none;
+}
+
+.file-icon {
+  margin-right: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.file-size {
+  font-size: 0.875rem;
+  color: var(--secondary-color);
 }
 
 /* Priority color styles */

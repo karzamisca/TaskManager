@@ -440,27 +440,142 @@ function renderDocumentDetails(type, document) {
   }
 
   // Add file attachment if exists
-  if (document.fileMetadata?.name) {
-    detailsHtml += `
-      <hr>
-      <h6>Tệp đính kèm</h6>
-      <p>
-        <a href="${
-          document.fileMetadata.link || "#"
-        }" target="_blank" class="text-decoration-none">
-          <i class="bi bi-file-earmark"></i> ${document.fileMetadata.name}
-          ${
-            document.fileMetadata.size
-              ? `(${formatFileSize(document.fileMetadata.size)})`
-              : ""
-          }
-        </a>
-      </p>
-    `;
+  if (document.fileMetadata && document.fileMetadata.length > 0) {
+    detailsHtml += renderFileAttachments(document.fileMetadata);
   }
 
   detailsHtml += `</div></div>`;
   elements.documentDetailsBody.innerHTML = detailsHtml;
+}
+
+function formatFileDate(dateString) {
+  if (!dateString) return "Không rõ ngày";
+
+  try {
+    let date;
+
+    if (dateString.includes("T")) {
+      // Split into date and time parts
+      const [datePart, timePart] = dateString.split("T");
+
+      // Parse date
+      const [year, month, day] = datePart.split("-").map(Number);
+
+      // Parse time
+      const [hour, minute, second, ms] = timePart.split("-").map(Number);
+
+      // Build a UTC date
+      date = new Date(
+        Date.UTC(year, month - 1, day, hour, minute, second, ms || 0)
+      );
+    } else {
+      // Fallback: try normal parsing
+      date = new Date(dateString);
+    }
+
+    if (isNaN(date.getTime())) {
+      return "Ngày không hợp lệ";
+    }
+
+    // Format for Vietnamese locale with time
+    const options = {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Ho_Chi_Minh",
+    };
+
+    return date.toLocaleString("vi-VN", options);
+  } catch (error) {
+    console.error("Error formatting date:", error, dateString);
+    return "Không thể định dạng ngày";
+  }
+}
+
+function renderFileAttachments(fileMetadataArray) {
+  if (!fileMetadataArray || fileMetadataArray.length === 0) {
+    return "";
+  }
+
+  let html = `
+    <hr>
+    <h6>Tệp đính kèm (${fileMetadataArray.length})</h6>
+    <div class="file-list">
+  `;
+
+  fileMetadataArray.forEach((file, index) => {
+    const fileIcon = getFileIcon(file.mimeType || file.name);
+    html += `
+      <div class="file-item">
+        <div class="file-icon">${fileIcon}</div>
+        <div class="file-info">
+          <div class="file-name">
+            <a href="${
+              file.link || "#"
+            }" target="_blank" class="text-decoration-none">
+              ${
+                file.name ||
+                file.displayName ||
+                file.actualFilename ||
+                `File ${index + 1}`
+              }
+            </a>
+          </div>
+          <div class="file-size">
+            ${file.size ? formatFileSize(file.size) : ""}
+            ${
+              file.uploadTimestamp
+                ? ` - ${formatFileDate(file.uploadTimestamp)}`
+                : ""
+            }
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `</div>`;
+  return html;
+}
+
+// Add helper function to get appropriate file icons
+function getFileIcon(mimeTypeOrFileName) {
+  if (!mimeTypeOrFileName) {
+    return '<i class="bi bi-file-earmark"></i>';
+  }
+
+  const mimeType = mimeTypeOrFileName.toLowerCase();
+  const fileName = mimeTypeOrFileName.toLowerCase();
+
+  if (mimeType.includes("pdf")) {
+    return '<i class="bi bi-file-pdf text-danger"></i>';
+  } else if (mimeType.includes("word") || mimeType.includes("doc")) {
+    return '<i class="bi bi-file-word text-primary"></i>';
+  } else if (mimeType.includes("excel") || mimeType.includes("xls")) {
+    return '<i class="bi bi-file-excel text-success"></i>';
+  } else if (mimeType.includes("powerpoint") || mimeType.includes("ppt")) {
+    return '<i class="bi bi-file-ppt text-warning"></i>';
+  } else if (
+    mimeType.includes("image") ||
+    /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(fileName)
+  ) {
+    return '<i class="bi bi-file-image text-info"></i>';
+  } else if (
+    mimeType.includes("zip") ||
+    mimeType.includes("rar") ||
+    mimeType.includes("tar") ||
+    mimeType.includes("7z")
+  ) {
+    return '<i class="bi bi-file-zip text-secondary"></i>';
+  } else if (mimeType.includes("text") || /\.(txt|md|log)$/i.test(fileName)) {
+    return '<i class="bi bi-file-text text-muted"></i>';
+  } else {
+    return '<i class="bi bi-file-earmark"></i>';
+  }
 }
 
 // Show full view modal for documents
@@ -526,23 +641,8 @@ async function showFullView(type, id) {
     }
 
     // Add file attachment if exists
-    if (document.fileMetadata?.name) {
-      fullViewHtml += `
-        <hr>
-        <h6>Tệp đính kèm</h6>
-        <p>
-          <a href="${
-            document.fileMetadata.link || "#"
-          }" target="_blank" class="text-decoration-none">
-            <i class="bi bi-file-earmark"></i> ${document.fileMetadata.name}
-            ${
-              document.fileMetadata.size
-                ? `(${formatFileSize(document.fileMetadata.size)})`
-                : ""
-            }
-          </a>
-        </p>
-      `;
+    if (document.fileMetadata && document.fileMetadata.length > 0) {
+      fullViewHtml += renderFileAttachments(document.fileMetadata);
     }
 
     fullViewHtml += `</div></div>`;
@@ -643,9 +743,11 @@ function addPurchasingFullView(document) {
               <p><strong>Mô tả:</strong> ${proposal.detailsDescription}</p>
               <p><strong>Hướng giải quyết:</strong> ${proposal.direction}</p>
               ${
-                proposal.fileMetadata
-                  ? `<p><strong>Tệp đính kèm:</strong> 
-                     <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
+                proposal.fileMetadata && proposal.fileMetadata.length > 0
+                  ? `<div class="file-section mt-3">
+                      <strong>Tệp đính kèm:</strong>
+                      ${renderFileAttachments(proposal.fileMetadata)}
+                    </div>`
                   : ""
               }
             </div>
@@ -833,10 +935,10 @@ function addPaymentFullView(document) {
               </div>
               
               ${
-                purchDoc.fileMetadata
+                purchDoc.fileMetadata && purchDoc.fileMetadata.length > 0
                   ? `<div class="file-section mt-3">
-                      <p><strong>Tệp đính kèm:</strong> 
-                      <a href="${purchDoc.fileMetadata.link}" target="_blank">${purchDoc.fileMetadata.name}</a></p>
+                      <strong>Tệp đính kèm:</strong>
+                      ${renderFileAttachments(purchDoc.fileMetadata)}
                     </div>`
                   : ""
               }
@@ -863,9 +965,14 @@ function addPaymentFullView(document) {
                               proposal.detailsDescription
                             }</p>
                             ${
-                              proposal.fileMetadata
-                                ? `<p><strong>Tệp đính kèm:</strong> 
-                                   <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
+                              proposal.fileMetadata &&
+                              proposal.fileMetadata.length > 0
+                                ? `<div class="file-section mt-3">
+                                    <strong>Tệp đính kèm:</strong>
+                                    ${renderFileAttachments(
+                                      proposal.fileMetadata
+                                    )}
+                                  </div>`
                                 : ""
                             }
                           </div>
@@ -1082,10 +1189,10 @@ function addAdvancePaymentFullView(document, isReclaim) {
               </div>
               
               ${
-                purchDoc.fileMetadata
+                purchDoc.fileMetadata && purchDoc.fileMetadata.length > 0
                   ? `<div class="file-section mt-3">
-                      <p><strong>Tệp đính kèm:</strong> 
-                      <a href="${purchDoc.fileMetadata.link}" target="_blank">${purchDoc.fileMetadata.name}</a></p>
+                      <strong>Tệp đính kèm:</strong>
+                      ${renderFileAttachments(purchDoc.fileMetadata)}
                     </div>`
                   : ""
               }
@@ -1112,9 +1219,14 @@ function addAdvancePaymentFullView(document, isReclaim) {
                               proposal.detailsDescription
                             }</p>
                             ${
-                              proposal.fileMetadata
-                                ? `<p><strong>Tệp đính kèm:</strong> 
-                                   <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
+                              proposal.fileMetadata &&
+                              proposal.fileMetadata.length > 0
+                                ? `<div class="file-section mt-3">
+                                    <strong>Tệp đính kèm:</strong>
+                                    ${renderFileAttachments(
+                                      proposal.fileMetadata
+                                    )}
+                                  </div>`
                                 : ""
                             }
                           </div>
@@ -1549,10 +1661,10 @@ function addAdvancePaymentDetails(document, type) {
               </div>
               
               ${
-                purchDoc.fileMetadata
+                purchDoc.fileMetadata && purchDoc.fileMetadata.length > 0
                   ? `<div class="file-section mt-3">
-                      <p><strong>Tệp đính kèm:</strong> 
-                      <a href="${purchDoc.fileMetadata.link}" target="_blank">${purchDoc.fileMetadata.name}</a></p>
+                      <strong>Tệp đính kèm:</strong>
+                      ${renderFileAttachments(purchDoc.fileMetadata)}
                     </div>`
                   : ""
               }
