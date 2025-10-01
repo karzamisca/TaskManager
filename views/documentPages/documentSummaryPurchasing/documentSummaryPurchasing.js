@@ -105,6 +105,27 @@ const renderProducts = (products) => {
   `;
 };
 
+// Replace the single file rendering with array handling
+const renderFiles = (fileArray) => {
+  if (!fileArray || fileArray.length === 0) return "-";
+
+  return `
+    <div class="file-array-container">
+      ${fileArray
+        .map(
+          (file) => `
+        <div class="file-item">
+          <i class="fas fa-paperclip file-icon"></i>
+          <a href="${file.link}" class="file-link" target="_blank">${file.name}</a>
+        </div>
+      `
+        )
+        .join("")}
+    </div>
+  `;
+};
+
+// Update renderProposals to handle file arrays in proposals
 const renderProposals = (proposals) => {
   if (!proposals || proposals.length === 0) return "-";
 
@@ -116,7 +137,7 @@ const renderProposals = (proposals) => {
           <div>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
           <div class="proposal-item">
             <div><strong>Công việc:</strong> ${proposal.task}</div>
-            <div><strong>Trạм:</strong> ${proposal.costCenter}</div>
+            <div><strong>Trạm:</strong> ${proposal.costCenter}</div>
             <div><strong>Nhóm:</strong> ${proposal.groupName}</div>
             <div><strong>Dự án:</strong> ${
               proposal.projectName || "Không có"
@@ -138,9 +159,9 @@ const renderProposals = (proposals) => {
                 : ""
             }
             ${
-              proposal.fileMetadata
+              proposal.fileMetadata && proposal.fileMetadata.length > 0
                 ? `<div><strong>Tệp đính kèm:</strong> 
-                 <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></div>`
+                   ${renderFiles(proposal.fileMetadata)}</div>`
                 : ""
             }            
             <div><strong>Đã phê duyệt bởi:</strong></div>
@@ -370,11 +391,7 @@ const renderDocumentsTable = (documents) => {
             : ""
         }
       </td>
-      <td>${
-        doc.fileMetadata?.link
-          ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-          : "-"
-      }</td>
+      <td>${renderFiles(doc.fileMetadata)}</td>
       <td>${doc.grandTotalCost?.toLocaleString() || "-"}</td>
       <td>${renderProposals(doc.appendedProposals)}</td>
       <td>${renderStatus(doc.status)}</td>
@@ -808,11 +825,7 @@ const showFullView = (docId) => {
       <!-- File Attachment Section -->
       <div class="full-view-section">
         <h3><i class="fas fa-paperclip"></i> Tệp tin kèm theo</h3>
-        ${
-          doc.fileMetadata
-            ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-            : "Không có tệp tin đính kèm"
-        }
+        ${renderFiles(doc.fileMetadata)}
       </div>
       
       <!-- Proposals Section -->
