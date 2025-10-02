@@ -3329,7 +3329,7 @@ exports.getPaymentDocument = async (req, res) => {
   }
 };
 exports.updatePaymentDocument = async (req, res) => {
-  let tempFilePath = null;
+  let tempFilePaths = [];
   try {
     const { id } = req.params;
     const {
@@ -3343,16 +3343,19 @@ exports.updatePaymentDocument = async (req, res) => {
       approvers,
       stages,
       groupName,
+      currentFileMetadata,
     } = req.body;
-    const file = req.file;
+    const files = req.files; // This will be an array now
 
-    // Store temp file path for cleanup
-    if (file) {
-      tempFilePath = file.path;
-      // Verify file exists immediately
-      if (!fs.existsSync(tempFilePath)) {
-        throw new Error(`Uploaded file not found at: ${tempFilePath}`);
-      }
+    // Store temp file paths for cleanup
+    if (files && files.length > 0) {
+      files.forEach((file) => {
+        tempFilePaths.push(file.path);
+        // Verify file exists immediately
+        if (!fs.existsSync(file.path)) {
+          throw new Error(`Uploaded file not found at: ${file.path}`);
+        }
+      });
     }
 
     const doc = await PaymentDocument.findById(id);
@@ -3394,7 +3397,6 @@ exports.updatePaymentDocument = async (req, res) => {
       }
     }
 
-    // Parse stages if it exists
     let parsedStages = [];
     if (stages) {
       try {
@@ -3440,23 +3442,24 @@ exports.updatePaymentDocument = async (req, res) => {
       }
     }
 
-    // Handle file upload if new file provided
-    let uploadedFileData = null;
-    if (file) {
-      req.body.title = doc.title; // Use document name as title for file upload
-
-      // Delete old file if exists
-      if (doc.fileMetadata?.path) {
-        try {
-          const client = await getNextcloudClient();
-          await client.deleteFile(doc.fileMetadata.path);
-        } catch (error) {
-          console.error("Warning: Could not delete old file", error);
-        }
+    // Parse current file metadata
+    let currentFiles = [];
+    if (currentFileMetadata) {
+      try {
+        currentFiles = JSON.parse(currentFileMetadata);
+      } catch (error) {
+        console.error("Error parsing current file metadata:", error);
+        // Continue with empty array
       }
+    }
 
-      // Upload new file
-      uploadedFileData = await handleFileUpload(req);
+    // Handle file upload if new files provided
+    let uploadedFilesData = [];
+    if (files && files.length > 0) {
+      req.body.title = doc.title;
+
+      // Upload new files
+      uploadedFilesData = await handleMultipleFileUploads(req);
     }
 
     // Check if the name has changed and update the tag if needed
@@ -3476,10 +3479,8 @@ exports.updatePaymentDocument = async (req, res) => {
     doc.priority = priority;
     doc.groupName = groupName;
 
-    // Update file metadata if new file uploaded
-    if (uploadedFileData) {
-      doc.fileMetadata = uploadedFileData;
-    }
+    // Update file metadata - combine existing (after deletions) with new files
+    doc.fileMetadata = [...currentFiles, ...uploadedFilesData];
 
     // Update approvers if provided
     if (parsedApprovers) {
@@ -3496,6 +3497,84 @@ exports.updatePaymentDocument = async (req, res) => {
   } catch (error) {
     console.error("Error updating payment document:", error);
     res.status(500).json({ message: "Error updating document" });
+  } finally {
+    // Clean up temp files
+    tempFilePaths.forEach((tempFilePath) => {
+      if (tempFilePath && fs.existsSync(tempFilePath)) {
+        try {
+          fs.unlinkSync(tempFilePath);
+        } catch (cleanupError) {
+          console.error("Error cleaning up temp file:", cleanupError);
+        }
+      }
+    });
+  }
+};
+exports.deletePaymentDocumentFile = async (req, res) => {
+  const { docId, fileId } = req.params;
+
+  try {
+    // Find the payment document
+    const document = await PaymentDocument.findById(docId);
+    if (!document) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy phiếu thanh toán" });
+    }
+
+    // Check if document is approved - prevent deletion if approved
+    if (document.status === "Approved") {
+      return res.status(400).json({
+        message: "Không thể xóa tệp tin của phiếu đã được phê duyệt",
+      });
+    }
+
+    // Check if document has any approvals - prevent deletion if partially approved
+    if (document.approvedBy && document.approvedBy.length > 0) {
+      return res.status(400).json({
+        message: "Không thể xóa tệp tin của phiếu đã có người phê duyệt",
+      });
+    }
+
+    // Find the file to delete
+    const fileToDelete = document.fileMetadata.find(
+      (file) => file.driveFileId === fileId || file._id.toString() === fileId
+    );
+
+    if (!fileToDelete) {
+      return res.status(404).json({ message: "Không tìm thấy tệp tin" });
+    }
+
+    // Delete the file from Nextcloud storage
+    if (fileToDelete.path) {
+      try {
+        const client = getNextcloudClient();
+        await client.deleteFile(fileToDelete.path);
+      } catch (storageError) {
+        console.error("Error deleting file from storage:", storageError);
+        // Continue with database deletion even if storage deletion fails
+      }
+    }
+
+    // Remove the file from the document's fileMetadata array
+    document.fileMetadata = document.fileMetadata.filter(
+      (file) => file.driveFileId !== fileId && file._id.toString() !== fileId
+    );
+
+    // Save the updated document
+    await document.save();
+
+    res.json({
+      success: true,
+      message: "Tệp tin đã được xóa thành công",
+      remainingFiles: document.fileMetadata.length,
+    });
+  } catch (error) {
+    console.error("Error deleting payment document file:", error);
+    res.status(500).json({
+      message: "Lỗi khi xóa tệp tin",
+      error: error.message,
+    });
   }
 };
 exports.uploadStageFile = async (req, res) => {

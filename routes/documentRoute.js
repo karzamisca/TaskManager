@@ -250,9 +250,14 @@ router.get(
 );
 router.post(
   "/updatePaymentDocument/:id",
-  upload.single("file"),
+  upload.array("files", 10),
   authMiddleware,
   documentController.updatePaymentDocument
+);
+router.delete(
+  "/deletePaymentDocumentFile/:docId/:fileId",
+  authMiddleware,
+  documentController.deletePaymentDocumentFile
 );
 router.post(
   "/uploadStageFile/:docId/:stageIndex",

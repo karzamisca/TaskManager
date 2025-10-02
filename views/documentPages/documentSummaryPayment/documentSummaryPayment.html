@@ -290,8 +290,15 @@
           </div>
 
           <div class="form-group">
-            <label for="editFile" class="form-label">Thay tệp tin mới:</label>
-            <input type="file" id="editFile" class="form-input" />
+            <label class="form-label">Tệp tin hiện tại:</label>
+            <div id="currentFilesList" class="current-files-list">
+              <!-- Current files will be populated here -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editFiles" class="form-label">Thêm tệp tin mới:</label>
+            <input type="file" id="editFiles" class="form-input" multiple />
           </div>
 
           <div class="form-group">
@@ -475,7 +482,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="documentPages/documentSummaryPayment/documentSummaryPayment.js?v=1.26"></script>
+    <script src="documentPages/documentSummaryPayment/documentSummaryPayment.js?v=1.27"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>

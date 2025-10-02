@@ -1785,8 +1785,6 @@ const editDocument = async (docId) => {
       doc.paymentMethod || "";
     document.getElementById("editTotalPayment").value = doc.totalPayment || "";
     document.getElementById("editDeadline").value = doc.paymentDeadline || "";
-
-    // Populate priority field
     document.getElementById("editPriority").value = doc.priority;
 
     await populateCostCenterDropdownForEditing();
@@ -1801,6 +1799,9 @@ const editDocument = async (docId) => {
     renderCurrentApprovers();
     await populateNewApproversDropdown();
     renderPaymentStages();
+
+    // Render current files
+    renderCurrentFiles(doc.fileMetadata || []);
 
     document.getElementById("editModal").style.display = "block";
   } catch (err) {
@@ -1989,6 +1990,88 @@ const validatePaymentStages = () => {
   };
 };
 
+const renderCurrentFiles = (files) => {
+  const currentFilesList = document.getElementById("currentFilesList");
+
+  if (!files || files.length === 0) {
+    currentFilesList.innerHTML = "<p>Không có tệp tin nào</p>";
+    return;
+  }
+
+  currentFilesList.innerHTML = files
+    .map(
+      (file, index) => `
+    <div class="file-item">
+      <div class="file-info">
+        <i class="fas fa-file"></i>
+        <span class="file-name">${file.name || file.displayName}</span>
+        ${file.size ? `<span class="file-size">(${file.size})</span>` : ""}
+      </div>
+      <div class="file-actions">
+        <a href="${file.link}" target="_blank" class="btn btn-primary btn-sm">
+          <i class="fas fa-download"></i>
+        </a>
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeExistingFile(${index})" 
+                ${
+                  state.currentEditDoc.approvedBy?.length > 0 ? "disabled" : ""
+                }>
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+    </div>
+  `
+    )
+    .join("");
+};
+
+const removeExistingFile = async (index) => {
+  if (
+    !state.currentEditDoc.fileMetadata ||
+    state.currentEditDoc.fileMetadata.length <= index
+  ) {
+    return;
+  }
+
+  const fileToDelete = state.currentEditDoc.fileMetadata[index];
+
+  if (
+    !confirm(
+      "Bạn có chắc chắn muốn xóa tệp tin này? Hành động này không thể hoàn tác."
+    )
+  ) {
+    return;
+  }
+
+  try {
+    showLoading(true);
+
+    // Call backend to delete the file
+    const response = await fetch(
+      `/deletePaymentDocumentFile/${state.currentEditDoc._id}/${fileToDelete.driveFileId}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    const result = await response.json();
+
+    if (response.ok) {
+      showMessage("Tệp tin đã được xóa thành công.");
+
+      // Remove the file from local state
+      state.currentEditDoc.fileMetadata.splice(index, 1);
+      renderCurrentFiles(state.currentEditDoc.fileMetadata);
+    } else {
+      showMessage(result.message || "Lỗi khi xóa tệp tin", true);
+    }
+  } catch (error) {
+    console.error("Error deleting file:", error);
+    showMessage("Lỗi khi xóa tệp tin", true);
+  } finally {
+    showLoading(false);
+  }
+};
+
 const handleEditSubmit = async (event) => {
   event.preventDefault();
 
@@ -1999,7 +2082,7 @@ const handleEditSubmit = async (event) => {
       "Lỗi trong các giai đoạn thanh toán:\n" +
       stageValidation.errors.join("\n");
     showMessage(errorMessage, true);
-    return; // Stop submission
+    return;
   }
 
   const docId = document.getElementById("editDocId").value;
@@ -2035,10 +2118,20 @@ const handleEditSubmit = async (event) => {
     formData.append("stages", JSON.stringify(state.currentEditDoc.stages));
   }
 
-  // Add file
-  const fileInput = document.getElementById("editFile");
+  // Add current file metadata (after potential deletions)
+  if (state.currentEditDoc.fileMetadata) {
+    formData.append(
+      "currentFileMetadata",
+      JSON.stringify(state.currentEditDoc.fileMetadata)
+    );
+  }
+
+  // Add new files
+  const fileInput = document.getElementById("editFiles");
   if (fileInput.files.length > 0) {
-    formData.append("file", fileInput.files[0]);
+    for (let i = 0; i < fileInput.files.length; i++) {
+      formData.append("files", fileInput.files[i]);
+    }
   }
 
   try {
