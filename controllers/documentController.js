@@ -2882,19 +2882,9 @@ exports.getPurchasingDocument = async (req, res) => {
 };
 // Update a Purchasing Document
 exports.updatePurchasingDocument = async (req, res) => {
-  let tempFilePath = null;
   try {
     const { id } = req.params;
-    const file = req.file;
-
-    // Store temp file path for cleanup
-    if (file) {
-      tempFilePath = file.path;
-      // Verify file exists immediately
-      if (!fs.existsSync(tempFilePath)) {
-        throw new Error(`Uploaded file not found at: ${tempFilePath}`);
-      }
-    }
+    const files = req.files; // This will be an array now
 
     // Parse the products JSON string into an object
     let products;
@@ -2974,24 +2964,14 @@ exports.updatePurchasingDocument = async (req, res) => {
       }
     }
 
-    // Handle file upload if new file provided
-    let uploadedFileData = null;
-    if (file) {
+    // Handle multiple file uploads if new files provided - ADD TO EXISTING FILES
+    let uploadedFilesData = [];
+    if (files && files.length > 0) {
       req.body.title = doc.title;
 
-      // Delete old file if exists
-      if (doc.fileMetadata?.path) {
-        try {
-          const client = await getNextcloudClient();
-          await client.deleteFile(doc.fileMetadata.path);
-        } catch (error) {
-          console.error("Warning: Could not delete old file", error);
-          // Continue execution even if file deletion fails
-        }
-      }
-
-      // Upload new file
-      uploadedFileData = await handleFileUpload(req);
+      // Upload new files - they will be ADDED to existing files
+      // Note: We don't delete old files anymore when adding new ones
+      uploadedFilesData = await handleMultipleFileUploads(req);
     }
 
     // Update basic fields
@@ -3018,9 +2998,10 @@ exports.updatePurchasingDocument = async (req, res) => {
       doc.approvers = approvers;
     }
 
-    // Update file metadata if new file was uploaded
-    if (uploadedFileData) {
-      doc.fileMetadata = uploadedFileData;
+    // UPDATE FILE METADATA - ADD NEW FILES TO EXISTING ONES (NOT REPLACE)
+    if (uploadedFilesData.length > 0) {
+      // Add new files to existing files instead of replacing
+      doc.fileMetadata = [...doc.fileMetadata, ...uploadedFilesData];
     }
 
     await doc.save();
@@ -3034,6 +3015,52 @@ exports.updatePurchasingDocument = async (req, res) => {
       message: "Error updating document",
       error: error.message,
     });
+  }
+};
+exports.deletePurchasingDocumentFile = async (req, res) => {
+  try {
+    const { docId, fileId } = req.params;
+
+    const doc = await PurchasingDocument.findById(docId);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Find the file to delete
+    const fileToDelete = doc.fileMetadata.find(
+      (file) => file._id.toString() === fileId || file.driveFileId === fileId
+    );
+
+    if (!fileToDelete) {
+      return res.status(404).json({ message: "File not found" });
+    }
+
+    // Delete file from Nextcloud
+    if (fileToDelete.path) {
+      try {
+        const client = getNextcloudClient();
+        await client.deleteFile(fileToDelete.path);
+      } catch (error) {
+        console.error("Warning: Could not delete file from storage", error);
+        // Continue with database deletion even if storage deletion fails
+      }
+    }
+
+    // Remove file from document's fileMetadata array
+    doc.fileMetadata = doc.fileMetadata.filter(
+      (file) => file._id.toString() !== fileId && file.driveFileId !== fileId
+    );
+
+    await doc.save();
+
+    res.json({
+      success: true,
+      message: "File deleted successfully",
+      remainingFiles: doc.fileMetadata.length,
+    });
+  } catch (error) {
+    console.error("Error deleting file:", error);
+    res.status(500).json({ message: "Error deleting file" });
   }
 };
 exports.updatePurchasingDocumentDeclaration = async (req, res) => {

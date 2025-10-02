@@ -892,7 +892,7 @@ const addEditModal = () => {
         <span class="modal-close" onclick="closeEditModal()">&times;</span>
         <h2 class="modal-title"><i class="fas fa-edit"></i> Chỉnh sửa phiếu mua hàng</h2>
         <div class="modal-body">
-          <form id="editForm" onsubmit="handleEditSubmit(event)" class="modal-form">
+          <form id="editForm" onsubmit="handleEditSubmit(event)" class="modal-form" enctype="multipart/form-data">
             <input type="hidden" id="editDocId">
             
             <!-- Basic Fields -->
@@ -921,13 +921,21 @@ const addEditModal = () => {
               <label class="form-label">Sản phẩm:</label>
               <div id="productsList" class="products-list"></div>
               <button type="button" class="btn btn-primary" onclick="addProductField()">
-                <i class="fas fa-plus"></i> Thêm sản phẩм
+                <i class="fas fa-plus"></i> Thêm sản phẩm
               </button>
             </div>
             
+            <!-- Current Files Section -->
             <div class="form-group">
-              <label for="editFile" class="form-label">Thay tệp tin mới:</label>
-              <input type="file" id="editFile" class="form-input">
+              <label class="form-label">Tệp tin hiện tại:</label>
+              <div id="currentFilesList" class="files-list"></div>
+            </div>
+            
+            <!-- New Files Section -->
+            <div class="form-group">
+              <label for="editFiles" class="form-label">Thay tệp tin mới:</label>
+              <input type="file" id="editFiles" class="form-input" multiple>
+              <small class="form-text">Có thể chọn nhiều tệp tin</small>
             </div>
             
             <!-- Current Approvers Section -->
@@ -1144,6 +1152,72 @@ const addNewApprover = () => {
   document.getElementById("newApproverSubRole").value = "";
 };
 
+// Add function to render current files
+const renderCurrentFiles = (files, docId) => {
+  const currentFilesList = document.getElementById("currentFilesList");
+  if (!files || files.length === 0) {
+    currentFilesList.innerHTML =
+      '<p class="text-muted">Không có tệp tin nào</p>';
+    return;
+  }
+
+  currentFilesList.innerHTML = files
+    .map(
+      (file) => `
+    <div class="file-item" data-file-id="${file._id || file.driveFileId}">
+      <i class="fas fa-paperclip file-icon"></i>
+      <a href="${file.link}" class="file-link" target="_blank">${file.name}</a>
+      <button type="button" class="btn btn-danger btn-sm" 
+              onclick="removeCurrentFile('${
+                file._id || file.driveFileId
+              }', '${docId}')">
+        <i class="fas fa-trash"></i> Xóa
+      </button>
+    </div>
+  `
+    )
+    .join("");
+};
+
+// Add function to remove current file
+const removeCurrentFile = async (fileId, docId) => {
+  if (!confirm("Bạn có chắc chắn muốn xóa tệp tin này?")) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `/deletePurchasingDocumentFile/${docId}/${fileId}`,
+      {
+        method: "POST",
+      }
+    );
+
+    const result = await response.json();
+
+    if (result.success) {
+      // Remove from UI
+      const fileItem = document.querySelector(`[data-file-id="${fileId}"]`);
+      if (fileItem) {
+        fileItem.remove();
+      }
+      showMessage("Tệp tin đã được xóa thành công.");
+
+      // Update the file count display if needed
+      if (result.remainingFiles === 0) {
+        document.getElementById("currentFilesList").innerHTML =
+          '<p class="text-muted">Không có tệp tin nào</p>';
+      }
+    } else {
+      showMessage("Lỗi khi xóa tệp tin: " + result.message, true);
+    }
+  } catch (error) {
+    console.error("Error deleting file:", error);
+    showMessage("Lỗi khi xóa tệp tin", true);
+  }
+};
+
+// Update the editDocument function to show current files
 const editDocument = async (docId) => {
   try {
     // Load cost centers first
@@ -1166,6 +1240,9 @@ const editDocument = async (docId) => {
     const productsList = document.getElementById("productsList");
     productsList.innerHTML = "";
     doc.products.forEach((product) => addProductField(product));
+
+    // Show current files - PASS THE DOC ID
+    renderCurrentFiles(doc.fileMetadata, docId);
 
     // Populate current approvers
     state.currentApprovers = doc.approvers;
@@ -1239,10 +1316,20 @@ const handleEditSubmit = async (event) => {
   // Add approvers
   formData.append("approvers", JSON.stringify(state.currentApprovers));
 
-  // Add file
-  const fileInput = document.getElementById("editFile");
+  // Add removed file IDs if any
+  if (window.removedFileIds && window.removedFileIds.size > 0) {
+    formData.append(
+      "removedFileIds",
+      JSON.stringify(Array.from(window.removedFileIds))
+    );
+  }
+
+  // Add files
+  const fileInput = document.getElementById("editFiles");
   if (fileInput.files.length > 0) {
-    formData.append("file", fileInput.files[0]);
+    for (let i = 0; i < fileInput.files.length; i++) {
+      formData.append("files", fileInput.files[i]);
+    }
   }
 
   try {

@@ -225,16 +225,9 @@ const renderFilesList = (fileMetadata) => {
     return "-";
   }
 
-  if (fileMetadata.length === 1) {
-    const file = fileMetadata[0];
-    return `<a href="${file.link}" class="file-link" target="_blank" title="${file.name}">${file.name}</a>`;
-  }
-
-  // For multiple files, show a compact list with expandable view
   return `
     <div class="files-container">
       ${fileMetadata
-        .slice(0, 2)
         .map(
           (file) => `
           <div class="file-item">
@@ -248,22 +241,6 @@ const renderFilesList = (fileMetadata) => {
         `
         )
         .join("")}
-      ${
-        fileMetadata.length > 2
-          ? `
-        <div class="file-item">
-          <span class="file-link">... và ${
-            fileMetadata.length - 2
-          } tệp khác</span>
-          <button class="btn btn-sm" onclick="showAllFiles(event, '${JSON.stringify(
-            fileMetadata
-          ).replace(/'/g, "\\'")}')">
-            <i class="fas fa-expand"></i> Xem tất cả
-          </button>
-        </div>
-      `
-          : ""
-      }
     </div>
   `;
 };

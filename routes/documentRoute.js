@@ -210,9 +210,14 @@ router.get(
 // Route to update a purchasing document
 router.post(
   "/updatePurchasingDocument/:id",
-  upload.single("file"),
+  upload.array("files", 10),
   authMiddleware,
   documentController.updatePurchasingDocument
+);
+router.post(
+  "/deletePurchasingDocumentFile/:docId/:fileId",
+  authMiddleware,
+  documentController.deletePurchasingDocumentFile
 );
 router.post(
   "/updatePurchasingDocumentDeclaration/:id",
