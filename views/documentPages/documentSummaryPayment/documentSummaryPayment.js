@@ -2309,12 +2309,27 @@ const renderPurchasingDocuments = (purchDocs) => {
                 .join("")
             : "";
 
-          const fileMetadata = purchDoc.fileMetadata
-            ? `<div><strong>Tệp đính kèm:</strong> 
-              <a href="${purchDoc.fileMetadata.link}" target="_blank" class="file-link">${purchDoc.fileMetadata.name}</a></div>`
-            : "";
+          // Handle multiple files for purchasing documents
+          const fileMetadata =
+            purchDoc.fileMetadata && purchDoc.fileMetadata.length > 0
+              ? `<div class="file-attachments">
+                <strong>Tệp đính kèm:</strong>
+                ${purchDoc.fileMetadata
+                  .map(
+                    (file) => `
+                  <div class="file-item">
+                    <a href="${file.link}" target="_blank" class="file-link">
+                      <i class="fas fa-file"></i> ${file.name}
+                      ${file.size ? ` (${file.size})` : ""}
+                    </a>
+                  </div>
+                `
+                  )
+                  .join("")}
+              </div>`
+              : "";
 
-          // Render appended proposals
+          // Render appended proposals with multiple files
           const proposals = purchDoc.appendedProposals
             ? purchDoc.appendedProposals
                 .map(
@@ -2327,9 +2342,24 @@ const renderPurchasingDocuments = (purchDocs) => {
                     proposal.detailsDescription
                   }</div>
                   ${
-                    proposal.fileMetadata?.link
-                      ? `<div><strong>Tệp đính kèm:</strong> 
-                         <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></div>`
+                    proposal.fileMetadata && proposal.fileMetadata.length > 0
+                      ? `<div class="file-attachments">
+                          <strong>Tệp đính kèm:</strong>
+                          ${proposal.fileMetadata
+                            .map(
+                              (file) => `
+                            <div class="file-item">
+                              <a href="${
+                                file.link
+                              }" target="_blank" class="file-link">
+                                <i class="fas fa-file"></i> ${file.name}
+                                ${file.size ? ` (${file.size})` : ""}
+                              </a>
+                            </div>
+                          `
+                            )
+                            .join("")}
+                        </div>`
                       : ""
                   }
                 </div>
