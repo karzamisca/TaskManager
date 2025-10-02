@@ -2309,62 +2309,72 @@ const renderPurchasingDocuments = (purchDocs) => {
                 .join("")
             : "";
 
-          // Handle multiple files for purchasing documents
-          const fileMetadata =
-            purchDoc.fileMetadata && purchDoc.fileMetadata.length > 0
-              ? `<div class="file-attachments">
-                <strong>Tệp đính kèm:</strong>
-                ${purchDoc.fileMetadata
-                  .map(
-                    (file) => `
-                  <div class="file-item">
-                    <a href="${file.link}" target="_blank" class="file-link">
-                      <i class="fas fa-file"></i> ${file.name}
-                      ${file.size ? ` (${file.size})` : ""}
-                    </a>
-                  </div>
-                `
-                  )
-                  .join("")}
-              </div>`
-              : "";
+          // Handle fileMetadata as both single object and array for backward compatibility
+          const fileMetadata = purchDoc.fileMetadata
+            ? Array.isArray(purchDoc.fileMetadata)
+              ? purchDoc.fileMetadata.length > 0
+                ? `<div class="file-attachments">
+                    <strong>Tệp đính kèm:</strong>
+                    ${purchDoc.fileMetadata
+                      .map(
+                        (file) => `
+                      <div class="file-item">
+                        <a href="${
+                          file.link
+                        }" target="_blank" class="file-link">
+                          <i class="fas fa-file"></i> ${file.name}
+                          ${file.size ? ` (${file.size})` : ""}
+                        </a>
+                      </div>
+                    `
+                      )
+                      .join("")}
+                  </div>`
+                : ""
+              : `<div><strong>Tệp đính kèm:</strong> 
+                  <a href="${purchDoc.fileMetadata.link}" target="_blank" class="file-link">${purchDoc.fileMetadata.name}</a></div>`
+            : "";
 
-          // Render appended proposals with multiple files
+          // Render appended proposals with backward compatibility for fileMetadata
           const proposals = purchDoc.appendedProposals
             ? purchDoc.appendedProposals
-                .map(
-                  (proposal) => `
-                <div class="proposal-item" style="margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
-                  <div><strong>Công việc:</strong> ${proposal.task}</div>
-                  <div><strong>Trạm:</strong> ${proposal.costCenter}</div>
-                  <div><strong>Nhóm:</strong> ${proposal.groupName}</div>
-                  <div><strong>Mô tả:</strong> ${
-                    proposal.detailsDescription
-                  }</div>
-                  ${
-                    proposal.fileMetadata && proposal.fileMetadata.length > 0
-                      ? `<div class="file-attachments">
-                          <strong>Tệp đính kèm:</strong>
-                          ${proposal.fileMetadata
-                            .map(
-                              (file) => `
-                            <div class="file-item">
-                              <a href="${
-                                file.link
-                              }" target="_blank" class="file-link">
-                                <i class="fas fa-file"></i> ${file.name}
-                                ${file.size ? ` (${file.size})` : ""}
-                              </a>
-                            </div>
-                          `
-                            )
-                            .join("")}
-                        </div>`
-                      : ""
-                  }
-                </div>
-              `
-                )
+                .map((proposal) => {
+                  // Handle proposal fileMetadata as both single object and array
+                  const proposalFile = proposal.fileMetadata
+                    ? Array.isArray(proposal.fileMetadata)
+                      ? proposal.fileMetadata.length > 0
+                        ? `<div class="file-attachments">
+                              <strong>Tệp đính kèm:</strong>
+                              ${proposal.fileMetadata
+                                .map(
+                                  (file) => `
+                                <div class="file-item">
+                                  <a href="${
+                                    file.link
+                                  }" target="_blank" class="file-link">
+                                    <i class="fas fa-file"></i> ${file.name}
+                                    ${file.size ? ` (${file.size})` : ""}
+                                  </a>
+                                </div>
+                              `
+                                )
+                                .join("")}
+                            </div>`
+                        : ""
+                      : `<div><strong>Tệp đính kèm:</strong> 
+                            <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></div>`
+                    : "";
+
+                  return `
+                      <div class="proposal-item" style="margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                        <div><strong>Công việc:</strong> ${proposal.task}</div>
+                        <div><strong>Trạm:</strong> ${proposal.costCenter}</div>
+                        <div><strong>Nhóm:</strong> ${proposal.groupName}</div>
+                        <div><strong>Mô tả:</strong> ${proposal.detailsDescription}</div>
+                        ${proposalFile}
+                      </div>
+                    `;
+                })
                 .join("")
             : "";
 
