@@ -739,6 +739,10 @@ const showFullView = (docId) => {
             <span class="detail-label">Kê khai:</span>
             <span class="detail-value">${doc.declaration || "Không có"}</span>
           </div>
+          <div class="detail-item">
+            <span class="detail-label">Số lượng tệp tin:</span>
+            <span class="detail-value">${doc.fileMetadata?.length || 0}</span>
+          </div>
         </div>
       </div>
       
@@ -908,7 +912,7 @@ const addEditModal = () => {
         <span class="modal-close" onclick="closeEditModal()">&times;</span>
         <h2 class="modal-title"><i class="fas fa-edit"></i> Chỉnh sửa phiếu đề xuất</h2>
         <div class="modal-body">
-          <form id="editForm" onsubmit="handleEditSubmit(event)" class="modal-form">
+          <form id="editForm" onsubmit="handleEditSubmit(event)" class="modal-form" enctype="multipart/form-data">
             <input type="hidden" id="editDocId">
             
             <!-- Basic Fields -->
@@ -948,9 +952,17 @@ const addEditModal = () => {
               <textarea id="editDirection" required class="form-textarea"></textarea>
             </div>
             
+            <!-- Current Files Section -->
             <div class="form-group">
-              <label for="editFile" class="form-label">Thay tệp tin mới:</label>
-              <input type="file" id="editFile" class="form-input">
+              <label class="form-label">Tệp tin hiện tại:</label>
+              <div id="currentFilesList" class="files-list"></div>
+            </div>
+            
+            <!-- New Files Section -->
+            <div class="form-group">
+              <label for="editFiles" class="form-label">Thêm tệp tin mới:</label>
+              <input type="file" id="editFiles" class="form-input" multiple>
+              <small class="form-text">Có thể chọn nhiều tệp tin (tối đa 10 tệp)</small>
             </div>
             
             <!-- Current Approvers Section -->
@@ -987,6 +999,90 @@ const addEditModal = () => {
   `;
 
   document.body.insertAdjacentHTML("beforeend", modalHTML);
+};
+
+// Add function to render current files in edit modal
+const renderCurrentFiles = (fileMetadata) => {
+  const currentFilesList = document.getElementById("currentFilesList");
+
+  if (!fileMetadata || fileMetadata.length === 0) {
+    currentFilesList.innerHTML = "<p>Không có tệp tin nào</p>";
+    return;
+  }
+
+  currentFilesList.innerHTML = fileMetadata
+    .map((file) => {
+      const fileId = file._id || file.driveFileId;
+      return `
+      <div class="file-item" data-file-id="${fileId}">
+        <div class="file-info">
+          <a href="${file.link}" class="file-link" target="_blank">
+            <i class="fas fa-file"></i> ${file.name}
+          </a>
+          ${file.size ? `<span class="file-size">${file.size}</span>` : ""}
+        </div>
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeCurrentFile('${fileId}')">
+          <i class="fas fa-trash"></i> Xóa
+        </button>
+      </div>
+    `;
+    })
+    .join("");
+};
+
+// Add function to handle file removal
+const removeCurrentFile = async (fileId) => {
+  if (!confirm("Bạn có chắc chắn muốn xóa tệp tin này?")) {
+    return;
+  }
+
+  const docId = document.getElementById("editDocId").value;
+
+  try {
+    const response = await fetch(
+      `/deleteProposalDocumentFile/${docId}/${fileId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const result = await response.json();
+
+    if (result.success) {
+      // Remove from UI
+      const fileElement = document.querySelector(`[data-file-id="${fileId}"]`);
+      if (fileElement) {
+        fileElement.remove();
+      }
+
+      // Update state
+      if (state.currentEditDoc && state.currentEditDoc.fileMetadata) {
+        state.currentEditDoc.fileMetadata =
+          state.currentEditDoc.fileMetadata.filter(
+            (file) => (file._id || file.driveFileId) !== fileId
+          );
+      }
+
+      showMessage("Tệp tin đã được xóa thành công");
+
+      // Update file count display if needed
+      const remainingFiles = document.querySelectorAll(
+        "#currentFilesList .file-item"
+      ).length;
+      if (remainingFiles === 0) {
+        document.getElementById("currentFilesList").innerHTML =
+          "<p>Không có tệp tin nào</p>";
+      }
+    } else {
+      showMessage("Lỗi khi xóa tệp tin: " + result.message, true);
+    }
+  } catch (error) {
+    console.error("Error deleting file:", error);
+    showMessage("Lỗi khi xóa tệp tin", true);
+  }
 };
 
 const populateCostCenterDropdownForEditing = async () => {
@@ -1130,6 +1226,21 @@ const editDocument = async (docId) => {
     const response = await fetch(`/getProposalDocument/${docId}`);
     const doc = await response.json();
 
+    // Store the current document in state
+    state.currentEditDoc = doc;
+
+    // Ensure files have proper IDs
+    if (doc.fileMetadata) {
+      doc.fileMetadata = doc.fileMetadata.map((file) => ({
+        ...file,
+        // Ensure each file has an ID
+        _id:
+          file._id ||
+          file.driveFileId ||
+          `temp-${Math.random().toString(36).substr(2, 9)}`,
+      }));
+    }
+
     document.getElementById("editDocId").value = docId;
     document.getElementById("editTask").value = doc.task;
     document.getElementById("editDateOfError").value = doc.dateOfError;
@@ -1142,6 +1253,9 @@ const editDocument = async (docId) => {
 
     await populateGroupDropdownForEditing();
     document.getElementById("editGroupName").value = doc.groupName;
+
+    // Populate current files
+    renderCurrentFiles(doc.fileMetadata);
 
     // Populate current approvers
     state.currentApprovers = doc.approvers;
@@ -1184,21 +1298,38 @@ const handleEditSubmit = async (event) => {
   );
   formData.append("direction", document.getElementById("editDirection").value);
 
-  // Add file
-  const fileInput = document.getElementById("editFile");
-  if (fileInput.files.length > 0) {
-    formData.append("file", fileInput.files[0]);
+  // Add files - handle multiple files
+  const filesInput = document.getElementById("editFiles");
+  if (filesInput.files.length > 0) {
+    for (let i = 0; i < filesInput.files.length; i++) {
+      formData.append("files", filesInput.files[i]);
+    }
   }
 
   // Add approvers
   formData.append("approvers", JSON.stringify(state.currentApprovers));
 
   try {
+    showLoading(true);
     const response = await fetch(`/updateProposalDocument/${docId}`, {
       method: "POST",
       body: formData,
     });
-    const result = await response.json();
+
+    // Handle both JSON and text responses
+    let result;
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      result = await response.json();
+    } else {
+      const text = await response.text();
+      try {
+        result = JSON.parse(text);
+      } catch {
+        result = { message: text };
+      }
+    }
+
     if (response.ok) {
       showMessage("Phiếu cập nhật thành công.");
       closeEditModal();
@@ -1209,6 +1340,8 @@ const handleEditSubmit = async (event) => {
   } catch (err) {
     console.error("Error updating document:", err);
     showMessage("Error updating document", true);
+  } finally {
+    showLoading(false);
   }
 };
 

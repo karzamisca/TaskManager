@@ -132,9 +132,14 @@ router.get(
 );
 router.post(
   "/updateProposalDocument/:id",
-  upload.single("file"),
+  upload.array("files", 10), // Changed from upload.single to upload.array
   authMiddleware,
   documentController.updateProposalDocument
+);
+router.post(
+  "/deleteProposalDocumentFile/:docId/:fileId",
+  authMiddleware,
+  documentController.deleteProposalDocumentFile
 );
 router.post(
   "/updateProposalDocumentDeclaration/:id",
