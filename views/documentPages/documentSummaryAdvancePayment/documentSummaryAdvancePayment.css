@@ -90,6 +90,51 @@ body {
   padding: 0 20px;
 }
 
+/* File list styles for multiple files */
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background-color: var(--table-stripe);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+}
+
+.file-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.file-link {
+  color: var(--link-color);
+  text-decoration: none;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-grow: 1;
+}
+
+.file-link:hover {
+  color: var(--link-hover);
+  text-decoration: underline;
+}
+
+.file-size {
+  color: var(--text-light);
+  font-size: 0.85em;
+  flex-shrink: 0;
+}
+
 /* Typography */
 h1,
 h2,
@@ -626,6 +671,16 @@ input[type="checkbox"] {
 
   .container {
     padding: 0 10px;
+  }
+
+  .file-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .file-size {
+    align-self: flex-end;
   }
 
   table {

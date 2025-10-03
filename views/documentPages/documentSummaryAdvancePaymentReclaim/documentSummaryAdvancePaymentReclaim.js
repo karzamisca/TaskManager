@@ -195,31 +195,54 @@ function renderPurchasingDocuments(purchDocs) {
               (product) => `
           <li>
             <strong>${product.productName}</strong><br>
-            Đơn giá/Cost Per Unit: ${product.costPerUnit.toLocaleString()}<br>
-            Số lượng/Amount: ${product.amount.toLocaleString()}<br>
-            Thuế/Vat (%): ${(product.vat ?? 0).toLocaleString()}<br>
-            Thành tiền/Total Cost: ${product.totalCost.toLocaleString()}<br>
-            Thành tiền sau thuế/Total Cost After Vat: ${(
+            Đơn giá: ${product.costPerUnit.toLocaleString()}<br>
+            Số lượng: ${product.amount.toLocaleString()}<br>
+            Thuế (%): ${(product.vat ?? 0).toLocaleString()}<br>
+            Thành tiền: ${product.totalCost.toLocaleString()}<br>
+            Thành tiền sau thuế: ${(
               product.totalCostAfterVat ?? product.totalCost
             ).toLocaleString()}<br>
-            Ghi chú/Notes: ${product.note || "None"}
+            Ghi chú: ${product.note || "None"}
           </li>
         `
             )
             .join("");
 
-          const fileMetadata = purchDoc.fileMetadata
-            ? `<p><strong>Tệp đính kèm phiếu mua hàng/File attaches to purchasing document:</strong> 
-              <a href="${purchDoc.fileMetadata.link}" target="_blank">${purchDoc.fileMetadata.name}</a></p>`
-            : "";
+          // Handle fileMetadata as array
+          const fileMetadata =
+            purchDoc.fileMetadata && purchDoc.fileMetadata.length > 0
+              ? `
+            <div>
+              <strong>Tệp đính kèm phiếu mua hàng:</strong>
+              <div class="file-list">
+                ${purchDoc.fileMetadata
+                  .map(
+                    (file) => `
+                  <div class="file-item">
+                    <span class="file-icon">📎</span>
+                    <a href="${file.link}" class="file-link" target="_blank">${
+                      file.name || file.displayName || file.actualFilename
+                    }</a>
+                    ${
+                      file.size
+                        ? `<span class="file-size">(${file.size})</span>`
+                        : ""
+                    }
+                  </div>
+                `
+                  )
+                  .join("")}
+              </div>
+            </div>`
+              : "";
 
           return `
           <div class="purchasing-doc">
-            <p><strong>Trạm/Center:</strong> ${
+            <p><strong>Trạm:</strong> ${
               purchDoc.costCenter ? purchDoc.costCenter : ""
             }</p>
-            <p><strong>Tổng chi phí/Total Cost:</strong> ${purchDoc.grandTotalCost.toLocaleString()}</p>
-            <p><strong>Sản phẩm/Products:</strong></p>
+            <p><strong>Tổng chi phí:</strong> ${purchDoc.grandTotalCost.toLocaleString()}</p>
+            <p><strong>Sản phẩm:</strong></p>
             <ul>${products}</ul>
             ${fileMetadata}
           </div>`;
@@ -238,23 +261,46 @@ function renderProposals(purchDocs) {
   return `
     <div class="proposals-container">
       ${allProposals
-        .map(
-          (proposal) => `
-        <div class="proposal-card">
-          <p><strong>Công việc/Task:</strong> ${proposal.task}</p>
-          <p><strong>Trạm/Center:</strong> ${proposal.costCenter}</p>
-          <p><strong>Mô tả/Description:</strong> ${
-            proposal.detailsDescription
-          }</p>
-          ${
-            proposal.fileMetadata
-              ? `<p><strong>Tệp đính kèm/File:</strong> 
-                <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a></p>`
-              : ""
-          }
-        </div>
-      `
-        )
+        .map((proposal) => {
+          // Handle fileMetadata as array for proposals
+          const proposalFiles =
+            proposal.fileMetadata && proposal.fileMetadata.length > 0
+              ? `
+              <div>
+                <strong>Tệp đính kèm:</strong>
+                <div class="file-list">
+                  ${proposal.fileMetadata
+                    .map(
+                      (file) => `
+                    <div class="file-item">
+                      <span class="file-icon">📎</span>
+                      <a href="${
+                        file.link
+                      }" class="file-link" target="_blank">${
+                        file.name || file.displayName || file.actualFilename
+                      }</a>
+                      ${
+                        file.size
+                          ? `<span class="file-size">(${file.size})</span>`
+                          : ""
+                      }
+                    </div>
+                  `
+                    )
+                    .join("")}
+                </div>
+              </div>`
+              : "";
+
+          return `
+            <div class="proposal-card">
+              <p><strong>Công việc:</strong> ${proposal.task}</p>
+              <p><strong>Trạm:</strong> ${proposal.costCenter}</p>
+              <p><strong>Mô tả:</strong> ${proposal.detailsDescription}</p>
+              ${proposalFiles}
+            </div>
+          `;
+        })
         .join("")}
     </div>`;
 }
@@ -262,11 +308,11 @@ function renderProposals(purchDocs) {
 function renderStatus(status) {
   switch (status) {
     case "Approved":
-      return `<span class="status approved">Approved</span>`;
+      return `<span class="status approved">Đã duyệt</span>`;
     case "Suspended":
-      return `<span class="status suspended">Suspended</span>`;
+      return `<span class="status suspended">Từ chối</span>`;
     default:
-      return `<span class="status pending">Pending</span>`;
+      return `<span class="status pending">Chưa duyệt</span>`;
   }
 }
 
@@ -1133,9 +1179,41 @@ async function showFullView(docId) {
 
     const fullViewContent = document.getElementById("fullViewContent");
 
-    // Format date strings
+    // Format date strings with null checks
     const submissionDate = doc.submissionDate || "Không có";
     const paymentDeadline = doc.paymentDeadline || "Không có";
+    const extendedPaymentDeadline = doc.extendedPaymentDeadline || "Không có";
+
+    // Handle fileMetadata as array for main document with null checks
+    const mainFileMetadata =
+      doc.fileMetadata &&
+      Array.isArray(doc.fileMetadata) &&
+      doc.fileMetadata.length > 0
+        ? `
+        <div class="file-list">
+          ${doc.fileMetadata
+            .filter((file) => file && file.link) // Filter out null files and files without links
+            .map(
+              (file) => `
+              <div class="file-item">
+                <span class="file-icon">📎</span>
+                <a href="${file.link}" class="file-link" target="_blank">${
+                file.name ||
+                file.displayName ||
+                file.actualFilename ||
+                "Unknown File"
+              }</a>
+                ${
+                  file.size
+                    ? `<span class="file-size">(${file.size})</span>`
+                    : ""
+                }
+              </div>
+            `
+            )
+            .join("")}
+        </div>`
+        : "Không có";
 
     fullViewContent.innerHTML = `
       <!-- Basic Information Section -->
@@ -1158,11 +1236,17 @@ async function showFullView(docId) {
           </div>
           <div class="detail-item">
             <span class="detail-label">Người nộp:</span>
-            <span class="detail-value">${doc.submittedBy.username}</span>
+            <span class="detail-value">${
+              doc.submittedBy?.username || "Không có"
+            }</span>
           </div>          
           <div class="detail-item">
             <span class="detail-label">Hạn trả:</span>
             <span class="detail-value">${paymentDeadline}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Hạn trả kéo dài:</span>
+            <span class="detail-value">${extendedPaymentDeadline}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Kê khai:</span>
@@ -1218,11 +1302,7 @@ async function showFullView(docId) {
       <!-- File Attachment Section -->
       <div class="full-view-section">
         <h3>Tệp tin kèm theo</h3>
-        ${
-          doc.fileMetadata
-            ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-            : "Không đính kèm"
-        }
+        ${mainFileMetadata}
       </div>
 
       <!-- Purchasing Documents Section -->
@@ -1251,16 +1331,17 @@ async function showFullView(docId) {
         <div class="detail-grid">
           <div class="detail-item">
             <span class="detail-label">Tình trạng:</span>
-            <span class="detail-value ${renderStatus(doc.status)}</span>
+            <span class="detail-value">${renderStatus(doc.status)}</span>
           </div>
         </div>
         <div style="margin-top: 16px;">
           <h4>Trạng thái phê duyệt:</h4>
           <div class="approval-status">
-            ${doc.approvers
+            ${(doc.approvers || [])
               .map((approver) => {
-                const hasApproved = doc.approvedBy.find(
-                  (a) => a.username === approver.username
+                if (!approver) return "";
+                const hasApproved = (doc.approvedBy || []).find(
+                  (a) => a?.username === approver.username
                 );
                 return `
                 <div class="approver-item">
@@ -1268,10 +1349,14 @@ async function showFullView(docId) {
                     hasApproved ? "status-approved" : "status-pending"
                   }"></span>
                   <div>
-                    <div>${approver.username} (${approver.subRole})</div>
+                    <div>${approver.username || "Unknown"} (${
+                  approver.subRole || "No role"
+                })</div>
                     ${
                       hasApproved
-                        ? `<div class="approval-date">Dã phê duyệt: ${hasApproved.approvalDate}</div>`
+                        ? `<div class="approval-date">Đã phê duyệt: ${
+                            hasApproved.approvalDate || "Unknown date"
+                          }</div>`
                         : '<div class="approval-date">Chờ phê duyệt</div>'
                     }
                   </div>
