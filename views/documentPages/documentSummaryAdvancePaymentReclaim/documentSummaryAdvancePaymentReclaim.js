@@ -804,7 +804,73 @@ async function populateGroupDropdown() {
   }
 }
 
-// Add edit modal HTML at the end of the table
+function renderCurrentFiles(files) {
+  const currentFilesList = document.getElementById("currentFilesList");
+  if (!files || files.length === 0) {
+    currentFilesList.innerHTML =
+      '<p style="color: var(--text-light);">Không có tệp tin nào</p>';
+    return;
+  }
+
+  currentFilesList.innerHTML = files
+    .map(
+      (file) => `
+    <div class="file-item">
+      <span class="file-icon">📎</span>
+      <a href="${file.link}" class="file-link" target="_blank">${
+        file.name || file.displayName || file.actualFilename
+      }</a>
+      ${file.size ? `<span class="file-size">(${file.size})</span>` : ""}
+      <button type="button" class="approve-btn" onclick="deleteFileFromList('${
+        file._id || file.driveFileId
+      }')" style="background: #dc3545; padding: 4px 8px; margin-left: auto;">Xóa</button>
+    </div>
+  `
+    )
+    .join("");
+}
+
+// Add function to handle file deletion from the list
+async function deleteFileFromList(fileId) {
+  const docId = document.getElementById("editDocId").value;
+
+  if (!confirm("Bạn có chắc chắn muốn xóa tệp tin này?")) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `/deleteAdvancePaymentReclaimDocumentFile/${docId}/${fileId}`,
+      {
+        method: "POST",
+      }
+    );
+
+    const result = await response.json();
+
+    if (result.success) {
+      // Update the current files list after successful deletion
+      const currentFiles = JSON.parse(
+        document.getElementById("currentFileMetadata").value || "[]"
+      );
+      const updatedFiles = currentFiles.filter(
+        (file) => file._id !== fileId && file.driveFileId !== fileId
+      );
+
+      document.getElementById("currentFileMetadata").value =
+        JSON.stringify(updatedFiles);
+      renderCurrentFiles(updatedFiles);
+
+      showMessage("Tệp tin đã được xóa thành công");
+    } else {
+      showMessage(result.message || "Lỗi khi xóa tệp tin", true);
+    }
+  } catch (err) {
+    console.error("Error deleting file:", err);
+    showMessage("Lỗi khi xóa tệp tin", true);
+  }
+}
+
 function addEditModal() {
   const modalHTML = `
     <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
@@ -836,6 +902,7 @@ function addEditModal() {
         
         <form id="editForm" onsubmit="handleEditSubmit(event)">
           <input type="hidden" id="editDocId">
+          <input type="hidden" id="currentFileMetadata">
           
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
             <label for="editName" style="display: block; margin-bottom: 0.5em;">Tên:</label>
@@ -872,6 +939,22 @@ function addEditModal() {
               border: 1px solid var(--border-color);
               border-radius: clamp(3px, 0.5vw, 6px);
             "></textarea>
+          </div>
+
+          <!-- Current Files Section -->
+          <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+            <label style="display: block; margin-bottom: 0.5em;">Tệp tin hiện tại:</label>
+            <div id="currentFilesList" class="file-list"></div>
+          </div>
+
+          <!-- New Files Section -->
+          <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+            <label for="editFiles" style="display: block; margin-bottom: 0.5em;">Thêm tệp tin mới:</label>
+            <input type="file" id="editFiles" multiple style="
+              width: 100%;
+              padding: clamp(6px, 1vw, 12px);
+              font-size: inherit;
+            ">
           </div>
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
@@ -922,15 +1005,6 @@ function addEditModal() {
                     border: 1px solid var(--border-color);
                     border-radius: clamp(3px, 0.5vw, 6px);
                   ">
-          </div>
-
-          <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới:</label>
-            <input type="file" id="editFile" style="
-              width: 100%;
-              padding: clamp(6px, 1vw, 12px);
-              font-size: inherit;
-            ">
           </div>
 
           <!-- Current Approvers Section -->
@@ -1097,6 +1171,12 @@ async function editDocument(docId) {
       doc.advancePaymentReclaim;
     document.getElementById("editDeadline").value = doc.paymentDeadline;
 
+    // Handle multiple files
+    document.getElementById("currentFileMetadata").value = JSON.stringify(
+      doc.fileMetadata || []
+    );
+    renderCurrentFiles(doc.fileMetadata || []);
+
     // Populate approvers
     currentApprovers = doc.approvers.map((approver) => ({
       approver: approver.approver?._id || approver.approver,
@@ -1124,6 +1204,7 @@ async function handleEditSubmit(event) {
   event.preventDefault();
   const docId = document.getElementById("editDocId").value;
   const formData = new FormData();
+
   formData.append("name", document.getElementById("editName").value);
   formData.append("groupName", document.getElementById("editGroupName").value);
   formData.append("content", document.getElementById("editContent").value);
@@ -1144,10 +1225,16 @@ async function handleEditSubmit(event) {
     document.getElementById("editDeadline").value
   );
   formData.append("approvers", JSON.stringify(currentApprovers));
+  formData.append(
+    "currentFileMetadata",
+    document.getElementById("currentFileMetadata").value
+  );
 
-  const fileInput = document.getElementById("editFile");
+  const fileInput = document.getElementById("editFiles");
   if (fileInput.files.length > 0) {
-    formData.append("file", fileInput.files[0]);
+    for (let i = 0; i < fileInput.files.length; i++) {
+      formData.append("files", fileInput.files[i]);
+    }
   }
 
   try {

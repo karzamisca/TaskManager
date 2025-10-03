@@ -360,9 +360,14 @@ router.get(
 );
 router.post(
   "/updateAdvancePaymentReclaimDocument/:id",
-  upload.single("file"),
+  upload.array("files", 10),
   authMiddleware,
   documentController.updateAdvancePaymentReclaimDocument
+);
+router.post(
+  "/deleteAdvancePaymentReclaimDocumentFile/:docId/:fileId",
+  authMiddleware,
+  documentController.deleteAdvancePaymentReclaimDocumentFile
 );
 router.post(
   "/updateAdvancePaymentReclaimDocumentDeclaration/:id",
