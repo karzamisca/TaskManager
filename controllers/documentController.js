@@ -5125,18 +5125,19 @@ exports.getDeliveryDocument = async (req, res) => {
 };
 // Update a Delivery Document
 exports.updateDeliveryDocument = async (req, res) => {
-  let tempFilePath = null;
+  let tempFilePaths = []; // Store temp file paths for cleanup
   try {
     const { id } = req.params;
-    const file = req.file;
+    const files = req.files; // This will be an array now
 
-    // Store temp file path for cleanup
-    if (file) {
-      tempFilePath = file.path;
-      // Verify file exists immediately
-      if (!fs.existsSync(tempFilePath)) {
-        throw new Error(`Uploaded file not found at: ${tempFilePath}`);
-      }
+    // Store temp file paths for cleanup
+    if (files && files.length > 0) {
+      files.forEach((file) => {
+        tempFilePaths.push(file.path);
+        if (!fs.existsSync(file.path)) {
+          throw new Error(`Uploaded file not found at: ${file.path}`);
+        }
+      });
     }
 
     // Parse the products JSON string into an object
@@ -5177,6 +5178,17 @@ exports.updateDeliveryDocument = async (req, res) => {
       }
     }
 
+    // Parse current file metadata
+    let currentFiles = [];
+    if (req.body.currentFileMetadata) {
+      try {
+        currentFiles = JSON.parse(req.body.currentFileMetadata);
+      } catch (error) {
+        console.error("Error parsing current file metadata:", error);
+        // Continue with empty array
+      }
+    }
+
     const doc = await DeliveryDocument.findById(id);
     if (!doc) {
       return res.status(404).json({ message: "Document not found" });
@@ -5204,23 +5216,13 @@ exports.updateDeliveryDocument = async (req, res) => {
       });
     }
 
-    // Handle file upload if new file provided
-    let uploadedFileData = null;
-    if (file) {
-      req.body.title = doc.title; // Use document name as title for file upload
+    // Handle multiple file uploads if new files provided - ADD TO EXISTING FILES
+    let uploadedFilesData = [];
+    if (files && files.length > 0) {
+      req.body.title = doc.title;
 
-      // Delete old file if exists
-      if (doc.fileMetadata?.path) {
-        try {
-          const client = await getNextcloudClient();
-          await client.deleteFile(doc.fileMetadata.path);
-        } catch (error) {
-          console.error("Warning: Could not delete old file", error);
-        }
-      }
-
-      // Upload new file
-      uploadedFileData = await handleFileUpload(req);
+      // Upload new files - they will be ADDED to existing files
+      uploadedFilesData = await handleMultipleFileUploads(req);
     }
 
     // Update basic fields
@@ -5229,14 +5231,13 @@ exports.updateDeliveryDocument = async (req, res) => {
     doc.name = name;
     doc.costCenter = costCenter;
     doc.groupName = groupName;
+
     if (appendedProposals) {
       doc.appendedProposals = appendedProposals;
     }
 
-    // Update file metadata if new file uploaded
-    if (uploadedFileData) {
-      doc.fileMetadata = uploadedFileData;
-    }
+    // UPDATE FILE METADATA - COMBINE EXISTING (AFTER DELETIONS) WITH NEW FILES
+    doc.fileMetadata = [...currentFiles, ...uploadedFilesData];
 
     // Update approvers if provided
     if (approvers) {
@@ -5252,6 +5253,82 @@ exports.updateDeliveryDocument = async (req, res) => {
     console.error("Error updating delivery document:", error);
     res.status(500).json({
       message: "Error updating document",
+      error: error.message,
+    });
+  } finally {
+    // Clean up temp files
+    tempFilePaths.forEach((tempFilePath) => {
+      if (tempFilePath && fs.existsSync(tempFilePath)) {
+        try {
+          fs.unlinkSync(tempFilePath);
+        } catch (cleanupError) {
+          console.error("Error cleaning up temp file:", cleanupError);
+        }
+      }
+    });
+  }
+};
+exports.deleteDeliveryDocumentFile = async (req, res) => {
+  const { docId, fileId } = req.params;
+
+  try {
+    // Find the delivery document
+    const document = await DeliveryDocument.findById(docId);
+    if (!document) {
+      return res.status(404).json({ message: "Không tìm thấy phiếu xuất kho" });
+    }
+
+    // Check if document is approved - prevent deletion if approved
+    if (document.status === "Approved") {
+      return res.status(400).json({
+        message: "Không thể xóa tệp tin của phiếu đã được phê duyệt",
+      });
+    }
+
+    // Check if document has any approvals - prevent deletion if partially approved
+    if (document.approvedBy && document.approvedBy.length > 0) {
+      return res.status(400).json({
+        message: "Không thể xóa tệp tin của phiếu đã có người phê duyệt",
+      });
+    }
+
+    // Find the file to delete
+    const fileToDelete = document.fileMetadata.find(
+      (file) => file.driveFileId === fileId || file._id.toString() === fileId
+    );
+
+    if (!fileToDelete) {
+      return res.status(404).json({ message: "Không tìm thấy tệp tin" });
+    }
+
+    // Delete the file from Nextcloud storage
+    if (fileToDelete.path) {
+      try {
+        const client = getNextcloudClient();
+        await client.deleteFile(fileToDelete.path);
+      } catch (storageError) {
+        console.error("Error deleting file from storage:", storageError);
+        // Continue with database deletion even if storage deletion fails
+      }
+    }
+
+    // Remove the file from the document's fileMetadata array
+    document.fileMetadata = document.fileMetadata.filter(
+      (file) => file.driveFileId !== fileId && file._id.toString() !== fileId
+    );
+
+    // Save the updated document
+    await document.save();
+
+    res.json({
+      success: true,
+      message: "Tệp tin đã được xóa thành công",
+      remainingFiles: document.fileMetadata.length,
+    });
+  } catch (error) {
+    console.error("Error deleting delivery document file:", error);
+    res.status(500).json({
+      message: "Lỗi khi xóa tệp tin",
       error: error.message,
     });
   }

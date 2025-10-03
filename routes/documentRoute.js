@@ -399,9 +399,14 @@ router.get(
 );
 router.post(
   "/updateDeliveryDocument/:id",
-  upload.single("file"),
+  upload.array("files", 10), // Changed to support multiple files
   authMiddleware,
   documentController.updateDeliveryDocument
+);
+router.post(
+  "/deleteDeliveryDocumentFile/:docId/:fileId",
+  authMiddleware,
+  documentController.deleteDeliveryDocumentFile
 );
 //// END OF DELIVERY DOCUMENT ROUTE
 

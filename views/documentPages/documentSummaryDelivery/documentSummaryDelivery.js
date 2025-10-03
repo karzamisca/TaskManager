@@ -646,10 +646,133 @@ async function editDocument(docId) {
     renderCurrentApprovers();
     await populateNewApproversDropdown();
 
+    // Render current files
+    renderCurrentFiles(doc.fileMetadata);
+
     document.getElementById("editModal").style.display = "block";
   } catch (err) {
     console.error("Lỗi khi lấy chi tiết phiếu:", err);
     showMessage("Lỗi khi tải chi tiết phiếu", true);
+  }
+}
+
+// Add function to render current files
+function renderCurrentFiles(fileMetadata) {
+  const currentFilesContainer = document.getElementById(
+    "currentFilesContainer"
+  );
+  if (!currentFilesContainer) return;
+
+  if (!fileMetadata || fileMetadata.length === 0) {
+    currentFilesContainer.innerHTML = "<p>Không có tệp tin nào</p>";
+
+    // Still create the hidden input but with empty array
+    if (!document.getElementById("currentFileMetadata")) {
+      const hiddenInput = document.createElement("input");
+      hiddenInput.type = "hidden";
+      hiddenInput.id = "currentFileMetadata";
+      hiddenInput.value = "[]";
+      currentFilesContainer.appendChild(hiddenInput);
+    } else {
+      document.getElementById("currentFileMetadata").value = "[]";
+    }
+
+    return;
+  }
+
+  currentFilesContainer.innerHTML = `
+    <h4>Tệp tin hiện tại:</h4>
+    <div id="currentFilesList">
+      ${fileMetadata
+        .map((file, index) => {
+          // Use the correct identifier for the file
+          const fileIdentifier = file._id || file.driveFileId;
+          return `
+        <div class="file-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; border: 1px solid #ddd; margin-bottom: 5px; border-radius: 4px;">
+          <div>
+            <a href="${
+              file.link
+            }" target="_blank" style="text-decoration: none; color: #007bff;">
+              <i class="fas fa-file" style="margin-right: 5px;"></i>
+              ${file.name}
+            </a>
+            ${file.size ? ` <small>(${file.size})</small>` : ""}
+          </div>
+          <button type="button" class="btn btn-danger btn-sm" onclick="deleteCurrentFile('${fileIdentifier}')">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      `;
+        })
+        .join("")}
+    </div>
+  `;
+
+  // Add or update the hidden input
+  let hiddenInput = document.getElementById("currentFileMetadata");
+  if (!hiddenInput) {
+    hiddenInput = document.createElement("input");
+    hiddenInput.type = "hidden";
+    hiddenInput.id = "currentFileMetadata";
+    currentFilesContainer.appendChild(hiddenInput);
+  }
+  hiddenInput.value = JSON.stringify(fileMetadata);
+}
+
+// Add function to delete current file
+async function deleteCurrentFile(fileId) {
+  const docId = document.getElementById("editDocId").value;
+
+  if (!confirm("Bạn có chắc chắn muốn xóa tệp tin này?")) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `/deleteDeliveryDocumentFile/${docId}/${fileId}`,
+      {
+        method: "POST",
+      }
+    );
+
+    const result = await response.json();
+    console.log("Delete response:", result);
+
+    if (result.success) {
+      showMessage("Tệp tin đã được xóa thành công");
+
+      // Get current file metadata
+      const currentFileMetadataInput = document.getElementById(
+        "currentFileMetadata"
+      );
+      let currentFiles = [];
+
+      if (currentFileMetadataInput && currentFileMetadataInput.value) {
+        currentFiles = JSON.parse(currentFileMetadataInput.value);
+        console.log("Current files before deletion:", currentFiles);
+      }
+
+      // Filter out the deleted file
+      const updatedFiles = currentFiles.filter((file) => {
+        const hasMatchingId = file._id && file._id.toString() === fileId;
+        const hasMatchingDriveId =
+          file.driveFileId && file.driveFileId === fileId;
+        return !hasMatchingId && !hasMatchingDriveId;
+      });
+
+      console.log("Updated files after deletion:", updatedFiles);
+
+      // Update the hidden input
+      currentFileMetadataInput.value = JSON.stringify(updatedFiles);
+
+      // Re-render the files display
+      renderCurrentFiles(updatedFiles);
+    } else {
+      showMessage(result.message || "Lỗi khi xóa tệp tin", true);
+    }
+  } catch (error) {
+    console.error("Lỗi khi xóa tệp tin:", error);
+    showMessage("Lỗi khi xóa tệp tin", true);
   }
 }
 
@@ -689,7 +812,7 @@ async function handleEditSubmit(event) {
         totalCost: costPerUnit * amount,
         totalCostAfterVat:
           costPerUnit * amount + costPerUnit * amount * (vat / 100),
-        note: productInputs[3].value,
+        note: productInputs[4].value, // Note is the 5th input
       };
       products.push(product);
     }
@@ -705,9 +828,18 @@ async function handleEditSubmit(event) {
 
   formData.append("approvers", JSON.stringify(currentApprovers));
 
+  // Add current file metadata (after deletions)
+  const currentFileMetadata = document.getElementById("currentFileMetadata");
+  if (currentFileMetadata && currentFileMetadata.value) {
+    formData.append("currentFileMetadata", currentFileMetadata.value);
+  }
+
+  // Add new files
   const fileInput = document.getElementById("editFile");
   if (fileInput.files.length > 0) {
-    formData.append("file", fileInput.files[0]);
+    for (let i = 0; i < fileInput.files.length; i++) {
+      formData.append("files", fileInput.files[i]);
+    }
   }
 
   try {
@@ -715,6 +847,7 @@ async function handleEditSubmit(event) {
       method: "POST",
       body: formData,
     });
+
     const result = await response.json();
     if (response.ok) {
       showMessage("Cập nhật phiếu thành công");
@@ -765,12 +898,17 @@ function addEditModal() {
           </div>
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-              <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới:</label>
-              <input type="file" id="editFile" style="
-                  width: 100%;
-                  padding: clamp(6px, 1vw, 12px);
-                  font-size: inherit;
-              ">
+            <div id="currentFilesContainer"></div>
+          </div>
+
+          <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+            <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thêm tệp tin mới:</label>
+            <input type="file" id="editFile" multiple style="
+                width: 100%;
+                padding: clamp(6px, 1vw, 12px);
+                font-size: inherit;
+            ">
+            <small>Có thể chọn nhiều tệp tin cùng lúc</small>
           </div>
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
