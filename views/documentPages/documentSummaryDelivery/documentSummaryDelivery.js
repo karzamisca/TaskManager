@@ -116,9 +116,14 @@ function renderProposals(proposals) {
               <strong>Nhóm:</strong> ${proposal.groupName}<br>
               <strong>Mô tả:</strong> ${proposal.detailsDescription}<br>
               ${
-                proposal.fileMetadata
+                proposal.fileMetadata && proposal.fileMetadata.length > 0
                   ? `<strong>Tệp đính kèm:</strong> 
-                <a href="${proposal.fileMetadata.link}" target="_blank">${proposal.fileMetadata.name}</a>`
+                    ${proposal.fileMetadata
+                      .map(
+                        (file) =>
+                          `<a href="${file.link}" target="_blank" style="display: block; margin: 2px 0;">${file.name}</a>`
+                      )
+                      .join("")}`
                   : ""
               }
             </div>
@@ -186,11 +191,7 @@ async function fetchDeliveryDocuments() {
         <td>${doc.costCenter}</td>   
         <td>${doc.groupName}</td>           
         <td>${renderProducts(doc.products)}</td>
-        <td>${
-          doc.fileMetadata?.link
-            ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-            : "-"
-        }</td>
+        <td>${renderFiles(doc.fileMetadata)}</td>
         <td>${doc.grandTotalCost?.toLocaleString() || "-"}</td>
         <td>${renderProposals(doc.appendedProposals)}</td>
         <td>${renderStatus(doc.status)}</td>
@@ -811,6 +812,30 @@ function addEditModal() {
   document.body.insertAdjacentHTML("beforeend", modalHTML);
 }
 
+function renderFiles(fileMetadata) {
+  if (!fileMetadata || fileMetadata.length === 0) return "-";
+
+  return `
+    <div class="file-links-container">
+      ${fileMetadata
+        .map(
+          (file) => `
+          <div>
+            <a href="${file.link}" class="file-link" target="_blank" title="${
+            file.name
+          }">
+              <i class="fas fa-file" style="margin-right: 4px;"></i>
+              ${file.name}
+              ${file.size ? ` <small>(${file.size})</small>` : ""}
+            </a>
+          </div>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function showFullView(docId) {
   try {
     const doc = deliveryDocuments.find((d) => d._id === docId);
@@ -862,11 +887,7 @@ function showFullView(docId) {
 
       <div class="full-view-section">
         <h3>Tệp tin kèm theo</h3>
-        ${
-          doc.fileMetadata
-            ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-            : "Không có tệp đính kèm"
-        }
+        ${renderFiles(doc.fileMetadata)}
       </div>
 
       <div class="full-view-section">
