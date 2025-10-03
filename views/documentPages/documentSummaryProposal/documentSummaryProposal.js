@@ -749,7 +749,7 @@ const showFullView = (docId) => {
         <div class="detail-grid">
           <div class="detail-item">
             <span class="detail-label">Tình trạng:</span>
-            <span class="detail-value ${renderStatus(doc.status)}"></span>
+            <span class="detail-value">${renderStatus(doc.status)}</span>
           </div>
         </div>
         <div class="approval-section">

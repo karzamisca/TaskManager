@@ -316,9 +316,14 @@ router.get(
 );
 router.post(
   "/updateAdvancePaymentDocument/:id",
-  upload.single("file"),
+  upload.array("files", 10),
   authMiddleware,
   documentController.updateAdvancePaymentDocument
+);
+router.post(
+  "/deleteAdvancePaymentDocumentFile/:docId/:fileId",
+  authMiddleware,
+  documentController.deleteAdvancePaymentDocumentFile
 );
 router.post(
   "/updateAdvancePaymentDocumentDeclaration/:id",

@@ -690,7 +690,72 @@ async function populateCostCenterDropdown() {
   }
 }
 
-// Add edit modal HTML at the end of the table
+function renderCurrentFiles(files) {
+  const currentFilesList = document.getElementById("currentFilesList");
+  if (!files || files.length === 0) {
+    currentFilesList.innerHTML =
+      '<p style="color: var(--text-light);">Không có tệp tin nào</p>';
+    return;
+  }
+
+  currentFilesList.innerHTML = files
+    .map(
+      (file) => `
+    <div class="file-item">
+      <span class="file-icon">📎</span>
+      <a href="${file.link}" class="file-link" target="_blank">${
+        file.name || file.displayName || file.actualFilename
+      }</a>
+      ${file.size ? `<span class="file-size">(${file.size})</span>` : ""}
+      <button type="button" class="approve-btn" onclick="deleteFileFromList('${
+        file._id || file.driveFileId
+      }')" style="background: #dc3545; padding: 4px 8px; margin-left: auto;">Xóa</button>
+    </div>
+  `
+    )
+    .join("");
+}
+
+async function deleteFileFromList(fileId) {
+  const docId = document.getElementById("editDocId").value;
+
+  if (!confirm("Bạn có chắc chắn muốn xóa tệp tin này?")) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `/deleteAdvancePaymentDocumentFile/${docId}/${fileId}`,
+      {
+        method: "POST",
+      }
+    );
+
+    const result = await response.json();
+
+    if (result.success) {
+      // Update the current files list after successful deletion
+      const currentFiles = JSON.parse(
+        document.getElementById("currentFileMetadata").value || "[]"
+      );
+      const updatedFiles = currentFiles.filter(
+        (file) => file._id !== fileId && file.driveFileId !== fileId
+      );
+
+      document.getElementById("currentFileMetadata").value =
+        JSON.stringify(updatedFiles);
+      renderCurrentFiles(updatedFiles);
+
+      showMessage("Tệp tin đã được xóa thành công");
+    } else {
+      showMessage(result.message || "Lỗi khi xóa tệp tin", true);
+    }
+  } catch (err) {
+    console.error("Error deleting file:", err);
+    showMessage("Lỗi khi xóa tệp tin", true);
+  }
+}
+
 function addEditModal() {
   const modalHTML = `
     <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
@@ -722,6 +787,7 @@ function addEditModal() {
         
         <form id="editForm" onsubmit="handleEditSubmit(event)">
           <input type="hidden" id="editDocId">
+          <input type="hidden" id="currentFileMetadata">
           
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
             <label for="editName" style="display: block; margin-bottom: 0.5em;">Tên:</label>
@@ -746,11 +812,26 @@ function addEditModal() {
             "></textarea>
           </div>
 
+          <!-- Current Files Section -->
+          <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+            <label style="display: block; margin-bottom: 0.5em;">Tệp tin hiện tại:</label>
+            <div id="currentFilesList" class="file-list"></div>
+          </div>
+
+          <!-- New Files Section -->
+          <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+            <label for="editFiles" style="display: block; margin-bottom: 0.5em;">Thêm tệp tin mới:</label>
+            <input type="file" id="editFiles" multiple style="
+              width: 100%;
+              padding: clamp(6px, 1vw, 12px);
+              font-size: inherit;
+            ">
+          </div>
+
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
             <label for="editGroupName" style="display: block; margin-bottom: 0.5em;">Nhóm:</label>
             <select id="editGroupName" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
               <option value="">Chọn nhóm</option>
-              <!-- Options will be populated dynamically -->
             </select>
           </div>
 
@@ -782,19 +863,9 @@ function addEditModal() {
           </div>
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thay tệp tin mới/Update File:</label>
-            <input type="file" id="editFile" style="
-              width: 100%;
-              padding: clamp(6px, 1vw, 12px);
-              font-size: inherit;
-            ">
-          </div>
-
-          <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
               <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm:</label>
               <select id="editCostCenter" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
                   <option value="">Chọn một trạm</option>
-                  <!-- Options will be populated dynamically -->
               </select>
           </div>      
 
@@ -824,7 +895,6 @@ function addEditModal() {
             <label style="display: block; margin-bottom: 0.5em;">Thêm người phê duyệt:</label>
             <select id="newApproversDropdown" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
               <option value="">Chọn người phê duyệt</option>
-              <!-- Options will be populated dynamically -->
             </select>
             <input type="text" id="newApproverSubRole" placeholder="Vai trò" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
             <button type="button" class="approve-btn" onclick="addNewApprover()" style="margin-top: 10px;">
@@ -983,20 +1053,30 @@ async function editDocument(docId) {
   try {
     const response = await fetch(`/getAdvancePaymentDocument/${docId}`);
     const doc = await response.json();
+
     document.getElementById("editDocId").value = docId;
     document.getElementById("editName").value = doc.name;
     document.getElementById("editContent").value = doc.content;
+
     // Populate the cost center dropdown
     await populateCostCenterDropdown();
     document.getElementById("editCostCenter").value = doc.costCenter;
     document.getElementById("editPaymentMethod").value = doc.paymentMethod;
     document.getElementById("editAdvancePayment").value = doc.advancePayment;
     document.getElementById("editDeadline").value = doc.paymentDeadline;
+
     // Set the selected group
     const groupDropdown = document.getElementById("editGroupName");
     if (doc.groupName) {
       groupDropdown.value = doc.groupName;
     }
+
+    // Handle multiple files
+    document.getElementById("currentFileMetadata").value = JSON.stringify(
+      doc.fileMetadata || []
+    );
+    renderCurrentFiles(doc.fileMetadata || []);
+
     // Populate current approvers
     currentApprovers = doc.approvers.map((approver) => ({
       approver: approver.approver?._id || approver.approver,
@@ -1004,6 +1084,7 @@ async function editDocument(docId) {
       subRole: approver.subRole,
     }));
     renderCurrentApprovers();
+
     // Populate new approvers dropdown
     await populateNewApproversDropdown();
     document.getElementById("editModal").style.display = "block";
@@ -1024,6 +1105,7 @@ async function handleEditSubmit(event) {
   event.preventDefault();
   const docId = document.getElementById("editDocId").value;
   const formData = new FormData();
+
   formData.append("name", document.getElementById("editName").value);
   formData.append("content", document.getElementById("editContent").value);
   formData.append(
@@ -1037,17 +1119,23 @@ async function handleEditSubmit(event) {
   formData.append(
     "advancePayment",
     document.getElementById("editAdvancePayment").value
-  ); // New field
+  );
   formData.append(
     "paymentDeadline",
     document.getElementById("editDeadline").value
   );
   formData.append("groupName", document.getElementById("editGroupName").value);
   formData.append("approvers", JSON.stringify(currentApprovers));
+  formData.append(
+    "currentFileMetadata",
+    document.getElementById("currentFileMetadata").value
+  );
 
-  const fileInput = document.getElementById("editFile");
+  const fileInput = document.getElementById("editFiles");
   if (fileInput.files.length > 0) {
-    formData.append("file", fileInput.files[0]);
+    for (let i = 0; i < fileInput.files.length; i++) {
+      formData.append("files", fileInput.files[i]);
+    }
   }
 
   try {
@@ -1055,9 +1143,10 @@ async function handleEditSubmit(event) {
       method: "POST",
       body: formData,
     });
+
     const result = await response.json();
     if (response.ok) {
-      showMessage("Document updated successfully");
+      showMessage("Phiếu cập nhật thành công");
       closeEditModal();
       fetchAdvancePaymentDocuments();
     } else {
@@ -1079,7 +1168,6 @@ async function showFullView(docId) {
     // Format date strings with null checks
     const submissionDate = doc.submissionDate || "Không có";
     const paymentDeadline = doc.paymentDeadline || "Không có";
-    const extendedPaymentDeadline = doc.extendedPaymentDeadline || "Không có";
 
     // Handle fileMetadata as array for main document with null checks
     const mainFileMetadata =
@@ -1140,10 +1228,6 @@ async function showFullView(docId) {
           <div class="detail-item">
             <span class="detail-label">Hạn trả:</span>
             <span class="detail-value">${paymentDeadline}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Hạn trả kéo dài:</span>
-            <span class="detail-value">${extendedPaymentDeadline}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Kê khai:</span>
