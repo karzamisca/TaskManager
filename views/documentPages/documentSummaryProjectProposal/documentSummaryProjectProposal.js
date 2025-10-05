@@ -84,6 +84,43 @@ function renderContent(content) {
   `;
 }
 
+function renderFiles(fileMetadata) {
+  if (!fileMetadata || fileMetadata.length === 0) return "-";
+  
+  // If it's a single file (backward compatibility)
+  if (!Array.isArray(fileMetadata)) {
+    return `
+      <div class="files-container">
+        <div class="file-item">
+          <a href="${fileMetadata.link}" class="file-link" target="_blank">
+            ${fileMetadata.name}
+          </a>
+          ${fileMetadata.size ? `<span class="file-size">(${fileMetadata.size})</span>` : ''}
+        </div>
+      </div>
+    `;
+  }
+  
+  // Multiple files
+  return `
+    <div class="files-container">
+      ${fileMetadata.slice(0, 2).map(file => `
+        <div class="file-item">
+          <a href="${file.link}" class="file-link" target="_blank">
+            ${file.name}
+          </a>
+          ${file.size ? `<span class="file-size">(${file.size})</span>` : ''}
+        </div>
+      `).join('')}
+      ${fileMetadata.length > 2 ? `
+        <div class="file-item" style="justify-content: center; background: transparent; border: 1px dashed var(--border-color);">
+          <span class="file-size">+${fileMetadata.length - 2} tệp tin khác</span>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
 async function fetchProjectProposals() {
   try {
     const response = await fetch("/getProjectProposalForSeparatedView");
@@ -146,11 +183,7 @@ async function fetchProjectProposals() {
           ${doc.declaration ? `(Kê khai: ${doc.declaration})` : ""}
           ${doc.suspendReason ? `(Lý do từ chối: ${doc.suspendReason})` : ""}
         </td>
-        <td>${
-          doc.fileMetadata?.link
-            ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-            : "-"
-        }</td>
+        <td>${renderFiles(doc.fileMetadata)}</td>
         <td>${renderStatus(doc.status)}</td>
         <td class="approval-status">${approvalStatus}</td>
         <td>
@@ -818,6 +851,44 @@ function showFullView(docId) {
     const fullViewContent = document.getElementById("fullViewContent");
     const submissionDate = doc.submissionDate || "Không có";
 
+    // Function to render files in full view
+    const renderFilesFullView = (fileMetadata) => {
+      if (!fileMetadata || fileMetadata.length === 0) return "Không có";
+      
+      if (!Array.isArray(fileMetadata)) {
+        // Single file (backward compatibility)
+        return `
+          <div class="file-item">
+            <a href="${fileMetadata.link}" class="file-link" target="_blank">
+              ${fileMetadata.name}
+            </a>
+            ${fileMetadata.size ? `<span class="file-size">(${fileMetadata.size})</span>` : ''}
+          </div>
+        `;
+      }
+      
+      // Multiple files
+      return `
+        <div class="files-grid">
+          ${fileMetadata.map(file => `
+            <div class="file-card">
+              <div class="file-card-header">
+                <div class="file-icon">📄</div>
+                <div class="file-name">${file.name}</div>
+              </div>
+              <div class="file-details">
+                ${file.size ? `<div>Kích thước: ${file.size}</div>` : ''}
+                ${file.uploadTimestamp ? `<div>Upload: ${file.uploadTimestamp}</div>` : ''}
+              </div>
+              <a href="${file.link}" class="file-link" target="_blank" style="display: block; margin-top: 0.5rem;">
+                Xem tệp tin
+              </a>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    };
+
     fullViewContent.innerHTML = `
       <!-- Basic Information Section -->
       <div class="full-view-section">
@@ -858,12 +929,8 @@ function showFullView(docId) {
 
       <!-- File Attachment Section -->
       <div class="full-view-section">
-        <h3>Tệp kèm theo</h3>
-        ${
-          doc.fileMetadata
-            ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-            : "Không có"
-        }
+        <h3>Tệp kèm theo (${Array.isArray(doc.fileMetadata) ? doc.fileMetadata.length : doc.fileMetadata ? 1 : 0})</h3>
+        ${renderFilesFullView(doc.fileMetadata)}
       </div>
 
       <!-- Status Section -->
