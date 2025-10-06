@@ -5,6 +5,11 @@ const CostCenterGroup = require("../models/CostCenterGroup");
 const DocumentPayment = require("../models/DocumentPayment");
 
 exports.getAllCostCenters = async (req, res) => {
+  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+  }
   try {
     const costCenters = await CostCenter.find().select("name category -_id"); // Include category field
 
@@ -36,6 +41,11 @@ const monthNumberToVietnamese = {
 
 // Helper function to extract month and year from submission date
 const getMonthYearFromSubmissionDate = (submissionDate) => {
+  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+  }
   try {
     // Parse DD-MM-YYYY HH:MM:SS format
     if (!submissionDate || typeof submissionDate !== "string") {
@@ -76,6 +86,11 @@ const getMonthYearFromSubmissionDate = (submissionDate) => {
 
 // Get revenue by matching cost centers
 exports.getRevenueByCostCenter = async (req, res) => {
+  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+  }
   try {
     const { year, costCenters, category } = req.query;
 
@@ -374,6 +389,11 @@ exports.getRevenueByCostCenter = async (req, res) => {
 };
 
 exports.createCostCenterGroup = async (req, res) => {
+  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+  }
   try {
     const { name, costCenters } = req.body;
     const createdBy = req.user._id;
@@ -393,6 +413,11 @@ exports.createCostCenterGroup = async (req, res) => {
 };
 
 exports.getCostCenterGroups = async (req, res) => {
+  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+  }
   try {
     const groups = await CostCenterGroup.find();
     res.json(groups);
@@ -403,6 +428,11 @@ exports.getCostCenterGroups = async (req, res) => {
 };
 
 exports.deleteCostCenterGroup = async (req, res) => {
+  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+  }
   try {
     const { id } = req.params;
     const group = await CostCenterGroup.findOneAndDelete({
