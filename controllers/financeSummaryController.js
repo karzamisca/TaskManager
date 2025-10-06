@@ -429,7 +429,11 @@ exports.createCostCenterGroup = async (req, res) => {
 };
 
 exports.getCostCenterGroups = async (req, res) => {
-  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+  if (
+    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
+      req.user.role
+    )
+  ) {
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
