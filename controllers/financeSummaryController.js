@@ -5,7 +5,11 @@ const CostCenterGroup = require("../models/CostCenterGroup");
 const DocumentPayment = require("../models/DocumentPayment");
 
 exports.getAllCostCenters = async (req, res) => {
-  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+  if (
+    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
+      req.user.role
+    )
+  ) {
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
@@ -41,7 +45,11 @@ const monthNumberToVietnamese = {
 
 // Helper function to extract month and year from submission date
 const getMonthYearFromSubmissionDate = (submissionDate) => {
-  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+  if (
+    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
+      req.user.role
+    )
+  ) {
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
@@ -86,7 +94,11 @@ const getMonthYearFromSubmissionDate = (submissionDate) => {
 
 // Get revenue by matching cost centers
 exports.getRevenueByCostCenter = async (req, res) => {
-  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+  if (
+    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
+      req.user.role
+    )
+  ) {
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
@@ -389,7 +401,11 @@ exports.getRevenueByCostCenter = async (req, res) => {
 };
 
 exports.createCostCenterGroup = async (req, res) => {
-  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+  if (
+    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
+      req.user.role
+    )
+  ) {
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
@@ -428,7 +444,11 @@ exports.getCostCenterGroups = async (req, res) => {
 };
 
 exports.deleteCostCenterGroup = async (req, res) => {
-  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+  if (
+    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
+      req.user.role
+    )
+  ) {
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
