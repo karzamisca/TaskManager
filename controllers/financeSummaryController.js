@@ -45,15 +45,6 @@ const monthNumberToVietnamese = {
 
 // Helper function to extract month and year from submission date
 const getMonthYearFromSubmissionDate = (submissionDate) => {
-  if (
-    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
-      req.user.role
-    )
-  ) {
-    return res
-      .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
-  }
   try {
     // Parse DD-MM-YYYY HH:MM:SS format
     if (!submissionDate || typeof submissionDate !== "string") {
