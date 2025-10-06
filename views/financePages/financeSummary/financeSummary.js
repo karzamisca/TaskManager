@@ -89,10 +89,17 @@ $(document).ready(function () {
       hiddenForCategories: [],
     },
     {
-      key: "netRevenue",
-      label: "Doanh Thu Ròng",
+      key: "netRevenueWithConstruction",
+      label: "Doanh Thu Có Xây Dựng & Mua Bán",
       isPositive: true,
       color: "#007bff",
+      hiddenForCategories: [],
+    },
+    {
+      key: "netRevenueWithoutConstruction",
+      label: "Doanh Thu Không Xây Dựng & Mua Bán",
+      isPositive: true,
+      color: "#17a2b8",
       hiddenForCategories: [],
     },
   ];
@@ -310,9 +317,8 @@ $(document).ready(function () {
       mainChart.destroy();
     }
 
-    const metricInfo = [...metrics, ...constructionMetrics].find(
-      (m) => m.key === metric
-    );
+    const allMetrics = [...metrics, ...constructionMetrics];
+    const metricInfo = allMetrics.find((m) => m.key === metric);
     let chartData, labels;
 
     if (groupBy === "month") {
@@ -452,9 +458,15 @@ $(document).ready(function () {
     data.forEach((item) => {
       const monthKey = `${item.month}`;
       if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = 0;
+        monthlyData[monthKey] = {
+          withConstruction: 0,
+          withoutConstruction: 0,
+        };
       }
-      monthlyData[monthKey] += item.netRevenue || 0;
+      monthlyData[monthKey].withConstruction +=
+        item.netRevenueWithConstruction || 0;
+      monthlyData[monthKey].withoutConstruction +=
+        item.netRevenueWithoutConstruction || 0;
     });
 
     const labels = Object.keys(monthlyData).sort((a, b) => {
@@ -464,11 +476,14 @@ $(document).ready(function () {
       if (yearDiff !== 0) return yearDiff;
       return (monthOrder[monthA] || 0) - (monthOrder[monthB] || 0);
     });
-    const chartData = labels.map((label) => Math.ceil(monthlyData[label]));
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 250);
-    gradient.addColorStop(0, "#007bff80");
-    gradient.addColorStop(1, "#007bff20");
+    const gradientWith = ctx.createLinearGradient(0, 0, 0, 250);
+    gradientWith.addColorStop(0, "#007bff80");
+    gradientWith.addColorStop(1, "#007bff20");
+
+    const gradientWithout = ctx.createLinearGradient(0, 0, 0, 250);
+    gradientWithout.addColorStop(0, "#17a2b880");
+    gradientWithout.addColorStop(1, "#17a2b820");
 
     netRevenueChart = new Chart(ctx, {
       type: "line",
@@ -476,14 +491,31 @@ $(document).ready(function () {
         labels: labels,
         datasets: [
           {
-            label: "Doanh Thu Ròng",
-            data: chartData,
-            backgroundColor: gradient,
+            label: "Doanh Thu Có Xây Dựng & Mua Bán",
+            data: labels.map((label) =>
+              Math.ceil(monthlyData[label].withConstruction)
+            ),
+            backgroundColor: gradientWith,
             borderColor: "#007bff",
             borderWidth: 3,
             fill: true,
             tension: 0.4,
             pointBackgroundColor: "#007bff",
+            pointBorderColor: "#ffffff",
+            pointBorderWidth: 2,
+            pointRadius: 5,
+          },
+          {
+            label: "Doanh Thu Không Xây Dựng & Mua Bán",
+            data: labels.map((label) =>
+              Math.ceil(monthlyData[label].withoutConstruction)
+            ),
+            backgroundColor: gradientWithout,
+            borderColor: "#17a2b8",
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: "#17a2b8",
             pointBorderColor: "#ffffff",
             pointBorderWidth: 2,
             pointRadius: 5,
@@ -495,15 +527,16 @@ $(document).ready(function () {
         maintainAspectRatio: false,
         plugins: {
           legend: {
-            display: false,
+            display: true,
+            position: "top",
           },
           tooltip: {
             callbacks: {
               label: function (context) {
                 const value = context.parsed.y;
-                return `Doanh thu ròng: ${Math.ceil(value).toLocaleString(
-                  "vi-VN"
-                )} VNĐ`;
+                return `${context.dataset.label}: ${Math.ceil(
+                  value
+                ).toLocaleString("vi-VN")} VNĐ`;
               },
             },
           },
@@ -546,6 +579,8 @@ $(document).ready(function () {
       constructionIncome: 0,
       constructionExpense: 0,
       constructionNet: 0,
+      netRevenueWithConstruction: 0,
+      netRevenueWithoutConstruction: 0,
     };
 
     data.forEach((item) => {
@@ -559,6 +594,9 @@ $(document).ready(function () {
       totals.constructionIncome += item.constructionIncome || 0;
       totals.constructionExpense += item.constructionExpense || 0;
       totals.constructionNet += item.constructionNet || 0;
+      totals.netRevenueWithConstruction += item.netRevenueWithConstruction || 0;
+      totals.netRevenueWithoutConstruction +=
+        item.netRevenueWithoutConstruction || 0;
     });
 
     const labels = [
@@ -567,6 +605,8 @@ $(document).ready(function () {
       "Thu Xây dựng",
       "Chi Xây dựng",
       "Lợi nhuận Xây dựng",
+      "Doanh thu có XD & MB",
+      "Doanh thu không XD & MB",
     ];
     const chartData = [
       Math.ceil(totals.totalSale),
@@ -581,6 +621,8 @@ $(document).ready(function () {
       Math.ceil(totals.constructionIncome),
       Math.ceil(totals.constructionExpense),
       Math.ceil(totals.constructionNet),
+      Math.ceil(totals.netRevenueWithConstruction),
+      Math.ceil(totals.netRevenueWithoutConstruction),
     ];
 
     comparisonChart = new Chart(ctx, {
@@ -597,6 +639,8 @@ $(document).ready(function () {
               "#20c997",
               "#fd7e14",
               "#0dcaf0",
+              "#007bff",
+              "#17a2b8",
             ],
             borderColor: [
               "#28a745",
@@ -604,6 +648,8 @@ $(document).ready(function () {
               "#20c997",
               "#fd7e14",
               "#0dcaf0",
+              "#007bff",
+              "#17a2b8",
             ],
             borderWidth: 2,
           },
@@ -660,7 +706,8 @@ $(document).ready(function () {
         monthlyData[monthKey] = {
           totalSale: 0,
           totalPurchase: 0,
-          netRevenue: 0,
+          netRevenueWithConstruction: 0,
+          netRevenueWithoutConstruction: 0,
           totalTransport: 0,
           constructionIncome: 0,
           constructionExpense: 0,
@@ -669,7 +716,10 @@ $(document).ready(function () {
       }
       monthlyData[monthKey].totalSale += item.totalSale || 0;
       monthlyData[monthKey].totalPurchase += item.totalPurchase || 0;
-      monthlyData[monthKey].netRevenue += item.netRevenue || 0;
+      monthlyData[monthKey].netRevenueWithConstruction +=
+        item.netRevenueWithConstruction || 0;
+      monthlyData[monthKey].netRevenueWithoutConstruction +=
+        item.netRevenueWithoutConstruction || 0;
       monthlyData[monthKey].totalTransport += item.totalTransport || 0;
       monthlyData[monthKey].constructionIncome += item.constructionIncome || 0;
       monthlyData[monthKey].constructionExpense +=
@@ -687,10 +737,22 @@ $(document).ready(function () {
 
     const datasets = [
       {
-        label: "Doanh Thu Ròng",
-        data: labels.map((label) => Math.ceil(monthlyData[label].netRevenue)),
+        label: "Doanh Thu Có Xây Dựng & Mua Bán",
+        data: labels.map((label) =>
+          Math.ceil(monthlyData[label].netRevenueWithConstruction)
+        ),
         borderColor: "#007bff",
         backgroundColor: "#007bff20",
+        fill: false,
+        tension: 0.4,
+      },
+      {
+        label: "Doanh Thu Không Xây Dựng & Mua Bán",
+        data: labels.map((label) =>
+          Math.ceil(monthlyData[label].netRevenueWithoutConstruction)
+        ),
+        borderColor: "#17a2b8",
+        backgroundColor: "#17a2b820",
         fill: false,
         tension: 0.4,
       },
@@ -862,7 +924,8 @@ $(document).ready(function () {
           constructionIncome: 0,
           constructionExpense: 0,
           constructionNet: 0,
-          netRevenue: 0,
+          netRevenueWithConstruction: 0,
+          netRevenueWithoutConstruction: 0,
         };
       }
 
@@ -877,7 +940,7 @@ $(document).ready(function () {
       entry.constructionIncome += item.constructionIncome;
       entry.constructionExpense += item.constructionExpense;
       entry.constructionNet += item.constructionNet;
-      entry.netRevenue =
+      entry.netRevenueWithConstruction =
         entry.totalSale -
         entry.totalPurchase -
         entry.totalTransport -
@@ -886,6 +949,14 @@ $(document).ready(function () {
         entry.totalSalary -
         entry.totalPayments +
         entry.constructionNet;
+      entry.netRevenueWithoutConstruction =
+        entry.totalSale -
+        entry.totalPurchase -
+        entry.totalTransport -
+        entry.totalCommissionPurchase -
+        entry.totalCommissionSale -
+        entry.totalSalary -
+        entry.totalPayments;
     });
 
     // Round all numeric values in pivotData
@@ -901,7 +972,12 @@ $(document).ready(function () {
       entry.constructionIncome = Math.ceil(entry.constructionIncome);
       entry.constructionExpense = Math.ceil(entry.constructionExpense);
       entry.constructionNet = Math.ceil(entry.constructionNet);
-      entry.netRevenue = Math.ceil(entry.netRevenue);
+      entry.netRevenueWithConstruction = Math.ceil(
+        entry.netRevenueWithConstruction
+      );
+      entry.netRevenueWithoutConstruction = Math.ceil(
+        entry.netRevenueWithoutConstruction
+      );
     });
 
     const sortedCategories = Array.from(categories).sort();
@@ -978,7 +1054,12 @@ $(document).ready(function () {
         );
       } else if (category === "Đội") {
         filteredMetrics = filteredMetrics.filter((metric) =>
-          ["totalSalary", "totalPayments", "netRevenue"].includes(metric.key)
+          [
+            "totalSalary",
+            "totalPayments",
+            "netRevenueWithConstruction",
+            "netRevenueWithoutConstruction",
+          ].includes(metric.key)
         );
       }
 
@@ -1286,7 +1367,8 @@ $(document).ready(function () {
       return;
     }
 
-    let totalNetRevenue = 0;
+    let totalNetRevenueWithConstruction = 0;
+    let totalNetRevenueWithoutConstruction = 0;
     let totalSales = 0;
     let totalPurchases = 0;
     let totalTransport = 0;
@@ -1308,6 +1390,9 @@ $(document).ready(function () {
       totalConstructionIncome += item.constructionIncome || 0;
       totalConstructionExpense += item.constructionExpense || 0;
       totalConstructionNet += item.constructionNet || 0;
+      totalNetRevenueWithConstruction += item.netRevenueWithConstruction || 0;
+      totalNetRevenueWithoutConstruction +=
+        item.netRevenueWithoutConstruction || 0;
 
       if (!shouldHideMetricForCategory("totalPurchase", costCenterCategory)) {
         totalPurchases += item.totalPurchase;
@@ -1323,8 +1408,6 @@ $(document).ready(function () {
       ) {
         totalCommissionPurchase += item.totalCommissionPurchase;
       }
-
-      totalNetRevenue += item.netRevenue;
     });
 
     totalSales = Math.ceil(totalSales);
@@ -1337,9 +1420,17 @@ $(document).ready(function () {
     totalConstructionIncome = Math.ceil(totalConstructionIncome);
     totalConstructionExpense = Math.ceil(totalConstructionExpense);
     totalConstructionNet = Math.ceil(totalConstructionNet);
-    totalNetRevenue = Math.ceil(totalNetRevenue);
+    totalNetRevenueWithConstruction = Math.ceil(
+      totalNetRevenueWithConstruction
+    );
+    totalNetRevenueWithoutConstruction = Math.ceil(
+      totalNetRevenueWithoutConstruction
+    );
 
-    const currentBudget = STARTING_BUDGET_2025 + totalNetRevenue;
+    const currentBudgetWithConstruction =
+      STARTING_BUDGET_2025 + totalNetRevenueWithConstruction;
+    const currentBudgetWithoutConstruction =
+      STARTING_BUDGET_2025 + totalNetRevenueWithoutConstruction;
 
     const format = (num) => num.toLocaleString("vi-VN");
 
@@ -1407,17 +1498,33 @@ $(document).ready(function () {
         </span>
       </div>
       <div class="budget-item">
-        <span>Tổng doanh thu ròng (2025):</span>
-        <span class="${totalNetRevenue >= 0 ? "positive" : "negative"}">
-          ${totalNetRevenue >= 0 ? "+" : ""}${format(totalNetRevenue)} VNĐ
+        <span>Tổng doanh thu có XD & MB:</span>
+        <span class="${
+          totalNetRevenueWithConstruction >= 0 ? "positive" : "negative"
+        }">
+          ${totalNetRevenueWithConstruction >= 0 ? "+" : ""}${format(
+      totalNetRevenueWithConstruction
+    )} VNĐ
+        </span>
+      </div>
+      <div class="budget-item">
+        <span>Tổng doanh thu không XD & MB:</span>
+        <span class="${
+          totalNetRevenueWithoutConstruction >= 0 ? "positive" : "negative"
+        }">
+          ${totalNetRevenueWithoutConstruction >= 0 ? "+" : ""}${format(
+      totalNetRevenueWithoutConstruction
+    )} VNĐ
         </span>
       </div>
       <div class="budget-item budget-total">
-        <span>Ngân sách hiện tại:</span>
+        <span>Ngân sách hiện tại (có XD & MB):</span>
         <span class="${
-          currentBudget >= STARTING_BUDGET_2025 ? "positive" : "negative"
+          currentBudgetWithConstruction >= STARTING_BUDGET_2025
+            ? "positive"
+            : "negative"
         }">
-          ${format(currentBudget)} VNĐ
+          ${format(currentBudgetWithConstruction)} VNĐ
         </span>
       </div>
     `;
