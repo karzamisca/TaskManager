@@ -4,6 +4,18 @@ const CostCenter = require("../models/CostCenter");
 // Get construction entries for a specific cost center
 exports.getConstructionEntries = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "captainOfFinance",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+    }
     const { costCenterId } = req.params;
     const costCenter = await CostCenter.findById(costCenterId);
 
@@ -20,6 +32,18 @@ exports.getConstructionEntries = async (req, res) => {
 // Add new construction entry to a cost center
 exports.addConstructionEntry = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "captainOfFinance",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+    }
     const { costCenterId } = req.params;
     const { name, income, expense, date } = req.body;
 
@@ -60,6 +84,18 @@ exports.addConstructionEntry = async (req, res) => {
 // Update construction entry in a cost center
 exports.updateConstructionEntry = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "captainOfFinance",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+    }
     const { costCenterId, entryId } = req.params;
     const { name, income, expense, date } = req.body;
 
@@ -98,6 +134,18 @@ exports.updateConstructionEntry = async (req, res) => {
 // Delete construction entry from a cost center
 exports.deleteConstructionEntry = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "captainOfFinance",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+    }
     const { costCenterId, entryId } = req.params;
     const costCenter = await CostCenter.findById(costCenterId);
 
@@ -119,6 +167,18 @@ exports.deleteConstructionEntry = async (req, res) => {
 // Get all cost centers (for dropdown selection)
 exports.getCostCenters = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "captainOfFinance",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+    }
     const costCenters = await CostCenter.find({}, "name _id");
     res.json(costCenters);
   } catch (error) {

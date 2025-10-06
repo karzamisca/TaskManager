@@ -4,7 +4,14 @@ const ExcelJS = require("exceljs");
 
 exports.getAllCenters = async (req, res) => {
   try {
-    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "captainOfFinance",
+      ].includes(req.user.role)
+    ) {
       return res
         .status(403)
         .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
@@ -19,6 +26,18 @@ exports.getAllCenters = async (req, res) => {
 
 exports.exportAllCentersSummaryToExcel = async (req, res) => {
   try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "captainOfFinance",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+    }
     // Fetch all centers data
     const centers = await Center.find().lean();
 
@@ -183,7 +202,11 @@ function calculateMonthTotals(entries) {
 }
 
 exports.createCenter = async (req, res) => {
-  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+  if (
+    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
+      req.user.role
+    )
+  ) {
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
@@ -222,7 +245,11 @@ exports.createCenter = async (req, res) => {
 };
 
 exports.addMonthEntry = async (req, res) => {
-  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+  if (
+    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
+      req.user.role
+    )
+  ) {
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
@@ -286,7 +313,14 @@ exports.addMonthEntry = async (req, res) => {
 
 exports.deleteCenter = async (req, res) => {
   try {
-    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "captainOfFinance",
+      ].includes(req.user.role)
+    ) {
       return res
         .status(403)
         .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
@@ -300,7 +334,11 @@ exports.deleteCenter = async (req, res) => {
 };
 
 exports.addYear = async (req, res) => {
-  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+  if (
+    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
+      req.user.role
+    )
+  ) {
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
@@ -345,7 +383,11 @@ exports.addYear = async (req, res) => {
 };
 
 exports.updateYear = async (req, res) => {
-  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+  if (
+    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
+      req.user.role
+    )
+  ) {
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
@@ -381,7 +423,14 @@ exports.updateYear = async (req, res) => {
 
 exports.reorderYears = async (req, res) => {
   try {
-    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "captainOfFinance",
+      ].includes(req.user.role)
+    ) {
       return res
         .status(403)
         .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
@@ -407,7 +456,11 @@ exports.reorderYears = async (req, res) => {
 };
 
 exports.deleteMonthEntry = async (req, res) => {
-  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+  if (
+    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
+      req.user.role
+    )
+  ) {
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
@@ -444,7 +497,11 @@ exports.deleteMonthEntry = async (req, res) => {
 };
 
 exports.updateMonthEntry = async (req, res) => {
-  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+  if (
+    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
+      req.user.role
+    )
+  ) {
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
@@ -493,7 +550,11 @@ exports.updateMonthEntry = async (req, res) => {
 };
 
 exports.updateCenter = async (req, res) => {
-  if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+  if (
+    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
+      req.user.role
+    )
+  ) {
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
