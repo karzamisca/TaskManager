@@ -340,18 +340,8 @@ exports.getRevenueByCostCenter = async (req, res) => {
           constructionNet = constructionDataForMonth.net;
         }
 
-        // Calculate both revenue types
-        const netRevenueWithConstruction =
-          totalSale -
-          totalPurchase -
-          totalTransport -
-          totalCommissionPurchase -
-          totalCommissionSale -
-          totalSalary -
-          totalPayments +
-          constructionNet;
-
-        const netRevenueWithoutConstruction =
+        // Calculate net revenue (ADD construction net income)
+        const netRevenue =
           totalSale -
           totalPurchase -
           totalTransport -
@@ -380,8 +370,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
           constructionIncome: constructionIncome,
           constructionExpense: constructionExpense,
           constructionNet: constructionNet,
-          netRevenueWithConstruction: netRevenueWithConstruction,
-          netRevenueWithoutConstruction: netRevenueWithoutConstruction,
+          netRevenue: netRevenue,
         });
       }
     }
