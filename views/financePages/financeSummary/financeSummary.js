@@ -948,6 +948,45 @@ $(document).ready(function () {
       };
     });
 
+    // Calculate total revenue across all categories (excluding construction) for each month
+    const monthlyRevenueData = {};
+    sortedMonths.forEach((month) => {
+      monthlyRevenueData[month] = 0;
+    });
+
+    // First, process all categories and accumulate revenue data
+    sortedCategories.forEach((category) => {
+      if (category === "Xây Dựng") return;
+
+      // Accumulate revenue data for the summary row
+      sortedMonths.forEach((month) => {
+        const categoryCostCenters = Array.from(
+          costCentersByCategory[category] || []
+        );
+
+        categoryCostCenters.forEach((costCenter) => {
+          const entry = Object.values(pivotData).find(
+            (item) =>
+              item.costCenter === costCenter &&
+              item.month === month &&
+              item.category === category
+          );
+          if (entry) {
+            // Calculate revenue from first 4 metrics: totalSale, totalPurchase, totalTransport, totalCommissionPurchase
+            monthlyRevenueData[month] +=
+              (entry.totalSale || 0) -
+              (entry.totalPurchase || 0) -
+              (entry.totalTransport || 0) -
+              (entry.totalCommissionPurchase || 0) -
+              (entry.totalCommissionSale || 0) -
+              (entry.totalSalary || 0) -
+              (entry.totalPayments || 0);
+          }
+        });
+      });
+    });
+
+    // Now create the table rows
     sortedCategories.forEach((category) => {
       if (category === "Xây Dựng") return;
 
@@ -956,9 +995,9 @@ $(document).ready(function () {
       );
       categoryRow.append(
         `<td class="first-column">
-        <span class="category-toggle">▶</span>
-        <strong class="text-primary">${category}</strong>
-      </td>`
+          <span class="category-toggle">▶</span>
+          <strong class="text-primary">${category}</strong>
+        </td>`
       );
 
       sortedMonths.forEach(() => {
@@ -991,9 +1030,9 @@ $(document).ready(function () {
         );
         metricRow.append(
           `<td class="first-column" style="width: 250px; min-width: 250px; max-width: 250px; padding-left: 30px; white-space: nowrap;">
-          <span class="metric-toggle">▶</span>
-          <strong>${metric.label}</strong>
-        </td>`
+            <span class="metric-toggle">▶</span>
+            <strong>${metric.label}</strong>
+          </td>`
         );
 
         sortedMonths.forEach((month) => {
@@ -1040,8 +1079,8 @@ $(document).ready(function () {
           );
           costCenterRow.append(
             `<td class="first-column" style="padding-left: 60px;">
-            <strong>${costCenter}</strong>
-          </td>`
+              <strong>${costCenter}</strong>
+            </td>`
           );
 
           sortedMonths.forEach((month) => {
@@ -1070,14 +1109,38 @@ $(document).ready(function () {
       });
     });
 
+    // Add single Revenue Calculation Row for all categories (excluding construction)
+    const revenueRow = $(`<tr class="revenue-row"></tr>`);
+    revenueRow.append(
+      `<td class="first-column" style="width: 250px; min-width: 250px; max-width: 250px; padding-left: 15px; white-space: nowrap;">
+        <strong>Tổng Doanh Thu</strong>
+      </td>`
+    );
+
+    sortedMonths.forEach((month) => {
+      const totalRevenue = Math.ceil(monthlyRevenueData[month]);
+
+      let cellClass = "";
+      if (totalRevenue > 0) cellClass = "positive";
+      else if (totalRevenue < 0) cellClass = "negative";
+
+      const formattedValue =
+        totalRevenue === 0 ? "-" : totalRevenue.toLocaleString("vi-VN");
+      revenueRow.append(
+        `<td class="month-column ${cellClass}" style="width: 150px; min-width: 150px; max-width: 150px; text-align: right; font-weight: bold; white-space: nowrap;">${formattedValue}</td>`
+      );
+    });
+
+    tableBody.append(revenueRow);
+
     const constructionCategoryRow = $(
       `<tr class="category-row" data-category="Xây Dựng"></tr>`
     );
     constructionCategoryRow.append(
       `<td class="first-column">
-        <span class="category-toggle">▶</span>
-        <strong class="text-primary">Mua bán và Xây dựng</strong>
-      </td>`
+          <span class="category-toggle">▶</span>
+          <strong class="text-primary">Mua bán và Xây dựng</strong>
+        </td>`
     );
 
     sortedMonths.forEach(() => {
@@ -1094,9 +1157,9 @@ $(document).ready(function () {
       );
       metricRow.append(
         `<td class="first-column" style="width: 250px; min-width: 250px; max-width: 250px; padding-left: 30px; white-space: nowrap;">
-          <span class="metric-toggle">▶</span>
-          <strong>${metric.label}</strong>
-        </td>`
+            <span class="metric-toggle">▶</span>
+            <strong>${metric.label}</strong>
+          </td>`
       );
 
       sortedMonths.forEach((month) => {
@@ -1130,8 +1193,8 @@ $(document).ready(function () {
         );
         costCenterRow.append(
           `<td class="first-column" style="padding-left: 60px;">
-            <strong>${costCenter}</strong>
-          </td>`
+              <strong>${costCenter}</strong>
+            </td>`
         );
 
         sortedMonths.forEach((month) => {
@@ -1275,7 +1338,6 @@ $(document).ready(function () {
 
     return Object.values(pivotData);
   }
-
   function updateBudgetSummary(data, year) {
     const budgetContainer = $("#budgetSummaryContainer");
     const budgetDetails = $("#budgetDetails");
