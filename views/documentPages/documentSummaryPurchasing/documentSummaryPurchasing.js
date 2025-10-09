@@ -406,29 +406,29 @@ const renderDocumentsTable = (documents) => {
           <form action="/exportDocumentToDocx/${
             doc._id
           }" method="GET" style="display:inline;">
-              <button class="btn btn-primary btn-sm">
-                <i class="fas fa-file-word"></i> Xuất DOCX
-              </button>
+            <button class="btn btn-primary btn-sm">
+              <i class="fas fa-file-word"></i> Xuất DOCX
+            </button>
           </form>
           ${
             doc.approvedBy.length === 0
               ? `
-            <button class="btn btn-primary btn-sm" onclick="editDocument('${doc._id}')">
-              <i class="fas fa-edit"></i> Sửa
-            </button>
-            <button class="btn btn-danger btn-sm" onclick="deleteDocument('${doc._id}')">
-              <i class="fas fa-trash"></i> Xóa
-            </button>
-          `
+                <button class="btn btn-primary btn-sm" onclick="editDocument('${doc._id}')">
+                  <i class="fas fa-edit"></i> Sửa
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deleteDocument('${doc._id}')">
+                  <i class="fas fa-trash"></i> Xóa
+                </button>
+              `
               : ""
           }
           ${
             doc.status === "Pending"
               ? `
-            <button class="btn btn-primary btn-sm" onclick="approveDocument('${doc._id}')">
-              <i class="fas fa-check"></i> Phê duyệt
-            </button>
-          `
+                <button class="btn btn-primary btn-sm" onclick="approveDocument('${doc._id}')">
+                  <i class="fas fa-check"></i> Phê duyệt
+                </button>
+              `
               : ""
           }
           ${
@@ -438,7 +438,10 @@ const renderDocumentsTable = (documents) => {
                   <i class="fas fa-edit"></i> Kê khai
                 </button>
               `
-              : doc.status === "Suspended"
+              : ""
+          }
+          ${
+            doc.status === "Suspended"
               ? `
                 <button class="btn btn-primary btn-sm" onclick="openDocument('${doc._id}')">
                   <i class="fas fa-lock-open"></i> Mở
@@ -454,7 +457,7 @@ const renderDocumentsTable = (documents) => {
             doc._id
           }')">
             <i class="fas fa-link"></i> Liên quan
-          </button>                    
+          </button>
         </div>
       </td>
     `;
