@@ -11,152 +11,157 @@
     />
     <link
       rel="stylesheet"
-      href="financePages/financeCostCenterConstruction/financeCostCenterConstruction.css"
+      href="financePages/financeCostCenterConstruction/financeCostCenterConstruction.css?v=1.0"
     />
   </head>
-  <body class="finance-construction-page">
-    <div class="container">
-      <h1>Quản Lý Tài Chính Mua sắm và Xây dựng</h1>
+  <body>
+    <!-- Header will be loaded here by headerLoader.js -->
 
-      <!-- Lựa chọn trạm -->
-      <div class="form-group">
-        <label for="costCenterSelect">Chọn Trạm:</label>
-        <select id="costCenterSelect" onchange="loadCostCenterData()">
-          <option value="">-- Chọn Trạm --</option>
-        </select>
-      </div>
+    <!-- Finance page content wrapped in its own container -->
+    <div class="finance-construction-page">
+      <div class="container">
+        <h1>Quản Lý Tài Chính Mua sắm và Xây dựng</h1>
 
-      <div id="costCenterInfo" class="cost-center-info hidden">
-        <h2>Trạm: <span id="costCenterName"></span></h2>
-      </div>
-
-      <!-- Tóm tắt -->
-      <div id="summarySection" class="summary hidden">
-        <h3>Tổng Kết</h3>
-        <div class="summary-item">
-          <strong>Tổng Thu Nhập:</strong> <span id="totalIncome">0</span> VND
+        <!-- Lựa chọn trạm -->
+        <div class="form-group">
+          <label for="costCenterSelect">Chọn Trạm:</label>
+          <select id="costCenterSelect" onchange="loadCostCenterData()">
+            <option value="">-- Chọn Trạm --</option>
+          </select>
         </div>
-        <div class="summary-item">
-          <strong>Tổng Chi Phí:</strong> <span id="totalExpense">0</span> VND
-        </div>
-        <div class="summary-item">
-          <strong>Lợi Nhuận:</strong> <span id="totalProfit">0</span> VND
-        </div>
-      </div>
 
-      <!-- Form thêm mới -->
-      <div id="addFormContainer" class="hidden">
-        <h2>Thêm Mục Mua sắm và Xây dựng Mới</h2>
-        <form id="addForm">
-          <div class="form-group">
-            <label for="name">Tên công trình:</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              required
-              placeholder="Nhập tên công trình"
-            />
-          </div>
-          <div class="form-group">
-            <label for="income">Thu nhập (VND):</label>
-            <input
-              type="number"
-              id="income"
-              name="income"
-              step="0.1"
-              required
-              placeholder="Nhập số tiền thu"
-            />
-          </div>
-          <div class="form-group">
-            <label for="expense">Chi phí (VND):</label>
-            <input
-              type="number"
-              id="expense"
-              name="expense"
-              step="0.1"
-              required
-              placeholder="Nhập số tiền chi"
-            />
-          </div>
-          <div class="form-group">
-            <label for="date">Ngày (DD/MM/YYYY):</label>
-            <input
-              type="text"
-              id="date"
-              name="date"
-              placeholder="DD/MM/YYYY"
-              required
-              pattern="\d{2}/\d{2}/\d{4}"
-            />
-          </div>
-          <button type="submit">Thêm Mục</button>
-        </form>
+        <div id="costCenterInfo" class="cost-center-info hidden">
+          <h2>Trạm: <span id="costCenterName"></span></h2>
+        </div>
 
-        <!-- Form chỉnh sửa -->
-        <div id="editForm" class="edit-form hidden">
-          <h2>Chỉnh Sửa Mục Mua sắm và Xây dựng</h2>
-          <form id="editEntryForm">
-            <input type="hidden" id="editId" name="id" />
+        <!-- Tóm tắt -->
+        <div id="summarySection" class="summary hidden">
+          <h3>Tổng Kết</h3>
+          <div class="summary-item">
+            <strong>Tổng Thu Nhập:</strong> <span id="totalIncome">0</span> VND
+          </div>
+          <div class="summary-item">
+            <strong>Tổng Chi Phí:</strong> <span id="totalExpense">0</span> VND
+          </div>
+          <div class="summary-item">
+            <strong>Lợi Nhuận:</strong> <span id="totalProfit">0</span> VND
+          </div>
+        </div>
+
+        <!-- Form thêm mới -->
+        <div id="addFormContainer" class="hidden">
+          <h2>Thêm Mục Mua sắm và Xây dựng Mới</h2>
+          <form id="addForm">
             <div class="form-group">
-              <label for="editName">Tên công trình:</label>
-              <input type="text" id="editName" name="name" required />
+              <label for="name">Tên công trình:</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                required
+                placeholder="Nhập tên công trình"
+              />
             </div>
             <div class="form-group">
-              <label for="editIncome">Thu nhập (VND):</label>
+              <label for="income">Thu nhập (VND):</label>
               <input
                 type="number"
-                id="editIncome"
+                id="income"
                 name="income"
                 step="0.1"
                 required
+                placeholder="Nhập số tiền thu"
               />
             </div>
             <div class="form-group">
-              <label for="editExpense">Chi phí (VND):</label>
+              <label for="expense">Chi phí (VND):</label>
               <input
                 type="number"
-                id="editExpense"
+                id="expense"
                 name="expense"
                 step="0.1"
                 required
+                placeholder="Nhập số tiền chi"
               />
             </div>
             <div class="form-group">
-              <label for="editDate">Ngày (DD/MM/YYYY):</label>
+              <label for="date">Ngày (DD/MM/YYYY):</label>
               <input
                 type="text"
-                id="editDate"
+                id="date"
                 name="date"
+                placeholder="DD/MM/YYYY"
                 required
                 pattern="\d{2}/\d{2}/\d{4}"
               />
             </div>
-            <button type="submit">Cập Nhật</button>
-            <button type="button" onclick="cancelEdit()">Hủy</button>
+            <button type="submit">Thêm Mục</button>
           </form>
-        </div>
 
-        <!-- Bảng dữ liệu -->
-        <h2>Danh Sách Mục Mua sắm và Xây dựng</h2>
-        <table id="entriesTable">
-          <thead>
-            <tr>
-              <th>Tên công trình</th>
-              <th>Thu nhập (VND)</th>
-              <th>Chi phí (VND)</th>
-              <th>Ngày</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody id="entriesBody"></tbody>
-        </table>
+          <!-- Form chỉnh sửa -->
+          <div id="editForm" class="edit-form hidden">
+            <h2>Chỉnh Sửa Mục Mua sắm và Xây dựng</h2>
+            <form id="editEntryForm">
+              <input type="hidden" id="editId" name="id" />
+              <div class="form-group">
+                <label for="editName">Tên công trình:</label>
+                <input type="text" id="editName" name="name" required />
+              </div>
+              <div class="form-group">
+                <label for="editIncome">Thu nhập (VND):</label>
+                <input
+                  type="number"
+                  id="editIncome"
+                  name="income"
+                  step="0.1"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="editExpense">Chi phí (VND):</label>
+                <input
+                  type="number"
+                  id="editExpense"
+                  name="expense"
+                  step="0.1"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="editDate">Ngày (DD/MM/YYYY):</label>
+                <input
+                  type="text"
+                  id="editDate"
+                  name="date"
+                  required
+                  pattern="\d{2}/\d{2}/\d{4}"
+                />
+              </div>
+              <button type="submit">Cập Nhật</button>
+              <button type="button" onclick="cancelEdit()">Hủy</button>
+            </form>
+          </div>
+
+          <!-- Bảng dữ liệu -->
+          <h2>Danh Sách Mục Mua sắm và Xây dựng</h2>
+          <table id="entriesTable">
+            <thead>
+              <tr>
+                <th>Tên công trình</th>
+                <th>Thu nhập (VND)</th>
+                <th>Chi phí (VND)</th>
+                <th>Ngày</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="entriesBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="financePages/financeCostCenterConstruction/financeCostCenterConstruction.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
+    <script src="financePages/financeCostCenterConstruction/financeCostCenterConstruction.js"></script>
   </body>
 </html>

@@ -156,7 +156,7 @@
 }
 
 .finance-construction-page .hidden {
-  display: none !important;
+  display: none;
 }
 
 .finance-construction-page .cost-center-info {

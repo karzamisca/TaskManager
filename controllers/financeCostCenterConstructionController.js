@@ -179,7 +179,10 @@ exports.getCostCenters = async (req, res) => {
         .status(403)
         .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
     }
-    const costCenters = await CostCenter.find({}, "name _id");
+
+    // Fetch cost centers sorted alphabetically by name
+    const costCenters = await CostCenter.find({}, "name _id").sort({ name: 1 });
+
     res.json(costCenters);
   } catch (error) {
     res.status(500).json({ message: error.message });
