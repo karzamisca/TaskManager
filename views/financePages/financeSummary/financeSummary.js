@@ -872,7 +872,7 @@ $(document).ready(function () {
       entry.totalTransport += item.totalTransport;
       entry.totalCommissionPurchase += item.totalCommissionPurchase;
       entry.totalCommissionSale += item.totalCommissionSale;
-      entry.totalSalary += item.grossSalary;
+      entry.totalSalary += item.totalSalary;
       entry.totalPayments += item.totalPayments;
       entry.constructionIncome += item.constructionIncome;
       entry.constructionExpense += item.constructionExpense;

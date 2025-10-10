@@ -361,13 +361,12 @@ exports.getRevenueByCostCenter = async (req, res) => {
           recordYear: parseInt(year),
           actualMonth: vietnameseMonth,
           actualYear: actualYear,
-          currentSalary: totalSalary, // Changed from grossSalary
           totalSale: totalSale,
           totalPurchase: totalPurchase,
           totalTransport: totalTransport,
           totalCommissionPurchase: totalCommissionPurchase,
           totalCommissionSale: totalCommissionSale,
-          totalSalary: totalSalary,
+          totalSalary: totalSalary, // Sum of all employee salaries (using currentSalary from records)
           totalPayments: totalPayments,
           constructionIncome: constructionIncome,
           constructionExpense: constructionExpense,
