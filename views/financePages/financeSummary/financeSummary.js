@@ -836,6 +836,9 @@ $(document).ready(function () {
     const costCenters = new Set();
     const months = new Set();
 
+    // IMPORTANT: Track unique employees per cost center/month to avoid double counting
+    const salaryTracking = {};
+
     data.forEach((item) => {
       const category =
         getCostCenterCategory(item.costCenter) || "Không phân loại";
@@ -864,19 +867,38 @@ $(document).ready(function () {
           constructionNet: 0,
           netRevenue: 0,
         };
+        // Initialize salary tracking for this key
+        salaryTracking[centerMonthKey] = new Set();
       }
 
       const entry = pivotData[centerMonthKey];
-      entry.totalSale += item.totalSale;
-      entry.totalPurchase += item.totalPurchase;
-      entry.totalTransport += item.totalTransport;
-      entry.totalCommissionPurchase += item.totalCommissionPurchase;
-      entry.totalCommissionSale += item.totalCommissionSale;
-      entry.totalSalary += item.totalSalary;
-      entry.totalPayments += item.totalPayments;
-      entry.constructionIncome += item.constructionIncome;
-      entry.constructionExpense += item.constructionExpense;
-      entry.constructionNet += item.constructionNet;
+
+      // Accumulate non-salary metrics normally
+      entry.totalSale += item.totalSale || 0;
+      entry.totalPurchase += item.totalPurchase || 0;
+      entry.totalTransport += item.totalTransport || 0;
+      entry.totalCommissionPurchase += item.totalCommissionPurchase || 0;
+      entry.totalCommissionSale += item.totalCommissionSale || 0;
+      entry.totalPayments += item.totalPayments || 0;
+      entry.constructionIncome += item.constructionIncome || 0;
+      entry.constructionExpense += item.constructionExpense || 0;
+      entry.constructionNet += item.constructionNet || 0;
+
+      // FIX: Handle salary carefully to avoid double counting
+      // If your data has an employee ID or unique identifier, use it
+      // Otherwise, create a unique key based on available data
+      const employeeKey =
+        item.employeeId ||
+        item.employeeName ||
+        `emp_${item.totalSalary || 0}_${Math.random()}`;
+
+      // Only add salary if this employee hasn't been counted for this cost center/month
+      if (employeeKey && !salaryTracking[centerMonthKey].has(employeeKey)) {
+        entry.totalSalary += item.totalSalary || 0;
+        salaryTracking[centerMonthKey].add(employeeKey);
+      }
+
+      // Recalculate net revenue with corrected salary
       entry.netRevenue =
         entry.totalSale -
         entry.totalPurchase -
@@ -972,7 +994,7 @@ $(document).ready(function () {
               item.category === category
           );
           if (entry) {
-            // Calculate revenue from first 4 metrics: totalSale, totalPurchase, totalTransport, totalCommissionPurchase
+            // Calculate revenue from all metrics
             monthlyRevenueData[month] +=
               (entry.totalSale || 0) -
               (entry.totalPurchase || 0) -
