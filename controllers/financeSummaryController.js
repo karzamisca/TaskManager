@@ -322,9 +322,10 @@ exports.getRevenueByCostCenter = async (req, res) => {
           }
         }
 
-        // FIXED: Get total salary using actualMonthNumber and actualYear (previous month)
-        // Salary for recordMonth uses actualMonthNumber/actualYear data
-        const salaryKey = `${costCenterName}-${actualMonthNumber}-${actualYear}`;
+        // FIXED: Get total salary from UserMonthlyRecord
+        // If recordMonth in UserMonthlyRecord follows the same pattern (month N contains data for month N-1),
+        // then we need to look up recordMonth = month to get the previous month's salary
+        const salaryKey = `${costCenterName}-${month}-${year}`;
         totalSalary = costCenterSalaryMap[salaryKey] || 0;
 
         // Get total payments for this cost center/month
