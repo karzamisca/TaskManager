@@ -867,22 +867,16 @@ $(document).ready(function () {
       }
 
       const entry = pivotData[centerMonthKey];
-
-      // Backend already aggregates all data per cost center per month
-      // So we should use direct assignment OR only add once per centerMonthKey
-      // Since we're creating unique keys, this block only runs once per combination
-      entry.totalSale += item.totalSale || 0;
-      entry.totalPurchase += item.totalPurchase || 0;
-      entry.totalTransport += item.totalTransport || 0;
-      entry.totalCommissionPurchase += item.totalCommissionPurchase || 0;
-      entry.totalCommissionSale += item.totalCommissionSale || 0;
-      entry.totalSalary += item.totalSalary || 0; // Backend already summed all employees
-      entry.totalPayments += item.totalPayments || 0;
-      entry.constructionIncome += item.constructionIncome || 0;
-      entry.constructionExpense += item.constructionExpense || 0;
-      entry.constructionNet += item.constructionNet || 0;
-
-      // Recalculate net revenue
+      entry.totalSale += item.totalSale;
+      entry.totalPurchase += item.totalPurchase;
+      entry.totalTransport += item.totalTransport;
+      entry.totalCommissionPurchase += item.totalCommissionPurchase;
+      entry.totalCommissionSale += item.totalCommissionSale;
+      entry.totalSalary += item.totalSalary;
+      entry.totalPayments += item.totalPayments;
+      entry.constructionIncome += item.constructionIncome;
+      entry.constructionExpense += item.constructionExpense;
+      entry.constructionNet += item.constructionNet;
       entry.netRevenue =
         entry.totalSale -
         entry.totalPurchase -
@@ -978,7 +972,7 @@ $(document).ready(function () {
               item.category === category
           );
           if (entry) {
-            // Calculate revenue from all metrics
+            // Calculate revenue from first 4 metrics: totalSale, totalPurchase, totalTransport, totalCommissionPurchase
             monthlyRevenueData[month] +=
               (entry.totalSale || 0) -
               (entry.totalPurchase || 0) -

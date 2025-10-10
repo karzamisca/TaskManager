@@ -130,8 +130,12 @@ exports.getRevenueByCostCenter = async (req, res) => {
     }
 
     // Get all user monthly records for the specified year and cost centers
+    // EXCLUDE management roles: deputyDirector, director, headOfAccounting
     const userRecords = await UserMonthlyRecord.find({
       recordYear: parseInt(year),
+      role: {
+        $nin: ["deputyDirector", "director", "headOfAccounting"],
+      },
     })
       .populate("costCenter")
       .lean();
@@ -263,6 +267,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
 
     // First pass: Calculate total salaries per cost center per month
     // FIXED: Using currentSalary instead of grossSalary
+    // Management roles (deputyDirector, director, headOfAccounting) are already excluded from userRecords
     for (const record of filteredUserRecords) {
       if (!record.costCenter) continue;
 
@@ -324,7 +329,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
           }
         }
 
-        // Get total salary for this cost center/month
+        // Get total salary for this cost center/month (excluding management roles)
         const salaryKey = `${costCenterName}-${month}-${year}`;
         totalSalary = costCenterSalaryMap[salaryKey] || 0;
 
@@ -366,7 +371,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
           totalTransport: totalTransport,
           totalCommissionPurchase: totalCommissionPurchase,
           totalCommissionSale: totalCommissionSale,
-          totalSalary: totalSalary, // Sum of all employee salaries (using currentSalary from records)
+          totalSalary: totalSalary, // Sum of all employee salaries (EXCLUDING management roles)
           totalPayments: totalPayments,
           constructionIncome: constructionIncome,
           constructionExpense: constructionExpense,
