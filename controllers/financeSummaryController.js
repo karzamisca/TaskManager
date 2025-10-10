@@ -262,6 +262,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
     const costCenterSalaryMap = {}; // To accumulate salaries by cost center
 
     // First pass: Calculate total salaries per cost center per month
+    // FIXED: Using currentSalary instead of grossSalary
     for (const record of filteredUserRecords) {
       if (!record.costCenter) continue;
 
@@ -270,7 +271,8 @@ exports.getRevenueByCostCenter = async (req, res) => {
       if (!costCenterSalaryMap[key]) {
         costCenterSalaryMap[key] = 0;
       }
-      costCenterSalaryMap[key] += record.grossSalary || 0;
+      // Using currentSalary (net salary after deductions)
+      costCenterSalaryMap[key] += record.currentSalary || 0;
     }
 
     // Second pass: Calculate net revenue including payment documents AND construction
@@ -322,9 +324,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
           }
         }
 
-        // FIXED: Get total salary from UserMonthlyRecord
-        // If recordMonth in UserMonthlyRecord follows the same pattern (month N contains data for month N-1),
-        // then we need to look up recordMonth = month to get the previous month's salary
+        // Get total salary for this cost center/month
         const salaryKey = `${costCenterName}-${month}-${year}`;
         totalSalary = costCenterSalaryMap[salaryKey] || 0;
 
@@ -361,7 +361,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
           recordYear: parseInt(year),
           actualMonth: vietnameseMonth,
           actualYear: actualYear,
-          grossSalary: totalSalary,
+          currentSalary: totalSalary, // Changed from grossSalary
           totalSale: totalSale,
           totalPurchase: totalPurchase,
           totalTransport: totalTransport,
