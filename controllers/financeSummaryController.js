@@ -322,8 +322,9 @@ exports.getRevenueByCostCenter = async (req, res) => {
           }
         }
 
-        // Get total salary for this cost center/month
-        const salaryKey = `${costCenterName}-${month}-${year}`;
+        // FIXED: Get total salary using actualMonthNumber and actualYear (previous month)
+        // Salary for recordMonth uses actualMonthNumber/actualYear data
+        const salaryKey = `${costCenterName}-${actualMonthNumber}-${actualYear}`;
         totalSalary = costCenterSalaryMap[salaryKey] || 0;
 
         // Get total payments for this cost center/month
@@ -340,7 +341,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
           constructionNet = constructionDataForMonth.net;
         }
 
-        // Calculate net revenue (ADD construction net income)
+        // Calculate net revenue
         const netRevenue =
           totalSale -
           totalPurchase -
