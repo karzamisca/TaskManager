@@ -836,9 +836,6 @@ $(document).ready(function () {
     const costCenters = new Set();
     const months = new Set();
 
-    // IMPORTANT: Track unique employees per cost center/month to avoid double counting
-    const salaryTracking = {};
-
     data.forEach((item) => {
       const category =
         getCostCenterCategory(item.costCenter) || "Không phân loại";
@@ -867,38 +864,25 @@ $(document).ready(function () {
           constructionNet: 0,
           netRevenue: 0,
         };
-        // Initialize salary tracking for this key
-        salaryTracking[centerMonthKey] = new Set();
       }
 
       const entry = pivotData[centerMonthKey];
 
-      // Accumulate non-salary metrics normally
+      // Backend already aggregates all data per cost center per month
+      // So we should use direct assignment OR only add once per centerMonthKey
+      // Since we're creating unique keys, this block only runs once per combination
       entry.totalSale += item.totalSale || 0;
       entry.totalPurchase += item.totalPurchase || 0;
       entry.totalTransport += item.totalTransport || 0;
       entry.totalCommissionPurchase += item.totalCommissionPurchase || 0;
       entry.totalCommissionSale += item.totalCommissionSale || 0;
+      entry.totalSalary += item.totalSalary || 0; // Backend already summed all employees
       entry.totalPayments += item.totalPayments || 0;
       entry.constructionIncome += item.constructionIncome || 0;
       entry.constructionExpense += item.constructionExpense || 0;
       entry.constructionNet += item.constructionNet || 0;
 
-      // FIX: Handle salary carefully to avoid double counting
-      // If your data has an employee ID or unique identifier, use it
-      // Otherwise, create a unique key based on available data
-      const employeeKey =
-        item.employeeId ||
-        item.employeeName ||
-        `emp_${item.totalSalary || 0}_${Math.random()}`;
-
-      // Only add salary if this employee hasn't been counted for this cost center/month
-      if (employeeKey && !salaryTracking[centerMonthKey].has(employeeKey)) {
-        entry.totalSalary += item.totalSalary || 0;
-        salaryTracking[centerMonthKey].add(employeeKey);
-      }
-
-      // Recalculate net revenue with corrected salary
+      // Recalculate net revenue
       entry.netRevenue =
         entry.totalSale -
         entry.totalPurchase -
