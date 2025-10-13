@@ -977,44 +977,138 @@ const addEditModal = () => {
   document.body.insertAdjacentHTML("beforeend", modalHTML);
 };
 
-const addProductField = (product = null) => {
+const fetchProducts = async () => {
+  try {
+    const response = await fetch("/documentProduct");
+    const products = await response.json();
+    return products;
+  } catch (error) {
+    console.error("Lỗi khi lấy danh sách sản phẩm:", error);
+    return [];
+  }
+};
+
+const addProductField = async (product = null) => {
   const productsList = document.getElementById("productsList");
   const productDiv = document.createElement("div");
   productDiv.className = "product-item";
 
-  productDiv.innerHTML = `
-    <div class="product-fields">
-      <input type="text" placeholder="Tên sản phẩm" value="${
-        product?.productName || ""
-      }" required>
-      <input type="number" placeholder="Đơn giá" value="${
-        product?.costPerUnit || ""
-      }" required step="0.01">
-      <input type="number" placeholder="Số lượng" value="${
-        product?.amount || ""
-      }" required>
-      <input type="number" placeholder="VAT(%)" value="${
-        product?.vat !== undefined ? product.vat : ""
-      }" required step="0.01">
-      <select class="product-cost-center" placeholder="Trạm">
-        <option value="">Chọn trạm</option>
-        ${state.costCenters
-          .map(
-            (center) =>
-              `<option value="${center.name}" ${
-                product?.costCenter === center.name ? "selected" : ""
-              }>
-            ${center.name}
-          </option>`
-          )
-          .join("")}
-      </select>
-      <input type="text" placeholder="Ghi chú" value="${product?.note || ""}">
-      <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.parentElement.remove()">
-        <i class="fas fa-trash"></i> Xóa
-      </button>
-    </div>
-  `;
+  // Create the container first
+  const fieldsContainer = document.createElement("div");
+  fieldsContainer.className = "product-fields";
+  productDiv.appendChild(fieldsContainer);
+
+  // Product dropdown instead of text input
+  const productDropdown = document.createElement("select");
+  productDropdown.required = true;
+  productDropdown.placeholder = "Chọn sản phẩm";
+
+  // Add default option
+  const defaultOption = document.createElement("option");
+  defaultOption.value = "";
+  defaultOption.textContent = "Chọn sản phẩm";
+  productDropdown.appendChild(defaultOption);
+
+  // Fetch and populate products
+  let fallbackToInput = false;
+  try {
+    const products = await fetchProducts();
+    products.forEach((prod) => {
+      const option = document.createElement("option");
+      option.value = prod.name;
+      option.textContent = `${prod.name} (${prod.code})`;
+      productDropdown.appendChild(option);
+    });
+
+    // Set selected value if editing existing product
+    if (product && product.productName !== undefined) {
+      productDropdown.value = product.productName;
+    }
+  } catch (error) {
+    console.error("Error loading products:", error);
+    fallbackToInput = true;
+  }
+
+  // Create cost input
+  const costInput = document.createElement("input");
+  costInput.type = "number";
+  costInput.placeholder = "Đơn giá";
+  costInput.value = product?.costPerUnit || "";
+  costInput.required = true;
+  costInput.step = "0.01";
+
+  // Create amount input
+  const amountInput = document.createElement("input");
+  amountInput.type = "number";
+  amountInput.placeholder = "Số lượng";
+  amountInput.value = product?.amount || "";
+  amountInput.required = true;
+
+  // Create VAT input
+  const vatInput = document.createElement("input");
+  vatInput.type = "number";
+  vatInput.placeholder = "VAT(%)";
+  vatInput.value = product?.vat !== undefined ? product.vat : "";
+  vatInput.required = true;
+  vatInput.step = "0.01";
+
+  // Create cost center dropdown
+  const costCenterSelect = document.createElement("select");
+  costCenterSelect.className = "product-cost-center";
+  costCenterSelect.placeholder = "Trạm";
+
+  const defaultCenterOption = document.createElement("option");
+  defaultCenterOption.value = "";
+  defaultCenterOption.textContent = "Chọn trạm";
+  costCenterSelect.appendChild(defaultCenterOption);
+
+  // Populate cost centers if available
+  if (state.costCenters) {
+    state.costCenters.forEach((center) => {
+      const option = document.createElement("option");
+      option.value = center.name;
+      option.textContent = center.name;
+      if (product?.costCenter === center.name) {
+        option.selected = true;
+      }
+      costCenterSelect.appendChild(option);
+    });
+  }
+
+  // Create note input
+  const noteInput = document.createElement("input");
+  noteInput.type = "text";
+  noteInput.placeholder = "Ghi chú";
+  noteInput.value = product?.note || "";
+
+  // Create remove button
+  const removeButton = document.createElement("button");
+  removeButton.type = "button";
+  removeButton.className = "btn btn-danger btn-sm";
+  removeButton.innerHTML = '<i class="fas fa-trash"></i> Xóa';
+  removeButton.onclick = function () {
+    this.parentElement.parentElement.remove();
+  };
+
+  // If products couldn't be loaded, fall back to text input
+  if (fallbackToInput) {
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.placeholder = "Tên sản phẩm";
+    nameInput.value = product?.productName || "";
+    nameInput.required = true;
+    fieldsContainer.appendChild(nameInput);
+  } else {
+    fieldsContainer.appendChild(productDropdown);
+  }
+
+  // Append all other inputs
+  fieldsContainer.appendChild(costInput);
+  fieldsContainer.appendChild(amountInput);
+  fieldsContainer.appendChild(vatInput);
+  fieldsContainer.appendChild(costCenterSelect);
+  fieldsContainer.appendChild(noteInput);
+  fieldsContainer.appendChild(removeButton);
 
   productsList.appendChild(productDiv);
 };
@@ -1285,15 +1379,34 @@ const handleEditSubmit = async (event) => {
   const productItems = document.querySelectorAll(".product-item");
 
   productItems.forEach((item) => {
+    const productDropdown = item.querySelector("select:first-child");
     const productInputs = item.querySelectorAll("input");
     const costCenterSelect = item.querySelector(".product-cost-center");
-    if (productInputs.length >= 4) {
-      const costPerUnit = parseFloat(productInputs[1].value) || 0;
-      const amount = parseInt(productInputs[2].value) || 0;
-      const vat = parseFloat(productInputs[3].value) || 0;
+
+    // Handle both dropdown (select) and input cases for product name
+    let productName = "";
+    if (productDropdown && productDropdown.tagName === "SELECT") {
+      productName = productDropdown.value;
+    } else if (productInputs.length > 0) {
+      // Fallback to input if dropdown failed to load
+      productName = productInputs[0].value;
+    }
+
+    // Adjust input indices based on whether we have dropdown or input for product name
+    const hasDropdown = productDropdown && productDropdown.tagName === "SELECT";
+    const costIndex = hasDropdown ? 0 : 1;
+    const amountIndex = hasDropdown ? 1 : 2;
+    const vatIndex = hasDropdown ? 2 : 3;
+    const noteIndex = hasDropdown ? 3 : 4;
+
+    if (productInputs.length >= (hasDropdown ? 4 : 5) && productName) {
+      const costPerUnit = parseFloat(productInputs[costIndex].value) || 0;
+      const amount = parseInt(productInputs[amountIndex].value) || 0;
+      const vat = parseFloat(productInputs[vatIndex].value) || 0;
+      const note = productInputs[noteIndex].value || "";
 
       const product = {
-        productName: productInputs[0].value,
+        productName: productName,
         costPerUnit: costPerUnit,
         amount: amount,
         vat: vat,
@@ -1301,7 +1414,7 @@ const handleEditSubmit = async (event) => {
         totalCostAfterVat:
           costPerUnit * amount + costPerUnit * amount * (vat / 100),
         costCenter: costCenterSelect ? costCenterSelect.value : "",
-        note: productInputs[4].value,
+        note: note,
       };
       products.push(product);
     }
