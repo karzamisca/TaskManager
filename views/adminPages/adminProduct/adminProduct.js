@@ -142,7 +142,7 @@ function createProduct(product) {
     .then((data) => {
       fetchProducts(); // Refresh the products list
       resetForm();
-      showFormMessage("Product added successfully!", "product-success");
+      showFormMessage("Sản phẩm thêm vào thành công", "product-success");
     })
     .catch((error) => {
       console.error("Error creating product:", error);
@@ -173,7 +173,7 @@ function updateProduct(product) {
     .then((data) => {
       fetchProducts(); // Refresh the products list
       closeEditModal();
-      showEditFormMessage("Product updated successfully!", "product-success");
+      showEditFormMessage("Sản phẩm cập nhật thành công", "product-success");
       setTimeout(() => {
         editFormMessage.innerHTML = "";
       }, 3000);
@@ -206,7 +206,7 @@ function deleteProduct(id) {
     })
     .then((data) => {
       fetchProducts(); // Refresh the products list
-      showFormMessage("Product deleted successfully!", "product-success");
+      showFormMessage("Sản phẩm xóa thành công!", "product-success");
     })
     .catch((error) => {
       console.error("Error deleting product:", error);
