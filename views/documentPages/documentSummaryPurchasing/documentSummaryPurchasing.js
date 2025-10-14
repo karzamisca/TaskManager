@@ -992,7 +992,7 @@ const addProductField = (product = null) => {
       }" required step="0.01">
       <input type="number" placeholder="Số lượng" value="${
         product?.amount || ""
-      }" required>
+      }" required step="0.01">
       <input type="number" placeholder="VAT(%)" value="${
         product?.vat !== undefined ? product.vat : ""
       }" required step="0.01">
