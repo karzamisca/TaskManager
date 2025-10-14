@@ -17,7 +17,7 @@ const messageRoute = require("./routes/messageRoute");
 const reportRoute = require("./routes/reportRoute");
 const financeGasRoute = require("./routes/financeGasRoute");
 const financeCostCenterConstructionRoute = require("./routes/financeCostCenterConstructionRoute");
-const financeBankRoute = require("./routes/financeBankRoute");
+const financeCostCenterBankRoute = require("./routes/financeCostCenterBankRoute");
 const financeSummaryRoute = require("./routes/financeSummaryRoute");
 const fileApprovalRoute = require("./routes/fileApprovalRoute");
 const authMiddleware = require("./middlewares/authMiddleware"); // JWT middleware
@@ -79,7 +79,7 @@ app.use("/", authMiddleware, reportRoute);
 app.use("/", authMiddleware, sftpRoutes);
 app.use("/", authMiddleware, financeGasRoute);
 app.use("/", authMiddleware, financeCostCenterConstructionRoute);
-app.use("/", authMiddleware, financeBankRoute);
+app.use("/", authMiddleware, financeCostCenterBankRoute);
 app.use("/", authMiddleware, financeSummaryRoute);
 app.use("/", authMiddleware, fileApprovalRoute);
 
