@@ -182,6 +182,7 @@ exports.getProductAdminPage = (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -205,6 +206,7 @@ exports.getProducts = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -225,6 +227,7 @@ exports.getProductById = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -248,6 +251,7 @@ exports.createProduct = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -283,6 +287,7 @@ exports.updateProduct = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -326,6 +331,7 @@ exports.deleteProduct = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -351,6 +357,7 @@ exports.importProducts = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -422,6 +429,7 @@ exports.importProductsFromFile = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -545,6 +553,7 @@ exports.exportProducts = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
