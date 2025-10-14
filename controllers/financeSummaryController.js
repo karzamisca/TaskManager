@@ -159,11 +159,15 @@ exports.getRevenueByCostCenter = async (req, res) => {
 
     // Get construction data for the specified year
     const constructionData = await CostCenter.find({
-      "construction.date": { $regex: `/${year}$` }, // Match dates ending with the year
       name: { $in: costCenterNames },
     }).select("name construction");
 
-    // Filter payment documents by submission year and create a map
+    // Get bank data for the specified year
+    const bankData = await CostCenter.find({
+      name: { $in: costCenterNames },
+    }).select("name bank");
+
+    // Filter payment documents by submission date and create a map
     const costCenterPaymentMap = {}; // To accumulate payments by cost center per month
 
     paymentDocuments.forEach((doc) => {
@@ -235,15 +239,33 @@ exports.getRevenueByCostCenter = async (req, res) => {
       }
     });
 
-    // Process construction data by month
+    // Process construction data by month using the same month logic
     const costCenterConstructionMap = {};
 
     constructionData.forEach((center) => {
       center.construction.forEach((construction) => {
         // Parse the date (DD/MM/YYYY format)
-        const [day, month, year] = construction.date.split("/");
-        const monthKey = `${parseInt(month)}-${year}`;
-        const recordKey = `${center.name}-${monthKey}`;
+        const [day, month, yearStr] = construction.date.split("/");
+        const constructionMonth = parseInt(month);
+        const constructionYear = parseInt(yearStr);
+
+        // Apply the same month-shifting logic as payments:
+        // Construction in March (month 3) should be attributed to recordMonth 4 of the target year
+        let recordMonth = constructionMonth + 1;
+        let recordYear = constructionYear;
+
+        // Handle year boundary: December construction should be attributed to January of next year
+        if (recordMonth > 12) {
+          recordMonth = 1;
+          recordYear += 1;
+        }
+
+        // Only include construction that aligns with the requested year
+        if (recordYear !== parseInt(year)) {
+          return;
+        }
+
+        const recordKey = `${center.name}-${recordMonth}-${recordYear}`;
 
         if (!costCenterConstructionMap[recordKey]) {
           costCenterConstructionMap[recordKey] = {
@@ -258,6 +280,49 @@ exports.getRevenueByCostCenter = async (req, res) => {
           construction.expense || 0;
         costCenterConstructionMap[recordKey].net +=
           construction.income - construction.expense || 0;
+      });
+    });
+
+    // Process bank data by month using the same month logic
+    const costCenterBankMap = {};
+
+    bankData.forEach((center) => {
+      center.bank.forEach((bankEntry) => {
+        // Parse the date (DD/MM/YYYY format)
+        const [day, month, yearStr] = bankEntry.date.split("/");
+        const bankMonth = parseInt(month);
+        const bankYear = parseInt(yearStr);
+
+        // Apply the same month-shifting logic as payments and construction:
+        // Bank entry in March (month 3) should be attributed to recordMonth 4 of the target year
+        let recordMonth = bankMonth + 1;
+        let recordYear = bankYear;
+
+        // Handle year boundary: December bank entries should be attributed to January of next year
+        if (recordMonth > 12) {
+          recordMonth = 1;
+          recordYear += 1;
+        }
+
+        // Only include bank entries that align with the requested year
+        if (recordYear !== parseInt(year)) {
+          return;
+        }
+
+        const recordKey = `${center.name}-${recordMonth}-${recordYear}`;
+
+        if (!costCenterBankMap[recordKey]) {
+          costCenterBankMap[recordKey] = {
+            income: 0,
+            expense: 0,
+            net: 0,
+          };
+        }
+
+        costCenterBankMap[recordKey].income += bankEntry.income || 0;
+        costCenterBankMap[recordKey].expense += bankEntry.expense || 0;
+        costCenterBankMap[recordKey].net +=
+          bankEntry.income - bankEntry.expense || 0;
       });
     });
 
@@ -280,7 +345,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
       costCenterSalaryMap[key] += record.currentSalary || 0;
     }
 
-    // Second pass: Calculate net revenue including payment documents AND construction
+    // Second pass: Calculate net revenue including payment documents, construction AND bank data
     for (const costCenterName of costCenterNames) {
       for (let month = 1; month <= 12; month++) {
         // Calculate the actual month (previous month)
@@ -307,6 +372,11 @@ exports.getRevenueByCostCenter = async (req, res) => {
         let constructionIncome = 0;
         let constructionExpense = 0;
         let constructionNet = 0;
+
+        // Initialize bank values
+        let bankIncome = 0;
+        let bankExpense = 0;
+        let bankNet = 0;
 
         // Find matching finance data
         const center = financeData.find((c) => c.name === costCenterName);
@@ -337,7 +407,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
         const paymentKey = `${costCenterName}-${month}-${year}`;
         totalPayments = costCenterPaymentMap[paymentKey] || 0;
 
-        // Get construction data for this cost center and month
+        // Get construction data for this cost center and month (using the same month logic)
         const constructionKey = `${costCenterName}-${month}-${year}`;
         const constructionDataForMonth =
           costCenterConstructionMap[constructionKey];
@@ -347,7 +417,16 @@ exports.getRevenueByCostCenter = async (req, res) => {
           constructionNet = constructionDataForMonth.net;
         }
 
-        // Calculate net revenue
+        // Get bank data for this cost center and month (using the same month logic)
+        const bankKey = `${costCenterName}-${month}-${year}`;
+        const bankDataForMonth = costCenterBankMap[bankKey];
+        if (bankDataForMonth) {
+          bankIncome = bankDataForMonth.income;
+          bankExpense = bankDataForMonth.expense;
+          bankNet = bankDataForMonth.net;
+        }
+
+        // Calculate net revenue INCLUDING construction AND bank data
         const netRevenue =
           totalSale -
           totalPurchase -
@@ -355,7 +434,9 @@ exports.getRevenueByCostCenter = async (req, res) => {
           totalCommissionPurchase -
           totalCommissionSale -
           totalSalary -
-          totalPayments;
+          totalPayments +
+          constructionNet +
+          bankNet; // Add both construction and bank net to overall revenue
 
         results.push({
           costCenter: costCenterName,
@@ -376,6 +457,9 @@ exports.getRevenueByCostCenter = async (req, res) => {
           constructionIncome: constructionIncome,
           constructionExpense: constructionExpense,
           constructionNet: constructionNet,
+          bankIncome: bankIncome,
+          bankExpense: bankExpense,
+          bankNet: bankNet,
           netRevenue: netRevenue,
         });
       }
