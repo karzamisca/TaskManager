@@ -1289,7 +1289,7 @@ const handleEditSubmit = async (event) => {
     const costCenterSelect = item.querySelector(".product-cost-center");
     if (productInputs.length >= 4) {
       const costPerUnit = parseFloat(productInputs[1].value) || 0;
-      const amount = parseInt(productInputs[2].value) || 0;
+      const amount = parseFloat(productInputs[2].value) || 0;
       const vat = parseFloat(productInputs[3].value) || 0;
 
       const product = {
