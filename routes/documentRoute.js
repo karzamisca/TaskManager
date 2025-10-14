@@ -5,7 +5,6 @@ const router = express.Router();
 const documentController = require("../controllers/documentController");
 const Group = require("../models/Group");
 const Project = require("../models/Project");
-const Product = require("../models/Product");
 const authMiddleware = require("../middlewares/authMiddleware");
 const uploadDir = "uploads/";
 
@@ -97,15 +96,6 @@ router.get("/getProjectDocument", authMiddleware, async (req, res) => {
     res.json(groups);
   } catch (error) {
     res.status(500).json({ message: error.message });
-  }
-});
-router.get("/documentProduct", async (req, res) => {
-  try {
-    const products = await Product.find({}).sort({ name: 1 });
-    res.json(products);
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    res.status(500).json({ error: "Failed to fetch products" });
   }
 });
 //// END OF GENERAL ROUTE
