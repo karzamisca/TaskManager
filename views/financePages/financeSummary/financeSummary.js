@@ -1112,16 +1112,110 @@ $(document).ready(function () {
       });
     });
 
-    // Add single Revenue Calculation Row for all categories (excluding construction and bank)
-    const revenueRow = $(`<tr class="revenue-row"></tr>`);
-    revenueRow.append(
+    // Add Bank Category RIGHT AFTER the regular categories
+    const bankCategoryRow = $(
+      `<tr class="category-row" data-category="Ngân Hàng"></tr>`
+    );
+    bankCategoryRow.append(
+      `<td class="first-column">
+          <span class="category-toggle">▶</span>
+          <strong class="text-primary">Ngân Hàng</strong>
+        </td>`
+    );
+
+    sortedMonths.forEach(() => {
+      bankCategoryRow.append(
+        `<td class="month-column" style="text-align: right; font-weight: bold;"></td>`
+      );
+    });
+
+    tableBody.append(bankCategoryRow);
+
+    bankMetrics.forEach((metric) => {
+      const metricRow = $(
+        `<tr class="metric-row" data-category="Ngân Hàng" data-metric="${metric.key}" style="display: none;"></tr>`
+      );
+      metricRow.append(
+        `<td class="first-column" style="width: 250px; min-width: 250px; max-width: 250px; padding-left: 30px; white-space: nowrap;">
+            <span class="metric-toggle">▶</span>
+            <strong>${metric.label}</strong>
+          </td>`
+      );
+
+      sortedMonths.forEach((month) => {
+        let totalValue = 0;
+        Object.keys(bankData).forEach((costCenter) => {
+          if (bankData[costCenter][month]) {
+            totalValue += bankData[costCenter][month][metric.key] || 0;
+          }
+        });
+
+        totalValue = Math.ceil(totalValue);
+
+        let cellClass = "";
+        if (metric.isPositive && totalValue > 0) cellClass = "positive";
+        else if (!metric.isPositive && totalValue > 0) cellClass = "negative";
+        else if (totalValue < 0) cellClass = "negative";
+
+        const formattedValue =
+          totalValue === 0 ? "-" : totalValue.toLocaleString("vi-VN");
+        metricRow.append(
+          `<td class="month-column ${cellClass}" style="width: 150px; min-width: 150px; max-width: 150px; text-align: right; font-weight: bold; white-space: nowrap;">${formattedValue}</td>`
+        );
+      });
+
+      tableBody.append(metricRow);
+
+      const bankCostCenters = Object.keys(bankData).sort();
+      bankCostCenters.forEach((costCenter) => {
+        const costCenterRow = $(
+          `<tr class="cost-center-row" data-category="Ngân Hàng" data-metric="${metric.key}" data-cost-center="${costCenter}" style="display: none;"></tr>`
+        );
+        costCenterRow.append(
+          `<td class="first-column" style="padding-left: 60px;">
+              <strong>${costCenter}</strong>
+            </td>`
+        );
+
+        sortedMonths.forEach((month) => {
+          let value = 0;
+          if (bankData[costCenter][month]) {
+            value = Math.ceil(bankData[costCenter][month][metric.key] || 0);
+          }
+
+          let cellClass = "";
+          if (metric.isPositive && value > 0) cellClass = "positive";
+          else if (!metric.isPositive && value > 0) cellClass = "negative";
+          else if (value < 0) cellClass = "negative";
+
+          const formattedValue =
+            value === 0 ? "-" : value.toLocaleString("vi-VN");
+          costCenterRow.append(
+            `<td class="month-column ${cellClass}" style="text-align: right;">${formattedValue}</td>`
+          );
+        });
+
+        tableBody.append(costCenterRow);
+      });
+    });
+
+    // Add FINAL Revenue Calculation Row that includes Bank
+    const finalRevenueRow = $(`<tr class="revenue-calculation-row"></tr>`);
+    finalRevenueRow.append(
       `<td class="first-column" style="width: 250px; min-width: 250px; max-width: 250px; padding-left: 15px; white-space: nowrap;">
         <strong>Tổng Doanh Thu</strong>
       </td>`
     );
 
     sortedMonths.forEach((month) => {
-      const totalRevenue = Math.ceil(monthlyRevenueData[month]);
+      let totalBankNet = 0;
+      Object.keys(bankData).forEach((costCenter) => {
+        if (bankData[costCenter][month]) {
+          totalBankNet += bankData[costCenter][month].bankNet || 0;
+        }
+      });
+
+      const totalRevenue = Math.ceil(monthlyRevenueData[month] + totalBankNet);
 
       let cellClass = "";
       if (totalRevenue > 0) cellClass = "positive";
@@ -1129,14 +1223,14 @@ $(document).ready(function () {
 
       const formattedValue =
         totalRevenue === 0 ? "-" : totalRevenue.toLocaleString("vi-VN");
-      revenueRow.append(
+      finalRevenueRow.append(
         `<td class="month-column ${cellClass}" style="width: 150px; min-width: 150px; max-width: 150px; text-align: right; font-weight: bold; white-space: nowrap;">${formattedValue}</td>`
       );
     });
 
-    tableBody.append(revenueRow);
+    tableBody.append(finalRevenueRow);
 
-    // Add Construction Category
+    // Add Construction Category at the end
     const constructionCategoryRow = $(
       `<tr class="category-row" data-category="Xây Dựng"></tr>`
     );
@@ -1207,93 +1301,6 @@ $(document).ready(function () {
             value = Math.ceil(
               constructionData[costCenter][month][metric.key] || 0
             );
-          }
-
-          let cellClass = "";
-          if (metric.isPositive && value > 0) cellClass = "positive";
-          else if (!metric.isPositive && value > 0) cellClass = "negative";
-          else if (value < 0) cellClass = "negative";
-
-          const formattedValue =
-            value === 0 ? "-" : value.toLocaleString("vi-VN");
-          costCenterRow.append(
-            `<td class="month-column ${cellClass}" style="text-align: right;">${formattedValue}</td>`
-          );
-        });
-
-        tableBody.append(costCenterRow);
-      });
-    });
-
-    // Add Bank Category
-    const bankCategoryRow = $(
-      `<tr class="category-row" data-category="Ngân Hàng"></tr>`
-    );
-    bankCategoryRow.append(
-      `<td class="first-column">
-          <span class="category-toggle">▶</span>
-          <strong class="text-primary">Ngân Hàng</strong>
-        </td>`
-    );
-
-    sortedMonths.forEach(() => {
-      bankCategoryRow.append(
-        `<td class="month-column" style="text-align: right; font-weight: bold;"></td>`
-      );
-    });
-
-    tableBody.append(bankCategoryRow);
-
-    bankMetrics.forEach((metric) => {
-      const metricRow = $(
-        `<tr class="metric-row" data-category="Ngân Hàng" data-metric="${metric.key}" style="display: none;"></tr>`
-      );
-      metricRow.append(
-        `<td class="first-column" style="width: 250px; min-width: 250px; max-width: 250px; padding-left: 30px; white-space: nowrap;">
-            <span class="metric-toggle">▶</span>
-            <strong>${metric.label}</strong>
-          </td>`
-      );
-
-      sortedMonths.forEach((month) => {
-        let totalValue = 0;
-        Object.keys(bankData).forEach((costCenter) => {
-          if (bankData[costCenter][month]) {
-            totalValue += bankData[costCenter][month][metric.key] || 0;
-          }
-        });
-
-        totalValue = Math.ceil(totalValue);
-
-        let cellClass = "";
-        if (metric.isPositive && totalValue > 0) cellClass = "positive";
-        else if (!metric.isPositive && totalValue > 0) cellClass = "negative";
-        else if (totalValue < 0) cellClass = "negative";
-
-        const formattedValue =
-          totalValue === 0 ? "-" : totalValue.toLocaleString("vi-VN");
-        metricRow.append(
-          `<td class="month-column ${cellClass}" style="width: 150px; min-width: 150px; max-width: 150px; text-align: right; font-weight: bold; white-space: nowrap;">${formattedValue}</td>`
-        );
-      });
-
-      tableBody.append(metricRow);
-
-      const bankCostCenters = Object.keys(bankData).sort();
-      bankCostCenters.forEach((costCenter) => {
-        const costCenterRow = $(
-          `<tr class="cost-center-row" data-category="Ngân Hàng" data-metric="${metric.key}" data-cost-center="${costCenter}" style="display: none;"></tr>`
-        );
-        costCenterRow.append(
-          `<td class="first-column" style="padding-left: 60px;">
-              <strong>${costCenter}</strong>
-            </td>`
-        );
-
-        sortedMonths.forEach((month) => {
-          let value = 0;
-          if (bankData[costCenter][month]) {
-            value = Math.ceil(bankData[costCenter][month][metric.key] || 0);
           }
 
           let cellClass = "";
