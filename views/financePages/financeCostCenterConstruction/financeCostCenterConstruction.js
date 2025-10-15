@@ -6,6 +6,7 @@ let currentSortField = "date";
 let currentSortDirection = "asc";
 let isAdding = false;
 let editingEntryId = null;
+let multipleEntryCounter = 0;
 
 // Tải trạm khi trang load
 document.addEventListener("DOMContentLoaded", loadCostCenters);
@@ -36,6 +37,8 @@ async function loadCostCenterData() {
     document.getElementById("costCenterInfo").classList.add("hidden");
     document.getElementById("addFormContainer").classList.add("hidden");
     document.getElementById("summarySection").classList.add("hidden");
+    document.getElementById("bulkActions").classList.add("hidden");
+    document.getElementById("multipleEntryForm").classList.add("hidden");
     return;
   }
 
@@ -46,6 +49,7 @@ async function loadCostCenterData() {
     selectedOption.textContent;
   document.getElementById("costCenterInfo").classList.remove("hidden");
   document.getElementById("addFormContainer").classList.remove("hidden");
+  document.getElementById("bulkActions").classList.remove("hidden");
 
   // Tải các mục
   await loadEntries();
@@ -77,6 +81,7 @@ function resetEditStates() {
   isAdding = false;
   editingEntryId = null;
   showAddButton();
+  hideMultipleEntryForm();
 }
 
 // Show add button
@@ -239,7 +244,7 @@ function showAddRow() {
   row.id = "addEntryRow";
   row.className = "editing-row";
   row.innerHTML = `
-    <td><input type="text" id="newName" placeholder="Tên" required></td>
+    <td><input type="text" id="newName" placeholder="Tên công trình" required></td>
     <td><input type="number" id="newIncome" placeholder="Thu nhập" step="0.1" required></td>
     <td><input type="number" id="newExpense" placeholder="Chi phí" step="0.1" required></td>
     <td><input type="text" id="newDate" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
@@ -285,7 +290,7 @@ async function saveNewEntry() {
 
   // Validate inputs
   if (!name.trim()) {
-    alert("Vui lòng nhập tên");
+    alert("Vui lòng nhập tên công trình");
     return;
   }
 
@@ -362,7 +367,7 @@ async function saveEdit(entryId) {
 
   // Validate inputs
   if (!name.trim()) {
-    alert("Vui lòng nhập tên");
+    alert("Vui lòng nhập tên công trình");
     return;
   }
 
@@ -454,4 +459,187 @@ function isValidDate(dateString) {
   }
 
   return day > 0 && day <= monthLength[month - 1];
+}
+
+// Multiple Entry Functions
+function showMultipleEntryForm() {
+  if (isAdding || editingEntryId) {
+    alert("Vui lòng hoàn thành thao tác hiện tại trước khi thêm nhiều mục");
+    return;
+  }
+
+  document.getElementById("multipleEntryForm").classList.remove("hidden");
+  document.getElementById("bulkActions").classList.add("hidden");
+  hideAddButton();
+
+  // Add initial entry row
+  addEntryRow();
+}
+
+function hideMultipleEntryForm() {
+  document.getElementById("multipleEntryForm").classList.add("hidden");
+  document.getElementById("bulkActions").classList.remove("hidden");
+  showAddButton();
+  clearMultipleEntries();
+}
+
+function addEntryRow() {
+  const container = document.getElementById("multipleEntriesContainer");
+  const entryId = `entry_${multipleEntryCounter++}`;
+
+  const entryRow = document.createElement("div");
+  entryRow.className = "entry-row";
+  entryRow.id = entryId;
+  entryRow.innerHTML = `
+    <input type="text" id="${entryId}_name" placeholder="Tên công trình" required>
+    <input type="number" id="${entryId}_income" placeholder="Thu nhập (VND)" step="0.1" value="0" required>
+    <input type="number" id="${entryId}_expense" placeholder="Chi phí (VND)" step="0.1" value="0" required>
+    <input type="text" id="${entryId}_date" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required>
+    <button type="button" class="remove-entry-btn" onclick="removeEntryRow('${entryId}')">×</button>
+  `;
+
+  container.appendChild(entryRow);
+}
+
+function removeEntryRow(entryId) {
+  const entryRow = document.getElementById(entryId);
+  if (entryRow) {
+    entryRow.remove();
+  }
+
+  // If no entries left, hide the form
+  const container = document.getElementById("multipleEntriesContainer");
+  if (container.children.length === 0) {
+    hideMultipleEntryForm();
+  }
+}
+
+function clearMultipleEntries() {
+  const container = document.getElementById("multipleEntriesContainer");
+  container.innerHTML = "";
+  multipleEntryCounter = 0;
+}
+
+async function saveMultipleEntries() {
+  if (!currentCostCenterId) return;
+
+  const container = document.getElementById("multipleEntriesContainer");
+  const entryRows = container.getElementsByClassName("entry-row");
+
+  if (entryRows.length === 0) {
+    alert("Vui lòng thêm ít nhất một mục");
+    return;
+  }
+
+  const entries = [];
+  let hasError = false;
+
+  // Validate all entries first
+  for (let row of entryRows) {
+    const entryId = row.id;
+    const name = document.getElementById(`${entryId}_name`).value.trim();
+    const income = parseFloat(
+      document.getElementById(`${entryId}_income`).value
+    );
+    const expense = parseFloat(
+      document.getElementById(`${entryId}_expense`).value
+    );
+    const date = document.getElementById(`${entryId}_date`).value;
+
+    // Validate inputs
+    if (!name) {
+      alert(`Vui lòng nhập tên công trình cho mục ${entryId}`);
+      hasError = true;
+      break;
+    }
+
+    if (isNaN(income) || isNaN(expense)) {
+      alert(`Vui lòng nhập số tiền hợp lệ cho mục ${entryId}`);
+      hasError = true;
+      break;
+    }
+
+    if (!isValidDate(date)) {
+      alert(`Vui lòng nhập ngày hợp lệ (DD/MM/YYYY) cho mục ${entryId}`);
+      hasError = true;
+      break;
+    }
+
+    entries.push({
+      name,
+      income,
+      expense,
+      date,
+    });
+  }
+
+  if (hasError) return;
+
+  // Show loading state
+  const saveBtn = document.querySelector("#multipleEntryForm .save-btn");
+  const originalText = saveBtn.textContent;
+  saveBtn.textContent = "Đang lưu...";
+  saveBtn.disabled = true;
+
+  try {
+    let successCount = 0;
+    let errorCount = 0;
+
+    // Save entries one by one
+    for (const entry of entries) {
+      try {
+        const response = await fetch(
+          `${API_BASE}/${currentCostCenterId}/entries`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(entry),
+          }
+        );
+
+        if (response.ok) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      } catch (error) {
+        errorCount++;
+      }
+    }
+
+    // Reset button
+    saveBtn.textContent = originalText;
+    saveBtn.disabled = false;
+
+    // Show result
+    if (errorCount === 0) {
+      alert(`Đã thêm thành công ${successCount} mục!`);
+      hideMultipleEntryForm();
+      await loadEntries();
+    } else {
+      alert(
+        `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`
+      );
+      if (successCount > 0) {
+        hideMultipleEntryForm();
+        await loadEntries();
+      }
+    }
+  } catch (error) {
+    // Reset button
+    saveBtn.textContent = originalText;
+    saveBtn.disabled = false;
+
+    alert("Lỗi khi lưu các mục: " + error.message);
+  }
+}
+
+function cancelMultipleEntries() {
+  if (
+    confirm("Bạn có chắc chắn muốn hủy? Tất cả dữ liệu chưa lưu sẽ bị mất.")
+  ) {
+    hideMultipleEntryForm();
+  }
 }

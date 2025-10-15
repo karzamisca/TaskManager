@@ -38,7 +38,8 @@
 }
 
 .finance-bank-page input,
-.finance-bank-page select {
+.finance-bank-page select,
+.finance-bank-page textarea {
   padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -47,7 +48,8 @@
 }
 
 .finance-bank-page input:focus,
-.finance-bank-page select:focus {
+.finance-bank-page select:focus,
+.finance-bank-page textarea:focus {
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
@@ -188,6 +190,26 @@
   border-color: #545b62;
 }
 
+.finance-bank-page .add-btn {
+  background: #28a745;
+  border-color: #28a745;
+}
+
+.finance-bank-page .add-btn:hover {
+  background: #218838;
+  border-color: #1e7e34;
+}
+
+.finance-bank-page .remove-btn {
+  background: #dc3545;
+  border-color: #dc3545;
+}
+
+.finance-bank-page .remove-btn:hover {
+  background: #c82333;
+  border-color: #bd2130;
+}
+
 .finance-bank-page .edit-form {
   background: #f8f9fa;
   padding: 20px;
@@ -271,6 +293,69 @@
   border-radius: 4px;
 }
 
+.finance-bank-page .multiple-entry-form {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  border: 1px solid #dee2e6;
+}
+
+.finance-bank-page .multiple-entry-form h3 {
+  margin-bottom: 15px;
+  color: #495057;
+}
+
+.finance-bank-page .entry-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.finance-bank-page .entry-row input {
+  flex: 1;
+}
+
+.finance-bank-page .entry-row .remove-entry-btn {
+  background: #dc3545;
+  border-color: #dc3545;
+  padding: 8px 12px;
+  margin-top: 0;
+}
+
+.finance-bank-page .entry-row .remove-entry-btn:hover {
+  background: #c82333;
+  border-color: #bd2130;
+}
+
+.finance-bank-page .form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.finance-bank-page .add-entry-btn {
+  background: #28a745;
+  border-color: #28a745;
+  padding: 8px 15px;
+}
+
+.finance-bank-page .add-entry-btn:hover {
+  background: #218838;
+  border-color: #1e7e34;
+}
+
+.finance-bank-page .bulk-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.finance-bank-page .bulk-actions button {
+  margin-top: 0;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .finance-bank-page {
@@ -303,6 +388,19 @@
   .finance-bank-page td {
     padding: 8px 4px;
   }
+
+  .finance-bank-page .entry-row {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .finance-bank-page .entry-row input {
+    width: 100%;
+  }
+
+  .finance-bank-page .form-actions {
+    flex-direction: column;
+  }
 }
 
 /* Dark mode support */
@@ -327,7 +425,8 @@
   }
 
   .finance-bank-page input,
-  .finance-bank-page select {
+  .finance-bank-page select,
+  .finance-bank-page textarea {
     background: #3a3a3a;
     border-color: #555;
     color: #e9ecef;
@@ -359,5 +458,10 @@
 
   .finance-bank-page .editing-row {
     background-color: #5d4c1d !important;
+  }
+
+  .finance-bank-page .multiple-entry-form {
+    background: #3a3a3a;
+    border-color: #555;
   }
 }
