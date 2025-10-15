@@ -107,6 +107,29 @@
   background-color: #f8f9fa;
   font-weight: bold;
   color: #495057;
+  cursor: pointer;
+  user-select: none;
+}
+
+.finance-construction-page th:hover {
+  background-color: #e9ecef;
+}
+
+.finance-construction-page th.sortable::after {
+  content: "↕";
+  margin-left: 5px;
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+.finance-construction-page th.sorted-asc::after {
+  content: "↑";
+  opacity: 1;
+}
+
+.finance-construction-page th.sorted-desc::after {
+  content: "↓";
+  opacity: 1;
 }
 
 .finance-construction-page tr:hover {
@@ -144,6 +167,26 @@
 .finance-construction-page .delete-btn:hover {
   background: #c82333;
   border-color: #bd2130;
+}
+
+.finance-construction-page .save-btn {
+  background: #17a2b8;
+  border-color: #17a2b8;
+}
+
+.finance-construction-page .save-btn:hover {
+  background: #138496;
+  border-color: #117a8b;
+}
+
+.finance-construction-page .cancel-btn {
+  background: #6c757d;
+  border-color: #6c757d;
+}
+
+.finance-construction-page .cancel-btn:hover {
+  background: #5a6268;
+  border-color: #545b62;
 }
 
 .finance-construction-page .edit-form {
@@ -198,6 +241,35 @@
   font-size: 14px;
   font-weight: normal;
   margin-bottom: 5px;
+}
+
+.finance-construction-page .add-row {
+  background-color: #f8f9fa;
+  border: 2px dashed #dee2e6;
+}
+
+.finance-construction-page .add-row:hover {
+  background-color: #e9ecef;
+}
+
+.finance-construction-page .add-row td {
+  text-align: center;
+  padding: 15px;
+}
+
+.finance-construction-page .add-row button {
+  margin: 0;
+}
+
+.finance-construction-page .editing-row {
+  background-color: #fff3cd !important;
+}
+
+.finance-construction-page .editing-row input {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
 }
 
 /* Responsive adjustments */
@@ -279,5 +351,14 @@
   .finance-construction-page .edit-form {
     background: #3a3a3a;
     border-color: #555;
+  }
+
+  .finance-construction-page .add-row {
+    background-color: #3a3a3a;
+    border-color: #555;
+  }
+
+  .finance-construction-page .editing-row {
+    background-color: #5d4c1d !important;
   }
 }

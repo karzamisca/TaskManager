@@ -106,6 +106,29 @@
   background-color: #f8f9fa;
   font-weight: bold;
   color: #495057;
+  cursor: pointer;
+  user-select: none;
+}
+
+.finance-bank-page th:hover {
+  background-color: #e9ecef;
+}
+
+.finance-bank-page th.sortable::after {
+  content: "↕";
+  margin-left: 5px;
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+.finance-bank-page th.sorted-asc::after {
+  content: "↑";
+  opacity: 1;
+}
+
+.finance-bank-page th.sorted-desc::after {
+  content: "↓";
+  opacity: 1;
 }
 
 .finance-bank-page tr:hover {
@@ -143,6 +166,26 @@
 .finance-bank-page .delete-btn:hover {
   background: #c82333;
   border-color: #bd2130;
+}
+
+.finance-bank-page .save-btn {
+  background: #17a2b8;
+  border-color: #17a2b8;
+}
+
+.finance-bank-page .save-btn:hover {
+  background: #138496;
+  border-color: #117a8b;
+}
+
+.finance-bank-page .cancel-btn {
+  background: #6c757d;
+  border-color: #6c757d;
+}
+
+.finance-bank-page .cancel-btn:hover {
+  background: #5a6268;
+  border-color: #545b62;
 }
 
 .finance-bank-page .edit-form {
@@ -197,6 +240,35 @@
   font-size: 14px;
   font-weight: normal;
   margin-bottom: 5px;
+}
+
+.finance-bank-page .add-row {
+  background-color: #f8f9fa;
+  border: 2px dashed #dee2e6;
+}
+
+.finance-bank-page .add-row:hover {
+  background-color: #e9ecef;
+}
+
+.finance-bank-page .add-row td {
+  text-align: center;
+  padding: 15px;
+}
+
+.finance-bank-page .add-row button {
+  margin: 0;
+}
+
+.finance-bank-page .editing-row {
+  background-color: #fff3cd !important;
+}
+
+.finance-bank-page .editing-row input {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
 }
 
 /* Responsive adjustments */
@@ -278,5 +350,14 @@
   .finance-bank-page .edit-form {
     background: #3a3a3a;
     border-color: #555;
+  }
+
+  .finance-bank-page .add-row {
+    background-color: #3a3a3a;
+    border-color: #555;
+  }
+
+  .finance-bank-page .editing-row {
+    background-color: #5d4c1d !important;
   }
 }
