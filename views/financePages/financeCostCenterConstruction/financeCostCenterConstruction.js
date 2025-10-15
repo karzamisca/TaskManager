@@ -3,7 +3,9 @@ const API_BASE = "/financeCostCenterConstructionControl";
 let currentCostCenterId = null;
 let entries = [];
 let currentSortField = "date";
-let currentSortDirection = "asc"; // Ascending by default
+let currentSortDirection = "asc";
+let isAdding = false;
+let editingEntryId = null;
 
 // Tải trạm khi trang load
 document.addEventListener("DOMContentLoaded", loadCostCenters);
@@ -45,7 +47,7 @@ async function loadCostCenterData() {
   document.getElementById("costCenterInfo").classList.remove("hidden");
   document.getElementById("addFormContainer").classList.remove("hidden");
 
-  // Tải các mục Mua sắm và Xây dựng
+  // Tải các mục
   await loadEntries();
 }
 
@@ -57,14 +59,34 @@ async function loadEntries() {
     const response = await fetch(`${API_BASE}/${currentCostCenterId}/entries`);
     entries = await response.json();
 
-    // Sort entries by date (ascending by default)
+    // Sort entries
     sortEntries(currentSortField, currentSortDirection);
 
     renderEntries();
     calculateSummary();
+
+    // Reset states
+    resetEditStates();
   } catch (error) {
     alert("Lỗi khi tải dữ liệu: " + error.message);
   }
+}
+
+// Reset edit and add states
+function resetEditStates() {
+  isAdding = false;
+  editingEntryId = null;
+  showAddButton();
+}
+
+// Show add button
+function showAddButton() {
+  document.getElementById("addNewEntryBtn").style.display = "inline-block";
+}
+
+// Hide add button
+function hideAddButton() {
+  document.getElementById("addNewEntryBtn").style.display = "none";
 }
 
 // Sort entries
@@ -151,11 +173,11 @@ function renderEntries() {
   const tbody = document.getElementById("entriesBody");
   tbody.innerHTML = "";
 
-  if (entries.length === 0) {
+  if (entries.length === 0 && !isAdding) {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td colspan="5" style="text-align: center; color: #666;">
-        Chưa có dữ liệu Mua sắm và Xây dựng nào. Hãy thêm mục mới.
+        Chưa có dữ liệu nào. Hãy thêm mục mới.
       </td>
     `;
     tbody.appendChild(row);
@@ -164,38 +186,60 @@ function renderEntries() {
 
   entries.forEach((entry) => {
     const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${entry.name}</td>
-      <td>${entry.income.toLocaleString("vi-VN")}</td>
-      <td>${entry.expense.toLocaleString("vi-VN")}</td>
-      <td>${entry.date}</td>
-      <td class="actions">
-        <button class="edit-btn" onclick="editEntry('${
-          entry._id
-        }')">Sửa</button>
-        <button class="delete-btn" onclick="deleteEntry('${
-          entry._id
-        }')">Xóa</button>
-      </td>
-    `;
+
+    // Check if this row is being edited
+    if (entry._id === editingEntryId) {
+      row.className = "editing-row";
+      row.innerHTML = `
+        <td><input type="text" id="editName_${entry._id}" value="${entry.name}" required></td>
+        <td><input type="number" id="editIncome_${entry._id}" value="${entry.income}" step="0.1" required></td>
+        <td><input type="number" id="editExpense_${entry._id}" value="${entry.expense}" step="0.1" required></td>
+        <td><input type="text" id="editDate_${entry._id}" value="${entry.date}" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
+        <td class="actions">
+          <button class="save-btn" onclick="saveEdit('${entry._id}')">Lưu</button>
+          <button class="cancel-btn" onclick="cancelEdit('${entry._id}')">Hủy</button>
+        </td>
+      `;
+    } else {
+      row.innerHTML = `
+        <td>${entry.name}</td>
+        <td>${entry.income.toLocaleString("vi-VN")}</td>
+        <td>${entry.expense.toLocaleString("vi-VN")}</td>
+        <td>${entry.date}</td>
+        <td class="actions">
+          <button class="edit-btn" onclick="startEdit('${
+            entry._id
+          }')">Sửa</button>
+          <button class="delete-btn" onclick="deleteEntry('${
+            entry._id
+          }')">Xóa</button>
+        </td>
+      `;
+    }
     tbody.appendChild(row);
   });
 }
 
 // Hiển thị hàng thêm mới
 function showAddRow() {
+  if (isAdding || editingEntryId) {
+    // If already adding or editing, don't allow multiple operations
+    return;
+  }
+
   const tbody = document.getElementById("entriesBody");
 
-  // Check if we already have an add row
-  if (document.getElementById("addEntryRow")) {
-    return;
+  // Clear any existing add row
+  const existingAddRow = document.getElementById("addEntryRow");
+  if (existingAddRow) {
+    existingAddRow.remove();
   }
 
   const row = document.createElement("tr");
   row.id = "addEntryRow";
   row.className = "editing-row";
   row.innerHTML = `
-    <td><input type="text" id="newName" placeholder="Tên công trình" required></td>
+    <td><input type="text" id="newName" placeholder="Tên" required></td>
     <td><input type="number" id="newIncome" placeholder="Thu nhập" step="0.1" required></td>
     <td><input type="number" id="newExpense" placeholder="Chi phí" step="0.1" required></td>
     <td><input type="text" id="newDate" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
@@ -208,8 +252,9 @@ function showAddRow() {
   // Insert at the beginning of the table
   tbody.insertBefore(row, tbody.firstChild);
 
-  // Hide the add button
-  document.getElementById("addNewEntryBtn").style.display = "none";
+  // Set state and hide add button
+  isAdding = true;
+  hideAddButton();
 }
 
 // Hủy thêm mới
@@ -219,8 +264,14 @@ function cancelAdd() {
     addRow.remove();
   }
 
-  // Show the add button again
-  document.getElementById("addNewEntryBtn").style.display = "inline-block";
+  // Reset state and show add button
+  isAdding = false;
+  showAddButton();
+
+  // If table is empty after cancel, show empty message
+  if (entries.length === 0) {
+    renderEntries();
+  }
 }
 
 // Lưu mục mới
@@ -232,6 +283,17 @@ async function saveNewEntry() {
   const expense = parseFloat(document.getElementById("newExpense").value);
   const date = document.getElementById("newDate").value;
 
+  // Validate inputs
+  if (!name.trim()) {
+    alert("Vui lòng nhập tên");
+    return;
+  }
+
+  if (isNaN(income) || isNaN(expense)) {
+    alert("Vui lòng nhập số tiền hợp lệ");
+    return;
+  }
+
   // Validate date format
   if (!isValidDate(date)) {
     alert("Vui lòng nhập ngày theo định dạng DD/MM/YYYY");
@@ -239,7 +301,7 @@ async function saveNewEntry() {
   }
 
   const entry = {
-    name,
+    name: name.trim(),
     income,
     expense,
     date,
@@ -266,33 +328,23 @@ async function saveNewEntry() {
   }
 }
 
-// Chỉnh sửa mục
-function editEntry(entryId) {
-  const entry = entries.find((e) => e._id === entryId);
-  if (!entry) return;
+// Bắt đầu chỉnh sửa mục
+function startEdit(entryId) {
+  if (isAdding) {
+    // If adding, cancel add first
+    cancelAdd();
+  }
 
-  const row = document.querySelector(
-    `tr:has(button[onclick="editEntry('${entryId}')"])`
-  );
-  if (!row) return;
-
-  row.className = "editing-row";
-  row.innerHTML = `
-    <td><input type="text" id="editName_${entryId}" value="${entry.name}" required></td>
-    <td><input type="number" id="editIncome_${entryId}" value="${entry.income}" step="0.1" required></td>
-    <td><input type="number" id="editExpense_${entryId}" value="${entry.expense}" step="0.1" required></td>
-    <td><input type="text" id="editDate_${entryId}" value="${entry.date}" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
-    <td class="actions">
-      <button class="save-btn" onclick="saveEdit('${entryId}')">Lưu</button>
-      <button class="cancel-btn" onclick="cancelEdit('${entryId}')">Hủy</button>
-    </td>
-  `;
+  editingEntryId = entryId;
+  hideAddButton();
+  renderEntries();
 }
 
 // Hủy chỉnh sửa
 function cancelEdit(entryId) {
-  // Reload entries to revert changes
-  loadEntries();
+  editingEntryId = null;
+  showAddButton();
+  renderEntries();
 }
 
 // Lưu chỉnh sửa
@@ -308,6 +360,17 @@ async function saveEdit(entryId) {
   );
   const date = document.getElementById(`editDate_${entryId}`).value;
 
+  // Validate inputs
+  if (!name.trim()) {
+    alert("Vui lòng nhập tên");
+    return;
+  }
+
+  if (isNaN(income) || isNaN(expense)) {
+    alert("Vui lòng nhập số tiền hợp lệ");
+    return;
+  }
+
   // Validate date format
   if (!isValidDate(date)) {
     alert("Vui lòng nhập ngày theo định dạng DD/MM/YYYY");
@@ -316,7 +379,7 @@ async function saveEdit(entryId) {
 
   const entry = {
     id: entryId,
-    name,
+    name: name.trim(),
     income,
     expense,
     date,
@@ -335,6 +398,7 @@ async function saveEdit(entryId) {
     );
 
     if (response.ok) {
+      editingEntryId = null;
       await loadEntries();
       alert("Cập nhật thành công!");
     } else {
