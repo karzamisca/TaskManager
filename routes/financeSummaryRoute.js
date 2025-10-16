@@ -10,6 +10,10 @@ router.get("/financeSummary", authMiddleware, (req, res) => {
   });
 });
 router.get(
+  "/finaceSummaryGetAvailableYears",
+  financeSummaryController.getAvailableYears
+);
+router.get(
   "/financeSummaryRevenueByCostCenter",
   authMiddleware,
   financeSummaryController.getRevenueByCostCenter

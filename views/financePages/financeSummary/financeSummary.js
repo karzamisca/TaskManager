@@ -128,6 +128,15 @@ $(document).ready(function () {
   let selectedCostCenters = new Set();
   let currentCategory = "all";
 
+  // Initialize Select2 for year selection
+  $("#yearSelect").select2({
+    theme: "bootstrap-5",
+    placeholder: "Chọn năm...",
+    allowClear: true,
+    closeOnSelect: false,
+    width: "100%",
+  });
+
   // Initialize Select2 for cost center selection
   $("#costCenterSelect").select2({
     theme: "bootstrap-5",
@@ -170,6 +179,48 @@ $(document).ready(function () {
     return $container;
   }
 
+  // Populate year dropdown dynamically based on available data
+  async function populateYearSelect() {
+    const currentYear = new Date().getFullYear();
+    const yearSelect = $("#yearSelect");
+
+    try {
+      // Fetch available years from the server
+      const response = await fetch("/finaceSummaryGetAvailableYears");
+      const availableYears = await response.json();
+
+      // If API is available and returns valid data, use those years
+      if (availableYears && availableYears.length > 0) {
+        // Sort years in descending order (newest first)
+        availableYears
+          .sort((a, b) => b - a)
+          .forEach((year) => {
+            yearSelect.append(`<option value="${year}">${year}</option>`);
+          });
+        console.log("Loaded available years from server:", availableYears);
+      } else {
+        // Fallback: last 15 years if no data from server
+        console.log("No data from server, using fallback years");
+        for (let year = currentYear; year >= currentYear - 14; year--) {
+          yearSelect.append(`<option value="${year}">${year}</option>`);
+        }
+      }
+
+      // Select current year by default
+      yearSelect.val([currentYear]).trigger("change");
+    } catch (error) {
+      console.error("Error fetching available years, using fallback:", error);
+      // Fallback: last 15 years if API call fails
+      for (let year = currentYear; year >= currentYear - 14; year--) {
+        yearSelect.append(`<option value="${year}">${year}</option>`);
+      }
+      yearSelect.val([currentYear]).trigger("change");
+    }
+  }
+
+  // Call this function to populate years
+  populateYearSelect();
+
   // Function to get cost center category
   function getCostCenterCategory(costCenterName) {
     const costCenter = allCostCenters.find((cc) => cc.name === costCenterName);
@@ -181,14 +232,6 @@ $(document).ready(function () {
     const metric = metrics.find((m) => m.key === metricKey);
     return metric && metric.hiddenForCategories.includes(category);
   }
-
-  // Populate year dropdown
-  const currentYear = new Date().getFullYear();
-  const yearSelect = $("#yearSelect");
-  for (let year = currentYear; year >= currentYear - 5; year--) {
-    yearSelect.append(`<option value="${year}">${year}</option>`);
-  }
-  yearSelect.val(currentYear);
 
   // Category filter handler
   $("#categoryFilter").on("change", function () {
@@ -261,11 +304,14 @@ $(document).ready(function () {
   $("#clearSelection").on("click", function () {
     $("#costCenterSelect").val(["all"]).trigger("change");
     $("#categoryFilter").val("all").trigger("change");
+    const currentYear = new Date().getFullYear();
+    $("#yearSelect").val([currentYear]).trigger("change");
   });
 
   // Update selected centers info
   function updateSelectedCentersInfo() {
     const selectedValues = $("#costCenterSelect").val();
+    const selectedYears = $("#yearSelect").val();
     const infoElement = $("#selectedCentersInfo");
 
     if (
@@ -275,12 +321,18 @@ $(document).ready(function () {
     ) {
       const category = $("#categoryFilter").val();
       const categoryText = category === "all" ? "Tất cả loại" : category;
-      infoElement.text(`Hiển thị: Tất cả trạm (${categoryText})`);
+      infoElement.text(
+        `Hiển thị: Tất cả trạm (${categoryText}) - Năm: ${selectedYears.join(
+          ", "
+        )}`
+      );
     } else {
       infoElement.text(
         `Hiển thị: ${
           selectedValues.length
-        } trạm được chọn (${selectedValues.join(", ")})`
+        } trạm được chọn (${selectedValues.join(
+          ", "
+        )}) - Năm: ${selectedYears.join(", ")}`
       );
     }
   }
@@ -858,9 +910,9 @@ $(document).ready(function () {
             className: "btn btn-success",
             title: "Báo cáo doanh thu",
             filename: function () {
-              const year = $("#yearSelect").val();
+              const years = $("#yearSelect").val();
               const selectedCostCenters = $("#costCenterSelect").val();
-              let fileName = `Bao_cao_doanh_thu_${year}`;
+              let fileName = `Bao_cao_doanh_thu_${years.join("_")}`;
               if (
                 selectedCostCenters &&
                 selectedCostCenters.length > 0 &&
@@ -915,11 +967,12 @@ $(document).ready(function () {
     return Object.values(pivotData);
   }
 
-  function updateBudgetSummary(data, year) {
+  function updateBudgetSummary(data, years) {
     const budgetContainer = $("#budgetSummaryContainer");
     const budgetDetails = $("#budgetDetails");
 
-    if (year != 2025) {
+    // Only show budget summary if 2025 is selected
+    if (!years.includes("2025")) {
       budgetContainer.hide();
       return;
     }
@@ -939,7 +992,10 @@ $(document).ready(function () {
     let totalBankExpense = 0;
     let totalBankNet = 0;
 
-    data.forEach((item) => {
+    // Filter data for 2025 only for budget calculations
+    const data2025 = data.filter((item) => item.year === 2025);
+
+    data2025.forEach((item) => {
       const costCenterCategory = getCostCenterCategory(item.costCenter);
 
       totalSales += item.totalSale;
@@ -1367,11 +1423,20 @@ $(document).ready(function () {
   // Form submission handler
   $("#filterForm").on("submit", function (e) {
     e.preventDefault();
-    const year = $("#yearSelect").val();
+    const years = $("#yearSelect").val();
     const selectedCostCenters = $("#costCenterSelect").val();
     const category = $("#categoryFilter").val();
 
-    let queryParams = `year=${year}`;
+    // Auto-select current year if no years are selected
+    const currentYear = new Date().getFullYear();
+    const finalYears = years && years.length > 0 ? years : [currentYear];
+
+    // Update the select if it was empty
+    if (!years || years.length === 0) {
+      $("#yearSelect").val([currentYear]).trigger("change");
+    }
+
+    let queryParams = `years=${finalYears.join(",")}`;
     if (
       selectedCostCenters &&
       selectedCostCenters.length > 0 &&
@@ -1400,7 +1465,7 @@ $(document).ready(function () {
         const pivotData = createVerticalStackedTable(data);
 
         updateSelectedCentersInfo();
-        updateBudgetSummary(pivotData, year);
+        updateBudgetSummary(pivotData, finalYears);
       },
       error: function (xhr, status, error) {
         alert("Lỗi khi tải dữ liệu: " + error);
