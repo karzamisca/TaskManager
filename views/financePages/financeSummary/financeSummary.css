@@ -122,50 +122,6 @@
   overflow: auto;
 }
 
-/* Chart Styles */
-.chart-container {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  margin-bottom: 20px;
-  position: relative;
-  height: 400px;
-}
-.chart-container canvas {
-  max-width: 100% !important;
-  max-height: 350px !important;
-  width: 100% !important;
-  height: auto !important;
-}
-.chart-container.small {
-  height: 300px;
-}
-.chart-container.small canvas {
-  max-height: 250px !important;
-}
-.chart-controls {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-.chart-title {
-  font-size: 1.1em;
-  font-weight: bold;
-  margin-bottom: 15px;
-  color: #495057;
-  height: 20px;
-}
-
-/* View Toggle Buttons */
-.view-toggle {
-  margin-bottom: 20px;
-}
-.view-toggle .btn-group .btn {
-  min-width: 120px;
-}
-
 /* Improved Group Modal Styles */
 #groupModal .modal-dialog {
   max-width: 900px;
@@ -290,8 +246,5 @@
     padding-left: 0;
     padding-top: 20px;
     margin-top: 20px;
-  }
-  .chart-container canvas {
-    max-height: 300px !important;
   }
 }

@@ -89,32 +89,6 @@
         </div>
       </div>
 
-      <!-- View Toggle -->
-      <div class="view-toggle d-flex justify-content-center">
-        <div class="btn-group" role="group" aria-label="View toggle">
-          <input
-            type="radio"
-            class="btn-check"
-            name="viewOptions"
-            id="tableView"
-            autocomplete="off"
-            checked
-          />
-          <label class="btn btn-outline-primary" for="tableView"
-            >Bảng dữ liệu</label
-          >
-
-          <input
-            type="radio"
-            class="btn-check"
-            name="viewOptions"
-            id="chartView"
-            autocomplete="off"
-          />
-          <label class="btn btn-outline-primary" for="chartView">Biểu đồ</label>
-        </div>
-      </div>
-
       <!-- Table View -->
       <div id="tableViewContainer">
         <div class="card">
@@ -146,58 +120,6 @@
               <div id="budgetDetails">
                 <!-- Budget details will be inserted here -->
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Chart View -->
-      <div id="chartViewContainer" style="display: none">
-        <!-- Chart Controls -->
-        <div class="chart-controls">
-          <div class="row">
-            <div class="col-md-4">
-              <label for="chartType" class="form-label">Loại biểu đồ</label>
-              <select class="form-select" id="chartType">
-                <option value="line">Đường</option>
-                <option value="bar">Cột</option>
-                <option value="area">Vùng</option>
-                <option value="pie">Tròn</option>
-              </select>
-            </div>
-            <div class="col-md-4">
-              <label for="chartMetric" class="form-label">Chỉ số</label>
-              <select class="form-select" id="chartMetric">
-                <option value="netRevenue">Doanh Thu Ròng</option>
-                <option value="totalSale">Tổng Bán Hàng</option>
-                <option value="totalPurchase">Tổng Mua Hàng</option>
-                <option value="totalTransport">Chi Phí Vận Chuyển</option>
-                <option value="totalCommissionPurchase">
-                  Hoa Hồng Mua Hàng
-                </option>
-                <option value="totalCommissionSale">Hoa Hồng Bán Hàng</option>
-                <option value="totalSalary">Tổng Lương</option>
-                <option value="totalPayments">Tổng Thanh Toán</option>
-              </select>
-            </div>
-            <div class="col-md-4">
-              <label for="chartGroupBy" class="form-label">Nhóm theo</label>
-              <select class="form-select" id="chartGroupBy">
-                <option value="month">Tháng</option>
-                <option value="costCenter">Trạm</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Charts Container -->
-        <div class="row">
-          <div class="col-12">
-            <div class="chart-container">
-              <div class="chart-title" id="mainChartTitle">
-                Doanh Thu Ròng theo Tháng
-              </div>
-              <canvas id="mainChart"></canvas>
             </div>
           </div>
         </div>
@@ -324,7 +246,6 @@
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.js"></script>
-    <script src="financePages/financeSummary/financeSummary.js?v=1.15"></script>
+    <script src="financePages/financeSummary/financeSummary.js?v=1.16"></script>
   </body>
 </html>
