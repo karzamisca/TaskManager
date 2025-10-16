@@ -2,11 +2,19 @@
 const API_BASE = "/financeCostCenterConstructionControl";
 let currentCostCenterId = null;
 let entries = [];
+let filteredEntries = [];
 let currentSortField = "date";
 let currentSortDirection = "asc";
 let isAdding = false;
 let editingEntryId = null;
 let multipleEntryCounter = 0;
+
+// Filter state
+let filterState = {
+  dateFrom: "",
+  dateTo: "",
+  searchName: "",
+};
 
 // Tải trạm khi trang load
 document.addEventListener("DOMContentLoaded", loadCostCenters);
@@ -39,6 +47,7 @@ async function loadCostCenterData() {
     document.getElementById("summarySection").classList.add("hidden");
     document.getElementById("bulkActions").classList.add("hidden");
     document.getElementById("multipleEntryForm").classList.add("hidden");
+    document.getElementById("filtersSection").classList.add("hidden");
     return;
   }
 
@@ -50,6 +59,7 @@ async function loadCostCenterData() {
   document.getElementById("costCenterInfo").classList.remove("hidden");
   document.getElementById("addFormContainer").classList.remove("hidden");
   document.getElementById("bulkActions").classList.remove("hidden");
+  document.getElementById("filtersSection").classList.remove("hidden");
 
   // Tải các mục
   await loadEntries();
@@ -63,11 +73,8 @@ async function loadEntries() {
     const response = await fetch(`${API_BASE}/${currentCostCenterId}/entries`);
     entries = await response.json();
 
-    // Sort entries
-    sortEntries(currentSortField, currentSortDirection);
-
-    renderEntries();
-    calculateSummary();
+    // Apply current filters
+    applyFilters();
 
     // Reset states
     resetEditStates();
@@ -96,7 +103,7 @@ function hideAddButton() {
 
 // Sort entries
 function sortEntries(field, direction) {
-  entries.sort((a, b) => {
+  filteredEntries.sort((a, b) => {
     let aValue = a[field];
     let bValue = b[field];
 
@@ -155,7 +162,7 @@ function calculateSummary() {
   let totalIncome = 0;
   let totalExpense = 0;
 
-  entries.forEach((entry) => {
+  filteredEntries.forEach((entry) => {
     totalIncome += entry.income;
     totalExpense += entry.expense;
   });
@@ -178,18 +185,27 @@ function renderEntries() {
   const tbody = document.getElementById("entriesBody");
   tbody.innerHTML = "";
 
-  if (entries.length === 0 && !isAdding) {
+  // Update table info
+  document.getElementById("currentEntriesCount").textContent =
+    filteredEntries.length;
+  document.getElementById("totalEntriesCount").textContent = entries.length;
+
+  if (filteredEntries.length === 0 && !isAdding) {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td colspan="5" style="text-align: center; color: #666;">
-        Chưa có dữ liệu nào. Hãy thêm mục mới.
+        ${
+          entries.length === 0
+            ? "Chưa có dữ liệu nào. Hãy thêm mục mới."
+            : "Không có kết quả phù hợp với bộ lọc."
+        }
       </td>
     `;
     tbody.appendChild(row);
     return;
   }
 
-  entries.forEach((entry) => {
+  filteredEntries.forEach((entry) => {
     const row = document.createElement("tr");
 
     // Check if this row is being edited
@@ -274,7 +290,7 @@ function cancelAdd() {
   showAddButton();
 
   // If table is empty after cancel, show empty message
-  if (entries.length === 0) {
+  if (filteredEntries.length === 0) {
     renderEntries();
   }
 }
@@ -459,6 +475,79 @@ function isValidDate(dateString) {
   }
 
   return day > 0 && day <= monthLength[month - 1];
+}
+
+// Filter Functions
+function applyFilters() {
+  // Get current filter values
+  filterState.dateFrom = document.getElementById("dateFrom").value;
+  filterState.dateTo = document.getElementById("dateTo").value;
+  filterState.searchName = document
+    .getElementById("searchName")
+    .value.toLowerCase();
+
+  // Apply filters to entries
+  filteredEntries = entries.filter((entry) => {
+    // Date filter
+    if (
+      filterState.dateFrom &&
+      !isDateOnOrAfter(entry.date, filterState.dateFrom)
+    ) {
+      return false;
+    }
+
+    if (
+      filterState.dateTo &&
+      !isDateOnOrBefore(entry.date, filterState.dateTo)
+    ) {
+      return false;
+    }
+
+    // Name search filter
+    if (
+      filterState.searchName &&
+      !entry.name.toLowerCase().includes(filterState.searchName)
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Sort and render filtered entries
+  sortEntries(currentSortField, currentSortDirection);
+  renderEntries();
+  calculateSummary();
+}
+
+function resetFilters() {
+  // Reset filter inputs
+  document.getElementById("dateFrom").value = "";
+  document.getElementById("dateTo").value = "";
+  document.getElementById("searchName").value = "";
+
+  // Reset filter state
+  filterState = {
+    dateFrom: "",
+    dateTo: "",
+    searchName: "",
+  };
+
+  // Apply reset filters (show all entries)
+  applyFilters();
+}
+
+// Helper function to compare dates in DD/MM/YYYY format
+function isDateOnOrAfter(dateString, compareDateString) {
+  const date = parseDate(dateString);
+  const compareDate = parseDate(compareDateString);
+  return date >= compareDate;
+}
+
+function isDateOnOrBefore(dateString, compareDateString) {
+  const date = parseDate(dateString);
+  const compareDate = parseDate(compareDateString);
+  return date <= compareDate;
 }
 
 // Multiple Entry Functions

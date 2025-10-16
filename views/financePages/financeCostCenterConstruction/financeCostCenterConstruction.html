@@ -11,7 +11,7 @@
     />
     <link
       rel="stylesheet"
-      href="financePages/financeCostCenterConstruction/financeCostCenterConstruction.css?v=1.2"
+      href="financePages/financeCostCenterConstruction/financeCostCenterConstruction.css?v=1.3"
     />
   </head>
   <body>
@@ -45,6 +45,49 @@
           </div>
           <div class="summary-item">
             <strong>Lợi Nhuận:</strong> <span id="totalProfit">0</span> VND
+          </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div id="filtersSection" class="filters-section hidden">
+          <h3>Bộ Lọc</h3>
+          <div class="filter-controls">
+            <div class="filter-group">
+              <label for="dateFrom">Từ ngày:</label>
+              <input
+                type="text"
+                id="dateFrom"
+                placeholder="DD/MM/YYYY"
+                pattern="\d{2}/\d{2}/\d{4}"
+              />
+            </div>
+            <div class="filter-group">
+              <label for="dateTo">Đến ngày:</label>
+              <input
+                type="text"
+                id="dateTo"
+                placeholder="DD/MM/YYYY"
+                pattern="\d{2}/\d{2}/\d{4}"
+              />
+            </div>
+            <div class="filter-group">
+              <label for="searchName">Tìm theo tên:</label>
+              <input type="text" id="searchName" placeholder="Tên công trình" />
+            </div>
+          </div>
+          <div class="filter-actions">
+            <button
+              class="btn-finance apply-filters-btn"
+              onclick="applyFilters()"
+            >
+              Áp dụng bộ lọc
+            </button>
+            <button
+              class="btn-finance reset-filters-btn"
+              onclick="resetFilters()"
+            >
+              Đặt lại bộ lọc
+            </button>
           </div>
         </div>
 
@@ -83,6 +126,10 @@
         <!-- Bảng dữ liệu -->
         <div id="addFormContainer" class="hidden">
           <h2>Danh Sách Mục Mua sắm và Xây dựng</h2>
+          <div class="table-info">
+            Hiển thị <span id="currentEntriesCount">0</span> trong tổng số
+            <span id="totalEntriesCount">0</span> mục
+          </div>
           <table id="entriesTable">
             <thead>
               <tr>
@@ -136,6 +183,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="financePages/financeCostCenterConstruction/financeCostCenterConstruction.js?v=1.2"></script>
+    <script src="financePages/financeCostCenterConstruction/financeCostCenterConstruction.js?v=1.3"></script>
   </body>
 </html>
