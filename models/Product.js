@@ -1,16 +1,85 @@
 // models/Product.js
 const mongoose = require("mongoose");
 
-// Define the schema for the cost center
-const productSchema = new mongoose.Schema({
-  name: {
+const productChangeSchema = new mongoose.Schema({
+  field: {
     type: String,
     required: true,
+    enum: ["name", "code"],
   },
-  code: {
+  oldValue: {
     type: String,
-    required: true,
   },
+  newValue: {
+    type: String,
+  },
+  changedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  changedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+});
+
+const productSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      unique: true,
+    },
+    code: {
+      type: String,
+      unique: true,
+    },
+    // Track previous names and codes
+    previousNames: [
+      {
+        name: String,
+        changedAt: Date,
+        changedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      },
+    ],
+    previousCodes: [
+      {
+        code: String,
+        changedAt: Date,
+        changedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      },
+    ],
+    // Complete change history
+    changeHistory: [productChangeSchema],
+    // Original values for reference
+    originalName: {
+      type: String,
+    },
+    originalCode: {
+      type: String,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+// Add index for better performance
+productSchema.index({ code: 1 });
+productSchema.index({ "changeHistory.changedAt": -1 });
+
+// Middleware to set original values on first save
+productSchema.pre("save", function (next) {
+  if (this.isNew) {
+    this.originalName = this.name;
+    this.originalCode = this.code;
+  }
+  next();
 });
 
 const Product = mongoose.model("Product", productSchema);

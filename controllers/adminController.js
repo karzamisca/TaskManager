@@ -1,5 +1,6 @@
 const ExcelJS = require("exceljs");
 const multer = require("multer");
+const DocumentPurchasing = require("../models/DocumentPurchasing");
 const CostCenter = require("../models/CostCenter");
 const Product = require("../models/Product");
 const FinanceGas = require("../models/FinanceGas");
@@ -292,12 +293,14 @@ exports.updateProduct = async (req, res) => {
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
+
     const { name, code } = req.body;
+    const productId = req.params.id;
 
     // Check if another product with the same code already exists
     const existingProduct = await Product.findOne({
       code,
-      _id: { $ne: req.params.id },
+      _id: { $ne: productId },
     });
 
     if (existingProduct) {
@@ -306,14 +309,92 @@ exports.updateProduct = async (req, res) => {
         .json({ message: "Another product with this code already exists" });
     }
 
+    // Get the current product before update to know what changed
+    const currentProduct = await Product.findById(productId);
+    if (!currentProduct) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const oldName = currentProduct.name;
+    const oldCode = currentProduct.code;
+    const changes = [];
+
+    // Prepare update object and track changes
+    const updateData = {};
+    const changeHistoryUpdates = [];
+    const previousNamesUpdates = [];
+    const previousCodesUpdates = [];
+
+    if (name !== oldName) {
+      updateData.name = name;
+      changes.push("name");
+
+      // Add to change history
+      changeHistoryUpdates.push({
+        field: "name",
+        oldValue: oldName,
+        newValue: name,
+        changedBy: req.user._id,
+      });
+
+      // Add to previous names
+      previousNamesUpdates.push({
+        name: oldName,
+        changedAt: new Date(),
+        changedBy: req.user._id,
+      });
+    }
+
+    if (code !== oldCode) {
+      updateData.code = code;
+      changes.push("code");
+
+      // Add to change history
+      changeHistoryUpdates.push({
+        field: "code",
+        oldValue: oldCode,
+        newValue: code,
+        changedBy: req.user._id,
+      });
+
+      // Add to previous codes
+      previousCodesUpdates.push({
+        code: oldCode,
+        changedAt: new Date(),
+        changedBy: req.user._id,
+      });
+    }
+
+    // If no changes, return early
+    if (changes.length === 0) {
+      return res.status(200).json(currentProduct);
+    }
+
+    // Update the product with all changes
     const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      { name, code },
+      productId,
+      {
+        ...updateData,
+        $push: {
+          changeHistory: { $each: changeHistoryUpdates },
+          ...(previousNamesUpdates.length > 0 && {
+            previousNames: { $each: previousNamesUpdates },
+          }),
+          ...(previousCodesUpdates.length > 0 && {
+            previousCodes: { $each: previousCodesUpdates },
+          }),
+        },
+      },
       { new: true, runValidators: true }
     );
 
     if (!updatedProduct) {
       return res.status(404).json({ message: "Product not found" });
+    }
+
+    // Sync changes to purchasing documents if name or code changed
+    if (name !== oldName || code !== oldCode) {
+      await syncProductChangesToPurchasing(oldName, oldCode, name, code);
     }
 
     res.status(200).json(updatedProduct);
@@ -322,18 +403,52 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
+async function syncProductChangesToPurchasing(
+  oldName,
+  oldCode,
+  newName,
+  newCode
+) {
+  try {
+    // Update product name in purchasing documents' products array
+    await DocumentPurchasing.updateMany(
+      { "products.productName": oldName },
+      {
+        $set: {
+          "products.$[elem].productName": newName,
+        },
+      },
+      {
+        arrayFilters: [{ "elem.productName": oldName }],
+      }
+    );
+
+    // Also update by code if needed (if you store code in purchasing documents)
+    await DocumentPurchasing.updateMany(
+      { "products.code": oldCode }, // if you have code field in purchasing products
+      {
+        $set: {
+          "products.$[elem].code": newCode,
+          "products.$[elem].productName": newName,
+        },
+      },
+      {
+        arrayFilters: [{ "elem.code": oldCode }],
+      }
+    );
+  } catch (error) {
+    console.error(
+      "Error syncing product changes to purchasing documents:",
+      error
+    );
+    // Don't throw error here to avoid failing the main product update
+  }
+}
+
 // Delete a product
 exports.deleteProduct = async (req, res) => {
   try {
-    if (
-      ![
-        "superAdmin",
-        "director",
-        "deputyDirector",
-        "headOfPurchasing",
-        "captainOfPurchasing",
-      ].includes(req.user.role)
-    ) {
+    if (!["superAdmin"].includes(req.user.role)) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
     const deletedProduct = await Product.findByIdAndDelete(req.params.id);
