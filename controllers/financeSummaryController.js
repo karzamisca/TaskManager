@@ -8,11 +8,12 @@ exports.getAvailableYears = async (req, res) => {
   if (
     !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
       req.user.role
-    )
+    ) &&
+    !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
   ) {
     return res
       .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
 
   try {
@@ -73,11 +74,12 @@ exports.getAllCostCenters = async (req, res) => {
   if (
     !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
       req.user.role
-    )
+    ) &&
+    !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
   ) {
     return res
       .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
   try {
     const costCenters = await CostCenter.find().select("name category -_id"); // Include category field
@@ -153,11 +155,12 @@ exports.getRevenueByCostCenter = async (req, res) => {
   if (
     !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
       req.user.role
-    )
+    ) &&
+    !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
   ) {
     return res
       .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
   try {
     const { years, costCenters, category } = req.query;
@@ -566,11 +569,12 @@ exports.createCostCenterGroup = async (req, res) => {
   if (
     !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
       req.user.role
-    )
+    ) &&
+    !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
   ) {
     return res
       .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
   try {
     const { name, costCenters } = req.body;
@@ -594,11 +598,12 @@ exports.getCostCenterGroups = async (req, res) => {
   if (
     !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
       req.user.role
-    )
+    ) &&
+    !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
   ) {
     return res
       .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
   try {
     const groups = await CostCenterGroup.find();
@@ -613,11 +618,12 @@ exports.deleteCostCenterGroup = async (req, res) => {
   if (
     !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
       req.user.role
-    )
+    ) &&
+    !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
   ) {
     return res
       .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
   try {
     const { id } = req.params;

@@ -10,11 +10,12 @@ exports.getBankEntries = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
-      ].includes(req.user.role)
+      ].includes(req.user.role) &&
+      !req.user.permissions?.includes("Nhập liệu tài chính ngân hàng")
     ) {
       return res
         .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
     const { costCenterId } = req.params;
     const costCenter = await CostCenter.findById(costCenterId);
@@ -38,11 +39,12 @@ exports.addBankEntry = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
-      ].includes(req.user.role)
+      ].includes(req.user.role) &&
+      !req.user.permissions?.includes("Nhập liệu tài chính ngân hàng")
     ) {
       return res
         .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
     const { costCenterId } = req.params;
     const { name, income, expense, date } = req.body;
@@ -90,11 +92,12 @@ exports.updateBankEntry = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
-      ].includes(req.user.role)
+      ].includes(req.user.role) &&
+      !req.user.permissions?.includes("Nhập liệu tài chính ngân hàng")
     ) {
       return res
         .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
     const { costCenterId, entryId } = req.params;
     const { name, income, expense, date } = req.body;
@@ -140,11 +143,12 @@ exports.deleteBankEntry = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
-      ].includes(req.user.role)
+      ].includes(req.user.role) &&
+      !req.user.permissions?.includes("Nhập liệu tài chính ngân hàng")
     ) {
       return res
         .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
     const { costCenterId, entryId } = req.params;
     const costCenter = await CostCenter.findById(costCenterId);
@@ -173,11 +177,12 @@ exports.getCostCenters = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
-      ].includes(req.user.role)
+      ].includes(req.user.role) &&
+      !req.user.permissions?.includes("Nhập liệu tài chính ngân hàng")
     ) {
       return res
         .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Fetch cost centers sorted alphabetically by name
