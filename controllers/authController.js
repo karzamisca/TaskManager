@@ -21,6 +21,7 @@ exports.login = async (req, res) => {
         username: user.username,
         role: user.role,
         department: user.department,
+        permissions: user.permissions,
       },
       process.env.JWT_SECRET,
       { expiresIn: "15m" } // Short expiration time
@@ -108,6 +109,7 @@ exports.refreshToken = async (req, res) => {
         username: user.username,
         role: user.role,
         department: user.department,
+        permissions: user.permissions,
       },
       process.env.JWT_SECRET,
       { expiresIn: "15m" }

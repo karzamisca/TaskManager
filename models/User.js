@@ -50,6 +50,8 @@ const userSchema = new mongoose.Schema({
   taxableIncome: { type: Number, default: 0 },
   // Travel Expense Fields
   travelExpense: { type: Number, default: 0 },
+  // Permissions array
+  permissions: [{ type: String }],
 });
 
 // Pre-save hook to generate password and calculate salary/tax

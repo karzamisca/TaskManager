@@ -17,6 +17,7 @@ module.exports = async (req, res, next) => {
     req.user = decoded; // Attach decoded user data to the request
     req._id = decoded.id; // Attach userId to the request
     req.role = decoded.role; // Attach role to the request
+    req.permissions = decoded.permissions;
     next();
   } catch (err) {
     // If the access token is expired, try refreshing it
@@ -53,6 +54,7 @@ async function handleRefreshToken(req, res, next) {
         username: user.username,
         role: user.role,
         department: user.department,
+        permissions: user.permissions,
       },
       process.env.JWT_SECRET,
       { expiresIn: "15m" } // Short expiration time

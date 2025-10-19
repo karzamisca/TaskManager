@@ -13,6 +13,7 @@ const documentInGroupDeclarationRoute = require("./routes/documentInGroupDeclara
 const projectRoute = require("./routes/projectRoute");
 const projectExpenseRoute = require("./routes/projectExpenseRoute");
 const userRoute = require("./routes/userRoute");
+const userPermissionRoute = require("./routes/userPermissionRoute");
 const messageRoute = require("./routes/messageRoute");
 const reportRoute = require("./routes/reportRoute");
 const financeGasRoute = require("./routes/financeGasRoute");
@@ -75,6 +76,7 @@ app.use("/", authMiddleware, projectRoute);
 app.use("/", authMiddleware, projectExpenseRoute);
 app.use("/", authMiddleware, messageRoute);
 app.use("/", authMiddleware, userRoute);
+app.use("/", authMiddleware, userPermissionRoute);
 app.use("/", authMiddleware, reportRoute);
 app.use("/", authMiddleware, sftpRoutes);
 app.use("/", authMiddleware, financeGasRoute);

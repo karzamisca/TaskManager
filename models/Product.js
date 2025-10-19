@@ -69,10 +69,6 @@ const productSchema = new mongoose.Schema(
   }
 );
 
-// Add index for better performance
-productSchema.index({ code: 1 });
-productSchema.index({ "changeHistory.changedAt": -1 });
-
 // Middleware to set original values on first save
 productSchema.pre("save", function (next) {
   if (this.isNew) {
