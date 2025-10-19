@@ -1,42 +1,45 @@
 <!-- views/userPages/userPermission/userPermission.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>User Permissions Management</title>
-    <link rel="stylesheet" href="userPages/userPermission/userPermission.css" />
+    <title>Quản lý Quyền Người dùng</title>
+    <link
+      rel="stylesheet"
+      href="userPages/userPermission/userPermission.css?v=1.0"
+    />
   </head>
   <body>
     <div class="container">
       <div class="header">
-        <h1>User Permissions Management</h1>
-        <p>Manage and assign permissions to system users</p>
+        <h1>Quản lý Quyền Người dùng</h1>
+        <p>Quản lý và phân quyền cho người dùng hệ thống</p>
       </div>
 
       <div class="card">
         <div class="user-selection">
           <div class="form-group">
-            <label for="userId">Select User by ID:</label>
+            <label for="userId">Chọn Người dùng theo ID:</label>
             <input
               type="text"
               id="userId"
               class="form-control"
-              placeholder="Enter User ID (e.g., 507f1f77bcf86cd799439011)"
+              placeholder="Nhập ID người dùng"
             />
           </div>
           <button class="btn btn-primary" onclick="loadUser()">
-            Load User
+            Tải Người dùng
           </button>
         </div>
 
         <div class="form-group">
-          <label for="userSearch">Or Search Users:</label>
+          <label for="userSearch">Tìm kiếm Người dùng:</label>
           <input
             type="text"
             id="userSearch"
             class="form-control"
-            placeholder="Search by username or real name..."
+            placeholder="Tìm kiếm theo tên đăng nhập hoặc tên thật..."
             oninput="searchUsers()"
           />
           <div id="userSearchResults" class="hidden"></div>
@@ -45,22 +48,22 @@
 
       <div id="userInfo" class="card hidden">
         <div class="user-info">
-          <h3>User Information</h3>
+          <h3>Thông tin Người dùng</h3>
           <div class="info-grid">
             <div class="info-item">
-              <span class="info-label">Username</span>
+              <span class="info-label">Tên đăng nhập</span>
               <span class="info-value" id="infoUsername">-</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Real Name</span>
+              <span class="info-label">Tên thật</span>
               <span class="info-value" id="infoRealName">-</span>
             </div>
             <div class="info-item">
-              <span class="info-label">User ID</span>
+              <span class="info-label">ID Người dùng</span>
               <span class="info-value" id="infoUserId">-</span>
             </div>
             <div class="info-item">
-              <span class="info-label">Current Permissions</span>
+              <span class="info-label">Quyền hiện tại</span>
               <span class="info-value" id="infoPermissionCount">0</span>
             </div>
           </div>
@@ -69,27 +72,14 @@
         <div id="message" class="message hidden"></div>
 
         <div class="permissions-section">
-          <h3 class="section-title">Available Permissions</h3>
-
+          <h3 class="section-title">Quyền Khả dụng</h3>
           <div class="permissions-grid" id="commonPermissions">
             <!-- Common permissions will be loaded here -->
-          </div>
-
-          <div class="custom-permission">
-            <input
-              type="text"
-              id="customPermissionInput"
-              class="form-control"
-              placeholder="Enter custom permission name..."
-            />
-            <button class="btn btn-success" onclick="addCustomPermission()">
-              Add Custom Permission
-            </button>
           </div>
         </div>
 
         <div class="permissions-section">
-          <h3 class="section-title">Selected Permissions</h3>
+          <h3 class="section-title">Quyền Đã chọn</h3>
           <div class="current-permissions" id="selectedPermissions">
             <!-- Selected permissions will be shown here -->
           </div>
@@ -97,17 +87,19 @@
 
         <div class="actions">
           <button class="btn btn-primary" onclick="updatePermissions()">
-            Update Permissions
+            Cập nhật Quyền
           </button>
-          <button class="btn btn-danger" onclick="resetForm()">Reset</button>
+          <button class="btn btn-secondary" onclick="resetForm()">
+            Đặt lại
+          </button>
         </div>
       </div>
 
-      <div id="loading" class="loading hidden">Loading...</div>
+      <div id="loading" class="loading hidden">Đang tải...</div>
     </div>
 
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="userPages/userPermission/userPermission.js"></script>
+    <script src="userPages/userPermission/userPermission.js?v=1.0"></script>
   </body>
 </html>

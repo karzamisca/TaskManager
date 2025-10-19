@@ -20,6 +20,9 @@ exports.getUserPermissionPage = (req, res) => {
 // Get user data for permissions editing
 exports.getUserForPermissions = async (req, res) => {
   try {
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     const userId = req.params.id;
     const user = await User.findById(userId).select(
       "username realName permissions"
@@ -46,6 +49,9 @@ exports.getUserForPermissions = async (req, res) => {
 // Update user permissions
 exports.updateUserPermissions = async (req, res) => {
   try {
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     const userId = req.params.id;
     const { permissions } = req.body;
 
@@ -88,6 +94,9 @@ exports.updateUserPermissions = async (req, res) => {
 // Get all users with permissions (for management view)
 exports.getAllUsersWithPermissions = async (req, res) => {
   try {
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     const users = await User.find({})
       .select("username realName role department permissions")
       .sort({ username: 1 });

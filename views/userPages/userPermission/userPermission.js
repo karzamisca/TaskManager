@@ -1,6 +1,6 @@
 // views/userPages/userPermission/userPermission.js
 // Configuration
-const API_BASE_URL = "/userPermissionControl"; // Update with your backend URL
+const API_BASE_URL = "/userPermissionControl";
 let currentUser = null;
 let allUsers = [];
 
@@ -27,10 +27,10 @@ async function loadAllUsers() {
     if (response.ok) {
       allUsers = data.users;
     } else {
-      console.error("Failed to load users:", data.error);
+      console.error("Không thể tải danh sách người dùng:", data.error);
     }
   } catch (error) {
-    console.error("Error loading users:", error);
+    console.error("Lỗi khi tải người dùng:", error);
   }
 }
 
@@ -42,11 +42,11 @@ function initializeCommonPermissions() {
     const card = document.createElement("div");
     card.className = "permission-card";
     card.innerHTML = `
-                    <label>
-                        <input type="checkbox" value="${permission}" onchange="togglePermission('${permission}')">
-                        ${permission}
-                    </label>
-                `;
+            <label>
+                <input type="checkbox" value="${permission}" onchange="togglePermission('${permission}')">
+                ${permission}
+            </label>
+        `;
     container.appendChild(card);
   });
 }
@@ -71,16 +71,17 @@ function searchUsers() {
     resultsContainer.innerHTML = filteredUsers
       .map(
         (user) => `
-                    <div class="permission-card" onclick="selectUserFromSearch('${user.id}')" style="cursor: pointer; margin: 5px 0;">
-                        <strong>${user.username}</strong> - ${user.realName}
-                        <br><small>ID: ${user.id}</small>
-                    </div>
-                `
+                <div class="permission-card" onclick="selectUserFromSearch('${user.id}')" style="cursor: pointer; margin: 5px 0;">
+                    <strong>${user.username}</strong> - ${user.realName}
+                    <br><small>ID: ${user.id}</small>
+                </div>
+            `
       )
       .join("");
     resultsContainer.classList.remove("hidden");
   } else {
-    resultsContainer.innerHTML = '<div class="message">No users found</div>';
+    resultsContainer.innerHTML =
+      '<div class="message">Không tìm thấy người dùng</div>';
     resultsContainer.classList.remove("hidden");
   }
 }
@@ -98,7 +99,7 @@ async function loadUser() {
   const userId = document.getElementById("userId").value.trim();
 
   if (!userId) {
-    showMessage("Please enter a User ID", "error");
+    showMessage("Vui lòng nhập ID người dùng", "error");
     return;
   }
 
@@ -113,12 +114,12 @@ async function loadUser() {
       displayUserInfo();
       updateSelectedPermissionsDisplay();
       document.getElementById("userInfo").classList.remove("hidden");
-      showMessage("User loaded successfully", "success");
+      showMessage("Đã tải thông tin người dùng thành công", "success");
     } else {
-      showMessage(data.error || "Failed to load user", "error");
+      showMessage(data.error || "Không thể tải thông tin người dùng", "error");
     }
   } catch (error) {
-    showMessage("Error loading user: " + error.message, "error");
+    showMessage("Lỗi khi tải người dùng: " + error.message, "error");
   } finally {
     showLoading(false);
   }
@@ -131,6 +132,29 @@ function displayUserInfo() {
   document.getElementById("infoUserId").textContent = currentUser.id;
   document.getElementById("infoPermissionCount").textContent =
     currentUser.permissions.length;
+
+  // Update checkboxes based on current permissions
+  updatePermissionCheckboxes();
+}
+
+// Update permission checkboxes based on current user permissions
+function updatePermissionCheckboxes() {
+  const checkboxes = document.querySelectorAll(
+    '#commonPermissions input[type="checkbox"]'
+  );
+
+  checkboxes.forEach((checkbox) => {
+    const permission = checkbox.value;
+    const card = checkbox.closest(".permission-card");
+
+    if (currentUser.permissions.includes(permission)) {
+      checkbox.checked = true;
+      card.classList.add("selected");
+    } else {
+      checkbox.checked = false;
+      card.classList.remove("selected");
+    }
+  });
 }
 
 // Toggle permission selection
@@ -151,27 +175,6 @@ function togglePermission(permission) {
   }
 
   updateSelectedPermissionsDisplay();
-}
-
-// Add custom permission
-function addCustomPermission() {
-  const input = document.getElementById("customPermissionInput");
-  const permission = input.value.trim();
-
-  if (!permission) {
-    showMessage("Please enter a permission name", "error");
-    return;
-  }
-
-  if (currentUser.permissions.includes(permission)) {
-    showMessage("Permission already exists", "error");
-    return;
-  }
-
-  currentUser.permissions.push(permission);
-  input.value = "";
-  updateSelectedPermissionsDisplay();
-  showMessage("Custom permission added", "success");
 }
 
 // Remove permission
@@ -195,16 +198,16 @@ function updateSelectedPermissionsDisplay() {
   const container = document.getElementById("selectedPermissions");
 
   if (currentUser.permissions.length === 0) {
-    container.innerHTML = "<p>No permissions selected</p>";
+    container.innerHTML = "<p>Chưa có quyền nào được chọn</p>";
   } else {
     container.innerHTML = currentUser.permissions
       .map(
         (permission) => `
-                    <span class="permission-tag">
-                        ${permission}
-                        <span class="remove" onclick="removePermission('${permission}')">×</span>
-                    </span>
-                `
+                <span class="permission-tag">
+                    ${permission}
+                    <span class="remove" onclick="removePermission('${permission}')">×</span>
+                </span>
+            `
       )
       .join("");
   }
@@ -216,7 +219,7 @@ function updateSelectedPermissionsDisplay() {
 // Update permissions on server
 async function updatePermissions() {
   if (!currentUser) {
-    showMessage("Please load a user first", "error");
+    showMessage("Vui lòng tải thông tin người dùng trước", "error");
     return;
   }
 
@@ -239,12 +242,12 @@ async function updatePermissions() {
     const data = await response.json();
 
     if (response.ok) {
-      showMessage("Permissions updated successfully!", "success");
+      showMessage("Đã cập nhật quyền thành công!", "success");
     } else {
-      showMessage(data.error || "Failed to update permissions", "error");
+      showMessage(data.error || "Không thể cập nhật quyền", "error");
     }
   } catch (error) {
-    showMessage("Error updating permissions: " + error.message, "error");
+    showMessage("Lỗi khi cập nhật quyền: " + error.message, "error");
   } finally {
     showLoading(false);
   }
@@ -252,9 +255,12 @@ async function updatePermissions() {
 
 // Reset form
 function resetForm() {
-  if (confirm("Are you sure you want to reset all changes?")) {
+  if (confirm("Bạn có chắc chắn muốn đặt lại tất cả thay đổi?")) {
     if (currentUser) {
       loadUser(); // Reload original data
+    } else {
+      document.getElementById("userId").value = "";
+      document.getElementById("userInfo").classList.add("hidden");
     }
   }
 }
