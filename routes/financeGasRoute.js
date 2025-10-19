@@ -4,11 +4,7 @@ const router = express.Router();
 const centersController = require("../controllers/financeGasController");
 const authMiddleware = require("../middlewares/authMiddleware");
 
-router.get("/financeGas", authMiddleware, (req, res) => {
-  res.sendFile("financeGas.html", {
-    root: "./views/financePages/financeGas",
-  });
-});
+router.get("/financeGas", authMiddleware, centersController.getFinanceGasPage);
 router.get(
   "/financeGasControlSummaryExportToExcel",
   authMiddleware,

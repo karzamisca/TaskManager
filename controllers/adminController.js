@@ -1,3 +1,4 @@
+// controllers/adminController.js
 const ExcelJS = require("exceljs");
 const multer = require("multer");
 const DocumentPurchasing = require("../models/DocumentPurchasing");

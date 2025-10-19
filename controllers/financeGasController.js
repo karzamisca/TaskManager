@@ -2,7 +2,7 @@
 const Center = require("../models/CostCenter"); // Changed from FinanceGas to CostCenter
 const ExcelJS = require("exceljs");
 
-exports.getAllCenters = async (req, res) => {
+exports.getFinanceGasPage = (req, res) => {
   try {
     if (
       ![
@@ -10,13 +10,24 @@ exports.getAllCenters = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
-      ].includes(req.user.role)
+      ].includes(req.user.role) &&
+      !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
     ) {
       return res
         .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
+    res.sendFile("financeGas.html", {
+      root: "./views/financePages/financeGas",
+    });
+  } catch (error) {
+    console.error("Error serving the user main page:", error);
+    res.send("Server error");
+  }
+};
 
+exports.getAllCenters = async (req, res) => {
+  try {
     const centers = await Center.find().sort({ name: 1 }); // 1 = ascending A-Z
     res.json(centers);
   } catch (err) {
@@ -32,11 +43,12 @@ exports.exportAllCentersSummaryToExcel = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
-      ].includes(req.user.role)
+      ].includes(req.user.role) &&
+      !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
     ) {
       return res
         .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
     // Fetch all centers data
     const centers = await Center.find().lean();
@@ -205,11 +217,12 @@ exports.createCenter = async (req, res) => {
   if (
     !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
       req.user.role
-    )
+    ) &&
+    !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
   ) {
     return res
       .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
 
   const { name, category = "Mua bán khí" } = req.body; // Add category with default
@@ -248,11 +261,12 @@ exports.addMonthEntry = async (req, res) => {
   if (
     !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
       req.user.role
-    )
+    ) &&
+    !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
   ) {
     return res
       .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
 
   const { centerId, year, monthName } = req.params;
@@ -319,11 +333,12 @@ exports.deleteCenter = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
-      ].includes(req.user.role)
+      ].includes(req.user.role) &&
+      !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
     ) {
       return res
         .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     await Center.findByIdAndDelete(req.params.id);
@@ -337,11 +352,12 @@ exports.addYear = async (req, res) => {
   if (
     !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
       req.user.role
-    )
+    ) &&
+    !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
   ) {
     return res
       .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
 
   const { centerId } = req.params;
@@ -386,11 +402,12 @@ exports.updateYear = async (req, res) => {
   if (
     !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
       req.user.role
-    )
+    ) &&
+    !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
   ) {
     return res
       .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
 
   const { centerId, year } = req.params;
@@ -429,11 +446,12 @@ exports.reorderYears = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
-      ].includes(req.user.role)
+      ].includes(req.user.role) &&
+      !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
     ) {
       return res
         .status(403)
-        .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
     const { centerId } = req.params;
     const { fromIndex, toIndex } = req.body;
@@ -459,11 +477,12 @@ exports.deleteMonthEntry = async (req, res) => {
   if (
     !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
       req.user.role
-    )
+    ) &&
+    !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
   ) {
     return res
       .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
 
   const { centerId, year, monthName, entryIndex } = req.params;
@@ -500,11 +519,12 @@ exports.updateMonthEntry = async (req, res) => {
   if (
     !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
       req.user.role
-    )
+    ) &&
+    !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
   ) {
     return res
       .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
 
   const { centerId, year, monthName, entryIndex } = req.params;
@@ -550,17 +570,20 @@ exports.updateMonthEntry = async (req, res) => {
 };
 
 exports.updateCenter = async (req, res) => {
-  if (
-    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
-      req.user.role
-    )
-  ) {
-    return res
-      .status(403)
-      .send("Truy cập bị từ chối. Bạn không có quyền truy cập");
-  }
-
   try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "captainOfFinance",
+      ].includes(req.user.role) &&
+      !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
     const { category } = req.body;
     const center = await Center.findByIdAndUpdate(
       req.params.id,
