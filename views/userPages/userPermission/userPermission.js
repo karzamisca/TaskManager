@@ -1,3 +1,4 @@
+// views/userPages/userPermission/userPermission.js
 // Configuration
 const API_BASE_URL = "/userPermissionControl"; // Update with your backend URL
 let currentUser = null;
