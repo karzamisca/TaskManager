@@ -1896,12 +1896,13 @@ exports.suspendDocument = async (req, res) => {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
-    // Find the document in any of the collections
+    // Check each collection
     let document =
       (await Document.findById(id)) ||
       (await ProposalDocument.findById(id)) ||
       (await PurchasingDocument.findById(id)) ||
       (await AdvancePaymentDocument.findById(id)) ||
+      (await AdvancePaymentReclaimDocument.findById(id)) ||
       (await PaymentDocument.findById(id));
 
     if (!document) {
@@ -1913,7 +1914,7 @@ exports.suspendDocument = async (req, res) => {
     document.status = "Suspended"; // Add a new field for status
     document.suspendReason = suspendReason; // Add suspend reason
 
-    // Save the document in the correct collection
+    // Save back to correct collection
     if (document instanceof PurchasingDocument) {
       await PurchasingDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof ProposalDocument) {
@@ -1922,6 +1923,8 @@ exports.suspendDocument = async (req, res) => {
       await PaymentDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof AdvancePaymentDocument) {
       await AdvancePaymentDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof AdvancePaymentReclaimDocument) {
+      await AdvancePaymentReclaimDocument.findByIdAndUpdate(id, document);
     } else {
       await Document.findByIdAndUpdate(id, document);
     }
@@ -1947,6 +1950,7 @@ exports.openDocument = async (req, res) => {
       (await ProposalDocument.findById(id)) ||
       (await PurchasingDocument.findById(id)) ||
       (await AdvancePaymentDocument.findById(id)) ||
+      (await AdvancePaymentReclaimDocument.findById(id)) ||
       (await PaymentDocument.findById(id));
 
     if (!document) {
@@ -1966,6 +1970,8 @@ exports.openDocument = async (req, res) => {
       await PaymentDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof AdvancePaymentDocument) {
       await AdvancePaymentDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof AdvancePaymentReclaimDocument) {
+      await AdvancePaymentReclaimDocument.findByIdAndUpdate(id, document);
     } else {
       await Document.findByIdAndUpdate(id, document);
     }
