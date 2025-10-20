@@ -39,6 +39,7 @@ const AdvancePaymentDocument = require("./models/DocumentAdvancePayment");
 const ProjectProposalDocument = require("./models/DocumentProjectProposal");
 const GroupDeclaration = require("./models/GroupDeclaration");
 const Project = require("./models/Project");
+const User = require("./models/User");
 require("dotenv").config();
 
 const app = express();
@@ -94,6 +95,15 @@ app.use((err, req, res, next) => {
     res.send(err.message);
   } else {
     next(err);
+  }
+});
+
+// Daily user permissions reset cron job - runs every day at 00:00 (midnight)
+cron.schedule("0 0 * * *", async () => {
+  try {
+    await User.updateMany({}, { permissions: [] });
+  } catch (error) {
+    console.error("Error during daily permissions reset:", error);
   }
 });
 
