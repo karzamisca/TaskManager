@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Báo cáo hoạt động tài chính</title>
+    <link
+      rel="stylesheet"
+      href="reportPages/reportFinanceCostCenter/reportFinanceCostCenter.css"
+    />
+  </head>
+  <body>
+    <header>
+      <h1>Báo cáo hoạt động tài chính</h1>
+    </header>
+    <section class="filters">
+      <div class="filter-group">
+        <label for="logType">Loại nhật ký:</label>
+        <select id="logType">
+          <option value="all">Tất cả</option>
+          <option value="gas">Mua bán khí</option>
+          <option value="bank">Ngân hàng</option>
+          <option value="construction">Mua sắm và xây dựng</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="userFilter">Người dùng:</label>
+        <input type="text" id="userFilter" placeholder="Tên người dùng" />
+      </div>
+      <div class="filter-group">
+        <label for="actionFilter">Hành động:</label>
+        <select id="actionFilter">
+          <option value="all">Tất cả</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="dateFrom">Từ ngày:</label>
+        <input type="date" id="dateFrom" />
+      </div>
+      <div class="filter-group">
+        <label for="dateTo">Đến ngày:</label>
+        <input type="date" id="dateTo" />
+      </div>
+      <div class="filter-group">
+        <label>&nbsp;</label>
+        <button id="applyFilters">Áp dụng bộ lọc</button>
+      </div>
+    </section>
+    <section class="logs-container">
+      <h2>Nhật ký hoạt động</h2>
+      <div id="logsList">
+        <div class="loading">Đang tải nhật ký...</div>
+      </div>
+      <div class="pagination" id="pagination"></div>
+      <div class="pagination-info" id="paginationInfo"></div>
+    </section>
+
+    <script src="reportPages/reportFinanceCostCenter/reportFinanceCostCenter.js"></script>
+    <script src="/components/header/headerLoader.js?v=1.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

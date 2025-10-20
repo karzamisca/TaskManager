@@ -1,0 +1,162 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+body {
+  background-color: white;
+  color: black;
+  line-height: 1.6;
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+header {
+  border-bottom: 2px solid black;
+  padding-bottom: 15px;
+  margin-bottom: 30px;
+}
+h1,
+h2,
+h3 {
+  font-weight: normal;
+  margin-bottom: 15px;
+}
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 30px;
+  padding: 15px;
+  border: 1px solid black;
+}
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+}
+label {
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+select,
+input,
+button {
+  padding: 8px 12px;
+  border: 1px solid black;
+  background: white;
+  color: black;
+}
+button {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+button:hover {
+  background-color: black;
+  color: white;
+}
+.logs-container {
+  margin-top: 20px;
+}
+.log-entry {
+  border: 1px solid black;
+  margin-bottom: 15px;
+  padding: 15px;
+}
+.log-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  border-bottom: 1px solid black;
+  padding-bottom: 10px;
+}
+.log-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+}
+.detail-item {
+  margin-bottom: 8px;
+}
+.detail-label {
+  font-weight: bold;
+  font-size: 14px;
+}
+.detail-value {
+  font-size: 14px;
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 30px;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.pagination button {
+  padding: 8px 12px;
+  min-width: 40px;
+  border: 1px solid black;
+  background: white;
+  color: black;
+  font-size: 14px;
+}
+.pagination button:hover:not(:disabled) {
+  background-color: black;
+  color: white;
+}
+.pagination button.active {
+  background-color: black;
+  color: white;
+  font-weight: bold;
+}
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.pagination button:disabled:hover {
+  background-color: white;
+  color: black;
+}
+.pagination .ellipsis {
+  padding: 8px 4px;
+  border: none;
+  background: transparent;
+  cursor: default;
+  min-width: auto;
+}
+.pagination .ellipsis:hover {
+  background: transparent;
+  color: black;
+}
+.pagination-info {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #666;
+}
+.no-logs {
+  text-align: center;
+  padding: 40px;
+  border: 1px solid black;
+}
+.status-success {
+  color: black;
+}
+.status-error {
+  color: black;
+  font-weight: bold;
+}
+.loading {
+  text-align: center;
+  padding: 40px;
+  border: 1px solid black;
+}
+@media (max-width: 768px) {
+  .pagination button {
+    padding: 6px 10px;
+    min-width: 35px;
+    font-size: 13px;
+  }
+}
