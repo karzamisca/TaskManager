@@ -1,8 +1,55 @@
 // controllers/financeGasController.js
-const Center = require("../models/CostCenter"); // Changed from FinanceGas to CostCenter
+const Center = require("../models/CostCenter");
 const ExcelJS = require("exceljs");
+const FinanceGasLog = require("../models/FinanceGasLog");
 
-exports.getFinanceGasPage = (req, res) => {
+// Helper function to get client IP
+const getClientIp = (req) => {
+  return (
+    req.ip ||
+    req.connection.remoteAddress ||
+    req.socket.remoteAddress ||
+    (req.connection.socket ? req.connection.socket.remoteAddress : null)
+  );
+};
+
+// Helper function to log actions
+const logAction = async (
+  req,
+  res,
+  action,
+  costCenterId = null,
+  entryId = null,
+  requestData = null,
+  additionalData = {}
+) => {
+  const logData = {
+    userId: req.user.id,
+    username: req.user.username,
+    userRole: req.user.role,
+    userDepartment: req.user.department,
+    action: action,
+    controller: "financeGasController",
+    costCenterId: costCenterId,
+    entryId: entryId,
+    entryType: "gas",
+    requestData: requestData,
+    responseStatus: res.statusCode,
+    responseMessage: res.statusMessage || getResponseMessage(res),
+    ipAddress: getClientIp(req),
+    userAgent: req.get("User-Agent"),
+    ...additionalData,
+  };
+
+  await FinanceGasLog.logAction(logData);
+};
+
+// Helper to extract response message
+const getResponseMessage = (res) => {
+  return "Operation completed";
+};
+
+exports.getFinanceGasPage = async (req, res) => {
   try {
     if (
       ![
@@ -13,14 +60,23 @@ exports.getFinanceGasPage = (req, res) => {
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
     ) {
+      await logAction(req, res, "GET_FINANCE_GAS_PAGE", null, null, {
+        error: "Permission denied",
+        requiredPermission: "Nhập liệu tài chính mua bán khí",
+      });
       return res
         .status(403)
         .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
+
+    await logAction(req, res, "GET_FINANCE_GAS_PAGE");
     res.sendFile("financeGas.html", {
       root: "./views/financePages/financeGas",
     });
   } catch (error) {
+    await logAction(req, res, "GET_FINANCE_GAS_PAGE", null, null, {
+      error: error.message,
+    });
     console.error("Error serving the user main page:", error);
     res.send("Server error");
   }
@@ -29,8 +85,16 @@ exports.getFinanceGasPage = (req, res) => {
 exports.getAllCenters = async (req, res) => {
   try {
     const centers = await Center.find().sort({ name: 1 }); // 1 = ascending A-Z
+
+    await logAction(req, res, "GET_ALL_CENTERS_GAS", null, null, null, {
+      centersCount: centers.length,
+    });
+
     res.json(centers);
   } catch (err) {
+    await logAction(req, res, "GET_ALL_CENTERS_GAS", null, null, {
+      error: err.message,
+    });
     res.status(500).json({ message: err.message });
   }
 };
@@ -46,10 +110,15 @@ exports.exportAllCentersSummaryToExcel = async (req, res) => {
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
     ) {
+      await logAction(req, res, "EXPORT_GAS_SUMMARY_EXCEL", null, null, {
+        error: "Permission denied",
+        requiredPermission: "Nhập liệu tài chính mua bán khí",
+      });
       return res
         .status(403)
         .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
+
     // Fetch all centers data
     const centers = await Center.find().lean();
 
@@ -117,6 +186,8 @@ exports.exportAllCentersSummaryToExcel = async (req, res) => {
       commissionSale: 0,
     };
 
+    let totalRows = 0;
+
     centers.forEach((center) => {
       center.years.forEach((yearData) => {
         yearData.months.forEach((monthData) => {
@@ -141,6 +212,7 @@ exports.exportAllCentersSummaryToExcel = async (req, res) => {
               commissionPurchase: monthTotals.commissionPurchase,
               commissionSale: monthTotals.commissionSale,
             });
+            totalRows++;
           }
         });
       });
@@ -179,10 +251,23 @@ exports.exportAllCentersSummaryToExcel = async (req, res) => {
       "attachment; filename=tong_hop_tat_ca_tram.xlsx"
     );
 
+    // Log the export action
+    await logAction(req, res, "EXPORT_GAS_SUMMARY_EXCEL", null, null, null, {
+      exportInfo: {
+        fileName: "tong_hop_tat_ca_tram.xlsx",
+        recordCount: totalRows,
+        totalAmounts: grandTotals,
+        centersIncluded: centers.length,
+      },
+    });
+
     // Write workbook to response
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
+    await logAction(req, res, "EXPORT_GAS_SUMMARY_EXCEL", null, null, {
+      error: error.message,
+    });
     console.error("Error exporting to Excel:", error);
     res.status(500).json({ message: "Lỗi khi xuất file Excel" });
   }
@@ -220,12 +305,16 @@ exports.createCenter = async (req, res) => {
     ) &&
     !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
   ) {
+    await logAction(req, res, "CREATE_CENTER_GAS", null, null, {
+      error: "Permission denied",
+      requiredPermission: "Nhập liệu tài chính mua bán khí",
+    });
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
 
-  const { name, category = "Mua bán khí" } = req.body; // Add category with default
+  const { name, category = "Mua bán khí" } = req.body;
 
   const currentYear = new Date().getFullYear();
   const months = [
@@ -251,8 +340,21 @@ exports.createCenter = async (req, res) => {
 
   try {
     const newCenter = await center.save();
+
+    await logAction(req, res, "CREATE_CENTER_GAS", newCenter._id, null, {
+      centerData: {
+        name: name,
+        category: category,
+        initialYear: currentYear,
+      },
+    });
+
     res.status(201).json(newCenter);
   } catch (err) {
+    await logAction(req, res, "CREATE_CENTER_GAS", null, null, {
+      error: err.message,
+      centerData: { name, category },
+    });
     res.status(400).json({ message: err.message });
   }
 };
@@ -264,6 +366,10 @@ exports.addMonthEntry = async (req, res) => {
     ) &&
     !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
   ) {
+    await logAction(req, res, "ADD_MONTH_ENTRY_GAS", null, null, {
+      error: "Permission denied",
+      requiredPermission: "Nhập liệu tài chính mua bán khí",
+    });
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -275,6 +381,11 @@ exports.addMonthEntry = async (req, res) => {
   try {
     const center = await Center.findById(centerId);
     if (!center) {
+      await logAction(req, res, "ADD_MONTH_ENTRY_GAS", centerId, null, {
+        error: "Center not found",
+        year: year,
+        monthName: monthName,
+      });
       return res.status(404).json({ message: "Center not found" });
     }
 
@@ -303,6 +414,11 @@ exports.addMonthEntry = async (req, res) => {
 
     const month = yearData.months.find((m) => m.name === monthName);
     if (!month) {
+      await logAction(req, res, "ADD_MONTH_ENTRY_GAS", centerId, null, {
+        error: "Month not found",
+        year: year,
+        monthName: monthName,
+      });
       return res.status(404).json({ message: "Month not found" });
     }
 
@@ -319,8 +435,44 @@ exports.addMonthEntry = async (req, res) => {
 
     month.entries.push(entryData);
     await center.save();
+
+    const newEntryIndex = month.entries.length - 1;
+
+    await logAction(
+      req,
+      res,
+      "ADD_MONTH_ENTRY_GAS",
+      centerId,
+      null,
+      {
+        entryData: {
+          purchaseContract: entryData.purchaseContract,
+          saleContract: entryData.saleContract,
+          transportCost: entryData.transportCost,
+          commissionBonus: entryData.commissionBonus,
+        },
+      },
+      {
+        year: parseInt(year),
+        monthName: monthName,
+        entryIndex: newEntryIndex,
+      }
+    );
+
     res.json(center);
   } catch (err) {
+    await logAction(
+      req,
+      res,
+      "ADD_MONTH_ENTRY_GAS",
+      req.params.centerId,
+      null,
+      {
+        error: err.message,
+        year: req.params.year,
+        monthName: req.params.monthName,
+      }
+    );
     res.status(400).json({ message: err.message });
   }
 };
@@ -336,14 +488,37 @@ exports.deleteCenter = async (req, res) => {
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
     ) {
+      await logAction(req, res, "DELETE_CENTER_GAS", null, null, {
+        error: "Permission denied",
+        requiredPermission: "Nhập liệu tài chính mua bán khí",
+      });
       return res
         .status(403)
         .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
+    const center = await Center.findById(req.params.id);
+    if (!center) {
+      await logAction(req, res, "DELETE_CENTER_GAS", req.params.id, null, {
+        error: "Center not found",
+      });
+      return res.status(404).json({ message: "Center not found" });
+    }
+
     await Center.findByIdAndDelete(req.params.id);
+
+    await logAction(req, res, "DELETE_CENTER_GAS", req.params.id, null, {
+      deletedCenter: {
+        name: center.name,
+        category: center.category,
+      },
+    });
+
     res.json({ message: "Center deleted" });
   } catch (err) {
+    await logAction(req, res, "DELETE_CENTER_GAS", req.params.id, null, {
+      error: err.message,
+    });
     res.status(500).json({ message: err.message });
   }
 };
@@ -355,6 +530,10 @@ exports.addYear = async (req, res) => {
     ) &&
     !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
   ) {
+    await logAction(req, res, "ADD_YEAR_GAS", null, null, {
+      error: "Permission denied",
+      requiredPermission: "Nhập liệu tài chính mua bán khí",
+    });
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -366,11 +545,19 @@ exports.addYear = async (req, res) => {
   try {
     const center = await Center.findById(centerId);
     if (!center) {
+      await logAction(req, res, "ADD_YEAR_GAS", centerId, null, {
+        error: "Center not found",
+        year: year,
+      });
       return res.status(404).json({ message: "Center not found" });
     }
 
     // Check if year already exists
     if (center.years.some((y) => y.year === year)) {
+      await logAction(req, res, "ADD_YEAR_GAS", centerId, null, {
+        error: "Year already exists",
+        year: year,
+      });
       return res.status(400).json({ message: "Year already exists" });
     }
 
@@ -392,8 +579,27 @@ exports.addYear = async (req, res) => {
 
     center.years.push({ year, months });
     await center.save();
+
+    await logAction(
+      req,
+      res,
+      "ADD_YEAR_GAS",
+      centerId,
+      null,
+      {
+        yearAdded: year,
+      },
+      {
+        year: year,
+      }
+    );
+
     res.json(center);
   } catch (err) {
+    await logAction(req, res, "ADD_YEAR_GAS", req.params.centerId, null, {
+      error: err.message,
+      year: req.body.year,
+    });
     res.status(400).json({ message: err.message });
   }
 };
@@ -405,6 +611,10 @@ exports.updateYear = async (req, res) => {
     ) &&
     !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
   ) {
+    await logAction(req, res, "UPDATE_YEAR_GAS", null, null, {
+      error: "Permission denied",
+      requiredPermission: "Nhập liệu tài chính mua bán khí",
+    });
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -416,24 +626,65 @@ exports.updateYear = async (req, res) => {
   try {
     const center = await Center.findById(centerId);
     if (!center) {
+      await logAction(req, res, "UPDATE_YEAR_GAS", centerId, null, {
+        error: "Center not found",
+        oldYear: year,
+        newYear: newYear,
+      });
       return res.status(404).json({ message: "Center not found" });
     }
 
     const yearData = center.years.find((y) => y.year === parseInt(year));
     if (!yearData) {
+      await logAction(req, res, "UPDATE_YEAR_GAS", centerId, null, {
+        error: "Year not found",
+        oldYear: year,
+        newYear: newYear,
+      });
       return res.status(404).json({ message: "Year not found" });
     }
 
     // Check if new year already exists
     if (center.years.some((y) => y.year === newYear)) {
+      await logAction(req, res, "UPDATE_YEAR_GAS", centerId, null, {
+        error: "Year already exists",
+        oldYear: year,
+        newYear: newYear,
+      });
       return res.status(400).json({ message: "Year already exists" });
     }
+
+    // Store old year for logging
+    const oldYear = yearData.year;
 
     // Update the year
     yearData.year = newYear;
     await center.save();
+
+    await logAction(
+      req,
+      res,
+      "UPDATE_YEAR_GAS",
+      centerId,
+      null,
+      {
+        yearUpdate: {
+          from: oldYear,
+          to: newYear,
+        },
+      },
+      {
+        year: newYear,
+      }
+    );
+
     res.json(center);
   } catch (err) {
+    await logAction(req, res, "UPDATE_YEAR_GAS", req.params.centerId, null, {
+      error: err.message,
+      oldYear: req.params.year,
+      newYear: req.body.newYear,
+    });
     res.status(400).json({ message: err.message });
   }
 };
@@ -449,25 +700,54 @@ exports.reorderYears = async (req, res) => {
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
     ) {
+      await logAction(req, res, "REORDER_YEARS_GAS", null, null, {
+        error: "Permission denied",
+        requiredPermission: "Nhập liệu tài chính mua bán khí",
+      });
       return res
         .status(403)
         .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
+
     const { centerId } = req.params;
     const { fromIndex, toIndex } = req.body;
 
     const center = await Center.findById(centerId);
     if (!center) {
+      await logAction(req, res, "REORDER_YEARS_GAS", centerId, null, {
+        error: "Center not found",
+        reorderData: { fromIndex, toIndex },
+      });
       return res.status(404).json({ message: "Center not found" });
     }
+
+    // Store original order for logging
+    const originalOrder = center.years.map((y) => y.year);
 
     // Reorder the years array
     const [movedYear] = center.years.splice(fromIndex, 1);
     center.years.splice(toIndex, 0, movedYear);
 
     await center.save();
+
+    const newOrder = center.years.map((y) => y.year);
+
+    await logAction(req, res, "REORDER_YEARS_GAS", centerId, null, {
+      reorderData: {
+        fromIndex: fromIndex,
+        toIndex: toIndex,
+        movedYear: movedYear.year,
+        originalOrder: originalOrder,
+        newOrder: newOrder,
+      },
+    });
+
     res.json(center);
   } catch (error) {
+    await logAction(req, res, "REORDER_YEARS_GAS", req.params.centerId, null, {
+      error: error.message,
+      reorderData: req.body,
+    });
     console.error("Error reordering years:", error);
     res.status(500).json({ message: "Error reordering years" });
   }
@@ -480,6 +760,10 @@ exports.deleteMonthEntry = async (req, res) => {
     ) &&
     !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
   ) {
+    await logAction(req, res, "DELETE_MONTH_ENTRY_GAS", null, null, {
+      error: "Permission denied",
+      requiredPermission: "Nhập liệu tài chính mua bán khí",
+    });
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -490,27 +774,85 @@ exports.deleteMonthEntry = async (req, res) => {
   try {
     const center = await Center.findById(centerId);
     if (!center) {
+      await logAction(req, res, "DELETE_MONTH_ENTRY_GAS", centerId, null, {
+        error: "Center not found",
+        year: year,
+        monthName: monthName,
+        entryIndex: entryIndex,
+      });
       return res.status(404).json({ message: "Center not found" });
     }
 
     const yearData = center.years.find((y) => y.year === parseInt(year));
     if (!yearData) {
+      await logAction(req, res, "DELETE_MONTH_ENTRY_GAS", centerId, null, {
+        error: "Year not found",
+        year: year,
+        monthName: monthName,
+        entryIndex: entryIndex,
+      });
       return res.status(404).json({ message: "Year not found" });
     }
 
     const month = yearData.months.find((m) => m.name === monthName);
     if (!month) {
+      await logAction(req, res, "DELETE_MONTH_ENTRY_GAS", centerId, null, {
+        error: "Month not found",
+        year: year,
+        monthName: monthName,
+        entryIndex: entryIndex,
+      });
       return res.status(404).json({ message: "Month not found" });
     }
 
     if (entryIndex < 0 || entryIndex >= month.entries.length) {
+      await logAction(req, res, "DELETE_MONTH_ENTRY_GAS", centerId, null, {
+        error: "Entry index out of bounds",
+        year: year,
+        monthName: monthName,
+        entryIndex: entryIndex,
+        availableEntries: month.entries.length,
+      });
       return res.status(404).json({ message: "Entry index out of bounds" });
     }
 
+    // Store deleted entry data for logging
+    const deletedEntry = month.entries[entryIndex];
+
     month.entries.splice(entryIndex, 1);
     await center.save();
+
+    await logAction(
+      req,
+      res,
+      "DELETE_MONTH_ENTRY_GAS",
+      centerId,
+      null,
+      {
+        deletedEntry: deletedEntry,
+      },
+      {
+        year: parseInt(year),
+        monthName: monthName,
+        entryIndex: parseInt(entryIndex),
+      }
+    );
+
     res.json(center);
   } catch (err) {
+    await logAction(
+      req,
+      res,
+      "DELETE_MONTH_ENTRY_GAS",
+      req.params.centerId,
+      null,
+      {
+        error: err.message,
+        year: req.params.year,
+        monthName: req.params.monthName,
+        entryIndex: req.params.entryIndex,
+      }
+    );
     res.status(400).json({ message: err.message });
   }
 };
@@ -522,6 +864,10 @@ exports.updateMonthEntry = async (req, res) => {
     ) &&
     !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
   ) {
+    await logAction(req, res, "UPDATE_MONTH_ENTRY_GAS", null, null, {
+      error: "Permission denied",
+      requiredPermission: "Nhập liệu tài chính mua bán khí",
+    });
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -533,22 +879,50 @@ exports.updateMonthEntry = async (req, res) => {
   try {
     const center = await Center.findById(centerId);
     if (!center) {
+      await logAction(req, res, "UPDATE_MONTH_ENTRY_GAS", centerId, null, {
+        error: "Center not found",
+        year: year,
+        monthName: monthName,
+        entryIndex: entryIndex,
+      });
       return res.status(404).json({ message: "Center not found" });
     }
 
     const yearData = center.years.find((y) => y.year === parseInt(year));
     if (!yearData) {
+      await logAction(req, res, "UPDATE_MONTH_ENTRY_GAS", centerId, null, {
+        error: "Year not found",
+        year: year,
+        monthName: monthName,
+        entryIndex: entryIndex,
+      });
       return res.status(404).json({ message: "Year not found" });
     }
 
     const month = yearData.months.find((m) => m.name === monthName);
     if (!month) {
+      await logAction(req, res, "UPDATE_MONTH_ENTRY_GAS", centerId, null, {
+        error: "Month not found",
+        year: year,
+        monthName: monthName,
+        entryIndex: entryIndex,
+      });
       return res.status(404).json({ message: "Month not found" });
     }
 
     if (entryIndex < 0 || entryIndex >= month.entries.length) {
+      await logAction(req, res, "UPDATE_MONTH_ENTRY_GAS", centerId, null, {
+        error: "Entry index out of bounds",
+        year: year,
+        monthName: monthName,
+        entryIndex: entryIndex,
+        availableEntries: month.entries.length,
+      });
       return res.status(404).json({ message: "Entry index out of bounds" });
     }
+
+    // Store old values for logging
+    const oldEntry = { ...month.entries[entryIndex] };
 
     // Calculate totals before updating
     if (entryData.purchaseContract) {
@@ -563,8 +937,41 @@ exports.updateMonthEntry = async (req, res) => {
 
     month.entries[entryIndex] = entryData;
     await center.save();
+
+    await logAction(
+      req,
+      res,
+      "UPDATE_MONTH_ENTRY_GAS",
+      centerId,
+      null,
+      {
+        updateData: {
+          oldEntry: oldEntry,
+          newEntry: entryData,
+        },
+      },
+      {
+        year: parseInt(year),
+        monthName: monthName,
+        entryIndex: parseInt(entryIndex),
+      }
+    );
+
     res.json(center);
   } catch (err) {
+    await logAction(
+      req,
+      res,
+      "UPDATE_MONTH_ENTRY_GAS",
+      req.params.centerId,
+      null,
+      {
+        error: err.message,
+        year: req.params.year,
+        monthName: req.params.monthName,
+        entryIndex: req.params.entryIndex,
+      }
+    );
     res.status(400).json({ message: err.message });
   }
 };
@@ -580,23 +987,49 @@ exports.updateCenter = async (req, res) => {
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
     ) {
+      await logAction(req, res, "UPDATE_CENTER_GAS", null, null, {
+        error: "Permission denied",
+        requiredPermission: "Nhập liệu tài chính mua bán khí",
+      });
       return res
         .status(403)
         .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
+
     const { category } = req.body;
-    const center = await Center.findByIdAndUpdate(
-      req.params.id,
+    const centerId = req.params.id;
+
+    const center = await Center.findById(centerId);
+    if (!center) {
+      await logAction(req, res, "UPDATE_CENTER_GAS", centerId, null, {
+        error: "Center not found",
+        updateData: { category },
+      });
+      return res.status(404).json({ message: "Center not found" });
+    }
+
+    // Store old category for logging
+    const oldCategory = center.category;
+
+    const updatedCenter = await Center.findByIdAndUpdate(
+      centerId,
       { category },
       { new: true, runValidators: true }
     );
 
-    if (!center) {
-      return res.status(404).json({ message: "Center not found" });
-    }
+    await logAction(req, res, "UPDATE_CENTER_GAS", centerId, null, {
+      updateData: {
+        from: oldCategory,
+        to: category,
+      },
+    });
 
-    res.json(center);
+    res.json(updatedCenter);
   } catch (err) {
+    await logAction(req, res, "UPDATE_CENTER_GAS", req.params.id, null, {
+      error: err.message,
+      updateData: req.body,
+    });
     res.status(400).json({ message: err.message });
   }
 };
