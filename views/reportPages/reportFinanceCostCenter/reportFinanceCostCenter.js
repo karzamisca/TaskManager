@@ -1,3 +1,4 @@
+// views/reportPages/reportFinanceCostCenter/reportFinanceCostCenter.js
 // Available log types and actions
 const logTypes = {
   gas: {

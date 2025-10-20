@@ -1,28 +1,45 @@
+/* views/reportPages/reportFinanceCostCenter/reportFinanceCostCenter.css */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
   font-family: "Segoe UI", Arial, sans-serif;
 }
+
 body {
   background-color: white;
   color: black;
   line-height: 1.6;
+}
+
+/* Container for report content only */
+.report-content {
   padding: 20px;
   max-width: 1400px;
   margin: 0 auto;
 }
-header {
+
+/* Use a more specific selector to avoid conflicts with dashboard-header */
+.report-header {
   border-bottom: 2px solid black;
   padding-bottom: 15px;
   margin-bottom: 30px;
 }
-h1,
-h2,
-h3 {
+
+.report-header h1,
+.report-header h2,
+.report-header h3 {
   font-weight: normal;
   margin-bottom: 15px;
 }
+
+/* Style other headings in the report */
+.logs-container h2,
+.logs-container h3 {
+  font-weight: normal;
+  margin-bottom: 15px;
+}
+
 .filters {
   display: flex;
   flex-wrap: wrap;
@@ -31,39 +48,48 @@ h3 {
   padding: 15px;
   border: 1px solid black;
 }
+
 .filter-group {
   display: flex;
   flex-direction: column;
   min-width: 200px;
 }
-label {
+
+.filter-group label {
   margin-bottom: 5px;
   font-size: 14px;
 }
-select,
-input,
-button {
+
+/* Scope input/select/button styles to filter section to avoid conflicts */
+.filters select,
+.filters input,
+.filters button {
   padding: 8px 12px;
   border: 1px solid black;
   background: white;
   color: black;
 }
-button {
+
+.filters button {
   cursor: pointer;
   transition: all 0.2s;
 }
-button:hover {
+
+.filters button:hover {
   background-color: black;
   color: white;
 }
+
 .logs-container {
   margin-top: 20px;
 }
+
 .log-entry {
   border: 1px solid black;
   margin-bottom: 15px;
   padding: 15px;
 }
+
 .log-header {
   display: flex;
   justify-content: space-between;
@@ -71,34 +97,42 @@ button:hover {
   border-bottom: 1px solid black;
   padding-bottom: 10px;
 }
+
 .log-details {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 10px;
 }
+
 .detail-item {
   margin-bottom: 8px;
 }
+
 .detail-label {
   font-weight: bold;
   font-size: 14px;
 }
+
 .detail-value {
   font-size: 14px;
 }
+
 .no-logs {
   text-align: center;
   padding: 40px;
   border: 1px solid black;
 }
+
 .loading {
   text-align: center;
   padding: 40px;
   border: 1px solid black;
 }
+
 .status-success {
   color: black;
 }
+
 .status-error {
   color: black;
   font-weight: bold;
