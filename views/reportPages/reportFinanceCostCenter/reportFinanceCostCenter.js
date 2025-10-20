@@ -40,8 +40,6 @@ const logTypes = {
 };
 
 let currentState = {
-  currentPage: 1,
-  itemsPerPage: 10,
   filters: {
     logType: "all",
     user: "",
@@ -92,7 +90,6 @@ function applyFilters() {
     dateTo: document.getElementById("dateTo").value,
   };
 
-  currentState.currentPage = 1;
   loadLogs();
 }
 
@@ -102,8 +99,6 @@ async function loadLogs() {
 
   try {
     const params = new URLSearchParams({
-      page: currentState.currentPage,
-      limit: currentState.itemsPerPage,
       type: currentState.filters.logType,
       user: currentState.filters.user,
       action: currentState.filters.action,
@@ -119,7 +114,6 @@ async function loadLogs() {
 
     const data = await response.json();
     renderLogs(data.logs);
-    renderPagination(data.pagination);
   } catch (error) {
     console.error("Error loading logs:", error);
     logsList.innerHTML =
@@ -223,101 +217,4 @@ function renderLogs(logs) {
     logEntry.appendChild(logDetails);
     logsList.appendChild(logEntry);
   });
-}
-
-function renderPagination(pagination) {
-  const paginationContainer = document.getElementById("pagination");
-  const paginationInfo = document.getElementById("paginationInfo");
-
-  if (!pagination || pagination.totalPages <= 1) {
-    paginationContainer.innerHTML = "";
-    paginationInfo.innerHTML = "";
-    return;
-  }
-
-  const { currentPage, totalPages, totalItems } = pagination;
-
-  paginationContainer.innerHTML = "";
-
-  const prevButton = document.createElement("button");
-  prevButton.textContent = "← Trước";
-  prevButton.disabled = currentPage === 1;
-  prevButton.addEventListener("click", () => {
-    if (currentState.currentPage > 1) {
-      currentState.currentPage--;
-      loadLogs();
-    }
-  });
-  paginationContainer.appendChild(prevButton);
-
-  const pages = getPageNumbers(currentPage, totalPages);
-
-  pages.forEach((page) => {
-    if (page === "...") {
-      const ellipsis = document.createElement("button");
-      ellipsis.textContent = "...";
-      ellipsis.className = "ellipsis";
-      ellipsis.disabled = true;
-      paginationContainer.appendChild(ellipsis);
-    } else {
-      const pageButton = document.createElement("button");
-      pageButton.textContent = page;
-      pageButton.className = currentPage === page ? "active" : "";
-      pageButton.addEventListener("click", () => {
-        currentState.currentPage = page;
-        loadLogs();
-      });
-      paginationContainer.appendChild(pageButton);
-    }
-  });
-
-  const nextButton = document.createElement("button");
-  nextButton.textContent = "Sau →";
-  nextButton.disabled = currentPage === totalPages;
-  nextButton.addEventListener("click", () => {
-    if (currentState.currentPage < totalPages) {
-      currentState.currentPage++;
-      loadLogs();
-    }
-  });
-  paginationContainer.appendChild(nextButton);
-
-  const startItem = (currentPage - 1) * currentState.itemsPerPage + 1;
-  const endItem = Math.min(currentPage * currentState.itemsPerPage, totalItems);
-  paginationInfo.innerHTML = `Hiển thị ${startItem}-${endItem} trong tổng số ${totalItems} bản ghi`;
-}
-
-function getPageNumbers(current, total) {
-  const pages = [];
-  const showPages = 5;
-
-  if (total <= 7) {
-    for (let i = 1; i <= total; i++) {
-      pages.push(i);
-    }
-  } else {
-    if (current <= 4) {
-      for (let i = 1; i <= 5; i++) {
-        pages.push(i);
-      }
-      pages.push("...");
-      pages.push(total);
-    } else if (current >= total - 3) {
-      pages.push(1);
-      pages.push("...");
-      for (let i = total - 4; i <= total; i++) {
-        pages.push(i);
-      }
-    } else {
-      pages.push(1);
-      pages.push("...");
-      for (let i = current - 1; i <= current + 1; i++) {
-        pages.push(i);
-      }
-      pages.push("...");
-      pages.push(total);
-    }
-  }
-
-  return pages;
 }

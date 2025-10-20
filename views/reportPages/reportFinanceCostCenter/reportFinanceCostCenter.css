@@ -86,57 +86,12 @@ button:hover {
 .detail-value {
   font-size: 14px;
 }
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 30px;
-  gap: 5px;
-  flex-wrap: wrap;
-}
-.pagination button {
-  padding: 8px 12px;
-  min-width: 40px;
-  border: 1px solid black;
-  background: white;
-  color: black;
-  font-size: 14px;
-}
-.pagination button:hover:not(:disabled) {
-  background-color: black;
-  color: white;
-}
-.pagination button.active {
-  background-color: black;
-  color: white;
-  font-weight: bold;
-}
-.pagination button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.pagination button:disabled:hover {
-  background-color: white;
-  color: black;
-}
-.pagination .ellipsis {
-  padding: 8px 4px;
-  border: none;
-  background: transparent;
-  cursor: default;
-  min-width: auto;
-}
-.pagination .ellipsis:hover {
-  background: transparent;
-  color: black;
-}
-.pagination-info {
-  text-align: center;
-  margin-top: 10px;
-  font-size: 14px;
-  color: #666;
-}
 .no-logs {
+  text-align: center;
+  padding: 40px;
+  border: 1px solid black;
+}
+.loading {
   text-align: center;
   padding: 40px;
   border: 1px solid black;
@@ -147,16 +102,4 @@ button:hover {
 .status-error {
   color: black;
   font-weight: bold;
-}
-.loading {
-  text-align: center;
-  padding: 40px;
-  border: 1px solid black;
-}
-@media (max-width: 768px) {
-  .pagination button {
-    padding: 6px 10px;
-    min-width: 35px;
-    font-size: 13px;
-  }
 }
