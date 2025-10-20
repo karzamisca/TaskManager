@@ -1950,6 +1950,7 @@ exports.openDocument = async (req, res) => {
       (await ProposalDocument.findById(id)) ||
       (await PurchasingDocument.findById(id)) ||
       (await AdvancePaymentDocument.findById(id)) ||
+      (await AdvancePaymentReclaimDocument.findById(id)) ||
       (await PaymentDocument.findById(id));
 
     if (!document) {
@@ -1969,6 +1970,8 @@ exports.openDocument = async (req, res) => {
       await PaymentDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof AdvancePaymentDocument) {
       await AdvancePaymentDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof AdvancePaymentReclaimDocument) {
+      await AdvancePaymentReclaimDocument.findByIdAndUpdate(id, document);
     } else {
       await Document.findByIdAndUpdate(id, document);
     }
