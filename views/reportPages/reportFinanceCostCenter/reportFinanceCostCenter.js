@@ -137,11 +137,26 @@ function renderLogs(logs) {
     const logEntry = document.createElement("div");
     logEntry.className = "log-entry";
 
+    // Add type indicator
+    const typeBadge = document.createElement("div");
+    typeBadge.className = `log-type-badge log-type-${log.type}`;
+    typeBadge.textContent = getTypeDisplayName(log.type);
+    typeBadge.style.cssText = `
+      display: inline-block;
+      padding: 2px 8px;
+      background: ${getTypeColor(log.type)};
+      color: white;
+      border-radius: 4px;
+      font-size: 12px;
+      margin-left: 10px;
+    `;
+
     const logHeader = document.createElement("div");
     logHeader.className = "log-header";
 
     const logTitle = document.createElement("h3");
     logTitle.textContent = `${log.username} - ${log.action}`;
+    logTitle.appendChild(typeBadge);
 
     const logTimestamp = document.createElement("span");
     logTimestamp.textContent = new Date(log.timestamp).toLocaleString("vi-VN");
@@ -152,9 +167,13 @@ function renderLogs(logs) {
     const logDetails = document.createElement("div");
     logDetails.className = "log-details";
 
+    // Create details array with all possible fields
     const details = [
+      { label: "Loại", value: getTypeDisplayName(log.type) },
+      { label: "Người dùng", value: log.username },
       { label: "Vai trò", value: log.userRole },
       { label: "Phòng ban", value: log.userDepartment || "Không có" },
+      { label: "Hành động", value: log.action },
       { label: "Bộ điều khiển", value: log.controller },
       {
         label: "Mã phản hồi",
@@ -162,60 +181,127 @@ function renderLogs(logs) {
         className:
           log.responseStatus >= 400 ? "status-error" : "status-success",
       },
-      { label: "Thông điệp", value: log.responseMessage || "Không có" },
+      {
+        label: "Thông điệp phản hồi",
+        value: log.responseMessage || "Không có",
+      },
       { label: "Địa chỉ IP", value: log.ipAddress || "Không có" },
+      {
+        label: "Thời gian",
+        value: new Date(log.timestamp).toLocaleString("vi-VN"),
+      },
+      { label: "User Agent", value: log.userAgent || "Không có" },
     ];
 
+    // Add model-specific fields
+    if (log.costCenterId) {
+      details.push({ label: "Mã trung tâm chi phí", value: log.costCenterId });
+    }
+
+    // Gas log specific fields
     if (log.year) details.push({ label: "Năm", value: log.year });
     if (log.monthName) details.push({ label: "Tháng", value: log.monthName });
     if (log.entryIndex)
-      details.push({ label: "Chỉ mục", value: log.entryIndex });
-    if (log.costCenterId)
-      details.push({
-        label: "Mã trung tâm chi phí",
-        value: log.costCenterId,
-      });
-    if (log.bankEntryId)
-      details.push({
-        label: "Mã bản ghi ngân hàng",
-        value: log.bankEntryId,
-      });
-    if (log.entryId) details.push({ label: "Mã bản ghi", value: log.entryId });
+      details.push({ label: "Chỉ mục bản ghi", value: log.entryIndex });
 
+    // Bank log specific fields
+    if (log.bankEntryId) {
+      details.push({ label: "Mã bản ghi ngân hàng", value: log.bankEntryId });
+    }
+
+    // Construction log specific fields
+    if (log.entryId) details.push({ label: "Mã bản ghi", value: log.entryId });
+    if (log.entryType)
+      details.push({ label: "Loại bản ghi", value: log.entryType });
+
+    // Export information (Gas logs)
     if (log.exportInfo) {
-      details.push({ label: "Tên file", value: log.exportInfo.fileName });
       details.push({
-        label: "Số bản ghi",
-        value: log.exportInfo.recordCount,
+        label: "Tên file xuất",
+        value: log.exportInfo.fileName || "Không có",
+      });
+      details.push({
+        label: "Số lượng bản ghi",
+        value: log.exportInfo.recordCount || 0,
       });
 
       if (log.exportInfo.totalAmounts) {
         const amounts = Object.entries(log.exportInfo.totalAmounts)
-          .map(([key, value]) => `${key}: ${value.toLocaleString("vi-VN")}`)
+          .map(
+            ([key, value]) =>
+              `${key}: ${
+                typeof value === "number"
+                  ? value.toLocaleString("vi-VN")
+                  : value
+              }`
+          )
           .join(", ");
         details.push({ label: "Tổng số tiền", value: amounts });
       }
     }
 
+    // Request data (if available and not too large)
+    if (log.requestData && Object.keys(log.requestData).length > 0) {
+      const requestDataStr =
+        typeof log.requestData === "string"
+          ? log.requestData
+          : JSON.stringify(log.requestData, null, 2);
+
+      if (requestDataStr.length < 500) {
+        // Only show if not too large
+        details.push({
+          label: "Dữ liệu yêu cầu",
+          value: requestDataStr,
+        });
+      }
+    }
+
+    // Create detail items
     details.forEach((detail) => {
-      const detailItem = document.createElement("div");
-      detailItem.className = "detail-item";
+      if (detail.value !== undefined && detail.value !== null) {
+        const detailItem = document.createElement("div");
+        detailItem.className = "detail-item";
 
-      const detailLabel = document.createElement("div");
-      detailLabel.className = "detail-label";
-      detailLabel.textContent = detail.label;
+        const detailLabel = document.createElement("div");
+        detailLabel.className = "detail-label";
+        detailLabel.textContent = detail.label;
 
-      const detailValue = document.createElement("div");
-      detailValue.className = detail.className || "detail-value";
-      detailValue.textContent = detail.value;
+        const detailValue = document.createElement("div");
+        detailValue.className = detail.className || "detail-value";
 
-      detailItem.appendChild(detailLabel);
-      detailItem.appendChild(detailValue);
-      logDetails.appendChild(detailItem);
+        // Format the value display
+        if (typeof detail.value === "object") {
+          detailValue.textContent = JSON.stringify(detail.value);
+        } else {
+          detailValue.textContent = detail.value;
+        }
+
+        detailItem.appendChild(detailLabel);
+        detailItem.appendChild(detailValue);
+        logDetails.appendChild(detailItem);
+      }
     });
 
     logEntry.appendChild(logHeader);
     logEntry.appendChild(logDetails);
     logsList.appendChild(logEntry);
   });
+}
+
+function getTypeDisplayName(type) {
+  const typeNames = {
+    gas: "Mua bán khí",
+    bank: "Ngân hàng",
+    construction: "Xây dựng",
+  };
+  return typeNames[type] || type;
+}
+
+function getTypeColor(type) {
+  const colors = {
+    gas: "#28a745", // Green
+    bank: "#007bff", // Blue
+    construction: "#fd7e14", // Orange
+  };
+  return colors[type] || "#6c757d"; // Gray as fallback
 }
