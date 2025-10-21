@@ -240,23 +240,7 @@ function renderLogs(logs) {
       }
     }
 
-    // Request data (if available and not too large)
-    if (log.requestData && Object.keys(log.requestData).length > 0) {
-      const requestDataStr =
-        typeof log.requestData === "string"
-          ? log.requestData
-          : JSON.stringify(log.requestData, null, 2);
-
-      if (requestDataStr.length < 500) {
-        // Only show if not too large
-        details.push({
-          label: "Dữ liệu yêu cầu",
-          value: requestDataStr,
-        });
-      }
-    }
-
-    // Create detail items
+    // Create detail items for basic fields
     details.forEach((detail) => {
       if (detail.value !== undefined && detail.value !== null) {
         const detailItem = document.createElement("div");
@@ -281,6 +265,73 @@ function renderLogs(logs) {
         logDetails.appendChild(detailItem);
       }
     });
+
+    // REQUEST DATA SECTION - Show this prominently for ALL log types including gas
+    if (log.requestData) {
+      const requestDataSection = document.createElement("div");
+      requestDataSection.className = "request-data-section";
+      requestDataSection.style.cssText = `
+        grid-column: 1 / -1;
+        margin-top: 15px;
+        padding: 15px;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+      `;
+
+      const requestDataHeader = document.createElement("div");
+      requestDataHeader.className = "detail-label";
+      requestDataHeader.textContent = "DỮ LIỆU YÊU CẦU";
+      requestDataHeader.style.marginBottom = "10px";
+
+      const requestDataContent = document.createElement("div");
+      requestDataContent.className = "detail-value";
+
+      try {
+        let requestDataStr;
+
+        if (typeof log.requestData === "string") {
+          // Try to parse if it's a JSON string
+          try {
+            const parsed = JSON.parse(log.requestData);
+            requestDataStr = JSON.stringify(parsed, null, 2);
+          } catch {
+            requestDataStr = log.requestData;
+          }
+        } else if (typeof log.requestData === "object") {
+          // It's already an object
+          requestDataStr = JSON.stringify(log.requestData, null, 2);
+        } else {
+          requestDataStr = String(log.requestData);
+        }
+
+        // Create preformatted text for better readability
+        const pre = document.createElement("pre");
+        pre.style.cssText = `
+          margin: 0;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          font-family: 'Courier New', monospace;
+          font-size: 12px;
+          background: white;
+          padding: 10px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          max-height: 300px;
+          overflow-y: auto;
+        `;
+        pre.textContent = requestDataStr;
+
+        requestDataContent.appendChild(pre);
+      } catch (error) {
+        requestDataContent.textContent = `Lỗi hiển thị dữ liệu: ${error.message}`;
+        requestDataContent.style.color = "#dc3545";
+      }
+
+      requestDataSection.appendChild(requestDataHeader);
+      requestDataSection.appendChild(requestDataContent);
+      logDetails.appendChild(requestDataSection);
+    }
 
     logEntry.appendChild(logHeader);
     logEntry.appendChild(logDetails);
