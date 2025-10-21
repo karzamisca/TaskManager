@@ -7,6 +7,7 @@ const moment = require("moment-timezone");
 const ProposalDocument = require("../models/DocumentProposal.js");
 const PurchasingDocument = require("../models/DocumentPurchasing.js");
 const DeliveryDocument = require("../models/DocumentDelivery.js");
+const ReceiptDocument = require("../models/DocumentReceipt.js");
 const PaymentDocument = require("../models/DocumentPayment.js");
 const AdvancePaymentDocument = require("../models/DocumentAdvancePayment.js");
 const AdvancePaymentReclaimDocument = require("../models/DocumentAdvancePaymentReclaim.js");
@@ -23,6 +24,7 @@ const {
   createProposalDocTemplate,
   createPurchasingDocTemplate,
   createDeliveryDocTemplate,
+  createReceiptDocTemplate,
   createPaymentDocTemplate,
   createAdvancePaymentDocTemplate,
 } = require("../utils/docxTemplates");
@@ -79,6 +81,7 @@ const DOCUMENT_TYPE_FOLDERS = {
   "Purchasing Document":
     process.env.NEXTCLOUD_DOCUMENT_PURCHASING_UPLOAD_FOLDER,
   "Delivery Document": process.env.NEXTCLOUD_DOCUMENT_DELIVERY_UPLOAD_FOLDER,
+  "Receipt Document": process.env.NEXTCLOUD_DOCUMENT_RECEIPT_UPLOAD_FOLDER,
   "Payment Document": process.env.NEXTCLOUD_DOCUMENT_PAYMENT_UPLOAD_FOLDER,
   "Advance Payment Document":
     process.env.NEXTCLOUD_DOCUMENT_PAYMENT_ADVANCE_UPLOAD_FOLDER,
@@ -417,6 +420,7 @@ exports.exportDocumentToDocx = async (req, res) => {
       (await ProposalDocument.findById(id)) ||
       (await PurchasingDocument.findById(id)) ||
       (await DeliveryDocument.findById(id)) ||
+      (await ReceiptDocument.findById(id)) ||
       (await PaymentDocument.findById(id)) ||
       (await AdvancePaymentDocument.findById(id));
 
@@ -438,6 +442,9 @@ exports.exportDocumentToDocx = async (req, res) => {
           break;
         case "Delivery Document":
           buffer = await createDeliveryDocTemplate(doc);
+          break;
+        case "Receipt Document":
+          buffer = await createReceiptDocTemplate(doc);
           break;
         case "Payment Document":
           buffer = await createPaymentDocTemplate(doc);
@@ -502,6 +509,13 @@ exports.submitDocument = async (req, res) => {
           break;
         case "Delivery Document":
           newDocument = await createDeliveryDocument(
+            req,
+            approverDetails,
+            uploadedFilesData
+          );
+          break;
+        case "Receipt Document":
+          newDocument = await createReceiptDocument(
             req,
             approverDetails,
             uploadedFilesData
@@ -1364,6 +1378,69 @@ async function createDeliveryDocument(req, approverDetails, uploadedFilesData) {
   return new DeliveryDocument(documentData);
 }
 
+// Create a Receipt Document
+async function createReceiptDocument(req, approverDetails, uploadedFilesData) {
+  const { products, approvedProposals } = req.body;
+
+  // Process product entries
+  const productEntries = processProducts(products);
+
+  // Calculate grand total cost
+  const grandTotalCost = parseFloat(
+    productEntries.reduce((acc, product) => acc + product.totalCostAfterVat, 0)
+  );
+
+  // Process appended proposals with multiple file support
+  let processedProposals = [];
+  if (approvedProposals && Array.isArray(approvedProposals)) {
+    const proposalDocs = await ProposalDocument.find({
+      _id: { $in: approvedProposals },
+    }).lean();
+
+    processedProposals = proposalDocs.map((doc) => ({
+      task: doc.task,
+      costCenter: doc.costCenter,
+      groupName: doc.groupName,
+      dateOfError: doc.dateOfError,
+      detailsDescription: doc.detailsDescription,
+      direction: doc.direction,
+      fileMetadata: doc.fileMetadata || [],
+      proposalId: doc._id,
+      submissionDate: doc.submissionDate,
+      submittedBy: doc.submittedBy,
+      approvers: doc.approvers,
+      approvedBy: doc.approvedBy,
+      status: doc.status,
+      declaration: doc.declaration,
+      suspendReason: doc.suspendReason,
+      projectName: doc.projectName,
+    }));
+  }
+
+  // Format the submission date for both display and the tag
+  const now = moment().tz("Asia/Bangkok");
+  const submissionDateForTag = now.format("DDMMYYYYHHmmss");
+  const tag = `${req.body.name}${submissionDateForTag}`;
+
+  const documentData = {
+    tag,
+    title: req.body.title,
+    name: req.body.name,
+    costCenter: req.body.costCenter,
+    products: productEntries,
+    grandTotalCost,
+    appendedProposals: processedProposals,
+    groupName: req.body.groupName,
+    projectName: req.body.projectName,
+    submittedBy: req.body.user ? req.body.user.id : req.user.id,
+    approvers: approverDetails,
+    fileMetadata: uploadedFilesData,
+    submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+  };
+
+  return new ReceiptDocument(documentData);
+}
+
 // Create a Payment Document
 async function createPaymentDocument(req, approverDetails, uploadedFilesData) {
   // Process appended purchasing documents
@@ -1665,7 +1742,8 @@ exports.approveDocument = async (req, res) => {
       (await AdvancePaymentDocument.findById(id)) ||
       (await AdvancePaymentReclaimDocument.findById(id)) ||
       (await ProjectProposalDocument.findById(id)) ||
-      (await DeliveryDocument.findById(id));
+      (await DeliveryDocument.findById(id)) ||
+      (await ReceiptDocument.findById(id));
 
     if (!document) {
       return res.send("Không tìm thấy phiếu.");
@@ -1723,6 +1801,8 @@ exports.approveDocument = async (req, res) => {
       await AdvancePaymentReclaimDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof DeliveryDocument) {
       await DeliveryDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof ReceiptDocument) {
+      await ReceiptDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof ProjectProposalDocument) {
       await ProjectProposalDocument.findByIdAndUpdate(id, document);
     } else {
@@ -1832,6 +1912,10 @@ exports.deleteDocument = async (req, res) => {
       document = await DeliveryDocument.findById(id);
       if (document) documentType = "Delivery";
     }
+    if (!document && documentType === "Generic") {
+      document = await ReceiptDocument.findById(id);
+      if (document) documentType = "Receipt";
+    }
     if (!document) {
       document = await ProjectProposalDocument.findById(id);
       if (document) documentType = "ProjectProposal";
@@ -1874,6 +1958,8 @@ exports.deleteDocument = async (req, res) => {
       await AdvancePaymentReclaimDocument.findByIdAndDelete(id);
     } else if (documentType === "Delivery") {
       await DeliveryDocument.findByIdAndDelete(id);
+    } else if (documentType === "Receipt") {
+      await ReceiptDocument.findByIdAndDelete(id);
     } else if (documentType === "ProjectProposal") {
       await ProjectProposalDocument.findByIdAndDelete(id);
     } else {
@@ -1903,7 +1989,9 @@ exports.suspendDocument = async (req, res) => {
       (await PurchasingDocument.findById(id)) ||
       (await AdvancePaymentDocument.findById(id)) ||
       (await AdvancePaymentReclaimDocument.findById(id)) ||
-      (await PaymentDocument.findById(id));
+      (await PaymentDocument.findById(id)) ||
+      (await DeliveryDocument.findById(id)) ||
+      (await ReceiptDocument.findById(id));
 
     if (!document) {
       return res.status(404).send("Không tìm thấy phiếu.");
@@ -1951,7 +2039,9 @@ exports.openDocument = async (req, res) => {
       (await PurchasingDocument.findById(id)) ||
       (await AdvancePaymentDocument.findById(id)) ||
       (await AdvancePaymentReclaimDocument.findById(id)) ||
-      (await PaymentDocument.findById(id));
+      (await PaymentDocument.findById(id)) ||
+      (await DeliveryDocument.findById(id)) ||
+      (await ReceiptDocument.findById(id));
 
     if (!document) {
       return res.status(404).send("Không tìm thấy phiếu.");
@@ -2086,6 +2176,80 @@ exports.getApprovedProposalsForDelivery = async (req, res) => {
     });
 
     // Filter out proposals that are already attached to delivery documents
+    const unattachedProposals = approvedProposals.filter(
+      (proposal) => !attachedProposalIds.has(proposal._id.toString())
+    );
+
+    // Sort approved documents by latest approval date (newest first)
+    const sortedDocuments = unattachedProposals.sort((a, b) => {
+      // Get the latest approval date for each document
+      const getLatestApprovalDate = (doc) => {
+        if (doc.approvedBy && doc.approvedBy.length > 0) {
+          // Sort approval dates in descending order
+          const sortedDates = [...doc.approvedBy].sort((x, y) => {
+            // Parse date strings in format "DD-MM-YYYY HH:MM:SS"
+            const parseCustomDate = (dateStr) => {
+              const [datePart, timePart] = dateStr.split(" ");
+              const [day, month, year] = datePart.split("-");
+              const [hour, minute, second] = timePart.split(":");
+              // Month is 0-indexed in JavaScript Date constructor
+              return new Date(year, month - 1, day, hour, minute, second);
+            };
+            return (
+              parseCustomDate(y.approvalDate) - parseCustomDate(x.approvalDate)
+            );
+          });
+          return sortedDates[0].approvalDate;
+        }
+        return "01-01-1970 00:00:00"; // Default date if no approvals
+      };
+      const latestDateA = getLatestApprovalDate(a);
+      const latestDateB = getLatestApprovalDate(b);
+      // Parse dates
+      const parseCustomDate = (dateStr) => {
+        const [datePart, timePart] = dateStr.split(" ");
+        const [day, month, year] = datePart.split("-");
+        const [hour, minute, second] = timePart.split(":");
+        // Month is 0-indexed in JavaScript Date constructor
+        return new Date(year, month - 1, day, hour, minute, second);
+      };
+      // Sort by latest approval date in descending order (newest first)
+      return parseCustomDate(latestDateB) - parseCustomDate(latestDateA);
+    });
+
+    res.json(sortedDocuments);
+  } catch (err) {
+    console.error("Error fetching unattached approved proposals:", err);
+    res.status(500).send("Lỗi lấy phiếu đề xuất đã phê duyệt chưa được gắn.");
+  }
+};
+exports.getApprovedProposalsForReceipt = async (req, res) => {
+  try {
+    // Fetch all approved proposal documents
+    const approvedProposals = await ProposalDocument.find({
+      status: "Approved",
+    })
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
+
+    // Fetch all purchasing documents to check which proposals are already attached
+    const ReceiptDocument = require("../models/DocumentReceipt.js");
+    const receiptDocuments = await ReceiptDocument.find({});
+
+    // Extract all proposal IDs that are already attached to receipt documents
+    const attachedProposalIds = new Set();
+    receiptDocuments.forEach((doc) => {
+      if (doc.appendedProposals && doc.appendedProposals.length > 0) {
+        doc.appendedProposals.forEach((proposal) => {
+          if (proposal.proposalId) {
+            attachedProposalIds.add(proposal.proposalId.toString());
+          }
+        });
+      }
+    });
+
+    // Filter out proposals that are already attached to receipt documents
     const unattachedProposals = approvedProposals.filter(
       (proposal) => !attachedProposalIds.has(proposal._id.toString())
     );
@@ -5502,6 +5666,264 @@ exports.deleteDeliveryDocumentFile = async (req, res) => {
 };
 //// END OF DELIVERY DOCUMENT CONTROLLER
 
+//// RECEIPT DOCUMENT CONTROLLER
+// Fetch all Receipt Documents
+exports.getReceiptDocumentsForSeparatedView = async (req, res) => {
+  try {
+    // Get user info from authMiddleware
+    const userId = req._id;
+    const userRole = req.role;
+    const username = req.user.username;
+
+    // Find documents that the user has access to
+    const receiptDocuments = await ReceiptDocument.find(
+      documentUtils.filterDocumentsByUserAccess(userId, userRole)
+    )
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
+
+    // Apply username-specific filtering for restricted users
+    const filteredDocuments = documentUtils.filterDocumentsByUsername(
+      receiptDocuments,
+      username
+    );
+
+    // Sort the documents by status priority and approval date
+    const sortedDocuments =
+      documentUtils.sortDocumentsByStatusAndDate(filteredDocuments);
+
+    // Calculate counts for approved and unapproved documents
+    const { approvedDocument, unapprovedDocument } =
+      documentUtils.countDocumentsByStatus(sortedDocuments);
+
+    res.json({
+      receiptDocuments: sortedDocuments,
+      approvedDocument,
+      unapprovedDocument,
+    });
+  } catch (err) {
+    console.error("Error fetching receipt documents:", err);
+    res.status(500).send("Error fetching receipt documents");
+  }
+};
+
+// Fetch a specific Receipt Document by ID
+exports.getReceiptDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const document = await ReceiptDocument.findById(id)
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username")
+      .populate("appendedProposals.submittedBy", "username");
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+    res.json(document);
+  } catch (error) {
+    console.error("Error fetching receipt document:", error);
+    res.status(500).json({ message: "Error fetching document" });
+  }
+};
+
+// Update a Receipt Document
+exports.updateReceiptDocument = async (req, res) => {
+  let tempFilePaths = [];
+  try {
+    const { id } = req.params;
+    const files = req.files;
+
+    // Parse the products JSON string into an object
+    let products;
+    try {
+      products = JSON.parse(req.body.products);
+    } catch (error) {
+      return res.status(400).json({ message: "Invalid products data format" });
+    }
+
+    // Parse grandTotalCost as a number
+    const grandTotalCost = parseFloat(req.body.grandTotalCost);
+    const name = req.body.name;
+    const costCenter = req.body.costCenter;
+    const groupName = req.body.groupName;
+
+    // Parse appendedProposals if it exists
+    let appendedProposals;
+    if (req.body.appendedProposals) {
+      try {
+        appendedProposals = JSON.parse(req.body.appendedProposals);
+      } catch (error) {
+        return res
+          .status(400)
+          .json({ message: "Invalid appendedProposals data format" });
+      }
+    }
+
+    // Parse approvers if it exists
+    let approvers;
+    if (req.body.approvers) {
+      try {
+        approvers = JSON.parse(req.body.approvers);
+      } catch (error) {
+        return res
+          .status(400)
+          .json({ message: "Invalid approvers data format" });
+      }
+    }
+
+    // Parse current file metadata
+    let currentFiles = [];
+    if (req.body.currentFileMetadata) {
+      try {
+        currentFiles = JSON.parse(req.body.currentFileMetadata);
+      } catch (error) {
+        console.error("Error parsing current file metadata:", error);
+      }
+    }
+
+    const doc = await ReceiptDocument.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Fetch the current user
+    const currentUser = req.user.username;
+
+    // Fetch allowed cost centers for the current user
+    const costCenters = await CostCenter.find({
+      $or: [
+        { allowedUsers: { $in: [currentUser] } },
+        { allowedUsers: { $size: 0 } },
+      ],
+    });
+
+    // Check if the new cost center is allowed for the user
+    const isCostCenterAllowed = costCenters.some(
+      (center) => center.name === costCenter
+    );
+
+    if (!isCostCenterAllowed) {
+      return res.status(403).json({
+        message: "You do not have permission to edit this cost center.",
+      });
+    }
+
+    // Handle multiple file uploads if new files provided
+    let uploadedFilesData = [];
+    if (files && files.length > 0) {
+      req.body.title = doc.title;
+      uploadedFilesData = await handleMultipleFileUploads(req);
+    }
+
+    // Update basic fields
+    doc.products = products;
+    doc.grandTotalCost = grandTotalCost;
+    doc.name = name;
+    doc.costCenter = costCenter;
+    doc.groupName = groupName;
+
+    if (appendedProposals) {
+      doc.appendedProposals = appendedProposals;
+    }
+
+    // Update file metadata
+    doc.fileMetadata = [...currentFiles, ...uploadedFilesData];
+
+    // Update approvers if provided
+    if (approvers) {
+      doc.approvers = approvers;
+    }
+
+    await doc.save();
+    res.json({
+      message: "Document updated successfully",
+      document: doc,
+    });
+  } catch (error) {
+    console.error("Error updating receipt document:", error);
+    res.status(500).json({
+      message: "Error updating document",
+      error: error.message,
+    });
+  } finally {
+    // Clean up temp files
+    tempFilePaths.forEach((tempFilePath) => {
+      if (tempFilePath && fs.existsSync(tempFilePath)) {
+        try {
+          fs.unlinkSync(tempFilePath);
+        } catch (cleanupError) {
+          console.error("Error cleaning up temp file:", cleanupError);
+        }
+      }
+    });
+  }
+};
+
+exports.deleteReceiptDocumentFile = async (req, res) => {
+  const { docId, fileId } = req.params;
+
+  try {
+    const document = await ReceiptDocument.findById(docId);
+    if (!document) {
+      return res.status(404).json({ message: "Không tìm thấy phiếu nhập kho" });
+    }
+
+    // Check if document is approved
+    if (document.status === "Approved") {
+      return res.status(400).json({
+        message: "Không thể xóa tệp tin của phiếu đã được phê duyệt",
+      });
+    }
+
+    // Check if document has any approvals
+    if (document.approvedBy && document.approvedBy.length > 0) {
+      return res.status(400).json({
+        message: "Không thể xóa tệp tin của phiếu đã có người phê duyệt",
+      });
+    }
+
+    // Find the file to delete
+    const fileToDelete = document.fileMetadata.find(
+      (file) => file.driveFileId === fileId || file._id.toString() === fileId
+    );
+
+    if (!fileToDelete) {
+      return res.status(404).json({ message: "Không tìm thấy tệp tin" });
+    }
+
+    // Delete the file from Nextcloud storage
+    if (fileToDelete.path) {
+      try {
+        const client = getNextcloudClient();
+        await client.deleteFile(fileToDelete.path);
+      } catch (storageError) {
+        console.error("Error deleting file from storage:", storageError);
+      }
+    }
+
+    // Remove the file from the document's fileMetadata array
+    document.fileMetadata = document.fileMetadata.filter(
+      (file) => file.driveFileId !== fileId && file._id.toString() !== fileId
+    );
+
+    await document.save();
+
+    res.json({
+      success: true,
+      message: "Tệp tin đã được xóa thành công",
+      remainingFiles: document.fileMetadata.length,
+    });
+  } catch (error) {
+    console.error("Error deleting receipt document file:", error);
+    res.status(500).json({
+      message: "Lỗi khi xóa tệp tin",
+      error: error.message,
+    });
+  }
+};
+//// END OF RECEIPT DOCUMENT CONTROLLER
+
 //// PROJECT PROPOSAL DOCUMENT CONTROLLER
 // Get all approved project proposals
 exports.getApprovedProjectProposals = async (req, res) => {
@@ -5907,6 +6329,7 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
       getUnapprovedDocs(ProposalDocument, "Proposal"),
       getUnapprovedDocs(PurchasingDocument, "Purchasing"),
       getUnapprovedDocs(DeliveryDocument, "Delivery"),
+      getUnapprovedDocs(ReceiptDocument, "Receipt"),
       getUnapprovedDocs(PaymentDocument, "Payment"),
       getUnapprovedDocs(AdvancePaymentDocument, "Advance Payment"),
       getUnapprovedDocs(AdvancePaymentReclaimDocument, "Advance Reclaim"),

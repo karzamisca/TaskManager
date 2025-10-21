@@ -290,7 +290,52 @@ function handleDeliveryDocument() {
   fetchCostCenters();
 }
 
-// Function to handle Generic Document selection
+// Function to handle Receipt Document selection
+function handleReceiptDocument() {
+  const contentFields = document.getElementById("content-fields");
+  const approvedProposalSection = document.getElementById(
+    "approved-proposal-section"
+  );
+
+  contentFields.innerHTML = `
+      <label for="name">Tên</label>
+      <input type="text" name="name" required />
+      <label for="costCenter">Trạm</label>
+      <select name="costCenter" id="costCenter" required>
+        <option value="">Chọn một trạm</option>
+      </select>
+      <div id="product-entries">
+        <label>Tên sản phẩm</label>
+        <select name="products[0][productName]" class="product-dropdown" required>
+          <option value="">Chọn sản phẩm</option>
+        </select> 
+        <label>Đơn giá</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
+        <label>Số lượng</label><input type="number" step="0.01" name="products[0][amount]" required />
+        <label>Thuế (%)</label><input type="number" step="0.01" name="products[0][vat]" required />
+        <label>Ghi chú</label><input type="text" name="products[0][note]" />
+      </div>
+      <button type="button" onclick="addProductEntry()">Thêm sản phẩm</button>
+      <select name="groupName" id="groupName">
+        <option value="">Chọn nhóm</option>
+      </select>
+      <select name="projectName" id="projectName">
+        <option value="">Chọn dự án</option>
+      </select>             
+    `;
+
+  populateProductDropdowns();
+  populateGroupDropdown();
+  populateProjectDropdown();
+  approvedProposalSection.style.display = "block";
+
+  // Get proposal documents for Receipt Document
+  fetchApprovedProposalsForReceipt();
+
+  // Fetch current user and populate cost centers
+  fetchCostCenters();
+}
+
+// Function to handle Project Proposal Document selection
 function handleProjectProposalDocument() {
   const contentFields = document.getElementById("content-fields");
   const addContentButton = document.getElementById("add-content-btn");
@@ -462,6 +507,9 @@ document
       case "Delivery Document":
         handleDeliveryDocument();
         break;
+      case "Receipt Document":
+        handleReceiptDocument();
+        break;
       case "Project Proposal Document":
         handleProjectProposalDocument();
         break;
@@ -514,7 +562,7 @@ function addProductEntry() {
   if (selectedTitle === "Purchasing Document") {
     productCount = productEntries.children.length / 6; // 6 fields including cost center
   } else {
-    productCount = productEntries.children.length / 5; // 5 fields without cost center
+    productCount = productEntries.children.length / 5; // 5 fields without cost center (Delivery, Receipt)
   }
 
   let newEntry;
@@ -535,7 +583,7 @@ function addProductEntry() {
       <label>Ghi chú</label><input type="text" name="products[${productCount}][note]" />
     `;
   } else {
-    // Exclude cost center field for delivery documents
+    // Exclude cost center field for delivery and receipt documents
     newEntry = `
       <label>Tên sản phẩm</label>
       <select name="products[${productCount}][productName]" class="product-dropdown" required>
@@ -611,6 +659,9 @@ function addProposalEntry() {
   } else if (selectedTitle === "Delivery Document") {
     // Populate the new dropdown for delivery document
     fetchApprovedProposalsForDelivery(newEntry.querySelector("select"));
+  } else if (selectedTitle === "Receipt Document") {
+    // Populate the new dropdown for delivery document
+    fetchApprovedProposalsForReceipt(newEntry.querySelector("select"));
   }
 }
 
@@ -644,6 +695,23 @@ async function fetchApprovedProposalsForPurchasing(dropdown = null) {
 // Function to fetch proposals for delivery documents
 async function fetchApprovedProposalsForDelivery(dropdown = null) {
   const response = await fetch("/approvedProposalsForDelivery");
+  const approvedProposals = await response.json();
+
+  if (!dropdown) {
+    // If no specific dropdown provided, populate all dropdowns
+    document
+      .querySelectorAll(".approved-proposal-dropdown")
+      .forEach((select) => {
+        populateDropdown(select, approvedProposals);
+      });
+  } else {
+    populateDropdown(dropdown, approvedProposals);
+  }
+}
+
+// Function to fetch proposals for receipt documents
+async function fetchApprovedProposalsForReceipt(dropdown = null) {
+  const response = await fetch("/approvedProposalsForReceipt");
   const approvedProposals = await response.json();
 
   if (!dropdown) {

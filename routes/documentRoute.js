@@ -122,6 +122,11 @@ router.get(
   documentController.getApprovedProposalsForDelivery
 );
 router.get(
+  "/approvedProposalsForReceipt",
+  authMiddleware,
+  documentController.getApprovedProposalsForReceipt
+);
+router.get(
   "/documentsContainingProposal/:proposalId",
   documentController.getDocumentsContainingProposal
 );
@@ -429,6 +434,39 @@ router.post(
   documentController.deleteDeliveryDocumentFile
 );
 //// END OF DELIVERY DOCUMENT ROUTE
+
+//// RECEIPT DOCUMENT ROUTE
+router.get("/documentSummaryReceipt", authMiddleware, (req, res) => {
+  res.sendFile("documentSummaryReceipt.html", {
+    root: "./views/documentPages/documentSummaryReceipt",
+  });
+});
+
+router.get(
+  "/getReceiptDocumentForSeparatedView",
+  authMiddleware,
+  documentController.getReceiptDocumentsForSeparatedView
+);
+
+router.get(
+  "/getReceiptDocument/:id",
+  authMiddleware,
+  documentController.getReceiptDocument
+);
+
+router.post(
+  "/updateReceiptDocument/:id",
+  upload.array("files", 10),
+  authMiddleware,
+  documentController.updateReceiptDocument
+);
+
+router.post(
+  "/deleteReceiptDocumentFile/:docId/:fileId",
+  authMiddleware,
+  documentController.deleteReceiptDocumentFile
+);
+//// END OF RECEIPT DOCUMENT ROUTE
 
 //// PROJECT PROPOSAL DOCUMENT ROUTE
 // Route to fetch all approved Project Proposals

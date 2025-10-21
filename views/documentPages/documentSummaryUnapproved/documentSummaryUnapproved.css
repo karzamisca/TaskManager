@@ -327,6 +327,9 @@ body {
 .summary-card.delivery {
   border-left-color: var(--warning-color);
 }
+.summary-card.receipt {
+  border-left-color: var(--warning-color);
+}
 .summary-card.payment {
   border-left-color: var(--danger-color);
 }
