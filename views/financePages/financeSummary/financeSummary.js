@@ -1318,7 +1318,129 @@ $(document).ready(function () {
     });
   }
 
-  $("#saveGroup").on("click", saveCostCenterGroup);
+  // Function to open edit group modal
+  function openEditGroupModal(group) {
+    // Populate the modal with group data
+    $("#groupName").val(group.name);
+
+    // Clear and reselect cost centers
+    selectedCostCenters.clear();
+    $(".cost-center-item").removeClass("selected");
+    $('.cost-center-item input[type="checkbox"]').prop("checked", false);
+
+    // Select the group's cost centers
+    group.costCenters.forEach((costCenterName) => {
+      selectedCostCenters.add(costCenterName);
+      $(`.cost-center-item[data-value="${costCenterName}"]`).addClass(
+        "selected"
+      );
+      $(
+        `.cost-center-item[data-value="${costCenterName}"] input[type="checkbox"]`
+      ).prop("checked", true);
+    });
+
+    // Change save button to update button
+    $("#saveGroup").text("Cập nhật nhóm").data("editing-id", group._id);
+
+    updateSelectedCount();
+  }
+
+  // Function to update cost center group
+  function updateCostCenterGroup(groupId) {
+    const name = $("#groupName").val().trim();
+    const costCenters = Array.from(selectedCostCenters);
+
+    if (!name) {
+      alert("Vui lòng nhập tên nhóm");
+      return;
+    }
+
+    if (costCenters.length === 0) {
+      alert("Vui lòng chọn ít nhất một trạm");
+      return;
+    }
+
+    $.ajax({
+      url: `/financeSummaryCostCenterGroups/${groupId}`,
+      method: "PUT",
+      contentType: "application/json",
+      data: JSON.stringify({
+        name,
+        costCenters,
+      }),
+      success: function () {
+        // Reset modal
+        $("#groupName").val("");
+        selectedCostCenters.clear();
+        $(".cost-center-item").removeClass("selected");
+        $('.cost-center-item input[type="checkbox"]').prop("checked", false);
+        updateSelectedCount();
+
+        // Reset button text
+        $("#saveGroup").text("Tạo nhóm").removeData("editing-id");
+
+        loadCostCenterGroups();
+        alert("Nhóm đã được cập nhật thành công!");
+      },
+      error: function (xhr) {
+        const errorMsg = xhr.responseJSON?.message || "Lỗi khi cập nhật nhóm";
+        alert(errorMsg);
+      },
+    });
+  }
+
+  // Function to add single cost center to group
+  function addCostCenterToGroup(groupId, costCenterName) {
+    $.ajax({
+      url: `/financeSummaryCostCenterGroups/${groupId}`,
+      method: "PUT",
+      contentType: "application/json",
+      data: JSON.stringify({
+        action: "add",
+        costCenter: costCenterName,
+      }),
+      success: function () {
+        loadCostCenterGroups();
+        // Optional: show success message
+      },
+      error: function (xhr) {
+        const errorMsg =
+          xhr.responseJSON?.message || "Lỗi khi thêm trạm vào nhóm";
+        alert(errorMsg);
+      },
+    });
+  }
+
+  // Function to remove single cost center from group
+  function removeCostCenterFromGroup(groupId, costCenterName) {
+    $.ajax({
+      url: `/financeSummaryCostCenterGroups/${groupId}`,
+      method: "PUT",
+      contentType: "application/json",
+      data: JSON.stringify({
+        action: "remove",
+        costCenter: costCenterName,
+      }),
+      success: function () {
+        loadCostCenterGroups();
+        // Optional: show success message
+      },
+      error: function (xhr) {
+        const errorMsg =
+          xhr.responseJSON?.message || "Lỗi khi xóa trạm khỏi nhóm";
+        alert(errorMsg);
+      },
+    });
+  }
+
+  $("#saveGroup").on("click", function () {
+    const editingId = $(this).data("editing-id");
+    if (editingId) {
+      updateCostCenterGroup(editingId);
+    } else {
+      saveCostCenterGroup();
+    }
+  });
 
   function loadCostCenterGroups() {
     $("#groupList").html(
@@ -1352,6 +1474,11 @@ $(document).ready(function () {
                 )}</div>
               </div>
               <div>
+                <button class="btn btn-sm btn-outline-primary edit-group me-1" data-id="${
+                  group._id
+                }" title="Sửa nhóm">
+                  ✎
+                </button>
                 <button class="btn btn-sm btn-outline-danger delete-group" data-id="${
                   group._id
                 }" title="Xóa nhóm">
@@ -1365,6 +1492,13 @@ $(document).ready(function () {
             e.stopPropagation();
             const groupId = $(this).data("id");
             deleteCostCenterGroup(groupId);
+          });
+
+          groupItem.on("click", ".edit-group", function (e) {
+            e.stopPropagation();
+            const groupId = $(this).data("id");
+            const group = groups.find((g) => g._id === groupId);
+            openEditGroupModal(group);
           });
 
           groupItem
@@ -1411,6 +1545,8 @@ $(document).ready(function () {
     loadCostCenterGroups();
     selectedCostCenters.clear();
     $("#groupName").val("");
+    // Reset button to create mode
+    $("#saveGroup").text("Tạo nhóm").removeData("editing-id");
     updateSelectedCount();
   });
 
@@ -1418,6 +1554,8 @@ $(document).ready(function () {
     selectedCostCenters.clear();
     $("#groupName").val("");
     $("#costCenterGrid").empty();
+    // Reset button to create mode
+    $("#saveGroup").text("Tạo nhóm").removeData("editing-id");
   });
 
   // Form submission handler

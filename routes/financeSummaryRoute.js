@@ -38,5 +38,10 @@ router.delete(
   authMiddleware,
   financeSummaryController.deleteCostCenterGroup
 );
+router.put(
+  "/financeSummaryCostCenterGroups/:id",
+  authMiddleware,
+  financeSummaryController.updateCostCenterGroup
+);
 
 module.exports = router;

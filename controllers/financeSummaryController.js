@@ -672,3 +672,52 @@ exports.deleteCostCenterGroup = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// Edit cost center group - add or remove cost centers
+exports.updateCostCenterGroup = async (req, res) => {
+  if (
+    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
+      req.user.role
+    ) &&
+    !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
+  ) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+  }
+
+  try {
+    const { id } = req.params;
+    const { name, costCenters, action, costCenter } = req.body;
+
+    let group = await CostCenterGroup.findById(id);
+
+    if (!group) {
+      return res.status(404).json({ error: "Group not found" });
+    }
+
+    // If full update with name and costCenters array
+    if (name && costCenters) {
+      group.name = name;
+      group.costCenters = costCenters;
+    }
+    // If single cost center action (add/remove)
+    else if (action && costCenter) {
+      if (action === "add") {
+        // Add cost center if not already in group
+        if (!group.costCenters.includes(costCenter)) {
+          group.costCenters.push(costCenter);
+        }
+      } else if (action === "remove") {
+        // Remove cost center from group
+        group.costCenters = group.costCenters.filter((cc) => cc !== costCenter);
+      }
+    }
+
+    await group.save();
+    res.json(group);
+  } catch (error) {
+    console.error("Error updating cost center group:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
