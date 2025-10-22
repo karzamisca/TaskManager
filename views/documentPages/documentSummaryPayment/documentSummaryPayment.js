@@ -482,6 +482,66 @@ const isDocumentPartiallyApproved = (doc) => {
   return approvedCount > 0 && approvedCount < totalApprovers;
 };
 
+// Suspend a specific payment stage
+const suspendPaymentStage = async (docId, stageIndex) => {
+  const suspendReason = prompt("Nhập lý do từ chối giai đoạn thanh toán:");
+
+  if (!suspendReason || suspendReason.trim() === "") {
+    showMessage("Vui lòng nhập lý do từ chối.", true);
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `/suspendPaymentStage/${docId}/${stageIndex}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ suspendReason: suspendReason.trim() }),
+      }
+    );
+
+    const message = await response.text();
+
+    if (response.ok) {
+      showMessage(message);
+      fetchPaymentDocuments();
+    } else {
+      showMessage(message, true);
+    }
+  } catch (err) {
+    console.error("Error suspending payment stage:", err);
+    showMessage("Lỗi khi từ chối giai đoạn thanh toán.", true);
+  }
+};
+
+// Open a suspended payment stage
+const openPaymentStage = async (docId, stageIndex) => {
+  if (!confirm("Bạn có chắc chắn muốn mở lại giai đoạn thanh toán này?")) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/openPaymentStage/${docId}/${stageIndex}`, {
+      method: "POST",
+    });
+
+    const message = await response.text();
+
+    if (response.ok) {
+      showMessage(message);
+      fetchPaymentDocuments();
+    } else {
+      showMessage(message, true);
+    }
+  } catch (err) {
+    console.error("Error opening payment stage:", err);
+    showMessage("Lỗi khi mở lại giai đoạn thanh toán.", true);
+  }
+};
+
 // Update the renderDocumentsTable function to include priority update button
 const renderDocumentsTable = (documents) => {
   const tableBody = document
@@ -573,15 +633,23 @@ const renderDocumentsTable = (documents) => {
             ? `<div class="stages-summary">
                 <strong>Các giai đoạn:</strong>
                 ${doc.stages
-                  .map(
-                    (stage, idx) => `
+                  .map((stage, idx) => {
+                    return `
                   <div class="stage-summary-item ${
-                    stage.status === "Approved" ? "approved" : "pending"
+                    stage.status === "Approved"
+                      ? "approved"
+                      : stage.status === "Suspended"
+                      ? "suspended"
+                      : "pending"
                   }">
                     <span>GĐ ${idx + 1}: ${stage.name}</span>
                     <span>${formatCurrency(stage.amount)}</span>
                     <span class="status-badge">${
-                      stage.status === "Approved" ? "Đã duyệt" : "Chờ duyệt"
+                      stage.status === "Approved"
+                        ? "Đã duyệt"
+                        : stage.status === "Suspended"
+                        ? "Từ chối"
+                        : "Chờ duyệt"
                     }</span>
                     ${
                       stage.priority && stage.status !== "Approved"
@@ -593,8 +661,55 @@ const renderDocumentsTable = (documents) => {
                           </span>`
                         : ""
                     }
-                  </div>`
-                  )
+                    ${
+                      stage.status === "Suspended" && stage.suspendReason
+                        ? `<div class="suspend-reason" style="font-size: 0.8em; margin-top: 4px;">
+                            <strong>Lý do:</strong> ${stage.suspendReason}
+                           </div>`
+                        : ""
+                    }
+                    <div class="stage-action-buttons" style="margin-top: 4px;">
+                      ${
+                        stage.status === "Pending"
+                          ? `<button class="btn btn-danger btn-sm" 
+                                 onclick="suspendPaymentStage('${doc._id}', ${idx})"
+                                 style="margin-right: 4px;">
+                              <i class="fas fa-ban"></i> Từ chối
+                            </button>`
+                          : ""
+                      }
+                      ${
+                        stage.status === "Suspended"
+                          ? `<button class="btn btn-primary btn-sm" 
+                                 onclick="openPaymentStage('${doc._id}', ${idx})"
+                                 style="margin-right: 4px;">
+                              <i class="fas fa-lock-open"></i> Mở
+                            </button>`
+                          : ""
+                      }
+                      ${
+                        stage.approvers.some(
+                          (approver) =>
+                            approver.username === state.currentUser?.username
+                        ) &&
+                        !stage.approvedBy.some(
+                          (approved) =>
+                            approved.username === state.currentUser?.username
+                        ) &&
+                        stage.status === "Pending"
+                          ? `<button class="btn btn-primary btn-sm stage-approve-btn" 
+                                 onclick="approvePaymentStage('${
+                                   doc._id
+                                 }', ${idx})">
+                              <i class="fas fa-check-circle"></i> Duyệt GĐ ${
+                                idx + 1
+                              }
+                            </button>`
+                          : ""
+                      }
+                    </div>
+                  </div>`;
+                  })
                   .join("")}
               </div>`
             : ""
@@ -1321,12 +1436,18 @@ const renderPaymentStages = () => {
   state.currentEditDoc.stages.forEach((stage, index) => {
     const isPartiallyApproved = stage.approvedBy?.length > 0;
     const isFullyApproved = stage.status === "Approved";
+    const isSuspended = stage.status === "Suspended";
     const isNewStage = !stage._id;
+
+    // Only lock fully approved stages, NOT suspended stages
+    const isLocked = isFullyApproved; // Removed isSuspended from this condition
 
     const stageElement = document.createElement("div");
     stageElement.className = `payment-stage ${
       isPartiallyApproved ? "partially-approved-stage" : ""
-    } ${isFullyApproved ? "approved-stage" : ""}`;
+    } ${isFullyApproved ? "approved-stage" : ""} ${
+      isSuspended ? "stage-suspended" : ""
+    }`;
     stageElement.dataset.index = index;
 
     stageElement.innerHTML = `
@@ -1335,22 +1456,34 @@ const renderPaymentStages = () => {
       isPartiallyApproved
         ? `(${stage.approvedBy.length}/${stage.approvers.length} đã duyệt)`
         : ""
-    } ${isFullyApproved ? "(Đã phê duyệt hoàn toàn)" : ""}</h4>
+    } ${isFullyApproved ? "(Đã phê duyệt hoàn toàn)" : ""}
+      ${isSuspended ? "(Đã từ chối)" : ""}</h4>
         ${
-          !isFullyApproved
+          !isLocked && !isSuspended // Allow deletion only for non-suspended, non-approved stages
             ? `<button type="button" class="btn btn-danger btn-sm" onclick="removeSpecificStage(${index})">
                 <i class="fas fa-trash"></i> Xóa
               </button>`
+            : isSuspended
+            ? '<span class="lock-icon"><i class="fas fa-ban"></i> Đã từ chối (Có thể chỉnh sửa)</span>'
             : '<span class="lock-icon"><i class="fas fa-lock"></i> Đã khóa</span>'
         }
       </div>
+      
+      ${
+        isSuspended && stage.suspendReason
+          ? `<div class="suspend-reason">
+              <strong>Lý do từ chối:</strong> ${stage.suspendReason}
+             </div>`
+          : ""
+      }
+      
       <div class="form-group">
         <label>Tên giai đoạn:</label>
         <input type="text" class="form-input stage-name" value="${
           stage.name || ""
         }" 
                onchange="updateStageField(${index}, 'name', this.value)"
-               ${isFullyApproved ? "disabled" : ""}>
+               ${isLocked ? "disabled" : ""}> <!-- Only lock approved stages -->
       </div>
       <div class="form-group">
         <label>Số tiền:</label>
@@ -1358,13 +1491,15 @@ const renderPaymentStages = () => {
           stage.amount || 0
         }" 
                onchange="updateStageField(${index}, 'amount', this.value)"
-               ${isFullyApproved ? "disabled" : ""}>
+               ${isLocked ? "disabled" : ""}> <!-- Only lock approved stages -->
       </div>
       <div class="form-group">
         <label>Mức độ ưu tiên:</label>
         <select class="form-select stage-priority"
                 onchange="updateStageField(${index}, 'priority', this.value)"
-                ${isFullyApproved ? "disabled" : ""}>
+                ${
+                  isLocked ? "disabled" : ""
+                }> <!-- Only lock approved stages -->
           <option value="Thấp" ${
             stage.priority === "Thấp" ? "selected" : ""
           }>Thấp</option>
@@ -1383,13 +1518,15 @@ const renderPaymentStages = () => {
         }" 
                placeholder="DD-MM-YYYY" pattern="(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[012])-[0-9]{4}"
                onchange="updateStageField(${index}, 'deadline', this.value)"
-               ${isFullyApproved ? "disabled" : ""}>
+               ${isLocked ? "disabled" : ""}> <!-- Only lock approved stages -->
       </div>
       <div class="form-group">
         <label>Hình thức thanh toán:</label>
         <select class="form-input stage-payment-method"
                 onchange="updateStageField(${index}, 'paymentMethod', this.value)"
-                ${isFullyApproved ? "disabled" : ""}>
+                ${
+                  isLocked ? "disabled" : ""
+                }> <!-- Only lock approved stages -->
           <option value="Chuyển khoản" ${
             stage.paymentMethod === "Chuyển khoản" ? "selected" : ""
           }>Chuyển khoản</option>
@@ -1402,9 +1539,9 @@ const renderPaymentStages = () => {
         <label>Ghi chú:</label>
         <textarea class="form-textarea stage-notes" 
                   onchange="updateStageField(${index}, 'notes', this.value)"
-                  ${isFullyApproved ? "disabled" : ""}>${
+                  ${isLocked ? "disabled" : ""}>${
       stage.notes || ""
-    }</textarea>
+    }</textarea> <!-- Only lock approved stages -->
       </div>
       ${
         // Only show file upload section if this is not a new stage
@@ -1414,18 +1551,26 @@ const renderPaymentStages = () => {
               ${
                 stage.fileMetadata
                   ? `<div class="file-attachment">
-                      <a href="${stage.fileMetadata.link}" target="_blank">${stage.fileMetadata.name}</a>
-                      <button type="button" class="btn btn-danger btn-sm" onclick="removeStageFile(${index})">
+                      <a href="${stage.fileMetadata.link}" target="_blank">${
+                      stage.fileMetadata.name
+                    }</a>
+                      <button type="button" class="btn btn-danger btn-sm" onclick="removeStageFile(${index})" ${
+                      isLocked ? "disabled" : "" // Only lock approved stages
+                    }>
                         <i class="fas fa-trash"></i> Xóa
                       </button>
                     </div>`
                   : '<div class="file-upload-container">' +
                     '<input type="file" id="stageFileInput' +
                     index +
-                    '" class="form-input" style="display: none;">' +
+                    '" class="form-input" style="display: none;" ' +
+                    (isLocked ? "disabled" : "") + // Only lock approved stages
+                    ">" +
                     '<button type="button" class="btn btn-primary btn-sm" onclick="uploadStageFile(' +
                     index +
-                    ')">' +
+                    ')" ' +
+                    (isLocked ? "disabled" : "") + // Only lock approved stages
+                    ">" +
                     '<i class="fas fa-upload"></i> Tải lên tệp' +
                     "</button>" +
                     "</div>"
@@ -1440,11 +1585,11 @@ const renderPaymentStages = () => {
             stage.approvers || [],
             stage.approvedBy || [],
             index,
-            isFullyApproved // Only lock if fully approved
+            isLocked // Only lock if fully approved
           )}
         </div>
         ${
-          !isFullyApproved
+          !isLocked // Only show add approver for non-approved stages (suspended stages can still add approvers)
             ? `<div class="add-stage-approver">
                 <select class="form-select stage-approver-select" id="stageApproverSelect${index}">
                   <option value="">Chọn người phê duyệt</option>
@@ -1460,10 +1605,29 @@ const renderPaymentStages = () => {
             : ""
         }
       </div>
+      <div class="stage-controls">
+        ${
+          stage.status === "Pending" || stage.status === "Suspended"
+            ? `<button type="button" class="btn btn-suspend btn-sm" 
+                     onclick="suspendPaymentStage('${state.currentEditDoc._id}', ${index})">
+                <i class="fas fa-ban"></i> Từ chối giai đoạn
+              </button>`
+            : ""
+        }
+        ${
+          stage.status === "Suspended"
+            ? `<button type="button" class="btn btn-open btn-sm" 
+                     onclick="openPaymentStage('${state.currentEditDoc._id}', ${index})">
+                <i class="fas fa-lock-open"></i> Mở giai đoạn
+              </button>`
+            : ""
+        }
+      </div>
     `;
 
     container.appendChild(stageElement);
-    if (!isFullyApproved) {
+    if (!isLocked) {
+      // Only populate approvers dropdown for non-approved stages
       populateStageApproversDropdown(index);
     }
   });
@@ -1555,12 +1719,7 @@ const removeStageFile = async (stageIndex) => {
   }
 };
 
-const renderStageApprovers = (
-  approvers,
-  approvedBy,
-  stageIndex,
-  isFullyApproved
-) => {
+const renderStageApprovers = (approvers, approvedBy, stageIndex, isLocked) => {
   return approvers
     .map((approver) => {
       const hasApproved = approvedBy.some(
@@ -1580,7 +1739,7 @@ const renderStageApprovers = (
           }
         </div>
         ${
-          !isFullyApproved
+          !isLocked
             ? `<button type="button" class="btn btn-danger btn-sm" 
                     onclick="removeStageApprover(${stageIndex}, '${approver.approver}')">
                 <i class="fas fa-trash"></i> Xóa
@@ -1629,6 +1788,7 @@ const addPaymentStage = () => {
     approvers: [],
     approvedBy: [],
     status: "Pending",
+    suspendReason: "",
   });
 
   renderPaymentStages();
@@ -2320,6 +2480,8 @@ const showFullView = async (docId) => {
                 <span class="status-badge">${
                   stage.status === "Approved"
                     ? "Đã phê duyệt"
+                    : stage.status === "Suspended"
+                    ? "Từ chối"
                     : "Chưa phê duyệt"
                 }</span>
                 <span class="priority-badge" style="margin-left: 10px; background-color: ${
@@ -2353,6 +2515,11 @@ const showFullView = async (docId) => {
                     ? `<div><strong>Tệp đính kèm:</strong> 
                         <a href="${stage.fileMetadata.link}" target="_blank">${stage.fileMetadata.name}</a>
                        </div>`
+                    : ""
+                }
+                ${
+                  stage.status === "Suspended" && stage.suspendReason
+                    ? `<div><strong>Lý do từ chối:</strong> ${stage.suspendReason}</div>`
                     : ""
                 }
               </div>

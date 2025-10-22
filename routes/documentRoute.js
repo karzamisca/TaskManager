@@ -315,6 +315,16 @@ router.post(
   authMiddleware,
   documentController.approvePaymentDocument
 );
+router.post(
+  "/suspendPaymentStage/:docId/:stageIndex",
+  authMiddleware,
+  documentController.suspendPaymentStage
+);
+router.post(
+  "/openPaymentStage/:docId/:stageIndex",
+  authMiddleware,
+  documentController.openPaymentStage
+);
 //// END OF PAYMENT DOCUMENT ROUTE
 
 //// ADVANCE PAYMENT DOCUMENT ROUTE

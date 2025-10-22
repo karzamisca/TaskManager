@@ -4485,6 +4485,115 @@ exports.approvePaymentDocument = async (req, res) => {
     return res.send("Lỗi phê duyệt phiếu.");
   }
 };
+// Suspend a payment stage
+exports.suspendPaymentStage = async (req, res) => {
+  const { docId, stageIndex } = req.params;
+  const { suspendReason } = req.body;
+
+  try {
+    // Restrict access
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+        "headOfPurchasing",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
+    const document = await PaymentDocument.findById(docId);
+    if (!document) {
+      return res.status(404).send("Không tìm thấy phiếu thanh toán.");
+    }
+
+    // Check if stage exists
+    if (!document.stages || document.stages.length <= stageIndex) {
+      return res.status(404).send("Không tìm thấy giai đoạn thanh toán.");
+    }
+
+    const stage = document.stages[stageIndex];
+
+    // Check if stage is already suspended
+    if (stage.status === "Suspended") {
+      return res.status(400).send("Giai đoạn này đã được từ chối trước đó.");
+    }
+
+    // Check if stage is already approved
+    if (stage.status === "Approved") {
+      return res
+        .status(400)
+        .send("Không thể từ chối giai đoạn đã được phê duyệt.");
+    }
+
+    // Suspend the stage
+    stage.status = "Suspended";
+    stage.suspendReason = suspendReason;
+
+    // Clear any existing approvals for this stage
+    stage.approvedBy = [];
+
+    await document.save();
+
+    res.send("Giai đoạn thanh toán đã được từ chối thành công.");
+  } catch (err) {
+    console.error("Lỗi khi từ chối giai đoạn thanh toán:", err);
+    res.status(500).send("Lỗi khi từ chối giai đoạn thanh toán.");
+  }
+};
+// Open a suspended payment stage
+exports.openPaymentStage = async (req, res) => {
+  const { docId, stageIndex } = req.params;
+
+  try {
+    // Restrict access
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+        "headOfPurchasing",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
+    const document = await PaymentDocument.findById(docId);
+    if (!document) {
+      return res.status(404).send("Không tìm thấy phiếu thanh toán.");
+    }
+
+    // Check if stage exists
+    if (!document.stages || document.stages.length <= stageIndex) {
+      return res.status(404).send("Không tìm thấy giai đoạn thanh toán.");
+    }
+
+    const stage = document.stages[stageIndex];
+
+    // Check if stage is actually suspended
+    if (stage.status !== "Suspended") {
+      return res.status(400).send("Giai đoạn này không ở trạng thái từ chối.");
+    }
+
+    // Reopen the stage
+    stage.status = "Pending";
+    stage.suspendReason = "";
+
+    await document.save();
+
+    res.send("Giai đoạn thanh toán đã được mở lại thành công.");
+  } catch (err) {
+    console.error("Lỗi khi mở lại giai đoạn thanh toán:", err);
+    res.status(500).send("Lỗi khi mở lại giai đoạn thanh toán.");
+  }
+};
 //// END OF PAYMENT DOCUMENT CONTROLLER
 
 //// ADVANCE PAYMENT DOCUMENT CONTROLLER

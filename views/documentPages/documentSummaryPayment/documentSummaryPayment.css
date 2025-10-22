@@ -947,6 +947,32 @@ tr:hover {
   border-radius: 4px;
 }
 
+/* Stage-specific suspend styles */
+.stage-suspended {
+  background-color: #fff5f5 !important;
+  border-left: 4px solid #f44336 !important;
+}
+
+.stage-suspended .form-input,
+.stage-suspended .form-textarea,
+.stage-suspended .form-select {
+  background-color: #f8f8f8 !important;
+  color: #777 !important;
+  cursor: not-allowed !important;
+}
+
+.stage-suspended .stage-header {
+  color: #f44336 !important;
+}
+
+.stage-suspended .suspend-reason {
+  background-color: #ffebee;
+  padding: 8px;
+  border-radius: 4px;
+  margin-top: 8px;
+  border-left: 3px solid #f44336;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .control-panel {

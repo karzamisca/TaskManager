@@ -76,6 +76,7 @@ const paymentDocumentSchema = new mongoose.Schema({
       },
       declaration: { type: String, default: "" },
       groupDeclarationName: { type: String },
+      suspendReason: { type: String, default: "" },
     },
   ],
   submissionDate: { type: String, required: true },
