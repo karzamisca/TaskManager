@@ -1442,7 +1442,10 @@ $(document).ready(function () {
       selectedCostCenters.length > 0 &&
       !selectedCostCenters.includes("all")
     ) {
-      queryParams += `&costCenters=${selectedCostCenters.join(",")}`;
+      const encodedCostCenters = selectedCostCenters
+        .map((cc) => encodeURIComponent(cc))
+        .join(",");
+      queryParams += `&costCenters=${encodedCostCenters}`;
     }
 
     if (category !== "all") {

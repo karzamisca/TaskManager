@@ -188,19 +188,43 @@ exports.getRevenueByCostCenter = async (req, res) => {
     const allCostCenters = await CostCenter.find(query).lean();
     let costCenterNames = allCostCenters.map((cc) => cc.name);
 
-    // Filter by selected cost centers if provided
+    // Enhanced cost center filtering with better URL handling and matching
     if (costCenters && costCenters.trim() !== "") {
       const selectedCostCenters = costCenters
         .split(",")
-        .map((cc) => cc.trim())
+        .map((cc) => decodeURIComponent(cc.trim())) // Decode URL encoded characters like &, :, etc.
         .filter((cc) => cc);
+
       if (selectedCostCenters.length > 0) {
-        // Filter to only include selected cost centers that exist in the database
+        // Use more robust matching that handles special characters
         costCenterNames = costCenterNames.filter((name) =>
-          selectedCostCenters.includes(name)
+          selectedCostCenters.some((selected) => {
+            // Exact match
+            const exactMatch = selected === name;
+            // Case insensitive match
+            const caseInsensitiveMatch =
+              selected.toLowerCase() === name.toLowerCase();
+
+            return exactMatch || caseInsensitiveMatch;
+          })
         );
 
-        // If no valid cost centers are found, return empty result
+        // If no exact matches found, try partial matching
+        if (costCenterNames.length === 0) {
+          costCenterNames = allCostCenters
+            .filter((cc) =>
+              selectedCostCenters.some(
+                (selected) =>
+                  cc.name.includes(selected) ||
+                  selected.includes(cc.name) ||
+                  cc.name.toLowerCase().includes(selected.toLowerCase()) ||
+                  selected.toLowerCase().includes(cc.name.toLowerCase())
+              )
+            )
+            .map((cc) => cc.name);
+        }
+
+        // If still no matches, return empty result
         if (costCenterNames.length === 0) {
           return res.json([]);
         }
@@ -218,11 +242,18 @@ exports.getRevenueByCostCenter = async (req, res) => {
       .populate("costCenter")
       .lean();
 
-    // Filter user records by selected cost centers
-    const filteredUserRecords = userRecords.filter(
-      (record) =>
-        record.costCenter && costCenterNames.includes(record.costCenter.name)
-    );
+    // Enhanced user record filtering with better cost center matching
+    const filteredUserRecords = userRecords.filter((record) => {
+      if (!record.costCenter) return false;
+
+      return costCenterNames.some((ccName) => {
+        const exactMatch = ccName === record.costCenter.name;
+        const caseInsensitiveMatch =
+          ccName.toLowerCase() === record.costCenter.name.toLowerCase();
+
+        return exactMatch || caseInsensitiveMatch;
+      });
+    });
 
     // Get all finance data from the merged CostCenter model for all years
     const financeData = await CostCenter.find({
