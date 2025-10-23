@@ -687,6 +687,26 @@ const renderDocumentsTable = (documents) => {
                             </button>`
                           : ""
                       }
+                      ${
+                        stage.approvers.some(
+                          (approver) =>
+                            approver.username === state.currentUser?.username
+                        ) &&
+                        !stage.approvedBy.some(
+                          (approved) =>
+                            approved.username === state.currentUser?.username
+                        ) &&
+                        stage.status === "Pending"
+                          ? `<button class="btn btn-primary btn-sm stage-approve-btn" 
+                                 onclick="approvePaymentStage('${
+                                   doc._id
+                                 }', ${idx})">
+                              <i class="fas fa-check-circle"></i> Duyệt GĐ ${
+                                idx + 1
+                              }
+                            </button>`
+                          : ""
+                      }
                     </div>
                   </div>`;
                   })
@@ -776,23 +796,6 @@ const renderDocumentsTable = (documents) => {
                   <i class="fas fa-ban"></i> Từ chối
                 </button>
               `
-          }
-          ${
-            approvableStages.length > 0
-              ? approvableStages
-                  .map(
-                    (stage) => `
-                  <button class="btn btn-primary btn-sm stage-approve-btn" 
-                          onclick="approvePaymentStage('${doc._id}', ${
-                      stage.index
-                    })">
-                    <i class="fas fa-check-circle"></i> Duyệt GĐ ${
-                      stage.index + 1
-                    }
-                  </button>`
-                  )
-                  .join("")
-              : ""
           }
         </div>
       </td>
