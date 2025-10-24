@@ -734,6 +734,14 @@ tr:hover {
   margin-top: 15px;
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.stage-controls .btn {
+  margin-top: 0 !important;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .stage-approvers-container {
@@ -796,10 +804,62 @@ tr:hover {
 }
 
 .stage-approve-btn {
+  background-color: var(--primary-color) !important;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.8rem;
+}
+
+.stage-approve-btn:hover {
+  background-color: var(--primary-hover) !important;
+}
+
+.btn-suspend {
+  background-color: var(--danger-color) !important;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.8rem;
+}
+
+.btn-suspend:hover {
+  background-color: var(--danger-hover) !important;
+}
+
+.btn-open {
+  background-color: var(--secondary-color) !important;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.8rem;
+}
+
+.btn-open:hover {
+  background-color: var(--secondary-hover) !important;
+}
+
+/* Stage action buttons container */
+.stage-action-buttons {
   margin-top: 4px;
-  display: block;
-  width: 100%;
-  background-color: #2196f3 !important;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.stage-action-buttons .btn {
+  margin-right: 0 !important;
+  white-space: nowrap;
 }
 
 .approved-stage {
@@ -913,6 +973,13 @@ tr:hover {
   background-color: #4caf50;
 }
 
+/* Ensure stage summary item buttons are horizontal */
+.stage-summary-item .stage-action-buttons {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
 .priority-high {
   background-color: #ffebee !important; /* Light red */
   border-left: 4px solid #f44336 !important;
@@ -997,6 +1064,23 @@ tr:hover {
   th,
   td {
     padding: var(--space-xs) var(--space-sm);
+  }
+
+  .stage-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stage-controls .btn {
+    width: 100%;
+  }
+
+  .stage-action-buttons {
+    flex-direction: column;
+  }
+
+  .stage-action-buttons .btn {
+    width: 100%;
   }
 }
 

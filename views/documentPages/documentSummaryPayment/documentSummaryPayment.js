@@ -668,21 +668,19 @@ const renderDocumentsTable = (documents) => {
                            </div>`
                         : ""
                     }
-                    <div class="stage-action-buttons" style="margin-top: 4px;">
+                    <div class="stage-action-buttons">
                       ${
                         stage.status === "Pending"
-                          ? `<button class="btn btn-danger btn-sm" 
-                                 onclick="suspendPaymentStage('${doc._id}', ${idx})"
-                                 style="margin-right: 4px;">
+                          ? `<button class="btn btn-danger btn-sm btn-suspend" 
+                                 onclick="suspendPaymentStage('${doc._id}', ${idx})">
                               <i class="fas fa-ban"></i> Từ chối
                             </button>`
                           : ""
                       }
                       ${
                         stage.status === "Suspended"
-                          ? `<button class="btn btn-primary btn-sm" 
-                                 onclick="openPaymentStage('${doc._id}', ${idx})"
-                                 style="margin-right: 4px;">
+                          ? `<button class="btn btn-primary btn-sm btn-open" 
+                                 onclick="openPaymentStage('${doc._id}', ${idx})">
                               <i class="fas fa-lock-open"></i> Mở
                             </button>`
                           : ""
@@ -1466,7 +1464,7 @@ const renderPaymentStages = () => {
           stage.name || ""
         }" 
                onchange="updateStageField(${index}, 'name', this.value)"
-               ${isLocked ? "disabled" : ""}> <!-- Only lock approved stages -->
+               ${isLocked ? "disabled" : ""}>
       </div>
       <div class="form-group">
         <label>Số tiền:</label>
@@ -1474,15 +1472,13 @@ const renderPaymentStages = () => {
           stage.amount || 0
         }" 
                onchange="updateStageField(${index}, 'amount', this.value)"
-               ${isLocked ? "disabled" : ""}> <!-- Only lock approved stages -->
+               ${isLocked ? "disabled" : ""}>
       </div>
       <div class="form-group">
         <label>Mức độ ưu tiên:</label>
         <select class="form-select stage-priority"
                 onchange="updateStageField(${index}, 'priority', this.value)"
-                ${
-                  isLocked ? "disabled" : ""
-                }> <!-- Only lock approved stages -->
+                ${isLocked ? "disabled" : ""}>
           <option value="Thấp" ${
             stage.priority === "Thấp" ? "selected" : ""
           }>Thấp</option>
@@ -1501,15 +1497,13 @@ const renderPaymentStages = () => {
         }" 
                placeholder="DD-MM-YYYY" pattern="(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[012])-[0-9]{4}"
                onchange="updateStageField(${index}, 'deadline', this.value)"
-               ${isLocked ? "disabled" : ""}> <!-- Only lock approved stages -->
+               ${isLocked ? "disabled" : ""}>
       </div>
       <div class="form-group">
         <label>Hình thức thanh toán:</label>
         <select class="form-input stage-payment-method"
                 onchange="updateStageField(${index}, 'paymentMethod', this.value)"
-                ${
-                  isLocked ? "disabled" : ""
-                }> <!-- Only lock approved stages -->
+                ${isLocked ? "disabled" : ""}>
           <option value="Chuyển khoản" ${
             stage.paymentMethod === "Chuyển khoản" ? "selected" : ""
           }>Chuyển khoản</option>
@@ -1522,9 +1516,7 @@ const renderPaymentStages = () => {
         <label>Ghi chú:</label>
         <textarea class="form-textarea stage-notes" 
                   onchange="updateStageField(${index}, 'notes', this.value)"
-                  ${isLocked ? "disabled" : ""}>${
-      stage.notes || ""
-    }</textarea> <!-- Only lock approved stages -->
+                  ${isLocked ? "disabled" : ""}>${stage.notes || ""}</textarea>
       </div>
       ${
         // Only show file upload section if this is not a new stage
@@ -1538,7 +1530,7 @@ const renderPaymentStages = () => {
                       stage.fileMetadata.name
                     }</a>
                       <button type="button" class="btn btn-danger btn-sm" onclick="removeStageFile(${index})" ${
-                      isLocked ? "disabled" : "" // Only lock approved stages
+                      isLocked ? "disabled" : ""
                     }>
                         <i class="fas fa-trash"></i> Xóa
                       </button>
@@ -1547,12 +1539,12 @@ const renderPaymentStages = () => {
                     '<input type="file" id="stageFileInput' +
                     index +
                     '" class="form-input" style="display: none;" ' +
-                    (isLocked ? "disabled" : "") + // Only lock approved stages
+                    (isLocked ? "disabled" : "") +
                     ">" +
                     '<button type="button" class="btn btn-primary btn-sm" onclick="uploadStageFile(' +
                     index +
                     ')" ' +
-                    (isLocked ? "disabled" : "") + // Only lock approved stages
+                    (isLocked ? "disabled" : "") +
                     ">" +
                     '<i class="fas fa-upload"></i> Tải lên tệp' +
                     "</button>" +
@@ -1568,15 +1560,14 @@ const renderPaymentStages = () => {
             stage.approvers || [],
             stage.approvedBy || [],
             index,
-            isLocked // Only lock if fully approved
+            isLocked
           )}
         </div>
         ${
-          !isLocked // Only show add approver for non-approved stages (suspended stages can still add approvers)
+          !isLocked
             ? `<div class="add-stage-approver">
                 <select class="form-select stage-approver-select" id="stageApproverSelect${index}">
                   <option value="">Chọn người phê duyệt</option>
-                  <!-- Options will be populated dynamically -->
                 </select>
                 <input type="text" class="form-input stage-approver-subrole" 
                        id="stageApproverSubRole${index}" placeholder="Vai trò">
@@ -1610,7 +1601,6 @@ const renderPaymentStages = () => {
 
     container.appendChild(stageElement);
     if (!isLocked) {
-      // Only populate approvers dropdown for non-approved stages
       populateStageApproversDropdown(index);
     }
   });
