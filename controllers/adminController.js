@@ -279,18 +279,31 @@ async function calculateProductStorageInfo(productName) {
 
     // Check payment documents
     const paymentDocuments = await DocumentPayment.find({
-      "stages.status": { $in: ["Approved", "Pending"] },
+      status: { $in: ["Approved", "Pending"] },
     }).populate("appendedPurchasingDocuments");
 
     for (const paymentDoc of paymentDocuments) {
+      // Check if payment document has stages
+      const hasStages = paymentDoc.stages && paymentDoc.stages.length > 0;
+
+      // Determine if payment is fully approved
+      let isFullyApproved = false;
+
+      if (hasStages) {
+        // For payments with stages, check if all stages are approved
+        isFullyApproved =
+          paymentDoc.status === "Approved" &&
+          paymentDoc.stages.every((stage) => stage.status === "Approved");
+      } else {
+        // For payments without stages, just check the main document status
+        isFullyApproved = paymentDoc.status === "Approved";
+      }
+
       for (const purchasingDoc of paymentDoc.appendedPurchasingDocuments) {
         if (purchasingDoc.products) {
           for (const product of purchasingDoc.products) {
             if (product.productName === productName) {
-              if (
-                paymentDoc.status === "Approved" &&
-                paymentDoc.stages.every((stage) => stage.status === "Approved")
-              ) {
+              if (isFullyApproved) {
                 inStorage += product.amount || 0;
               } else {
                 aboutToTransfer += product.amount || 0;
@@ -319,6 +332,47 @@ async function calculateProductStorageInfo(productName) {
         }
       }
     }
+
+    // Check delivery documents (subtracts from storage when fully approved)
+    const deliveryDocuments = await DocumentDelivery.find({
+      status: { $in: ["Approved", "Pending"] },
+    });
+
+    for (const deliveryDoc of deliveryDocuments) {
+      // Check if delivery document has stages
+      const hasStages = deliveryDoc.stages && deliveryDoc.stages.length > 0;
+
+      // Determine if delivery is fully approved
+      let isFullyApproved = false;
+
+      if (hasStages) {
+        // For deliveries with stages, check if all stages are approved
+        isFullyApproved =
+          deliveryDoc.status === "Approved" &&
+          deliveryDoc.stages.every((stage) => stage.status === "Approved");
+      } else {
+        // For deliveries without stages, just check the main document status
+        isFullyApproved = deliveryDoc.status === "Approved";
+      }
+
+      if (deliveryDoc.products) {
+        for (const product of deliveryDoc.products) {
+          if (product.productName === productName) {
+            if (isFullyApproved) {
+              // Subtract from storage when delivery is fully approved
+              inStorage -= product.amount || 0;
+            } else {
+              // If delivery is pending, it's about to be subtracted from storage
+              aboutToTransfer -= product.amount || 0;
+            }
+          }
+        }
+      }
+    }
+
+    // Ensure non-negative values
+    inStorage = Math.max(0, inStorage);
+    aboutToTransfer = Math.max(0, aboutToTransfer);
 
     return {
       inStorage,
