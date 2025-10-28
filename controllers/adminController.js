@@ -2,6 +2,8 @@
 const ExcelJS = require("exceljs");
 const multer = require("multer");
 const DocumentPurchasing = require("../models/DocumentPurchasing");
+const DocumentDelivery = require("../models/DocumentDelivery");
+const DocumentReceipt = require("../models/DocumentReceipt");
 const CostCenter = require("../models/CostCenter");
 const Product = require("../models/Product");
 const FinanceGas = require("../models/FinanceGas");
@@ -398,6 +400,16 @@ exports.updateProduct = async (req, res) => {
       await syncProductChangesToPurchasing(oldName, oldCode, name, code);
     }
 
+    // Sync changes to delivery documents if name or code changed
+    if (name !== oldName || code !== oldCode) {
+      await syncProductChangesToDelivery(oldName, oldCode, name, code);
+    }
+
+    // Sync changes to receipt documents if name or code changed
+    if (name !== oldName || code !== oldCode) {
+      await syncProductChangesToReceipt(oldName, oldCode, name, code);
+    }
+
     res.status(200).json(updatedProduct);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -426,6 +438,85 @@ async function syncProductChangesToPurchasing(
 
     // Also update by code if needed (if you store code in purchasing documents)
     await DocumentPurchasing.updateMany(
+      { "products.code": oldCode }, // if you have code field in purchasing products
+      {
+        $set: {
+          "products.$[elem].code": newCode,
+          "products.$[elem].productName": newName,
+        },
+      },
+      {
+        arrayFilters: [{ "elem.code": oldCode }],
+      }
+    );
+  } catch (error) {
+    console.error(
+      "Error syncing product changes to purchasing documents:",
+      error
+    );
+    // Don't throw error here to avoid failing the main product update
+  }
+}
+
+async function syncProductChangesToDelivery(
+  oldName,
+  oldCode,
+  newName,
+  newCode
+) {
+  try {
+    // Update product name in purchasing documents' products array
+    await DocumentDelivery.updateMany(
+      { "products.productName": oldName },
+      {
+        $set: {
+          "products.$[elem].productName": newName,
+        },
+      },
+      {
+        arrayFilters: [{ "elem.productName": oldName }],
+      }
+    );
+
+    // Also update by code if needed (if you store code in purchasing documents)
+    await DocumentDelivery.updateMany(
+      { "products.code": oldCode }, // if you have code field in purchasing products
+      {
+        $set: {
+          "products.$[elem].code": newCode,
+          "products.$[elem].productName": newName,
+        },
+      },
+      {
+        arrayFilters: [{ "elem.code": oldCode }],
+      }
+    );
+  } catch (error) {
+    console.error(
+      "Error syncing product changes to purchasing documents:",
+      error
+    );
+    // Don't throw error here to avoid failing the main product update
+  }
+}
+
+async function syncProductChangesToReceipt(oldName, oldCode, newName, newCode) {
+  try {
+    // Update product name in purchasing documents' products array
+    await DocumentReceipt.updateMany(
+      { "products.productName": oldName },
+      {
+        $set: {
+          "products.$[elem].productName": newName,
+        },
+      },
+      {
+        arrayFilters: [{ "elem.productName": oldName }],
+      }
+    );
+
+    // Also update by code if needed (if you store code in purchasing documents)
+    await DocumentReceipt.updateMany(
       { "products.code": oldCode }, // if you have code field in purchasing products
       {
         $set: {
