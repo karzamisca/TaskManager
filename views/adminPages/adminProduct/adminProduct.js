@@ -1,4 +1,4 @@
-//views/adminPages/adminProduct/adminProduct.js
+// views/adminPages/adminProduct/adminProduct.js
 // Keep track of current products
 let products = [];
 
@@ -73,7 +73,7 @@ function renderProductTable() {
   if (products.length === 0) {
     productsTableBody.innerHTML = `
           <tr>
-            <td colspan="3" style="text-align:center">Không có sản phẩm</td>
+            <td colspan="5" style="text-align:center">Không có sản phẩm</td>
           </tr>
         `;
     return;
@@ -84,11 +84,19 @@ function renderProductTable() {
     tr.innerHTML = `
           <td>${product.name}</td>
           <td>${product.code}</td>
+          <td class="storage-column in-storage">${product.inStorage || 0}</td>
+          <td class="storage-column about-to-transfer">${
+            product.aboutToTransfer || 0
+          }</td>
           <td>
-            <button onclick="editProduct('${product._id}')" class="product-btn edit-btn">
+            <button onclick="editProduct('${
+              product._id
+            }')" class="product-btn edit-btn">
               Sửa
             </button>
-            <button onclick="deleteProduct('${product._id}')" class="product-btn delete-btn">
+            <button onclick="deleteProduct('${
+              product._id
+            }')" class="product-btn delete-btn">
               Xóa
             </button>
           </td>
@@ -334,3 +342,11 @@ function handleExcelImport(e) {
 function exportProducts() {
   window.location.href = "/products/export/excel";
 }
+
+// Refresh products data (can be called manually if needed)
+function refreshProducts() {
+  fetchProducts();
+}
+
+// Auto-refresh products every 5 minutes to keep storage data updated
+setInterval(fetchProducts, 300000); // 300000 ms = 5 minutes

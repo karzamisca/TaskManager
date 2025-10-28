@@ -4,6 +4,7 @@ const multer = require("multer");
 const DocumentPurchasing = require("../models/DocumentPurchasing");
 const DocumentDelivery = require("../models/DocumentDelivery");
 const DocumentReceipt = require("../models/DocumentReceipt");
+const DocumentPayment = require("../models/DocumentPayment");
 const CostCenter = require("../models/CostCenter");
 const Product = require("../models/Product");
 const FinanceGas = require("../models/FinanceGas");
@@ -201,7 +202,7 @@ exports.getProductAdminPage = (req, res) => {
   }
 };
 
-// Get all products
+// Get all products with storage information
 exports.getProducts = async (req, res) => {
   try {
     if (
@@ -215,14 +216,28 @@ exports.getProducts = async (req, res) => {
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
+
     const products = await Product.find();
-    res.status(200).json(products);
+
+    // Get storage information for each product
+    const productsWithStorageInfo = await Promise.all(
+      products.map(async (product) => {
+        const storageInfo = await calculateProductStorageInfo(product.name);
+        return {
+          ...product.toObject(),
+          inStorage: storageInfo.inStorage,
+          aboutToTransfer: storageInfo.aboutToTransfer,
+        };
+      })
+    );
+
+    res.status(200).json(productsWithStorageInfo);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Get a single product by ID
+// Get a single product by ID with storage information
 exports.getProductById = async (req, res) => {
   try {
     if (
@@ -236,15 +251,91 @@ exports.getProductById = async (req, res) => {
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
+
     const product = await Product.findById(req.params.id);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-    res.status(200).json(product);
+
+    // Get storage information for this product
+    const storageInfo = await calculateProductStorageInfo(product.name);
+    const productWithStorageInfo = {
+      ...product.toObject(),
+      inStorage: storageInfo.inStorage,
+      aboutToTransfer: storageInfo.aboutToTransfer,
+    };
+
+    res.status(200).json(productWithStorageInfo);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Helper function to calculate storage information for a product by name
+async function calculateProductStorageInfo(productName) {
+  try {
+    let inStorage = 0;
+    let aboutToTransfer = 0;
+
+    // Check payment documents
+    const paymentDocuments = await DocumentPayment.find({
+      "stages.status": { $in: ["Approved", "Pending"] },
+    }).populate("appendedPurchasingDocuments");
+
+    for (const paymentDoc of paymentDocuments) {
+      for (const purchasingDoc of paymentDoc.appendedPurchasingDocuments) {
+        if (purchasingDoc.products) {
+          for (const product of purchasingDoc.products) {
+            if (product.productName === productName) {
+              if (
+                paymentDoc.status === "Approved" &&
+                paymentDoc.stages.every((stage) => stage.status === "Approved")
+              ) {
+                inStorage += product.amount || 0;
+              } else {
+                aboutToTransfer += product.amount || 0;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Check receipt documents
+    const receiptDocuments = await DocumentReceipt.find({
+      status: { $in: ["Approved", "Pending"] },
+    });
+
+    for (const receiptDoc of receiptDocuments) {
+      if (receiptDoc.products) {
+        for (const product of receiptDoc.products) {
+          if (product.productName === productName) {
+            if (receiptDoc.status === "Approved") {
+              inStorage += product.amount || 0;
+            } else {
+              aboutToTransfer += product.amount || 0;
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      inStorage,
+      aboutToTransfer,
+    };
+  } catch (error) {
+    console.error(
+      "Error calculating storage info for product:",
+      productName,
+      error
+    );
+    return {
+      inStorage: 0,
+      aboutToTransfer: 0,
+    };
+  }
+}
 
 // Create a new product
 exports.createProduct = async (req, res) => {
@@ -751,7 +842,7 @@ exports.importProductsFromFile = async (req, res) => {
   }
 };
 
-// Export products to Excel
+// Export products to Excel with storage information
 exports.exportProducts = async (req, res) => {
   try {
     if (
@@ -765,8 +856,20 @@ exports.exportProducts = async (req, res) => {
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
-    // Get all products
+
+    // Get all products with storage information
     const products = await Product.find();
+    const productsWithStorageInfo = await Promise.all(
+      products.map(async (product) => {
+        const storageInfo = await calculateProductStorageInfo(product.name);
+        return {
+          name: product.name,
+          code: product.code,
+          inStorage: storageInfo.inStorage,
+          aboutToTransfer: storageInfo.aboutToTransfer,
+        };
+      })
+    );
 
     // Create a new workbook
     const workbook = new ExcelJS.Workbook();
@@ -776,16 +879,20 @@ exports.exportProducts = async (req, res) => {
     worksheet.columns = [
       { header: "Name", key: "name", width: 30 },
       { header: "Code", key: "code", width: 20 },
+      { header: "In Storage", key: "inStorage", width: 15 },
+      { header: "About to Transfer", key: "aboutToTransfer", width: 20 },
     ];
 
     // Style the header row
     worksheet.getRow(1).font = { bold: true };
 
     // Add products data
-    products.forEach((product) => {
+    productsWithStorageInfo.forEach((product) => {
       worksheet.addRow({
         name: product.name,
         code: product.code,
+        inStorage: product.inStorage,
+        aboutToTransfer: product.aboutToTransfer,
       });
     });
 

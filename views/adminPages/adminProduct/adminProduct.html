@@ -32,6 +32,18 @@
       .dashboard-header + .product-management-container {
         margin-top: 20px;
       }
+
+      /* Style for storage columns */
+      .storage-column {
+        text-align: center;
+        font-weight: bold;
+      }
+      .in-storage {
+        color: #28a745;
+      }
+      .about-to-transfer {
+        color: #ffc107;
+      }
     </style>
   </head>
   <body class="product-management-page">
@@ -105,6 +117,10 @@
               <tr>
                 <th>Tên</th>
                 <th>Mã</th>
+                <th class="storage-column in-storage">Trong kho</th>
+                <th class="storage-column about-to-transfer">
+                  Sắp chuyển vào kho
+                </th>
                 <th>Hành động</th>
               </tr>
             </thead>
@@ -155,6 +171,6 @@
     <!-- Load scripts in correct order -->
     <script src="/components/header/headerLoader.js?v=1.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="adminPages/adminProduct/adminProduct.js?v=1.1"></script>
+    <script src="adminPages/adminProduct/adminProduct.js?v=1.2"></script>
   </body>
 </html>
