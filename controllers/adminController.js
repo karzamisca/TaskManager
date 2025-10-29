@@ -217,22 +217,22 @@ exports.getProducts = async (req, res) => {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
-    const products = await Product.find();
+    // Get products and storage info in parallel
+    const [products, storageInfo] = await Promise.all([
+      Product.find().lean(),
+      calculateAllProductsStorageInfo(),
+    ]);
 
-    // Get storage information for each product
-    const productsWithStorageInfo = await Promise.all(
-      products.map(async (product) => {
-        const storageInfo = await calculateProductStorageInfo(product.name);
-        return {
-          ...product.toObject(),
-          inStorage: storageInfo.inStorage,
-          aboutToTransfer: storageInfo.aboutToTransfer,
-        };
-      })
-    );
+    // Combine product data with storage info
+    const productsWithStorageInfo = products.map((product) => ({
+      ...product,
+      inStorage: storageInfo[product.name]?.inStorage || 0,
+      aboutToTransfer: storageInfo[product.name]?.aboutToTransfer || 0,
+    }));
 
     res.status(200).json(productsWithStorageInfo);
   } catch (error) {
+    console.error("Error fetching products:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -258,7 +258,7 @@ exports.getProductById = async (req, res) => {
     }
 
     // Get storage information for this product
-    const storageInfo = await calculateProductStorageInfo(product.name);
+    const storageInfo = await calculateAllProductsStorageInfo(product.name);
     const productWithStorageInfo = {
       ...product.toObject(),
       inStorage: storageInfo.inStorage,
@@ -272,122 +272,113 @@ exports.getProductById = async (req, res) => {
 };
 
 // Helper function to calculate storage information for a product by name
-async function calculateProductStorageInfo(productName) {
+async function calculateAllProductsStorageInfo() {
   try {
-    let inStorage = 0;
-    let aboutToTransfer = 0;
+    const products = await Product.find({}, "name code");
+    const productNames = products.map((p) => p.name);
 
-    // Check payment documents
-    const paymentDocuments = await DocumentPayment.find({
-      status: { $in: ["Approved", "Pending"] },
-    }).populate("appendedPurchasingDocuments");
+    // Single queries to get all relevant documents
+    const [paymentDocuments, receiptDocuments, deliveryDocuments] =
+      await Promise.all([
+        DocumentPayment.find({
+          status: { $in: ["Approved", "Pending"] },
+        }).populate("appendedPurchasingDocuments"),
+        DocumentReceipt.find({
+          status: { $in: ["Approved", "Pending"] },
+        }),
+        DocumentDelivery.find({
+          status: { $in: ["Approved", "Pending"] },
+        }),
+      ]);
 
-    for (const paymentDoc of paymentDocuments) {
-      // Check if payment document has stages
+    // Initialize storage objects
+    const storageInfo = {};
+    productNames.forEach((name) => {
+      storageInfo[name] = { inStorage: 0, aboutToTransfer: 0 };
+    });
+
+    // Process payment documents
+    paymentDocuments.forEach((paymentDoc) => {
       const hasStages = paymentDoc.stages && paymentDoc.stages.length > 0;
-
-      // Determine if payment is fully approved
       let isFullyApproved = false;
 
       if (hasStages) {
-        // For payments with stages, check if all stages are approved
         isFullyApproved =
           paymentDoc.status === "Approved" &&
           paymentDoc.stages.every((stage) => stage.status === "Approved");
       } else {
-        // For payments without stages, just check the main document status
         isFullyApproved = paymentDoc.status === "Approved";
       }
 
-      for (const purchasingDoc of paymentDoc.appendedPurchasingDocuments) {
-        if (purchasingDoc.products) {
-          for (const product of purchasingDoc.products) {
-            if (product.productName === productName) {
-              if (isFullyApproved) {
-                inStorage += product.amount || 0;
-              } else {
-                aboutToTransfer += product.amount || 0;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Check receipt documents
-    const receiptDocuments = await DocumentReceipt.find({
-      status: { $in: ["Approved", "Pending"] },
-    });
-
-    for (const receiptDoc of receiptDocuments) {
-      if (receiptDoc.products) {
-        for (const product of receiptDoc.products) {
-          if (product.productName === productName) {
-            if (receiptDoc.status === "Approved") {
-              inStorage += product.amount || 0;
+      paymentDoc.appendedPurchasingDocuments?.forEach((purchasingDoc) => {
+        purchasingDoc.products?.forEach((product) => {
+          if (storageInfo[product.productName]) {
+            if (isFullyApproved) {
+              storageInfo[product.productName].inStorage += product.amount || 0;
             } else {
-              aboutToTransfer += product.amount || 0;
+              storageInfo[product.productName].aboutToTransfer +=
+                product.amount || 0;
             }
           }
-        }
-      }
-    }
-
-    // Check delivery documents (subtracts from storage when fully approved)
-    const deliveryDocuments = await DocumentDelivery.find({
-      status: { $in: ["Approved", "Pending"] },
+        });
+      });
     });
 
-    for (const deliveryDoc of deliveryDocuments) {
-      // Check if delivery document has stages
-      const hasStages = deliveryDoc.stages && deliveryDoc.stages.length > 0;
+    // Process receipt documents
+    receiptDocuments.forEach((receiptDoc) => {
+      receiptDoc.products?.forEach((product) => {
+        if (storageInfo[product.productName]) {
+          if (receiptDoc.status === "Approved") {
+            storageInfo[product.productName].inStorage += product.amount || 0;
+          } else {
+            storageInfo[product.productName].aboutToTransfer +=
+              product.amount || 0;
+          }
+        }
+      });
+    });
 
-      // Determine if delivery is fully approved
+    // Process delivery documents
+    deliveryDocuments.forEach((deliveryDoc) => {
+      const hasStages = deliveryDoc.stages && deliveryDoc.stages.length > 0;
       let isFullyApproved = false;
 
       if (hasStages) {
-        // For deliveries with stages, check if all stages are approved
         isFullyApproved =
           deliveryDoc.status === "Approved" &&
           deliveryDoc.stages.every((stage) => stage.status === "Approved");
       } else {
-        // For deliveries without stages, just check the main document status
         isFullyApproved = deliveryDoc.status === "Approved";
       }
 
-      if (deliveryDoc.products) {
-        for (const product of deliveryDoc.products) {
-          if (product.productName === productName) {
-            if (isFullyApproved) {
-              // Subtract from storage when delivery is fully approved
-              inStorage -= product.amount || 0;
-            } else {
-              // If delivery is pending, it's about to be subtracted from storage
-              aboutToTransfer -= product.amount || 0;
-            }
+      deliveryDoc.products?.forEach((product) => {
+        if (storageInfo[product.productName]) {
+          if (isFullyApproved) {
+            storageInfo[product.productName].inStorage -= product.amount || 0;
+          } else {
+            storageInfo[product.productName].aboutToTransfer -=
+              product.amount || 0;
           }
         }
-      }
-    }
+      });
+    });
 
     // Ensure non-negative values
-    inStorage = Math.max(0, inStorage);
-    aboutToTransfer = Math.max(0, aboutToTransfer);
+    Object.keys(storageInfo).forEach((productName) => {
+      storageInfo[productName].inStorage = Math.max(
+        0,
+        storageInfo[productName].inStorage
+      );
+      storageInfo[productName].aboutToTransfer = Math.max(
+        0,
+        storageInfo[productName].aboutToTransfer
+      );
+    });
 
-    return {
-      inStorage,
-      aboutToTransfer,
-    };
+    return storageInfo;
   } catch (error) {
-    console.error(
-      "Error calculating storage info for product:",
-      productName,
-      error
-    );
-    return {
-      inStorage: 0,
-      aboutToTransfer: 0,
-    };
+    console.error("Error calculating storage info for all products:", error);
+    return {};
   }
 }
 
