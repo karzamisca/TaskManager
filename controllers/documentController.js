@@ -3054,7 +3054,7 @@ exports.getPurchasingDocument = async (req, res) => {
 exports.updatePurchasingDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const files = req.files; // This will be an array now
+    const files = req.files;
 
     // Parse the products JSON string into an object
     let products;
@@ -3140,7 +3140,6 @@ exports.updatePurchasingDocument = async (req, res) => {
       req.body.title = doc.title;
 
       // Upload new files - they will be ADDED to existing files
-      // Note: We don't delete old files anymore when adding new ones
       uploadedFilesData = await handleMultipleFileUploads(req);
     }
 
@@ -3159,6 +3158,7 @@ exports.updatePurchasingDocument = async (req, res) => {
     doc.costCenter = costCenter;
     doc.groupName = groupName;
 
+    // Handle proposal documents - replace with new list
     if (appendedProposals) {
       doc.appendedProposals = appendedProposals;
     }
@@ -3514,14 +3514,14 @@ exports.updatePaymentDocument = async (req, res) => {
       stages,
       groupName,
       currentFileMetadata,
+      appendedPurchasingDocuments, // Add this line
     } = req.body;
-    const files = req.files; // This will be an array now
+    const files = req.files;
 
     // Store temp file paths for cleanup
     if (files && files.length > 0) {
       files.forEach((file) => {
         tempFilePaths.push(file.path);
-        // Verify file exists immediately
         if (!fs.existsSync(file.path)) {
           throw new Error(`Uploaded file not found at: ${file.path}`);
         }
@@ -3619,7 +3619,16 @@ exports.updatePaymentDocument = async (req, res) => {
         currentFiles = JSON.parse(currentFileMetadata);
       } catch (error) {
         console.error("Error parsing current file metadata:", error);
-        // Continue with empty array
+      }
+    }
+
+    // Parse purchasing documents if provided
+    let parsedPurchasingDocs = [];
+    if (appendedPurchasingDocuments) {
+      try {
+        parsedPurchasingDocs = JSON.parse(appendedPurchasingDocuments);
+      } catch (error) {
+        console.error("Error parsing purchasing documents:", error);
       }
     }
 
@@ -3627,8 +3636,6 @@ exports.updatePaymentDocument = async (req, res) => {
     let uploadedFilesData = [];
     if (files && files.length > 0) {
       req.body.title = doc.title;
-
-      // Upload new files
       uploadedFilesData = await handleMultipleFileUploads(req);
     }
 
@@ -3649,8 +3656,13 @@ exports.updatePaymentDocument = async (req, res) => {
     doc.priority = priority;
     doc.groupName = groupName;
 
-    // Update file metadata - combine existing (after deletions) with new files
+    // Update file metadata
     doc.fileMetadata = [...currentFiles, ...uploadedFilesData];
+
+    // Update purchasing documents if provided
+    if (parsedPurchasingDocs) {
+      doc.appendedPurchasingDocuments = parsedPurchasingDocs;
+    }
 
     // Update approvers if provided
     if (parsedApprovers) {

@@ -5,6 +5,8 @@ const state = {
   purchasingDocuments: [],
   showOnlyPendingApprovals: false,
   currentApprovers: [],
+  currentAppendedProposals: [],
+  availableProposals: [],
   currentPage: 1,
   itemsPerPage: 10,
   totalPages: 1,
@@ -13,6 +15,7 @@ const state = {
   currentEditDoc: null,
   nameFilter: "",
   currentGroupFilter: "",
+  costCenters: [],
 };
 
 // Utility functions
@@ -887,6 +890,123 @@ const closeFullViewModal = () => {
   document.getElementById("fullViewModal").style.display = "none";
 };
 
+// Proposal Management Functions
+const fetchAvailableProposals = async () => {
+  try {
+    const response = await fetch("/approvedProposalsForPurchasing");
+    const allProposals = await response.json();
+
+    // Filter out proposals that are already appended to the current document
+    const currentProposalIds = state.currentAppendedProposals.map(
+      (p) => p.proposalId
+    );
+    state.availableProposals = allProposals.filter(
+      (proposal) => !currentProposalIds.includes(proposal._id)
+    );
+
+    populateProposalsDropdown();
+  } catch (error) {
+    console.error("Error fetching available proposals:", error);
+    showMessage("Error loading available proposals", true);
+  }
+};
+
+const populateProposalsDropdown = () => {
+  const dropdown = document.getElementById("newProposalsDropdown");
+  dropdown.innerHTML = '<option value="">Chọn phiếu đề xuất</option>';
+
+  state.availableProposals.forEach((proposal) => {
+    const option = document.createElement("option");
+    option.value = proposal._id;
+    option.textContent = `${proposal.task} - ${proposal.costCenter} - ${proposal.submissionDate}`;
+    dropdown.appendChild(option);
+  });
+};
+
+const renderCurrentAppendedProposals = () => {
+  const currentProposalsList = document.getElementById(
+    "currentAppendedProposalsList"
+  );
+
+  if (state.currentAppendedProposals.length === 0) {
+    currentProposalsList.innerHTML =
+      '<p class="text-muted">Không có phiếu đề xuất nào</p>';
+    return;
+  }
+
+  currentProposalsList.innerHTML = state.currentAppendedProposals
+    .map(
+      (proposal, index) => `
+      <div class="proposal-item" data-proposal-id="${proposal.proposalId}">
+        <div class="proposal-info">
+          <strong>${proposal.task}</strong>
+          <div class="proposal-details">
+            <span>Trạm: ${proposal.costCenter}</span>
+            <span>Nhóm: ${proposal.groupName}</span>
+            <span>Ngày: ${proposal.submissionDate}</span>
+          </div>
+        </div>
+        <button type="button" class="btn btn-danger btn-sm" 
+                onclick="removeAppendedProposal('${proposal.proposalId}')">
+          <i class="fas fa-trash"></i> Xóa
+        </button>
+      </div>
+    `
+    )
+    .join("");
+};
+
+const removeAppendedProposal = (proposalId) => {
+  state.currentAppendedProposals = state.currentAppendedProposals.filter(
+    (proposal) => proposal.proposalId !== proposalId
+  );
+  renderCurrentAppendedProposals();
+  fetchAvailableProposals(); // Refresh available proposals
+};
+
+const addNewProposal = () => {
+  const selectedProposalId = document.getElementById(
+    "newProposalsDropdown"
+  ).value;
+
+  if (!selectedProposalId) {
+    showMessage("Vui lòng chọn một phiếu đề xuất.", true);
+    return;
+  }
+
+  const selectedProposal = state.availableProposals.find(
+    (proposal) => proposal._id === selectedProposalId
+  );
+
+  if (selectedProposal) {
+    const newAppendedProposal = {
+      task: selectedProposal.task,
+      costCenter: selectedProposal.costCenter,
+      groupName: selectedProposal.groupName,
+      dateOfError: selectedProposal.dateOfError,
+      detailsDescription: selectedProposal.detailsDescription,
+      direction: selectedProposal.direction,
+      fileMetadata: selectedProposal.fileMetadata || [],
+      proposalId: selectedProposal._id,
+      submissionDate: selectedProposal.submissionDate,
+      submittedBy: selectedProposal.submittedBy,
+      approvers: selectedProposal.approvers,
+      approvedBy: selectedProposal.approvedBy,
+      status: selectedProposal.status,
+      declaration: selectedProposal.declaration,
+      suspendReason: selectedProposal.suspendReason,
+      projectName: selectedProposal.projectName,
+    };
+
+    state.currentAppendedProposals.push(newAppendedProposal);
+    renderCurrentAppendedProposals();
+    fetchAvailableProposals(); // Refresh available proposals
+
+    // Clear the dropdown selection
+    document.getElementById("newProposalsDropdown").value = "";
+  }
+};
+
 // Edit Document Functions
 const addEditModal = () => {
   const modalHTML = `
@@ -939,6 +1059,24 @@ const addEditModal = () => {
               <label for="editFiles" class="form-label">Thay tệp tin mới:</label>
               <input type="file" id="editFiles" class="form-input" multiple>
               <small class="form-text">Có thể chọn nhiều tệp tin</small>
+            </div>
+            
+            <!-- Current Appended Proposals Section -->
+            <div class="form-group">
+              <label class="form-label">Phiếu đề xuất đã gắn kèm:</label>
+              <div id="currentAppendedProposalsList" class="proposals-list"></div>
+            </div>
+            
+            <!-- Add New Proposals Section -->
+            <div class="form-group">
+              <label class="form-label">Thêm phiếu đề xuất:</label>
+              <select id="newProposalsDropdown" class="form-select">
+                <option value="">Chọn phiếu đề xuất</option>
+                <!-- Options will be populated dynamically -->
+              </select>
+              <button type="button" class="btn btn-primary" onclick="addNewProposal()" style="margin-top: var(--space-sm);">
+                <i class="fas fa-plus"></i> Thêm phiếu đề xuất
+              </button>
             </div>
             
             <!-- Current Approvers Section -->
@@ -1315,7 +1453,7 @@ const removeCurrentFile = async (fileId, docId) => {
   }
 };
 
-// Update the editDocument function to show current files
+// Update the editDocument function to show current proposals
 const editDocument = async (docId) => {
   try {
     // Load cost centers first
@@ -1342,6 +1480,13 @@ const editDocument = async (docId) => {
     // Show current files - PASS THE DOC ID
     renderCurrentFiles(doc.fileMetadata, docId);
 
+    // Populate current appended proposals
+    state.currentAppendedProposals = doc.appendedProposals || [];
+    renderCurrentAppendedProposals();
+
+    // Fetch and populate available proposals
+    await fetchAvailableProposals();
+
     // Populate current approvers
     state.currentApprovers = doc.approvers;
     renderCurrentApprovers();
@@ -1360,6 +1505,8 @@ const closeEditModal = () => {
   document.getElementById("editModal").style.display = "none";
   document.getElementById("editForm").reset();
   document.getElementById("productsList").innerHTML = "";
+  state.currentAppendedProposals = [];
+  state.currentApprovers = [];
 };
 
 const handleEditSubmit = async (event) => {
@@ -1432,6 +1579,12 @@ const handleEditSubmit = async (event) => {
 
   // Add approvers
   formData.append("approvers", JSON.stringify(state.currentApprovers));
+
+  // Add appended proposals
+  formData.append(
+    "appendedProposals",
+    JSON.stringify(state.currentAppendedProposals)
+  );
 
   // Add removed file IDs if any
   if (window.removedFileIds && window.removedFileIds.size > 0) {

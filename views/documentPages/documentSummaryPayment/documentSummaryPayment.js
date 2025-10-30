@@ -1905,6 +1905,142 @@ const updateStageApproverSubRole = (stageIndex, approverId, newSubRole) => {
   }
 };
 
+// Purchasing Documents Management
+const fetchAvailablePurchasingDocuments = async () => {
+  try {
+    const response = await fetch("/approvedPurchasingDocumentsForPayment");
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching purchasing documents:", error);
+    return [];
+  }
+};
+
+const populatePurchasingDocumentsDropdown = async () => {
+  const availableDocs = await fetchAvailablePurchasingDocuments();
+  const dropdown = document.getElementById("availablePurchasingDocs");
+
+  dropdown.innerHTML = '<option value="">Chọn phiếu mua hàng</option>';
+
+  availableDocs.forEach((doc) => {
+    const option = document.createElement("option");
+    option.value = doc._id;
+    option.textContent = `${doc.name} - ${
+      doc.tag || "No tag"
+    } - ${formatCurrency(doc.grandTotalCost)}`;
+    option.dataset.doc = JSON.stringify(doc);
+    dropdown.appendChild(option);
+  });
+};
+
+const renderCurrentPurchasingDocuments = () => {
+  const container = document.getElementById("currentPurchasingDocuments");
+
+  if (
+    !state.currentEditDoc.appendedPurchasingDocuments ||
+    state.currentEditDoc.appendedPurchasingDocuments.length === 0
+  ) {
+    container.innerHTML = "<p>Không có phiếu mua hàng nào được đính kèm</p>";
+    return;
+  }
+
+  container.innerHTML = state.currentEditDoc.appendedPurchasingDocuments
+    .map(
+      (doc, index) => `
+      <div class="purchasing-doc-item">
+        <div class="purchasing-doc-header">
+          <span class="purchasing-doc-title">${
+            doc.name || "Không có tên"
+          }</span>
+          <button type="button" class="purchasing-doc-remove" onclick="removePurchasingDocument(${index})">
+            <i class="fas fa-times"></i> Xóa
+          </button>
+        </div>
+        <div class="purchasing-doc-details">
+          <div class="purchasing-doc-detail"><strong>Tem:</strong> ${
+            doc.tag || "Không có"
+          }</div>
+          <div class="purchasing-doc-detail"><strong>Trạm:</strong> ${
+            doc.costCenter || "Không có"
+          }</div>
+          <div class="purchasing-doc-detail"><strong>Tổng chi phí:</strong> ${formatCurrency(
+            doc.grandTotalCost
+          )}</div>
+          ${
+            doc.products && doc.products.length > 0
+              ? `
+            <div class="purchasing-doc-products">
+              <strong>Sản phẩm:</strong>
+              ${doc.products
+                .map(
+                  (product) => `
+                <div class="purchasing-doc-product">
+                  <span>${product.productName}</span>
+                  <span>${product.amount} x ${formatCurrency(
+                    product.costPerUnit
+                  )} = ${formatCurrency(product.totalCost)}</span>
+                </div>
+              `
+                )
+                .join("")}
+            </div>
+          `
+              : ""
+          }
+        </div>
+      </div>
+    `
+    )
+    .join("");
+};
+
+const addPurchasingDocument = () => {
+  const dropdown = document.getElementById("availablePurchasingDocs");
+  const selectedOption = dropdown.options[dropdown.selectedIndex];
+
+  if (!selectedOption.value) {
+    showMessage("Vui lòng chọn một phiếu mua hàng", true);
+    return;
+  }
+
+  const selectedDoc = JSON.parse(selectedOption.dataset.doc);
+
+  // Check if document is already added
+  if (state.currentEditDoc.appendedPurchasingDocuments) {
+    const alreadyAdded = state.currentEditDoc.appendedPurchasingDocuments.some(
+      (doc) => doc._id === selectedDoc._id
+    );
+
+    if (alreadyAdded) {
+      showMessage("Phiếu mua hàng này đã được thêm vào", true);
+      return;
+    }
+  } else {
+    state.currentEditDoc.appendedPurchasingDocuments = [];
+  }
+
+  // Add the document
+  state.currentEditDoc.appendedPurchasingDocuments.push(selectedDoc);
+
+  // Re-render the list
+  renderCurrentPurchasingDocuments();
+
+  // Reset dropdown
+  dropdown.selectedIndex = 0;
+
+  showMessage("Đã thêm phiếu mua hàng");
+};
+
+const removePurchasingDocument = (index) => {
+  if (!confirm("Bạn có chắc chắn muốn xóa phiếu mua hàng này?")) {
+    return;
+  }
+
+  state.currentEditDoc.appendedPurchasingDocuments.splice(index, 1);
+  renderCurrentPurchasingDocuments();
+  showMessage("Đã xóa phiếu mua hàng");
+};
+
 // Edit Document Functions
 const editDocument = async (docId) => {
   try {
@@ -1932,6 +2068,10 @@ const editDocument = async (docId) => {
     renderCurrentApprovers();
     await populateNewApproversDropdown();
     renderPaymentStages();
+
+    // Initialize purchasing documents
+    await populatePurchasingDocumentsDropdown();
+    renderCurrentPurchasingDocuments();
 
     // Render current files
     renderCurrentFiles(doc.fileMetadata || []);
@@ -2249,6 +2389,14 @@ const handleEditSubmit = async (event) => {
   // Add stages if they exist
   if (state.currentEditDoc.stages) {
     formData.append("stages", JSON.stringify(state.currentEditDoc.stages));
+  }
+
+  // Add purchasing documents if they exist
+  if (state.currentEditDoc.appendedPurchasingDocuments) {
+    formData.append(
+      "appendedPurchasingDocuments",
+      JSON.stringify(state.currentEditDoc.appendedPurchasingDocuments)
+    );
   }
 
   // Add current file metadata (after potential deletions)
