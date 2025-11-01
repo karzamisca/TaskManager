@@ -127,6 +127,31 @@
         color: #721c24;
         border: 1px solid #f5c6cb;
       }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      .form-group select,
+      .form-group input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      .project-badge {
+        background-color: #e9ecef;
+        color: #495057;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+        margin-left: 10px;
+      }
     </style>
   </head>
   <body>
@@ -135,6 +160,12 @@
     <!-- File Upload Section -->
     <div class="upload-section">
       <h2>Upload File</h2>
+      <div class="form-group">
+        <label for="projectSelect">Select Project:</label>
+        <select id="projectSelect" required>
+          <option value="">-- Select a Project --</option>
+        </select>
+      </div>
       <div class="upload-area" id="uploadArea">
         <p>Drag and drop your file here or click to browse</p>
         <form id="uploadForm" enctype="multipart/form-data">
@@ -184,6 +215,27 @@
     </div>
 
     <script>
+      // Load projects on page load
+      async function loadProjects() {
+        try {
+          const response = await fetch("/fileApprovalControl/projects");
+          const projects = await response.json();
+          const projectSelect = document.getElementById("projectSelect");
+
+          projectSelect.innerHTML =
+            '<option value="">-- Select a Project --</option>';
+          projects.forEach((project) => {
+            const option = document.createElement("option");
+            option.value = project.name;
+            option.textContent = project.name;
+            projectSelect.appendChild(option);
+          });
+        } catch (error) {
+          console.error("Error loading projects:", error);
+          showMessage("Error loading projects: " + error.message, "error");
+        }
+      }
+
       // Drag and drop functionality
       const uploadArea = document.getElementById("uploadArea");
       const fileInput = document.getElementById("fileInput");
@@ -203,25 +255,36 @@
         const files = e.dataTransfer.files;
         if (files.length > 0) {
           fileInput.files = files;
-          handleFileUpload();
         }
       });
 
-      fileInput.addEventListener("change", handleFileUpload);
+      fileInput.addEventListener("change", () => {
+        // File selection handled separately from upload
+      });
 
       // Upload form handler
       async function handleFileUpload() {
+        const projectSelect = document.getElementById("projectSelect");
+        const selectedProject = projectSelect.value;
+
+        if (!selectedProject) {
+          showMessage("Please select a project", "error");
+          return;
+        }
+
         if (fileInput.files.length === 0) {
+          showMessage("Please select a file", "error");
           return;
         }
 
         const formData = new FormData();
         formData.append("file", fileInput.files[0]);
+        formData.append("projectName", selectedProject);
 
         showMessage("Uploading file...", "info");
 
         try {
-          const response = await fetch("/upload", {
+          const response = await fetch("/fileApprovalControl/upload", {
             method: "POST",
             body: formData,
           });
@@ -230,7 +293,7 @@
 
           if (result.success) {
             showMessage(
-              "File uploaded successfully to Pending folder! You can view it using the link below.",
+              `File uploaded successfully to ${result.projectName} project in Pending folder!`,
               "success"
             );
             if (result.shareUrl) {
@@ -240,6 +303,7 @@
               );
             }
             fileInput.value = "";
+            projectSelect.value = "";
             loadPendingFiles();
           } else {
             showMessage("Upload failed: " + result.error, "error");
@@ -249,10 +313,22 @@
         }
       }
 
+      // Update the upload area click handler
+      uploadArea.addEventListener("click", () => {
+        document.getElementById("fileInput").click();
+      });
+
+      // Add event listener for file input change to auto-upload
+      fileInput.addEventListener("change", () => {
+        if (fileInput.files.length > 0) {
+          handleFileUpload();
+        }
+      });
+
       // Load pending files
       async function loadPendingFiles() {
         try {
-          const response = await fetch("/files/pending");
+          const response = await fetch("/fileApprovalControl/pending");
           const files = await response.json();
 
           const filesList = document.getElementById("pendingFilesList");
@@ -269,7 +345,12 @@
             fileElement.className = "file-item";
             fileElement.innerHTML = `
                         <div class="file-info">
-                            <div class="file-name">${file.originalName}</div>
+                            <div class="file-name">
+                              ${file.originalName}
+                              <span class="project-badge">${
+                                file.projectName || "No Project"
+                              }</span>
+                            </div>
                             <div class="file-details">
                                 Size: ${formatFileSize(file.fileSize)} | 
                                 Uploaded: ${new Date(
@@ -303,7 +384,7 @@
       // Load history
       async function loadHistory() {
         try {
-          const response = await fetch("/files/history");
+          const response = await fetch("/fileApprovalControl/history");
           const files = await response.json();
 
           const historyList = document.getElementById("historyList");
@@ -320,7 +401,12 @@
             fileElement.className = "file-item";
             fileElement.innerHTML = `
                         <div class="file-info">
-                            <div class="file-name">${file.originalName}</div>
+                            <div class="file-name">
+                              ${file.originalName}
+                              <span class="project-badge">${
+                                file.projectName || "No Project"
+                              }</span>
+                            </div>
                             <div class="file-details">
                                 Status: <span class="status-${
                                   file.status
@@ -349,25 +435,28 @@
       async function approveFile(fileId) {
         if (
           !confirm(
-            "Are you sure you want to approve this file? It will be moved to the Approved folder."
+            "Are you sure you want to approve this file? It will be moved to the Approved folder for its project."
           )
         ) {
           return;
         }
 
         try {
-          const response = await fetch(`/files/${fileId}/approve`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
+          const response = await fetch(
+            `/fileApprovalControl/${fileId}/approve`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
 
           const result = await response.json();
 
           if (result.success) {
             showMessage(
-              "File approved and moved to Approved folder!",
+              "File approved and moved to project folder in Approved directory!",
               "success"
             );
             loadPendingFiles();
@@ -391,12 +480,15 @@
         }
 
         try {
-          const response = await fetch(`/files/${fileId}/reject`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
+          const response = await fetch(
+            `/fileApprovalControl/${fileId}/reject`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
 
           const result = await response.json();
 
@@ -431,7 +523,8 @@
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
       }
 
-      // Load pending files on page load
+      // Load projects and pending files on page load
+      loadProjects();
       loadPendingFiles();
     </script>
   </body>

@@ -14,6 +14,7 @@ const fileApprovalSchema = new mongoose.Schema({
   shareUrl: String,
   fileSize: Number,
   mimeType: String,
+  projectName: String,
   uploadedAt: { type: Date, default: Date.now },
   uploadedBy: String,
   actionTakenAt: Date,
