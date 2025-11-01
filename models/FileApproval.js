@@ -1,6 +1,7 @@
+// models/FileApproval.js
 const mongoose = require("mongoose");
 
-const fileLogSchema = new mongoose.Schema({
+const fileApprovalSchema = new mongoose.Schema({
   fileName: String,
   originalName: String,
   filePath: String,
@@ -20,4 +21,4 @@ const fileLogSchema = new mongoose.Schema({
   ipAddress: String,
 });
 
-module.exports = mongoose.model("FileLog", fileLogSchema);
+module.exports = mongoose.model("FileApproval", fileApprovalSchema);

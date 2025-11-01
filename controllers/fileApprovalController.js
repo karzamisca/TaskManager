@@ -1,7 +1,8 @@
+// controllers/fileApprovalController.js
 const axios = require("axios");
 const path = require("path");
 const fs = require("fs");
-const FileLog = require("../models/FileApproval");
+const FileApproval = require("../models/FileApproval");
 require("dotenv").config();
 
 class NextcloudController {
@@ -292,7 +293,7 @@ class NextcloudController {
       );
 
       // Log to MongoDB
-      const fileLog = new FileLog({
+      const fileApproval = new FileApproval({
         fileName: req.file.filename,
         originalName: req.file.originalname,
         filePath: req.file.path,
@@ -305,7 +306,7 @@ class NextcloudController {
         uploadedBy: req.user ? req.user.username : "anonymous",
       });
 
-      await fileLog.save();
+      await fileApproval.save();
 
       // Remove local file after successful upload to NextCloud
       if (fs.existsSync(req.file.path)) {
@@ -314,13 +315,13 @@ class NextcloudController {
 
       console.log(
         "File uploaded to NextCloud Pending folder with ID:",
-        fileLog._id
+        fileApproval._id
       );
 
       res.json({
         success: true,
         message: "File uploaded successfully to Pending folder",
-        fileId: fileLog._id,
+        fileId: fileApproval._id,
         fileName: req.file.originalname,
         shareUrl: uploadResult.downloadUrl,
       });
@@ -334,7 +335,7 @@ class NextcloudController {
 
   async getPendingFiles(req, res) {
     try {
-      const pendingFiles = await FileLog.find({ status: "pending" }).sort({
+      const pendingFiles = await FileApproval.find({ status: "pending" }).sort({
         uploadedAt: -1,
       });
       res.json(pendingFiles);
@@ -346,25 +347,25 @@ class NextcloudController {
 
   async approveFile(req, res) {
     try {
-      const fileLog = await FileLog.findById(req.params.id);
+      const fileApproval = await FileApproval.findById(req.params.id);
 
-      if (!fileLog) {
+      if (!fileApproval) {
         return res.status(404).json({ error: "File not found" });
       }
 
-      if (fileLog.status !== "pending") {
+      if (fileApproval.status !== "pending") {
         return res.status(400).json({ error: "File already processed" });
       }
 
       console.log("Approving file:", {
-        id: fileLog._id,
-        fileName: fileLog.fileName,
-        nextcloudPath: fileLog.nextcloudPath,
+        id: fileApproval._id,
+        fileName: fileApproval.fileName,
+        nextcloudPath: fileApproval.nextcloudPath,
       });
 
       // Move file from Pending to Approved folder in NextCloud
-      const sourcePath = fileLog.nextcloudPath;
-      const destinationPath = `Approved/${fileLog.fileName}`;
+      const sourcePath = fileApproval.nextcloudPath;
+      const destinationPath = `Approved/${fileApproval.fileName}`;
 
       const moveResult = await this.moveFileInNextcloud(
         sourcePath,
@@ -372,19 +373,19 @@ class NextcloudController {
       );
 
       // Update MongoDB record
-      fileLog.status = "approved";
-      fileLog.nextcloudPath = moveResult.newPath;
-      fileLog.shareUrl = moveResult.downloadUrl;
-      fileLog.actionTakenAt = new Date();
-      fileLog.actionTakenBy = req.user ? req.user.username : "system";
+      fileApproval.status = "approved";
+      fileApproval.nextcloudPath = moveResult.newPath;
+      fileApproval.shareUrl = moveResult.downloadUrl;
+      fileApproval.actionTakenAt = new Date();
+      fileApproval.actionTakenBy = req.user ? req.user.username : "system";
 
-      await fileLog.save();
+      await fileApproval.save();
 
       res.json({
         success: true,
         message: "File approved and moved to Approved folder",
         shareUrl: moveResult.downloadUrl,
-        file: fileLog,
+        file: fileApproval,
       });
     } catch (error) {
       console.error("Approve error:", error);
@@ -396,31 +397,31 @@ class NextcloudController {
 
   async rejectFile(req, res) {
     try {
-      const fileLog = await FileLog.findById(req.params.id);
+      const fileApproval = await FileApproval.findById(req.params.id);
 
-      if (!fileLog) {
+      if (!fileApproval) {
         return res.status(404).json({ error: "File not found" });
       }
 
-      if (fileLog.status !== "pending") {
+      if (fileApproval.status !== "pending") {
         return res.status(400).json({ error: "File already processed" });
       }
 
       console.log("Rejecting file:", {
-        id: fileLog._id,
-        fileName: fileLog.fileName,
-        nextcloudPath: fileLog.nextcloudPath,
+        id: fileApproval._id,
+        fileName: fileApproval.fileName,
+        nextcloudPath: fileApproval.nextcloudPath,
       });
 
       // Delete file from NextCloud Pending folder
-      await this.deleteFromNextcloud(fileLog.nextcloudPath);
+      await this.deleteFromNextcloud(fileApproval.nextcloudPath);
 
       // Update MongoDB record
-      fileLog.status = "rejected";
-      fileLog.actionTakenAt = new Date();
-      fileLog.actionTakenBy = req.user ? req.user.username : "system";
+      fileApproval.status = "rejected";
+      fileApproval.actionTakenAt = new Date();
+      fileApproval.actionTakenBy = req.user ? req.user.username : "system";
 
-      await fileLog.save();
+      await fileApproval.save();
 
       res.json({
         success: true,
@@ -436,7 +437,7 @@ class NextcloudController {
 
   async getFileHistory(req, res) {
     try {
-      const history = await FileLog.find({
+      const history = await FileApproval.find({
         status: { $in: ["approved", "rejected"] },
       })
         .sort({ actionTakenAt: -1 })
@@ -450,13 +451,13 @@ class NextcloudController {
 
   async getFileById(req, res) {
     try {
-      const fileLog = await FileLog.findById(req.params.id);
+      const fileApproval = await FileApproval.findById(req.params.id);
 
-      if (!fileLog) {
+      if (!fileApproval) {
         return res.status(404).json({ error: "File not found" });
       }
 
-      res.json(fileLog);
+      res.json(fileApproval);
     } catch (error) {
       console.error("Error fetching file:", error);
       res.status(500).json({ error: "Failed to fetch file" });
