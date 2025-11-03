@@ -3449,47 +3449,34 @@ exports.getPaymentDocument = async (req, res) => {
       return res.status(404).json({ message: "Document not found" });
     }
 
-    // Manually populate submittedBy for appendedPurchasingDocuments and their appendedProposals
+    //Properly populate appendedPurchasingDocuments and their submittedBy fields
     if (
       document.appendedPurchasingDocuments &&
       document.appendedPurchasingDocuments.length > 0
     ) {
-      for (let purchasingDoc of document.appendedPurchasingDocuments) {
-        // Populate submittedBy for the purchasing document
-        if (purchasingDoc.submittedBy) {
-          const submittedByUser = await mongoose
-            .model("User")
-            .findById(purchasingDoc.submittedBy)
-            .select("username");
-          if (submittedByUser) {
-            purchasingDoc.submittedBy = {
-              _id: purchasingDoc.submittedBy,
-              username: submittedByUser.username,
-            };
+      // Create a new array with properly populated documents
+      const populatedPurchasingDocs = await Promise.all(
+        document.appendedPurchasingDocuments.map(async (purchasingDoc) => {
+          // If it's already an object with _id, use it directly
+          if (purchasingDoc._id && typeof purchasingDoc._id === "object") {
+            return purchasingDoc;
           }
-        }
 
-        // Populate submittedBy for appendedProposals within the purchasing document
-        if (
-          purchasingDoc.appendedProposals &&
-          purchasingDoc.appendedProposals.length > 0
-        ) {
-          for (let proposal of purchasingDoc.appendedProposals) {
-            if (proposal.submittedBy) {
-              const proposalSubmittedBy = await mongoose
-                .model("User")
-                .findById(proposal.submittedBy)
-                .select("username");
-              if (proposalSubmittedBy) {
-                proposal.submittedBy = {
-                  _id: proposal.submittedBy,
-                  username: proposalSubmittedBy.username,
-                };
-              }
-            }
+          // If it's just an ID string, fetch the full document
+          let docId = purchasingDoc;
+          if (typeof purchasingDoc === "object" && purchasingDoc._id) {
+            docId = purchasingDoc._id;
           }
-        }
-      }
+
+          const populatedDoc = await PurchasingDocument.findById(docId)
+            .populate("submittedBy", "username")
+            .populate("appendedProposals.submittedBy", "username");
+
+          return populatedDoc ? populatedDoc.toObject() : purchasingDoc;
+        })
+      );
+
+      document.appendedPurchasingDocuments = populatedPurchasingDocs;
     }
 
     res.json(document);
