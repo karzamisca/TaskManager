@@ -3,7 +3,6 @@ const axios = require("axios");
 const path = require("path");
 const fs = require("fs");
 const FileApproval = require("../models/FileApproval");
-const Project = require("../models/Project");
 require("dotenv").config();
 
 class NextcloudController {
@@ -35,28 +34,6 @@ class NextcloudController {
     this.getFileById = this.getFileById.bind(this);
     this.moveFileInNextcloud = this.moveFileInNextcloud.bind(this);
     this.deleteFromNextcloud = this.deleteFromNextcloud.bind(this);
-    this.getProjects = this.getProjects.bind(this);
-    this.encodePath = this.encodePath.bind(this);
-  }
-
-  // Encode path for URL and headers
-  encodePath(path) {
-    // Encode each segment of the path separately
-    return path
-      .split("/")
-      .map((segment) => encodeURIComponent(segment))
-      .join("/");
-  }
-
-  // Get all projects for dropdown
-  async getProjects(req, res) {
-    try {
-      const projects = await Project.find({}).sort({ name: 1 });
-      res.json(projects);
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-      res.status(500).json({ error: "Failed to fetch projects" });
-    }
   }
 
   // NextCloud Client Methods
@@ -81,12 +58,9 @@ class NextcloudController {
 
   async ensureDirectoryExists(dirPath) {
     try {
-      const encodedPath = this.encodePath(dirPath);
-      console.log(`Ensuring directory exists: ${dirPath} -> ${encodedPath}`);
-
       const response = await axios.request({
         method: "MKCOL",
-        url: `${this.baseUrl}/${encodedPath}`,
+        url: `${this.baseUrl}/${dirPath}`,
         headers: {
           Authorization: `Basic ${this.auth}`,
           "Content-Type": "application/xml",
@@ -96,12 +70,10 @@ class NextcloudController {
         },
       });
       this.storeCookies(response);
-      console.log(`Directory created or already exists: ${dirPath}`);
       return true;
     } catch (error) {
       if (error.response && error.response.status === 405) {
         // Directory already exists
-        console.log(`Directory already exists: ${dirPath}`);
         return true;
       }
       console.error(
@@ -123,12 +95,11 @@ class NextcloudController {
 
       const fileData = fs.readFileSync(localFilePath);
       const remotePath = `${remoteFolder}/${fileName}`;
-      const encodedRemotePath = this.encodePath(remotePath);
 
-      console.log(`Uploading to: ${this.baseUrl}/${encodedRemotePath}`);
+      console.log(`Uploading to: ${this.baseUrl}/${remotePath}`);
 
       const response = await axios.put(
-        `${this.baseUrl}/${encodedRemotePath}`,
+        `${this.baseUrl}/${remotePath}`,
         fileData,
         {
           headers: {
@@ -169,23 +140,12 @@ class NextcloudController {
         `Moving file in NextCloud: ${sourcePath} -> ${destinationPath}`
       );
 
-      // Ensure the destination directory exists
-      const destinationDir = path.dirname(destinationPath);
-      await this.ensureDirectoryExists(destinationDir);
-
-      // Encode both source and destination paths
-      const encodedSourcePath = this.encodePath(sourcePath);
-      const encodedDestinationPath = this.encodePath(destinationPath);
-
-      console.log(`Encoded source: ${encodedSourcePath}`);
-      console.log(`Encoded destination: ${encodedDestinationPath}`);
-
       const response = await axios.request({
         method: "MOVE",
-        url: `${this.baseUrl}/${encodedSourcePath}`,
+        url: `${this.baseUrl}/${sourcePath}`,
         headers: {
           Authorization: `Basic ${this.auth}`,
-          Destination: `${this.baseUrl}/${encodedDestinationPath}`,
+          Destination: `${this.baseUrl}/${destinationPath}`,
           ...(Object.keys(this.cookies).length > 0 && {
             Cookie: this.getCookieHeader(),
           }),
@@ -215,9 +175,7 @@ class NextcloudController {
     try {
       console.log(`Deleting file from NextCloud: ${filePath}`);
 
-      const encodedPath = this.encodePath(filePath);
-
-      const response = await axios.delete(`${this.baseUrl}/${encodedPath}`, {
+      const response = await axios.delete(`${this.baseUrl}/${filePath}`, {
         headers: {
           Authorization: `Basic ${this.auth}`,
           ...(Object.keys(this.cookies).length > 0 && {
@@ -238,9 +196,8 @@ class NextcloudController {
 
   async createPublicShare(filePath) {
     try {
-      const encodedPath = this.encodePath(filePath);
       const shareParams = new URLSearchParams({
-        path: filePath, // Keep original path for NextCloud API
+        path: filePath,
         shareType: "3",
         permissions: "1",
         publicUpload: "false",
@@ -291,7 +248,7 @@ class NextcloudController {
   }
 
   getDirectDownloadUrl(filePath) {
-    const encodedPath = this.encodePath(filePath);
+    const encodedPath = encodeURIComponent(filePath);
     return `${this.baseUrl}/${encodedPath}`;
   }
 
@@ -321,33 +278,17 @@ class NextcloudController {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const { projectName } = req.body;
-
-      if (!projectName) {
-        return res.status(400).json({ error: "Project name is required" });
-      }
-
-      // Check if project exists
-      const project = await Project.findOne({ name: projectName });
-      if (!project) {
-        return res.status(400).json({ error: "Project does not exist" });
-      }
-
       console.log("File upload request:", {
         originalName: req.file.originalname,
         fileName: req.file.filename,
         size: req.file.size,
         path: req.file.path,
-        projectName: projectName,
       });
 
-      // Create project folder in Pending directory
-      const pendingProjectPath = `Pending/${projectName}`;
-
-      // Upload to NextCloud Pending/Project folder
+      // Upload to NextCloud Pending folder immediately
       const uploadResult = await this.uploadToNextcloud(
         req.file.path,
-        pendingProjectPath,
+        "Pending",
         req.file.filename
       );
 
@@ -360,7 +301,6 @@ class NextcloudController {
         shareUrl: uploadResult.downloadUrl,
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
-        projectName: projectName,
         status: "pending",
         ipAddress: req.ip,
         uploadedBy: req.user ? req.user.username : "anonymous",
@@ -374,16 +314,15 @@ class NextcloudController {
       }
 
       console.log(
-        `File uploaded to NextCloud Pending/${projectName} folder with ID:`,
+        "File uploaded to NextCloud Pending folder with ID:",
         fileApproval._id
       );
 
       res.json({
         success: true,
-        message: `File uploaded successfully to ${projectName} project in Pending folder`,
+        message: "File uploaded successfully to Pending folder",
         fileId: fileApproval._id,
         fileName: req.file.originalname,
-        projectName: projectName,
         shareUrl: uploadResult.downloadUrl,
       });
     } catch (error) {
@@ -422,23 +361,11 @@ class NextcloudController {
         id: fileApproval._id,
         fileName: fileApproval.fileName,
         nextcloudPath: fileApproval.nextcloudPath,
-        projectName: fileApproval.projectName,
       });
 
-      // Create Approved project folder if it doesn't exist
-      const approvedProjectPath = `Approved/${fileApproval.projectName}`;
-
-      console.log(`Ensuring Approved folder exists: ${approvedProjectPath}`);
-
-      // Ensure the Approved project folder exists
-      await this.ensureDirectoryExists(approvedProjectPath);
-
-      // Move file from Pending/Project to Approved/Project folder in NextCloud
+      // Move file from Pending to Approved folder in NextCloud
       const sourcePath = fileApproval.nextcloudPath;
-      const destinationPath = `${approvedProjectPath}/${fileApproval.fileName}`;
-
-      console.log(`Source: ${sourcePath}`);
-      console.log(`Destination: ${destinationPath}`);
+      const destinationPath = `Approved/${fileApproval.fileName}`;
 
       const moveResult = await this.moveFileInNextcloud(
         sourcePath,
@@ -456,7 +383,7 @@ class NextcloudController {
 
       res.json({
         success: true,
-        message: `File approved and moved to ${fileApproval.projectName} project in Approved folder`,
+        message: "File approved and moved to Approved folder",
         shareUrl: moveResult.downloadUrl,
         file: fileApproval,
       });
@@ -484,10 +411,9 @@ class NextcloudController {
         id: fileApproval._id,
         fileName: fileApproval.fileName,
         nextcloudPath: fileApproval.nextcloudPath,
-        projectName: fileApproval.projectName,
       });
 
-      // Delete file from NextCloud Pending/Project folder
+      // Delete file from NextCloud Pending folder
       await this.deleteFromNextcloud(fileApproval.nextcloudPath);
 
       // Update MongoDB record
@@ -499,7 +425,7 @@ class NextcloudController {
 
       res.json({
         success: true,
-        message: `File rejected and deleted from ${fileApproval.projectName} project`,
+        message: "File rejected and deleted from NextCloud",
       });
     } catch (error) {
       console.error("Reject error:", error);
