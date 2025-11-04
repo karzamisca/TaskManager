@@ -191,6 +191,100 @@ button {
   margin-bottom: 1.25rem;
 }
 
+/* Choice.js specific styles */
+.choices {
+  position: relative;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  width: 100%;
+}
+
+.choices__inner {
+  background-color: #fff;
+  border: 1.5px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.75rem;
+  min-height: auto;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+}
+
+.choices__list--single {
+  padding: 0;
+}
+
+.choices[data-type*="select-one"] .choices__inner {
+  padding-bottom: 0.75rem;
+}
+
+.choices__list--dropdown,
+.choices__list[aria-expanded] {
+  border: 1.5px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  background-color: #fff;
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  word-break: break-word;
+}
+
+.choices__list--dropdown .choices__item--selectable,
+.choices__list[aria-expanded] .choices__item--selectable {
+  padding: 0.75rem;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.choices__list--dropdown .choices__item--selectable.is-highlighted,
+.choices__list[aria-expanded] .choices__item--selectable.is-highlighted {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.choices__input {
+  background-color: #fff;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 0;
+  font-size: 1rem;
+}
+
+.choices__input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: none;
+}
+
+.choices__placeholder {
+  opacity: 0.5;
+}
+
+.choices__list--dropdown .choices__list,
+.choices__list[aria-expanded] .choices__list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Product dropdown specific styling */
+.product-dropdown.choices {
+  width: 100%;
+}
+
+.product-dropdown .choices__inner {
+  background-color: #fff;
+}
+
+/* Ensure proper spacing in product entries */
+#product-entries .choices {
+  margin-bottom: 1rem;
+}
+
+#product-entries label {
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
 /* Approver selection styling */
 .approver-grid {
   display: grid;
@@ -323,6 +417,15 @@ button {
   select {
     padding: 0.625rem;
   }
+
+  .choices__inner {
+    padding: 0.625rem;
+  }
+
+  .choices__list--dropdown .choices__item--selectable,
+  .choices__list[aria-expanded] .choices__item--selectable {
+    padding: 0.625rem;
+  }
 }
 
 /* Dark mode styles */
@@ -381,5 +484,40 @@ button {
   .proposal-preview li ul li,
   #purchasingDocumentsList li ul li {
     background: #374151;
+  }
+
+  /* Dark mode for Choice.js */
+  .choices__inner {
+    background-color: #333;
+    border-color: #444;
+    color: #f1f1f1;
+  }
+
+  .choices__list--dropdown,
+  .choices__list[aria-expanded] {
+    background-color: #333;
+    border-color: #444;
+    color: #f1f1f1;
+  }
+
+  .choices__input {
+    background-color: #333;
+    color: #f1f1f1;
+    border-color: #555;
+  }
+
+  .choices__input::placeholder {
+    color: #999;
+  }
+
+  .choices__list--dropdown .choices__item--selectable,
+  .choices__list[aria-expanded] .choices__item--selectable {
+    border-bottom-color: #555;
+  }
+
+  .choices__list--dropdown .choices__item--selectable.is-highlighted,
+  .choices__list[aria-expanded] .choices__item--selectable.is-highlighted {
+    background-color: #90cdf4;
+    color: #1a202c;
   }
 }

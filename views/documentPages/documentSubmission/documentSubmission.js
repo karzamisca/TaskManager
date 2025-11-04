@@ -1,4 +1,242 @@
 // views\documentPages\documentSubmission\documentSubmission.js
+
+// Global variable to store Choice.js instances
+let choiceInstances = [];
+
+// Initialize Choice.js for product dropdowns
+function initializeProductDropdowns() {
+  document.querySelectorAll(".product-dropdown").forEach((select) => {
+    // Only initialize if not already a Choice.js element and doesn't have data-initialized attribute
+    if (!select.hasAttribute("data-choice-initialized")) {
+      const choiceInstance = new Choices(select, {
+        searchEnabled: true,
+        searchPlaceholderValue: "Tìm kiếm sản phẩm...",
+        placeholder: true,
+        placeholderValue: "Chọn sản phẩm",
+        searchResultLimit: 10,
+        shouldSort: false,
+        itemSelectText: "Nhấn để chọn",
+        noResultsText: "Không tìm thấy sản phẩm",
+        noChoicesText: "Không có sản phẩm nào để chọn",
+        loadingText: "Đang tải...",
+        searchChoices: true,
+        position: "auto",
+        classNames: {
+          containerInner: "choices__inner",
+          input: "choices__input",
+          list: "choices__list",
+          listItems: "choices__list--multiple",
+          listSingle: "choices__list--single",
+          listDropdown: "choices__list--dropdown",
+          item: "choices__item",
+          itemSelectable: "choices__item--selectable",
+          itemDisabled: "choices__item--disabled",
+          itemChoice: "choices__item--choice",
+          placeholder: "choices__placeholder",
+          group: "choices__group",
+          groupHeading: "choices__heading",
+          button: "choices__button",
+          activeState: "is-active",
+          focusState: "is-focused",
+          openState: "is-open",
+          disabledState: "is-disabled",
+          highlightedState: "is-highlighted",
+          selectedState: "is-selected",
+          flippedState: "is-flipped",
+          loadingState: "is-loading",
+          noResults: "has-no-results",
+          noChoices: "has-no-choices",
+        },
+      });
+
+      // Mark as initialized
+      select.setAttribute("data-choice-initialized", "true");
+      choiceInstances.push(choiceInstance);
+    }
+  });
+}
+
+// Enhanced function to populate product dropdowns with Choice.js
+async function populateProductDropdowns() {
+  try {
+    const products = await fetchProducts();
+
+    document.querySelectorAll(".product-dropdown").forEach((dropdown) => {
+      // Store current value before updating
+      const choiceInstance = choiceInstances.find(
+        (instance) => instance.passedElement.element === dropdown
+      );
+      const currentValue = choiceInstance
+        ? choiceInstance.getValue(true)
+        : null;
+
+      // Clear and rebuild options
+      const defaultOption = dropdown.querySelector('option[value=""]');
+      dropdown.innerHTML = "";
+      if (defaultOption) {
+        dropdown.appendChild(defaultOption);
+      }
+
+      products.forEach((product) => {
+        const option = document.createElement("option");
+        option.value = product.name;
+        option.textContent = `${product.name} (${product.code})`;
+        option.dataset.productCode = product.code;
+        dropdown.appendChild(option);
+      });
+
+      // Update Choice instance if it exists
+      if (choiceInstance) {
+        choiceInstance.setChoices(
+          products.map((product) => ({
+            value: product.name,
+            label: `${product.name} (${product.code})`,
+            customProperties: { code: product.code },
+          })),
+          "value",
+          "label",
+          true
+        );
+
+        // Restore previous value
+        if (currentValue) {
+          choiceInstance.setChoiceByValue(currentValue);
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Error populating product dropdowns:", error);
+  }
+}
+
+// Enhanced addProductEntry function with Choice.js support
+function addProductEntry() {
+  const productEntries = document.getElementById("product-entries");
+  const selectedTitle = document.getElementById("title-dropdown").value;
+
+  // Count existing product entries
+  const existingProductEntries =
+    productEntries.querySelectorAll(".product-dropdown");
+  const productCount = existingProductEntries.length;
+
+  let newEntry;
+  if (selectedTitle === "Purchasing Document") {
+    newEntry = `
+      <label>Tên sản phẩm</label>
+      <select name="products[${productCount}][productName]" class="product-dropdown" required>
+        <option value="">Chọn sản phẩm</option>
+      </select>
+      <label>Đơn giá</label><input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required />
+      <label>Số lượng</label><input type="number" step="0.01" name="products[${productCount}][amount]" required />
+      <label>Thuế VAT(%)</label><input type="number" step="0.01" name="products[${productCount}][vat]" required />
+      <label>Trạm sản phẩm</label>
+      <select name="products[${productCount}][costCenter]" class="product-cost-center" required>
+        <option value="">Chọn trạm</option>
+      </select>
+      <label>Ghi chú</label><input type="text" name="products[${productCount}][note]" />
+    `;
+  } else {
+    newEntry = `
+      <label>Tên sản phẩm</label>
+      <select name="products[${productCount}][productName]" class="product-dropdown" required>
+        <option value="">Chọn sản phẩm</option>
+      </select>
+      <label>Đơn giá</label><input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required />
+      <label>Số lượng</label><input type="number" step="0.01" name="products[${productCount}][amount]" required />
+      <label>Thuế (%)</label><input type="number" step="0.01" name="products[${productCount}][vat]" required />
+      <label>Ghi chú</label><input type="text" name="products[${productCount}][note]" />
+    `;
+  }
+
+  productEntries.insertAdjacentHTML("beforeend", newEntry);
+
+  // Get the newly added dropdown
+  const newDropdowns = productEntries.querySelectorAll(
+    ".product-dropdown:not([data-choice-initialized])"
+  );
+
+  // Initialize only the new dropdown and populate it
+  newDropdowns.forEach((newDropdown) => {
+    const choiceInstance = new Choices(newDropdown, {
+      searchEnabled: true,
+      searchPlaceholderValue: "Tìm kiếm sản phẩm...",
+      placeholder: true,
+      placeholderValue: "Chọn sản phẩm",
+      searchResultLimit: 10,
+      shouldSort: false,
+      itemSelectText: "Nhấn để chọn",
+      noResultsText: "Không tìm thấy sản phẩm",
+      noChoicesText: "Không có sản phẩm nào để chọn",
+      loadingText: "Đang tải...",
+      searchChoices: true,
+      position: "auto",
+    });
+
+    newDropdown.setAttribute("data-choice-initialized", "true");
+    choiceInstances.push(choiceInstance);
+
+    // Populate the new dropdown with products
+    populateSingleProductDropdown(newDropdown);
+  });
+
+  // Only populate cost centers for purchasing documents
+  if (selectedTitle === "Purchasing Document") {
+    populateProductCostCenters();
+  }
+}
+
+// Function to populate a single product dropdown without affecting others
+async function populateSingleProductDropdown(dropdown) {
+  try {
+    const products = await fetchProducts();
+
+    // Clear existing options except the default one
+    const defaultOption = dropdown.querySelector('option[value=""]');
+    dropdown.innerHTML = "";
+    if (defaultOption) {
+      dropdown.appendChild(defaultOption);
+    }
+
+    // Add product options
+    products.forEach((product) => {
+      const option = document.createElement("option");
+      option.value = product.name;
+      option.textContent = `${product.name} (${product.code})`;
+      option.dataset.productCode = product.code;
+      dropdown.appendChild(option);
+    });
+
+    // Find the corresponding Choice instance and update it
+    const choiceInstance = choiceInstances.find(
+      (instance) => instance.passedElement.element === dropdown
+    );
+
+    if (choiceInstance) {
+      // Store the current value before updating
+      const currentValue = choiceInstance.getValue(true);
+
+      // Update the choices
+      choiceInstance.setChoices(
+        products.map((product) => ({
+          value: product.name,
+          label: `${product.name} (${product.code})`,
+          customProperties: { code: product.code },
+        })),
+        "value",
+        "label",
+        true
+      );
+
+      // Restore the previous value if it exists
+      if (currentValue) {
+        choiceInstance.setChoiceByValue(currentValue);
+      }
+    }
+  } catch (error) {
+    console.error("Error populating product dropdown:", error);
+  }
+}
+
 flatpickr("#dateOfError", {
   dateFormat: "d-m-Y",
   defaultDate: "today",
@@ -80,7 +318,13 @@ function handlePurchasingDocument() {
         <option value="">Chọn dự án</option>
       </select>     
     `;
-  populateProductDropdowns();
+
+  // Initialize Choice.js for the initial product dropdown
+  setTimeout(() => {
+    initializeProductDropdowns();
+    populateProductDropdowns();
+  }, 100);
+
   populateGroupDropdown();
   populateProjectDropdown();
   approvedProposalSection.style.display = "block";
@@ -278,7 +522,12 @@ function handleDeliveryDocument() {
       </select>             
     `;
 
-  populateProductDropdowns();
+  // Initialize Choice.js for the initial product dropdown
+  setTimeout(() => {
+    initializeProductDropdowns();
+    populateProductDropdowns();
+  }, 100);
+
   populateGroupDropdown();
   populateProjectDropdown();
   approvedProposalSection.style.display = "block";
@@ -323,7 +572,12 @@ function handleReceiptDocument() {
       </select>             
     `;
 
-  populateProductDropdowns();
+  // Initialize Choice.js for the initial product dropdown
+  setTimeout(() => {
+    initializeProductDropdowns();
+    populateProductDropdowns();
+  }, 100);
+
   populateGroupDropdown();
   populateProjectDropdown();
   approvedProposalSection.style.display = "block";
@@ -437,28 +691,6 @@ async function fetchProducts() {
   }
 }
 
-// Function to populate product dropdowns
-async function populateProductDropdowns() {
-  try {
-    const products = await fetchProducts();
-
-    document.querySelectorAll(".product-dropdown").forEach((select) => {
-      // Only populate if empty (has only the default option)
-      if (select.options.length <= 1) {
-        products.forEach((product) => {
-          const option = document.createElement("option");
-          option.value = product.name;
-          option.textContent = `${product.name} (${product.code})`;
-          option.dataset.productCode = product.code;
-          select.appendChild(option);
-        });
-      }
-    });
-  } catch (error) {
-    console.error("Error populating product dropdowns:", error);
-  }
-}
-
 // Main event listener for document type dropdown
 document
   .getElementById("title-dropdown")
@@ -553,58 +785,27 @@ async function populateProductCostCenters() {
   }
 }
 
-function addProductEntry() {
-  const productEntries = document.getElementById("product-entries");
-  const selectedTitle = document.getElementById("title-dropdown").value;
-
-  // Count products differently based on whether cost center field exists
-  let productCount;
-  if (selectedTitle === "Purchasing Document") {
-    productCount = productEntries.children.length / 6; // 6 fields including cost center
-  } else {
-    productCount = productEntries.children.length / 5; // 5 fields without cost center (Delivery, Receipt)
+// Initialize Choice.js when the page loads
+document.addEventListener("DOMContentLoaded", function () {
+  // Check if we're on a page that needs product dropdowns
+  const productDropdowns = document.querySelectorAll(".product-dropdown");
+  if (productDropdowns.length > 0) {
+    // Initialize existing product dropdowns
+    setTimeout(() => {
+      initializeProductDropdowns();
+      populateProductDropdowns();
+    }, 500);
   }
+});
 
-  let newEntry;
-  if (selectedTitle === "Purchasing Document") {
-    // Include cost center field for purchasing documents
-    newEntry = `
-      <label>Tên sản phẩm</label>
-      <select name="products[${productCount}][productName]" class="product-dropdown" required>
-        <option value="">Chọn sản phẩm</option>
-      </select>
-      <label>Đơn giá</label><input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required />
-      <label>Số lượng</label><input type="number" step="0.01" name="products[${productCount}][amount]" required />
-      <label>Thuế VAT(%)</label><input type="number" step="0.01" name="products[${productCount}][vat]" required />
-      <label>Trạm sản phẩm</label>
-      <select name="products[${productCount}][costCenter]" class="product-cost-center" required>
-        <option value="">Chọn trạm</option>
-      </select>
-      <label>Ghi chú</label><input type="text" name="products[${productCount}][note]" />
-    `;
-  } else {
-    // Exclude cost center field for delivery and receipt documents
-    newEntry = `
-      <label>Tên sản phẩm</label>
-      <select name="products[${productCount}][productName]" class="product-dropdown" required>
-        <option value="">Chọn sản phẩm</option>
-      </select>
-      <label>Đơn giá</label><input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required />
-      <label>Số lượng</label><input type="number" step="0.01" name="products[${productCount}][amount]" required />
-      <label>Thuế (%)</label><input type="number" step="0.01" name="products[${productCount}][vat]" required />
-      <label>Ghi chú</label><input type="text" name="products[${productCount}][note]" />
-    `;
-  }
-
-  productEntries.insertAdjacentHTML("beforeend", newEntry);
-
-  populateProductDropdowns();
-
-  // Only populate cost centers for purchasing documents
-  if (selectedTitle === "Purchasing Document") {
-    populateProductCostCenters();
-  }
-}
+// Clean up Choice.js instances when leaving the page
+window.addEventListener("beforeunload", function () {
+  choiceInstances.forEach((instance) => {
+    if (instance && typeof instance.destroy === "function") {
+      instance.destroy();
+    }
+  });
+});
 
 async function fetchApprovers() {
   const response = await fetch("/approvers");
