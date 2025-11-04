@@ -1136,10 +1136,14 @@ const addProductField = async (product = null) => {
   fieldsContainer.className = "product-fields";
   productDiv.appendChild(fieldsContainer);
 
-  // Product dropdown instead of text input
+  // Product dropdown with unique ID for Choices.js
   const productDropdown = document.createElement("select");
+  const uniqueId = `product-select-${Date.now()}-${Math.random()
+    .toString(36)
+    .substr(2, 9)}`;
+  productDropdown.id = uniqueId;
+  productDropdown.className = "form-select product-select";
   productDropdown.required = true;
-  productDropdown.placeholder = "Chọn sản phẩm";
 
   // Add default option
   const defaultOption = document.createElement("option");
@@ -1149,6 +1153,8 @@ const addProductField = async (product = null) => {
 
   // Fetch and populate products
   let fallbackToInput = false;
+  let selectedProductName = product?.productName; // Store the product name to select later
+
   try {
     const products = await fetchProducts();
     products.forEach((prod) => {
@@ -1157,44 +1163,39 @@ const addProductField = async (product = null) => {
       option.textContent = `${prod.name} (${prod.code})`;
       productDropdown.appendChild(option);
     });
-
-    // Set selected value if editing existing product
-    if (product && product.productName !== undefined) {
-      productDropdown.value = product.productName;
-    }
   } catch (error) {
     console.error("Error loading products:", error);
     fallbackToInput = true;
   }
 
-  // Create cost input
+  // Create other inputs
   const costInput = document.createElement("input");
   costInput.type = "number";
   costInput.placeholder = "Đơn giá";
   costInput.value = product?.costPerUnit || "";
   costInput.required = true;
   costInput.step = "0.01";
+  costInput.className = "form-input";
 
-  // Create amount input
   const amountInput = document.createElement("input");
   amountInput.type = "number";
   amountInput.placeholder = "Số lượng";
   amountInput.value = product?.amount || "";
   amountInput.required = true;
   amountInput.step = "0.01";
+  amountInput.className = "form-input";
 
-  // Create VAT input
   const vatInput = document.createElement("input");
   vatInput.type = "number";
   vatInput.placeholder = "VAT(%)";
   vatInput.value = product?.vat !== undefined ? product.vat : "";
   vatInput.required = true;
   vatInput.step = "0.01";
+  vatInput.className = "form-input";
 
   // Create cost center dropdown
   const costCenterSelect = document.createElement("select");
-  costCenterSelect.className = "product-cost-center";
-  costCenterSelect.placeholder = "Trạm";
+  costCenterSelect.className = "product-cost-center form-select";
 
   const defaultCenterOption = document.createElement("option");
   defaultCenterOption.value = "";
@@ -1214,11 +1215,11 @@ const addProductField = async (product = null) => {
     });
   }
 
-  // Create note input
   const noteInput = document.createElement("input");
   noteInput.type = "text";
   noteInput.placeholder = "Ghi chú";
   noteInput.value = product?.note || "";
+  noteInput.className = "form-input";
 
   // Create remove button
   const removeButton = document.createElement("button");
@@ -1226,6 +1227,14 @@ const addProductField = async (product = null) => {
   removeButton.className = "btn btn-danger btn-sm";
   removeButton.innerHTML = '<i class="fas fa-trash"></i> Xóa';
   removeButton.onclick = function () {
+    // Destroy Choices instance before removing
+    const choicesInstance =
+      this.parentElement.parentElement.querySelector(
+        ".product-select"
+      )?._choices;
+    if (choicesInstance) {
+      choicesInstance.destroy();
+    }
     this.parentElement.parentElement.remove();
   };
 
@@ -1236,6 +1245,7 @@ const addProductField = async (product = null) => {
     nameInput.placeholder = "Tên sản phẩm";
     nameInput.value = product?.productName || "";
     nameInput.required = true;
+    nameInput.className = "form-input";
     fieldsContainer.appendChild(nameInput);
   } else {
     fieldsContainer.appendChild(productDropdown);
@@ -1250,6 +1260,31 @@ const addProductField = async (product = null) => {
   fieldsContainer.appendChild(removeButton);
 
   productsList.appendChild(productDiv);
+
+  // Initialize Choices.js after DOM insertion
+  if (!fallbackToInput) {
+    setTimeout(() => {
+      const choices = new Choices(`#${uniqueId}`, {
+        searchEnabled: true,
+        searchPlaceholderValue: "Tìm kiếm sản phẩm...",
+        noResultsText: "Không tìm thấy sản phẩm",
+        itemSelectText: "Nhấn để chọn",
+        shouldSort: false,
+        searchResultLimit: 50,
+        removeItemButton: false,
+        placeholder: true,
+        placeholderValue: "Chọn sản phẩm",
+      });
+
+      // Store Choices instance for cleanup
+      productDropdown._choices = choices;
+
+      // Set the selected value AFTER Choices.js initializes
+      if (selectedProductName) {
+        choices.setChoiceByValue(selectedProductName);
+      }
+    }, 0);
+  }
 };
 
 const populateCostCenterDropdownForEditing = async () => {
@@ -1527,45 +1562,67 @@ const handleEditSubmit = async (event) => {
   const productItems = document.querySelectorAll(".product-item");
 
   productItems.forEach((item) => {
-    const productDropdown = item.querySelector("select:first-child");
-    const productInputs = item.querySelectorAll("input");
+    const productSelect = item.querySelector(".product-select");
     const costCenterSelect = item.querySelector(".product-cost-center");
 
-    // Handle both dropdown (select) and input cases for product name
+    // Get all input elements (not including selects)
+    const inputs = item.querySelectorAll(
+      'input[type="number"], input[type="text"]'
+    );
+
+    // Handle product name from select or input
     let productName = "";
-    if (productDropdown && productDropdown.tagName === "SELECT") {
-      productName = productDropdown.value;
-    } else if (productInputs.length > 0) {
-      // Fallback to input if dropdown failed to load
-      productName = productInputs[0].value;
+    if (productSelect && productSelect.tagName === "SELECT") {
+      // Get value from Choices.js instance or directly from select
+      const choicesInstance = productSelect._choices;
+      productName = choicesInstance
+        ? choicesInstance.getValue(true)
+        : productSelect.value;
+    } else {
+      // Fallback to first input if dropdown failed to load
+      const nameInput = item.querySelector('input[type="text"]:first-of-type');
+      if (nameInput) {
+        productName = nameInput.value;
+      }
     }
 
-    // Adjust input indices based on whether we have dropdown or input for product name
-    const hasDropdown = productDropdown && productDropdown.tagName === "SELECT";
-    const costIndex = hasDropdown ? 0 : 1;
-    const amountIndex = hasDropdown ? 1 : 2;
-    const vatIndex = hasDropdown ? 2 : 3;
-    const noteIndex = hasDropdown ? 3 : 4;
-
-    if (productInputs.length >= (hasDropdown ? 4 : 5) && productName) {
-      const costPerUnit = parseFloat(productInputs[costIndex].value) || 0;
-      const amount = parseFloat(productInputs[amountIndex].value) || 0;
-      const vat = parseFloat(productInputs[vatIndex].value) || 0;
-      const note = productInputs[noteIndex].value || "";
-
-      const product = {
-        productName: productName,
-        costPerUnit: costPerUnit,
-        amount: amount,
-        vat: vat,
-        totalCost: costPerUnit * amount,
-        totalCostAfterVat:
-          costPerUnit * amount + costPerUnit * amount * (vat / 100),
-        costCenter: costCenterSelect ? costCenterSelect.value : "",
-        note: note,
-      };
-      products.push(product);
+    if (!productName) {
+      return; // Skip this product if no name
     }
+
+    // Now we need to find the correct inputs
+    // If we have a select, inputs are: cost, amount, vat, note
+    // If we have text input for name, inputs are: name, cost, amount, vat, note
+    const hasSelect = productSelect && productSelect.tagName === "SELECT";
+
+    let costPerUnit, amount, vat, note;
+
+    if (hasSelect) {
+      // With select: inputs[0]=cost, inputs[1]=amount, inputs[2]=vat, inputs[3]=note
+      costPerUnit = parseFloat(inputs[0]?.value) || 0;
+      amount = parseFloat(inputs[1]?.value) || 0;
+      vat = parseFloat(inputs[2]?.value) || 0;
+      note = inputs[3]?.value || "";
+    } else {
+      // With text input: inputs[0]=name, inputs[1]=cost, inputs[2]=amount, inputs[3]=vat, inputs[4]=note
+      costPerUnit = parseFloat(inputs[1]?.value) || 0;
+      amount = parseFloat(inputs[2]?.value) || 0;
+      vat = parseFloat(inputs[3]?.value) || 0;
+      note = inputs[4]?.value || "";
+    }
+
+    const product = {
+      productName: productName,
+      costPerUnit: costPerUnit,
+      amount: amount,
+      vat: vat,
+      totalCost: costPerUnit * amount,
+      totalCostAfterVat:
+        costPerUnit * amount + costPerUnit * amount * (vat / 100),
+      costCenter: costCenterSelect ? costCenterSelect.value : "",
+      note: note,
+    };
+    products.push(product);
   });
 
   formData.append("products", JSON.stringify(products));
