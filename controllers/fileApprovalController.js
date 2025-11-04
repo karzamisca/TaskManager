@@ -34,6 +34,42 @@ class NextcloudController {
     this.getFileById = this.getFileById.bind(this);
     this.moveFileInNextcloud = this.moveFileInNextcloud.bind(this);
     this.deleteFromNextcloud = this.deleteFromNextcloud.bind(this);
+    this.getFilesByCategory = this.getFilesByCategory.bind(this);
+    this.getCategoriesWithCounts = this.getCategoriesWithCounts.bind(this);
+    this.getCategoryFolderName = this.getCategoryFolderName.bind(this);
+    this.initializeCategoryFolders = this.initializeCategoryFolders.bind(this);
+  }
+
+  // Helper method to convert Vietnamese categories to ASCII folder names
+  getCategoryFolderName(category) {
+    const folderMap = {
+      "Công ty": "Company",
+      "Đối tác": "Partner",
+      "Ngân hàng": "Bank",
+      "Pháp lý": "Legal",
+    };
+    return folderMap[category] || category;
+  }
+
+  // Initialize category folders in both Pending and Approved directories
+  async initializeCategoryFolders() {
+    try {
+      const categories = ["Công ty", "Đối tác", "Ngân hàng", "Pháp lý"];
+
+      for (const category of categories) {
+        const folderName = this.getCategoryFolderName(category);
+
+        // Create Pending category folder
+        await this.ensureDirectoryExists(`Pending/${folderName}`);
+
+        // Create Approved category folder
+        await this.ensureDirectoryExists(`Approved/${folderName}`);
+      }
+
+      console.log("All category folders initialized successfully");
+    } catch (error) {
+      console.error("Error initializing category folders:", error);
+    }
   }
 
   // NextCloud Client Methods
@@ -70,10 +106,12 @@ class NextcloudController {
         },
       });
       this.storeCookies(response);
+      console.log(`Directory created/exists: ${dirPath}`);
       return true;
     } catch (error) {
       if (error.response && error.response.status === 405) {
         // Directory already exists
+        console.log(`Directory already exists: ${dirPath}`);
         return true;
       }
       console.error(
@@ -278,25 +316,42 @@ class NextcloudController {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
+      const { category } = req.body;
+
+      if (
+        !category ||
+        !["Công ty", "Đối tác", "Ngân hàng", "Pháp lý"].includes(category)
+      ) {
+        return res.status(400).json({ error: "Valid category is required" });
+      }
+
       console.log("File upload request:", {
         originalName: req.file.originalname,
         fileName: req.file.filename,
         size: req.file.size,
         path: req.file.path,
+        category: category,
       });
 
-      // Upload to NextCloud Pending folder immediately
+      // Use ASCII folder names for NextCloud, but store Vietnamese category in database
+      const categoryFolder = this.getCategoryFolderName(category);
+      const pendingPath = `Pending/${categoryFolder}`;
+
+      // Ensure the Pending category folder exists
+      await this.ensureDirectoryExists(pendingPath);
+
       const uploadResult = await this.uploadToNextcloud(
         req.file.path,
-        "Pending",
+        pendingPath,
         req.file.filename
       );
 
-      // Log to MongoDB
+      // Log to MongoDB with Vietnamese category name
       const fileApproval = new FileApproval({
         fileName: req.file.filename,
         originalName: req.file.originalname,
         filePath: req.file.path,
+        category: category, // Store Vietnamese name in database
         nextcloudPath: uploadResult.path,
         shareUrl: uploadResult.downloadUrl,
         fileSize: req.file.size,
@@ -320,9 +375,10 @@ class NextcloudController {
 
       res.json({
         success: true,
-        message: "File uploaded successfully to Pending folder",
+        message: `File uploaded successfully to ${category} category`,
         fileId: fileApproval._id,
         fileName: req.file.originalname,
+        category: category,
         shareUrl: uploadResult.downloadUrl,
       });
     } catch (error) {
@@ -360,12 +416,19 @@ class NextcloudController {
       console.log("Approving file:", {
         id: fileApproval._id,
         fileName: fileApproval.fileName,
+        category: fileApproval.category,
         nextcloudPath: fileApproval.nextcloudPath,
       });
 
-      // Move file from Pending to Approved folder in NextCloud
+      // Use ASCII folder names for NextCloud paths
+      const categoryFolder = this.getCategoryFolderName(fileApproval.category);
+      const approvedCategoryPath = `Approved/${categoryFolder}`;
+
+      // Ensure the Approved category folder exists before moving the file
+      await this.ensureDirectoryExists(approvedCategoryPath);
+
       const sourcePath = fileApproval.nextcloudPath;
-      const destinationPath = `Approved/${fileApproval.fileName}`;
+      const destinationPath = `${approvedCategoryPath}/${fileApproval.fileName}`;
 
       const moveResult = await this.moveFileInNextcloud(
         sourcePath,
@@ -383,7 +446,7 @@ class NextcloudController {
 
       res.json({
         success: true,
-        message: "File approved and moved to Approved folder",
+        message: `File approved and moved to ${fileApproval.category} category in Approved folder`,
         shareUrl: moveResult.downloadUrl,
         file: fileApproval,
       });
@@ -461,6 +524,57 @@ class NextcloudController {
     } catch (error) {
       console.error("Error fetching file:", error);
       res.status(500).json({ error: "Failed to fetch file" });
+    }
+  }
+
+  async getFilesByCategory(req, res) {
+    try {
+      const { category, status } = req.params;
+
+      if (!["Công ty", "Đối tác", "Ngân hàng", "Pháp lý"].includes(category)) {
+        return res.status(400).json({ error: "Invalid category" });
+      }
+
+      const query = { category };
+      if (status && ["pending", "approved", "rejected"].includes(status)) {
+        query.status = status;
+      }
+
+      const files = await FileApproval.find(query).sort({
+        uploadedAt: -1,
+      });
+
+      res.json(files);
+    } catch (error) {
+      console.error("Error fetching files by category:", error);
+      res.status(500).json({ error: "Failed to fetch files" });
+    }
+  }
+
+  async getCategoriesWithCounts(req, res) {
+    try {
+      const categories = await FileApproval.aggregate([
+        {
+          $group: {
+            _id: "$category",
+            total: { $sum: 1 },
+            pending: {
+              $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
+            },
+            approved: {
+              $sum: { $cond: [{ $eq: ["$status", "approved"] }, 1, 0] },
+            },
+            rejected: {
+              $sum: { $cond: [{ $eq: ["$status", "rejected"] }, 1, 0] },
+            },
+          },
+        },
+      ]);
+
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching category counts:", error);
+      res.status(500).json({ error: "Failed to fetch category counts" });
     }
   }
 }

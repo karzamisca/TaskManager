@@ -34,15 +34,43 @@ router.get("/fileApproval", authMiddleware, (req, res) => {
     root: "./views/fileApprovalPages",
   });
 });
+
 router.post(
-  "/upload",
+  "/fileApprovalControl/upload",
   upload.single("file"),
   fileApprovalController.uploadFile
 );
-router.get("/files/pending", fileApprovalController.getPendingFiles);
-router.get("/files/history", fileApprovalController.getFileHistory);
-router.get("/files/:id", fileApprovalController.getFileById);
-router.post("/files/:id/approve", fileApprovalController.approveFile);
-router.post("/files/:id/reject", fileApprovalController.rejectFile);
+
+router.get(
+  "/fileApprovalControl/pending",
+  fileApprovalController.getPendingFiles
+);
+router.get(
+  "/fileApprovalControl/history",
+  fileApprovalController.getFileHistory
+);
+router.get("/fileApprovalControl/:id", fileApprovalController.getFileById);
+router.post(
+  "/fileApprovalControl/:id/approve",
+  fileApprovalController.approveFile
+);
+router.post(
+  "/fileApprovalControl/:id/reject",
+  fileApprovalController.rejectFile
+);
+
+// Fixed routes without optional parameters
+router.get(
+  "/fileApprovalControl/category/:category",
+  fileApprovalController.getFilesByCategory
+);
+router.get(
+  "/fileApprovalControl/category/:category/:status",
+  fileApprovalController.getFilesByCategory
+);
+router.get(
+  "/fileApprovalControl/categories/stats",
+  fileApprovalController.getCategoriesWithCounts
+);
 
 module.exports = router;

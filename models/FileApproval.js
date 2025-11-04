@@ -10,6 +10,11 @@ const fileApprovalSchema = new mongoose.Schema({
     enum: ["pending", "approved", "rejected"],
     default: "pending",
   },
+  category: {
+    type: String,
+    enum: ["Công ty", "Đối tác", "Ngân hàng", "Pháp lý"],
+    required: true,
+  },
   nextcloudPath: String,
   shareUrl: String,
   fileSize: Number,
