@@ -7,6 +7,7 @@ let currentPage = 1;
 const itemsPerPage = 10;
 let totalPages = 1;
 let paginationEnabled = true;
+let choicesInstances = [];
 
 async function fetchCurrentUser() {
   try {
@@ -431,49 +432,53 @@ async function addProductField(product = null) {
   container.style.gap = "10px";
   productDiv.appendChild(container);
 
-  // Product dropdown instead of text input
-  const productDropdown = document.createElement("select");
-  productDropdown.required = true;
-  productDropdown.style.width = "100%";
-  productDropdown.style.padding = "8px";
+  // Create select element for Choices.js
+  const productSelect = document.createElement("select");
+  productSelect.required = true;
+  productSelect.style.width = "100%";
+  productSelect.className = "product-select";
 
-  // Add default option
-  const defaultOption = document.createElement("option");
-  defaultOption.value = "";
-  defaultOption.textContent = "Chọn sản phẩm";
-  productDropdown.appendChild(defaultOption);
+  container.appendChild(productSelect);
 
   // Fetch and populate products
   try {
     const products = await fetchProducts();
-    products.forEach((prod) => {
-      const option = document.createElement("option");
-      option.value = prod.name;
-      option.textContent = `${prod.name} (${prod.code})`;
-      productDropdown.appendChild(option);
+
+    // Initialize Choices.js
+    const choices = new Choices(productSelect, {
+      searchEnabled: true,
+      searchPlaceholderValue: "Tìm kiếm sản phẩm...",
+      noResultsText: "Không tìm thấy sản phẩm",
+      itemSelectText: "Nhấn để chọn",
+      searchResultLimit: 50,
+      shouldSort: true,
+      placeholder: true,
+      placeholderValue: "Chọn sản phẩm",
+      removeItemButton: false,
     });
 
-    // Set selected value if editing existing product
-    if (product && product.productName !== undefined) {
-      productDropdown.value = product.productName;
+    // Store instance for cleanup
+    choicesInstances.push(choices);
+
+    // Add products to choices
+    const choicesData = products.map((prod) => ({
+      value: prod.name,
+      label: `${prod.name} (${prod.code})`,
+      selected: product && product.productName === prod.name,
+    }));
+
+    choices.setChoices(choicesData, "value", "label", false);
+
+    // Set selected value if editing
+    if (product && product.productName) {
+      choices.setChoiceByValue(product.productName);
     }
   } catch (error) {
     console.error("Error loading products:", error);
-    // Fallback: create a text input if products can't be loaded
-    const nameInput = document.createElement("input");
-    nameInput.type = "text";
-    nameInput.placeholder = "Tên sản phẩm";
-    nameInput.required = true;
-    nameInput.style.width = "100%";
-    nameInput.style.padding = "8px";
-    if (product && product.productName !== undefined) {
-      nameInput.value = product.productName;
-    }
-    container.replaceChild(nameInput, productDropdown);
+    showMessage("Lỗi khi tải danh sách sản phẩm", true);
   }
 
-  container.appendChild(productDropdown);
-
+  // Cost input
   const costInput = document.createElement("input");
   costInput.type = "number";
   costInput.placeholder = "Đơn giá";
@@ -485,6 +490,7 @@ async function addProductField(product = null) {
   }
   container.appendChild(costInput);
 
+  // Amount input
   const amountInput = document.createElement("input");
   amountInput.type = "number";
   amountInput.placeholder = "Số lượng";
@@ -496,6 +502,7 @@ async function addProductField(product = null) {
   }
   container.appendChild(amountInput);
 
+  // VAT input
   const vatInput = document.createElement("input");
   vatInput.type = "number";
   vatInput.placeholder = "VAT (%)";
@@ -507,6 +514,7 @@ async function addProductField(product = null) {
   }
   container.appendChild(vatInput);
 
+  // Note input
   const noteInput = document.createElement("input");
   noteInput.type = "text";
   noteInput.placeholder = "Ghi chú";
@@ -517,12 +525,26 @@ async function addProductField(product = null) {
   }
   container.appendChild(noteInput);
 
+  // Remove button
   const removeButton = document.createElement("button");
   removeButton.type = "button";
   removeButton.className = "approve-btn";
   removeButton.textContent = "Xóa";
   removeButton.style.background = "#dc3545";
   removeButton.onclick = function () {
+    // Find and destroy the Choices instance before removing
+    const selectElement = this.parentElement.querySelector(".product-select");
+    if (selectElement) {
+      const choicesInstance = choicesInstances.find(
+        (c) => c.passedElement.element === selectElement
+      );
+      if (choicesInstance) {
+        choicesInstance.destroy();
+        choicesInstances = choicesInstances.filter(
+          (c) => c !== choicesInstance
+        );
+      }
+    }
     this.parentElement.parentElement.remove();
   };
   container.appendChild(removeButton);
@@ -820,6 +842,14 @@ async function deleteCurrentFile(fileId) {
 }
 
 function closeEditModal() {
+  // Destroy all Choices instances
+  choicesInstances.forEach((choice) => {
+    if (choice && typeof choice.destroy === "function") {
+      choice.destroy();
+    }
+  });
+  choicesInstances = [];
+
   document.getElementById("editModal").style.display = "none";
   document.getElementById("editForm").reset();
   document.getElementById("productsList").innerHTML = "";
@@ -841,23 +871,25 @@ async function handleEditSubmit(event) {
   const productItems = document.querySelectorAll(".product-item");
 
   productItems.forEach((item) => {
-    const productDropdown = item.querySelector("select");
-    const productInputs = item.querySelectorAll("input");
+    const productSelect = item.querySelector("select.product-select");
 
-    // Handle both dropdown (select) and input cases
+    // Get all inputs - now we need to select them more specifically
+    const costInput = item.querySelector('input[placeholder="Đơn giá"]');
+    const amountInput = item.querySelector('input[placeholder="Số lượng"]');
+    const vatInput = item.querySelector('input[placeholder="VAT (%)"]');
+    const noteInput = item.querySelector('input[placeholder="Ghi chú"]');
+
+    // Get value from Choices.js select
     let productName = "";
-    if (productDropdown) {
-      productName = productDropdown.value;
-    } else {
-      // Fallback to input if dropdown failed to load
-      productName = productInputs[0].value;
+    if (productSelect) {
+      productName = productSelect.value;
     }
 
-    if (productInputs.length >= 4 && productName) {
-      const costPerUnit = parseFloat(productInputs[0].value) || 0;
-      const amount = parseFloat(productInputs[1].value) || 0;
-      const vat = parseFloat(productInputs[2].value) || 0;
-      const note = productInputs[3].value || "";
+    if (productName && costInput && amountInput && vatInput) {
+      const costPerUnit = parseFloat(costInput.value) || 0;
+      const amount = parseFloat(amountInput.value) || 0;
+      const vat = parseFloat(vatInput.value) || 0;
+      const note = noteInput ? noteInput.value || "" : "";
 
       const product = {
         productName: productName,
@@ -883,13 +915,11 @@ async function handleEditSubmit(event) {
 
   formData.append("approvers", JSON.stringify(currentApprovers));
 
-  // Add current file metadata (after deletions)
   const currentFileMetadata = document.getElementById("currentFileMetadata");
   if (currentFileMetadata && currentFileMetadata.value) {
     formData.append("currentFileMetadata", currentFileMetadata.value);
   }
 
-  // Add new files
   const fileInput = document.getElementById("editFile");
   if (fileInput.files.length > 0) {
     for (let i = 0; i < fileInput.files.length; i++) {
