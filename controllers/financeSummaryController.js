@@ -11,6 +11,7 @@ exports.getAvailableYears = async (req, res) => {
       "director",
       "deputyDirector",
       "captainOfFinance",
+      "captainOfPurchasing",
       "submitterOfFinance",
     ].includes(req.user.role) &&
     !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
@@ -81,6 +82,7 @@ exports.getAllCostCenters = async (req, res) => {
       "director",
       "deputyDirector",
       "captainOfFinance",
+      "captainOfPurchasing",
       "submitterOfFinance",
     ].includes(req.user.role) &&
     !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
@@ -166,6 +168,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
       "director",
       "deputyDirector",
       "captainOfFinance",
+      "captainOfPurchasing",
       "submitterOfFinance",
     ].includes(req.user.role) &&
     !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
@@ -644,6 +647,7 @@ exports.getCostCenterGroups = async (req, res) => {
       "director",
       "deputyDirector",
       "captainOfFinance",
+      "captainOfPurchasing",
       "submitterOfFinance",
     ].includes(req.user.role) &&
     !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")

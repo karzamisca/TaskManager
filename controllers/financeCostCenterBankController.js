@@ -54,6 +54,7 @@ exports.getBankEntries = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
+        "captainOfPurchasing",
         "submitterOfFinance",
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính ngân hàng")
@@ -349,6 +350,7 @@ exports.getCostCenters = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
+        "captainOfPurchasing",
         "submitterOfFinance",
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính ngân hàng")

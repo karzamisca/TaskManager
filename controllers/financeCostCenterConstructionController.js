@@ -55,6 +55,7 @@ exports.getConstructionEntries = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
+        "captainOfPurchasing",
         "submitterOfFinance",
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính mua sắm và xây dựng")
@@ -429,6 +430,7 @@ exports.getCostCenters = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
+        "captainOfPurchasing",
         "submitterOfFinance",
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính mua sắm và xây dựng")

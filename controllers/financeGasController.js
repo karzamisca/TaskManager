@@ -57,6 +57,7 @@ exports.getFinanceGasPage = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
+        "captainOfPurchasing",
         "submitterOfFinance",
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
@@ -108,6 +109,7 @@ exports.exportAllCentersSummaryToExcel = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
+        "captainOfPurchasing",
         "submitterOfFinance",
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính mua bán khí")
