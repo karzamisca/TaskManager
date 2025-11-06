@@ -20,6 +20,7 @@ exports.getDocumentInGroupDeclarationViews = (req, res) => {
       "headOfPurchasing",
       "captainOfPurchasing",
       "captainOfAccounting",
+      "captainOfFinance",
     ].includes(req.user.role)
   ) {
     return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -40,6 +41,7 @@ exports.createGroupDeclaration = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "captainOfPurchasing",
+        "captainOfFinance",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -78,6 +80,7 @@ exports.getGroupDeclaration = (req, res) => {
       "headOfPurchasing",
       "captainOfPurchasing",
       "captainOfAccounting",
+      "captainOfFinance",
     ].includes(req.user.role)
   ) {
     return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -121,6 +124,7 @@ exports.getGroupDeclarationedDocuments = async (req, res) => {
         "headOfPurchasing",
         "captainOfPurchasing",
         "captainOfAccounting",
+        "captainOfFinance",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -220,6 +224,7 @@ exports.addDocumentToGroupDeclaration = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "captainOfPurchasing",
+        "captainOfFinance",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -310,6 +315,7 @@ exports.getUnassignedDocuments = async (req, res) => {
         "headOfPurchasing",
         "captainOfPurchasing",
         "captainOfAccounting",
+        "captainOfFinance",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -391,6 +397,7 @@ exports.removeDocumentFromGroupDeclaration = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "captainOfPurchasing",
+        "captainOfFinance",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");

@@ -22,6 +22,7 @@ exports.getDocumentInProjectViews = (req, res) => {
       "captainOfMechanical",
       "captainOfTechnical",
       "captainOfPurchasing",
+      "captainOfFinance",
     ].includes(req.user.role)
   ) {
     return res

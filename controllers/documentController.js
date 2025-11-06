@@ -106,6 +106,7 @@ const documentUtils = {
         userRole === "headOfPurchasing" ||
         userRole === "headOfAccounting" ||
         userRole === "captainOfPurchasing" ||
+        userRole === "captainOfFinance" ||
         userRole === "captainOfAccounting"
           ? [{}] // Include all documents if user has included roles
           : []),
@@ -1727,6 +1728,7 @@ exports.approveDocument = async (req, res) => {
         "captainOfPurchasing",
         "captainOfAccounting",
         "captainOfBusiness",
+        "captainOfFinance",
         "transporterOfAccounting",
       ].includes(req.user.role)
     ) {
@@ -3926,6 +3928,7 @@ exports.updatePaymentDocumentPriority = async (req, res) => {
         "headOfPurchasing",
         "captainOfAccounting",
         "captainOfPurchasing",
+        "captainOfFinance",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -3983,6 +3986,7 @@ exports.approvePaymentStage = async (req, res) => {
         "captainOfPurchasing",
         "captainOfAccounting",
         "captainOfBusiness",
+        "captainOfFinance",
       ].includes(req.user.role)
     ) {
       return res.status(403).json({
@@ -4248,6 +4252,7 @@ exports.approvePaymentDocument = async (req, res) => {
         "captainOfPurchasing",
         "captainOfAccounting",
         "captainOfBusiness",
+        "captainOfFinance",
         "transporterOfAccounting",
       ].includes(req.user.role)
     ) {
