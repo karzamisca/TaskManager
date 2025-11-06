@@ -15,13 +15,71 @@ const fileApprovalSchema = new mongoose.Schema({
     enum: ["Công ty", "Đối tác", "Ngân hàng", "Pháp lý"],
     required: true,
   },
+  // Company specific fields
+  companySubcategory: {
+    type: String,
+    required: false,
+  },
+  department: {
+    type: String,
+    required: false,
+  },
+  employeeName: {
+    type: String,
+    required: false,
+  },
+  assetType: {
+    type: String,
+    required: false,
+  },
+  assetName: {
+    type: String,
+    required: false,
+  },
+  documentSubtype: {
+    type: String,
+    required: false,
+  },
+
+  // Partner specific fields
+  partnerName: {
+    type: String,
+    required: false,
+  },
+  contractType: {
+    type: String,
+    enum: ["Hợp đồng mua", "Hợp đồng bán", "Bảo hành & Khiếu nại"],
+    required: false,
+  },
+  contractNumber: {
+    type: String,
+    required: false,
+  },
+  documentType: {
+    type: String,
+    required: false,
+  },
+
+  // Bank specific fields
+  bankName: {
+    type: String,
+    required: false,
+  },
+
+  // Legal specific fields
+  legalDocumentType: {
+    type: String,
+    required: false,
+  },
+
+  // Common fields
   year: {
     type: Number,
     required: true,
   },
   month: {
     type: Number,
-    required: true,
+    required: false,
     min: 1,
     max: 12,
   },
