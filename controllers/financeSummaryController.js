@@ -6,9 +6,13 @@ const DocumentPayment = require("../models/DocumentPayment");
 
 exports.getAvailableYears = async (req, res) => {
   if (
-    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
-      req.user.role
-    ) &&
+    ![
+      "superAdmin",
+      "director",
+      "deputyDirector",
+      "captainOfFinance",
+      "submitterOfFinance",
+    ].includes(req.user.role) &&
     !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
   ) {
     return res
@@ -72,9 +76,13 @@ exports.getAvailableYears = async (req, res) => {
 
 exports.getAllCostCenters = async (req, res) => {
   if (
-    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
-      req.user.role
-    ) &&
+    ![
+      "superAdmin",
+      "director",
+      "deputyDirector",
+      "captainOfFinance",
+      "submitterOfFinance",
+    ].includes(req.user.role) &&
     !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
   ) {
     return res
@@ -153,9 +161,13 @@ const getMonthYearFromSubmissionDate = (submissionDate) => {
 // Get revenue by matching cost centers
 exports.getRevenueByCostCenter = async (req, res) => {
   if (
-    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
-      req.user.role
-    ) &&
+    ![
+      "superAdmin",
+      "director",
+      "deputyDirector",
+      "captainOfFinance",
+      "submitterOfFinance",
+    ].includes(req.user.role) &&
     !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
   ) {
     return res
@@ -627,9 +639,13 @@ exports.createCostCenterGroup = async (req, res) => {
 
 exports.getCostCenterGroups = async (req, res) => {
   if (
-    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
-      req.user.role
-    ) &&
+    ![
+      "superAdmin",
+      "director",
+      "deputyDirector",
+      "captainOfFinance",
+      "submitterOfFinance",
+    ].includes(req.user.role) &&
     !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
   ) {
     return res
