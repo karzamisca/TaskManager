@@ -38,6 +38,12 @@ class NextcloudController {
     this.getCategoriesWithCounts = this.getCategoriesWithCounts.bind(this);
     this.getCategoryFolderName = this.getCategoryFolderName.bind(this);
     this.initializeCategoryFolders = this.initializeCategoryFolders.bind(this);
+    this.getAvailableYears = this.getAvailableYears.bind(this);
+    this.getAvailableMonths = this.getAvailableMonths.bind(this);
+    this.getFilesByCategoryYearMonth =
+      this.getFilesByCategoryYearMonth.bind(this);
+    this.getCategoryStructure = this.getCategoryStructure.bind(this);
+    this.getMonthName = this.getMonthName.bind(this);
   }
 
   // Helper method to convert Vietnamese categories to ASCII folder names
@@ -51,7 +57,26 @@ class NextcloudController {
     return folderMap[category] || category;
   }
 
-  // Initialize category folders in both Pending and Approved directories
+  // Helper method to get month name
+  getMonthName(month) {
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    return months[month - 1] || "Unknown";
+  }
+
+  // Initialize category folders
   async initializeCategoryFolders() {
     try {
       const categories = ["Công ty", "Đối tác", "Ngân hàng", "Pháp lý"];
@@ -62,7 +87,7 @@ class NextcloudController {
         // Create Pending category folder
         await this.ensureDirectoryExists(`Pending/${folderName}`);
 
-        // Create Approved category folder
+        // Create Approved category folder base
         await this.ensureDirectoryExists(`Approved/${folderName}`);
       }
 
@@ -316,7 +341,7 @@ class NextcloudController {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const { category } = req.body;
+      const { category, year, month } = req.body;
 
       if (
         !category ||
@@ -325,19 +350,39 @@ class NextcloudController {
         return res.status(400).json({ error: "Valid category is required" });
       }
 
+      if (!year || !month) {
+        return res.status(400).json({ error: "Year and month are required" });
+      }
+
+      const yearNum = parseInt(year);
+      const monthNum = parseInt(month);
+
+      // Remove year limits - allow any valid year
+      if (isNaN(yearNum) || yearNum < 0) {
+        return res
+          .status(400)
+          .json({ error: "Year must be a valid positive number" });
+      }
+
+      if (monthNum < 1 || monthNum > 12) {
+        return res
+          .status(400)
+          .json({ error: "Month must be between 1 and 12" });
+      }
+
       console.log("File upload request:", {
         originalName: req.file.originalname,
         fileName: req.file.filename,
         size: req.file.size,
         path: req.file.path,
         category: category,
+        year: yearNum,
+        month: monthNum,
       });
 
-      // Use ASCII folder names for NextCloud, but store Vietnamese category in database
       const categoryFolder = this.getCategoryFolderName(category);
       const pendingPath = `Pending/${categoryFolder}`;
 
-      // Ensure the Pending category folder exists
       await this.ensureDirectoryExists(pendingPath);
 
       const uploadResult = await this.uploadToNextcloud(
@@ -346,12 +391,14 @@ class NextcloudController {
         req.file.filename
       );
 
-      // Log to MongoDB with Vietnamese category name
+      // Store user-selected year and month in database
       const fileApproval = new FileApproval({
         fileName: req.file.filename,
         originalName: req.file.originalname,
         filePath: req.file.path,
-        category: category, // Store Vietnamese name in database
+        category: category,
+        year: yearNum,
+        month: monthNum,
         nextcloudPath: uploadResult.path,
         shareUrl: uploadResult.downloadUrl,
         fileSize: req.file.size,
@@ -363,7 +410,6 @@ class NextcloudController {
 
       await fileApproval.save();
 
-      // Remove local file after successful upload to NextCloud
       if (fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
       }
@@ -375,10 +421,12 @@ class NextcloudController {
 
       res.json({
         success: true,
-        message: `File uploaded successfully to ${category} category`,
+        message: `File uploaded successfully to ${category} category for ${monthNum}/${yearNum}`,
         fileId: fileApproval._id,
         fileName: req.file.originalname,
         category: category,
+        year: yearNum,
+        month: monthNum,
         shareUrl: uploadResult.downloadUrl,
       });
     } catch (error) {
@@ -391,7 +439,14 @@ class NextcloudController {
 
   async getPendingFiles(req, res) {
     try {
-      const pendingFiles = await FileApproval.find({ status: "pending" }).sort({
+      const { category } = req.query;
+      let query = { status: "pending" };
+
+      if (category && category !== "all") {
+        query.category = category;
+      }
+
+      const pendingFiles = await FileApproval.find(query).sort({
         uploadedAt: -1,
       });
       res.json(pendingFiles);
@@ -417,14 +472,19 @@ class NextcloudController {
         id: fileApproval._id,
         fileName: fileApproval.fileName,
         category: fileApproval.category,
+        year: fileApproval.year,
+        month: fileApproval.month,
         nextcloudPath: fileApproval.nextcloudPath,
       });
 
-      // Use ASCII folder names for NextCloud paths
       const categoryFolder = this.getCategoryFolderName(fileApproval.category);
-      const approvedCategoryPath = `Approved/${categoryFolder}`;
+      const approvedCategoryPath = `Approved/${categoryFolder}/${fileApproval.year}/${fileApproval.month}`;
 
-      // Ensure the Approved category folder exists before moving the file
+      // Ensure the specific year/month directory exists
+      await this.ensureDirectoryExists(`Approved/${categoryFolder}`);
+      await this.ensureDirectoryExists(
+        `Approved/${categoryFolder}/${fileApproval.year}`
+      );
       await this.ensureDirectoryExists(approvedCategoryPath);
 
       const sourcePath = fileApproval.nextcloudPath;
@@ -435,7 +495,6 @@ class NextcloudController {
         destinationPath
       );
 
-      // Update MongoDB record
       fileApproval.status = "approved";
       fileApproval.nextcloudPath = moveResult.newPath;
       fileApproval.shareUrl = moveResult.downloadUrl;
@@ -446,7 +505,7 @@ class NextcloudController {
 
       res.json({
         success: true,
-        message: `File approved and moved to ${fileApproval.category} category in Approved folder`,
+        message: `File approved and moved to ${fileApproval.category} category in ${fileApproval.month}/${fileApproval.year} folder`,
         shareUrl: moveResult.downloadUrl,
         file: fileApproval,
       });
@@ -504,7 +563,7 @@ class NextcloudController {
         status: { $in: ["approved", "rejected"] },
       })
         .sort({ actionTakenAt: -1 })
-        .limit(50);
+        .limit(100);
       res.json(history);
     } catch (error) {
       console.error("Error fetching history:", error);
@@ -529,13 +588,48 @@ class NextcloudController {
 
   async getFilesByCategory(req, res) {
     try {
-      const { category, status } = req.params;
+      const { category } = req.params;
+      const { year, month, status } = req.query;
 
       if (!["Công ty", "Đối tác", "Ngân hàng", "Pháp lý"].includes(category)) {
         return res.status(400).json({ error: "Invalid category" });
       }
 
       const query = { category };
+
+      if (status && ["pending", "approved", "rejected"].includes(status)) {
+        query.status = status;
+      }
+
+      // Add year/month filtering if provided
+      if (year) query.year = parseInt(year);
+      if (month) query.month = parseInt(month);
+
+      const files = await FileApproval.find(query).sort({
+        uploadedAt: -1,
+      });
+
+      res.json(files);
+    } catch (error) {
+      console.error("Error fetching files by category:", error);
+      res.status(500).json({ error: "Failed to fetch files" });
+    }
+  }
+
+  async getFilesByCategoryYearMonth(req, res) {
+    try {
+      const { category, year, month, status } = req.params;
+
+      if (!["Công ty", "Đối tác", "Ngân hàng", "Pháp lý"].includes(category)) {
+        return res.status(400).json({ error: "Invalid category" });
+      }
+
+      const query = {
+        category,
+        year: parseInt(year),
+        month: parseInt(month),
+      };
+
       if (status && ["pending", "approved", "rejected"].includes(status)) {
         query.status = status;
       }
@@ -546,7 +640,7 @@ class NextcloudController {
 
       res.json(files);
     } catch (error) {
-      console.error("Error fetching files by category:", error);
+      console.error("Error fetching files by category/year/month:", error);
       res.status(500).json({ error: "Failed to fetch files" });
     }
   }
@@ -575,6 +669,139 @@ class NextcloudController {
     } catch (error) {
       console.error("Error fetching category counts:", error);
       res.status(500).json({ error: "Failed to fetch category counts" });
+    }
+  }
+
+  async getAvailableYears(req, res) {
+    try {
+      const { category } = req.params;
+
+      if (!["Công ty", "Đối tác", "Ngân hàng", "Pháp lý"].includes(category)) {
+        return res.status(400).json({ error: "Invalid category" });
+      }
+
+      const years = await FileApproval.aggregate([
+        { $match: { category: category, status: "approved" } },
+        {
+          $group: {
+            _id: "$year",
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: -1 } },
+      ]);
+
+      res.json(years);
+    } catch (error) {
+      console.error("Error fetching available years:", error);
+      res.status(500).json({ error: "Failed to fetch available years" });
+    }
+  }
+
+  async getAvailableMonths(req, res) {
+    try {
+      const { category, year } = req.params;
+
+      if (!["Công ty", "Đối tác", "Ngân hàng", "Pháp lý"].includes(category)) {
+        return res.status(400).json({ error: "Invalid category" });
+      }
+
+      const months = await FileApproval.aggregate([
+        {
+          $match: {
+            category: category,
+            year: parseInt(year),
+            status: "approved",
+          },
+        },
+        {
+          $group: {
+            _id: "$month",
+            count: { $sum: 1 },
+            monthName: {
+              $first: {
+                $let: {
+                  vars: {
+                    months: [
+                      "January",
+                      "February",
+                      "March",
+                      "April",
+                      "May",
+                      "June",
+                      "July",
+                      "August",
+                      "September",
+                      "October",
+                      "November",
+                      "December",
+                    ],
+                  },
+                  in: {
+                    $arrayElemAt: ["$$months", { $subtract: ["$month", 1] }],
+                  },
+                },
+              },
+            },
+          },
+        },
+        { $sort: { _id: -1 } },
+      ]);
+
+      res.json(months);
+    } catch (error) {
+      console.error("Error fetching available months:", error);
+      res.status(500).json({ error: "Failed to fetch available months" });
+    }
+  }
+
+  async getCategoryStructure(req, res) {
+    try {
+      const { category } = req.params;
+
+      if (!["Công ty", "Đối tác", "Ngân hàng", "Pháp lý"].includes(category)) {
+        return res.status(400).json({ error: "Invalid category" });
+      }
+
+      const structure = await FileApproval.aggregate([
+        { $match: { category: category, status: "approved" } },
+        {
+          $group: {
+            _id: {
+              year: "$year",
+              month: "$month",
+            },
+            count: { $sum: 1 },
+          },
+        },
+        {
+          $group: {
+            _id: "$_id.year",
+            months: {
+              $push: {
+                month: "$_id.month",
+                monthName: { $literal: null },
+                count: "$count",
+              },
+            },
+            yearCount: { $sum: "$count" },
+          },
+        },
+        { $sort: { _id: -1 } },
+      ]);
+
+      // Add month names and sort months
+      structure.forEach((year) => {
+        year.months.forEach((monthData) => {
+          monthData.monthName = this.getMonthName(monthData.month);
+        });
+        year.months.sort((a, b) => b.month - a.month);
+      });
+
+      res.json(structure);
+    } catch (error) {
+      console.error("Error fetching category structure:", error);
+      res.status(500).json({ error: "Failed to fetch category structure" });
     }
   }
 }

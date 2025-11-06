@@ -79,6 +79,13 @@
       .btn-primary:hover {
         background-color: #0056b3;
       }
+      .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+      }
+      .btn-secondary:hover {
+        background-color: #545b62;
+      }
       .btn:disabled {
         background-color: #6c757d;
         cursor: not-allowed;
@@ -148,6 +155,15 @@
         display: inline-block;
         margin-right: 8px;
       }
+      .time-badge {
+        background-color: #e9ecef;
+        padding: 4px 8px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: bold;
+        color: #495057;
+        margin-right: 8px;
+      }
       .category-congty {
         background-color: #d4edda;
         color: #155724;
@@ -177,6 +193,12 @@
         border: 1px solid #ddd;
         min-width: 150px;
       }
+      .filter-section input {
+        padding: 8px 12px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        min-width: 120px;
+      }
       .stats-section {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -204,6 +226,50 @@
         font-size: 12px;
         color: #999;
       }
+      .form-group {
+        margin: 15px 0;
+        text-align: left;
+        max-width: 300px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        font-size: 14px;
+      }
+      .form-group select,
+      .form-group input {
+        width: 100%;
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+      .year-input {
+        text-align: center;
+        font-weight: bold;
+      }
+      .folder-structure {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin: 15px 0;
+        border-left: 4px solid #007bff;
+      }
+      .folder-structure h4 {
+        margin: 0 0 10px 0;
+        color: #495057;
+      }
+      .folder-path {
+        font-family: monospace;
+        background-color: #e9ecef;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 14px;
+      }
     </style>
   </head>
   <body>
@@ -227,30 +293,15 @@
             style="display: none"
             required
           />
+
           <!-- Category selection -->
-          <div style="margin: 20px 0">
-            <label
-              for="categorySelect"
-              style="
-                display: block;
-                margin-bottom: 10px;
-                font-weight: bold;
-                font-size: 16px;
-              "
-            >
-              Chọn danh mục:
-            </label>
+          <div class="form-group">
+            <label for="categorySelect">Chọn danh mục:</label>
             <select
               id="categorySelect"
               name="category"
               required
-              style="
-                padding: 10px;
-                border-radius: 4px;
-                border: 1px solid #ddd;
-                width: 250px;
-                font-size: 14px;
-              "
+              onchange="updateFolderStructure()"
             >
               <option value="">-- Chọn danh mục --</option>
               <option value="Công ty">📊 Công ty</option>
@@ -259,6 +310,57 @@
               <option value="Pháp lý">⚖️ Pháp lý</option>
             </select>
           </div>
+
+          <!-- Year input -->
+          <div class="form-group">
+            <label for="yearInput">Nhập năm:</label>
+            <input
+              type="number"
+              id="yearInput"
+              name="year"
+              min="0"
+              placeholder="VD: 2024, 1999, 2030"
+              required
+              class="year-input"
+              oninput="updateFolderStructure()"
+            />
+          </div>
+
+          <!-- Month selection -->
+          <div class="form-group">
+            <label for="monthSelect">Chọn tháng:</label>
+            <select
+              id="monthSelect"
+              name="month"
+              required
+              onchange="updateFolderStructure()"
+            >
+              <option value="">-- Chọn tháng --</option>
+              <option value="1">Tháng 1</option>
+              <option value="2">Tháng 2</option>
+              <option value="3">Tháng 3</option>
+              <option value="4">Tháng 4</option>
+              <option value="5">Tháng 5</option>
+              <option value="6">Tháng 6</option>
+              <option value="7">Tháng 7</option>
+              <option value="8">Tháng 8</option>
+              <option value="9">Tháng 9</option>
+              <option value="10">Tháng 10</option>
+              <option value="11">Tháng 11</option>
+              <option value="12">Tháng 12</option>
+            </select>
+          </div>
+
+          <!-- Folder structure display -->
+          <div
+            class="folder-structure"
+            id="folderStructure"
+            style="display: none"
+          >
+            <h4>📁 Tệp tin sẽ được lưu tại:</h4>
+            <div class="folder-path" id="folderPath"></div>
+          </div>
+
           <button
             type="button"
             class="btn btn-primary"
@@ -312,7 +414,7 @@
           >
           <select
             id="historyCategoryFilter"
-            onchange="loadHistory()"
+            onchange="onHistoryCategoryChange(this.value)"
             style="padding: 8px 12px"
           >
             <option value="all">Tất cả danh mục</option>
@@ -322,14 +424,79 @@
             <option value="Pháp lý">Pháp lý</option>
           </select>
         </div>
-        <button onclick="loadHistory()" class="btn btn-primary">
-          🔄 Làm Mới
+
+        <div id="historyYearFilterContainer" style="display: none">
+          <label
+            for="historyYearFilter"
+            style="margin-right: 10px; font-weight: bold"
+            >Năm:</label
+          >
+          <input
+            type="number"
+            id="historyYearFilter"
+            min="0"
+            placeholder="Nhập năm"
+            style="padding: 8px 12px; width: 120px"
+            onchange="onHistoryYearChange(this.value)"
+          />
+        </div>
+
+        <div id="historyMonthFilterContainer" style="display: none">
+          <label
+            for="historyMonthFilter"
+            style="margin-right: 10px; font-weight: bold"
+            >Tháng:</label
+          >
+          <select id="historyMonthFilter" style="padding: 8px 12px">
+            <option value="">Tất cả tháng</option>
+            <option value="1">Tháng 1</option>
+            <option value="2">Tháng 2</option>
+            <option value="3">Tháng 3</option>
+            <option value="4">Tháng 4</option>
+            <option value="5">Tháng 5</option>
+            <option value="6">Tháng 6</option>
+            <option value="7">Tháng 7</option>
+            <option value="8">Tháng 8</option>
+            <option value="9">Tháng 9</option>
+            <option value="10">Tháng 10</option>
+            <option value="11">Tháng 11</option>
+            <option value="12">Tháng 12</option>
+          </select>
+        </div>
+
+        <button onclick="loadHistory()" class="btn btn-primary">🔍 Lọc</button>
+        <button onclick="clearHistoryFilters()" class="btn btn-secondary">
+          🔄 Xóa Lọc
         </button>
       </div>
       <div id="historyList" style="margin-top: 20px"></div>
     </div>
 
     <script>
+      // Month names in Vietnamese
+      const monthNames = {
+        1: "Tháng 1",
+        2: "Tháng 2",
+        3: "Tháng 3",
+        4: "Tháng 4",
+        5: "Tháng 5",
+        6: "Tháng 6",
+        7: "Tháng 7",
+        8: "Tháng 8",
+        9: "Tháng 9",
+        10: "Tháng 10",
+        11: "Tháng 11",
+        12: "Tháng 12",
+      };
+
+      // Category folder names mapping
+      const categoryFolders = {
+        "Công ty": "Company",
+        "Đối tác": "Partner",
+        "Ngân hàng": "Bank",
+        "Pháp lý": "Legal",
+      };
+
       // Drag and drop functionality
       const uploadArea = document.getElementById("uploadArea");
       const fileInput = document.getElementById("fileInput");
@@ -354,6 +521,73 @@
       });
 
       fileInput.addEventListener("change", handleFileUpload);
+
+      // Set current year as default in upload form
+      function setCurrentYear() {
+        const currentYear = new Date().getFullYear();
+        document.getElementById("yearInput").value = currentYear;
+        updateFolderStructure();
+      }
+
+      // Update folder structure display
+      function updateFolderStructure() {
+        const category = document.getElementById("categorySelect").value;
+        const year = document.getElementById("yearInput").value;
+        const month = document.getElementById("monthSelect").value;
+        const folderStructure = document.getElementById("folderStructure");
+        const folderPath = document.getElementById("folderPath");
+
+        if (category && year && month) {
+          const categoryFolder = categoryFolders[category] || category;
+          const monthName = monthNames[month];
+          const path = `Approved/${categoryFolder}/${year}/${month}`;
+
+          folderPath.textContent = path;
+          folderStructure.style.display = "block";
+        } else {
+          folderStructure.style.display = "none";
+        }
+      }
+
+      // Handle category change in history filter
+      function onHistoryCategoryChange(category) {
+        const yearContainer = document.getElementById(
+          "historyYearFilterContainer"
+        );
+        const monthContainer = document.getElementById(
+          "historyMonthFilterContainer"
+        );
+
+        if (category && category !== "all") {
+          yearContainer.style.display = "block";
+          monthContainer.style.display = "block";
+          // Clear year input when category changes
+          document.getElementById("historyYearFilter").value = "";
+          document.getElementById("historyMonthFilter").value = "";
+        } else {
+          yearContainer.style.display = "none";
+          monthContainer.style.display = "none";
+          loadHistory();
+        }
+      }
+
+      // Handle year change in history filter
+      function onHistoryYearChange(year) {
+        // You can add additional validation here if needed
+        console.log("Year changed to:", year);
+      }
+
+      // Clear history filters
+      function clearHistoryFilters() {
+        document.getElementById("historyCategoryFilter").value = "all";
+        document.getElementById("historyYearFilter").value = "";
+        document.getElementById("historyMonthFilter").value = "";
+        document.getElementById("historyYearFilterContainer").style.display =
+          "none";
+        document.getElementById("historyMonthFilterContainer").style.display =
+          "none";
+        loadHistory();
+      }
 
       // Load statistics
       async function loadStatistics() {
@@ -388,16 +622,38 @@
         }
 
         const categorySelect = document.getElementById("categorySelect");
+        const yearInput = document.getElementById("yearInput");
+        const monthSelect = document.getElementById("monthSelect");
+
         const category = categorySelect.value;
+        const year = yearInput.value;
+        const month = monthSelect.value;
 
         if (!category) {
           showMessage("Vui lòng chọn danh mục cho file.", "error");
           return;
         }
 
+        if (!year) {
+          showMessage("Vui lòng nhập năm cho file.", "error");
+          return;
+        }
+
+        if (year < 0) {
+          showMessage("Năm phải là số dương.", "error");
+          return;
+        }
+
+        if (!month) {
+          showMessage("Vui lòng chọn tháng cho file.", "error");
+          return;
+        }
+
         const formData = new FormData();
         formData.append("file", fileInput.files[0]);
         formData.append("category", category);
+        formData.append("year", year);
+        formData.append("month", month);
 
         showMessage("Đang tải lên tệp tin...", "info");
 
@@ -411,7 +667,7 @@
 
           if (result.success) {
             showMessage(
-              `Tệp tin đã được tải lên thành công vào danh mục ${category}! Bạn có thể xem tệp tin bằng đường link bên dưới.`,
+              `Tệp tin đã được tải lên thành công vào danh mục ${category} cho ${monthNames[month]}/${year}!`,
               "success"
             );
             if (result.shareUrl) {
@@ -420,11 +676,15 @@
                 "success"
               );
             }
+            // Reset form (keep year as current year)
             fileInput.value = "";
-            categorySelect.value = ""; // Reset category selection
+            categorySelect.value = "";
+            monthSelect.value = "";
+            setCurrentYear(); // Reset to current year
+
             loadPendingFiles();
             loadHistory();
-            loadStatistics(); // Reload statistics
+            loadStatistics();
           } else {
             showMessage("Tải lên thất bại: " + result.error, "error");
           }
@@ -442,7 +702,7 @@
           let url = "/fileApprovalControl/pending";
 
           if (categoryFilter !== "all") {
-            url = `/fileApprovalControl/category/${categoryFilter}/pending`;
+            url = `/fileApprovalControl/pending?category=${categoryFilter}`;
           }
 
           const response = await fetch(url);
@@ -467,7 +727,10 @@
                 <div class="file-details">
                   <span class="category-badge ${categoryClass}">${
               file.category
-            }</span> | 
+            }</span>
+                  <span class="time-badge">${monthNames[file.month]}/${
+              file.year
+            }</span>
                   Kích thước: ${formatFileSize(file.fileSize)} | 
                   Thời gian tải lên: ${new Date(
                     file.uploadedAt
@@ -500,30 +763,56 @@
       // Load history
       async function loadHistory() {
         try {
-          const categoryFilter = document.getElementById(
+          const category = document.getElementById(
             "historyCategoryFilter"
           ).value;
-          let url = "/fileApprovalControl/history";
+          const year = document.getElementById("historyYearFilter").value;
+          const month = document.getElementById("historyMonthFilter").value;
 
-          const response = await fetch(url);
-          const files = await response.json();
-          displayHistoryFiles(files, categoryFilter);
+          let url = "/fileApprovalControl/history";
+          let filteredFiles = [];
+
+          if (category !== "all") {
+            // If we have specific year and month, use the detailed endpoint
+            if (year && month) {
+              const response = await fetch(
+                `/fileApprovalControl/category/${category}/year/${year}/month/${month}`
+              );
+              filteredFiles = await response.json();
+            } else {
+              // Get all files for the category and filter client-side
+              const response = await fetch(
+                `/fileApprovalControl/category/${category}`
+              );
+              const allFiles = await response.json();
+              filteredFiles = allFiles.filter((file) => {
+                let match = true;
+                if (year) match = match && file.year == year;
+                if (month) match = match && file.month == month;
+                return match;
+              });
+            }
+          } else {
+            const response = await fetch(url);
+            const allFiles = await response.json();
+            filteredFiles = allFiles;
+          }
+
+          displayHistoryFiles(filteredFiles);
         } catch (error) {
           console.error("Lỗi khi tải lịch sử:", error);
           showMessage("Lỗi khi tải lịch sử: " + error.message, "error");
         }
       }
-      function displayHistoryFiles(files, categoryFilter) {
+
+      // Display history files
+      function displayHistoryFiles(files) {
         const historyList = document.getElementById("historyList");
         historyList.innerHTML = "";
 
-        let approvedFiles = files.filter((file) => file.status === "approved");
-
-        if (categoryFilter !== "all") {
-          approvedFiles = approvedFiles.filter(
-            (file) => file.category === categoryFilter
-          );
-        }
+        const approvedFiles = files.filter(
+          (file) => file.status === "approved"
+        );
 
         if (approvedFiles.length === 0) {
           historyList.innerHTML =
@@ -541,7 +830,10 @@
               <div class="file-details">
                 <span class="category-badge ${categoryClass}">${
             file.category
-          }</span> | 
+          }</span> 
+                <span class="time-badge">${monthNames[file.month]}/${
+            file.year
+          }</span>
                 Trạng thái: <span class="status-approved">ĐÃ PHÊ DUYỆT</span> | 
                 Kích thước: ${formatFileSize(file.fileSize)} | 
                 Hành động: ${file.actionTakenBy} lúc ${new Date(
@@ -602,7 +894,7 @@
       async function rejectFile(fileId) {
         if (
           !confirm(
-            "Bạn có chắc chắn muốn từ chối tệp tin này? Tệp tin sẽ bị xóa vĩnh viễn khỏi NextCloud."
+            "Bạn có chắc chắn muốn từ chối tệp tin này? Tệp tin sẽ bị xóa vĩnh viễn."
           )
         ) {
           return;
@@ -664,6 +956,9 @@
 
       // Load all data on page load
       document.addEventListener("DOMContentLoaded", function () {
+        // Set current year as default
+        setCurrentYear();
+
         loadStatistics();
         loadPendingFiles();
         loadHistory();

@@ -72,5 +72,27 @@ router.get(
   "/fileApprovalControl/categories/stats",
   fileApprovalController.getCategoriesWithCounts
 );
+// Get available years for a category
+router.get(
+  "/fileApprovalControl/category/:category/years",
+  fileApprovalController.getAvailableYears
+);
+
+// Get available months for a category and year
+router.get(
+  "/fileApprovalControl/category/:category/year/:year/months",
+  fileApprovalController.getAvailableMonths
+);
+
+// Get files by category, year, and month
+router.get(
+  "/fileApprovalControl/category/:category/year/:year/month/:month",
+  fileApprovalController.getFilesByCategoryYearMonth
+);
+
+router.get(
+  "/fileApprovalControl/category/:category/year/:year/month/:month/:status",
+  fileApprovalController.getFilesByCategoryYearMonth
+);
 
 module.exports = router;
