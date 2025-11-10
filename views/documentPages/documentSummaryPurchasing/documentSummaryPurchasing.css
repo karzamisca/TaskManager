@@ -86,6 +86,25 @@
     background-color: var(--bg-primary);
     color: var(--text-primary);
   }
+
+  .multi-select-button {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+  }
+
+  .multi-select-dropdown {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
+  }
+
+  .multi-select-option:hover {
+    background-color: var(--table-hover);
+  }
+
+  .multi-select-option.selected {
+    background-color: var(--primary-dark);
+  }
 }
 
 /* Base Styles */
@@ -736,6 +755,101 @@ tr:hover {
 
 .product-fields select.form-select {
   width: 200px;
+}
+
+/* Multi-select dropdown styles */
+.multi-select-container {
+  position: relative;
+  display: inline-block;
+  width: 200px;
+}
+
+.multi-select-button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: var(--transition);
+  height: 32px;
+}
+
+.multi-select-button:hover {
+  border-color: var(--primary-color);
+}
+
+.multi-select-button.open {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+}
+
+.multi-select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  display: none;
+  margin-top: 4px;
+}
+
+.multi-select-dropdown.open {
+  display: block;
+}
+
+.multi-select-option {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.multi-select-option:hover {
+  background-color: var(--table-hover);
+}
+
+.multi-select-option input {
+  margin-right: 8px;
+}
+
+.multi-select-option.selected {
+  background-color: var(--primary-light);
+}
+
+.multi-select-selected-count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-left: 8px;
+}
+
+.multi-select-clear {
+  background: none;
+  border: none;
+  color: var(--danger-color);
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin-left: auto;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+
+.multi-select-clear:hover {
+  background-color: var(--danger-color);
+  color: white;
 }
 
 /* Responsive */
