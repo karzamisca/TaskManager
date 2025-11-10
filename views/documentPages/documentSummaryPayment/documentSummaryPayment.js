@@ -12,10 +12,154 @@ const state = {
   selectedDocuments: new Set(),
   currentEditDoc: null,
   currentTagFilter: "",
-  currentCostCenterFilter: "",
+  currentCostCenterFilter: [], // Changed to array for multiple selection
   currentGroupFilter: "",
   currentGroupDeclarationFilter: "",
   currentPaymentMethodFilter: "",
+  costCenters: [], // Store cost centers for multi-select
+};
+
+// Multi-select functionality for cost centers
+const initializeMultiSelect = () => {
+  const button = document.getElementById("costCenterMultiSelectButton");
+  const dropdown = document.getElementById("costCenterMultiSelectDropdown");
+  const text = document.getElementById("costCenterMultiSelectText");
+
+  // Toggle dropdown
+  button.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle("open");
+    button.classList.toggle("open");
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", () => {
+    dropdown.classList.remove("open");
+    button.classList.remove("open");
+  });
+
+  // Prevent dropdown from closing when clicking inside
+  dropdown.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+};
+
+// Populate multi-select dropdown with cost centers
+const populateCostCenterMultiSelect = async () => {
+  try {
+    const response = await fetch("/costCenters");
+    const costCenters = await response.json();
+    state.costCenters = costCenters;
+
+    const dropdown = document.getElementById("costCenterMultiSelectDropdown");
+    dropdown.innerHTML = "";
+
+    // Add "Select All" option
+    const selectAllOption = document.createElement("div");
+    selectAllOption.className = "multi-select-option";
+    selectAllOption.innerHTML = `
+      <input type="checkbox" id="selectAllCostCenters">
+      <label for="selectAllCostCenters">Chọn tất cả</label>
+    `;
+    dropdown.appendChild(selectAllOption);
+
+    // Add individual cost center options
+    costCenters.forEach((center) => {
+      const option = document.createElement("div");
+      option.className = "multi-select-option";
+      option.innerHTML = `
+        <input type="checkbox" id="costCenter_${center.name}" value="${center.name}">
+        <label for="costCenter_${center.name}">${center.name}</label>
+      `;
+      dropdown.appendChild(option);
+    });
+
+    // Add event listeners
+    const selectAllCheckbox = document.getElementById("selectAllCostCenters");
+    selectAllCheckbox.addEventListener("change", (e) => {
+      const checkboxes = dropdown.querySelectorAll(
+        'input[type="checkbox"]:not(#selectAllCostCenters)'
+      );
+      checkboxes.forEach((checkbox) => {
+        checkbox.checked = e.target.checked;
+      });
+      updateCostCenterFilter();
+    });
+
+    const checkboxes = dropdown.querySelectorAll(
+      'input[type="checkbox"]:not(#selectAllCostCenters)'
+    );
+    checkboxes.forEach((checkbox) => {
+      checkbox.addEventListener("change", () => {
+        // Update "Select All" checkbox state
+        const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
+        const someChecked = Array.from(checkboxes).some((cb) => cb.checked);
+
+        selectAllCheckbox.checked = allChecked;
+        selectAllCheckbox.indeterminate = someChecked && !allChecked;
+
+        updateCostCenterFilter();
+      });
+    });
+
+    // Add clear button
+    const clearButton = document.createElement("button");
+    clearButton.className = "multi-select-clear";
+    clearButton.innerHTML = '<i class="fas fa-times"></i> Xóa tất cả';
+    clearButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach((checkbox) => {
+        checkbox.checked = false;
+      });
+      selectAllCheckbox.indeterminate = false;
+      updateCostCenterFilter();
+    });
+
+    const buttonContainer = document.getElementById(
+      "costCenterMultiSelectButton"
+    );
+    buttonContainer.appendChild(clearButton);
+  } catch (error) {
+    console.error("Error fetching cost centers for multi-select:", error);
+  }
+};
+
+// Update cost center filter based on selected options
+const updateCostCenterFilter = () => {
+  const checkboxes = document.querySelectorAll(
+    '#costCenterMultiSelectDropdown input[type="checkbox"]:not(#selectAllCostCenters)'
+  );
+  const selectedCostCenters = Array.from(checkboxes)
+    .filter((cb) => cb.checked)
+    .map((cb) => cb.value);
+
+  state.currentCostCenterFilter = selectedCostCenters;
+
+  // Update button text
+  const textElement = document.getElementById("costCenterMultiSelectText");
+  const countElement = document.querySelector(".multi-select-selected-count");
+
+  if (selectedCostCenters.length === 0) {
+    textElement.textContent = "Tất cả";
+    if (countElement) countElement.remove();
+  } else if (selectedCostCenters.length === 1) {
+    textElement.textContent = selectedCostCenters[0];
+    if (countElement) countElement.remove();
+  } else {
+    textElement.textContent = `${selectedCostCenters.length} trạm đã chọn`;
+    if (!countElement) {
+      const countSpan = document.createElement("span");
+      countSpan.className = "multi-select-selected-count";
+      countSpan.textContent = `(${selectedCostCenters.length})`;
+      textElement.parentNode.appendChild(countSpan);
+    } else {
+      countElement.textContent = `(${selectedCostCenters.length})`;
+    }
+  }
+
+  state.currentPage = 1;
+  fetchPaymentDocuments();
 };
 
 // Utility functions
@@ -228,10 +372,10 @@ const filterDocumentsForCurrentUser = (documents) => {
     );
   }
 
-  // Apply cost center filter if selected
-  if (state.currentCostCenterFilter) {
-    filteredDocs = filteredDocs.filter(
-      (doc) => doc.costCenter === state.currentCostCenterFilter
+  // Apply cost center filter if selected (now handles multiple)
+  if (state.currentCostCenterFilter.length > 0) {
+    filteredDocs = filteredDocs.filter((doc) =>
+      state.currentCostCenterFilter.includes(doc.costCenter)
     );
   }
 
@@ -292,13 +436,6 @@ const filterByTag = () => {
   fetchPaymentDocuments();
 };
 
-const filterByCostCenter = () => {
-  state.currentCostCenterFilter =
-    document.getElementById("costCenterFilter").value;
-  state.currentPage = 1;
-  fetchPaymentDocuments();
-};
-
 const filterByGroup = () => {
   state.currentGroupFilter = document.getElementById("groupFilter").value;
   state.currentPage = 1;
@@ -311,30 +448,6 @@ const filterByGroupDeclaration = () => {
   ).value;
   state.currentPage = 1;
   fetchPaymentDocuments();
-};
-
-//Function to populate cost center filter
-const populateCostCenterFilter = async () => {
-  try {
-    const response = await fetch("/costCenters");
-    const costCenters = await response.json();
-    const filterDropdown = document.getElementById("costCenterFilter");
-
-    // Clear existing options except the first one
-    while (filterDropdown.options.length > 1) {
-      filterDropdown.remove(1);
-    }
-
-    // Add new options
-    costCenters.forEach((center) => {
-      const option = document.createElement("option");
-      option.value = center.name;
-      option.textContent = center.name;
-      filterDropdown.appendChild(option);
-    });
-  } catch (error) {
-    console.error("Error fetching cost centers for filter:", error);
-  }
 };
 
 const fetchGroups = async () => {
@@ -3347,10 +3460,6 @@ const setupEventListeners = () => {
 
   document.getElementById("tagFilter").addEventListener("input", filterByTag);
 
-  document
-    .getElementById("costCenterFilter")
-    .addEventListener("change", filterByCostCenter);
-
   // Group filter
   document
     .getElementById("groupFilter")
@@ -3384,7 +3493,8 @@ const setupEventListeners = () => {
 // Initialize the application
 const initialize = async () => {
   await fetchCurrentUser();
-  await populateCostCenterFilter();
+  await populateCostCenterMultiSelect(); // Replace populateCostCenterFilter
+  initializeMultiSelect(); // Initialize multi-select functionality
   await fetchGroups();
   await fetchGroupDeclaration();
   setupEventListeners();

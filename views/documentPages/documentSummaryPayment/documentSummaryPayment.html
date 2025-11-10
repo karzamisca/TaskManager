@@ -7,7 +7,7 @@
     <title>Phiếu thanh toán</title>
     <link
       rel="stylesheet"
-      href="documentPages/documentSummaryPayment/documentSummaryPayment.css?v=1.5"
+      href="documentPages/documentSummaryPayment/documentSummaryPayment.css?v=1.6"
     />
     <link
       rel="stylesheet"
@@ -45,10 +45,22 @@
       <div class="control-group">
         <label for="costCenterFilter">
           <span>Trạm:</span>
-          <select id="costCenterFilter" class="filter-select">
-            <option value="">Tất cả</option>
-            <!-- Options will be populated dynamically -->
-          </select>
+          <div class="multi-select-container" id="costCenterMultiSelect">
+            <button
+              type="button"
+              class="multi-select-button"
+              id="costCenterMultiSelectButton"
+            >
+              <span id="costCenterMultiSelectText">Tất cả</span>
+              <i class="fas fa-chevron-down"></i>
+            </button>
+            <div
+              class="multi-select-dropdown"
+              id="costCenterMultiSelectDropdown"
+            >
+              <!-- Options will be populated dynamically -->
+            </div>
+          </div>
         </label>
       </div>
 
@@ -521,7 +533,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="documentPages/documentSummaryPayment/documentSummaryPayment.js?v=1.34"></script>
+    <script src="documentPages/documentSummaryPayment/documentSummaryPayment.js?v=1.35"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>
