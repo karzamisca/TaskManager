@@ -2058,6 +2058,7 @@ const editDocument = async (docId) => {
     document.getElementById("editTotalPayment").value = doc.totalPayment || "";
     document.getElementById("editDeadline").value = doc.paymentDeadline || "";
     document.getElementById("editPriority").value = doc.priority;
+    document.getElementById("editNotes").value = doc.notes || "";
 
     await populateCostCenterDropdownForEditing();
     document.getElementById("editCostCenter").value = doc.costCenter;
@@ -2385,6 +2386,7 @@ const handleEditSubmit = async (event) => {
     "paymentDeadline",
     document.getElementById("editDeadline").value
   );
+  formData.append("notes", document.getElementById("editNotes").value);
 
   // Add approvers
   formData.append("approvers", JSON.stringify(state.currentApprovers));
@@ -2512,6 +2514,10 @@ const showFullView = async (docId) => {
             <span class="detail-label">Hạn trả:</span>
             <span class="detail-value">${paymentDeadline}</span>
           </div>
+          <div class="detail-item">
+            <span class="detail-label">Ghi chú:</span>
+            <span class="detail-value">${doc.notes}</span>
+          </div>          
           <div class="detail-item">
             <span class="detail-label">Kê khai:</span>
             <span class="detail-value">${doc.declaration || "Không có"}</span>

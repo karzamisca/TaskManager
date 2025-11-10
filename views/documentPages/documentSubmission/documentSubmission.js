@@ -379,7 +379,9 @@ function handlePaymentDocument() {
       </select>
       <select name="projectName" id="projectName">
         <option value="">Chọn dự án</option>
-      </select>             
+      </select>       
+      <label for="notes">Ghi chú</label>
+        <textarea name="notes" rows="3"></textarea>            
     `;
   populateGroupDropdown();
   populateProjectDropdown();

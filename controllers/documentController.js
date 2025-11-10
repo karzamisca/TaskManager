@@ -1485,6 +1485,7 @@ async function createPaymentDocument(req, approverDetails, uploadedFilesData) {
     fileMetadata: uploadedFilesData,
     appendedPurchasingDocuments,
     submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+    notes: req.body.notes || "",
   });
 }
 
@@ -3503,7 +3504,8 @@ exports.updatePaymentDocument = async (req, res) => {
       stages,
       groupName,
       currentFileMetadata,
-      appendedPurchasingDocuments, // Add this line
+      appendedPurchasingDocuments,
+      notes,
     } = req.body;
     const files = req.files;
 
@@ -3644,6 +3646,7 @@ exports.updatePaymentDocument = async (req, res) => {
     doc.paymentDeadline = paymentDeadline;
     doc.priority = priority;
     doc.groupName = groupName;
+    doc.notes = notes || "";
 
     // Update file metadata
     doc.fileMetadata = [...currentFiles, ...uploadedFilesData];

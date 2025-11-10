@@ -110,6 +110,7 @@ const paymentDocumentSchema = new mongoose.Schema({
     enum: ["Pending", "Approved", "Suspended"],
     default: "Pending",
   },
+  notes: { type: String, default: "" },
   suspendReason: { type: String, default: "" },
   declaration: { type: String, default: "" },
   groupName: { type: String },
