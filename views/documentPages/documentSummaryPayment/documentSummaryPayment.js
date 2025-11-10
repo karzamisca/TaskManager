@@ -1504,9 +1504,12 @@ const renderPaymentStages = () => {
         <select class="form-input stage-payment-method"
                 onchange="updateStageField(${index}, 'paymentMethod', this.value)"
                 ${isLocked ? "disabled" : ""}>
-          <option value="Chuyển khoản" ${
-            stage.paymentMethod === "Chuyển khoản" ? "selected" : ""
-          }>Chuyển khoản</option>
+          <option value="Không có" ${
+            stage.paymentMethod === "Không có" ? "selected" : ""
+          }>Không có</option>
+          <option value="Chuyển khoản nội bộ" ${
+            stage.paymentMethod === "Chuyển khoản nội bộ" ? "selected" : ""
+          }>Chuyển khoản nội bộ</option>
           <option value="Tiền mặt" ${
             stage.paymentMethod === "Tiền mặt" ? "selected" : ""
           }>Tiền mặt</option>

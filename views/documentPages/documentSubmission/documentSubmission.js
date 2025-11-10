@@ -361,7 +361,7 @@ function handlePaymentDocument() {
       <label for="paymentMethod">Hình thức thanh toán</label>
       <select name="paymentMethod">
         <option value="Tiền mặt">Tiền mặt</option>
-        <option value="Chuyển khoản">Chuyển khoản</option>
+        <option value="Chuyển khoản nội bộ">Chuyển khoản nội bộ</option>
         <option value="Hợp đồng">Hợp đồng</option>
       </select>
       <label for="totalPayment">Tổng thanh toán:</label>
@@ -415,7 +415,7 @@ function handleAdvancePaymentDocument() {
       <label for="paymentMethod">Hình thức thanh toán</label>
       <select name="paymentMethod">
         <option value="Tiền mặt">Tiền mặt</option>
-        <option value="Chuyển khoản">Chuyển khoản</option>
+        <option value="Chuyển khoản nội bộ">Chuyển khoản nội bộ</option>
         <option value="Hợp đồng">Hợp đồng</option>
       </select>
       <label for="advancePayment">Tạm ứng:</label>
@@ -463,7 +463,7 @@ function handleAdvancePaymentReclaimDocument() {
       <label for="paymentMethod">Hình thức thanh toán</label>
       <select name="paymentMethod">
         <option value="Tiền mặt">Tiền mặt</option>
-        <option value="Chuyển khoản">Chuyển khoản</option>
+        <option value="Chuyển khoản nội bộ">Chuyển khoản nội bộ</option>
         <option value="Hợp đồng">Hợp đồng</option>
       </select>
       <label for="advancePaymentReclaim">Số tiền thu lại:</label>
