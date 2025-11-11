@@ -619,14 +619,13 @@ async function openPermissionModal(fileId) {
   selectedFileId = fileId;
   selectedUsers.clear();
 
-  // Load eligible users
   try {
+    // Load eligible users first
     const response = await fetch("/fileApprovalControl/eligible-users");
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     allUsers = await response.json();
-    displayUserList(allUsers);
 
     // Load current permissions for this file
     const fileResponse = await fetch(`/fileApprovalControl/${fileId}`);
@@ -636,18 +635,35 @@ async function openPermissionModal(fileId) {
     const file = await fileResponse.json();
 
     console.log("Current file permissions:", file);
+    console.log("All eligible users:", allUsers);
 
+    // Process viewableBy permissions
     if (file.viewableBy && Array.isArray(file.viewableBy)) {
-      file.viewableBy.forEach((user) => {
-        // Make sure we're storing the user ID as string
-        if (user && user._id) {
-          selectedUsers.add(user._id.toString());
+      file.viewableBy.forEach((userId) => {
+        if (userId) {
+          const userIdStr = userId.toString();
+          // Check if this user exists in eligible users
+          const userExists = allUsers.some(
+            (u) => u._id.toString() === userIdStr
+          );
+
+          if (userExists) {
+            selectedUsers.add(userIdStr);
+            console.log(`✅ Added user ${userIdStr} to selected users`);
+          } else {
+            console.warn(
+              `❌ User ${userIdStr} has permission but is not in eligible users list`
+            );
+          }
         }
       });
-      updateUserListSelection();
     }
 
-    // Show permission management section
+    console.log("Final selected users:", Array.from(selectedUsers));
+
+    // Display user list AFTER processing permissions
+    displayUserList(allUsers);
+
     document.getElementById("permissionManagement").style.display = "block";
     document
       .getElementById("permissionManagement")
@@ -666,19 +682,44 @@ function displayUserList(users) {
   const userList = document.getElementById("userList");
   userList.innerHTML = "";
 
+  if (users.length === 0) {
+    userList.innerHTML =
+      '<p style="text-align: center; color: #666;">Không có người dùng nào</p>';
+    return;
+  }
+
   users.forEach((user) => {
     const userElement = document.createElement("div");
     userElement.className = "user-item";
-    userElement.setAttribute("data-user-id", user._id);
+    const userId = user._id.toString();
+    userElement.setAttribute("data-user-id", userId);
+
+    // Check if this user is selected
+    const isSelected = selectedUsers.has(userId);
+
     userElement.innerHTML = `
-                    <input type="checkbox" id="user-${user._id}" value="${user._id}" 
-                           onchange="toggleUserSelection('${user._id}')">
-                    <label for="user-${user._id}" style="margin-left: 8px; cursor: pointer;">
-                        ${user.realName} (${user.username})
-                    </label>
-                `;
+      <input type="checkbox" id="user-${userId}" value="${userId}" 
+             ${isSelected ? "checked" : ""}
+             onchange="toggleUserSelection('${userId}')">
+      <label for="user-${userId}" style="margin-left: 8px; cursor: pointer;">
+        ${user.realName || user.username} (${user.username}) 
+        ${
+          isSelected
+            ? '<span style="color: #28a745; margin-left: 8px;">✓ Đã chọn</span>'
+            : ""
+        }
+      </label>
+    `;
+
+    // Add selected class if user is selected
+    if (isSelected) {
+      userElement.classList.add("selected");
+    }
+
     userList.appendChild(userElement);
   });
+
+  console.log("User list displayed with selections");
 }
 
 // Search users
@@ -706,18 +747,33 @@ function toggleUserSelection(userId) {
 
 // Update user list selection display
 function updateUserListSelection() {
+  let updatedCount = 0;
+
   document.querySelectorAll(".user-item").forEach((item) => {
     const userId = item.getAttribute("data-user-id");
     const checkbox = item.querySelector('input[type="checkbox"]');
+
     if (checkbox) {
-      checkbox.checked = selectedUsers.has(userId);
-      if (selectedUsers.has(userId)) {
+      const wasChecked = checkbox.checked;
+      const shouldBeChecked = selectedUsers.has(userId);
+
+      // Only update if changed to avoid unnecessary DOM updates
+      if (wasChecked !== shouldBeChecked) {
+        checkbox.checked = shouldBeChecked;
+        updatedCount++;
+      }
+
+      // Update visual selection state
+      if (shouldBeChecked) {
         item.classList.add("selected");
       } else {
         item.classList.remove("selected");
       }
     }
   });
+
+  console.log(`Updated ${updatedCount} checkboxes in user list`);
+  console.log("Current selected users:", Array.from(selectedUsers));
 }
 
 // Save file permissions
