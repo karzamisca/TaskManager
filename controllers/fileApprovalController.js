@@ -735,6 +735,11 @@ class NextcloudController {
   // Set file viewing permissions
   async setFilePermissions(req, res) {
     try {
+      if (
+        !["superAdmin", "director", "deputyDirector"].includes(req.user.role)
+      ) {
+        return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+      }
       const { fileId } = req.params;
       const { viewableBy } = req.body;
 
@@ -977,6 +982,11 @@ class NextcloudController {
 
   async approveFile(req, res) {
     try {
+      if (
+        !["superAdmin", "director", "deputyDirector"].includes(req.user.role)
+      ) {
+        return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+      }
       const fileApproval = await FileApproval.findById(req.params.id);
 
       if (!fileApproval) {
@@ -1088,6 +1098,11 @@ class NextcloudController {
 
   async rejectFile(req, res) {
     try {
+      if (
+        !["superAdmin", "director", "deputyDirector"].includes(req.user.role)
+      ) {
+        return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập");
+      }
       const fileApproval = await FileApproval.findById(req.params.id);
 
       if (!fileApproval) {

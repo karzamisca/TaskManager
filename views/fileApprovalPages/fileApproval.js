@@ -1,6 +1,5 @@
 // views/fileApprovalPages/fileApproval.js
 // Global variables
-let currentUserRole = "user"; // This should be set from your authentication system
 let selectedFileId = null;
 let selectedUsers = new Set();
 let allUsers = [];
@@ -511,19 +510,6 @@ function updateFolderStructure() {
   folderStructure.style.display = "block";
 }
 
-// Check user role and show/hide permission management
-function checkUserRole() {
-  const userRoles = ["superAdmin", "deputyDirector", "director"];
-
-  // In a real application, you would get this from your authentication system
-  // For now, we'll set it manually for demonstration
-  currentUserRole = "superAdmin"; // Change this to test different roles
-
-  if (userRoles.includes(currentUserRole)) {
-    document.getElementById("permissionManagement").style.display = "block";
-  }
-}
-
 // Load approved files with permission filtering
 async function loadApprovedFiles() {
   try {
@@ -606,13 +592,7 @@ function displayApprovedFiles(files) {
       details += `<br>Loại tài liệu: ${file.legalDocumentType}`;
     }
 
-    const permissionButton = [
-      "superAdmin",
-      "deputyDirector",
-      "director",
-    ].includes(currentUserRole)
-      ? `<button class="btn btn-secondary" onclick="openPermissionModal('${file._id}')" style="margin-left: 10px;">🛡️ Quản lý quyền</button>`
-      : "";
+    const permissionButton = `<button class="btn btn-secondary" onclick="openPermissionModal('${file._id}')" style="margin-left: 10px;">🛡️ Quản lý quyền</button>`;
 
     fileElement.innerHTML = `
                     <div class="file-info">
@@ -1190,5 +1170,4 @@ document.addEventListener("DOMContentLoaded", function () {
   loadStatistics();
   loadPendingFiles();
   loadApprovedFiles();
-  checkUserRole();
 });
