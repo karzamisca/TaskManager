@@ -13,22 +13,61 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+// Helper function to clean filename to ASCII
+const cleanFileNameToAscii = (filename) => {
+  if (!filename) return "file";
+
+  // Get file extension
+  const ext = path.extname(filename);
+
+  // Remove extension from filename
+  const nameWithoutExt = path.basename(filename, ext);
+
+  // Convert to ASCII: remove accents, special characters, and normalize
+  const cleanName = nameWithoutExt
+    .normalize("NFD") // Normalize to decomposed form
+    .replace(/[\u0300-\u036f]/g, "") // Remove diacritics
+    .replace(/[^a-zA-Z0-9\s_-]/g, "") // Remove special characters except spaces, underscores, and hyphens
+    .replace(/\s+/g, "_") // Replace spaces with underscores
+    .replace(/_+/g, "_") // Replace multiple underscores with single
+    .replace(/^_+|_+$/g, "") // Remove leading/trailing underscores
+    .toLowerCase(); // Convert to lowercase
+
+  // If cleaning resulted in empty string, use default name
+  const finalName = cleanName || "file";
+
+  return finalName + ext;
+};
+
 // Multer configuration for file uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: function (req, file, cb) {
     cb(null, uploadsDir);
   },
-  filename: (req, file, cb) => {
+  filename: function (req, file, cb) {
+    // Clean the original filename to ASCII
+    const originalName = Buffer.from(file.originalname, "latin1").toString(
+      "utf8"
+    );
+    const cleanedName = cleanFileNameToAscii(originalName);
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+
+    // Use cleaned ASCII name for the saved file
+    cb(null, uniqueSuffix + "-" + cleanedName);
   },
 });
 
 const upload = multer({
   storage: storage,
+  fileFilter: function (req, file, cb) {
+    // Ensure proper encoding handling
+    file.originalname = Buffer.from(file.originalname, "latin1").toString(
+      "utf8"
+    );
+    cb(null, true);
+  },
 });
 
-// Routes
 router.get("/fileApproval", authMiddleware, (req, res) => {
   res.sendFile("fileApproval.html", {
     root: "./views/fileApprovalPages",
