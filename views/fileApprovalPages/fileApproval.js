@@ -592,7 +592,7 @@ function displayApprovedFiles(files) {
       details += `<br>Loại tài liệu: ${file.legalDocumentType}`;
     }
 
-    const permissionButton = `<button class="btn btn-secondary" onclick="openPermissionModal('${file._id}')" style="margin-left: 10px;">🛡️ Quản lý quyền</button>`;
+    const permissionButton = `<button class="fa-btn fa-btn-secondary" onclick="openPermissionModal('${file._id}')" style="margin-left: 10px;">🛡️ Quản lý quyền</button>`;
 
     fileElement.innerHTML = `
                     <div class="file-info">
@@ -601,7 +601,7 @@ function displayApprovedFiles(files) {
                             ${details}
                             ${
                               file.shareUrl
-                                ? `<br><a href="${file.shareUrl}" target="_blank" class="btn btn-view" style="margin-top: 5px;">Xem tệp tin</a>`
+                                ? `<br><a href="${file.shareUrl}" target="_blank" class="fa-btn fa-btn-view" style="margin-top: 5px;">Xem tệp tin</a>`
                                 : ""
                             }
                         </div>
@@ -671,16 +671,10 @@ function displayUserList(users) {
     userElement.className = "user-item";
     userElement.setAttribute("data-user-id", user._id);
     userElement.innerHTML = `
-                    <input type="checkbox" id="user-${user._id}" value="${
-      user._id
-    }" 
+                    <input type="checkbox" id="user-${user._id}" value="${user._id}" 
                            onchange="toggleUserSelection('${user._id}')">
-                    <label for="user-${
-                      user._id
-                    }" style="margin-left: 8px; cursor: pointer;">
-                        ${user.realName || user.username} (${user.role}) - ${
-      user.department
-    }
+                    <label for="user-${user._id}" style="margin-left: 8px; cursor: pointer;">
+                        ${user.realName} (${user.username})
                     </label>
                 `;
     userList.appendChild(userElement);
@@ -952,7 +946,7 @@ async function handleFileUpload() {
       );
       if (result.shareUrl) {
         showMessage(
-          `<a href="${result.shareUrl}" target="_blank" class="btn btn-view">Xem Tệp Tin Đã Tải Lên</a>`,
+          `<a href="${result.shareUrl}" target="_blank" class="fa-btn fa-btn-view">Xem Tệp Tin Đã Tải Lên</a>`,
           "success"
         );
       }
@@ -1043,16 +1037,16 @@ async function loadPendingFiles() {
                                         ${details}
                                         ${
                                           file.shareUrl
-                                            ? `<a href="${file.shareUrl}" target="_blank" class="btn btn-view" style="margin-top: 5px;">Xem tệp tin</a>`
+                                            ? `<a href="${file.shareUrl}" target="_blank" class="fa-btn fa-btn-view" style="margin-top: 5px;">Xem tệp tin</a>`
                                             : ""
                                         }
                                     </div>
                                 </div>
                                 <div class="file-actions">
-                                    <button class="btn btn-approve" onclick="approveFile('${
+                                    <button class="fa-btn fa-btn-approve" onclick="approveFile('${
                                       file._id
                                     }')">Phê Duyệt</button>
-                                    <button class="btn btn-reject" onclick="rejectFile('${
+                                    <button class="fa-btn fa-btn-reject" onclick="rejectFile('${
                                       file._id
                                     }')">Từ Chối</button>
                                 </div>

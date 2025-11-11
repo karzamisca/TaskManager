@@ -1,21 +1,25 @@
 /* views/fileApprovalPages/fileApproval.css */
-body {
+
+/* Scope all styles to the file approval page content only */
+.file-approval-content {
   font-family: Arial, sans-serif;
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
   background-color: #f5f5f5;
 }
-.upload-section,
-.pending-files,
-.approved-files {
+
+.file-approval-content .upload-section,
+.file-approval-content .pending-files,
+.file-approval-content .approved-files {
   margin-bottom: 30px;
   padding: 20px;
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-.file-item {
+
+.file-approval-content .file-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -23,95 +27,120 @@ body {
   border-bottom: 1px solid #eee;
   transition: background-color 0.2s;
 }
-.file-item:hover {
+
+.file-approval-content .file-item:hover {
   background-color: #f9f9f9;
 }
-.file-info {
+
+.file-approval-content .file-info {
   flex: 1;
 }
-.file-actions {
+
+.file-approval-content .file-actions {
   display: flex;
   gap: 10px;
   align-items: center;
 }
-.btn {
+
+/* Use more specific class names for buttons to avoid Bootstrap conflicts */
+.fa-btn {
   padding: 8px 16px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.2s;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
 }
-.btn-approve {
+
+.fa-btn-approve {
   background-color: #28a745;
   color: white;
 }
-.btn-approve:hover {
+
+.fa-btn-approve:hover {
   background-color: #218838;
 }
-.btn-reject {
+
+.fa-btn-reject {
   background-color: #dc3545;
   color: white;
 }
-.btn-reject:hover {
+
+.fa-btn-reject:hover {
   background-color: #c82333;
 }
-.btn-view {
+
+.fa-btn-view {
   background-color: #17a2b8;
   color: white;
-  text-decoration: none;
-  display: inline-block;
 }
-.btn-view:hover {
+
+.fa-btn-view:hover {
   background-color: #138496;
 }
-.btn-primary {
+
+.fa-btn-primary {
   background-color: #007bff;
   color: white;
 }
-.btn-primary:hover {
+
+.fa-btn-primary:hover {
   background-color: #0056b3;
 }
-.btn-secondary {
+
+.fa-btn-secondary {
   background-color: #6c757d;
   color: white;
 }
-.btn-secondary:hover {
+
+.fa-btn-secondary:hover {
   background-color: #545b62;
 }
-.btn-success {
+
+.fa-btn-success {
   background-color: #28a745;
   color: white;
 }
-.btn-success:hover {
+
+.fa-btn-success:hover {
   background-color: #218838;
 }
-.btn:disabled {
+
+.fa-btn:disabled {
   background-color: #6c757d;
   cursor: not-allowed;
 }
-.status-pending {
+
+.file-approval-content .status-pending {
   color: #ffc107;
   font-weight: bold;
 }
-.status-approved {
+
+.file-approval-content .status-approved {
   color: #28a745;
   font-weight: bold;
 }
-.status-rejected {
+
+.file-approval-content .status-rejected {
   color: #dc3545;
   font-weight: bold;
 }
-.file-name {
+
+.file-approval-content .file-name {
   font-weight: bold;
   font-size: 16px;
   margin-bottom: 5px;
 }
-.file-details {
+
+.file-approval-content .file-details {
   color: #666;
   font-size: 14px;
 }
-.upload-area {
+
+.file-approval-content .upload-area {
   border: 2px dashed #ddd;
   padding: 40px;
   text-align: center;
@@ -119,34 +148,41 @@ body {
   margin-bottom: 20px;
   transition: border-color 0.3s;
 }
-.upload-area:hover {
+
+.file-approval-content .upload-area:hover {
   border-color: #007bff;
 }
-.upload-area.dragover {
+
+.file-approval-content .upload-area.dragover {
   border-color: #007bff;
   background-color: #f8f9fa;
 }
-#uploadMessage {
+
+.file-approval-content #uploadMessage {
   margin-top: 10px;
   padding: 10px;
   border-radius: 4px;
 }
-.success {
+
+.file-approval-content .success {
   background-color: #d4edda;
   color: #155724;
   border: 1px solid #c3e6cb;
 }
-.error {
+
+.file-approval-content .error {
   background-color: #f8d7da;
   color: #721c24;
   border: 1px solid #f5c6cb;
 }
-.info {
+
+.file-approval-content .info {
   background-color: #d1ecf1;
   color: #0c5460;
   border: 1px solid #bee5eb;
 }
-.category-badge {
+
+.file-approval-content .category-badge {
   background-color: #e9ecef;
   padding: 4px 12px;
   border-radius: 12px;
@@ -155,7 +191,8 @@ body {
   display: inline-block;
   margin-right: 8px;
 }
-.time-badge {
+
+.file-approval-content .time-badge {
   background-color: #e9ecef;
   padding: 4px 8px;
   border-radius: 8px;
@@ -164,83 +201,98 @@ body {
   color: #495057;
   margin-right: 8px;
 }
-.category-congty {
+
+.file-approval-content .category-congty {
   background-color: #d4edda;
   color: #155724;
 }
-.category-doitac {
+
+.file-approval-content .category-doitac {
   background-color: #cce7ff;
   color: #004085;
 }
-.category-nganhang {
+
+.file-approval-content .category-nganhang {
   background-color: #fff3cd;
   color: #856404;
 }
-.category-phaply {
+
+.file-approval-content .category-phaply {
   background-color: #f8d7da;
   color: #721c24;
 }
-.filter-section {
+
+.file-approval-content .filter-section {
   display: flex;
   gap: 15px;
   align-items: center;
   margin-bottom: 15px;
   flex-wrap: wrap;
 }
-.filter-section select {
+
+.file-approval-content .filter-section select {
   padding: 8px 12px;
   border-radius: 4px;
   border: 1px solid #ddd;
   min-width: 150px;
 }
-.filter-section input {
+
+.file-approval-content .filter-section input {
   padding: 8px 12px;
   border-radius: 4px;
   border: 1px solid #ddd;
   min-width: 120px;
 }
-.stats-section {
+
+.file-approval-content .stats-section {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 15px;
   margin-bottom: 20px;
 }
-.stat-card {
+
+.file-approval-content .stat-card {
   background: white;
   padding: 15px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
-.stat-card h3 {
+
+.file-approval-content .stat-card h3 {
   margin: 0 0 10px 0;
   font-size: 14px;
   color: #666;
 }
-.stat-card .count {
+
+.file-approval-content .stat-card .count {
   font-size: 24px;
   font-weight: bold;
   margin-bottom: 5px;
 }
-.stat-card .sub-counts {
+
+.file-approval-content .stat-card .sub-counts {
   font-size: 12px;
   color: #999;
 }
-.form-group {
+
+.file-approval-content .form-group {
   margin: 15px 0;
   text-align: left;
   max-width: 300px;
   margin-left: auto;
   margin-right: auto;
 }
-.form-group label {
+
+.file-approval-content .form-group label {
   display: block;
   margin-bottom: 8px;
   font-weight: bold;
   font-size: 14px;
 }
-.form-group select,
-.form-group input {
+
+.file-approval-content .form-group select,
+.file-approval-content .form-group input {
   width: 100%;
   padding: 10px;
   border-radius: 4px;
@@ -248,39 +300,46 @@ body {
   font-size: 14px;
   box-sizing: border-box;
 }
-.year-input {
+
+.file-approval-content .year-input {
   text-align: center;
   font-weight: bold;
 }
-.folder-structure {
+
+.file-approval-content .folder-structure {
   background-color: #f8f9fa;
   padding: 15px;
   border-radius: 8px;
   margin: 15px 0;
   border-left: 4px solid #007bff;
 }
-.folder-structure h4 {
+
+.file-approval-content .folder-structure h4 {
   margin: 0 0 10px 0;
   color: #495057;
 }
-.folder-path {
+
+.file-approval-content .folder-path {
   font-family: monospace;
   background-color: #e9ecef;
   padding: 8px 12px;
   border-radius: 4px;
   font-size: 14px;
 }
-.dynamic-form-group {
+
+.file-approval-content .dynamic-form-group {
   display: none;
 }
-.permission-section {
+
+.file-approval-content .permission-section {
   background: #f8f9fa;
   padding: 20px;
   border-radius: 8px;
   margin-bottom: 20px;
   border-left: 4px solid #17a2b8;
 }
-.user-list {
+
+.file-approval-content .user-list {
   max-height: 200px;
   overflow-y: auto;
   border: 1px solid #ddd;
@@ -288,7 +347,8 @@ body {
   padding: 10px;
   background: white;
 }
-.user-item {
+
+.file-approval-content .user-item {
   padding: 8px;
   border: 1px solid #eee;
   margin-bottom: 5px;
@@ -296,18 +356,31 @@ body {
   cursor: pointer;
   transition: background-color 0.2s;
 }
-.user-item:hover {
+
+.file-approval-content .user-item:hover {
   background-color: #f8f9fa;
 }
-.user-item.selected {
+
+.file-approval-content .user-item.selected {
   background-color: #e3f2fd;
   border-color: #2196f3;
 }
-.permission-badge {
+
+.file-approval-content .permission-badge {
   background-color: #17a2b8;
   color: white;
   padding: 2px 8px;
   border-radius: 10px;
   font-size: 11px;
   margin-left: 8px;
+}
+
+/* Remove the global body style and replace with scoped container */
+.file-approval-container {
+  font-family: Arial, sans-serif;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
 }

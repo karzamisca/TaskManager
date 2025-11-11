@@ -9,415 +9,442 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="fileApprovalPages/fileApproval.css" />
+    <link rel="stylesheet" href="fileApprovalPages/fileApproval.css?v=1.1" />
   </head>
   <body>
-    <h1>Phê duyệt tệp tin</h1>
+    <!-- Header will be loaded here by headerLoader.js -->
 
-    <!-- Statistics Section -->
-    <div class="stats-section" id="statsSection">
-      <!-- Stats will be loaded dynamically -->
-    </div>
+    <div class="file-approval-container">
+      <div class="file-approval-content">
+        <h1>Phê duyệt tệp tin</h1>
 
-    <!-- File Upload Section -->
-    <div class="upload-section">
-      <h2>Tải Lên Tệp tin</h2>
-      <div class="upload-area" id="uploadArea">
-        <p>Kéo và thả tệp tin vào đây hoặc nhấp vào để chọn tệp tin</p>
-        <form id="uploadForm" enctype="multipart/form-data">
-          <input
-            type="file"
-            name="file"
-            id="fileInput"
-            style="display: none"
-            required
-          />
-
-          <!-- Category selection -->
-          <div class="form-group">
-            <label for="categorySelect">Chọn danh mục:</label>
-            <select
-              id="categorySelect"
-              name="category"
-              required
-              onchange="updateFormFields()"
-            >
-              <option value="">-- Chọn danh mục --</option>
-              <option value="Công ty">📊 Công ty</option>
-              <option value="Đối tác">🤝 Đối tác</option>
-              <option value="Ngân hàng">🏦 Ngân hàng</option>
-              <option value="Pháp lý">⚖️ Pháp lý</option>
-            </select>
-          </div>
-
-          <!-- Year input -->
-          <div class="form-group">
-            <label for="yearInput">Nhập năm:</label>
-            <input
-              type="number"
-              id="yearInput"
-              name="year"
-              min="0"
-              placeholder="VD: 2024, 1999, 2030"
-              required
-              class="year-input"
-              oninput="updateFolderStructure()"
-            />
-          </div>
-
-          <!-- Month selection (optional for some categories) -->
-          <div class="form-group" id="monthGroup">
-            <label for="monthSelect">Chọn tháng:</label>
-            <select
-              id="monthSelect"
-              name="month"
-              onchange="updateFolderStructure()"
-            >
-              <option value="">-- Chọn tháng (nếu cần) --</option>
-              <option value="1">Tháng 1</option>
-              <option value="2">Tháng 2</option>
-              <option value="3">Tháng 3</option>
-              <option value="4">Tháng 4</option>
-              <option value="5">Tháng 5</option>
-              <option value="6">Tháng 6</option>
-              <option value="7">Tháng 7</option>
-              <option value="8">Tháng 8</option>
-              <option value="9">Tháng 9</option>
-              <option value="10">Tháng 10</option>
-              <option value="11">Tháng 11</option>
-              <option value="12">Tháng 12</option>
-            </select>
-          </div>
-
-          <!-- Company specific fields -->
-          <div
-            class="form-group dynamic-form-group"
-            id="companySubcategoryGroup"
-          >
-            <label for="companySubcategorySelect">Chọn loại tài liệu:</label>
-            <select
-              id="companySubcategorySelect"
-              name="companySubcategory"
-              onchange="updateCompanyFields()"
-            >
-              <option value="">-- Chọn loại tài liệu --</option>
-              <option value="Quản lý chung">Quản lý chung</option>
-              <option value="Quy trình & Quy định">Quy trình & Quy định</option>
-              <option value="Nhân sự">Nhân sự</option>
-              <option value="Tài sản & Thiết bị">Tài sản & Thiết bị</option>
-              <option value="CO, CQ & Manual">CO, CQ & Manual</option>
-              <option value="Báo cáo tài chính">Báo cáo tài chính</option>
-            </select>
-          </div>
-
-          <div class="form-group dynamic-form-group" id="documentSubtypeGroup">
-            <label for="documentSubtypeSelect">Chọn chi tiết:</label>
-            <select
-              id="documentSubtypeSelect"
-              name="documentSubtype"
-              onchange="updateFolderStructure()"
-            >
-              <option value="">-- Chọn chi tiết --</option>
-            </select>
-          </div>
-
-          <div class="form-group dynamic-form-group" id="departmentGroup">
-            <label for="departmentInput">Phòng ban:</label>
-            <input
-              type="text"
-              id="departmentInput"
-              name="department"
-              placeholder="Nhập tên phòng ban"
-              oninput="updateFolderStructure()"
-            />
-          </div>
-
-          <div class="form-group dynamic-form-group" id="employeeNameGroup">
-            <label for="employeeNameInput">Tên nhân viên:</label>
-            <input
-              type="text"
-              id="employeeNameInput"
-              name="employeeName"
-              placeholder="Nhập tên nhân viên"
-              oninput="updateFolderStructure()"
-            />
-          </div>
-
-          <div class="form-group dynamic-form-group" id="assetTypeGroup">
-            <label for="assetTypeSelect">Loại tài sản:</label>
-            <select
-              id="assetTypeSelect"
-              name="assetType"
-              onchange="updateAssetFields()"
-            >
-              <option value="">-- Chọn loại tài sản --</option>
-              <option value="Trạm">Trạm</option>
-              <option value="Bồn chứa">Bồn chứa</option>
-              <option value="Thiết bị khác">Thiết bị khác</option>
-            </select>
-          </div>
-
-          <div class="form-group dynamic-form-group" id="assetNameGroup">
-            <label for="assetNameInput">Tên tài sản:</label>
-            <input
-              type="text"
-              id="assetNameInput"
-              name="assetName"
-              placeholder="Nhập tên tài sản"
-              oninput="updateFolderStructure()"
-            />
-          </div>
-
-          <!-- Partner specific fields -->
-          <div class="form-group dynamic-form-group" id="partnerNameGroup">
-            <label for="partnerNameInput">Tên Đối tác:</label>
-            <input
-              type="text"
-              id="partnerNameInput"
-              name="partnerName"
-              placeholder="Nhập tên đối tác"
-              oninput="updateFolderStructure()"
-            />
-          </div>
-
-          <div class="form-group dynamic-form-group" id="contractTypeGroup">
-            <label for="contractTypeSelect">Loại hợp đồng:</label>
-            <select
-              id="contractTypeSelect"
-              name="contractType"
-              onchange="updatePartnerFields()"
-            >
-              <option value="">-- Chọn loại hợp đồng --</option>
-              <option value="Hợp đồng mua">Hợp đồng mua</option>
-              <option value="Hợp đồng bán">Hợp đồng bán</option>
-              <option value="Bảo hành & Khiếu nại">Bảo hành & Khiếu nại</option>
-            </select>
-          </div>
-
-          <div class="form-group dynamic-form-group" id="contractNumberGroup">
-            <label for="contractNumberInput">Số hợp đồng:</label>
-            <input
-              type="text"
-              id="contractNumberInput"
-              name="contractNumber"
-              placeholder="Nhập số hợp đồng"
-              oninput="updateFolderStructure()"
-            />
-          </div>
-
-          <div class="form-group dynamic-form-group" id="documentTypeGroup">
-            <label for="documentTypeSelect">Loại tài liệu:</label>
-            <select
-              id="documentTypeSelect"
-              name="documentType"
-              onchange="updateFolderStructure()"
-            >
-              <option value="">-- Chọn loại tài liệu --</option>
-            </select>
-          </div>
-
-          <!-- Bank specific fields -->
-          <div class="form-group dynamic-form-group" id="bankNameGroup">
-            <label for="bankNameInput">Tên Ngân hàng:</label>
-            <input
-              type="text"
-              id="bankNameInput"
-              name="bankName"
-              placeholder="Nhập tên ngân hàng"
-              oninput="updateFolderStructure()"
-            />
-          </div>
-
-          <div class="form-group dynamic-form-group" id="bankDocumentTypeGroup">
-            <label for="bankDocumentTypeSelect">Loại tài liệu:</label>
-            <select
-              id="bankDocumentTypeSelect"
-              name="documentType"
-              onchange="updateFolderStructure()"
-            >
-              <option value="">-- Chọn loại tài liệu --</option>
-            </select>
-          </div>
-
-          <!-- Legal specific fields -->
-          <div
-            class="form-group dynamic-form-group"
-            id="legalDocumentTypeGroup"
-          >
-            <label for="legalDocumentTypeSelect">Loại tài liệu:</label>
-            <select
-              id="legalDocumentTypeSelect"
-              name="legalDocumentType"
-              onchange="updateFolderStructure()"
-            >
-              <option value="">-- Chọn loại tài liệu --</option>
-            </select>
-          </div>
-
-          <!-- Folder structure display -->
-          <div
-            class="folder-structure"
-            id="folderStructure"
-            style="display: none"
-          >
-            <h4>📁 Tệp tin sẽ được lưu tại:</h4>
-            <div class="folder-path" id="folderPath"></div>
-          </div>
-
-          <button
-            type="button"
-            class="btn btn-primary"
-            onclick="document.getElementById('fileInput').click()"
-          >
-            Chọn Tệp tin
-          </button>
-        </form>
-      </div>
-      <div id="uploadMessage"></div>
-    </div>
-
-    <!-- Pending Files Section -->
-    <div class="pending-files">
-      <h2>Tệp Tin Đang Chờ Duyệt</h2>
-      <div class="filter-section">
-        <div>
-          <label
-            for="pendingCategoryFilter"
-            style="margin-right: 10px; font-weight: bold"
-            >Lọc theo danh mục:</label
-          >
-          <select
-            id="pendingCategoryFilter"
-            onchange="loadPendingFiles()"
-            style="padding: 8px 12px"
-          >
-            <option value="all">Tất cả danh mục</option>
-            <option value="Công ty">Công ty</option>
-            <option value="Đối tác">Đối tác</option>
-            <option value="Ngân hàng">Ngân hàng</option>
-            <option value="Pháp lý">Pháp lý</option>
-          </select>
+        <!-- Statistics Section -->
+        <div class="stats-section" id="statsSection">
+          <!-- Stats will be loaded dynamically -->
         </div>
-        <button onclick="loadPendingFiles()" class="btn btn-primary">
-          🔄 Làm Mới Danh Sách
-        </button>
-      </div>
-      <div id="pendingFilesList" style="margin-top: 20px"></div>
-    </div>
 
-    <!-- Approved Files Section -->
-    <div class="approved-files">
-      <h2>Tệp Tin Đã Được Phê Duyệt</h2>
-
-      <!-- Permission management for admin users -->
-      <div id="permissionManagement" style="display: none">
-        <div class="permission-section">
-          <h3>🛡️ Quản Lý Quyền Xem Tệp Tin</h3>
-          <div class="permission-controls">
-            <div class="form-group">
-              <label for="userSearch">Tìm kiếm người dùng:</label>
+        <!-- File Upload Section -->
+        <div class="upload-section">
+          <h2>Tải Lên Tệp tin</h2>
+          <div class="upload-area" id="uploadArea">
+            <p>Kéo và thả tệp tin vào đây hoặc nhấp vào để chọn tệp tin</p>
+            <form id="uploadForm" enctype="multipart/form-data">
               <input
-                type="text"
-                id="userSearch"
-                placeholder="Nhập tên người dùng..."
-                style="width: 100%; padding: 8px; margin-bottom: 10px"
-                oninput="searchUsers()"
+                type="file"
+                name="file"
+                id="fileInput"
+                style="display: none"
+                required
+              />
+
+              <!-- Category selection -->
+              <div class="form-group">
+                <label for="categorySelect">Chọn danh mục:</label>
+                <select
+                  id="categorySelect"
+                  name="category"
+                  required
+                  onchange="updateFormFields()"
+                >
+                  <option value="">-- Chọn danh mục --</option>
+                  <option value="Công ty">📊 Công ty</option>
+                  <option value="Đối tác">🤝 Đối tác</option>
+                  <option value="Ngân hàng">🏦 Ngân hàng</option>
+                  <option value="Pháp lý">⚖️ Pháp lý</option>
+                </select>
+              </div>
+
+              <!-- Year input -->
+              <div class="form-group">
+                <label for="yearInput">Nhập năm:</label>
+                <input
+                  type="number"
+                  id="yearInput"
+                  name="year"
+                  min="0"
+                  placeholder="VD: 2024, 1999, 2030"
+                  required
+                  class="year-input"
+                  oninput="updateFolderStructure()"
+                />
+              </div>
+
+              <!-- Month selection (optional for some categories) -->
+              <div class="form-group" id="monthGroup">
+                <label for="monthSelect">Chọn tháng:</label>
+                <select
+                  id="monthSelect"
+                  name="month"
+                  onchange="updateFolderStructure()"
+                >
+                  <option value="">-- Chọn tháng (nếu cần) --</option>
+                  <option value="1">Tháng 1</option>
+                  <option value="2">Tháng 2</option>
+                  <option value="3">Tháng 3</option>
+                  <option value="4">Tháng 4</option>
+                  <option value="5">Tháng 5</option>
+                  <option value="6">Tháng 6</option>
+                  <option value="7">Tháng 7</option>
+                  <option value="8">Tháng 8</option>
+                  <option value="9">Tháng 9</option>
+                  <option value="10">Tháng 10</option>
+                  <option value="11">Tháng 11</option>
+                  <option value="12">Tháng 12</option>
+                </select>
+              </div>
+
+              <!-- Company specific fields -->
+              <div
+                class="form-group dynamic-form-group"
+                id="companySubcategoryGroup"
+              >
+                <label for="companySubcategorySelect"
+                  >Chọn loại tài liệu:</label
+                >
+                <select
+                  id="companySubcategorySelect"
+                  name="companySubcategory"
+                  onchange="updateCompanyFields()"
+                >
+                  <option value="">-- Chọn loại tài liệu --</option>
+                  <option value="Quản lý chung">Quản lý chung</option>
+                  <option value="Quy trình & Quy định">
+                    Quy trình & Quy định
+                  </option>
+                  <option value="Nhân sự">Nhân sự</option>
+                  <option value="Tài sản & Thiết bị">Tài sản & Thiết bị</option>
+                  <option value="CO, CQ & Manual">CO, CQ & Manual</option>
+                  <option value="Báo cáo tài chính">Báo cáo tài chính</option>
+                </select>
+              </div>
+
+              <div
+                class="form-group dynamic-form-group"
+                id="documentSubtypeGroup"
+              >
+                <label for="documentSubtypeSelect">Chọn chi tiết:</label>
+                <select
+                  id="documentSubtypeSelect"
+                  name="documentSubtype"
+                  onchange="updateFolderStructure()"
+                >
+                  <option value="">-- Chọn chi tiết --</option>
+                </select>
+              </div>
+
+              <div class="form-group dynamic-form-group" id="departmentGroup">
+                <label for="departmentInput">Phòng ban:</label>
+                <input
+                  type="text"
+                  id="departmentInput"
+                  name="department"
+                  placeholder="Nhập tên phòng ban"
+                  oninput="updateFolderStructure()"
+                />
+              </div>
+
+              <div class="form-group dynamic-form-group" id="employeeNameGroup">
+                <label for="employeeNameInput">Tên nhân viên:</label>
+                <input
+                  type="text"
+                  id="employeeNameInput"
+                  name="employeeName"
+                  placeholder="Nhập tên nhân viên"
+                  oninput="updateFolderStructure()"
+                />
+              </div>
+
+              <div class="form-group dynamic-form-group" id="assetTypeGroup">
+                <label for="assetTypeSelect">Loại tài sản:</label>
+                <select
+                  id="assetTypeSelect"
+                  name="assetType"
+                  onchange="updateAssetFields()"
+                >
+                  <option value="">-- Chọn loại tài sản --</option>
+                  <option value="Trạm">Trạm</option>
+                  <option value="Bồn chứa">Bồn chứa</option>
+                  <option value="Thiết bị khác">Thiết bị khác</option>
+                </select>
+              </div>
+
+              <div class="form-group dynamic-form-group" id="assetNameGroup">
+                <label for="assetNameInput">Tên tài sản:</label>
+                <input
+                  type="text"
+                  id="assetNameInput"
+                  name="assetName"
+                  placeholder="Nhập tên tài sản"
+                  oninput="updateFolderStructure()"
+                />
+              </div>
+
+              <!-- Partner specific fields -->
+              <div class="form-group dynamic-form-group" id="partnerNameGroup">
+                <label for="partnerNameInput">Tên Đối tác:</label>
+                <input
+                  type="text"
+                  id="partnerNameInput"
+                  name="partnerName"
+                  placeholder="Nhập tên đối tác"
+                  oninput="updateFolderStructure()"
+                />
+              </div>
+
+              <div class="form-group dynamic-form-group" id="contractTypeGroup">
+                <label for="contractTypeSelect">Loại hợp đồng:</label>
+                <select
+                  id="contractTypeSelect"
+                  name="contractType"
+                  onchange="updatePartnerFields()"
+                >
+                  <option value="">-- Chọn loại hợp đồng --</option>
+                  <option value="Hợp đồng mua">Hợp đồng mua</option>
+                  <option value="Hợp đồng bán">Hợp đồng bán</option>
+                  <option value="Bảo hành & Khiếu nại">
+                    Bảo hành & Khiếu nại
+                  </option>
+                </select>
+              </div>
+
+              <div
+                class="form-group dynamic-form-group"
+                id="contractNumberGroup"
+              >
+                <label for="contractNumberInput">Số hợp đồng:</label>
+                <input
+                  type="text"
+                  id="contractNumberInput"
+                  name="contractNumber"
+                  placeholder="Nhập số hợp đồng"
+                  oninput="updateFolderStructure()"
+                />
+              </div>
+
+              <div class="form-group dynamic-form-group" id="documentTypeGroup">
+                <label for="documentTypeSelect">Loại tài liệu:</label>
+                <select
+                  id="documentTypeSelect"
+                  name="documentType"
+                  onchange="updateFolderStructure()"
+                >
+                  <option value="">-- Chọn loại tài liệu --</option>
+                </select>
+              </div>
+
+              <!-- Bank specific fields -->
+              <div class="form-group dynamic-form-group" id="bankNameGroup">
+                <label for="bankNameInput">Tên Ngân hàng:</label>
+                <input
+                  type="text"
+                  id="bankNameInput"
+                  name="bankName"
+                  placeholder="Nhập tên ngân hàng"
+                  oninput="updateFolderStructure()"
+                />
+              </div>
+
+              <div
+                class="form-group dynamic-form-group"
+                id="bankDocumentTypeGroup"
+              >
+                <label for="bankDocumentTypeSelect">Loại tài liệu:</label>
+                <select
+                  id="bankDocumentTypeSelect"
+                  name="documentType"
+                  onchange="updateFolderStructure()"
+                >
+                  <option value="">-- Chọn loại tài liệu --</option>
+                </select>
+              </div>
+
+              <!-- Legal specific fields -->
+              <div
+                class="form-group dynamic-form-group"
+                id="legalDocumentTypeGroup"
+              >
+                <label for="legalDocumentTypeSelect">Loại tài liệu:</label>
+                <select
+                  id="legalDocumentTypeSelect"
+                  name="legalDocumentType"
+                  onchange="updateFolderStructure()"
+                >
+                  <option value="">-- Chọn loại tài liệu --</option>
+                </select>
+              </div>
+
+              <!-- Folder structure display -->
+              <div
+                class="folder-structure"
+                id="folderStructure"
+                style="display: none"
+              >
+                <h4>📁 Tệp tin sẽ được lưu tại:</h4>
+                <div class="folder-path" id="folderPath"></div>
+              </div>
+
+              <button
+                type="button"
+                class="fa-btn fa-btn-primary"
+                onclick="document.getElementById('fileInput').click()"
+              >
+                Chọn Tệp tin
+              </button>
+            </form>
+          </div>
+          <div id="uploadMessage"></div>
+        </div>
+
+        <!-- Pending Files Section -->
+        <div class="pending-files">
+          <h2>Tệp Tin Đang Chờ Duyệt</h2>
+          <div class="filter-section">
+            <div>
+              <label
+                for="pendingCategoryFilter"
+                style="margin-right: 10px; font-weight: bold"
+                >Lọc theo danh mục:</label
+              >
+              <select
+                id="pendingCategoryFilter"
+                onchange="loadPendingFiles()"
+                style="padding: 8px 12px"
+              >
+                <option value="all">Tất cả danh mục</option>
+                <option value="Công ty">Công ty</option>
+                <option value="Đối tác">Đối tác</option>
+                <option value="Ngân hàng">Ngân hàng</option>
+                <option value="Pháp lý">Pháp lý</option>
+              </select>
+            </div>
+            <button onclick="loadPendingFiles()" class="fa-btn fa-btn-primary">
+              🔄 Làm Mới Danh Sách
+            </button>
+          </div>
+          <div id="pendingFilesList" style="margin-top: 20px"></div>
+        </div>
+
+        <!-- Approved Files Section -->
+        <div class="approved-files">
+          <h2>Tệp Tin Đã Được Phê Duyệt</h2>
+
+          <!-- Permission management for admin users -->
+          <div id="permissionManagement" style="display: none">
+            <div class="permission-section">
+              <h3>🛡️ Quản Lý Quyền Xem Tệp Tin</h3>
+              <div class="permission-controls">
+                <div class="form-group">
+                  <label for="userSearch">Tìm kiếm người dùng:</label>
+                  <input
+                    type="text"
+                    id="userSearch"
+                    placeholder="Nhập tên người dùng..."
+                    style="width: 100%; padding: 8px; margin-bottom: 10px"
+                    oninput="searchUsers()"
+                  />
+                </div>
+                <div id="userList" class="user-list"></div>
+                <div style="margin-top: 15px">
+                  <button
+                    onclick="saveFilePermissions()"
+                    class="fa-btn fa-btn-success"
+                  >
+                    💾 Lưu Quyền Truy Cập
+                  </button>
+                  <button
+                    onclick="clearFilePermissions()"
+                    class="fa-btn fa-btn-secondary"
+                  >
+                    🗑️ Xóa Tất Cả Quyền
+                  </button>
+                  <button
+                    onclick="closePermissionManagement()"
+                    class="fa-btn fa-btn-secondary"
+                  >
+                    ❌ Đóng
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-section">
+            <div>
+              <label
+                for="approvedCategoryFilter"
+                style="margin-right: 10px; font-weight: bold"
+                >Lọc theo danh mục:</label
+              >
+              <select
+                id="approvedCategoryFilter"
+                onchange="loadApprovedFiles()"
+                style="padding: 8px 12px"
+              >
+                <option value="all">Tất cả danh mục</option>
+                <option value="Công ty">Công ty</option>
+                <option value="Đối tác">Đối tác</option>
+                <option value="Ngân hàng">Ngân hàng</option>
+                <option value="Pháp lý">Pháp lý</option>
+              </select>
+            </div>
+
+            <div id="approvedYearFilterContainer">
+              <label
+                for="approvedYearFilter"
+                style="margin-right: 10px; font-weight: bold"
+                >Năm:</label
+              >
+              <input
+                type="number"
+                id="approvedYearFilter"
+                min="0"
+                placeholder="Nhập năm"
+                style="padding: 8px 12px; width: 120px"
+                onchange="onApprovedYearChange(this.value)"
               />
             </div>
-            <div id="userList" class="user-list"></div>
-            <div style="margin-top: 15px">
-              <button onclick="saveFilePermissions()" class="btn btn-success">
-                💾 Lưu Quyền Truy Cập
-              </button>
-              <button
-                onclick="clearFilePermissions()"
-                class="btn btn-secondary"
+
+            <div id="approvedMonthFilterContainer">
+              <label
+                for="approvedMonthFilter"
+                style="margin-right: 10px; font-weight: bold"
+                >Tháng:</label
               >
-                🗑️ Xóa Tất Cả Quyền
-              </button>
-              <button
-                onclick="closePermissionManagement()"
-                class="btn btn-secondary"
-              >
-                ❌ Đóng
-              </button>
+              <select id="approvedMonthFilter" style="padding: 8px 12px">
+                <option value="">Tất cả tháng</option>
+                <option value="1">Tháng 1</option>
+                <option value="2">Tháng 2</option>
+                <option value="3">Tháng 3</option>
+                <option value="4">Tháng 4</option>
+                <option value="5">Tháng 5</option>
+                <option value="6">Tháng 6</option>
+                <option value="7">Tháng 7</option>
+                <option value="8">Tháng 8</option>
+                <option value="9">Tháng 9</option>
+                <option value="10">Tháng 10</option>
+                <option value="11">Tháng 11</option>
+                <option value="12">Tháng 12</option>
+              </select>
             </div>
+
+            <button onclick="loadApprovedFiles()" class="fa-btn fa-btn-primary">
+              🔍 Lọc
+            </button>
+            <button
+              onclick="clearApprovedFilters()"
+              class="fa-btn fa-btn-secondary"
+            >
+              🔄 Xóa Lọc
+            </button>
           </div>
+
+          <div id="approvedFilesList" style="margin-top: 20px"></div>
         </div>
       </div>
-
-      <div class="filter-section">
-        <div>
-          <label
-            for="approvedCategoryFilter"
-            style="margin-right: 10px; font-weight: bold"
-            >Lọc theo danh mục:</label
-          >
-          <select
-            id="approvedCategoryFilter"
-            onchange="loadApprovedFiles()"
-            style="padding: 8px 12px"
-          >
-            <option value="all">Tất cả danh mục</option>
-            <option value="Công ty">Công ty</option>
-            <option value="Đối tác">Đối tác</option>
-            <option value="Ngân hàng">Ngân hàng</option>
-            <option value="Pháp lý">Pháp lý</option>
-          </select>
-        </div>
-
-        <div id="approvedYearFilterContainer">
-          <label
-            for="approvedYearFilter"
-            style="margin-right: 10px; font-weight: bold"
-            >Năm:</label
-          >
-          <input
-            type="number"
-            id="approvedYearFilter"
-            min="0"
-            placeholder="Nhập năm"
-            style="padding: 8px 12px; width: 120px"
-            onchange="onApprovedYearChange(this.value)"
-          />
-        </div>
-
-        <div id="approvedMonthFilterContainer">
-          <label
-            for="approvedMonthFilter"
-            style="margin-right: 10px; font-weight: bold"
-            >Tháng:</label
-          >
-          <select id="approvedMonthFilter" style="padding: 8px 12px">
-            <option value="">Tất cả tháng</option>
-            <option value="1">Tháng 1</option>
-            <option value="2">Tháng 2</option>
-            <option value="3">Tháng 3</option>
-            <option value="4">Tháng 4</option>
-            <option value="5">Tháng 5</option>
-            <option value="6">Tháng 6</option>
-            <option value="7">Tháng 7</option>
-            <option value="8">Tháng 8</option>
-            <option value="9">Tháng 9</option>
-            <option value="10">Tháng 10</option>
-            <option value="11">Tháng 11</option>
-            <option value="12">Tháng 12</option>
-          </select>
-        </div>
-
-        <button onclick="loadApprovedFiles()" class="btn btn-primary">
-          🔍 Lọc
-        </button>
-        <button onclick="clearApprovedFilters()" class="btn btn-secondary">
-          🔄 Xóa Lọc
-        </button>
-      </div>
-
-      <div id="approvedFilesList" style="margin-top: 20px"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="fileApprovalPages/fileApproval.js?v=1.0"></script>
+    <script src="fileApprovalPages/fileApproval.js?v=1.1"></script>
   </body>
 </html>
