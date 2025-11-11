@@ -3,33 +3,28 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 
 module.exports = async (req, res, next) => {
-  // Get the access token from cookies
   const accessToken = req.cookies.accessToken;
 
-  // If there's no access token, check for a refresh token
   if (!accessToken) {
     return handleRefreshToken(req, res, next);
   }
 
   try {
-    // Verify the access token
     const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
-    req.user = decoded; // Attach decoded user data to the request
-    req._id = decoded.id; // Attach userId to the request
-    req.role = decoded.role; // Attach role to the request
+    req.user = decoded;
+    req._id = decoded.id;
+    req.role = decoded.role;
     req.permissions = decoded.permissions;
     next();
   } catch (err) {
-    // If the access token is expired, try refreshing it
     if (err.name === "TokenExpiredError") {
       return handleRefreshToken(req, res, next);
     } else {
-      return res.send("Invalid token.");
+      return res.redirect("/login");
     }
   }
 };
 
-// Helper function to handle refresh tokens
 async function handleRefreshToken(req, res, next) {
   const refreshToken = req.cookies.refreshToken;
 
@@ -38,16 +33,14 @@ async function handleRefreshToken(req, res, next) {
   }
 
   try {
-    // Verify the refresh token
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-
-    // Find the user in the database
     const user = await User.findById(decoded.id);
+
     if (!user || user.refreshToken !== refreshToken) {
-      return res.status(403).send("Invalid refresh token.");
+      return res.redirect("/login");
     }
 
-    // Generate a new access token
+    // Generate new access token
     const newAccessToken = jwt.sign(
       {
         id: user._id,
@@ -57,25 +50,30 @@ async function handleRefreshToken(req, res, next) {
         permissions: user.permissions,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "15m" } // Short expiration time
+      { expiresIn: "15m" }
     );
 
-    // Set the new access token in a secure cookie
     res.cookie("accessToken", newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 15 * 60 * 1000,
     });
 
-    // Attach the new access token's payload to the request
-    req.user = decoded;
-    req._id = decoded.id;
-    req.role = decoded.role;
+    req.user = {
+      id: user._id,
+      username: user.username,
+      role: user.role,
+      department: user.department,
+      permissions: user.permissions,
+    };
+    req._id = user._id;
+    req.role = user.role;
+    req.permissions = user.permissions;
 
     next();
   } catch (err) {
     console.error(err);
-    return res.send("Invalid refresh token.");
+    return res.redirect("/login");
   }
 }
