@@ -92,6 +92,20 @@ const fileApprovalSchema = new mongoose.Schema({
   actionTakenAt: Date,
   actionTakenBy: String,
   ipAddress: String,
+  // File viewing permissions
+  viewableBy: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  ],
+
+  // Track who set the viewing permissions
+  permissionsSetBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+  permissionsSetAt: Date,
 });
 
 module.exports = mongoose.model("FileApproval", fileApprovalSchema);

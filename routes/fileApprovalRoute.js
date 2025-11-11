@@ -37,62 +37,107 @@ router.get("/fileApproval", authMiddleware, (req, res) => {
 
 router.post(
   "/fileApprovalControl/upload",
+  authMiddleware,
   upload.single("file"),
   fileApprovalController.uploadFile
 );
 
+// FIXED: Put specific routes BEFORE parameterized routes to avoid conflicts
 router.get(
   "/fileApprovalControl/pending",
+  authMiddleware,
   fileApprovalController.getPendingFiles
 );
+
+// NEW ROUTES FOR APPROVED FILES - MUST COME BEFORE :id ROUTE
+router.get(
+  "/fileApprovalControl/approved",
+  authMiddleware,
+  fileApprovalController.getApprovedFiles
+);
+
+router.get(
+  "/fileApprovalControl/eligible-users",
+  authMiddleware,
+  fileApprovalController.getEligibleUsers
+);
+
 router.get(
   "/fileApprovalControl/history",
+  authMiddleware,
   fileApprovalController.getFileHistory
 );
-router.get("/fileApprovalControl/:id", fileApprovalController.getFileById);
-router.post(
-  "/fileApprovalControl/:id/approve",
-  fileApprovalController.approveFile
-);
-router.post(
-  "/fileApprovalControl/:id/reject",
-  fileApprovalController.rejectFile
+
+// Get statistics
+router.get(
+  "/fileApprovalControl/categories/stats",
+  authMiddleware,
+  fileApprovalController.getCategoriesWithCounts
 );
 
 // Fixed routes without optional parameters
 router.get(
   "/fileApprovalControl/category/:category",
+  authMiddleware,
   fileApprovalController.getFilesByCategory
 );
+
 router.get(
   "/fileApprovalControl/category/:category/:status",
+  authMiddleware,
   fileApprovalController.getFilesByCategory
 );
-router.get(
-  "/fileApprovalControl/categories/stats",
-  fileApprovalController.getCategoriesWithCounts
-);
+
 // Get available years for a category
 router.get(
   "/fileApprovalControl/category/:category/years",
+  authMiddleware,
   fileApprovalController.getAvailableYears
 );
 
 // Get available months for a category and year
 router.get(
   "/fileApprovalControl/category/:category/year/:year/months",
+  authMiddleware,
   fileApprovalController.getAvailableMonths
 );
 
 // Get files by category, year, and month
 router.get(
   "/fileApprovalControl/category/:category/year/:year/month/:month",
+  authMiddleware,
   fileApprovalController.getFilesByCategoryYearMonth
 );
 
 router.get(
   "/fileApprovalControl/category/:category/year/:year/month/:month/:status",
+  authMiddleware,
   fileApprovalController.getFilesByCategoryYearMonth
+);
+
+// PARAMETERIZED ROUTES MUST COME LAST
+router.get(
+  "/fileApprovalControl/:id",
+  authMiddleware,
+  fileApprovalController.getFileById
+);
+
+router.post(
+  "/fileApprovalControl/:id/approve",
+  authMiddleware,
+  fileApprovalController.approveFile
+);
+
+router.post(
+  "/fileApprovalControl/:id/reject",
+  authMiddleware,
+  fileApprovalController.rejectFile
+);
+
+router.post(
+  "/fileApprovalControl/:fileId/permissions",
+  authMiddleware,
+  fileApprovalController.setFilePermissions
 );
 
 module.exports = router;

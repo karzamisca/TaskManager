@@ -3,6 +3,7 @@ const axios = require("axios");
 const path = require("path");
 const fs = require("fs");
 const FileApproval = require("../models/FileApproval");
+const User = require("../models/User");
 require("dotenv").config();
 
 class NextcloudController {
@@ -48,6 +49,11 @@ class NextcloudController {
     this.getSubcategoryPath = this.getSubcategoryPath.bind(this);
     this.convertToAsciiFolderName = this.convertToAsciiFolderName.bind(this);
     this.isMonthlyDocument = this.isMonthlyDocument.bind(this);
+
+    // New methods for approved file viewing
+    this.getApprovedFiles = this.getApprovedFiles.bind(this);
+    this.setFilePermissions = this.setFilePermissions.bind(this);
+    this.getEligibleUsers = this.getEligibleUsers.bind(this);
   }
 
   // Helper method to convert Vietnamese categories to ASCII folder names
@@ -642,7 +648,162 @@ class NextcloudController {
     return mimeTypes[ext] || "application/octet-stream";
   }
 
-  // Controller Methods
+  // NEW METHODS FOR APPROVED FILE VIEWING
+
+  // Get approved files with permission filtering
+  async getApprovedFiles(req, res) {
+    try {
+      // Get user info from the auth middleware
+      const userId = req.user.id; // From JWT token
+      const userRole = req.user.role;
+
+      console.log("Getting approved files for user:", {
+        userId: userId,
+        role: userRole,
+        userObject: req.user,
+      });
+
+      const { category, year, month } = req.query;
+
+      const userRoles = ["superAdmin", "deputyDirector", "director"];
+
+      let query = { status: "approved" };
+
+      // Add category filter if provided
+      if (category && category !== "all") {
+        query.category = category;
+      }
+
+      // Add year filter if provided
+      if (year && year !== "") {
+        query.year = parseInt(year);
+      }
+
+      // Add month filter if provided
+      if (month && month !== "") {
+        query.month = parseInt(month);
+      }
+
+      // If user is not superAdmin, deputyDirector, or director, filter by permissions
+      if (!userRoles.includes(userRole)) {
+        console.log(
+          `User ${userId} with role ${userRole} needs permission filtering`
+        );
+
+        // Use the actual user ID from the token
+        query.$or = [
+          { viewableBy: { $in: [userId] } }, // userId is already a string from JWT
+          { viewableBy: { $exists: true, $size: 0 } }, // Files with no restrictions (empty array)
+        ];
+
+        console.log("Permission query:", JSON.stringify(query));
+      } else {
+        console.log(`User ${userId} with role ${userRole} can see all files`);
+      }
+
+      const approvedFiles = await FileApproval.find(query)
+        .populate("viewableBy", "username realName role department")
+        .populate("permissionsSetBy", "username realName")
+        .sort({ actionTakenAt: -1 });
+
+      console.log(
+        `Found ${approvedFiles.length} approved files for user ${userId}`
+      );
+
+      // Log file visibility for debugging
+      approvedFiles.forEach((file) => {
+        const canView =
+          userRoles.includes(userRole) ||
+          file.viewableBy.length === 0 ||
+          file.viewableBy.some(
+            (viewableUser) => viewableUser._id.toString() === userId.toString()
+          );
+        console.log(
+          `File ${file._id}: ${file.originalName}, canView: ${canView}, viewableBy: ${file.viewableBy.length} users`
+        );
+      });
+
+      res.json(approvedFiles);
+    } catch (error) {
+      console.error("Error fetching approved files:", error);
+      res
+        .status(500)
+        .json({ error: "Failed to fetch approved files: " + error.message });
+    }
+  }
+
+  // Set file viewing permissions
+  async setFilePermissions(req, res) {
+    try {
+      const { fileId } = req.params;
+      const { viewableBy } = req.body;
+
+      console.log(
+        "Setting permissions for file:",
+        fileId,
+        "viewableBy:",
+        viewableBy
+      );
+
+      const fileApproval = await FileApproval.findById(fileId);
+
+      if (!fileApproval) {
+        return res.status(404).json({ error: "File not found" });
+      }
+
+      // Check if user has permission to set permissions
+      const userRoles = ["superAdmin", "deputyDirector", "director"];
+      if (!userRoles.includes(req.user.role)) {
+        return res.status(403).json({ error: "Insufficient permissions" });
+      }
+
+      // Ensure viewableBy contains valid user IDs
+      fileApproval.viewableBy = viewableBy || [];
+      fileApproval.permissionsSetBy = req.user._id;
+      fileApproval.permissionsSetAt = new Date();
+
+      await fileApproval.save();
+
+      // Populate the response for better frontend display
+      await fileApproval.populate(
+        "viewableBy",
+        "username realName role department"
+      );
+      await fileApproval.populate("permissionsSetBy", "username realName");
+
+      console.log("Permissions set successfully for file:", fileId);
+      console.log(
+        "Now viewable by:",
+        fileApproval.viewableBy.map((u) => u.username)
+      );
+
+      res.json({
+        success: true,
+        message: "File viewing permissions updated successfully",
+        file: fileApproval,
+      });
+    } catch (error) {
+      console.error("Error setting file permissions:", error);
+      res
+        .status(500)
+        .json({ error: "Failed to set file permissions: " + error.message });
+    }
+  }
+
+  // Get eligible users for permission assignment (excluding high-level roles)
+  async getEligibleUsers(req, res) {
+    try {
+      const users = await User.find({
+        role: { $nin: ["superAdmin", "deputyDirector", "director"] },
+      }).select("username realName role department");
+
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching eligible users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  }
+
   async uploadFile(req, res) {
     try {
       if (!req.file) {
@@ -709,11 +870,9 @@ class NextcloudController {
       }
 
       if (category === "Pháp lý" && !legalDocumentType) {
-        return res
-          .status(400)
-          .json({
-            error: "Legal document type is required for Pháp lý category",
-          });
+        return res.status(400).json({
+          error: "Legal document type is required for Pháp lý category",
+        });
       }
 
       console.log("File upload request:", {
@@ -783,6 +942,8 @@ class NextcloudController {
         status: "pending",
         ipAddress: req.ip,
         uploadedBy: req.user ? req.user.username : "anonymous",
+        // Initialize viewableBy as empty array (visible to all)
+        viewableBy: [],
       });
 
       await fileApproval.save();

@@ -1,4 +1,3 @@
-<!-- views/fileApprovalPages/fileApproval.html -->
 <!DOCTYPE html>
 <html lang="vi">
   <head>
@@ -15,7 +14,7 @@
       }
       .upload-section,
       .pending-files,
-      .history {
+      .approved-files {
         margin-bottom: 30px;
         padding: 20px;
         background: white;
@@ -85,6 +84,13 @@
       }
       .btn-secondary:hover {
         background-color: #545b62;
+      }
+      .btn-success {
+        background-color: #28a745;
+        color: white;
+      }
+      .btn-success:hover {
+        background-color: #218838;
       }
       .btn:disabled {
         background-color: #6c757d;
@@ -272,6 +278,44 @@
       }
       .dynamic-form-group {
         display: none;
+      }
+      .permission-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #17a2b8;
+      }
+      .user-list {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        background: white;
+      }
+      .user-item {
+        padding: 8px;
+        border: 1px solid #eee;
+        margin-bottom: 5px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .user-item:hover {
+        background-color: #f8f9fa;
+      }
+      .user-item.selected {
+        background-color: #e3f2fd;
+        border-color: #2196f3;
+      }
+      .permission-badge {
+        background-color: #17a2b8;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        margin-left: 8px;
       }
     </style>
   </head>
@@ -569,19 +613,57 @@
       <div id="pendingFilesList" style="margin-top: 20px"></div>
     </div>
 
-    <!-- History Section -->
-    <div class="history">
-      <h2>Lịch Sử Tệp Tin Đã Phê Duyệt</h2>
+    <!-- Approved Files Section -->
+    <div class="approved-files">
+      <h2>Tệp Tin Đã Được Phê Duyệt</h2>
+
+      <!-- Permission management for admin users -->
+      <div id="permissionManagement" style="display: none">
+        <div class="permission-section">
+          <h3>🛡️ Quản Lý Quyền Xem Tệp Tin</h3>
+          <div class="permission-controls">
+            <div class="form-group">
+              <label for="userSearch">Tìm kiếm người dùng:</label>
+              <input
+                type="text"
+                id="userSearch"
+                placeholder="Nhập tên người dùng..."
+                style="width: 100%; padding: 8px; margin-bottom: 10px"
+                oninput="searchUsers()"
+              />
+            </div>
+            <div id="userList" class="user-list"></div>
+            <div style="margin-top: 15px">
+              <button onclick="saveFilePermissions()" class="btn btn-success">
+                💾 Lưu Quyền Truy Cập
+              </button>
+              <button
+                onclick="clearFilePermissions()"
+                class="btn btn-secondary"
+              >
+                🗑️ Xóa Tất Cả Quyền
+              </button>
+              <button
+                onclick="closePermissionManagement()"
+                class="btn btn-secondary"
+              >
+                ❌ Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="filter-section">
         <div>
           <label
-            for="historyCategoryFilter"
+            for="approvedCategoryFilter"
             style="margin-right: 10px; font-weight: bold"
             >Lọc theo danh mục:</label
           >
           <select
-            id="historyCategoryFilter"
-            onchange="onHistoryCategoryChange(this.value)"
+            id="approvedCategoryFilter"
+            onchange="loadApprovedFiles()"
             style="padding: 8px 12px"
           >
             <option value="all">Tất cả danh mục</option>
@@ -592,29 +674,29 @@
           </select>
         </div>
 
-        <div id="historyYearFilterContainer" style="display: none">
+        <div id="approvedYearFilterContainer">
           <label
-            for="historyYearFilter"
+            for="approvedYearFilter"
             style="margin-right: 10px; font-weight: bold"
             >Năm:</label
           >
           <input
             type="number"
-            id="historyYearFilter"
+            id="approvedYearFilter"
             min="0"
             placeholder="Nhập năm"
             style="padding: 8px 12px; width: 120px"
-            onchange="onHistoryYearChange(this.value)"
+            onchange="onApprovedYearChange(this.value)"
           />
         </div>
 
-        <div id="historyMonthFilterContainer" style="display: none">
+        <div id="approvedMonthFilterContainer">
           <label
-            for="historyMonthFilter"
+            for="approvedMonthFilter"
             style="margin-right: 10px; font-weight: bold"
             >Tháng:</label
           >
-          <select id="historyMonthFilter" style="padding: 8px 12px">
+          <select id="approvedMonthFilter" style="padding: 8px 12px">
             <option value="">Tất cả tháng</option>
             <option value="1">Tháng 1</option>
             <option value="2">Tháng 2</option>
@@ -631,15 +713,24 @@
           </select>
         </div>
 
-        <button onclick="loadHistory()" class="btn btn-primary">🔍 Lọc</button>
-        <button onclick="clearHistoryFilters()" class="btn btn-secondary">
+        <button onclick="loadApprovedFiles()" class="btn btn-primary">
+          🔍 Lọc
+        </button>
+        <button onclick="clearApprovedFilters()" class="btn btn-secondary">
           🔄 Xóa Lọc
         </button>
       </div>
-      <div id="historyList" style="margin-top: 20px"></div>
+
+      <div id="approvedFilesList" style="margin-top: 20px"></div>
     </div>
 
     <script>
+      // Global variables
+      let currentUserRole = "user"; // This should be set from your authentication system
+      let selectedFileId = null;
+      let selectedUsers = new Set();
+      let allUsers = [];
+
       // Month names in Vietnamese
       const monthNames = {
         1: "Tháng 1",
@@ -1159,43 +1250,346 @@
         folderStructure.style.display = "block";
       }
 
-      // Handle category change in history filter
-      function onHistoryCategoryChange(category) {
-        const yearContainer = document.getElementById(
-          "historyYearFilterContainer"
-        );
-        const monthContainer = document.getElementById(
-          "historyMonthFilterContainer"
-        );
+      // Check user role and show/hide permission management
+      function checkUserRole() {
+        const userRoles = ["superAdmin", "deputyDirector", "director"];
 
-        if (category && category !== "all") {
-          yearContainer.style.display = "block";
-          monthContainer.style.display = "block";
-          // Clear year input when category changes
-          document.getElementById("historyYearFilter").value = "";
-          document.getElementById("historyMonthFilter").value = "";
-        } else {
-          yearContainer.style.display = "none";
-          monthContainer.style.display = "none";
-          loadHistory();
+        // In a real application, you would get this from your authentication system
+        // For now, we'll set it manually for demonstration
+        currentUserRole = "superAdmin"; // Change this to test different roles
+
+        if (userRoles.includes(currentUserRole)) {
+          document.getElementById("permissionManagement").style.display =
+            "block";
         }
       }
 
-      // Handle year change in history filter
-      function onHistoryYearChange(year) {
-        console.log("Year changed to:", year);
+      // Load approved files with permission filtering
+      async function loadApprovedFiles() {
+        try {
+          const category = document.getElementById(
+            "approvedCategoryFilter"
+          ).value;
+          const year = document.getElementById("approvedYearFilter").value;
+          const month = document.getElementById("approvedMonthFilter").value;
+
+          let url = "/fileApprovalControl/approved";
+          const params = new URLSearchParams();
+
+          if (category !== "all") params.append("category", category);
+          if (year) params.append("year", year);
+          if (month) params.append("month", month);
+
+          if (params.toString()) {
+            url += "?" + params.toString();
+          }
+
+          const response = await fetch(url);
+          const files = await response.json();
+
+          displayApprovedFiles(files);
+        } catch (error) {
+          console.error("Lỗi khi tải file đã phê duyệt:", error);
+          showMessage(
+            "Lỗi khi tải file đã phê duyệt: " + error.message,
+            "error"
+          );
+        }
       }
 
-      // Clear history filters
-      function clearHistoryFilters() {
-        document.getElementById("historyCategoryFilter").value = "all";
-        document.getElementById("historyYearFilter").value = "";
-        document.getElementById("historyMonthFilter").value = "";
-        document.getElementById("historyYearFilterContainer").style.display =
-          "none";
-        document.getElementById("historyMonthFilterContainer").style.display =
-          "none";
-        loadHistory();
+      // Display approved files
+      function displayApprovedFiles(files) {
+        const approvedList = document.getElementById("approvedFilesList");
+        approvedList.innerHTML = "";
+
+        if (files.length === 0) {
+          approvedList.innerHTML =
+            '<p style="text-align: center; color: #666;">Không có tệp tin nào được phê duyệt</p>';
+          return;
+        }
+
+        files.forEach((file) => {
+          const categoryClass = getCategoryClass(file.category);
+          const fileElement = document.createElement("div");
+          fileElement.className = "file-item";
+
+          let permissionInfo = "";
+          if (file.viewableBy && file.viewableBy.length > 0) {
+            permissionInfo = `<br><small style="color: #666;">📋 Chỉ hiển thị cho ${file.viewableBy.length} người dùng được chọn</small>`;
+          } else {
+            permissionInfo = `<br><small style="color: #666;">🌐 Hiển thị cho tất cả người dùng</small>`;
+          }
+
+          let details = `
+                    <span class="category-badge ${categoryClass}">${
+            file.category
+          }</span> 
+                    <span class="time-badge">${file.year}${
+            file.month ? "/" + monthNames[file.month] : ""
+          }</span>
+                    Trạng thái: <span class="status-approved">ĐÃ PHÊ DUYỆT</span> | 
+                    Kích thước: ${formatFileSize(file.fileSize)} | 
+                    Phê duyệt bởi: ${file.actionTakenBy} lúc ${new Date(
+            file.actionTakenAt
+          ).toLocaleString()}
+                    ${permissionInfo}
+                `;
+
+          // Add subcategory details
+          if (file.companySubcategory) {
+            details += `<br>Loại: ${file.companySubcategory}`;
+            if (file.documentSubtype) details += ` → ${file.documentSubtype}`;
+            if (file.department) details += ` → ${file.department}`;
+            if (file.employeeName) details += ` → ${file.employeeName}`;
+          } else if (file.partnerName) {
+            details += `<br>Đối tác: ${file.partnerName}`;
+            if (file.contractType) details += ` → ${file.contractType}`;
+            if (file.contractNumber) details += ` → ${file.contractNumber}`;
+          } else if (file.bankName) {
+            details += `<br>Ngân hàng: ${file.bankName}`;
+          } else if (file.legalDocumentType) {
+            details += `<br>Loại tài liệu: ${file.legalDocumentType}`;
+          }
+
+          const permissionButton = [
+            "superAdmin",
+            "deputyDirector",
+            "director",
+          ].includes(currentUserRole)
+            ? `<button class="btn btn-secondary" onclick="openPermissionModal('${file._id}')" style="margin-left: 10px;">🛡️ Quản lý quyền</button>`
+            : "";
+
+          fileElement.innerHTML = `
+                    <div class="file-info">
+                        <div class="file-name">${file.originalName}</div>
+                        <div class="file-details">
+                            ${details}
+                            ${
+                              file.shareUrl
+                                ? `<br><a href="${file.shareUrl}" target="_blank" class="btn btn-view" style="margin-top: 5px;">Xem tệp tin</a>`
+                                : ""
+                            }
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        ${permissionButton}
+                    </div>
+                `;
+          approvedList.appendChild(fileElement);
+        });
+      }
+
+      // Open permission management modal
+      async function openPermissionModal(fileId) {
+        selectedFileId = fileId;
+        selectedUsers.clear();
+
+        // Load eligible users
+        try {
+          const response = await fetch("/fileApprovalControl/eligible-users");
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          allUsers = await response.json();
+          displayUserList(allUsers);
+
+          // Load current permissions for this file
+          const fileResponse = await fetch(`/fileApprovalControl/${fileId}`);
+          if (!fileResponse.ok) {
+            throw new Error(`HTTP error! status: ${fileResponse.status}`);
+          }
+          const file = await fileResponse.json();
+
+          console.log("Current file permissions:", file);
+
+          if (file.viewableBy && Array.isArray(file.viewableBy)) {
+            file.viewableBy.forEach((user) => {
+              // Make sure we're storing the user ID as string
+              if (user && user._id) {
+                selectedUsers.add(user._id.toString());
+              }
+            });
+            updateUserListSelection();
+          }
+
+          // Show permission management section
+          document.getElementById("permissionManagement").style.display =
+            "block";
+          document
+            .getElementById("permissionManagement")
+            .scrollIntoView({ behavior: "smooth" });
+        } catch (error) {
+          console.error("Error loading permission data:", error);
+          showMessage(
+            "Lỗi khi tải dữ liệu quyền truy cập: " + error.message,
+            "error"
+          );
+        }
+      }
+
+      // Display user list for permission assignment
+      function displayUserList(users) {
+        const userList = document.getElementById("userList");
+        userList.innerHTML = "";
+
+        users.forEach((user) => {
+          const userElement = document.createElement("div");
+          userElement.className = "user-item";
+          userElement.setAttribute("data-user-id", user._id);
+          userElement.innerHTML = `
+                    <input type="checkbox" id="user-${user._id}" value="${
+            user._id
+          }" 
+                           onchange="toggleUserSelection('${user._id}')">
+                    <label for="user-${
+                      user._id
+                    }" style="margin-left: 8px; cursor: pointer;">
+                        ${user.realName || user.username} (${user.role}) - ${
+            user.department
+          }
+                    </label>
+                `;
+          userList.appendChild(userElement);
+        });
+      }
+
+      // Search users
+      function searchUsers() {
+        const searchTerm = document
+          .getElementById("userSearch")
+          .value.toLowerCase();
+        const filteredUsers = allUsers.filter(
+          (user) =>
+            (user.realName &&
+              user.realName.toLowerCase().includes(searchTerm)) ||
+            (user.username &&
+              user.username.toLowerCase().includes(searchTerm)) ||
+            (user.department &&
+              user.department.toLowerCase().includes(searchTerm))
+        );
+        displayUserList(filteredUsers);
+        updateUserListSelection();
+      }
+
+      // Toggle user selection
+      function toggleUserSelection(userId) {
+        if (selectedUsers.has(userId)) {
+          selectedUsers.delete(userId);
+        } else {
+          selectedUsers.add(userId);
+        }
+        updateUserListSelection();
+      }
+
+      // Update user list selection display
+      function updateUserListSelection() {
+        document.querySelectorAll(".user-item").forEach((item) => {
+          const userId = item.getAttribute("data-user-id");
+          const checkbox = item.querySelector('input[type="checkbox"]');
+          if (checkbox) {
+            checkbox.checked = selectedUsers.has(userId);
+            if (selectedUsers.has(userId)) {
+              item.classList.add("selected");
+            } else {
+              item.classList.remove("selected");
+            }
+          }
+        });
+      }
+
+      // Save file permissions
+      async function saveFilePermissions() {
+        if (!selectedFileId) {
+          showMessage("Vui lòng chọn tệp tin trước", "error");
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            `/fileApprovalControl/${selectedFileId}/permissions`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                viewableBy: Array.from(selectedUsers),
+              }),
+            }
+          );
+
+          const result = await response.json();
+
+          if (result.success) {
+            showMessage("Đã cập nhật quyền truy cập thành công", "success");
+            loadApprovedFiles(); // Refresh the list
+          } else {
+            showMessage(
+              "Lỗi khi cập nhật quyền truy cập: " + result.error,
+              "error"
+            );
+          }
+        } catch (error) {
+          console.error("Error saving permissions:", error);
+          showMessage("Lỗi khi lưu quyền truy cập", "error");
+        }
+      }
+
+      // Clear all permissions for current file
+      async function clearFilePermissions() {
+        if (!selectedFileId) {
+          showMessage("Vui lòng chọn tệp tin trước", "error");
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            `/fileApprovalControl/${selectedFileId}/permissions`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                viewableBy: [],
+              }),
+            }
+          );
+
+          const result = await response.json();
+
+          if (result.success) {
+            showMessage("Đã xóa tất cả quyền truy cập", "success");
+            selectedUsers.clear();
+            updateUserListSelection();
+            loadApprovedFiles(); // Refresh the list
+          } else {
+            showMessage("Lỗi khi xóa quyền truy cập: " + result.error, "error");
+          }
+        } catch (error) {
+          console.error("Error clearing permissions:", error);
+          showMessage("Lỗi khi xóa quyền truy cập", "error");
+        }
+      }
+
+      // Close permission management
+      function closePermissionManagement() {
+        document.getElementById("permissionManagement").style.display = "none";
+        selectedFileId = null;
+        selectedUsers.clear();
+      }
+
+      // Clear approved files filters
+      function clearApprovedFilters() {
+        document.getElementById("approvedCategoryFilter").value = "all";
+        document.getElementById("approvedYearFilter").value = "";
+        document.getElementById("approvedMonthFilter").value = "";
+        loadApprovedFiles();
+      }
+
+      // Handle year change in approved files filter
+      function onApprovedYearChange(year) {
+        console.log("Year changed to:", year);
       }
 
       // Load statistics
@@ -1211,12 +1605,12 @@
             const statCard = document.createElement("div");
             statCard.className = "stat-card";
             statCard.innerHTML = `
-                        <h3>${cat._id}</h3>
-                        <div class="count">${cat.total}</div>
-                        <div class="sub-counts">
-                            Đang chờ: ${cat.pending} | Đã duyệt: ${cat.approved} | Từ chối: ${cat.rejected}
-                        </div>
-                    `;
+                                <h3>${cat._id}</h3>
+                                <div class="count">${cat.total}</div>
+                                <div class="sub-counts">
+                                    Đang chờ: ${cat.pending} | Đã duyệt: ${cat.approved} | Từ chối: ${cat.rejected}
+                                </div>
+                            `;
             statsSection.appendChild(statCard);
           });
         } catch (error) {
@@ -1348,7 +1742,7 @@
             updateFormFields();
 
             loadPendingFiles();
-            loadHistory();
+            loadApprovedFiles();
             loadStatistics();
           } else {
             showMessage("Tải lên thất bại: " + result.error, "error");
@@ -1388,18 +1782,18 @@
             const categoryClass = getCategoryClass(file.category);
 
             let details = `
-                        <span class="category-badge ${categoryClass}">${
+                                <span class="category-badge ${categoryClass}">${
               file.category
             }</span>
-                        <span class="time-badge">${file.year}${
+                                <span class="time-badge">${file.year}${
               file.month ? "/" + monthNames[file.month] : ""
             }</span>
-                        Kích thước: ${formatFileSize(file.fileSize)} | 
-                        Thời gian tải lên: ${new Date(
-                          file.uploadedAt
-                        ).toLocaleString()} |
-                        Người tải lên: ${file.uploadedBy || "Ẩn danh"}
-                    `;
+                                Kích thước: ${formatFileSize(file.fileSize)} | 
+                                Thời gian tải lên: ${new Date(
+                                  file.uploadedAt
+                                ).toLocaleString()} |
+                                Người tải lên: ${file.uploadedBy || "Ẩn danh"}
+                            `;
 
             // Add subcategory details
             if (file.companySubcategory) {
@@ -1418,142 +1812,34 @@
             }
 
             fileElement.innerHTML = `
-                        <div class="file-info">
-                            <div class="file-name">${file.originalName}</div>
-                            <div class="file-details">
-                                ${details}
-                                ${
-                                  file.shareUrl
-                                    ? `<a href="${file.shareUrl}" target="_blank" class="btn btn-view" style="margin-top: 5px;">Xem tệp tin</a>`
-                                    : ""
-                                }
-                            </div>
-                        </div>
-                        <div class="file-actions">
-                            <button class="btn btn-approve" onclick="approveFile('${
-                              file._id
-                            }')">Phê Duyệt</button>
-                            <button class="btn btn-reject" onclick="rejectFile('${
-                              file._id
-                            }')">Từ Chối</button>
-                        </div>
-                    `;
+                                <div class="file-info">
+                                    <div class="file-name">${
+                                      file.originalName
+                                    }</div>
+                                    <div class="file-details">
+                                        ${details}
+                                        ${
+                                          file.shareUrl
+                                            ? `<a href="${file.shareUrl}" target="_blank" class="btn btn-view" style="margin-top: 5px;">Xem tệp tin</a>`
+                                            : ""
+                                        }
+                                    </div>
+                                </div>
+                                <div class="file-actions">
+                                    <button class="btn btn-approve" onclick="approveFile('${
+                                      file._id
+                                    }')">Phê Duyệt</button>
+                                    <button class="btn btn-reject" onclick="rejectFile('${
+                                      file._id
+                                    }')">Từ Chối</button>
+                                </div>
+                            `;
             filesList.appendChild(fileElement);
           });
         } catch (error) {
           console.error("Lỗi khi tải file chờ duyệt:", error);
           showMessage("Lỗi khi tải file chờ duyệt: " + error.message, "error");
         }
-      }
-
-      // Load history
-      async function loadHistory() {
-        try {
-          const category = document.getElementById(
-            "historyCategoryFilter"
-          ).value;
-          const year = document.getElementById("historyYearFilter").value;
-          const month = document.getElementById("historyMonthFilter").value;
-
-          let url = "/fileApprovalControl/history";
-          let filteredFiles = [];
-
-          if (category !== "all") {
-            if (year && month) {
-              const response = await fetch(
-                `/fileApprovalControl/category/${category}/year/${year}/month/${month}`
-              );
-              filteredFiles = await response.json();
-            } else {
-              const response = await fetch(
-                `/fileApprovalControl/category/${category}`
-              );
-              const allFiles = await response.json();
-              filteredFiles = allFiles.filter((file) => {
-                let match = true;
-                if (year) match = match && file.year == year;
-                if (month) match = match && file.month == month;
-                return match;
-              });
-            }
-          } else {
-            const response = await fetch(url);
-            const allFiles = await response.json();
-            filteredFiles = allFiles;
-          }
-
-          displayHistoryFiles(filteredFiles);
-        } catch (error) {
-          console.error("Lỗi khi tải lịch sử:", error);
-          showMessage("Lỗi khi tải lịch sử: " + error.message, "error");
-        }
-      }
-
-      // Display history files
-      function displayHistoryFiles(files) {
-        const historyList = document.getElementById("historyList");
-        historyList.innerHTML = "";
-
-        const approvedFiles = files.filter(
-          (file) => file.status === "approved"
-        );
-
-        if (approvedFiles.length === 0) {
-          historyList.innerHTML =
-            '<p style="text-align: center; color: #666;">Chưa có tệp tin nào được phê duyệt</p>';
-          return;
-        }
-
-        approvedFiles.forEach((file) => {
-          const categoryClass = getCategoryClass(file.category);
-          const fileElement = document.createElement("div");
-          fileElement.className = "file-item";
-
-          let details = `
-                    <span class="category-badge ${categoryClass}">${
-            file.category
-          }</span> 
-                    <span class="time-badge">${file.year}${
-            file.month ? "/" + monthNames[file.month] : ""
-          }</span>
-                    Trạng thái: <span class="status-approved">ĐÃ PHÊ DUYỆT</span> | 
-                    Kích thước: ${formatFileSize(file.fileSize)} | 
-                    Hành động: ${file.actionTakenBy} lúc ${new Date(
-            file.actionTakenAt
-          ).toLocaleString()}
-                `;
-
-          // Add subcategory details
-          if (file.companySubcategory) {
-            details += `<br>Loại: ${file.companySubcategory}`;
-            if (file.documentSubtype) details += ` → ${file.documentSubtype}`;
-            if (file.department) details += ` → ${file.department}`;
-            if (file.employeeName) details += ` → ${file.employeeName}`;
-          } else if (file.partnerName) {
-            details += `<br>Đối tác: ${file.partnerName}`;
-            if (file.contractType) details += ` → ${file.contractType}`;
-            if (file.contractNumber) details += ` → ${file.contractNumber}`;
-          } else if (file.bankName) {
-            details += `<br>Ngân hàng: ${file.bankName}`;
-          } else if (file.legalDocumentType) {
-            details += `<br>Loại tài liệu: ${file.legalDocumentType}`;
-          }
-
-          fileElement.innerHTML = `
-                    <div class="file-info">
-                        <div class="file-name">${file.originalName}</div>
-                        <div class="file-details">
-                            ${details}
-                            ${
-                              file.shareUrl
-                                ? `<br><a href="${file.shareUrl}" target="_blank" class="btn btn-view" style="margin-top: 5px;">Xem tệp tin</a>`
-                                : ""
-                            }
-                        </div>
-                    </div>
-                `;
-          historyList.appendChild(fileElement);
-        });
       }
 
       // Approve file
@@ -1585,7 +1871,7 @@
               "success"
             );
             loadPendingFiles();
-            loadHistory();
+            loadApprovedFiles();
             loadStatistics();
           } else {
             showMessage("Phê duyệt thất bại: " + result.error, "error");
@@ -1666,7 +1952,8 @@
 
         loadStatistics();
         loadPendingFiles();
-        loadHistory();
+        loadApprovedFiles();
+        checkUserRole();
       });
     </script>
   </body>
