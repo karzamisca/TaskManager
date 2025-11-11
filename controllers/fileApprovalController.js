@@ -177,9 +177,9 @@ class NextcloudController {
 
     return text
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "") // Remove accents
-      .replace(/[^a-zA-Z0-9\s]/g, "") // Remove special characters
-      .replace(/\s+/g, "_") // Replace spaces with underscores
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z0-9\s]/g, "")
+      .replace(/\s+/g, "_")
       .toLowerCase();
   }
 
@@ -404,10 +404,8 @@ class NextcloudController {
         // Create Approved category folder base
         await this.ensureDirectoryExists(`Approved/${folderName}`);
       }
-
-      console.log("All category folders initialized successfully");
     } catch (error) {
-      console.error("Error initializing category folders:", error);
+      throw error;
     }
   }
 
@@ -445,35 +443,23 @@ class NextcloudController {
         },
       });
       this.storeCookies(response);
-      console.log(`Directory created/exists: ${dirPath}`);
       return true;
     } catch (error) {
       if (error.response && error.response.status === 405) {
         // Directory already exists
-        console.log(`Directory already exists: ${dirPath}`);
         return true;
       }
-      console.error(
-        "Error creating directory:",
-        error.response?.data || error.message
-      );
       throw error;
     }
   }
 
   async uploadToNextcloud(localFilePath, remoteFolder, fileName) {
     try {
-      console.log(
-        `Uploading file to NextCloud: ${localFilePath} -> ${remoteFolder}/${fileName}`
-      );
-
       // Ensure directory exists
       await this.ensureDirectoryExists(remoteFolder);
 
       const fileData = fs.readFileSync(localFilePath);
       const remotePath = `${remoteFolder}/${fileName}`;
-
-      console.log(`Uploading to: ${this.baseUrl}/${remotePath}`);
 
       const response = await axios.put(
         `${this.baseUrl}/${remotePath}`,
@@ -503,20 +489,12 @@ class NextcloudController {
         mimeType: this.getMimeType(fileName),
       };
     } catch (error) {
-      console.error(
-        "Failed to upload file to Nextcloud:",
-        error.response?.data || error.message
-      );
       throw error;
     }
   }
 
   async moveFileInNextcloud(sourcePath, destinationPath) {
     try {
-      console.log(
-        `Moving file in NextCloud: ${sourcePath} -> ${destinationPath}`
-      );
-
       const response = await axios.request({
         method: "MOVE",
         url: `${this.baseUrl}/${sourcePath}`,
@@ -540,18 +518,12 @@ class NextcloudController {
         downloadUrl: shareLink,
       };
     } catch (error) {
-      console.error(
-        "Failed to move file in Nextcloud:",
-        error.response?.data || error.message
-      );
       throw error;
     }
   }
 
   async deleteFromNextcloud(filePath) {
     try {
-      console.log(`Deleting file from NextCloud: ${filePath}`);
-
       const response = await axios.delete(`${this.baseUrl}/${filePath}`, {
         headers: {
           Authorization: `Basic ${this.auth}`,
@@ -563,10 +535,6 @@ class NextcloudController {
       this.storeCookies(response);
       return { success: true };
     } catch (error) {
-      console.error(
-        "Failed to delete file from Nextcloud:",
-        error.response?.data || error.message
-      );
       throw error;
     }
   }
@@ -608,7 +576,6 @@ class NextcloudController {
       if (response.data && response.data.ocs && response.data.ocs.data) {
         const shareData = response.data.ocs.data;
         if (shareData.url) {
-          console.log(`Created share link: ${shareData.url}`);
           return shareData.url;
         }
       }
@@ -616,10 +583,6 @@ class NextcloudController {
       // Fallback to direct URL
       return this.getDirectDownloadUrl(filePath);
     } catch (error) {
-      console.error(
-        "Failed to create public share:",
-        error.response?.data || error.message
-      );
       return this.getDirectDownloadUrl(filePath);
     }
   }
@@ -657,12 +620,6 @@ class NextcloudController {
       const userId = req.user.id; // From JWT token
       const userRole = req.user.role;
 
-      console.log("Getting approved files for user:", {
-        userId: userId,
-        role: userRole,
-        userObject: req.user,
-      });
-
       const { category, year, month } = req.query;
 
       const userRoles = ["superAdmin", "deputyDirector", "director"];
@@ -686,19 +643,11 @@ class NextcloudController {
 
       // If user is not superAdmin, deputyDirector, or director, filter by permissions
       if (!userRoles.includes(userRole)) {
-        console.log(
-          `User ${userId} with role ${userRole} needs permission filtering`
-        );
-
         // Use the actual user ID from the token
         query.$or = [
           { viewableBy: { $in: [userId] } }, // userId is already a string from JWT
           { viewableBy: { $exists: true, $size: 0 } }, // Files with no restrictions (empty array)
         ];
-
-        console.log("Permission query:", JSON.stringify(query));
-      } else {
-        console.log(`User ${userId} with role ${userRole} can see all files`);
       }
 
       const approvedFiles = await FileApproval.find(query)
@@ -706,26 +655,8 @@ class NextcloudController {
         .populate("permissionsSetBy", "username realName")
         .sort({ actionTakenAt: -1 });
 
-      console.log(
-        `Found ${approvedFiles.length} approved files for user ${userId}`
-      );
-
-      // Log file visibility for debugging
-      approvedFiles.forEach((file) => {
-        const canView =
-          userRoles.includes(userRole) ||
-          file.viewableBy.length === 0 ||
-          file.viewableBy.some(
-            (viewableUser) => viewableUser._id.toString() === userId.toString()
-          );
-        console.log(
-          `File ${file._id}: ${file.originalName}, canView: ${canView}, viewableBy: ${file.viewableBy.length} users`
-        );
-      });
-
       res.json(approvedFiles);
     } catch (error) {
-      console.error("Error fetching approved files:", error);
       res
         .status(500)
         .json({ error: "Failed to fetch approved files: " + error.message });
@@ -742,13 +673,6 @@ class NextcloudController {
       }
       const { fileId } = req.params;
       const { viewableBy } = req.body;
-
-      console.log(
-        "Setting permissions for file:",
-        fileId,
-        "viewableBy:",
-        viewableBy
-      );
 
       const fileApproval = await FileApproval.findById(fileId);
 
@@ -776,19 +700,12 @@ class NextcloudController {
       );
       await fileApproval.populate("permissionsSetBy", "username realName");
 
-      console.log("Permissions set successfully for file:", fileId);
-      console.log(
-        "Now viewable by:",
-        fileApproval.viewableBy.map((u) => u.username)
-      );
-
       res.json({
         success: true,
         message: "File viewing permissions updated successfully",
         file: fileApproval,
       });
     } catch (error) {
-      console.error("Error setting file permissions:", error);
       res
         .status(500)
         .json({ error: "Failed to set file permissions: " + error.message });
@@ -804,7 +721,6 @@ class NextcloudController {
 
       res.json(users);
     } catch (error) {
-      console.error("Error fetching eligible users:", error);
       res.status(500).json({ error: "Failed to fetch users" });
     }
   }
@@ -880,30 +796,6 @@ class NextcloudController {
         });
       }
 
-      console.log("File upload request:", {
-        originalName: req.file.originalname,
-        fileName: req.file.filename,
-        category: category,
-        year: yearNum,
-        month: monthNum,
-        companyData: {
-          companySubcategory,
-          department,
-          employeeName,
-          assetType,
-          assetName,
-          documentSubtype,
-        },
-        partnerData: {
-          partnerName,
-          contractType,
-          contractNumber,
-          documentType,
-        },
-        bankData: { bankName, documentType },
-        legalData: { legalDocumentType },
-      });
-
       const categoryFolder = this.getCategoryFolderName(category);
       const pendingPath = `Pending/${categoryFolder}`;
 
@@ -957,11 +849,6 @@ class NextcloudController {
         fs.unlinkSync(req.file.path);
       }
 
-      console.log(
-        "File uploaded to NextCloud Pending folder with ID:",
-        fileApproval._id
-      );
-
       res.json({
         success: true,
         message: `File uploaded successfully to ${category} category`,
@@ -973,7 +860,6 @@ class NextcloudController {
         shareUrl: uploadResult.downloadUrl,
       });
     } catch (error) {
-      console.error("Upload error:", error);
       res
         .status(500)
         .json({ error: "Failed to upload file: " + error.message });
@@ -996,34 +882,6 @@ class NextcloudController {
       if (fileApproval.status !== "pending") {
         return res.status(400).json({ error: "File already processed" });
       }
-
-      console.log("Approving file:", {
-        id: fileApproval._id,
-        fileName: fileApproval.fileName,
-        category: fileApproval.category,
-        subcategoryData: {
-          // Company data
-          companySubcategory: fileApproval.companySubcategory,
-          department: fileApproval.department,
-          employeeName: fileApproval.employeeName,
-          assetType: fileApproval.assetType,
-          assetName: fileApproval.assetName,
-          documentSubtype: fileApproval.documentSubtype,
-          // Partner data
-          partnerName: fileApproval.partnerName,
-          contractType: fileApproval.contractType,
-          contractNumber: fileApproval.contractNumber,
-          documentType: fileApproval.documentType,
-          // Bank data
-          bankName: fileApproval.bankName,
-          documentType: fileApproval.documentType,
-          // Legal data
-          legalDocumentType: fileApproval.legalDocumentType,
-          // Common data
-          year: fileApproval.year,
-          month: fileApproval.month,
-        },
-      });
 
       const categoryFolder = this.getCategoryFolderName(fileApproval.category);
 
@@ -1089,7 +947,6 @@ class NextcloudController {
         file: fileApproval,
       });
     } catch (error) {
-      console.error("Approve error:", error);
       res
         .status(500)
         .json({ error: "Failed to approve file: " + error.message });
@@ -1113,12 +970,6 @@ class NextcloudController {
         return res.status(400).json({ error: "File already processed" });
       }
 
-      console.log("Rejecting file:", {
-        id: fileApproval._id,
-        fileName: fileApproval.fileName,
-        nextcloudPath: fileApproval.nextcloudPath,
-      });
-
       // Delete file from NextCloud Pending folder
       await this.deleteFromNextcloud(fileApproval.nextcloudPath);
 
@@ -1134,7 +985,6 @@ class NextcloudController {
         message: "File rejected and deleted from NextCloud",
       });
     } catch (error) {
-      console.error("Reject error:", error);
       res
         .status(500)
         .json({ error: "Failed to reject file: " + error.message });
@@ -1155,7 +1005,6 @@ class NextcloudController {
       });
       res.json(pendingFiles);
     } catch (error) {
-      console.error("Error fetching pending files:", error);
       res.status(500).json({ error: "Failed to fetch pending files" });
     }
   }
@@ -1169,7 +1018,6 @@ class NextcloudController {
         .limit(100);
       res.json(history);
     } catch (error) {
-      console.error("Error fetching history:", error);
       res.status(500).json({ error: "Failed to fetch history" });
     }
   }
@@ -1184,7 +1032,6 @@ class NextcloudController {
 
       res.json(fileApproval);
     } catch (error) {
-      console.error("Error fetching file:", error);
       res.status(500).json({ error: "Failed to fetch file" });
     }
   }
@@ -1214,7 +1061,6 @@ class NextcloudController {
 
       res.json(files);
     } catch (error) {
-      console.error("Error fetching files by category:", error);
       res.status(500).json({ error: "Failed to fetch files" });
     }
   }
@@ -1243,7 +1089,6 @@ class NextcloudController {
 
       res.json(files);
     } catch (error) {
-      console.error("Error fetching files by category/year/month:", error);
       res.status(500).json({ error: "Failed to fetch files" });
     }
   }
@@ -1270,7 +1115,6 @@ class NextcloudController {
 
       res.json(categories);
     } catch (error) {
-      console.error("Error fetching category counts:", error);
       res.status(500).json({ error: "Failed to fetch category counts" });
     }
   }
@@ -1296,7 +1140,6 @@ class NextcloudController {
 
       res.json(years);
     } catch (error) {
-      console.error("Error fetching available years:", error);
       res.status(500).json({ error: "Failed to fetch available years" });
     }
   }
@@ -1353,7 +1196,6 @@ class NextcloudController {
 
       res.json(months);
     } catch (error) {
-      console.error("Error fetching available months:", error);
       res.status(500).json({ error: "Failed to fetch available months" });
     }
   }
@@ -1403,7 +1245,6 @@ class NextcloudController {
 
       res.json(structure);
     } catch (error) {
-      console.error("Error fetching category structure:", error);
       res.status(500).json({ error: "Failed to fetch category structure" });
     }
   }

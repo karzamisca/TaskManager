@@ -533,7 +533,6 @@ async function loadApprovedFiles() {
 
     displayApprovedFiles(files);
   } catch (error) {
-    console.error("Lỗi khi tải file đã phê duyệt:", error);
     showMessage("Lỗi khi tải file đã phê duyệt: " + error.message, "error");
   }
 }
@@ -634,9 +633,6 @@ async function openPermissionModal(fileId) {
     }
     const file = await fileResponse.json();
 
-    console.log("Current file permissions:", file);
-    console.log("All eligible users:", allUsers);
-
     // Process viewableBy permissions
     if (file.viewableBy && Array.isArray(file.viewableBy)) {
       file.viewableBy.forEach((userId) => {
@@ -649,17 +645,10 @@ async function openPermissionModal(fileId) {
 
           if (userExists) {
             selectedUsers.add(userIdStr);
-            console.log(`✅ Added user ${userIdStr} to selected users`);
-          } else {
-            console.warn(
-              `❌ User ${userIdStr} has permission but is not in eligible users list`
-            );
           }
         }
       });
     }
-
-    console.log("Final selected users:", Array.from(selectedUsers));
 
     // Display user list AFTER processing permissions
     displayUserList(allUsers);
@@ -669,7 +658,6 @@ async function openPermissionModal(fileId) {
       .getElementById("permissionManagement")
       .scrollIntoView({ behavior: "smooth" });
   } catch (error) {
-    console.error("Error loading permission data:", error);
     showMessage(
       "Lỗi khi tải dữ liệu quyền truy cập: " + error.message,
       "error"
@@ -718,8 +706,6 @@ function displayUserList(users) {
 
     userList.appendChild(userElement);
   });
-
-  console.log("User list displayed with selections");
 }
 
 // Search users
@@ -771,9 +757,6 @@ function updateUserListSelection() {
       }
     }
   });
-
-  console.log(`Updated ${updatedCount} checkboxes in user list`);
-  console.log("Current selected users:", Array.from(selectedUsers));
 }
 
 // Save file permissions
@@ -806,7 +789,6 @@ async function saveFilePermissions() {
       showMessage("Lỗi khi cập nhật quyền truy cập: " + result.error, "error");
     }
   } catch (error) {
-    console.error("Error saving permissions:", error);
     showMessage("Lỗi khi lưu quyền truy cập", "error");
   }
 }
@@ -843,7 +825,6 @@ async function clearFilePermissions() {
       showMessage("Lỗi khi xóa quyền truy cập: " + result.error, "error");
     }
   } catch (error) {
-    console.error("Error clearing permissions:", error);
     showMessage("Lỗi khi xóa quyền truy cập", "error");
   }
 }
@@ -865,7 +846,7 @@ function clearApprovedFilters() {
 
 // Handle year change in approved files filter
 function onApprovedYearChange(year) {
-  console.log("Year changed to:", year);
+  // Function kept for potential future use
 }
 
 // Load statistics
@@ -890,7 +871,7 @@ async function loadStatistics() {
       statsSection.appendChild(statCard);
     });
   } catch (error) {
-    console.error("Error loading statistics:", error);
+    // Error handling without console.log
   }
 }
 
@@ -1110,7 +1091,6 @@ async function loadPendingFiles() {
       filesList.appendChild(fileElement);
     });
   } catch (error) {
-    console.error("Lỗi khi tải file chờ duyệt:", error);
     showMessage("Lỗi khi tải file chờ duyệt: " + error.message, "error");
   }
 }
