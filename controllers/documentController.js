@@ -5780,6 +5780,232 @@ exports.deleteDeliveryDocumentFile = async (req, res) => {
     });
   }
 };
+exports.exportDeliveryDocumentsToExcel = async (req, res) => {
+  try {
+    const { documentIds } = req.body;
+
+    if (!documentIds || !Array.isArray(documentIds)) {
+      return res.status(400).send("Invalid document IDs");
+    }
+
+    const documents = await DeliveryDocument.find({
+      _id: { $in: documentIds },
+    })
+      .populate("submittedBy")
+      .populate("approvers.approver")
+      .populate("approvedBy.user")
+      .populate("appendedProposals.submittedBy")
+      .populate("appendedProposals.approvers.approver")
+      .populate("appendedProposals.approvedBy.user")
+      .populate("stages.approvers.approver")
+      .populate("stages.approvedBy.user");
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Phiếu xuất kho");
+
+    worksheet.columns = [
+      { header: "Mã phiếu", key: "tag", width: 15 },
+      { header: "Tiêu đề", key: "title", width: 25 },
+      { header: "Tên phiếu", key: "name", width: 30 },
+      { header: "Trạm", key: "costCenter", width: 20 },
+      { header: "Nhóm", key: "groupName", width: 20 },
+      { header: "Tên khai báo nhóm", key: "groupDeclarationName", width: 25 },
+      { header: "Tên dự án", key: "projectName", width: 25 },
+      { header: "Tổng chi phí", key: "grandTotalCost", width: 18 },
+      { header: "Tình trạng", key: "status", width: 15 },
+      { header: "Lý do từ chối", key: "suspendReason", width: 30 },
+      { header: "Người nộp", key: "submittedBy", width: 20 },
+      { header: "Ngày nộp", key: "submissionDate", width: 15 },
+      { header: "Người phê duyệt", key: "approvers", width: 35 },
+      { header: "Đã phê duyệt bởi", key: "approvedBy", width: 35 },
+      { header: "Số lượng sản phẩm", key: "productCount", width: 18 },
+      { header: "Chi tiết sản phẩm", key: "productsList", width: 50 },
+      { header: "Tổng tiền sản phẩm", key: "totalProductsCost", width: 20 },
+      { header: "Tổng tiền sau VAT", key: "totalAfterVat", width: 20 },
+      { header: "Số phiếu đề xuất", key: "proposalCount", width: 18 },
+      { header: "Công việc đề xuất", key: "proposalTasks", width: 40 },
+      { header: "Mô tả đề xuất", key: "proposalDescriptions", width: 50 },
+      { header: "Trạng thái đề xuất", key: "proposalStatuses", width: 25 },
+      { header: "Số file đính kèm", key: "fileCount", width: 18 },
+      { header: "Danh sách file", key: "filesList", width: 40 },
+    ];
+
+    documents.forEach((doc) => {
+      // --- People lists ---
+      const approversList = doc.approvers
+        .map((a) => `${a.approver?.username || a.username} (${a.subRole})`)
+        .join("\n");
+
+      const approvedByList = doc.approvedBy
+        .map((a) => {
+          const date = a.approvalDate || ""; // no new Date()
+          return `${a.user?.username || a.username} - ${date}`;
+        })
+        .join("\n");
+
+      // --- Products list with line breaks ---
+      const productList =
+        doc.products
+          ?.map((p) => {
+            const vatInfo = p.vat ? ` | VAT: ${p.vat}%` : "";
+            const noteInfo = p.note ? ` | Ghi chú: ${p.note}` : "";
+            return `${p.productName} (SL: ${
+              p.amount
+            } x ${p.costPerUnit?.toLocaleString()} = ${p.totalCost?.toLocaleString()}${vatInfo}${noteInfo})`;
+          })
+          .join("\n") || "";
+
+      const totalProductsCost =
+        doc.products?.reduce((sum, p) => sum + (p.totalCost || 0), 0) || 0;
+      const totalAfterVat =
+        doc.products?.reduce((sum, p) => sum + (p.totalCostAfterVat || 0), 0) ||
+        0;
+
+      // --- Appended proposals ---
+      const proposalCount = doc.appendedProposals?.length || 0;
+      const proposalTasks =
+        doc.appendedProposals
+          ?.map((p) => p.task)
+          .filter(Boolean)
+          .join("; ") || "";
+      const proposalDescriptions =
+        doc.appendedProposals
+          ?.map((p) => p.detailsDescription)
+          .filter(Boolean)
+          .join("; ") || "";
+      const proposalStatuses =
+        doc.appendedProposals
+          ?.map((p) => {
+            const status =
+              p.status === "Approved"
+                ? "Đã duyệt"
+                : p.status === "Suspended"
+                ? "Từ chối"
+                : "Chờ duyệt";
+            return `${p.task || "N/A"}: ${status}`;
+          })
+          .join("; ") || "";
+
+      // --- Files ---
+      const fileCount = doc.fileMetadata?.length || 0;
+      const filesList =
+        doc.fileMetadata
+          ?.map((f) => {
+            const fileName = f.displayName || f.name || "Unknown";
+            const fileSize = f.size || "N/A";
+            const link = f.link || "";
+            return link
+              ? `${fileName} (${fileSize}) - ${link}`
+              : `${fileName} (${fileSize})`;
+          })
+          .join("; ") || "";
+
+      const statusVietnamese =
+        doc.status === "Approved"
+          ? "Đã phê duyệt"
+          : doc.status === "Suspended"
+          ? "Từ chối"
+          : "Chờ phê duyệt";
+
+      worksheet.addRow({
+        tag: doc.tag || "",
+        title: doc.title || "Delivery Document",
+        name: doc.name,
+        costCenter: doc.costCenter,
+        groupName: doc.groupName || "",
+        groupDeclarationName: doc.groupDeclarationName || "",
+        projectName: doc.projectName || "",
+        grandTotalCost: doc.grandTotalCost || 0,
+        status: statusVietnamese,
+        suspendReason: doc.suspendReason || "",
+        submittedBy: doc.submittedBy?.username || "",
+        submissionDate: doc.submissionDate || "", // no new Date()
+        approvers: approversList,
+        approvedBy: approvedByList,
+        productCount: doc.products?.length || 0,
+        productsList: productList,
+        totalProductsCost,
+        totalAfterVat,
+        proposalCount,
+        proposalTasks,
+        proposalDescriptions,
+        proposalStatuses,
+        fileCount,
+        filesList,
+      });
+    });
+
+    // --- Formatting and styling remain the same ---
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
+    headerRow.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF000000" },
+    };
+    headerRow.alignment = {
+      vertical: "middle",
+      horizontal: "center",
+      wrapText: true,
+    };
+    headerRow.height = 30;
+
+    worksheet.eachRow((row, rowNumber) => {
+      row.eachCell((cell) => {
+        cell.border = {
+          top: { style: "thin", color: { argb: "FF000000" } },
+          left: { style: "thin", color: { argb: "FF000000" } },
+          bottom: { style: "thin", color: { argb: "FF000000" } },
+          right: { style: "thin", color: { argb: "FF000000" } },
+        };
+        if (rowNumber > 1) cell.alignment = { vertical: "top", wrapText: true };
+      });
+    });
+
+    const currencyCols = [
+      "grandTotalCost",
+      "totalProductsCost",
+      "totalAfterVat",
+    ];
+    currencyCols.forEach((key) => {
+      worksheet.getColumn(key).numFmt = "#,##0 ₫";
+      worksheet.getColumn(key).alignment = {
+        horizontal: "right",
+        vertical: "top",
+      };
+    });
+
+    const countCols = ["productCount", "proposalCount", "fileCount"];
+    countCols.forEach((key) => {
+      worksheet.getColumn(key).alignment = {
+        horizontal: "center",
+        vertical: "top",
+      };
+    });
+
+    worksheet.views = [{ state: "frozen", xSplit: 0, ySplit: 1 }];
+    worksheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: 1, column: worksheet.columns.length },
+    };
+
+    const timestamp = new Date().toISOString().split("T")[0];
+    const filename = `phieu_xuat_kho_${timestamp}.xlsx`;
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error("Export error:", error);
+    res.status(500).send("Lỗi khi xuất dữ liệu");
+  }
+};
+
 //// END OF DELIVERY DOCUMENT CONTROLLER
 
 //// RECEIPT DOCUMENT CONTROLLER

@@ -8,6 +8,8 @@ const itemsPerPage = 10;
 let totalPages = 1;
 let paginationEnabled = true;
 let choicesInstances = [];
+let selectedDocuments = new Set();
+let isExporting = false;
 
 async function fetchCurrentUser() {
   try {
@@ -135,6 +137,243 @@ function renderProposals(proposals) {
   `;
 }
 
+function renderFiles(fileMetadata) {
+  if (!fileMetadata || fileMetadata.length === 0) return "-";
+
+  return `
+    <div class="file-links-container">
+      ${fileMetadata
+        .map(
+          (file) => `
+          <div>
+            <a href="${file.link}" class="file-link" target="_blank" title="${
+            file.name
+          }">
+              <i class="fas fa-file" style="margin-right: 4px;"></i>
+              ${file.name}
+              ${file.size ? ` <small>(${file.size})</small>` : ""}
+            </a>
+          </div>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+// Selection and Export Functions
+function toggleSelectAll(checked) {
+  const filteredDocuments = filterDocumentsForCurrentUser(deliveryDocuments);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const pageDocuments = paginationEnabled
+    ? filteredDocuments.slice(startIndex, endIndex)
+    : filteredDocuments;
+
+  if (checked) {
+    pageDocuments.forEach((doc) => selectedDocuments.add(doc._id));
+  } else {
+    pageDocuments.forEach((doc) => selectedDocuments.delete(doc._id));
+  }
+
+  updateSelectionUI();
+  renderTableRows();
+}
+
+function toggleDocumentSelection(docId, checked) {
+  if (checked) {
+    selectedDocuments.add(docId);
+  } else {
+    selectedDocuments.delete(docId);
+  }
+  updateSelectionUI();
+}
+
+function updateSelectionUI() {
+  const selectedCount = document.getElementById("selectedCount");
+  const exportBtn = document.getElementById("exportSelectedBtn");
+  const selectionControls = document.getElementById("selectionControls");
+  const selectAllCheckbox = document.getElementById("selectAll");
+
+  selectedCount.textContent = selectedDocuments.size;
+  exportBtn.disabled = selectedDocuments.size === 0 || isExporting;
+
+  // Show/hide selection controls
+  if (selectedDocuments.size > 0) {
+    selectionControls.style.display = "flex";
+  } else {
+    selectionControls.style.display = "none";
+  }
+
+  // Update select all checkbox state
+  if (selectAllCheckbox) {
+    const filteredDocuments = filterDocumentsForCurrentUser(deliveryDocuments);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageDocuments = paginationEnabled
+      ? filteredDocuments.slice(startIndex, endIndex)
+      : filteredDocuments;
+
+    const allSelected =
+      pageDocuments.length > 0 &&
+      pageDocuments.every((doc) => selectedDocuments.has(doc._id));
+    selectAllCheckbox.checked = allSelected;
+    selectAllCheckbox.indeterminate =
+      !allSelected &&
+      pageDocuments.some((doc) => selectedDocuments.has(doc._id));
+  }
+}
+
+function clearSelection() {
+  selectedDocuments.clear();
+  updateSelectionUI();
+  renderTableRows();
+}
+
+async function exportSelectedToExcel() {
+  if (selectedDocuments.size === 0 || isExporting) return;
+
+  isExporting = true;
+  const exportBtn = document.getElementById("exportSelectedBtn");
+  exportBtn.classList.add("export-loading");
+  exportBtn.disabled = true;
+
+  try {
+    const selectedDocs = Array.from(selectedDocuments);
+
+    const response = await fetch("/exportDeliveryDocumentsToExcel", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ documentIds: selectedDocs }),
+    });
+
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.href = url;
+
+      // Create filename with timestamp
+      const timestamp = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace(/:/g, "-");
+      a.download = `phieu_xuat_kho_${timestamp}.xlsx`;
+
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      showMessage(
+        `Đã xuất thành công ${selectedDocuments.size} phiếu ra Excel`
+      );
+    } else {
+      const error = await response.text();
+      throw new Error(error);
+    }
+  } catch (err) {
+    console.error("Lỗi khi xuất Excel:", err);
+    showMessage("Lỗi khi xuất dữ liệu ra Excel", true);
+  } finally {
+    isExporting = false;
+    exportBtn.classList.remove("export-loading");
+    exportBtn.disabled = selectedDocuments.size === 0;
+  }
+}
+
+// Updated renderTableRows function with selection checkboxes
+function renderTableRows() {
+  const filteredDocuments = filterDocumentsForCurrentUser(deliveryDocuments);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const pageDocuments = paginationEnabled
+    ? filteredDocuments.slice(startIndex, endIndex)
+    : filteredDocuments;
+
+  const tableBody = document.getElementById("deliveryDocumentsTable");
+  tableBody.innerHTML = "";
+
+  pageDocuments.forEach((doc) => {
+    const isSelected = selectedDocuments.has(doc._id);
+    const approvalStatus = doc.approvers
+      .map((approver) => {
+        const hasApproved = doc.approvedBy.find(
+          (a) => a.username === approver.username
+        );
+        return `
+          <div class="approver-item">
+            <span class="status-icon ${
+              hasApproved ? "status-approved" : "status-pending"
+            }"></span>
+            <div>
+              <div>${approver.username} (${approver.subRole})</div>
+              ${
+                hasApproved
+                  ? `<div class="approval-date">Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
+                  : '<div class="approval-date">Chưa phê duyệt</div>'
+              }
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td class="select-row-cell">
+        <input type="checkbox" class="select-checkbox" 
+               ${isSelected ? "checked" : ""}
+               onchange="toggleDocumentSelection('${doc._id}', this.checked)">
+      </td>
+      <td>${doc.name}</td>
+      <td>${doc.costCenter}</td>   
+      <td>${doc.groupName}</td>           
+      <td>${renderProducts(doc.products)}</td>
+      <td>${renderFiles(doc.fileMetadata)}</td>
+      <td>${doc.grandTotalCost?.toLocaleString() || "-"}</td>
+      <td>${renderProposals(doc.appendedProposals)}</td>
+      <td>${renderStatus(doc.status)}</td>
+      <td class="approval-status">${approvalStatus}</td>
+      <td>
+        <button class="approve-btn" onclick="showFullView('${
+          doc._id
+        }')" style="margin-right: 5px;">
+          Xem đầy đủ
+        </button>
+        <form action="/exportDocumentToDocx/${
+          doc._id
+        }" method="GET" style="display:inline;">
+            <button class="approve-btn">Xuất ra DOCX</button>
+        </form>
+        ${
+          doc.approvedBy.length === 0
+            ? `
+          <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa</button>
+          <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa</button>
+        `
+            : ""
+        }
+        ${
+          doc.status === "Pending"
+            ? `
+          <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
+            Phê duyệt
+          </button>
+        `
+            : ""
+        }  
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+
+  updateSelectionUI();
+}
+
 async function fetchDeliveryDocuments() {
   try {
     const response = await fetch("/getDeliveryDocumentForSeparatedView");
@@ -152,83 +391,7 @@ async function fetchDeliveryDocuments() {
       currentPage = 1;
     }
 
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-
-    const pageDocuments = paginationEnabled
-      ? filteredDocuments.slice(startIndex, endIndex)
-      : filteredDocuments;
-
-    const tableBody = document.getElementById("deliveryDocumentsTable");
-    tableBody.innerHTML = "";
-
-    pageDocuments.forEach((doc) => {
-      const approvalStatus = doc.approvers
-        .map((approver) => {
-          const hasApproved = doc.approvedBy.find(
-            (a) => a.username === approver.username
-          );
-          return `
-            <div class="approver-item">
-              <span class="status-icon ${
-                hasApproved ? "status-approved" : "status-pending"
-              }"></span>
-              <div>
-                <div>${approver.username} (${approver.subRole})</div>
-                ${
-                  hasApproved
-                    ? `<div class="approval-date">Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
-                    : '<div class="approval-date">Chưa phê duyệt</div>'
-                }
-              </div>
-            </div>
-          `;
-        })
-        .join("");
-
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${doc.name}</td>
-        <td>${doc.costCenter}</td>   
-        <td>${doc.groupName}</td>           
-        <td>${renderProducts(doc.products)}</td>
-        <td>${renderFiles(doc.fileMetadata)}</td>
-        <td>${doc.grandTotalCost?.toLocaleString() || "-"}</td>
-        <td>${renderProposals(doc.appendedProposals)}</td>
-        <td>${renderStatus(doc.status)}</td>
-        <td class="approval-status">${approvalStatus}</td>
-        <td>
-          <button class="approve-btn" onclick="showFullView('${
-            doc._id
-          }')" style="margin-right: 5px;">
-            Xem đầy đủ
-          </button>
-          <form action="/exportDocumentToDocx/${
-            doc._id
-          }" method="GET" style="display:inline;">
-              <button class="approve-btn">Xuất ra DOCX</button>
-          </form>
-          ${
-            doc.approvedBy.length === 0
-              ? `
-            <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa</button>
-            <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa</button>
-          `
-              : ""
-          }
-          ${
-            doc.status === "Pending"
-              ? `
-            <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
-              Phê duyệt
-            </button>
-          `
-              : ""
-          }  
-        </td>
-      `;
-      tableBody.appendChild(row);
-    });
+    renderTableRows();
 
     if (paginationEnabled) {
       renderPagination();
@@ -264,6 +427,7 @@ async function fetchDeliveryDocuments() {
 function togglePagination() {
   paginationEnabled = document.getElementById("paginationToggle").checked;
   currentPage = 1;
+  selectedDocuments.clear();
   fetchDeliveryDocuments();
 }
 
@@ -1035,30 +1199,6 @@ function addEditModal() {
   document.body.insertAdjacentHTML("beforeend", modalHTML);
 }
 
-function renderFiles(fileMetadata) {
-  if (!fileMetadata || fileMetadata.length === 0) return "-";
-
-  return `
-    <div class="file-links-container">
-      ${fileMetadata
-        .map(
-          (file) => `
-          <div>
-            <a href="${file.link}" class="file-link" target="_blank" title="${
-            file.name
-          }">
-              <i class="fas fa-file" style="margin-right: 4px;"></i>
-              ${file.name}
-              ${file.size ? ` <small>(${file.size})</small>` : ""}
-            </a>
-          </div>
-          `
-        )
-        .join("")}
-    </div>
-  `;
-}
-
 function showFullView(docId) {
   try {
     const doc = deliveryDocuments.find((d) => d._id === docId);
@@ -1177,8 +1317,14 @@ async function initializePage() {
   document.getElementById("pendingToggle").addEventListener("change", (e) => {
     showOnlyPendingApprovals = e.target.checked;
     currentPage = 1;
+    selectedDocuments.clear();
     fetchDeliveryDocuments();
   });
+
+  // Add export button event listener
+  document
+    .getElementById("exportSelectedBtn")
+    .addEventListener("click", exportSelectedToExcel);
 
   fetchDeliveryDocuments();
 }

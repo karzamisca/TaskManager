@@ -443,6 +443,11 @@ router.post(
   authMiddleware,
   documentController.deleteDeliveryDocumentFile
 );
+router.post(
+  "/exportDeliveryDocumentsToExcel",
+  authMiddleware,
+  documentController.exportDeliveryDocumentsToExcel
+);
 //// END OF DELIVERY DOCUMENT ROUTE
 
 //// RECEIPT DOCUMENT ROUTE
