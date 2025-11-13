@@ -481,6 +481,12 @@ router.post(
   authMiddleware,
   documentController.deleteReceiptDocumentFile
 );
+
+router.post(
+  "/exportReceiptDocumentsToExcel",
+  authMiddleware,
+  documentController.exportReceiptDocumentsToExcel
+);
 //// END OF RECEIPT DOCUMENT ROUTE
 
 //// PROJECT PROPOSAL DOCUMENT ROUTE
