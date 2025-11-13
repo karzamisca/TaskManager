@@ -81,9 +81,10 @@ body {
 }
 
 .container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem;
+  max-width: none !important;
+  margin: 0 auto !important;
+  padding: 2rem !important;
+  width: 100% !important;
 }
 
 /* Header */
