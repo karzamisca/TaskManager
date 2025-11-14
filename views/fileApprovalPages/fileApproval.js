@@ -3,6 +3,7 @@
 let selectedFileId = null;
 let selectedUsers = new Set();
 let allUsers = [];
+let filterTimeout = null;
 
 // Month names in Vietnamese
 const monthNames = {
@@ -202,6 +203,71 @@ const documentOptions = {
   ],
 };
 
+// Initialize instant filtering
+function initializeInstantFilters() {
+  // Pending files filters
+  const pendingCategoryFilter = document.getElementById(
+    "pendingCategoryFilter"
+  );
+  const pendingSubcategoryFilter = document.getElementById(
+    "pendingSubcategoryFilter"
+  );
+
+  if (pendingCategoryFilter) {
+    pendingCategoryFilter.addEventListener("change", function () {
+      updatePendingSubcategoryFilters();
+      debounceFilter(loadPendingFiles, 300);
+    });
+  }
+
+  if (pendingSubcategoryFilter) {
+    pendingSubcategoryFilter.addEventListener("change", function () {
+      debounceFilter(loadPendingFiles, 300);
+    });
+  }
+
+  // Approved files filters
+  const approvedCategoryFilter = document.getElementById(
+    "approvedCategoryFilter"
+  );
+  const approvedSubcategoryFilter = document.getElementById(
+    "approvedSubcategoryFilter"
+  );
+  const approvedYearFilter = document.getElementById("approvedYearFilter");
+  const approvedMonthFilter = document.getElementById("approvedMonthFilter");
+
+  if (approvedCategoryFilter) {
+    approvedCategoryFilter.addEventListener("change", function () {
+      updateApprovedSubcategoryFilters();
+      debounceFilter(loadApprovedFiles, 300);
+    });
+  }
+
+  if (approvedSubcategoryFilter) {
+    approvedSubcategoryFilter.addEventListener("change", function () {
+      debounceFilter(loadApprovedFiles, 300);
+    });
+  }
+
+  if (approvedYearFilter) {
+    approvedYearFilter.addEventListener("input", function () {
+      debounceFilter(loadApprovedFiles, 500);
+    });
+  }
+
+  if (approvedMonthFilter) {
+    approvedMonthFilter.addEventListener("change", function () {
+      debounceFilter(loadApprovedFiles, 300);
+    });
+  }
+}
+
+// Debounce filter to prevent too many API calls
+function debounceFilter(callback, delay) {
+  clearTimeout(filterTimeout);
+  filterTimeout = setTimeout(callback, delay);
+}
+
 // Update pending subcategory filters based on category selection
 function updatePendingSubcategoryFilters() {
   const category = document.getElementById("pendingCategoryFilter").value;
@@ -210,8 +276,9 @@ function updatePendingSubcategoryFilters() {
 
   if (category === "all") {
     filterContainer.style.display = "none";
+    filterSelect.value = "all";
   } else {
-    filterContainer.style.display = "block";
+    filterContainer.style.display = "flex";
     filterSelect.innerHTML = '<option value="all">Tất cả phân loại</option>';
 
     const options = subcategoryOptions[category] || [];
@@ -222,8 +289,6 @@ function updatePendingSubcategoryFilters() {
       filterSelect.appendChild(opt);
     });
   }
-
-  loadPendingFiles();
 }
 
 // Update approved subcategory filters based on category selection
@@ -234,8 +299,9 @@ function updateApprovedSubcategoryFilters() {
 
   if (category === "all") {
     filterContainer.style.display = "none";
+    filterSelect.value = "all";
   } else {
-    filterContainer.style.display = "block";
+    filterContainer.style.display = "flex";
     filterSelect.innerHTML = '<option value="all">Tất cả phân loại</option>';
 
     const options = subcategoryOptions[category] || [];
@@ -246,40 +312,43 @@ function updateApprovedSubcategoryFilters() {
       filterSelect.appendChild(opt);
     });
   }
-
-  loadApprovedFiles();
 }
 
 // Drag and drop functionality
 const uploadArea = document.getElementById("uploadArea");
 const fileInput = document.getElementById("fileInput");
 
-uploadArea.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  uploadArea.classList.add("dragover");
-});
+if (uploadArea && fileInput) {
+  uploadArea.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    uploadArea.classList.add("dragover");
+  });
 
-uploadArea.addEventListener("dragleave", () => {
-  uploadArea.classList.remove("dragover");
-});
+  uploadArea.addEventListener("dragleave", () => {
+    uploadArea.classList.remove("dragover");
+  });
 
-uploadArea.addEventListener("drop", (e) => {
-  e.preventDefault();
-  uploadArea.classList.remove("dragover");
-  const files = e.dataTransfer.files;
-  if (files.length > 0) {
-    fileInput.files = files;
-    handleFileUpload();
-  }
-});
+  uploadArea.addEventListener("drop", (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove("dragover");
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      fileInput.files = files;
+      handleFileUpload();
+    }
+  });
 
-fileInput.addEventListener("change", handleFileUpload);
+  fileInput.addEventListener("change", handleFileUpload);
+}
 
 // Set current year as default in upload form
 function setCurrentYear() {
-  const currentYear = new Date().getFullYear();
-  document.getElementById("yearInput").value = currentYear;
-  updateFolderStructure();
+  const yearInput = document.getElementById("yearInput");
+  if (yearInput) {
+    const currentYear = new Date().getFullYear();
+    yearInput.value = currentYear;
+    updateFolderStructure();
+  }
 }
 
 // Update form fields based on category selection
@@ -445,7 +514,7 @@ function updateFolderStructure() {
   const folderPath = document.getElementById("folderPath");
 
   if (!category || !year) {
-    folderStructure.style.display = "none";
+    if (folderStructure) folderStructure.style.display = "none";
     return;
   }
 
@@ -584,8 +653,10 @@ function updateFolderStructure() {
     }
   }
 
-  folderPath.textContent = path;
-  folderStructure.style.display = "block";
+  if (folderPath && folderStructure) {
+    folderPath.textContent = path;
+    folderStructure.style.display = "block";
+  }
 }
 
 // Helper function to get subcategory value from file
@@ -644,6 +715,8 @@ async function loadApprovedFiles() {
 // Display approved files
 function displayApprovedFiles(files) {
   const approvedList = document.getElementById("approvedFilesList");
+  if (!approvedList) return;
+
   approvedList.innerHTML = "";
 
   if (files.length === 0) {
@@ -755,10 +828,13 @@ async function openPermissionModal(fileId) {
 
     displayUserList(allUsers);
 
-    document.getElementById("permissionManagement").style.display = "block";
-    document
-      .getElementById("permissionManagement")
-      .scrollIntoView({ behavior: "smooth" });
+    const permissionManagement = document.getElementById(
+      "permissionManagement"
+    );
+    if (permissionManagement) {
+      permissionManagement.style.display = "block";
+      permissionManagement.scrollIntoView({ behavior: "smooth" });
+    }
   } catch (error) {
     showMessage(
       "Lỗi khi tải dữ liệu quyền truy cập: " + error.message,
@@ -770,6 +846,8 @@ async function openPermissionModal(fileId) {
 // Display user list for permission assignment
 function displayUserList(users) {
   const userList = document.getElementById("userList");
+  if (!userList) return;
+
   userList.innerHTML = "";
 
   if (users.length === 0) {
@@ -922,7 +1000,10 @@ async function clearFilePermissions() {
 
 // Close permission management
 function closePermissionManagement() {
-  document.getElementById("permissionManagement").style.display = "none";
+  const permissionManagement = document.getElementById("permissionManagement");
+  if (permissionManagement) {
+    permissionManagement.style.display = "none";
+  }
   selectedFileId = null;
   selectedUsers.clear();
 }
@@ -937,11 +1018,6 @@ function clearApprovedFilters() {
   loadApprovedFiles();
 }
 
-// Handle year change in approved files filter
-function onApprovedYearChange(year) {
-  // Function kept for potential future use
-}
-
 // Load statistics
 async function loadStatistics() {
   try {
@@ -949,6 +1025,8 @@ async function loadStatistics() {
     const categories = await response.json();
 
     const statsSection = document.getElementById("statsSection");
+    if (!statsSection) return;
+
     statsSection.innerHTML = "";
 
     categories.forEach((cat) => {
@@ -964,13 +1042,13 @@ async function loadStatistics() {
       statsSection.appendChild(statCard);
     });
   } catch (error) {
-    // Error handling
+    console.error("Error loading statistics:", error);
   }
 }
 
 // Upload form handler
 async function handleFileUpload() {
-  if (fileInput.files.length === 0) {
+  if (!fileInput || fileInput.files.length === 0) {
     return;
   }
 
@@ -1125,27 +1203,37 @@ async function loadPendingFiles() {
       });
     }
 
-    const filesList = document.getElementById("pendingFilesList");
-    filesList.innerHTML = "";
+    displayPendingFiles(filteredFiles);
+  } catch (error) {
+    showMessage("Lỗi khi tải file chờ duyệt: " + error.message, "error");
+  }
+}
 
-    if (filteredFiles.length === 0) {
-      filesList.innerHTML =
-        '<p style="text-align: center; color: #666;">Không có tệp tin nào đang chờ duyệt</p>';
-      return;
-    }
+// Display pending files
+function displayPendingFiles(files) {
+  const pendingList = document.getElementById("pendingFilesList");
+  if (!pendingList) return;
 
-    filteredFiles.forEach((file) => {
-      const fileElement = document.createElement("div");
-      fileElement.className = "file-item";
-      const categoryClass = getCategoryClass(file.category);
+  pendingList.innerHTML = "";
 
-      let details = `
+  if (files.length === 0) {
+    pendingList.innerHTML =
+      '<p style="text-align: center; color: #666;">Không có tệp tin nào đang chờ duyệt</p>';
+    return;
+  }
+
+  files.forEach((file) => {
+    const fileElement = document.createElement("div");
+    fileElement.className = "file-item";
+    const categoryClass = getCategoryClass(file.category);
+
+    let details = `
                                 <span class="category-badge ${categoryClass}">${
-        file.category
-      }</span>
+      file.category
+    }</span>
                                 <span class="time-badge">${file.year}${
-        file.month ? "/" + monthNames[file.month] : ""
-      }</span>
+      file.month ? "/" + monthNames[file.month] : ""
+    }</span>
                                 Kích thước: ${formatFileSize(file.fileSize)} | 
                                 Thời gian tải lên: ${new Date(
                                   file.uploadedAt
@@ -1153,23 +1241,23 @@ async function loadPendingFiles() {
                                 Người tải lên: ${file.uploadedBy || "Ẩn danh"}
                             `;
 
-      // Add subcategory details
-      if (file.companySubcategory) {
-        details += `<br>Loại: ${file.companySubcategory}`;
-        if (file.documentSubtype) details += ` → ${file.documentSubtype}`;
-        if (file.department) details += ` → ${file.department}`;
-        if (file.employeeName) details += ` → ${file.employeeName}`;
-      } else if (file.partnerName) {
-        details += `<br>Đối tác: ${file.partnerName}`;
-        if (file.contractType) details += ` → ${file.contractType}`;
-        if (file.contractNumber) details += ` → ${file.contractNumber}`;
-      } else if (file.bankName) {
-        details += `<br>Ngân hàng: ${file.bankName}`;
-      } else if (file.legalDocumentType) {
-        details += `<br>Loại tài liệu: ${file.legalDocumentType}`;
-      }
+    // Add subcategory details
+    if (file.companySubcategory) {
+      details += `<br>Loại: ${file.companySubcategory}`;
+      if (file.documentSubtype) details += ` → ${file.documentSubtype}`;
+      if (file.department) details += ` → ${file.department}`;
+      if (file.employeeName) details += ` → ${file.employeeName}`;
+    } else if (file.partnerName) {
+      details += `<br>Đối tác: ${file.partnerName}`;
+      if (file.contractType) details += ` → ${file.contractType}`;
+      if (file.contractNumber) details += ` → ${file.contractNumber}`;
+    } else if (file.bankName) {
+      details += `<br>Ngân hàng: ${file.bankName}`;
+    } else if (file.legalDocumentType) {
+      details += `<br>Loại tài liệu: ${file.legalDocumentType}`;
+    }
 
-      fileElement.innerHTML = `
+    fileElement.innerHTML = `
                                 <div class="file-info">
                                     <div class="file-name">${
                                       file.originalName
@@ -1192,11 +1280,8 @@ async function loadPendingFiles() {
                                     }')">Từ Chối</button>
                                 </div>
                             `;
-      filesList.appendChild(fileElement);
-    });
-  } catch (error) {
-    showMessage("Lỗi khi tải file chờ duyệt: " + error.message, "error");
-  }
+    pendingList.appendChild(fileElement);
+  });
 }
 
 // Approve file
@@ -1270,6 +1355,8 @@ async function rejectFile(fileId) {
 // Utility functions
 function showMessage(message, type) {
   const messageDiv = document.getElementById("uploadMessage");
+  if (!messageDiv) return;
+
   messageDiv.innerHTML = message;
   messageDiv.className = type;
   setTimeout(() => {
@@ -1299,6 +1386,7 @@ function getCategoryClass(category) {
 // Load all data on page load
 document.addEventListener("DOMContentLoaded", function () {
   setCurrentYear();
+  initializeInstantFilters();
   loadStatistics();
   loadPendingFiles();
   loadApprovedFiles();
