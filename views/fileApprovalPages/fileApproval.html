@@ -9,7 +9,7 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="fileApprovalPages/fileApproval.css?v=1.3" />
+    <link rel="stylesheet" href="fileApprovalPages/fileApproval.css?v=1.4" />
   </head>
   <body>
     <!-- Header will be loaded here by headerLoader.js -->
@@ -298,39 +298,122 @@
         <!-- Pending Files Section -->
         <div class="pending-files">
           <h2>Tệp Tin Đang Chờ Duyệt</h2>
+
+          <!-- New Pending Files Filter Section -->
           <div class="filter-section">
-            <div>
-              <label for="pendingCategoryFilter" class="filter-label"
-                >Danh mục:</label
-              >
+            <div class="filter-group">
+              <label for="pendingCategoryFilter">Danh mục:</label>
               <select
                 id="pendingCategoryFilter"
-                onchange="updatePendingSubcategoryFilters()"
+                onchange="onPendingCategoryChange()"
               >
                 <option value="all">Tất cả danh mục</option>
-                <option value="Công ty">Công ty</option>
-                <option value="Đối tác">Đối tác</option>
-                <option value="Ngân hàng">Ngân hàng</option>
-                <option value="Pháp lý">Pháp lý</option>
+                <option value="Công ty">📊 Công ty</option>
+                <option value="Đối tác">🤝 Đối tác</option>
+                <option value="Ngân hàng">🏦 Ngân hàng</option>
+                <option value="Pháp lý">⚖️ Pháp lý</option>
               </select>
             </div>
 
-            <!-- Dynamic subcategory filters for pending files -->
-            <div id="pendingSubcategoryFilters" class="filter-group">
-              <label class="filter-label">Phân loại:</label>
+            <!-- Company-specific filters -->
+            <div class="filter-group" id="pendingCompanySubcategoryFilter">
+              <label for="pendingCompanySubcategory">Loại tài liệu:</label>
               <select
-                id="pendingSubcategoryFilter"
+                id="pendingCompanySubcategory"
                 onchange="loadPendingFiles()"
               >
-                <option value="all">Tất cả phân loại</option>
+                <option value="">Tất cả loại</option>
+                <option value="Quản lý chung">Quản lý chung</option>
+                <option value="Quy trình & Quy định">
+                  Quy trình & Quy định
+                </option>
+                <option value="Nhân sự">Nhân sự</option>
+                <option value="Tài sản & Thiết bị">Tài sản & Thiết bị</option>
+                <option value="CO, CQ & Manual">CO, CQ & Manual</option>
+                <option value="Báo cáo tài chính">Báo cáo tài chính</option>
+              </select>
+            </div>
+
+            <!-- Partner-specific filters -->
+            <div class="filter-group" id="pendingPartnerNameFilter">
+              <label for="pendingPartnerName">Đối tác:</label>
+              <input
+                type="text"
+                id="pendingPartnerName"
+                placeholder="Tên đối tác"
+                onchange="loadPendingFiles()"
+              />
+            </div>
+
+            <div class="filter-group" id="pendingContractTypeFilter">
+              <label for="pendingContractType">Loại hợp đồng:</label>
+              <select id="pendingContractType" onchange="loadPendingFiles()">
+                <option value="">Tất cả loại</option>
+                <option value="Hợp đồng mua">Hợp đồng mua</option>
+                <option value="Hợp đồng bán">Hợp đồng bán</option>
+                <option value="Bảo hành & Khiếu nại">
+                  Bảo hành & Khiếu nại
+                </option>
+              </select>
+            </div>
+
+            <!-- Bank-specific filters -->
+            <div class="filter-group" id="pendingBankNameFilter">
+              <label for="pendingBankName">Ngân hàng:</label>
+              <input
+                type="text"
+                id="pendingBankName"
+                placeholder="Tên ngân hàng"
+                onchange="loadPendingFiles()"
+              />
+            </div>
+
+            <!-- Common filters -->
+            <div class="filter-group">
+              <label for="pendingYearFilter">Năm:</label>
+              <input
+                type="number"
+                id="pendingYearFilter"
+                min="0"
+                placeholder="Năm"
+                onchange="loadPendingFiles()"
+              />
+            </div>
+
+            <div class="filter-group">
+              <label for="pendingMonthFilter">Tháng:</label>
+              <select id="pendingMonthFilter" onchange="loadPendingFiles()">
+                <option value="">Tất cả tháng</option>
+                <option value="1">Tháng 1</option>
+                <option value="2">Tháng 2</option>
+                <option value="3">Tháng 3</option>
+                <option value="4">Tháng 4</option>
+                <option value="5">Tháng 5</option>
+                <option value="6">Tháng 6</option>
+                <option value="7">Tháng 7</option>
+                <option value="8">Tháng 8</option>
+                <option value="9">Tháng 9</option>
+                <option value="10">Tháng 10</option>
+                <option value="11">Tháng 11</option>
+                <option value="12">Tháng 12</option>
               </select>
             </div>
 
             <button onclick="loadPendingFiles()" class="fa-btn fa-btn-primary">
+              🔍 Lọc
+            </button>
+            <button
+              onclick="clearPendingFilters()"
+              class="fa-btn fa-btn-secondary"
+            >
+              🔄 Xóa Lọc
+            </button>
+            <button onclick="loadPendingFiles()" class="fa-btn fa-btn-primary">
               🔄 Làm Mới
             </button>
           </div>
-          <div id="pendingFilesList" class="files-list"></div>
+
+          <div id="pendingFilesList" style="margin-top: 20px"></div>
         </div>
 
         <!-- Approved Files Section -->
@@ -348,11 +431,12 @@
                     type="text"
                     id="userSearch"
                     placeholder="Nhập tên người dùng..."
+                    style="width: 100%; padding: 8px; margin-bottom: 10px"
                     oninput="searchUsers()"
                   />
                 </div>
                 <div id="userList" class="user-list"></div>
-                <div class="permission-actions">
+                <div style="margin-top: 15px">
                   <button
                     onclick="saveFilePermissions()"
                     class="fa-btn fa-btn-success"
@@ -376,49 +460,89 @@
             </div>
           </div>
 
+          <!-- New Approved Files Filter Section -->
           <div class="filter-section">
-            <div>
-              <label for="approvedCategoryFilter" class="filter-label"
-                >Danh mục:</label
-              >
+            <div class="filter-group">
+              <label for="approvedCategoryFilter">Danh mục:</label>
               <select
                 id="approvedCategoryFilter"
-                onchange="updateApprovedSubcategoryFilters()"
+                onchange="onApprovedCategoryChange()"
               >
                 <option value="all">Tất cả danh mục</option>
-                <option value="Công ty">Công ty</option>
-                <option value="Đối tác">Đối tác</option>
-                <option value="Ngân hàng">Ngân hàng</option>
-                <option value="Pháp lý">Pháp lý</option>
+                <option value="Công ty">📊 Công ty</option>
+                <option value="Đối tác">🤝 Đối tác</option>
+                <option value="Ngân hàng">🏦 Ngân hàng</option>
+                <option value="Pháp lý">⚖️ Pháp lý</option>
               </select>
             </div>
 
-            <!-- Dynamic subcategory filters for approved files -->
-            <div id="approvedSubcategoryFilters" class="filter-group">
-              <label class="filter-label">Phân loại:</label>
+            <!-- Company-specific filters -->
+            <div class="filter-group" id="approvedCompanySubcategoryFilter">
+              <label for="approvedCompanySubcategory">Loại tài liệu:</label>
               <select
-                id="approvedSubcategoryFilter"
+                id="approvedCompanySubcategory"
                 onchange="loadApprovedFiles()"
               >
-                <option value="all">Tất cả phân loại</option>
+                <option value="">Tất cả loại</option>
+                <option value="Quản lý chung">Quản lý chung</option>
+                <option value="Quy trình & Quy định">
+                  Quy trình & Quy định
+                </option>
+                <option value="Nhân sự">Nhân sự</option>
+                <option value="Tài sản & Thiết bị">Tài sản & Thiết bị</option>
+                <option value="CO, CQ & Manual">CO, CQ & Manual</option>
+                <option value="Báo cáo tài chính">Báo cáo tài chính</option>
               </select>
             </div>
 
+            <!-- Partner-specific filters -->
+            <div class="filter-group" id="approvedPartnerNameFilter">
+              <label for="approvedPartnerName">Đối tác:</label>
+              <input
+                type="text"
+                id="approvedPartnerName"
+                placeholder="Tên đối tác"
+                onchange="loadApprovedFiles()"
+              />
+            </div>
+
+            <div class="filter-group" id="approvedContractTypeFilter">
+              <label for="approvedContractType">Loại hợp đồng:</label>
+              <select id="approvedContractType" onchange="loadApprovedFiles()">
+                <option value="">Tất cả loại</option>
+                <option value="Hợp đồng mua">Hợp đồng mua</option>
+                <option value="Hợp đồng bán">Hợp đồng bán</option>
+                <option value="Bảo hành & Khiếu nại">
+                  Bảo hành & Khiếu nại
+                </option>
+              </select>
+            </div>
+
+            <!-- Bank-specific filters -->
+            <div class="filter-group" id="approvedBankNameFilter">
+              <label for="approvedBankName">Ngân hàng:</label>
+              <input
+                type="text"
+                id="approvedBankName"
+                placeholder="Tên ngân hàng"
+                onchange="loadApprovedFiles()"
+              />
+            </div>
+
+            <!-- Common filters -->
             <div class="filter-group">
-              <label for="approvedYearFilter" class="filter-label">Năm:</label>
+              <label for="approvedYearFilter">Năm:</label>
               <input
                 type="number"
                 id="approvedYearFilter"
                 min="0"
-                placeholder="Nhập năm"
+                placeholder="Năm"
                 onchange="loadApprovedFiles()"
               />
             </div>
 
             <div class="filter-group">
-              <label for="approvedMonthFilter" class="filter-label"
-                >Tháng:</label
-              >
+              <label for="approvedMonthFilter">Tháng:</label>
               <select id="approvedMonthFilter" onchange="loadApprovedFiles()">
                 <option value="">Tất cả tháng</option>
                 <option value="1">Tháng 1</option>
@@ -436,6 +560,9 @@
               </select>
             </div>
 
+            <button onclick="loadApprovedFiles()" class="fa-btn fa-btn-primary">
+              🔍 Lọc
+            </button>
             <button
               onclick="clearApprovedFilters()"
               class="fa-btn fa-btn-secondary"
@@ -444,13 +571,13 @@
             </button>
           </div>
 
-          <div id="approvedFilesList" class="files-list"></div>
+          <div id="approvedFilesList" style="margin-top: 20px"></div>
         </div>
       </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="fileApprovalPages/fileApproval.js?v=1.5"></script>
+    <script src="fileApprovalPages/fileApproval.js?v=1.6"></script>
   </body>
 </html>

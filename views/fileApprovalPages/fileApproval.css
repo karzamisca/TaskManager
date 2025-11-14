@@ -222,80 +222,43 @@
   color: #721c24;
 }
 
-/* Updated Filter Section Styles for Instant Filtering */
+/* New Filter Section Styles */
 .file-approval-content .filter-section {
   display: flex;
   gap: 15px;
-  align-items: center;
-  margin-bottom: 15px;
+  align-items: end;
+  margin-bottom: 20px;
   flex-wrap: wrap;
   padding: 15px;
   background: #f8f9fa;
   border-radius: 8px;
-  border-left: 4px solid #007bff;
+  border: 1px solid #e9ecef;
 }
 
 .file-approval-content .filter-group {
   display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.file-approval-content .filter-label {
-  font-weight: bold;
-  font-size: 14px;
-  color: #495057;
-  white-space: nowrap;
-}
-
-.file-approval-content .filter-section select,
-.file-approval-content .filter-section input {
-  padding: 8px 12px;
-  border-radius: 4px;
-  border: 1px solid #ddd;
+  flex-direction: column;
   min-width: 150px;
-  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.file-approval-content .filter-group label {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #495057;
+}
+
+.file-approval-content .filter-group select,
+.file-approval-content .filter-group input {
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
   font-size: 14px;
 }
 
-.file-approval-content .filter-section select:focus,
-.file-approval-content .filter-section input:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-  outline: none;
-}
-
-.file-approval-content .filter-section select:hover,
-.file-approval-content .filter-section input:hover {
-  border-color: #adb5bd;
-}
-
-/* Loading indicator for filters */
-.file-approval-content .filter-loading {
-  position: relative;
-}
-
-.file-approval-content .filter-loading::after {
-  content: "";
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 12px;
-  height: 12px;
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid #007bff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: translateY(-50%) rotate(0deg);
-  }
-  100% {
-    transform: translateY(-50%) rotate(360deg);
-  }
+.file-approval-content .filter-group input::placeholder {
+  color: #6c757d;
+  font-size: 12px;
 }
 
 .file-approval-content .stats-section {
@@ -311,11 +274,6 @@
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   text-align: center;
-  transition: transform 0.2s;
-}
-
-.file-approval-content .stat-card:hover {
-  transform: translateY(-2px);
 }
 
 .file-approval-content .stat-card h3 {
@@ -384,7 +342,6 @@
   padding: 8px 12px;
   border-radius: 4px;
   font-size: 14px;
-  word-break: break-all;
 }
 
 .file-approval-content .dynamic-form-group {
@@ -435,18 +392,6 @@
   margin-left: 8px;
 }
 
-.file-approval-content .files-list {
-  margin-top: 20px;
-  min-height: 100px;
-}
-
-.file-approval-content .permission-actions {
-  margin-top: 15px;
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
 /* Remove the global body style and replace with scoped container */
 .file-approval-container {
   font-family: Arial, sans-serif;
@@ -457,7 +402,7 @@
   min-height: 100vh;
 }
 
-/* Responsive design */
+/* Responsive design for filters */
 @media (max-width: 768px) {
   .file-approval-content .filter-section {
     flex-direction: column;
@@ -465,21 +410,16 @@
   }
 
   .file-approval-content .filter-group {
-    justify-content: space-between;
-  }
-
-  .file-approval-content .filter-section select,
-  .file-approval-content .filter-section input {
-    min-width: 100%;
+    min-width: auto;
   }
 
   .file-approval-content .file-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
   }
 
   .file-approval-content .file-actions {
+    margin-top: 10px;
     width: 100%;
     justify-content: flex-end;
   }
