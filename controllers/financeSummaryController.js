@@ -326,8 +326,55 @@ exports.getRevenueByCostCenter = async (req, res) => {
           // Use stage amount instead of totalPayment
           costCenterPaymentMap[key] += stage.amount || 0;
         });
+      } else if (
+        doc.appendedPurchasingDocuments &&
+        doc.appendedPurchasingDocuments.length > 0
+      ) {
+        // Payment document with appended purchasing documents but no stages
+        // Distribute payment based on product-level cost centers
+        const dateInfo = getMonthYearFromSubmissionDate(doc.submissionDate);
+        if (!dateInfo) {
+          return; // Skip if invalid date
+        }
+
+        // Align with your existing month-shifting logic
+        let recordMonth = dateInfo.month + 1;
+        let recordYear = dateInfo.year;
+
+        // Handle year boundary
+        if (recordMonth > 12) {
+          recordMonth = 1;
+          recordYear += 1;
+        }
+
+        // Only include payments that align with the requested years
+        if (!yearList.includes(recordYear)) {
+          return;
+        }
+
+        // Iterate through each appended purchasing document
+        doc.appendedPurchasingDocuments.forEach((purchasingDoc) => {
+          if (purchasingDoc.products && purchasingDoc.products.length > 0) {
+            // Iterate through each product
+            purchasingDoc.products.forEach((product) => {
+              const productCostCenter = product.costCenter || "Chưa có";
+
+              // Only process if the product's cost center is in our filter list
+              if (costCenterNames.includes(productCostCenter)) {
+                const key = `${productCostCenter}-${recordMonth}-${recordYear}`;
+
+                if (!costCenterPaymentMap[key]) {
+                  costCenterPaymentMap[key] = 0;
+                }
+
+                // Add the product's total cost (after VAT) to the appropriate cost center
+                costCenterPaymentMap[key] += product.totalCostAfterVat || 0;
+              }
+            });
+          }
+        });
       } else {
-        // Original logic for documents without stages
+        // Original logic for documents without stages or appended purchasing documents
         const dateInfo = getMonthYearFromSubmissionDate(doc.submissionDate);
         if (!dateInfo) {
           return; // Skip if invalid date
