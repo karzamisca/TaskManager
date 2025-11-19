@@ -534,37 +534,19 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       "headOfAccounting",
     ];
 
-    // Build query based on filters and user role
+    // Build base query
     const query = {
       recordMonth: parseInt(month),
       recordYear: parseInt(year),
     };
-
-    if (costCenter) {
-      if (costCenterReverse === "true") {
-        query["costCenter._id"] = { $ne: costCenter };
-      } else {
-        query["costCenter._id"] = costCenter;
-      }
-    }
-
-    if (beneficiaryBank) {
-      if (beneficiaryBankReverse === "true") {
-        query.beneficiaryBank = {
-          $not: { $regex: beneficiaryBank, $options: "i" },
-        };
-      } else {
-        query.beneficiaryBank = { $regex: beneficiaryBank, $options: "i" };
-      }
-    }
 
     // If user is not in full access roles, only show records they manage
     if (!fullAccessRoles.includes(req.user.role)) {
       query.assignedManager = req.user._id;
     }
 
-    // Get records with filters and populate userId to exclude privileged users
-    const records = await UserMonthlyRecord.find(query)
+    // Get records with population first
+    let records = await UserMonthlyRecord.find(query)
       .populate({
         path: "userId",
         select: "username role",
@@ -574,9 +556,43 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       .sort({ realName: 1 });
 
     // Filter out records where userId is null (due to populate match filter)
-    const filteredRecords = records.filter((record) => record.userId !== null);
+    records = records.filter((record) => record.userId !== null);
 
-    if (filteredRecords.length === 0) {
+    // Apply cost center filter AFTER population
+    if (costCenter) {
+      if (costCenterReverse === "true") {
+        records = records.filter(
+          (record) => record.costCenter?.name !== costCenter
+        );
+      } else {
+        records = records.filter(
+          (record) => record.costCenter?.name === costCenter
+        );
+      }
+    }
+
+    // Apply beneficiary bank filter
+    if (beneficiaryBank) {
+      if (beneficiaryBankReverse === "true") {
+        records = records.filter(
+          (record) =>
+            !record.beneficiaryBank ||
+            !record.beneficiaryBank
+              .toLowerCase()
+              .includes(beneficiaryBank.toLowerCase())
+        );
+      } else {
+        records = records.filter(
+          (record) =>
+            record.beneficiaryBank &&
+            record.beneficiaryBank
+              .toLowerCase()
+              .includes(beneficiaryBank.toLowerCase())
+        );
+      }
+    }
+
+    if (records.length === 0) {
       return res
         .status(404)
         .json({ message: "Không tìm thấy bản ghi nào phù hợp" });
@@ -635,7 +651,6 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
         {
           table: {
             headerRows: 1,
-            // Updated widths to accommodate cost center column
             widths: ["4%", "17%", "13%", "10%", "13%", "17%", "11%", "15%"],
             body: [
               [
@@ -648,7 +663,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
                 { text: "Trạm", style: "tableHeader" },
                 { text: "Ngân hàng hưởng", style: "tableHeader" },
               ],
-              ...filteredRecords.map((record, index) => [
+              ...records.map((record, index) => [
                 {
                   text: (index + 1).toString(),
                   style: "tableContent",
@@ -697,7 +712,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
           },
         },
         {
-          text: `Tổng: ${filteredRecords
+          text: `Tổng: ${records
             .reduce((sum, record) => sum + Math.ceil(record.currentSalary), 0)
             .toLocaleString("vi-VN")} VND`,
           style: "total",
@@ -760,11 +775,28 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
 
     // Set response headers
-    const fileName = `ChiLuong_${month}_${year}${
-      costCenter ? "_" + costCenter : ""
-    }.pdf`;
+    let fileName = `ChiLuong_${month}_${year}`;
+    if (costCenter) {
+      // Sanitize costCenter name to remove invalid characters
+      const sanitizedCostCenter = costCenter.replace(
+        /[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF\s-]/g,
+        ""
+      );
+      fileName += `_${sanitizedCostCenter}`;
+    }
+    fileName += ".pdf";
+
+    // Ensure filename is properly encoded
+    const encodedFileName = encodeURIComponent(fileName).replace(
+      /['()]/g,
+      escape
+    );
+
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`
+    );
 
     // Stream the PDF to the response
     pdfDoc.pipe(res);
@@ -819,37 +851,19 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       "headOfAccounting",
     ];
 
-    // Build query based on filters and user role
+    // Build base query
     const query = {
       recordMonth: parseInt(month),
       recordYear: parseInt(year),
     };
-
-    if (costCenter) {
-      if (costCenterReverse === "true") {
-        query["costCenter._id"] = { $ne: costCenter };
-      } else {
-        query["costCenter._id"] = costCenter;
-      }
-    }
-
-    if (beneficiaryBank) {
-      if (beneficiaryBankReverse === "true") {
-        query.beneficiaryBank = {
-          $not: { $regex: beneficiaryBank, $options: "i" },
-        };
-      } else {
-        query.beneficiaryBank = { $regex: beneficiaryBank, $options: "i" };
-      }
-    }
 
     // If user is not in full access roles, only show records they manage
     if (!fullAccessRoles.includes(req.user.role)) {
       query.assignedManager = req.user._id;
     }
 
-    // Get records with filters and populate userId to exclude privileged users
-    const records = await UserMonthlyRecord.find(query)
+    // Get records with population first
+    let records = await UserMonthlyRecord.find(query)
       .populate({
         path: "userId",
         select: "username role",
@@ -859,9 +873,43 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       .sort({ realName: 1 });
 
     // Filter out records where userId is null (due to populate match filter)
-    const filteredRecords = records.filter((record) => record.userId !== null);
+    records = records.filter((record) => record.userId !== null);
 
-    if (filteredRecords.length === 0) {
+    // Apply cost center filter AFTER population
+    if (costCenter) {
+      if (costCenterReverse === "true") {
+        records = records.filter(
+          (record) => record.costCenter?.name !== costCenter
+        );
+      } else {
+        records = records.filter(
+          (record) => record.costCenter?.name === costCenter
+        );
+      }
+    }
+
+    // Apply beneficiary bank filter
+    if (beneficiaryBank) {
+      if (beneficiaryBankReverse === "true") {
+        records = records.filter(
+          (record) =>
+            !record.beneficiaryBank ||
+            !record.beneficiaryBank
+              .toLowerCase()
+              .includes(beneficiaryBank.toLowerCase())
+        );
+      } else {
+        records = records.filter(
+          (record) =>
+            record.beneficiaryBank &&
+            record.beneficiaryBank
+              .toLowerCase()
+              .includes(beneficiaryBank.toLowerCase())
+        );
+      }
+    }
+
+    if (records.length === 0) {
       return res
         .status(404)
         .json({ message: "Không tìm thấy bản ghi nào phù hợp" });
@@ -914,7 +962,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     // Add empty row for spacing
     worksheet.addRow([]);
 
-    // Define headers with proper widths - added cost center column
+    // Define headers with proper widths
     const headers = [
       { header: "STT", key: "stt", width: 6 },
       { header: "Họ và tên", key: "name", width: 25 },
@@ -956,7 +1004,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
 
     // Add data rows starting from row 6
     let totalSalary = 0;
-    filteredRecords.forEach((record, index) => {
+    records.forEach((record, index) => {
       const salaryAmount = Math.ceil(record.currentSalary);
       totalSalary += salaryAmount;
 
@@ -1014,7 +1062,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     totalRow.getCell(4).font = { bold: true, size: 11, name: "Arial" };
     totalRow.getCell(4).alignment = { horizontal: "right", vertical: "middle" };
 
-    // Add borders to total row (updated to include cost center column)
+    // Add borders to total row
     for (let i = 1; i <= 8; i++) {
       totalRow.getCell(i).border = {
         top: { style: "thin", color: { argb: "FF000000" } },
@@ -1040,19 +1088,35 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     };
     signatureRow.height = 20;
 
-    // Set print area (updated to include cost center column)
+    // Set print area
     worksheet.pageSetup.printArea = `A1:H${signatureRowIndex}`;
 
     // Set response headers
-    const fileName = `ChiLuong_${month}_${year}${
-      costCenter ? "_" + costCenter : ""
-    }.xlsx`;
+    let fileName = `ChiLuong_${month}_${year}`;
+    if (costCenter) {
+      // Sanitize costCenter name to remove invalid characters
+      const sanitizedCostCenter = costCenter.replace(
+        /[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF\s-]/g,
+        ""
+      );
+      fileName += `_${sanitizedCostCenter}`;
+    }
+    fileName += ".xlsx";
+
+    // Ensure filename is properly encoded
+    const encodedFileName = encodeURIComponent(fileName).replace(
+      /['()]/g,
+      escape
+    );
 
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`
+    );
 
     // Stream the Excel file to the response
     await workbook.xlsx.write(res);
