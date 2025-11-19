@@ -635,8 +635,8 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
         {
           table: {
             headerRows: 1,
-            // Use percentage-based widths for better scaling
-            widths: ["5%", "20%", "15%", "12%", "15%", "20%", "13%"],
+            // Updated widths to accommodate cost center column
+            widths: ["4%", "17%", "13%", "10%", "13%", "17%", "11%", "15%"],
             body: [
               [
                 { text: "STT", style: "tableHeader" },
@@ -645,6 +645,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
                 { text: "Số CMND/CCCD", style: "tableHeader" },
                 { text: "Số tiền chi lương", style: "tableHeader" },
                 { text: "Nội dung chi lương", style: "tableHeader" },
+                { text: "Trạm", style: "tableHeader" },
                 { text: "Ngân hàng hưởng", style: "tableHeader" },
               ],
               ...filteredRecords.map((record, index) => [
@@ -674,6 +675,10 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
                   style: "tableContent",
                 },
                 {
+                  text: record.costCenter?.name || "N/A",
+                  style: "tableContent",
+                },
+                {
                   text: record.beneficiaryBank || "N/A",
                   style: "tableContent",
                 },
@@ -685,10 +690,10 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
             vLineWidth: () => 0.5,
             hLineColor: () => "#aaa",
             vLineColor: () => "#aaa",
-            paddingLeft: () => 4,
-            paddingRight: () => 4,
-            paddingTop: () => 3,
-            paddingBottom: () => 3,
+            paddingLeft: () => 3,
+            paddingRight: () => 3,
+            paddingTop: () => 2,
+            paddingBottom: () => 2,
           },
         },
         {
@@ -726,13 +731,13 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
         },
         tableHeader: {
           bold: true,
-          fontSize: 10,
+          fontSize: 9,
           color: "black",
           fillColor: "#f5f5f5",
           alignment: "center",
         },
         tableContent: {
-          fontSize: 9,
+          fontSize: 8,
           margin: [0, 1, 0, 1],
         },
         total: {
@@ -884,7 +889,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     };
 
     // Add main title
-    worksheet.mergeCells("A1:G1");
+    worksheet.mergeCells("A1:H1");
     worksheet.getCell("A1").value = "DANH SÁCH CHI LƯƠNG";
     worksheet.getCell("A1").font = { bold: true, size: 16, name: "Arial" };
     worksheet.getCell("A1").alignment = {
@@ -894,7 +899,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     worksheet.getRow(1).height = 25;
 
     // Add subtitle with contract info
-    worksheet.mergeCells("A2:G3");
+    worksheet.mergeCells("A2:H3");
     worksheet.getCell("A2").value =
       "(Kèm theo Hợp đồng Dịch vụ chi lương số 41/HDCL-HDBCH ngày 15 tháng 09 năm 2022 được kì kết giữa Ngân Hàng TMCP Phát Triển TP. Hồ Chí Minh – Chi nhánh Cộng Hòa và Công ty TNHH Đầu Tư Thương Mại Dịch Vụ Kỳ Long)";
     worksheet.getCell("A2").font = { size: 10, name: "Arial" };
@@ -909,7 +914,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     // Add empty row for spacing
     worksheet.addRow([]);
 
-    // Define headers with proper widths
+    // Define headers with proper widths - added cost center column
     const headers = [
       { header: "STT", key: "stt", width: 6 },
       { header: "Họ và tên", key: "name", width: 25 },
@@ -917,6 +922,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       { header: "Số CMND/CCCD", key: "id", width: 15 },
       { header: "Số tiền chi lương", key: "salary", width: 16 },
       { header: "Nội dung chi lương", key: "description", width: 22 },
+      { header: "Trạm", key: "costCenter", width: 20 },
       { header: "Ngân hàng hưởng", key: "bank", width: 25 },
     ];
 
@@ -961,6 +967,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         id: record.citizenID || "N/A",
         salary: salaryAmount,
         description: `Thanh toán lương tháng ${parseInt(month) - 1}`,
+        costCenter: record.costCenter?.name || "N/A",
         bank: record.beneficiaryBank || "N/A",
       });
 
@@ -1007,8 +1014,8 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     totalRow.getCell(4).font = { bold: true, size: 11, name: "Arial" };
     totalRow.getCell(4).alignment = { horizontal: "right", vertical: "middle" };
 
-    // Add borders to total row
-    for (let i = 1; i <= 7; i++) {
+    // Add borders to total row (updated to include cost center column)
+    for (let i = 1; i <= 8; i++) {
       totalRow.getCell(i).border = {
         top: { style: "thin", color: { argb: "FF000000" } },
         left: { style: "thin", color: { argb: "FF000000" } },
@@ -1025,16 +1032,16 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     // Add signature section
     const signatureRowIndex = worksheet.lastRow.number + 1;
     const signatureRow = worksheet.getRow(signatureRowIndex);
-    signatureRow.getCell(6).value = "ĐẠI DIỆN CÔNG TY";
-    signatureRow.getCell(6).font = { bold: true, size: 11, name: "Arial" };
-    signatureRow.getCell(6).alignment = {
+    signatureRow.getCell(7).value = "ĐẠI DIỆN CÔNG TY";
+    signatureRow.getCell(7).font = { bold: true, size: 11, name: "Arial" };
+    signatureRow.getCell(7).alignment = {
       horizontal: "center",
       vertical: "middle",
     };
     signatureRow.height = 20;
 
-    // Set print area
-    worksheet.pageSetup.printArea = `A1:G${signatureRowIndex}`;
+    // Set print area (updated to include cost center column)
+    worksheet.pageSetup.printArea = `A1:H${signatureRowIndex}`;
 
     // Set response headers
     const fileName = `ChiLuong_${month}_${year}${
