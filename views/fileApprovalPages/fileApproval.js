@@ -315,21 +315,63 @@ function onPendingCategoryChange() {
   loadPendingFiles();
 }
 
+// Populate legal document types
+function populateApprovedLegalDocumentTypes() {
+  const options = documentOptions["Pháp lý"] || [];
+  const select = document.getElementById("approvedLegalDocumentType");
+  select.innerHTML = '<option value="">Tất cả loại</option>';
+  options.forEach((option) => {
+    const opt = document.createElement("option");
+    opt.value = option;
+    opt.textContent = option;
+    select.appendChild(opt);
+  });
+}
+
 // Show/hide filters based on approved category selection
 function onApprovedCategoryChange() {
   const category = document.getElementById("approvedCategoryFilter").value;
 
   // Hide all category-specific filters first
-  document.querySelectorAll('[id$="Filter"]').forEach((filter) => {
-    if (
-      filter.id.startsWith("approved") &&
-      !filter.id.includes("Category") &&
-      !filter.id.includes("Year") &&
-      !filter.id.includes("Month")
-    ) {
-      filter.style.display = "none";
-    }
+  const filterGroups = [
+    "approvedCompanySubcategoryFilter",
+    "approvedDocumentSubtypeFilter",
+    "approvedDepartmentFilter",
+    "approvedEmployeeNameFilter",
+    "approvedAssetTypeFilter",
+    "approvedAssetNameFilter",
+    "approvedPartnerNameFilter",
+    "approvedContractTypeFilter",
+    "approvedContractNumberFilter",
+    "approvedDocumentTypeFilter",
+    "approvedBankNameFilter",
+    "approvedBankDocumentTypeFilter",
+    "approvedLegalDocumentTypeFilter",
+  ];
+
+  filterGroups.forEach((id) => {
+    const element = document.getElementById(id);
+    if (element) element.style.display = "none";
   });
+
+  // Reset all filter values
+  document.getElementById("approvedCompanySubcategory").value = "";
+  document.getElementById("approvedDocumentSubtype").innerHTML =
+    '<option value="">Tất cả chi tiết</option>';
+  document.getElementById("approvedDepartment").value = "";
+  document.getElementById("approvedEmployeeName").value = "";
+  document.getElementById("approvedAssetType").value = "";
+  document.getElementById("approvedAssetName").value = "";
+  document.getElementById("approvedPartnerName").value = "";
+  document.getElementById("approvedContractType").value = "";
+  document.getElementById("approvedContractNumber").value = "";
+  document.getElementById("approvedDocumentType").innerHTML =
+    '<option value="">Tất cả loại</option>';
+  document.getElementById("approvedBankName").value = "";
+  document.getElementById("approvedBankDocumentType").innerHTML =
+    '<option value="">Tất cả loại</option>';
+  document.getElementById("approvedLegalDocumentType").innerHTML =
+    '<option value="">Tất cả loại</option>';
 
   // Show relevant filters based on category
   if (category === "Công ty") {
@@ -342,8 +384,115 @@ function onApprovedCategoryChange() {
       "block";
   } else if (category === "Ngân hàng") {
     document.getElementById("approvedBankNameFilter").style.display = "block";
+    document.getElementById("approvedBankDocumentTypeFilter").style.display =
+      "block";
+    // Populate bank document types
+    populateApprovedBankDocumentTypes();
+  } else if (category === "Pháp lý") {
+    document.getElementById("approvedLegalDocumentTypeFilter").style.display =
+      "block";
+    // Populate legal document types
+    populateApprovedLegalDocumentTypes();
   }
-  // Pháp lý doesn't have additional filters beyond year/month
+
+  loadApprovedFiles();
+}
+
+// Handle company subcategory change
+function onApprovedCompanySubcategoryChange() {
+  const subcategory = document.getElementById(
+    "approvedCompanySubcategory"
+  ).value;
+
+  // Hide all company-specific filters
+  document.getElementById("approvedDocumentSubtypeFilter").style.display =
+    "none";
+  document.getElementById("approvedDepartmentFilter").style.display = "none";
+  document.getElementById("approvedEmployeeNameFilter").style.display = "none";
+  document.getElementById("approvedAssetTypeFilter").style.display = "none";
+  document.getElementById("approvedAssetNameFilter").style.display = "none";
+
+  // Reset values
+  document.getElementById("approvedDocumentSubtype").innerHTML =
+    '<option value="">Tất cả chi tiết</option>';
+  document.getElementById("approvedDepartment").value = "";
+  document.getElementById("approvedEmployeeName").value = "";
+  document.getElementById("approvedAssetType").value = "";
+  document.getElementById("approvedAssetName").value = "";
+
+  if (subcategory) {
+    document.getElementById("approvedDocumentSubtypeFilter").style.display =
+      "block";
+
+    // Populate document subtypes
+    const options = documentOptions["Công ty"][subcategory] || [];
+    const select = document.getElementById("approvedDocumentSubtype");
+    select.innerHTML = '<option value="">Tất cả chi tiết</option>';
+    options.forEach((option) => {
+      const opt = document.createElement("option");
+      opt.value = option;
+      opt.textContent = option;
+      select.appendChild(opt);
+    });
+
+    // Show additional fields based on subcategory
+    if (subcategory === "Quy trình & Quy định") {
+      document.getElementById("approvedDepartmentFilter").style.display =
+        "block";
+    } else if (subcategory === "Nhân sự") {
+      document.getElementById("approvedDepartmentFilter").style.display =
+        "block";
+      document.getElementById("approvedEmployeeNameFilter").style.display =
+        "block";
+    } else if (subcategory === "Tài sản & Thiết bị") {
+      document.getElementById("approvedAssetTypeFilter").style.display =
+        "block";
+    }
+  }
+
+  loadApprovedFiles();
+}
+
+// Handle document subtype change
+function onApprovedDocumentSubtypeChange() {
+  loadApprovedFiles();
+}
+
+// Handle asset type change
+function onApprovedAssetTypeChange() {
+  const assetType = document.getElementById("approvedAssetType").value;
+  document.getElementById("approvedAssetNameFilter").style.display = assetType
+    ? "block"
+    : "none";
+  loadApprovedFiles();
+}
+
+// Handle contract type change
+function onApprovedContractTypeChange() {
+  const contractType = document.getElementById("approvedContractType").value;
+
+  if (contractType) {
+    document.getElementById("approvedContractNumberFilter").style.display =
+      "block";
+    document.getElementById("approvedDocumentTypeFilter").style.display =
+      "block";
+
+    // Populate document types for partner
+    const options = documentOptions["Đối tác"][contractType] || [];
+    const select = document.getElementById("approvedDocumentType");
+    select.innerHTML = '<option value="">Tất cả loại</option>';
+    options.forEach((option) => {
+      const opt = document.createElement("option");
+      opt.value = option;
+      opt.textContent = option;
+      select.appendChild(opt);
+    });
+  } else {
+    document.getElementById("approvedContractNumberFilter").style.display =
+      "none";
+    document.getElementById("approvedDocumentTypeFilter").style.display =
+      "none";
+  }
 
   loadApprovedFiles();
 }
@@ -410,77 +559,77 @@ async function loadApprovedFiles() {
 function filterFilesClientSide(files, type) {
   let filteredFiles = [...files];
 
-  if (type === "pending") {
-    const companySubcategory = document.getElementById(
-      "pendingCompanySubcategory"
-    ).value;
-    const partnerName = document.getElementById("pendingPartnerName").value;
-    const contractType = document.getElementById("pendingContractType").value;
-    const bankName = document.getElementById("pendingBankName").value;
-    const year = document.getElementById("pendingYearFilter").value;
-    const month = document.getElementById("pendingMonthFilter").value;
-
-    // Apply company subcategory filter (blank means all)
-    if (companySubcategory) {
-      filteredFiles = filteredFiles.filter(
-        (file) => file.companySubcategory === companySubcategory
-      );
-    }
-
-    // Apply partner name filter (case insensitive, partial match, blank means all)
-    if (partnerName) {
-      filteredFiles = filteredFiles.filter(
-        (file) =>
-          file.partnerName &&
-          file.partnerName.toLowerCase().includes(partnerName.toLowerCase())
-      );
-    }
-
-    // Apply contract type filter (blank means all)
-    if (contractType) {
-      filteredFiles = filteredFiles.filter(
-        (file) => file.contractType === contractType
-      );
-    }
-
-    // Apply bank name filter (case insensitive, partial match, blank means all)
-    if (bankName) {
-      filteredFiles = filteredFiles.filter(
-        (file) =>
-          file.bankName &&
-          file.bankName.toLowerCase().includes(bankName.toLowerCase())
-      );
-    }
-
-    // Apply year filter (blank means all)
-    if (year) {
-      filteredFiles = filteredFiles.filter(
-        (file) => file.year.toString() === year
-      );
-    }
-
-    // Apply month filter (blank means all)
-    if (month) {
-      filteredFiles = filteredFiles.filter(
-        (file) => file.month && file.month.toString() === month
-      );
-    }
-  } else if (type === "approved") {
+  if (type === "approved") {
+    // Company filters
     const companySubcategory = document.getElementById(
       "approvedCompanySubcategory"
     ).value;
+    const documentSubtype = document.getElementById(
+      "approvedDocumentSubtype"
+    ).value;
+    const department = document.getElementById("approvedDepartment").value;
+    const employeeName = document.getElementById("approvedEmployeeName").value;
+    const assetType = document.getElementById("approvedAssetType").value;
+    const assetName = document.getElementById("approvedAssetName").value;
+
+    // Partner filters
     const partnerName = document.getElementById("approvedPartnerName").value;
     const contractType = document.getElementById("approvedContractType").value;
-    const bankName = document.getElementById("approvedBankName").value;
+    const contractNumber = document.getElementById(
+      "approvedContractNumber"
+    ).value;
+    const documentType = document.getElementById("approvedDocumentType").value;
 
-    // Apply company subcategory filter (blank means all)
+    // Bank filters
+    const bankName = document.getElementById("approvedBankName").value;
+    const bankDocumentType = document.getElementById(
+      "approvedBankDocumentType"
+    ).value;
+
+    // Legal filters
+    const legalDocumentType = document.getElementById(
+      "approvedLegalDocumentType"
+    ).value;
+
+    // Apply company filters
     if (companySubcategory) {
       filteredFiles = filteredFiles.filter(
         (file) => file.companySubcategory === companySubcategory
       );
     }
+    if (documentSubtype) {
+      filteredFiles = filteredFiles.filter(
+        (file) => file.documentSubtype === documentSubtype
+      );
+    }
+    if (department) {
+      filteredFiles = filteredFiles.filter(
+        (file) =>
+          file.department &&
+          file.department.toLowerCase().includes(department.toLowerCase())
+      );
+    }
+    if (employeeName) {
+      filteredFiles = filteredFiles.filter(
+        (file) =>
+          file.employeeName &&
+          file.employeeName.toLowerCase().includes(employeeName.toLowerCase())
+      );
+    }
+    if (assetType) {
+      filteredFiles = filteredFiles.filter(
+        (file) => file.assetType === assetType
+      );
+    }
+    if (assetName) {
+      filteredFiles = filteredFiles.filter(
+        (file) =>
+          file.assetName &&
+          file.assetName.toLowerCase().includes(assetName.toLowerCase())
+      );
+    }
 
-    // Apply partner name filter (case insensitive, partial match, blank means all)
+    // Apply partner filters
     if (partnerName) {
       filteredFiles = filteredFiles.filter(
         (file) =>
@@ -488,20 +637,44 @@ function filterFilesClientSide(files, type) {
           file.partnerName.toLowerCase().includes(partnerName.toLowerCase())
       );
     }
-
-    // Apply contract type filter (blank means all)
     if (contractType) {
       filteredFiles = filteredFiles.filter(
         (file) => file.contractType === contractType
       );
     }
+    if (contractNumber) {
+      filteredFiles = filteredFiles.filter(
+        (file) =>
+          file.contractNumber &&
+          file.contractNumber
+            .toLowerCase()
+            .includes(contractNumber.toLowerCase())
+      );
+    }
+    if (documentType) {
+      filteredFiles = filteredFiles.filter(
+        (file) => file.documentType === documentType
+      );
+    }
 
-    // Apply bank name filter (case insensitive, partial match, blank means all)
+    // Apply bank filters
     if (bankName) {
       filteredFiles = filteredFiles.filter(
         (file) =>
           file.bankName &&
           file.bankName.toLowerCase().includes(bankName.toLowerCase())
+      );
+    }
+    if (bankDocumentType) {
+      filteredFiles = filteredFiles.filter(
+        (file) => file.documentType === bankDocumentType
+      );
+    }
+
+    // Apply legal filters
+    if (legalDocumentType) {
+      filteredFiles = filteredFiles.filter(
+        (file) => file.legalDocumentType === legalDocumentType
       );
     }
   }
@@ -540,20 +713,43 @@ function clearApprovedFilters() {
   document.getElementById("approvedYearFilter").value = "";
   document.getElementById("approvedMonthFilter").value = "";
   document.getElementById("approvedCompanySubcategory").value = "";
+  document.getElementById("approvedDocumentSubtype").innerHTML =
+    '<option value="">Tất cả chi tiết</option>';
+  document.getElementById("approvedDepartment").value = "";
+  document.getElementById("approvedEmployeeName").value = "";
+  document.getElementById("approvedAssetType").value = "";
+  document.getElementById("approvedAssetName").value = "";
   document.getElementById("approvedPartnerName").value = "";
   document.getElementById("approvedContractType").value = "";
+  document.getElementById("approvedContractNumber").value = "";
+  document.getElementById("approvedDocumentType").innerHTML =
+    '<option value="">Tất cả loại</option>';
   document.getElementById("approvedBankName").value = "";
+  document.getElementById("approvedBankDocumentType").innerHTML =
+    '<option value="">Tất cả loại</option>';
+  document.getElementById("approvedLegalDocumentType").innerHTML =
+    '<option value="">Tất cả loại</option>';
 
   // Hide all category-specific filters
-  document.querySelectorAll('[id$="Filter"]').forEach((filter) => {
-    if (
-      filter.id.startsWith("approved") &&
-      !filter.id.includes("Category") &&
-      !filter.id.includes("Year") &&
-      !filter.id.includes("Month")
-    ) {
-      filter.style.display = "none";
-    }
+  const filterGroups = [
+    "approvedCompanySubcategoryFilter",
+    "approvedDocumentSubtypeFilter",
+    "approvedDepartmentFilter",
+    "approvedEmployeeNameFilter",
+    "approvedAssetTypeFilter",
+    "approvedAssetNameFilter",
+    "approvedPartnerNameFilter",
+    "approvedContractTypeFilter",
+    "approvedContractNumberFilter",
+    "approvedDocumentTypeFilter",
+    "approvedBankNameFilter",
+    "approvedBankDocumentTypeFilter",
+    "approvedLegalDocumentTypeFilter",
+  ];
+
+  filterGroups.forEach((id) => {
+    const element = document.getElementById(id);
+    if (element) element.style.display = "none";
   });
 
   loadApprovedFiles();

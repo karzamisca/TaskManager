@@ -460,8 +460,9 @@
             </div>
           </div>
 
-          <!-- New Approved Files Filter Section -->
+          <!-- Enhanced Approved Files Filter Section -->
           <div class="filter-section">
+            <!-- Main Category Filter -->
             <div class="filter-group">
               <label for="approvedCategoryFilter">Danh mục:</label>
               <select
@@ -477,11 +478,15 @@
             </div>
 
             <!-- Company-specific filters -->
-            <div class="filter-group" id="approvedCompanySubcategoryFilter">
+            <div
+              class="filter-group"
+              id="approvedCompanySubcategoryFilter"
+              style="display: none"
+            >
               <label for="approvedCompanySubcategory">Loại tài liệu:</label>
               <select
                 id="approvedCompanySubcategory"
-                onchange="loadApprovedFiles()"
+                onchange="onApprovedCompanySubcategoryChange()"
               >
                 <option value="">Tất cả loại</option>
                 <option value="Quản lý chung">Quản lý chung</option>
@@ -495,20 +500,104 @@
               </select>
             </div>
 
+            <div
+              class="filter-group"
+              id="approvedDocumentSubtypeFilter"
+              style="display: none"
+            >
+              <label for="approvedDocumentSubtype">Chi tiết:</label>
+              <select
+                id="approvedDocumentSubtype"
+                onchange="onApprovedDocumentSubtypeChange()"
+              >
+                <option value="">Tất cả chi tiết</option>
+              </select>
+            </div>
+
+            <div
+              class="filter-group"
+              id="approvedDepartmentFilter"
+              style="display: none"
+            >
+              <label for="approvedDepartment">Phòng ban:</label>
+              <input
+                type="text"
+                id="approvedDepartment"
+                placeholder="Tên phòng ban"
+                oninput="loadApprovedFiles()"
+              />
+            </div>
+
+            <div
+              class="filter-group"
+              id="approvedEmployeeNameFilter"
+              style="display: none"
+            >
+              <label for="approvedEmployeeName">Tên nhân viên:</label>
+              <input
+                type="text"
+                id="approvedEmployeeName"
+                placeholder="Tên nhân viên"
+                oninput="loadApprovedFiles()"
+              />
+            </div>
+
+            <div
+              class="filter-group"
+              id="approvedAssetTypeFilter"
+              style="display: none"
+            >
+              <label for="approvedAssetType">Loại tài sản:</label>
+              <select
+                id="approvedAssetType"
+                onchange="onApprovedAssetTypeChange()"
+              >
+                <option value="">Tất cả loại</option>
+                <option value="Trạm">Trạm</option>
+                <option value="Bồn chứa">Bồn chứa</option>
+                <option value="Thiết bị khác">Thiết bị khác</option>
+              </select>
+            </div>
+
+            <div
+              class="filter-group"
+              id="approvedAssetNameFilter"
+              style="display: none"
+            >
+              <label for="approvedAssetName">Tên tài sản:</label>
+              <input
+                type="text"
+                id="approvedAssetName"
+                placeholder="Tên tài sản"
+                oninput="loadApprovedFiles()"
+              />
+            </div>
+
             <!-- Partner-specific filters -->
-            <div class="filter-group" id="approvedPartnerNameFilter">
+            <div
+              class="filter-group"
+              id="approvedPartnerNameFilter"
+              style="display: none"
+            >
               <label for="approvedPartnerName">Đối tác:</label>
               <input
                 type="text"
                 id="approvedPartnerName"
                 placeholder="Tên đối tác"
-                onchange="loadApprovedFiles()"
+                oninput="loadApprovedFiles()"
               />
             </div>
 
-            <div class="filter-group" id="approvedContractTypeFilter">
+            <div
+              class="filter-group"
+              id="approvedContractTypeFilter"
+              style="display: none"
+            >
               <label for="approvedContractType">Loại hợp đồng:</label>
-              <select id="approvedContractType" onchange="loadApprovedFiles()">
+              <select
+                id="approvedContractType"
+                onchange="onApprovedContractTypeChange()"
+              >
                 <option value="">Tất cả loại</option>
                 <option value="Hợp đồng mua">Hợp đồng mua</option>
                 <option value="Hợp đồng bán">Hợp đồng bán</option>
@@ -518,15 +607,73 @@
               </select>
             </div>
 
+            <div
+              class="filter-group"
+              id="approvedContractNumberFilter"
+              style="display: none"
+            >
+              <label for="approvedContractNumber">Số hợp đồng:</label>
+              <input
+                type="text"
+                id="approvedContractNumber"
+                placeholder="Số hợp đồng"
+                oninput="loadApprovedFiles()"
+              />
+            </div>
+
+            <div
+              class="filter-group"
+              id="approvedDocumentTypeFilter"
+              style="display: none"
+            >
+              <label for="approvedDocumentType">Loại tài liệu:</label>
+              <select id="approvedDocumentType" onchange="loadApprovedFiles()">
+                <option value="">Tất cả loại</option>
+              </select>
+            </div>
+
             <!-- Bank-specific filters -->
-            <div class="filter-group" id="approvedBankNameFilter">
+            <div
+              class="filter-group"
+              id="approvedBankNameFilter"
+              style="display: none"
+            >
               <label for="approvedBankName">Ngân hàng:</label>
               <input
                 type="text"
                 id="approvedBankName"
                 placeholder="Tên ngân hàng"
-                onchange="loadApprovedFiles()"
+                oninput="loadApprovedFiles()"
               />
+            </div>
+
+            <div
+              class="filter-group"
+              id="approvedBankDocumentTypeFilter"
+              style="display: none"
+            >
+              <label for="approvedBankDocumentType">Loại tài liệu:</label>
+              <select
+                id="approvedBankDocumentType"
+                onchange="loadApprovedFiles()"
+              >
+                <option value="">Tất cả loại</option>
+              </select>
+            </div>
+
+            <!-- Legal-specific filters -->
+            <div
+              class="filter-group"
+              id="approvedLegalDocumentTypeFilter"
+              style="display: none"
+            >
+              <label for="approvedLegalDocumentType">Loại tài liệu:</label>
+              <select
+                id="approvedLegalDocumentType"
+                onchange="loadApprovedFiles()"
+              >
+                <option value="">Tất cả loại</option>
+              </select>
             </div>
 
             <!-- Common filters -->
@@ -537,7 +684,7 @@
                 id="approvedYearFilter"
                 min="0"
                 placeholder="Năm"
-                onchange="loadApprovedFiles()"
+                oninput="loadApprovedFiles()"
               />
             </div>
 
@@ -560,6 +707,7 @@
               </select>
             </div>
 
+            <!-- Action buttons -->
             <button onclick="loadApprovedFiles()" class="fa-btn fa-btn-primary">
               🔍 Lọc
             </button>
@@ -578,6 +726,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="fileApprovalPages/fileApproval.js?v=1.6"></script>
+    <script src="fileApprovalPages/fileApproval.js?v=1.7"></script>
   </body>
 </html>
