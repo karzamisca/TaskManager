@@ -1240,6 +1240,61 @@ const fetchProducts = async () => {
   }
 };
 
+const validateProductFields = () => {
+  const productItems = document.querySelectorAll(".product-item");
+
+  if (productItems.length === 0) {
+    showMessage("Vui lòng thêm ít nhất một sản phẩm", true);
+    return false;
+  }
+
+  for (let item of productItems) {
+    const productSelect = item.querySelector(".product-select");
+
+    // Check if product name is selected
+    if (productSelect) {
+      const choicesInstance = productSelect._choices;
+      const productName = choicesInstance
+        ? choicesInstance.getValue(true)
+        : productSelect.value;
+
+      if (!productName || productName === "") {
+        showMessage("Vui lòng chọn tên sản phẩm cho tất cả các mục", true);
+        // Try to focus on the field
+        if (choicesInstance) {
+          choicesInstance.showDropdown();
+        } else {
+          productSelect.focus();
+        }
+        return false;
+      }
+    } else {
+      // Fallback text input
+      const nameInput = item.querySelector('input[type="text"]:first-of-type');
+      if (nameInput && !nameInput.value) {
+        showMessage("Vui lòng nhập tên sản phẩm cho tất cả các mục", true);
+        nameInput.focus();
+        return false;
+      }
+    }
+
+    // Check other required fields
+    const requiredInputs = item.querySelectorAll("input[required]");
+    for (let input of requiredInputs) {
+      if (!input.value || input.value === "") {
+        showMessage(
+          `Vui lòng điền đầy đủ thông tin sản phẩm (${input.placeholder})`,
+          true
+        );
+        input.focus();
+        return false;
+      }
+    }
+  }
+
+  return true;
+};
+
 const addProductField = async (product = null) => {
   const productsList = document.getElementById("productsList");
   const productDiv = document.createElement("div");
@@ -1257,7 +1312,8 @@ const addProductField = async (product = null) => {
     .substr(2, 9)}`;
   productDropdown.id = uniqueId;
   productDropdown.className = "form-select product-select";
-  productDropdown.required = true;
+  // Remove required attribute temporarily - we'll validate manually
+  productDropdown.removeAttribute("required");
 
   // Add default option
   const defaultOption = document.createElement("option");
@@ -1267,7 +1323,7 @@ const addProductField = async (product = null) => {
 
   // Fetch and populate products
   let fallbackToInput = false;
-  let selectedProductName = product?.productName; // Store the product name to select later
+  let selectedProductName = product?.productName;
 
   try {
     const products = await fetchProducts();
@@ -1310,6 +1366,7 @@ const addProductField = async (product = null) => {
   // Create cost center dropdown
   const costCenterSelect = document.createElement("select");
   costCenterSelect.className = "product-cost-center form-select";
+  // Cost center is optional, so no required attribute
 
   const defaultCenterOption = document.createElement("option");
   defaultCenterOption.value = "";
@@ -1342,12 +1399,10 @@ const addProductField = async (product = null) => {
   removeButton.innerHTML = '<i class="fas fa-trash"></i> Xóa';
   removeButton.onclick = function () {
     // Destroy Choices instance before removing
-    const choicesInstance =
-      this.parentElement.parentElement.querySelector(
-        ".product-select"
-      )?._choices;
-    if (choicesInstance) {
-      choicesInstance.destroy();
+    const productSelect =
+      this.parentElement.parentElement.querySelector(".product-select");
+    if (productSelect && productSelect._choices) {
+      productSelect._choices.destroy();
     }
     this.parentElement.parentElement.remove();
   };
@@ -1362,6 +1417,10 @@ const addProductField = async (product = null) => {
     nameInput.className = "form-input";
     fieldsContainer.appendChild(nameInput);
   } else {
+    // Set the value BEFORE appending to DOM if we have one
+    if (selectedProductName) {
+      productDropdown.value = selectedProductName;
+    }
     fieldsContainer.appendChild(productDropdown);
   }
 
@@ -1660,6 +1719,11 @@ const closeEditModal = () => {
 
 const handleEditSubmit = async (event) => {
   event.preventDefault();
+
+  if (!validateProductFields()) {
+    return;
+  }
+
   const docId = document.getElementById("editDocId").value;
   const formData = new FormData();
 
