@@ -438,6 +438,7 @@ exports.getSftpPurchasingViews = (req, res) => {
       "captainOfPurchasing",
       "headOfAccounting",
       "captainOfAccounting",
+      "captainOfFinance",
       "submitterOfAccounting",
     ].includes(req.user.role)
   ) {
@@ -455,6 +456,7 @@ function isRestrictedPaymentUser(role) {
     "submitterOfAccounting",
     "captainOfAccounting",
     "headOfAccounting",
+    "captainOfFinance",
   ].includes(role);
 }
 
