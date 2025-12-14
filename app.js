@@ -22,6 +22,7 @@ const financeCostCenterBankRoute = require("./routes/financeCostCenterBankRoute"
 const financeSummaryRoute = require("./routes/financeSummaryRoute");
 const fileApprovalRoute = require("./routes/fileApprovalRoute");
 const reportFinanceCostCenterRoute = require("./routes/reportFinanceCostCenterRoute");
+const itemManagementRoute = require("./routes/itemManagementRoute");
 const authMiddleware = require("./middlewares/authMiddleware"); // JWT middleware
 const path = require("path");
 const fs = require("fs");
@@ -87,6 +88,7 @@ app.use("/", authMiddleware, financeCostCenterBankRoute);
 app.use("/", authMiddleware, financeSummaryRoute);
 app.use("/", authMiddleware, fileApprovalRoute);
 app.use("/", authMiddleware, reportFinanceCostCenterRoute);
+app.use("/", authMiddleware, itemManagementRoute);
 
 // Error handling for multer
 app.use((err, req, res, next) => {
