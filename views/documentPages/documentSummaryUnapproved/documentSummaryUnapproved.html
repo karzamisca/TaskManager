@@ -84,8 +84,7 @@
                     </li>
                     <li>
                       <a class="dropdown-item" href="/documentSummaryReceipt"
-                        ><i class="bi bi-box-arrow-in-down"></i> Tóm tắt nhập
-                        kho</a
+                        ><i class="bi bi-receipt"></i> Tóm tắt nhập kho</a
                       >
                     </li>
                     <li>
@@ -251,16 +250,39 @@
                         ><i class="bi bi-tags"></i> Phân mã sản phẩm</a
                       >
                     </li>
+                    <li>
+                      <a class="dropdown-item" href="/itemManagement"
+                        ><i class="bi bi-box-seam"></i> Phân mã hàng hóa</a
+                      >
+                    </li>
                   </ul>
                 </div>
 
-                <a
-                  href="/message"
-                  class="btn btn-outline-secondary btn-sm"
-                  id="messageBtn"
-                >
-                  <i class="bi bi-chat-left-text"></i> Bảng tin nhắn
-                </a>
+                <!-- Item Dropdown -->
+                <div class="btn-group">
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                  >
+                    <i class="bi bi-folder"></i> Quản hàng hóa
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <a class="dropdown-item" href="/itemOrder"
+                        ><i class="bi bi-plus-square"></i> Đặt đơn mới</a
+                      >
+                    </li>
+                    <li>
+                      <a class="dropdown-item" href="/itemMain"
+                        ><i class="bi bi-box-arrow-in-down"></i> Tóm tắt các
+                        đơn</a
+                      >
+                    </li>
+                  </ul>
+                </div>
+
                 <a
                   href="/changePassword"
                   class="btn btn-outline-secondary btn-sm"
