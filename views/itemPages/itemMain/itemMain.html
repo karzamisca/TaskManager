@@ -1,10 +1,10 @@
 <!-- views/itemPages/itemMain/itemMain.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>View Orders</title>
+    <title>Xem Đơn Hàng</title>
     <!-- Flatpickr CSS -->
     <link
       rel="stylesheet"
@@ -19,88 +19,88 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>View Orders</h1>
-        <p>View all submitted orders</p>
+        <h1>Xem Đơn Hàng</h1>
+        <p>Xem tất cả đơn hàng đã gửi</p>
       </div>
 
       <div class="alert" id="alert"></div>
 
-      <!-- Filters -->
+      <!-- Bộ lọc -->
       <div class="filters">
         <div class="filter-row">
           <div class="filter-group">
-            <label for="status-filter">Status</label>
+            <label for="status-filter">Trạng thái</label>
             <select id="status-filter">
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="processing">Processing</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
+              <option value="all">Tất cả trạng thái</option>
+              <option value="pending">Chờ xử lý</option>
+              <option value="processing">Đang xử lý</option>
+              <option value="completed">Hoàn thành</option>
+              <option value="cancelled">Đã hủy</option>
             </select>
           </div>
           <div class="filter-group">
-            <label for="start-date">Start Date</label>
+            <label for="start-date">Ngày bắt đầu</label>
             <input
               type="text"
               id="start-date"
               class="flatpickr-input"
-              placeholder="Select start date"
+              placeholder="Chọn ngày bắt đầu"
             />
           </div>
           <div class="filter-group">
-            <label for="end-date">End Date</label>
+            <label for="end-date">Ngày kết thúc</label>
             <input
               type="text"
               id="end-date"
               class="flatpickr-input"
-              placeholder="Select end date"
+              placeholder="Chọn ngày kết thúc"
             />
           </div>
         </div>
         <div class="filter-actions">
-          <button class="btn" onclick="resetFilters()">Reset Filters</button>
-          <button class="btn" onclick="applyFilters()">Apply Filters</button>
+          <button class="btn" onclick="resetFilters()">Đặt lại bộ lọc</button>
+          <button class="btn" onclick="applyFilters()">Áp dụng bộ lọc</button>
         </div>
       </div>
 
-      <!-- Orders Table -->
+      <!-- Bảng đơn hàng -->
       <table class="orders-table">
         <thead>
           <tr>
-            <th>Order #</th>
-            <th>Customer</th>
-            <th>Date</th>
-            <th>Items</th>
-            <th>Total</th>
-            <th>Status</th>
-            <th>Actions</th>
+            <th>Mã đơn #</th>
+            <th>Khách hàng</th>
+            <th>Ngày</th>
+            <th>Sản phẩm</th>
+            <th>Tổng tiền</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
           </tr>
         </thead>
         <tbody id="orders-list">
           <tr>
             <td colspan="7" class="loading">
               <div class="loading-spinner"></div>
-              <p>Loading orders...</p>
+              <p>Đang tải đơn hàng...</p>
             </td>
           </tr>
         </tbody>
       </table>
 
-      <!-- Order Details Modal -->
+      <!-- Modal chi tiết đơn hàng -->
       <div id="order-modal" class="modal">
         <div class="modal-content">
           <div class="modal-header">
-            <h2 id="modal-title">Order Details</h2>
+            <h2 id="modal-title">Chi tiết đơn hàng</h2>
             <button class="close-btn" onclick="closeModal()">&times;</button>
           </div>
           <div class="modal-body" id="modal-body">
-            <!-- Order details will be loaded here -->
+            <!-- Nội dung chi tiết đơn hàng sẽ được tải ở đây -->
           </div>
         </div>
       </div>
     </div>
 
-    <script src="itemPages/itemMain/itemMain.js"></script>
+    <script src="itemPages/itemMain/itemMain.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>

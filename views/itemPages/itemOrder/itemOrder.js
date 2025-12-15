@@ -1,9 +1,9 @@
 // views/itemPages/itemOrder/itemOrder.js
-// Global variables
+// Biến toàn cục
 let availableItems = [];
 let cart = [];
 
-// Format currency
+// Định dạng tiền tệ
 function formatCurrency(amount) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -11,7 +11,7 @@ function formatCurrency(amount) {
   }).format(amount);
 }
 
-// Show alert message
+// Hiển thị thông báo
 function showAlert(message, type = "success") {
   const alert = document.getElementById("alert");
   alert.textContent = message;
@@ -23,31 +23,31 @@ function showAlert(message, type = "success") {
   }, 3000);
 }
 
-// Fetch available items
+// Lấy sản phẩm có sẵn
 async function fetchAvailableItems() {
   try {
     const response = await fetch("/itemManagementControl", {
       credentials: "include",
     });
 
-    if (!response.ok) throw new Error("Failed to fetch items");
+    if (!response.ok) throw new Error("Không thể tải sản phẩm");
 
     availableItems = await response.json();
     renderAvailableItems();
   } catch (error) {
-    showAlert("Error loading items: " + error.message, "error");
+    showAlert("Lỗi tải sản phẩm: " + error.message, "error");
   }
 }
 
-// Render available items
+// Hiển thị sản phẩm có sẵn
 function renderAvailableItems() {
   const container = document.getElementById("items-list");
 
   if (availableItems.length === 0) {
     container.innerHTML = `
                     <div class="empty-cart">
-                        <h3>No items available</h3>
-                        <p>All items might be deleted or no items exist</p>
+                        <h3>Không có sản phẩm nào</h3>
+                        <p>Tất cả sản phẩm có thể đã bị xóa hoặc không tồn tại</p>
                     </div>
                 `;
     return;
@@ -60,10 +60,8 @@ function renderAvailableItems() {
                     <div class="item-info">
                         <h3>${item.name}</h3>
                         <div class="item-meta">
-                            <span>Code: ${item.code}</span>
-                            <span>Price: ${formatCurrency(
-                              item.unitPrice
-                            )}</span>
+                            <span>Mã: ${item.code}</span>
+                            <span>Giá: ${formatCurrency(item.unitPrice)}</span>
                         </div>
                     </div>
                     <div class="item-actions">
@@ -88,7 +86,7 @@ function renderAvailableItems() {
                         <button class="add-btn" onclick="addToCart('${
                           item._id
                         }')">
-                            Add
+                            Thêm
                         </button>
                     </div>
                 </div>
@@ -97,7 +95,7 @@ function renderAvailableItems() {
     .join("");
 }
 
-// Quantity controls
+// Điều khiển số lượng
 function increaseQuantity(itemId) {
   const input = document.getElementById(`qty-${itemId}`);
   input.value = parseInt(input.value) + 1;
@@ -110,7 +108,7 @@ function decreaseQuantity(itemId) {
   }
 }
 
-// Cart functions
+// Chức năng giỏ hàng
 function addToCart(itemId) {
   const quantity =
     parseInt(document.getElementById(`qty-${itemId}`).value) || 1;
@@ -118,18 +116,18 @@ function addToCart(itemId) {
 
   if (!item) return;
 
-  // Check if item already in cart
+  // Kiểm tra xem sản phẩm đã có trong giỏ hàng chưa
   const existingIndex = cart.findIndex(
     (cartItem) => cartItem.itemId === itemId
   );
 
   if (existingIndex > -1) {
-    // Update quantity
+    // Cập nhật số lượng
     cart[existingIndex].quantity += quantity;
     cart[existingIndex].totalPrice =
       cart[existingIndex].quantity * item.unitPrice;
   } else {
-    // Add new item
+    // Thêm sản phẩm mới
     cart.push({
       itemId: itemId,
       itemName: item.name,
@@ -141,9 +139,9 @@ function addToCart(itemId) {
   }
 
   updateCart();
-  showAlert(`Added ${quantity} ${item.name} to cart`, "success");
+  showAlert(`Đã thêm ${quantity} ${item.name} vào giỏ hàng`, "success");
 
-  // Reset quantity input
+  // Đặt lại số lượng nhập
   document.getElementById(`qty-${itemId}`).value = 1;
 }
 
@@ -168,7 +166,7 @@ function updateCart() {
   const emptyCart = document.getElementById("empty-cart");
   const cartSummary = document.getElementById("cart-summary");
 
-  // Calculate cart total
+  // Tính tổng giỏ hàng
   const cartTotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
 
   document.getElementById("items-total").textContent =
@@ -176,25 +174,25 @@ function updateCart() {
   document.getElementById("cart-summary-total").textContent =
     formatCurrency(cartTotal);
 
-  // Enable/disable submit button
+  // Bật/tắt nút gửi
   document.getElementById("submit-order").disabled = cart.length === 0;
 
   if (cart.length === 0) {
-    // Show empty cart message
+    // Hiển thị thông báo giỏ hàng trống
     if (emptyCart) {
       emptyCart.style.display = "block";
     }
     if (cartSummary) {
       cartSummary.style.display = "none";
     }
-    // Clear cart items container but keep empty cart div
+    // Xóa container sản phẩm nhưng giữ div giỏ hàng trống
     const emptyCartDiv = cartItemsContainer.querySelector(".empty-cart");
     cartItemsContainer.innerHTML = "";
     if (emptyCartDiv) {
       cartItemsContainer.appendChild(emptyCartDiv);
     }
   } else {
-    // Hide empty cart message
+    // Ẩn thông báo giỏ hàng trống
     if (emptyCart) {
       emptyCart.style.display = "none";
     }
@@ -202,7 +200,7 @@ function updateCart() {
       cartSummary.style.display = "block";
     }
 
-    // Render cart items
+    // Hiển thị sản phẩm trong giỏ hàng
     cartItemsContainer.innerHTML = cart
       .map(
         (item) => `
@@ -210,11 +208,11 @@ function updateCart() {
                         <div class="cart-item-info">
                             <h4>${item.itemName}</h4>
                             <div class="cart-item-details">
-                                <span>Code: ${item.itemCode}</span> • 
-                                <span>Price: ${formatCurrency(
+                                <span>Mã: ${item.itemCode}</span> • 
+                                <span>Giá: ${formatCurrency(
                                   item.unitPrice
                                 )}</span> • 
-                                <span>Qty: ${item.quantity}</span>
+                                <span>SL: ${item.quantity}</span>
                             </div>
                         </div>
                         <div class="cart-item-actions">
@@ -232,10 +230,10 @@ function updateCart() {
   }
 }
 
-// Submit order
+// Gửi đơn hàng
 async function submitOrder() {
   if (cart.length === 0) {
-    showAlert("Your cart is empty", "error");
+    showAlert("Giỏ hàng của bạn đang trống", "error");
     return;
   }
 
@@ -261,51 +259,51 @@ async function submitOrder() {
     const result = await response.json();
 
     if (!response.ok) {
-      throw new Error(result.error || "Failed to submit order");
+      throw new Error(result.error || "Không thể gửi đơn hàng");
     }
 
     showAlert(
-      "Order submitted successfully! Order #" + result.order.orderNumber,
+      "Đơn hàng đã được gửi thành công! Đơn hàng #" + result.order.orderNumber,
       "success"
     );
 
-    // Clear cart
+    // Xóa giỏ hàng
     cart = [];
     updateCart();
     document.getElementById("order-notes").value = "";
 
-    // Refresh recent orders
+    // Làm mới đơn hàng gần đây
     fetchRecentOrders();
   } catch (error) {
-    showAlert("Error submitting order: " + error.message, "error");
+    showAlert("Lỗi gửi đơn hàng: " + error.message, "error");
   }
 }
 
-// Fetch recent orders
+// Lấy đơn hàng gần đây
 async function fetchRecentOrders() {
   try {
     const response = await fetch("/itemOrderControl/my-orders", {
       credentials: "include",
     });
 
-    if (!response.ok) throw new Error("Failed to fetch orders");
+    if (!response.ok) throw new Error("Không thể tải đơn hàng");
 
     const orders = await response.json();
     renderRecentOrders(orders);
   } catch (error) {
-    console.error("Error loading recent orders:", error);
+    console.error("Lỗi tải đơn hàng gần đây:", error);
   }
 }
 
-// Render recent orders
+// Hiển thị đơn hàng gần đây
 function renderRecentOrders(orders) {
   const container = document.getElementById("recent-orders");
 
   if (orders.length === 0) {
     container.innerHTML = `
                     <div class="empty-cart">
-                        <h3>No orders yet</h3>
-                        <p>Your submitted orders will appear here</p>
+                        <h3>Chưa có đơn hàng nào</h3>
+                        <p>Đơn hàng bạn đã gửi sẽ xuất hiện ở đây</p>
                     </div>
                 `;
     return;
@@ -318,7 +316,7 @@ function renderRecentOrders(orders) {
                 <div class="order" onclick="viewOrderDetails('${order._id}')">
                     <div class="order-header">
                         <div>
-                            <span class="order-number">Order #${
+                            <span class="order-number">Đơn hàng #${
                               order.orderNumber
                             }</span>
                             <span style="margin-left: 10px; opacity: 0.8;">
@@ -331,20 +329,22 @@ function renderRecentOrders(orders) {
                     </div>
                     <div class="order-details">
                         <div>
-                            <strong>Items:</strong> ${order.items.length}
+                            <strong>Sản phẩm:</strong> ${order.items.length}
                         </div>
                         <div>
-                            <strong>Notes:</strong> ${order.notes || "None"}
+                            <strong>Ghi chú:</strong> ${
+                              order.notes || "Không có"
+                            }
                         </div>
                     </div>
                     <div class="order-total">
-                        Total: ${formatCurrency(order.totalAmount)}
+                        Tổng: ${formatCurrency(order.totalAmount)}
                     </div>
                     <div style="text-align: right; margin-top: 10px;">
                         <button class="view-order-btn" onclick="event.stopPropagation(); viewOrderDetails('${
                           order._id
                         }')">
-                            View Details
+                            Xem Chi Tiết
                         </button>
                     </div>
                 </div>
@@ -353,50 +353,50 @@ function renderRecentOrders(orders) {
     .join("");
 }
 
-// View order details in modal
+// Xem chi tiết đơn hàng trong modal
 async function viewOrderDetails(orderId) {
   try {
     const response = await fetch(`/itemOrderControl/${orderId}`, {
       credentials: "include",
     });
 
-    if (!response.ok) throw new Error("Failed to fetch order details");
+    if (!response.ok) throw new Error("Không thể tải chi tiết đơn hàng");
 
     const order = await response.json();
     renderOrderModal(order);
     document.getElementById("order-modal").style.display = "flex";
   } catch (error) {
-    showAlert("Error loading order details: " + error.message, "error");
+    showAlert("Lỗi tải chi tiết đơn hàng: " + error.message, "error");
   }
 }
 
-// Render order modal
+// Hiển thị modal đơn hàng
 function renderOrderModal(order) {
   document.getElementById(
     "modal-title"
-  ).textContent = `Order #${order.orderNumber}`;
+  ).textContent = `Đơn hàng #${order.orderNumber}`;
 
   const modalBody = document.getElementById("modal-body");
   modalBody.innerHTML = `
                 <div class="order-details-grid">
                     <div class="detail-item">
-                        <div class="detail-label">Customer</div>
+                        <div class="detail-label">Khách hàng</div>
                         <div class="detail-value">${order.username}</div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-label">Order Date</div>
+                        <div class="detail-label">Ngày đặt hàng</div>
                         <div class="detail-value">${
                           order.formattedOrderDate
                         }</div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-label">Last Updated</div>
+                        <div class="detail-label">Cập nhật lần cuối</div>
                         <div class="detail-value">${
                           order.formattedUpdatedAt
                         }</div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-label">Status</div>
+                        <div class="detail-label">Trạng thái</div>
                         <div class="detail-value">
                             <span class="order-status">
                                 ${order.status.toUpperCase()}
@@ -404,13 +404,13 @@ function renderOrderModal(order) {
                         </div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-label">Total Amount</div>
+                        <div class="detail-label">Tổng tiền</div>
                         <div class="detail-value">${formatCurrency(
                           order.totalAmount
                         )}</div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-label">Items Count</div>
+                        <div class="detail-label">Số lượng sản phẩm</div>
                         <div class="detail-value">${order.items.length}</div>
                     </div>
                 </div>
@@ -419,7 +419,7 @@ function renderOrderModal(order) {
                   order.notes
                     ? `
                 <div class="detail-item" style="grid-column: 1 / -1; margin-top: 10px;">
-                    <div class="detail-label">Notes</div>
+                    <div class="detail-label">Ghi chú</div>
                     <div class="detail-value">${order.notes}</div>
                 </div>
                 `
@@ -429,11 +429,11 @@ function renderOrderModal(order) {
                 <table class="items-table">
                     <thead>
                         <tr>
-                            <th>Item Name</th>
-                            <th>Code</th>
-                            <th>Unit Price</th>
-                            <th>Quantity</th>
-                            <th>Total</th>
+                            <th>Tên sản phẩm</th>
+                            <th>Mã</th>
+                            <th>Đơn giá</th>
+                            <th>Số lượng</th>
+                            <th>Tổng</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -451,7 +451,7 @@ function renderOrderModal(order) {
                           )
                           .join("")}
                         <tr style="font-weight: bold; border-top: 1px solid black;">
-                            <td colspan="4" style="text-align: right;">Grand Total:</td>
+                            <td colspan="4" style="text-align: right;">Tổng cộng:</td>
                             <td>${formatCurrency(order.totalAmount)}</td>
                         </tr>
                     </tbody>
@@ -459,23 +459,23 @@ function renderOrderModal(order) {
             `;
 }
 
-// Close modal
+// Đóng modal
 function closeModal() {
   document.getElementById("order-modal").style.display = "none";
 }
 
-// Initialize
+// Khởi tạo
 document.addEventListener("DOMContentLoaded", () => {
-  // Set up submit button
+  // Thiết lập nút gửi
   document
     .getElementById("submit-order")
     .addEventListener("click", submitOrder);
 
-  // Fetch initial data
+  // Lấy dữ liệu ban đầu
   fetchAvailableItems();
   fetchRecentOrders();
 
-  // Close modal when clicking outside
+  // Đóng modal khi click bên ngoài
   window.onclick = (event) => {
     const modal = document.getElementById("order-modal");
     if (event.target === modal) {
@@ -483,7 +483,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  // Close modal with ESC key
+  // Đóng modal bằng phím ESC
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       closeModal();

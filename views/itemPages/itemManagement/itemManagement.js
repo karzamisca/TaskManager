@@ -3,7 +3,7 @@ let currentItemId = null;
 let showDeleted = false;
 let allItems = [];
 
-// Get current user from cookie
+// Lấy thông tin người dùng hiện tại từ cookie
 function getCurrentUser() {
   const cookies = document.cookie.split(";");
   for (let cookie of cookies) {
@@ -15,7 +15,7 @@ function getCurrentUser() {
   return null;
 }
 
-// Show alert message
+// Hiển thị thông báo
 function showAlert(message, type = "success") {
   const container = document.getElementById("alert-container");
   const alert = document.createElement("div");
@@ -28,7 +28,7 @@ function showAlert(message, type = "success") {
   }, 5000);
 }
 
-// Fetch all items
+// Lấy danh sách mặt hàng
 async function fetchItems() {
   try {
     const url = showDeleted
@@ -39,7 +39,7 @@ async function fetchItems() {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to fetch items");
+      throw new Error("Không thể tải danh sách mặt hàng");
     }
 
     allItems = await response.json();
@@ -47,11 +47,11 @@ async function fetchItems() {
     document.getElementById("loading").style.display = "none";
     document.getElementById("items-table").style.display = "table";
   } catch (error) {
-    showAlert("Error loading items: " + error.message, "error");
+    showAlert("Lỗi khi tải mặt hàng: " + error.message, "error");
   }
 }
 
-// Render items table
+// Hiển thị danh sách mặt hàng
 function renderItems(items) {
   const tbody = document.getElementById("items-body");
   tbody.innerHTML = "";
@@ -70,23 +70,23 @@ function renderItems(items) {
                         <span class="status-badge ${
                           item.isDeleted ? "status-deleted" : "status-active"
                         }">
-                            ${item.isDeleted ? "Deleted" : "Active"}
+                            ${item.isDeleted ? "Đã xóa" : "Đang hoạt động"}
                         </span>
                     </td>
-                    <td>${item.createdBy?.username || "Unknown"}</td>
+                    <td>${item.createdBy?.username || "Không xác định"}</td>
                     <td>${formatDate(item.createdAt)}</td>
                     <td>
                         <div class="action-buttons">
                             ${
                               !item.isDeleted
                                 ? `
-                                <button onclick="showEditModal('${item._id}')" class="action-btn btn-primary">Edit</button>
-                                <button onclick="showAuditHistory('${item._id}')" class="action-btn btn-secondary">History</button>
-                                <button onclick="deleteItem('${item._id}')" class="action-btn btn-danger">Delete</button>
+                                <button onclick="showEditModal('${item._id}')" class="action-btn btn-primary">Sửa</button>
+                                <button onclick="showAuditHistory('${item._id}')" class="action-btn btn-secondary">Lịch sử</button>
+                                <button onclick="deleteItem('${item._id}')" class="action-btn btn-danger">Xóa</button>
                             `
                                 : `
-                                <button onclick="restoreItem('${item._id}')" class="action-btn btn-success">Restore</button>
-                                <button onclick="showAuditHistory('${item._id}')" class="action-btn btn-secondary">History</button>
+                                <button onclick="restoreItem('${item._id}')" class="action-btn btn-success">Khôi phục</button>
+                                <button onclick="showAuditHistory('${item._id}')" class="action-btn btn-secondary">Lịch sử</button>
                             `
                             }
                         </div>
@@ -96,7 +96,7 @@ function renderItems(items) {
   });
 }
 
-// Search items
+// Tìm kiếm mặt hàng
 function searchItems() {
   const searchTerm = document.getElementById("search").value.toLowerCase();
   const filtered = allItems.filter(
@@ -107,23 +107,25 @@ function searchItems() {
   renderItems(filtered);
 }
 
-// Toggle deleted items view
+// Chuyển đổi giữa hiển thị mặt hàng đã xóa/chưa xóa
 function toggleDeletedItems() {
   showDeleted = !showDeleted;
   const btn = document.querySelector(".btn-secondary");
-  btn.textContent = showDeleted ? "Show Active Items" : "Show Deleted Items";
+  btn.textContent = showDeleted
+    ? "Hiện mặt hàng đang hoạt động"
+    : "Hiện mặt hàng đã xóa";
   fetchItems();
 }
 
-// Show add modal
+// Hiển thị modal thêm mới
 function showAddModal() {
-  document.getElementById("modal-title").textContent = "Add New Item";
+  document.getElementById("modal-title").textContent = "Thêm mặt hàng mới";
   document.getElementById("item-form").reset();
   document.getElementById("item-id").value = "";
   document.getElementById("item-modal").style.display = "block";
 }
 
-// Show edit modal
+// Hiển thị modal chỉnh sửa
 async function showEditModal(itemId) {
   try {
     const response = await fetch(`/itemManagementControl/${itemId}`, {
@@ -131,23 +133,23 @@ async function showEditModal(itemId) {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to fetch item");
+      throw new Error("Không thể tải thông tin mặt hàng");
     }
 
     const item = await response.json();
 
-    document.getElementById("modal-title").textContent = "Edit Item";
+    document.getElementById("modal-title").textContent = "Sửa mặt hàng";
     document.getElementById("item-id").value = item._id;
     document.getElementById("code").value = item.code;
     document.getElementById("name").value = item.name;
     document.getElementById("unitPrice").value = item.unitPrice;
     document.getElementById("item-modal").style.display = "block";
   } catch (error) {
-    showAlert("Error loading item: " + error.message, "error");
+    showAlert("Lỗi khi tải mặt hàng: " + error.message, "error");
   }
 }
 
-// Show audit history
+// Hiển thị lịch sử thay đổi
 async function showAuditHistory(itemId) {
   try {
     const response = await fetch(`/itemManagementControl/${itemId}/audit`, {
@@ -155,7 +157,7 @@ async function showAuditHistory(itemId) {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to fetch audit history");
+      throw new Error("Không thể tải lịch sử thay đổi");
     }
 
     const auditHistory = await response.json();
@@ -166,7 +168,7 @@ async function showAuditHistory(itemId) {
     auditHistory.forEach((audit) => {
       const row = document.createElement("tr");
 
-      // Format changes
+      // Định dạng thay đổi
       const nameChanges = audit.oldName
         ? `<span class="old-value">${
             audit.oldName
@@ -194,7 +196,7 @@ async function showAuditHistory(itemId) {
                         <td><span class="status-badge ${getActionClass(
                           audit.action
                         )}">${audit.action}</span></td>
-                        <td>${audit.editedBy?.username || "Unknown"}</td>
+                        <td>${audit.editedBy?.username || "Không xác định"}</td>
                         <td class="change-cell">${nameChanges}</td>
                         <td class="change-cell">${codeChanges}</td>
                         <td class="change-cell">${priceChanges}</td>
@@ -205,17 +207,17 @@ async function showAuditHistory(itemId) {
     document.getElementById("audit-section").style.display = "block";
     document.getElementById("items-table").style.display = "none";
   } catch (error) {
-    showAlert("Error loading audit history: " + error.message, "error");
+    showAlert("Lỗi khi tải lịch sử: " + error.message, "error");
   }
 }
 
-// Hide audit history
+// Ẩn lịch sử thay đổi
 function hideAuditHistory() {
   document.getElementById("audit-section").style.display = "none";
   document.getElementById("items-table").style.display = "table";
 }
 
-// Handle form submission
+// Xử lý gửi form
 async function handleSubmit(event) {
   event.preventDefault();
 
@@ -243,21 +245,21 @@ async function handleSubmit(event) {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || "Failed to save item");
+      throw new Error(error.error || "Không thể lưu mặt hàng");
     }
 
     const result = await response.json();
-    showAlert(`Item ${itemId ? "updated" : "created"} successfully!`);
+    showAlert(`Mặt hàng đã được ${itemId ? "cập nhật" : "tạo"} thành công!`);
     closeModal();
     fetchItems();
   } catch (error) {
-    showAlert("Error: " + error.message, "error");
+    showAlert("Lỗi: " + error.message, "error");
   }
 }
 
-// Delete item
+// Xóa mặt hàng
 async function deleteItem(itemId) {
-  if (!confirm("Are you sure you want to delete this item?")) return;
+  if (!confirm("Bạn có chắc chắn muốn xóa mặt hàng này?")) return;
 
   try {
     const response = await fetch(`/itemManagementControl/${itemId}`, {
@@ -266,20 +268,20 @@ async function deleteItem(itemId) {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to delete item");
+      throw new Error("Không thể xóa mặt hàng");
     }
 
     const result = await response.json();
-    showAlert("Item deleted successfully!");
+    showAlert("Đã xóa mặt hàng thành công!");
     fetchItems();
   } catch (error) {
-    showAlert("Error deleting item: " + error.message, "error");
+    showAlert("Lỗi khi xóa mặt hàng: " + error.message, "error");
   }
 }
 
-// Restore item
+// Khôi phục mặt hàng
 async function restoreItem(itemId) {
-  if (!confirm("Are you sure you want to restore this item?")) return;
+  if (!confirm("Bạn có chắc chắn muốn khôi phục mặt hàng này?")) return;
 
   try {
     const response = await fetch(`/itemManagementControl/${itemId}/restore`, {
@@ -289,33 +291,35 @@ async function restoreItem(itemId) {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || "Failed to restore item");
+      throw new Error(error.error || "Không thể khôi phục mặt hàng");
     }
 
     const result = await response.json();
-    showAlert("Item restored successfully!");
+    showAlert("Đã khôi phục mặt hàng thành công!");
     fetchItems();
   } catch (error) {
-    showAlert("Error restoring item: " + error.message, "error");
+    showAlert("Lỗi khi khôi phục mặt hàng: " + error.message, "error");
   }
 }
 
-// Close modal
+// Đóng modal
 function closeModal() {
   document.getElementById("item-modal").style.display = "none";
 }
 
-// Helper functions
+// Hàm hỗ trợ
 function formatCurrency(amount) {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("vi-VN", {
     style: "currency",
-    currency: "USD",
+    currency: "VND",
   }).format(amount);
 }
 
 function formatDate(dateString) {
   const date = new Date(dateString);
-  return date.toLocaleDateString() + " " + date.toLocaleTimeString();
+  return (
+    date.toLocaleDateString("vi-VN") + " " + date.toLocaleTimeString("vi-VN")
+  );
 }
 
 function getActionClass(action) {
@@ -331,7 +335,7 @@ function getActionClass(action) {
   }
 }
 
-// Initialize
+// Khởi tạo
 document.addEventListener("DOMContentLoaded", () => {
   const user = getCurrentUser();
   if (user) {
@@ -339,7 +343,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   fetchItems();
 
-  // Close modal when clicking outside
+  // Đóng modal khi click bên ngoài
   window.onclick = function (event) {
     const modal = document.getElementById("item-modal");
     if (event.target === modal) {

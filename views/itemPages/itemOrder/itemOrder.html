@@ -1,10 +1,10 @@
 <!-- views/itemPages/itemOrder/itemOrder.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Place Order</title>
+    <title>Đặt Hàng</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -14,41 +14,41 @@
   <body>
     <div class="container">
       <div class="header">
-        <h1>Place Order</h1>
-        <p>Select items and quantities for your order</p>
+        <h1>Đặt Hàng</h1>
+        <p>Chọn sản phẩm và số lượng cho đơn hàng của bạn</p>
       </div>
 
       <div class="alert" id="alert"></div>
 
       <div class="main-content">
-        <!-- Available Items Section -->
+        <!-- Mục Sản Phẩm Có Sẵn -->
         <div class="section">
-          <h2>Available Items</h2>
+          <h2>Sản Phẩm Có Sẵn</h2>
           <div class="items-list" id="items-list">
             <div class="loading">
               <div class="loading-spinner"></div>
-              <p>Loading items...</p>
+              <p>Đang tải sản phẩm...</p>
             </div>
           </div>
         </div>
 
-        <!-- Shopping Cart Section -->
+        <!-- Mục Giỏ Hàng -->
         <div class="section">
-          <h2>Shopping Cart</h2>
+          <h2>Giỏ Hàng</h2>
           <div class="cart-items" id="cart-items">
             <div class="empty-cart" id="empty-cart">
-              <h3>Your cart is empty</h3>
-              <p>Add items from the list to get started</p>
+              <h3>Giỏ hàng của bạn đang trống</h3>
+              <p>Thêm sản phẩm từ danh sách để bắt đầu</p>
             </div>
           </div>
 
           <div class="cart-summary" id="cart-summary" style="display: none">
             <div class="summary-row">
-              <span>Items Total:</span>
+              <span>Tổng Sản Phẩm:</span>
               <span id="items-total">$0.00</span>
             </div>
             <div class="summary-row summary-total">
-              <span>Total:</span>
+              <span>Tổng Cộng:</span>
               <span id="cart-summary-total">$0.00</span>
             </div>
           </div>
@@ -56,42 +56,42 @@
           <div class="notes">
             <textarea
               id="order-notes"
-              placeholder="Add any special instructions or notes..."
+              placeholder="Thêm bất kỳ hướng dẫn đặc biệt hoặc ghi chú nào..."
             ></textarea>
           </div>
 
           <button id="submit-order" class="submit-btn" disabled>
-            Submit Order
+            Gửi Đơn Hàng
           </button>
         </div>
       </div>
 
-      <!-- Recent Orders Section -->
+      <!-- Mục Đơn Hàng Gần Đây -->
       <div class="section order-history">
-        <h2>My Recent Orders</h2>
+        <h2>Đơn Hàng Gần Đây Của Tôi</h2>
         <div id="recent-orders">
           <div class="loading">
             <div class="loading-spinner"></div>
-            <p>Loading recent orders...</p>
+            <p>Đang tải đơn hàng gần đây...</p>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Order Details Modal -->
+    <!-- Modal Chi Tiết Đơn Hàng -->
     <div id="order-modal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h2 id="modal-title">Order Details</h2>
+          <h2 id="modal-title">Chi Tiết Đơn Hàng</h2>
           <button class="close-btn" onclick="closeModal()">&times;</button>
         </div>
         <div class="modal-body" id="modal-body">
-          <!-- Order details will be loaded here -->
+          <!-- Chi tiết đơn hàng sẽ được tải ở đây -->
         </div>
       </div>
     </div>
 
-    <script src="itemPages/itemOrder/itemOrder.js"></script>
+    <script src="itemPages/itemOrder/itemOrder.js?v=1.0"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>

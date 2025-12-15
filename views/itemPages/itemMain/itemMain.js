@@ -1,22 +1,22 @@
 // views/itemPages/itemMain/itemMain.js
-// Global variables
+// Biến toàn cục
 let orders = [];
 let currentPage = 1;
 let itemsPerPage = 20;
 let filters = {};
 
-// Flatpickr instances
+// Các thể hiện Flatpickr
 let startDatePicker, endDatePicker;
 
-// Format currency
+// Định dạng tiền tệ
 function formatCurrency(amount) {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("vi-VN", {
     style: "currency",
-    currency: "USD",
+    currency: "VND",
   }).format(amount);
 }
 
-// Get status class
+// Lấy lớp trạng thái
 function getStatusClass(status) {
   switch (status) {
     case "pending":
@@ -32,7 +32,7 @@ function getStatusClass(status) {
   }
 }
 
-// Show alert message
+// Hiển thị thông báo
 function showAlert(message, type = "success") {
   const alert = document.getElementById("alert");
   alert.textContent = message;
@@ -44,7 +44,7 @@ function showAlert(message, type = "success") {
   }, 3000);
 }
 
-// Initialize flatpickr
+// Khởi tạo flatpickr
 function initializeDatePickers() {
   startDatePicker = flatpickr("#start-date", {
     dateFormat: "d-m-Y",
@@ -52,7 +52,7 @@ function initializeDatePickers() {
     altFormat: "d-m-Y",
     onChange: function (selectedDates, dateStr) {
       if (selectedDates.length > 0) {
-        // Ensure end date is not before start date
+        // Đảm bảo ngày kết thúc không trước ngày bắt đầu
         if (
           endDatePicker.selectedDates.length > 0 &&
           selectedDates[0] > endDatePicker.selectedDates[0]
@@ -70,7 +70,7 @@ function initializeDatePickers() {
     altFormat: "d-m-Y",
     onChange: function (selectedDates, dateStr) {
       if (selectedDates.length > 0) {
-        // Ensure start date is not after end date
+        // Đảm bảo ngày bắt đầu không sau ngày kết thúc
         if (
           startDatePicker.selectedDates.length > 0 &&
           selectedDates[0] < startDatePicker.selectedDates[0]
@@ -83,7 +83,7 @@ function initializeDatePickers() {
   });
 }
 
-// Convert dd-mm-yyyy to yyyy-mm-dd for API
+// Chuyển đổi định dạng ngày từ dd-mm-yyyy sang yyyy-mm-dd cho API
 function convertDateFormat(dateStr) {
   if (!dateStr) return "";
   const parts = dateStr.split("-");
@@ -93,10 +93,10 @@ function convertDateFormat(dateStr) {
   return dateStr;
 }
 
-// Fetch orders with filters
+// Lấy đơn hàng với bộ lọc
 async function fetchOrders() {
   try {
-    // Build query string from filters
+    // Xây dựng chuỗi truy vấn từ bộ lọc
     const queryParams = new URLSearchParams();
     if (filters.status && filters.status !== "all") {
       queryParams.append("status", filters.status);
@@ -115,16 +115,16 @@ async function fetchOrders() {
       credentials: "include",
     });
 
-    if (!response.ok) throw new Error("Failed to fetch orders");
+    if (!response.ok) throw new Error("Không thể tải đơn hàng");
 
     orders = await response.json();
     renderOrders();
   } catch (error) {
-    showAlert("Error loading orders: " + error.message, "error");
+    showAlert("Lỗi tải đơn hàng: " + error.message, "error");
   }
 }
 
-// Render orders
+// Hiển thị đơn hàng
 function renderOrders() {
   const container = document.getElementById("orders-list");
 
@@ -132,15 +132,15 @@ function renderOrders() {
     container.innerHTML = `
                     <tr>
                         <td colspan="7" style="text-align: center; padding: 40px;">
-                            <h3>No orders found</h3>
-                            <p>Try adjusting your filters or check back later</p>
+                            <h3>Không tìm thấy đơn hàng</h3>
+                            <p>Hãy thử điều chỉnh bộ lọc hoặc kiểm tra lại sau</p>
                         </td>
                     </tr>
                 `;
     return;
   }
 
-  // Calculate pagination
+  // Tính toán phân trang
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const pageOrders = orders.slice(startIndex, endIndex);
@@ -156,7 +156,7 @@ function renderOrders() {
                     <td style="font-size: 0.9rem;">${
                       order.formattedOrderDate
                     }</td>
-                    <td>${order.items.length} items</td>
+                    <td>${order.items.length} sản phẩm</td>
                     <td style="font-weight: bold;">${formatCurrency(
                       order.totalAmount
                     )}</td>
@@ -169,7 +169,7 @@ function renderOrders() {
                         <button class="action-btn" onclick="viewOrderDetails('${
                           order._id
                         }')">
-                            View
+                            Xem
                         </button>
                     </td>
                 </tr>
@@ -177,11 +177,11 @@ function renderOrders() {
     )
     .join("");
 
-  // Render pagination
+  // Hiển thị phân trang
   renderPagination();
 }
 
-// Render pagination
+// Hiển thị phân trang
 function renderPagination() {
   const totalPages = Math.ceil(orders.length / itemsPerPage);
 
@@ -190,10 +190,10 @@ function renderPagination() {
   const pagination = document.createElement("div");
   pagination.className = "pagination";
 
-  // Previous button
+  // Nút trước
   const prevBtn = document.createElement("button");
   prevBtn.className = `page-btn ${currentPage === 1 ? "disabled" : ""}`;
-  prevBtn.textContent = "← Previous";
+  prevBtn.textContent = "← Trước";
   prevBtn.disabled = currentPage === 1;
   prevBtn.onclick = () => {
     if (currentPage > 1) {
@@ -202,7 +202,7 @@ function renderPagination() {
     }
   };
 
-  // Page numbers
+  // Số trang
   const pageNumbers = document.createElement("div");
   pageNumbers.style.display = "flex";
   pageNumbers.style.gap = "5px";
@@ -218,12 +218,12 @@ function renderPagination() {
     pageNumbers.appendChild(pageBtn);
   }
 
-  // Next button
+  // Nút sau
   const nextBtn = document.createElement("button");
   nextBtn.className = `page-btn ${
     currentPage === totalPages ? "disabled" : ""
   }`;
-  nextBtn.textContent = "Next →";
+  nextBtn.textContent = "Sau →";
   nextBtn.disabled = currentPage === totalPages;
   nextBtn.onclick = () => {
     if (currentPage < totalPages) {
@@ -236,7 +236,7 @@ function renderPagination() {
   pagination.appendChild(pageNumbers);
   pagination.appendChild(nextBtn);
 
-  // Clear existing pagination and add new one
+  // Xóa phân trang hiện có và thêm mới
   const existingPagination = document.querySelector(".pagination");
   if (existingPagination) {
     existingPagination.remove();
@@ -246,7 +246,7 @@ function renderPagination() {
   container.parentNode.insertBefore(pagination, container.nextSibling);
 }
 
-// Apply filters
+// Áp dụng bộ lọc
 function applyFilters() {
   const startDate = startDatePicker.selectedDates[0];
   const endDate = endDatePicker.selectedDates[0];
@@ -261,7 +261,7 @@ function applyFilters() {
   fetchOrders();
 }
 
-// Reset filters
+// Đặt lại bộ lọc
 function resetFilters() {
   document.getElementById("status-filter").value = "all";
   startDatePicker.clear();
@@ -272,50 +272,50 @@ function resetFilters() {
   fetchOrders();
 }
 
-// View order details
+// Xem chi tiết đơn hàng
 async function viewOrderDetails(orderId) {
   try {
     const response = await fetch(`/itemOrderControl/${orderId}`, {
       credentials: "include",
     });
 
-    if (!response.ok) throw new Error("Failed to fetch order details");
+    if (!response.ok) throw new Error("Không thể tải chi tiết đơn hàng");
 
     const order = await response.json();
     renderOrderModal(order);
     document.getElementById("order-modal").style.display = "flex";
   } catch (error) {
-    showAlert("Error loading order details: " + error.message, "error");
+    showAlert("Lỗi tải chi tiết đơn hàng: " + error.message, "error");
   }
 }
 
-// Render order modal
+// Hiển thị modal đơn hàng
 function renderOrderModal(order) {
   document.getElementById(
     "modal-title"
-  ).textContent = `Order #${order.orderNumber}`;
+  ).textContent = `Đơn hàng #${order.orderNumber}`;
 
   const modalBody = document.getElementById("modal-body");
   modalBody.innerHTML = `
                 <div class="order-details-grid">
                     <div class="detail-item">
-                        <div class="detail-label">Customer</div>
+                        <div class="detail-label">Khách hàng</div>
                         <div class="detail-value">${order.username}</div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-label">Order Date</div>
+                        <div class="detail-label">Ngày đặt hàng</div>
                         <div class="detail-value">${
                           order.formattedOrderDate
                         }</div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-label">Last Updated</div>
+                        <div class="detail-label">Cập nhật lần cuối</div>
                         <div class="detail-value">${
                           order.formattedUpdatedAt
                         }</div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-label">Status</div>
+                        <div class="detail-label">Trạng thái</div>
                         <div class="detail-value">
                             <span class="status ${getStatusClass(
                               order.status
@@ -325,7 +325,7 @@ function renderOrderModal(order) {
                         </div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-label">Total Amount</div>
+                        <div class="detail-label">Tổng tiền</div>
                         <div class="detail-value">${formatCurrency(
                           order.totalAmount
                         )}</div>
@@ -336,7 +336,7 @@ function renderOrderModal(order) {
                   order.notes
                     ? `
                 <div class="detail-item" style="grid-column: 1 / -1; margin-top: 15px;">
-                    <div class="detail-label">Notes</div>
+                    <div class="detail-label">Ghi chú</div>
                     <div class="detail-value">${order.notes}</div>
                 </div>
                 `
@@ -346,11 +346,11 @@ function renderOrderModal(order) {
                 <table class="items-table">
                     <thead>
                         <tr>
-                            <th>Item Name</th>
-                            <th>Code</th>
-                            <th>Unit Price</th>
-                            <th>Quantity</th>
-                            <th>Total</th>
+                            <th>Tên sản phẩm</th>
+                            <th>Mã sản phẩm</th>
+                            <th>Đơn giá</th>
+                            <th>Số lượng</th>
+                            <th>Tổng</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -368,7 +368,7 @@ function renderOrderModal(order) {
                           )
                           .join("")}
                         <tr style="font-weight: bold; border-top: 1px solid black;">
-                            <td colspan="4" style="text-align: right;">Grand Total:</td>
+                            <td colspan="4" style="text-align: right;">Tổng cộng:</td>
                             <td>${formatCurrency(order.totalAmount)}</td>
                         </tr>
                     </tbody>
@@ -376,20 +376,20 @@ function renderOrderModal(order) {
             `;
 }
 
-// Close modal
+// Đóng modal
 function closeModal() {
   document.getElementById("order-modal").style.display = "none";
 }
 
-// Initialize
+// Khởi tạo
 document.addEventListener("DOMContentLoaded", () => {
-  // Initialize date pickers
+  // Khởi tạo bộ chọn ngày
   initializeDatePickers();
 
-  // Fetch initial orders
+  // Lấy đơn hàng ban đầu
   fetchOrders();
 
-  // Close modal when clicking outside
+  // Đóng modal khi click bên ngoài
   window.onclick = (event) => {
     const modal = document.getElementById("order-modal");
     if (event.target === modal) {
