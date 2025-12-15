@@ -1,3 +1,4 @@
+// controllers/itemManagementController.js
 const Item = require("../models/Item");
 
 // Get all active items
@@ -34,11 +35,11 @@ exports.getItem = async (req, res) => {
       .populate("createdBy", "username")
       .populate("auditHistory.editedBy", "username")
       .populate("deletedBy", "username");
-    
+
     if (!item) {
       return res.status(404).json({ error: "Item not found" });
     }
-    
+
     res.json(item);
   } catch (error) {
     console.error("Error fetching item:", error);
@@ -50,7 +51,7 @@ exports.getItem = async (req, res) => {
 exports.createItem = async (req, res) => {
   try {
     const { name, code, unitPrice } = req.body;
-    
+
     // Check if code already exists (including deleted items)
     const existingItem = await Item.findOne({ code });
     if (existingItem && !existingItem.isDeleted) {
@@ -62,13 +63,15 @@ exports.createItem = async (req, res) => {
       code,
       unitPrice: parseFloat(unitPrice),
       createdBy: req.user.id,
-      auditHistory: [{
-        newName: name,
-        newCode: code,
-        newUnitPrice: parseFloat(unitPrice),
-        editedBy: req.user.id,
-        action: "create"
-      }]
+      auditHistory: [
+        {
+          newName: name,
+          newCode: code,
+          newUnitPrice: parseFloat(unitPrice),
+          editedBy: req.user.id,
+          action: "create",
+        },
+      ],
     });
 
     await item.save();
@@ -99,10 +102,10 @@ exports.updateItem = async (req, res) => {
 
     // Check if new code conflicts with other active items
     if (code !== item.code) {
-      const existingItem = await Item.findOne({ 
-        code, 
+      const existingItem = await Item.findOne({
+        code,
         isDeleted: false,
-        _id: { $ne: itemId }
+        _id: { $ne: itemId },
       });
       if (existingItem) {
         return res.status(400).json({ error: "Item code already exists" });
@@ -118,7 +121,7 @@ exports.updateItem = async (req, res) => {
       oldUnitPrice: item.unitPrice,
       newUnitPrice: parseFloat(unitPrice),
       editedBy: req.user.id,
-      action: "update"
+      action: "update",
     };
 
     // Update item
@@ -132,7 +135,7 @@ exports.updateItem = async (req, res) => {
     // Populate fields before sending response
     await item.populate("createdBy", "username");
     await item.populate("auditHistory.editedBy", "username");
-    
+
     res.json(item);
   } catch (error) {
     console.error("Error updating item:", error);
@@ -160,7 +163,7 @@ exports.deleteItem = async (req, res) => {
       oldCode: item.code,
       oldUnitPrice: item.unitPrice,
       editedBy: req.user.id,
-      action: "delete"
+      action: "delete",
     };
 
     // Soft delete the item
@@ -171,14 +174,14 @@ exports.deleteItem = async (req, res) => {
 
     await item.save();
 
-    res.json({ 
+    res.json({
       message: "Item deleted successfully",
       item: {
         id: item._id,
         name: item.name,
         code: item.code,
-        deletedAt: item.deletedAt
-      }
+        deletedAt: item.deletedAt,
+      },
     });
   } catch (error) {
     console.error("Error deleting item:", error);
@@ -201,14 +204,14 @@ exports.restoreItem = async (req, res) => {
     }
 
     // Check if code conflicts with other active items
-    const existingItem = await Item.findOne({ 
-      code: item.code, 
+    const existingItem = await Item.findOne({
+      code: item.code,
       isDeleted: false,
-      _id: { $ne: itemId }
+      _id: { $ne: itemId },
     });
     if (existingItem) {
-      return res.status(400).json({ 
-        error: `Cannot restore item. Code "${item.code}" is already in use by another active item.` 
+      return res.status(400).json({
+        error: `Cannot restore item. Code "${item.code}" is already in use by another active item.`,
       });
     }
 
@@ -218,7 +221,7 @@ exports.restoreItem = async (req, res) => {
       newCode: item.code,
       newUnitPrice: item.unitPrice,
       editedBy: req.user.id,
-      action: "create" // Treating restore as a new creation
+      action: "create", // Treating restore as a new creation
     };
 
     // Restore the item
@@ -229,13 +232,13 @@ exports.restoreItem = async (req, res) => {
 
     await item.save();
 
-    res.json({ 
+    res.json({
       message: "Item restored successfully",
       item: {
         id: item._id,
         name: item.name,
-        code: item.code
-      }
+        code: item.code,
+      },
     });
   } catch (error) {
     console.error("Error restoring item:", error);
@@ -247,15 +250,15 @@ exports.restoreItem = async (req, res) => {
 exports.getItemAuditHistory = async (req, res) => {
   try {
     const itemId = req.params.id;
-    
+
     const item = await Item.findById(itemId)
       .populate("auditHistory.editedBy", "username")
       .select("auditHistory");
-    
+
     if (!item) {
       return res.status(404).json({ error: "Item not found" });
     }
-    
+
     res.json(item.auditHistory);
   } catch (error) {
     console.error("Error fetching audit history:", error);

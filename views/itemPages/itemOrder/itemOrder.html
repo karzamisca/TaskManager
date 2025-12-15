@@ -1,0 +1,92 @@
+<!-- views/itemPages/itemOrder/itemOrder.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Place Order</title>
+    <link rel="stylesheet" href="itemPages/itemOrder/itemOrder.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Place Order</h1>
+        <p>Select items and quantities for your order</p>
+      </div>
+
+      <div class="alert" id="alert"></div>
+
+      <div class="main-content">
+        <!-- Available Items Section -->
+        <div class="section">
+          <h2>Available Items</h2>
+          <div class="items-list" id="items-list">
+            <div class="loading">
+              <div class="loading-spinner"></div>
+              <p>Loading items...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shopping Cart Section -->
+        <div class="section">
+          <h2>Shopping Cart</h2>
+          <div class="cart-items" id="cart-items">
+            <div class="empty-cart" id="empty-cart">
+              <h3>Your cart is empty</h3>
+              <p>Add items from the list to get started</p>
+            </div>
+          </div>
+
+          <div class="cart-summary" id="cart-summary" style="display: none">
+            <div class="summary-row">
+              <span>Items Total:</span>
+              <span id="items-total">$0.00</span>
+            </div>
+            <div class="summary-row summary-total">
+              <span>Total:</span>
+              <span id="cart-summary-total">$0.00</span>
+            </div>
+          </div>
+
+          <div class="notes">
+            <textarea
+              id="order-notes"
+              placeholder="Add any special instructions or notes..."
+            ></textarea>
+          </div>
+
+          <button id="submit-order" class="submit-btn" disabled>
+            Submit Order
+          </button>
+        </div>
+      </div>
+
+      <!-- Recent Orders Section -->
+      <div class="section order-history">
+        <h2>My Recent Orders</h2>
+        <div id="recent-orders">
+          <div class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading recent orders...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div id="order-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modal-title">Order Details</h2>
+          <button class="close-btn" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-body">
+          <!-- Order details will be loaded here -->
+        </div>
+      </div>
+    </div>
+
+    <script src="itemPages/itemOrder/itemOrder.js"></script>
+  </body>
+</html>
