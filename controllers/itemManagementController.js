@@ -63,7 +63,7 @@ exports.getItem = async (req, res) => {
 // Create new item
 exports.createItem = async (req, res) => {
   try {
-    const { name, code, unit, unitPrice, vat = 10 } = req.body;
+    const { name, code, unit, unitPrice, vat = 0 } = req.body;
 
     // Check if code already exists (including deleted items)
     const existingItem = await Item.findOne({ code });
@@ -453,7 +453,7 @@ exports.importFromExcel = async (req, res) => {
         const name = row.getCell(2).value?.toString().trim();
         const unit = row.getCell(3).value?.toString().trim() || "cái";
         const unitPrice = parseFloat(row.getCell(4).value) || 0;
-        const vat = parseFloat(row.getCell(5).value) || 10;
+        const vat = parseFloat(row.getCell(5).value) || 0;
         const unitPriceAfterVAT = unitPrice * (1 + vat / 100);
 
         // Validate required fields
