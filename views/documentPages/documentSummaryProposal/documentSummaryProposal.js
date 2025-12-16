@@ -12,16 +12,87 @@ const state = {
   selectedDocuments: new Set(),
   currentEditDoc: null,
   taskFilter: "",
-  currentGroupFilter: "",
-  currentCostCenterFilter: [], // Changed to array for multiple selection
+  currentGroupFilter: [], // Changed to array for multiple selection
+  currentCostCenterFilter: [], // Array for multiple selection
   costCenters: [],
+  groups: [],
+};
+
+// Utility functions
+const showMessage = (message, isError = false) => {
+  const messageContainer = document.getElementById("messageContainer");
+
+  // Clear any existing timeouts to prevent multiple messages interfering
+  if (messageContainer.timeoutId) {
+    clearTimeout(messageContainer.timeoutId);
+  }
+
+  // Reset the message container
+  messageContainer.className = `message ${isError ? "error" : "success"}`;
+  messageContainer.textContent = message;
+  messageContainer.style.display = "block";
+
+  // Force reflow to ensure the element is visible before starting animation
+  void messageContainer.offsetWidth;
+
+  // Show with animation
+  messageContainer.classList.remove("hidden");
+
+  // Set timeout to hide after 5 seconds
+  messageContainer.timeoutId = setTimeout(() => {
+    messageContainer.classList.add("hidden");
+
+    // Remove completely after animation completes
+    setTimeout(() => {
+      messageContainer.style.display = "none";
+    }, 300);
+  }, 5000);
+};
+
+const showLoading = (show) => {
+  const loadingOverlay = document.getElementById("loadingOverlay");
+  loadingOverlay.style.display = show ? "flex" : "none";
+};
+
+const renderStatus = (status) => {
+  switch (status) {
+    case "Approved":
+      return `<span class="status approved"><i class="fas fa-check-circle"></i> Đã phê duyệt</span>`;
+    case "Suspended":
+      return `<span class="status suspended"><i class="fas fa-ban"></i> Từ chối</span>`;
+    default:
+      return `<span class="status pending"><i class="fas fa-clock"></i> Chưa phê duyệt</span>`;
+  }
 };
 
 // Multi-select functionality for cost centers
-const initializeMultiSelect = () => {
+const initializeCostCenterMultiSelect = () => {
   const button = document.getElementById("costCenterMultiSelectButton");
   const dropdown = document.getElementById("costCenterMultiSelectDropdown");
-  const text = document.getElementById("costCenterMultiSelectText");
+
+  // Toggle dropdown
+  button.addEventListener("click", (e) => {
+    e.stopPropagation();
+    dropdown.classList.toggle("open");
+    button.classList.toggle("open");
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener("click", () => {
+    dropdown.classList.remove("open");
+    button.classList.remove("open");
+  });
+
+  // Prevent dropdown from closing when clicking inside
+  dropdown.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+};
+
+// Multi-select functionality for groups
+const initializeGroupMultiSelect = () => {
+  const button = document.getElementById("groupMultiSelectButton");
+  const dropdown = document.getElementById("groupMultiSelectDropdown");
 
   // Toggle dropdown
   button.addEventListener("click", (e) => {
@@ -123,6 +194,85 @@ const populateCostCenterMultiSelect = async () => {
   }
 };
 
+// Populate multi-select dropdown with groups
+const populateGroupMultiSelect = async () => {
+  try {
+    const response = await fetch("/getGroupDocument");
+    const groups = await response.json();
+    state.groups = groups;
+
+    const dropdown = document.getElementById("groupMultiSelectDropdown");
+    dropdown.innerHTML = "";
+
+    // Add "Select All" option
+    const selectAllOption = document.createElement("div");
+    selectAllOption.className = "multi-select-option";
+    selectAllOption.innerHTML = `
+      <input type="checkbox" id="selectAllGroups">
+      <label for="selectAllGroups">Chọn tất cả</label>
+    `;
+    dropdown.appendChild(selectAllOption);
+
+    // Add individual group options
+    groups.forEach((group) => {
+      const option = document.createElement("div");
+      option.className = "multi-select-option";
+      option.innerHTML = `
+        <input type="checkbox" id="group_${group.name}" value="${group.name}">
+        <label for="group_${group.name}">${group.name}</label>
+      `;
+      dropdown.appendChild(option);
+    });
+
+    // Add event listeners
+    const selectAllCheckbox = document.getElementById("selectAllGroups");
+    selectAllCheckbox.addEventListener("change", (e) => {
+      const checkboxes = dropdown.querySelectorAll(
+        'input[type="checkbox"]:not(#selectAllGroups)'
+      );
+      checkboxes.forEach((checkbox) => {
+        checkbox.checked = e.target.checked;
+      });
+      updateGroupFilter();
+    });
+
+    const checkboxes = dropdown.querySelectorAll(
+      'input[type="checkbox"]:not(#selectAllGroups)'
+    );
+    checkboxes.forEach((checkbox) => {
+      checkbox.addEventListener("change", () => {
+        // Update "Select All" checkbox state
+        const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
+        const someChecked = Array.from(checkboxes).some((cb) => cb.checked);
+
+        selectAllCheckbox.checked = allChecked;
+        selectAllCheckbox.indeterminate = someChecked && !allChecked;
+
+        updateGroupFilter();
+      });
+    });
+
+    // Add clear button
+    const clearButton = document.createElement("button");
+    clearButton.className = "multi-select-clear";
+    clearButton.innerHTML = '<i class="fas fa-times"></i> Xóa tất cả';
+    clearButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach((checkbox) => {
+        checkbox.checked = false;
+      });
+      selectAllCheckbox.indeterminate = false;
+      updateGroupFilter();
+    });
+
+    const buttonContainer = document.getElementById("groupMultiSelectButton");
+    buttonContainer.appendChild(clearButton);
+  } catch (error) {
+    console.error("Error fetching groups for multi-select:", error);
+  }
+};
+
 // Update cost center filter based on selected options
 const updateCostCenterFilter = () => {
   const checkboxes = document.querySelectorAll(
@@ -136,7 +286,12 @@ const updateCostCenterFilter = () => {
 
   // Update button text
   const textElement = document.getElementById("costCenterMultiSelectText");
-  const countElement = document.querySelector(".multi-select-selected-count");
+  const buttonContainer = document.getElementById(
+    "costCenterMultiSelectButton"
+  );
+  const countElement = buttonContainer.querySelector(
+    ".multi-select-selected-count"
+  );
 
   if (selectedCostCenters.length === 0) {
     textElement.textContent = "Tất cả";
@@ -160,51 +315,44 @@ const updateCostCenterFilter = () => {
   fetchProposalDocuments();
 };
 
-// Utility functions
-const showMessage = (message, isError = false) => {
-  const messageContainer = document.getElementById("messageContainer");
+// Update group filter based on selected options
+const updateGroupFilter = () => {
+  const checkboxes = document.querySelectorAll(
+    '#groupMultiSelectDropdown input[type="checkbox"]:not(#selectAllGroups)'
+  );
+  const selectedGroups = Array.from(checkboxes)
+    .filter((cb) => cb.checked)
+    .map((cb) => cb.value);
 
-  // Clear any existing timeouts to prevent multiple messages interfering
-  if (messageContainer.timeoutId) {
-    clearTimeout(messageContainer.timeoutId);
+  state.currentGroupFilter = selectedGroups;
+
+  // Update button text
+  const textElement = document.getElementById("groupMultiSelectText");
+  const buttonContainer = document.getElementById("groupMultiSelectButton");
+  const countElement = buttonContainer.querySelector(
+    ".multi-select-selected-count"
+  );
+
+  if (selectedGroups.length === 0) {
+    textElement.textContent = "Tất cả";
+    if (countElement) countElement.remove();
+  } else if (selectedGroups.length === 1) {
+    textElement.textContent = selectedGroups[0];
+    if (countElement) countElement.remove();
+  } else {
+    textElement.textContent = `${selectedGroups.length} nhóm đã chọn`;
+    if (!countElement) {
+      const countSpan = document.createElement("span");
+      countSpan.className = "multi-select-selected-count";
+      countSpan.textContent = `(${selectedGroups.length})`;
+      textElement.parentNode.appendChild(countSpan);
+    } else {
+      countElement.textContent = `(${selectedGroups.length})`;
+    }
   }
 
-  // Reset the message container
-  messageContainer.className = `message ${isError ? "error" : "success"}`;
-  messageContainer.textContent = message;
-  messageContainer.style.display = "block";
-
-  // Force reflow to ensure the element is visible before starting animation
-  void messageContainer.offsetWidth;
-
-  // Show with animation
-  messageContainer.classList.remove("hidden");
-
-  // Set timeout to hide after 5 seconds
-  messageContainer.timeoutId = setTimeout(() => {
-    messageContainer.classList.add("hidden");
-
-    // Remove completely after animation completes
-    setTimeout(() => {
-      messageContainer.style.display = "none";
-    }, 300); // Match this with your transition duration
-  }, 5000);
-};
-
-const showLoading = (show) => {
-  const loadingOverlay = document.getElementById("loadingOverlay");
-  loadingOverlay.style.display = show ? "flex" : "none";
-};
-
-const renderStatus = (status) => {
-  switch (status) {
-    case "Approved":
-      return `<span class="status approved"><i class="fas fa-check-circle"></i> Đã phê duyệt</span>`;
-    case "Suspended":
-      return `<span class="status suspended"><i class="fas fa-ban"></i> Từ chối</span>`;
-    default:
-      return `<span class="status pending"><i class="fas fa-clock"></i> Chưa phê duyệt</span>`;
-  }
+  state.currentPage = 1;
+  fetchProposalDocuments();
 };
 
 // Data fetching
@@ -288,50 +436,21 @@ const filterDocumentsForCurrentUser = (documents) => {
     );
   }
 
-  // Apply cost center filter (now handles multiple)
+  // Apply cost center filter (multiple selection)
   if (state.currentCostCenterFilter.length > 0) {
     filteredDocs = filteredDocs.filter((doc) =>
       state.currentCostCenterFilter.includes(doc.costCenter)
     );
   }
 
-  // Apply group filter if selected
-  if (state.currentGroupFilter) {
-    filteredDocs = filteredDocs.filter(
-      (doc) => doc.groupName === state.currentGroupFilter
+  // Apply group filter (multiple selection)
+  if (state.currentGroupFilter.length > 0) {
+    filteredDocs = filteredDocs.filter((doc) =>
+      state.currentGroupFilter.includes(doc.groupName)
     );
   }
 
   return filteredDocs;
-};
-
-const filterByGroup = () => {
-  state.currentGroupFilter = document.getElementById("groupFilter").value;
-  state.currentPage = 1;
-  fetchProposalDocuments();
-};
-
-const populateGroupFilter = async () => {
-  try {
-    const response = await fetch("/getGroupDocument");
-    const groups = await response.json();
-    const filterDropdown = document.getElementById("groupFilter");
-
-    // Clear existing options except the first one
-    while (filterDropdown.options.length > 1) {
-      filterDropdown.remove(1);
-    }
-
-    // Add new options
-    groups.forEach((group) => {
-      const option = document.createElement("option");
-      option.value = group.name;
-      option.textContent = group.name;
-      filterDropdown.appendChild(option);
-    });
-  } catch (error) {
-    console.error("Error fetching groups for filter:", error);
-  }
 };
 
 // Helper function to render multiple files
@@ -1240,7 +1359,7 @@ const renderCurrentApprovers = () => {
                  onchange="updateApproverSubRole('${approver._id}', this.value)" 
                  class="form-input" style="width: 120px;">
           <button type="button" class="btn btn-danger btn-sm" 
-                  onclick="removeApprover('${approver._id}')">  <!-- Use _id here -->
+                  onclick="removeApprover('${approver._id}')">
             <i class="fas fa-trash"></i> Xóa
           </button>
         </div>
@@ -1260,7 +1379,7 @@ const updateApproverSubRole = (approverId, newSubRole) => {
 
 const removeApprover = (approverId) => {
   state.currentApprovers = state.currentApprovers.filter(
-    (a) => a._id !== approverId // Compare with _id
+    (a) => a._id !== approverId
   );
 
   renderCurrentApprovers();
@@ -1689,10 +1808,6 @@ const setupEventListeners = () => {
     fetchProposalDocuments();
   });
 
-  document
-    .getElementById("groupFilter")
-    .addEventListener("change", filterByGroup);
-
   document.addEventListener("keypress", (e) => {
     if (e.target.id === "pageInput" && e.key === "Enter") {
       goToPage();
@@ -1738,9 +1853,10 @@ const setupEventListeners = () => {
 const initialize = async () => {
   await fetchCurrentUser();
   setupEventListeners();
-  await populateCostCenterMultiSelect(); // Replace populateCostCenterFilter
-  initializeMultiSelect(); // Initialize multi-select functionality
-  await populateGroupFilter();
+  await populateCostCenterMultiSelect();
+  initializeCostCenterMultiSelect();
+  await populateGroupMultiSelect();
+  initializeGroupMultiSelect();
   await fetchProposalDocuments();
   addEditModal();
 };
