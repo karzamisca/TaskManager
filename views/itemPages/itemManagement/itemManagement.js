@@ -509,12 +509,6 @@ async function handleImportSubmit(event) {
     return;
   }
 
-  // Check file size (5MB limit)
-  if (file.size > 5 * 1024 * 1024) {
-    showAlert("File quá lớn. Kích thước tối đa là 5MB.", "error");
-    return;
-  }
-
   // Check file type
   const validTypes = [
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
