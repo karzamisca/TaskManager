@@ -16,6 +16,7 @@ let sortStates = {
   createdAt: "none",
   "createdBy.username": "none",
 };
+let errorFileData = null;
 
 // Lấy thông tin người dùng hiện tại từ cookie
 function getCurrentUser() {
@@ -320,9 +321,9 @@ async function showAuditHistory(itemId) {
 
         row.innerHTML = `
           <td>${formatDate(audit.editedAt)}</td>
-          <td><span class="status-badge ${getActionClass(audit.action)}">${
-          audit.action
-        }</span></td>
+          <td><span class="status-badge ${getActionClass(
+            audit.action
+          )}">${getActionText(audit.action)}</span></td>
           <td>${audit.editedBy?.username || "Không xác định"}</td>
           <td class="change-cell">${nameChanges}</td>
           <td class="change-cell">${codeChanges}</td>
@@ -340,6 +341,16 @@ async function showAuditHistory(itemId) {
   } catch (error) {
     showAlert("Lỗi khi tải lịch sử: " + error.message, "error");
   }
+}
+
+// Get action text in Vietnamese
+function getActionText(action) {
+  const actions = {
+    create: "Tạo mới",
+    update: "Cập nhật",
+    delete: "Xóa",
+  };
+  return actions[action] || action;
 }
 
 // Ẩn lịch sử thay đổi
@@ -451,6 +462,220 @@ function closeModal() {
   document.getElementById("item-modal").style.display = "none";
 }
 
+// Download template
+function downloadTemplate() {
+  window.location.href = "/itemManagementControl/template/excel";
+}
+
+// Export to Excel
+function exportToExcel(includeDeleted = false) {
+  const url = `/itemManagementControl/export/excel?includeDeleted=${includeDeleted}`;
+  window.location.href = url;
+}
+
+// Show import modal
+function showImportModal() {
+  document.getElementById("import-modal").style.display = "block";
+  resetImportForm();
+}
+
+// Close import modal
+function closeImportModal() {
+  document.getElementById("import-modal").style.display = "none";
+  resetImportForm();
+}
+
+// Reset import form
+function resetImportForm() {
+  document.getElementById("excel-file").value = "";
+  document.getElementById("import-progress").style.display = "none";
+  document.getElementById("import-results").style.display = "none";
+  document.getElementById("import-summary").innerHTML = "";
+  document.getElementById("import-errors").innerHTML = "";
+  document.getElementById("error-download").style.display = "none";
+  document.getElementById("import-submit-btn").disabled = false;
+  errorFileData = null;
+}
+
+// Handle import submit
+async function handleImportSubmit(event) {
+  event.preventDefault();
+
+  const fileInput = document.getElementById("excel-file");
+  const file = fileInput.files[0];
+
+  if (!file) {
+    showAlert("Vui lòng chọn file Excel", "error");
+    return;
+  }
+
+  // Check file size (5MB limit)
+  if (file.size > 5 * 1024 * 1024) {
+    showAlert("File quá lớn. Kích thước tối đa là 5MB.", "error");
+    return;
+  }
+
+  // Check file type
+  const validTypes = [
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+    "application/octet-stream", // For some Excel files
+  ];
+
+  if (!validTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls)$/)) {
+    showAlert("Chỉ chấp nhận file Excel (.xlsx, .xls)", "error");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  // Show progress
+  document.getElementById("import-progress").style.display = "block";
+  document.getElementById("import-progress-bar").style.width = "30%";
+  document.getElementById("import-submit-btn").disabled = true;
+
+  try {
+    const response = await fetch("/itemManagementControl/import/excel", {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+
+    document.getElementById("import-progress-bar").style.width = "80%";
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Không thể nhập file");
+    }
+
+    const result = await response.json();
+    document.getElementById("import-progress-bar").style.width = "100%";
+
+    // Display results
+    displayImportResults(result);
+
+    // Store error file data if exists
+    if (result.errorFile) {
+      errorFileData = result.errorFile;
+      document.getElementById("error-download").style.display = "block";
+    }
+
+    // Refresh items list if successful imports
+    if (result.summary.success > 0) {
+      setTimeout(() => {
+        fetchItems();
+        showAlert(
+          `Đã nhập thành công ${result.summary.success} mặt hàng từ file Excel!`
+        );
+      }, 1500);
+    }
+  } catch (error) {
+    showAlert("Lỗi khi nhập file: " + error.message, "error");
+    resetImportForm();
+  }
+}
+
+// Display import results
+function displayImportResults(result) {
+  const summary = result.summary;
+  const summaryDiv = document.getElementById("import-summary");
+  const errorsDiv = document.getElementById("import-errors");
+
+  // Display summary
+  summaryDiv.innerHTML = `
+    <div class="summary-grid">
+      <div class="summary-item total">
+        <div class="value">${summary.total}</div>
+        <div class="label">Tổng số dòng</div>
+      </div>
+      <div class="summary-item success">
+        <div class="value">${summary.success}</div>
+        <div class="label">Thành công</div>
+      </div>
+      <div class="summary-item failed">
+        <div class="value">${summary.failed}</div>
+        <div class="label">Thất bại</div>
+      </div>
+      <div class="summary-item skipped">
+        <div class="value">${summary.skipped}</div>
+        <div class="label">Đã bỏ qua</div>
+      </div>
+    </div>
+  `;
+
+  // Display errors if any
+  if (summary.errors.length > 0) {
+    errorsDiv.innerHTML = `
+      <table class="error-table">
+        <thead>
+          <tr>
+            <th>Dòng</th>
+            <th>Mã hàng</th>
+            <th>Lỗi</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${summary.errors
+            .map(
+              (error) => `
+            <tr class="${
+              error.error.includes("đã tồn tại") ? "skipped-row" : "error-row"
+            }">
+              <td>${error.row}</td>
+              <td>${error.code}</td>
+              <td>${error.error}</td>
+            </tr>
+          `
+            )
+            .join("")}
+        </tbody>
+      </table>
+    `;
+  } else {
+    errorsDiv.innerHTML = '<p class="text-success">Không có lỗi nào.</p>';
+  }
+
+  // Show results section
+  document.getElementById("import-results").style.display = "block";
+}
+
+// Download error file
+function downloadErrorFile() {
+  if (!errorFileData) {
+    showAlert("Không có file lỗi để tải", "error");
+    return;
+  }
+
+  try {
+    // Convert base64 to binary
+    const binaryString = atob(errorFileData);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // Create blob and download
+    const blob = new Blob([bytes], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ket-qua-nhap-file-loi_${
+      new Date().toISOString().split("T")[0]
+    }.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    showAlert("Đã tải file lỗi thành công!");
+  } catch (error) {
+    showAlert("Lỗi khi tải file: " + error.message, "error");
+  }
+}
+
 // Hàm hỗ trợ
 function formatCurrency(amount) {
   return new Intl.NumberFormat("vi-VN", {
@@ -521,12 +746,18 @@ document.addEventListener("DOMContentLoaded", () => {
     if (event.target === modal) {
       closeModal();
     }
+
+    const importModal = document.getElementById("import-modal");
+    if (event.target === importModal) {
+      closeImportModal();
+    }
   };
 
   // Close modal with ESC key
   document.addEventListener("keydown", function (event) {
     if (event.key === "Escape") {
       closeModal();
+      closeImportModal();
     }
   });
 });

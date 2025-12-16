@@ -3,6 +3,27 @@ const express = require("express");
 const router = express.Router();
 const itemManagementController = require("../controllers/itemManagementController");
 const authMiddleware = require("../middlewares/authMiddleware");
+const multer = require("multer");
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(), // Store file in memory
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept only Excel files
+    if (
+      file.mimetype ===
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      file.mimetype === "application/vnd.ms-excel"
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("Chỉ chấp nhận file Excel (.xlsx, .xls)"), false);
+    }
+  },
+});
 
 // Item Main page
 router.get("/itemMain", authMiddleware, (req, res) => {
@@ -24,7 +45,7 @@ router.get(
   itemManagementController.getAllItems
 );
 
-// Get all items including deleted)
+// Get all items including deleted
 router.get(
   "/itemManagementControl/all",
   authMiddleware,
@@ -71,6 +92,28 @@ router.get(
   "/itemManagementControl/:id/audit",
   authMiddleware,
   itemManagementController.getItemAuditHistory
+);
+
+// Export items to Excel
+router.get(
+  "/itemManagementControl/export/excel",
+  authMiddleware,
+  itemManagementController.exportToExcel
+);
+
+// Import items from Excel
+router.post(
+  "/itemManagementControl/import/excel",
+  authMiddleware,
+  upload.single("file"),
+  itemManagementController.importFromExcel
+);
+
+// Download import template
+router.get(
+  "/itemManagementControl/template/excel",
+  authMiddleware,
+  itemManagementController.downloadTemplate
 );
 
 module.exports = router;
