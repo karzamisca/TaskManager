@@ -438,7 +438,8 @@ exports.importFromExcel = async (req, res) => {
       success: 0,
       failed: 0,
       errors: [],
-      skipped: 0,
+      updated: 0,
+      created: 0,
       total: 0,
     };
 
@@ -490,45 +491,101 @@ exports.importFromExcel = async (req, res) => {
           continue;
         }
 
-        // Check if item with same code already exists and is active
-        const existingItem = await Item.findOne({ code, isDeleted: false });
-        if (existingItem) {
-          importResults.skipped++;
-          importResults.errors.push({
-            row: rowNumber,
-            code,
-            error: `Mã hàng "${code}" đã tồn tại`,
-          });
-          rowNumber++;
-          continue;
-        }
-
-        // Create new item
-        const item = new Item({
-          name,
+        // Tìm item có cùng code
+        const existingItem = await Item.findOne({
           code,
-          unit,
-          unitPrice,
-          vat,
-          unitPriceAfterVAT,
-          createdBy: req.user.id,
-          auditHistory: [
-            {
-              newName: name,
-              newCode: code,
-              newUnit: unit,
-              newUnitPrice: unitPrice,
-              newVAT: vat,
-              newUnitPriceAfterVAT: unitPriceAfterVAT,
-              editedBy: req.user.id,
-              action: "create",
-              note: "Nhập từ Excel",
-            },
-          ],
+          isDeleted: false,
         });
 
-        await item.save();
-        importResults.success++;
+        if (existingItem) {
+          // Nếu tồn tại item có cùng code, cập nhật item đó
+
+          // Lưu lại giá trị cũ cho audit history
+          const oldValues = {
+            name: existingItem.name,
+            unit: existingItem.unit,
+            unitPrice: existingItem.unitPrice,
+            vat: existingItem.vat,
+            unitPriceAfterVAT: existingItem.unitPriceAfterVAT,
+          };
+
+          // Tạo audit entry
+          const auditEntry = {
+            oldName: oldValues.name,
+            newName: name,
+            oldCode: code, // Code không thay đổi
+            newCode: code,
+            oldUnit: oldValues.unit,
+            newUnit: unit,
+            oldUnitPrice: oldValues.unitPrice,
+            newUnitPrice: unitPrice,
+            oldVAT: oldValues.vat,
+            newVAT: vat,
+            oldUnitPriceAfterVAT: oldValues.unitPriceAfterVAT,
+            newUnitPriceAfterVAT: unitPriceAfterVAT,
+            editedBy: req.user.id,
+            action: "update",
+            note: "Cập nhật từ Excel import",
+          };
+
+          // Cập nhật item
+          existingItem.name = name;
+          existingItem.unit = unit;
+          existingItem.unitPrice = unitPrice;
+          existingItem.vat = vat;
+          existingItem.unitPriceAfterVAT = unitPriceAfterVAT;
+          existingItem.auditHistory.push(auditEntry);
+
+          await existingItem.save();
+          importResults.updated++;
+          importResults.success++;
+        } else {
+          // Nếu không tồn tại, tạo item mới
+
+          // Kiểm tra nếu có item đã bị xóa với cùng code
+          const deletedItem = await Item.findOne({
+            code,
+            isDeleted: true,
+          });
+
+          if (deletedItem) {
+            // Nếu có item đã bị xóa, hiển thị cảnh báo nhưng vẫn tạo item mới
+            importResults.errors.push({
+              row: rowNumber,
+              code,
+              error: `Mã hàng "${code}" đã từng tồn tại và đã bị xóa. Đang tạo mới.`,
+              warning: true,
+            });
+          }
+
+          // Tạo item mới
+          const item = new Item({
+            name,
+            code,
+            unit,
+            unitPrice,
+            vat,
+            unitPriceAfterVAT,
+            createdBy: req.user.id,
+            auditHistory: [
+              {
+                newName: name,
+                newCode: code,
+                newUnit: unit,
+                newUnitPrice: unitPrice,
+                newVAT: vat,
+                newUnitPriceAfterVAT: unitPriceAfterVAT,
+                editedBy: req.user.id,
+                action: "create",
+                note: "Nhập từ Excel",
+              },
+            ],
+          });
+
+          await item.save();
+          importResults.created++;
+          importResults.success++;
+        }
       } catch (error) {
         importResults.failed++;
         importResults.errors.push({
@@ -542,7 +599,7 @@ exports.importFromExcel = async (req, res) => {
     }
 
     // Generate summary Excel file with import results
-    if (importResults.errors.length > 0) {
+    if (importResults.errors.length > 0 || importResults.updated > 0) {
       const resultWorkbook = new ExcelJS.Workbook();
       const resultWorksheet = resultWorkbook.addWorksheet("Kết quả nhập file");
 
@@ -551,26 +608,43 @@ exports.importFromExcel = async (req, res) => {
       resultWorksheet.addRow([]);
       resultWorksheet.addRow(["Tổng số dòng:", importResults.total]);
       resultWorksheet.addRow(["Thành công:", importResults.success]);
+      resultWorksheet.addRow(["  - Tạo mới:", importResults.created]);
+      resultWorksheet.addRow(["  - Cập nhật:", importResults.updated]);
       resultWorksheet.addRow(["Thất bại:", importResults.failed]);
-      resultWorksheet.addRow(["Đã bỏ qua:", importResults.skipped]);
       resultWorksheet.addRow([]);
-      resultWorksheet.addRow(["Chi tiết lỗi:"]);
 
-      // Add error headers
-      resultWorksheet.addRow(["Dòng", "Mã hàng", "Lỗi"]);
+      if (importResults.errors.length > 0) {
+        resultWorksheet.addRow(["Chi tiết lỗi/cảnh báo:"]);
+        resultWorksheet.addRow(["Dòng", "Mã hàng", "Thông báo", "Loại"]);
 
-      // Style headers
-      resultWorksheet.getRow(9).font = { bold: true };
-      resultWorksheet.getRow(9).fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFFFEBEE" },
-      };
+        // Style headers
+        resultWorksheet.getRow(10).font = { bold: true };
+        resultWorksheet.getRow(10).fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFFFEBEE" },
+        };
 
-      // Add error details
-      importResults.errors.forEach((error) => {
-        resultWorksheet.addRow([error.row, error.code, error.error]);
-      });
+        // Add error details
+        let errorRow = 11;
+        importResults.errors.forEach((error) => {
+          const row = resultWorksheet.addRow([
+            error.row,
+            error.code,
+            error.error,
+            error.warning ? "Cảnh báo" : "Lỗi",
+          ]);
+
+          if (error.warning) {
+            row.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFFF3CD" },
+            };
+          }
+          errorRow++;
+        });
+      }
 
       // Auto-fit columns
       resultWorksheet.columns.forEach((column) => {

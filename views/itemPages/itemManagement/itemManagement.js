@@ -527,6 +527,15 @@ async function handleImportSubmit(event) {
     return;
   }
 
+  // Xác nhận trước khi import
+  if (
+    !confirm(
+      "⚠️ Lưu ý: Nếu file có mã hàng trùng với mã hàng đang hoạt động, thông tin sẽ được CẬP NHẬT (ghi đè).\n\nTiếp tục nhập file?"
+    )
+  ) {
+    return;
+  }
+
   const formData = new FormData();
   formData.append("file", file);
 
@@ -566,7 +575,11 @@ async function handleImportSubmit(event) {
       setTimeout(() => {
         fetchItems();
         showAlert(
-          `Đã nhập thành công ${result.summary.success} mặt hàng từ file Excel!`
+          `Đã nhập thành công ${
+            result.summary.success
+          } mặt hàng từ file Excel! (${result.summary.created || 0} mới, ${
+            result.summary.updated || 0
+          } cập nhật)`
         );
       }, 1500);
     }
@@ -593,13 +606,17 @@ function displayImportResults(result) {
         <div class="value">${summary.success}</div>
         <div class="label">Thành công</div>
       </div>
+      <div class="summary-item created">
+        <div class="value">${summary.created || 0}</div>
+        <div class="label">Tạo mới</div>
+      </div>
+      <div class="summary-item updated">
+        <div class="value">${summary.updated || 0}</div>
+        <div class="label">Cập nhật</div>
+      </div>
       <div class="summary-item failed">
         <div class="value">${summary.failed}</div>
         <div class="label">Thất bại</div>
-      </div>
-      <div class="summary-item skipped">
-        <div class="value">${summary.skipped}</div>
-        <div class="label">Đã bỏ qua</div>
       </div>
     </div>
   `;
@@ -612,19 +629,21 @@ function displayImportResults(result) {
           <tr>
             <th>Dòng</th>
             <th>Mã hàng</th>
-            <th>Lỗi</th>
+            <th>Thông báo</th>
+            <th>Loại</th>
           </tr>
         </thead>
         <tbody>
           ${summary.errors
             .map(
               (error) => `
-            <tr class="${
-              error.error.includes("đã tồn tại") ? "skipped-row" : "error-row"
-            }">
+            <tr class="${error.warning ? "warning-row" : "error-row"}">
               <td>${error.row}</td>
               <td>${error.code}</td>
               <td>${error.error}</td>
+              <td><span class="status-badge ${
+                error.warning ? "status-warning" : "status-deleted"
+              }">${error.warning ? "Cảnh báo" : "Lỗi"}</span></td>
             </tr>
           `
             )
