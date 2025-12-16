@@ -1,12 +1,17 @@
 // controllers/itemManagementController.js
 const Item = require("../models/Item");
 
-// Get all active items
+// Get all active items with sorting
 exports.getAllItems = async (req, res) => {
   try {
+    const { sortBy = "name", sortOrder = "asc" } = req.query;
+
+    const sortOptions = {};
+    sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
+
     const items = await Item.find({ isDeleted: false })
       .populate("createdBy", "username")
-      .sort({ createdAt: -1 });
+      .sort(sortOptions);
     res.json(items);
   } catch (error) {
     console.error("Error fetching items:", error);
@@ -14,13 +19,18 @@ exports.getAllItems = async (req, res) => {
   }
 };
 
-// Get all items including deleted (for admin)
+// Get all items including deleted (for admin) with sorting
 exports.getAllItemsWithDeleted = async (req, res) => {
   try {
+    const { sortBy = "name", sortOrder = "asc" } = req.query;
+
+    const sortOptions = {};
+    sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
+
     const items = await Item.find()
       .populate("createdBy", "username")
       .populate("deletedBy", "username")
-      .sort({ createdAt: -1 });
+      .sort(sortOptions);
     res.json(items);
   } catch (error) {
     console.error("Error fetching all items:", error);
@@ -50,7 +60,7 @@ exports.getItem = async (req, res) => {
 // Create new item
 exports.createItem = async (req, res) => {
   try {
-    const { name, code, unitPrice } = req.body;
+    const { name, code, unit, unitPrice, vat = 10 } = req.body;
 
     // Check if code already exists (including deleted items)
     const existingItem = await Item.findOne({ code });
@@ -58,16 +68,27 @@ exports.createItem = async (req, res) => {
       return res.status(400).json({ error: "Item code already exists" });
     }
 
+    // Calculate unitPriceAfterVAT
+    const vatPercentage = parseFloat(vat);
+    const unitPriceValue = parseFloat(unitPrice);
+    const unitPriceAfterVAT = unitPriceValue * (1 + vatPercentage / 100);
+
     const item = new Item({
       name,
       code,
-      unitPrice: parseFloat(unitPrice),
+      unit: unit || "cái",
+      unitPrice: unitPriceValue,
+      vat: vatPercentage,
+      unitPriceAfterVAT,
       createdBy: req.user.id,
       auditHistory: [
         {
           newName: name,
           newCode: code,
-          newUnitPrice: parseFloat(unitPrice),
+          newUnit: unit || "cái",
+          newUnitPrice: unitPriceValue,
+          newVAT: vatPercentage,
+          newUnitPriceAfterVAT: unitPriceAfterVAT,
           editedBy: req.user.id,
           action: "create",
         },
@@ -88,7 +109,7 @@ exports.createItem = async (req, res) => {
 // Update item
 exports.updateItem = async (req, res) => {
   try {
-    const { name, code, unitPrice } = req.body;
+    const { name, code, unit, unitPrice, vat } = req.body;
     const itemId = req.params.id;
 
     const item = await Item.findById(itemId);
@@ -112,14 +133,25 @@ exports.updateItem = async (req, res) => {
       }
     }
 
+    // Calculate new unitPriceAfterVAT
+    const vatPercentage = vat !== undefined ? parseFloat(vat) : item.vat;
+    const unitPriceValue = parseFloat(unitPrice);
+    const unitPriceAfterVAT = unitPriceValue * (1 + vatPercentage / 100);
+
     // Create audit entry
     const auditEntry = {
       oldName: item.name,
       newName: name,
       oldCode: item.code,
       newCode: code,
+      oldUnit: item.unit,
+      newUnit: unit || item.unit,
       oldUnitPrice: item.unitPrice,
-      newUnitPrice: parseFloat(unitPrice),
+      newUnitPrice: unitPriceValue,
+      oldVAT: item.vat,
+      newVAT: vatPercentage,
+      oldUnitPriceAfterVAT: item.unitPriceAfterVAT,
+      newUnitPriceAfterVAT: unitPriceAfterVAT,
       editedBy: req.user.id,
       action: "update",
     };
@@ -127,7 +159,10 @@ exports.updateItem = async (req, res) => {
     // Update item
     item.name = name;
     item.code = code;
-    item.unitPrice = parseFloat(unitPrice);
+    item.unit = unit || item.unit;
+    item.unitPrice = unitPriceValue;
+    item.vat = vatPercentage;
+    item.unitPriceAfterVAT = unitPriceAfterVAT;
     item.auditHistory.push(auditEntry);
 
     await item.save();
@@ -161,7 +196,10 @@ exports.deleteItem = async (req, res) => {
     const auditEntry = {
       oldName: item.name,
       oldCode: item.code,
+      oldUnit: item.unit,
       oldUnitPrice: item.unitPrice,
+      oldVAT: item.vat,
+      oldUnitPriceAfterVAT: item.unitPriceAfterVAT,
       editedBy: req.user.id,
       action: "delete",
     };
@@ -180,6 +218,7 @@ exports.deleteItem = async (req, res) => {
         id: item._id,
         name: item.name,
         code: item.code,
+        unit: item.unit,
         deletedAt: item.deletedAt,
       },
     });
@@ -219,7 +258,10 @@ exports.restoreItem = async (req, res) => {
     const auditEntry = {
       newName: item.name,
       newCode: item.code,
+      newUnit: item.unit,
       newUnitPrice: item.unitPrice,
+      newVAT: item.vat,
+      newUnitPriceAfterVAT: item.unitPriceAfterVAT,
       editedBy: req.user.id,
       action: "create", // Treating restore as a new creation
     };
@@ -238,6 +280,7 @@ exports.restoreItem = async (req, res) => {
         id: item._id,
         name: item.name,
         code: item.code,
+        unit: item.unit,
       },
     });
   } catch (error) {

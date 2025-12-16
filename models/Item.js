@@ -8,6 +8,12 @@ const auditHistorySchema = new mongoose.Schema({
   newCode: String,
   oldUnitPrice: Number,
   newUnitPrice: Number,
+  oldUnit: String,
+  newUnit: String,
+  oldVAT: Number,
+  newVAT: Number,
+  oldUnitPriceAfterVAT: Number,
+  newUnitPriceAfterVAT: Number,
   editedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -36,7 +42,25 @@ const itemSchema = new mongoose.Schema({
     unique: true,
     trim: true,
   },
+  unit: {
+    type: String,
+    required: true,
+    trim: true,
+    default: "cái",
+  },
   unitPrice: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  vat: {
+    type: Number,
+    required: true,
+    min: 0,
+    max: 100,
+    default: 10,
+  },
+  unitPriceAfterVAT: {
     type: Number,
     required: true,
     min: 0,
@@ -66,9 +90,11 @@ const itemSchema = new mongoose.Schema({
   auditHistory: [auditHistorySchema],
 });
 
-// Update timestamp before saving
+// Calculate unitPriceAfterVAT before saving
 itemSchema.pre("save", function (next) {
   this.updatedAt = Date.now();
+  // Calculate unitPriceAfterVAT
+  this.unitPriceAfterVAT = this.unitPrice * (1 + this.vat / 100);
   next();
 });
 

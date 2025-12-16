@@ -42,12 +42,39 @@
       <table id="items-table" class="items-table" style="display: none">
         <thead>
           <tr>
-            <th>Mã hàng</th>
-            <th>Tên hàng</th>
-            <th>Đơn giá</th>
+            <th onclick="sortTable('code')" style="cursor: pointer">
+              Mã hàng <span id="sort-code" class="sort-indicator">↕</span>
+            </th>
+            <th onclick="sortTable('name')" style="cursor: pointer">
+              Tên hàng <span id="sort-name" class="sort-indicator">↕</span>
+            </th>
+            <th onclick="sortTable('unit')" style="cursor: pointer">
+              Đơn vị <span id="sort-unit" class="sort-indicator">↕</span>
+            </th>
+            <th onclick="sortTable('unitPrice')" style="cursor: pointer">
+              Đơn giá <span id="sort-unitPrice" class="sort-indicator">↕</span>
+            </th>
+            <th onclick="sortTable('vat')" style="cursor: pointer">
+              VAT (%) <span id="sort-vat" class="sort-indicator">↕</span>
+            </th>
+            <th
+              onclick="sortTable('unitPriceAfterVAT')"
+              style="cursor: pointer"
+            >
+              Giá sau VAT
+              <span id="sort-unitPriceAfterVAT" class="sort-indicator">↕</span>
+            </th>
+            <th onclick="sortTable('createdAt')" style="cursor: pointer">
+              Ngày tạo <span id="sort-createdAt" class="sort-indicator">↕</span>
+            </th>
             <th>Trạng thái</th>
-            <th>Người tạo</th>
-            <th>Ngày tạo</th>
+            <th
+              onclick="sortTable('createdBy.username')"
+              style="cursor: pointer"
+            >
+              Người tạo
+              <span id="sort-createdBy-username" class="sort-indicator">↕</span>
+            </th>
             <th>Thao tác</th>
           </tr>
         </thead>
@@ -66,7 +93,10 @@
               <th>Người thay đổi</th>
               <th>Thay đổi tên</th>
               <th>Thay đổi mã</th>
+              <th>Thay đổi đơn vị</th>
               <th>Thay đổi giá</th>
+              <th>Thay đổi VAT</th>
+              <th>Thay đổi giá sau VAT</th>
             </tr>
           </thead>
           <tbody id="audit-body">
@@ -104,8 +134,41 @@
           </div>
 
           <div class="form-group">
+            <label for="unit">Đơn vị *</label>
+            <input type="text" id="unit" value="cái" required />
+            <small class="form-text text-muted"
+              >Ví dụ: cái, chiếc, kg, lít, hộp, thùng...</small
+            >
+          </div>
+
+          <div class="form-group">
             <label for="unitPrice">Đơn giá *</label>
             <input type="number" id="unitPrice" step="0.01" min="0" required />
+          </div>
+
+          <div class="form-group">
+            <label for="vat">VAT (%) *</label>
+            <input
+              type="number"
+              id="vat"
+              step="0.01"
+              min="0"
+              max="100"
+              value="10"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="unitPriceAfterVAT">Giá sau VAT</label>
+            <input
+              type="number"
+              id="unitPriceAfterVAT"
+              step="0.01"
+              min="0"
+              readonly
+              style="background-color: #f5f5f5"
+            />
           </div>
 
           <div class="form-actions">
@@ -124,7 +187,7 @@
       </div>
     </div>
 
-    <script src="itemPages/itemManagement/itemManagement.js?v=1.0"></script>
+    <script src="itemPages/itemManagement/itemManagement.js?v=1.1"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>
