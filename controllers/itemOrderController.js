@@ -620,28 +620,3 @@ exports.getOrderStats = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch order statistics" });
   }
 };
-
-// Get users who have placed orders (for privileged users)
-exports.getOrderUsers = async (req, res) => {
-  try {
-    // Only privileged users can see all users
-    if (!canViewAllOrders(req.user)) {
-      return res.status(403).json({ error: "Unauthorized to view all users" });
-    }
-
-    const users = await Order.aggregate([
-      {
-        $group: {
-          _id: "$user",
-          username: { $first: "$username" },
-        },
-      },
-      { $sort: { username: 1 } },
-    ]);
-
-    res.json(users);
-  } catch (error) {
-    console.error("Error fetching order users:", error);
-    res.status(500).json({ error: "Failed to fetch order users" });
-  }
-};
