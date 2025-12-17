@@ -22,13 +22,6 @@ const upload = multer({
   },
 });
 
-// Item Main page
-router.get("/itemMain", authMiddleware, (req, res) => {
-  res.sendFile("/itemMain.html", {
-    root: "./views/itemPages/itemMain",
-  });
-});
-
 router.get("/itemManagement", authMiddleware, (req, res) => {
   res.sendFile("/itemManagement.html", {
     root: "./views/itemPages/itemManagement",
