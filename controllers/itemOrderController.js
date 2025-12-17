@@ -22,20 +22,68 @@ const formatDateTime = (date) => {
   return `${day}-${month}-${year} ${hours}:${minutes}`;
 };
 
-// Create new order
+// Check if order number exists
+exports.checkOrderNumber = async (req, res) => {
+  try {
+    const orderNumber = req.params.orderNumber;
+    const order = await Order.findOne({ orderNumber: orderNumber });
+
+    res.json({ exists: !!order });
+  } catch (error) {
+    console.error("Error checking order number:", error);
+    res.status(500).json({ error: "Failed to check order number" });
+  }
+};
+
+// Get all order numbers
+exports.getAllOrderNumbers = async (req, res) => {
+  try {
+    const orders = await Order.find({}, "orderNumber");
+    const orderNumbers = orders.map((order) => order.orderNumber);
+    res.json(orderNumbers);
+  } catch (error) {
+    console.error("Error fetching order numbers:", error);
+    res.status(500).json({ error: "Failed to fetch order numbers" });
+  }
+};
+
+// Create new order with nested groups
 exports.createOrder = async (req, res) => {
   try {
-    const { items, notes } = req.body;
+    const { items, notes, customOrderNumber, groups } = req.body;
     const user = req.user;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: "No items in order" });
     }
 
+    // Validate custom order number if provided
+    let orderNumber;
+    if (customOrderNumber) {
+      // Check if custom order number already exists
+      const existingOrder = await Order.findOne({
+        orderNumber: customOrderNumber,
+      });
+      if (existingOrder) {
+        return res.status(400).json({ error: "Order number already exists" });
+      }
+      orderNumber = customOrderNumber;
+    } else {
+      // Generate unique order number based on timestamp
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 10000)
+        .toString()
+        .padStart(4, "0");
+      orderNumber = `ORD-${timestamp}${random}`;
+    }
+
     // Validate and process items
     const processedItems = [];
     let totalAmount = 0;
     let totalAmountAfterVAT = 0;
+
+    // Create a map of item IDs for quick lookup
+    const itemIdMap = new Map();
 
     for (const orderItem of items) {
       const item = await Item.findById(orderItem.itemId);
@@ -62,7 +110,7 @@ exports.createOrder = async (req, res) => {
       const itemTotal = item.unitPrice * quantity;
       const itemTotalAfterVAT = item.unitPriceAfterVAT * quantity;
 
-      processedItems.push({
+      const processedItem = {
         itemId: item._id,
         itemName: item.name,
         itemCode: item.code,
@@ -73,18 +121,34 @@ exports.createOrder = async (req, res) => {
         quantity: quantity,
         totalPrice: itemTotal,
         totalPriceAfterVAT: itemTotalAfterVAT,
-      });
+      };
+
+      processedItems.push(processedItem);
+      itemIdMap.set(item._id.toString(), processedItem);
 
       totalAmount += itemTotal;
       totalAmountAfterVAT += itemTotalAfterVAT;
     }
 
-    // Generate unique order number based on timestamp
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 10000)
-      .toString()
-      .padStart(4, "0");
-    const orderNumber = `ORD-${timestamp}${random}`;
+    // Process groups - validate that all items in groups exist in order
+    const processedGroups = [];
+    if (groups && Array.isArray(groups)) {
+      for (const group of groups) {
+        if (group.name && group.items && Array.isArray(group.items)) {
+          // Filter out items that don't exist in the order
+          const validItems = group.items.filter((itemId) =>
+            itemIdMap.has(itemId.toString())
+          );
+
+          if (validItems.length > 0) {
+            processedGroups.push({
+              name: group.name.trim(),
+              items: validItems,
+            });
+          }
+        }
+      }
+    }
 
     // Format dates
     const currentDate = new Date();
@@ -92,7 +156,7 @@ exports.createOrder = async (req, res) => {
     const formattedUpdatedAt = formatDateTime(currentDate);
 
     // Create order
-    const order = new Order({
+    const orderData = {
       orderNumber: orderNumber,
       user: user.id,
       username: user.username,
@@ -103,8 +167,10 @@ exports.createOrder = async (req, res) => {
       status: "pending",
       formattedOrderDate: formattedOrderDate,
       formattedUpdatedAt: formattedUpdatedAt,
-    });
+      groups: processedGroups,
+    };
 
+    const order = new Order(orderData);
     await order.save();
 
     res.status(201).json({
@@ -118,14 +184,13 @@ exports.createOrder = async (req, res) => {
   } catch (error) {
     console.error("Error creating order:", error);
 
-    // Handle duplicate order number error (rare but possible)
+    // Handle duplicate order number error
     if (
       error.code === 11000 &&
       error.keyPattern &&
       error.keyPattern.orderNumber
     ) {
-      // Duplicate order number, retry with a new number
-      return exports.createOrder(req, res);
+      return res.status(400).json({ error: "Order number already exists" });
     }
 
     res.status(500).json({ error: "Failed to create order" });
@@ -238,10 +303,10 @@ exports.getOrder = async (req, res) => {
   }
 };
 
-// Update order (edit items, notes)
+// Update order (edit items, notes, order number)
 exports.updateOrder = async (req, res) => {
   try {
-    const { items, notes } = req.body;
+    const { items, notes, customOrderNumber } = req.body;
     const orderId = req.params.id;
     const user = req.user;
 
@@ -269,6 +334,19 @@ exports.updateOrder = async (req, res) => {
       return res.status(400).json({
         error: "Only pending orders can be modified",
       });
+    }
+
+    // Check if order number should be updated
+    if (customOrderNumber && customOrderNumber !== order.orderNumber) {
+      // Check if new order number already exists
+      const existingOrder = await Order.findOne({
+        orderNumber: customOrderNumber,
+        _id: { $ne: orderId },
+      });
+      if (existingOrder) {
+        return res.status(400).json({ error: "Order number already exists" });
+      }
+      order.orderNumber = customOrderNumber;
     }
 
     // Process items
@@ -338,6 +416,16 @@ exports.updateOrder = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updating order:", error);
+
+    // Handle duplicate order number error
+    if (
+      error.code === 11000 &&
+      error.keyPattern &&
+      error.keyPattern.orderNumber
+    ) {
+      return res.status(400).json({ error: "Order number already exists" });
+    }
+
     res.status(500).json({ error: "Failed to update order" });
   }
 };

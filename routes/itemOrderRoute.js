@@ -62,4 +62,18 @@ router.get(
   orderController.getOrderStats
 );
 
+// Check if order number exists
+router.get(
+  "/itemOrderControl/check-order/:orderNumber",
+  authMiddleware,
+  orderController.checkOrderNumber
+);
+
+// Get all order numbers
+router.get(
+  "/itemOrderControl/all-order-numbers",
+  authMiddleware,
+  orderController.getAllOrderNumbers
+);
+
 module.exports = router;

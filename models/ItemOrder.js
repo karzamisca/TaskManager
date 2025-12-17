@@ -1,4 +1,4 @@
-//models/ItemOrder.js
+// models/ItemOrder.js
 const mongoose = require("mongoose");
 
 const orderItemSchema = new mongoose.Schema({
@@ -46,11 +46,26 @@ const orderItemSchema = new mongoose.Schema({
   },
 });
 
+const groupSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  items: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Item",
+    },
+  ],
+});
+
 const orderSchema = new mongoose.Schema({
   orderNumber: {
     type: String,
     required: true,
     unique: true,
+    index: true,
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -89,6 +104,7 @@ const orderSchema = new mongoose.Schema({
     trim: true,
     default: "",
   },
+  groups: [groupSchema], // Groups với items nested bên trong
   updatedAt: {
     type: Date,
     default: Date.now,
@@ -100,7 +116,7 @@ const orderSchema = new mongoose.Schema({
 
 // Format dates before saving
 orderSchema.pre("save", function (next) {
-  this.updatedAt = Date.now();
+  this.updatedAt = new Date();
 
   // Format dates to dd-mm-yyyy
   const formatDate = (date) => {
@@ -129,6 +145,30 @@ orderSchema.pre("save", function (next) {
   // Format updated at
   if (this.updatedAt) {
     this.formattedUpdatedAt = formatDateTime(this.updatedAt);
+  }
+
+  // Ensure groups is an array and validate
+  if (!this.groups) {
+    this.groups = [];
+  }
+
+  if (this.groups && Array.isArray(this.groups)) {
+    // Filter out invalid groups
+    this.groups = this.groups.filter(
+      (group) =>
+        group &&
+        group.name &&
+        typeof group.name === "string" &&
+        group.name.trim() !== "" &&
+        Array.isArray(group.items)
+    );
+
+    // Remove duplicate item references within groups
+    this.groups.forEach((group) => {
+      if (group.items && Array.isArray(group.items)) {
+        group.items = [...new Set(group.items)];
+      }
+    });
   }
 
   next();
