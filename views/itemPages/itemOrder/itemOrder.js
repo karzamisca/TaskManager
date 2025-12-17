@@ -27,31 +27,31 @@ function showAlert(message, type = "success") {
   }, 3000);
 }
 
-// Lấy sản phẩm có sẵn
+// Lấy mặt hàng có sẵn
 async function fetchAvailableItems() {
   try {
     const response = await fetch("/itemManagementControl", {
       credentials: "include",
     });
 
-    if (!response.ok) throw new Error("Không thể tải sản phẩm");
+    if (!response.ok) throw new Error("Không thể tải mặt hàng");
 
     availableItems = await response.json();
     renderAvailableItems();
   } catch (error) {
-    showAlert("Lỗi tải sản phẩm: " + error.message, "error");
+    showAlert("Lỗi tải mặt hàng: " + error.message, "error");
   }
 }
 
-// Hiển thị sản phẩm có sẵn
+// Hiển thị mặt hàng có sẵn
 function renderAvailableItems() {
   const container = document.getElementById("items-list");
 
   if (availableItems.length === 0) {
     container.innerHTML = `
       <div class="empty-cart">
-        <h3>Không có sản phẩm nào</h3>
-        <p>Tất cả sản phẩm có thể đã bị xóa hoặc không tồn tại</p>
+        <h3>Không có mặt hàng nào</h3>
+        <p>Tất cả mặt hàng có thể đã bị xóa hoặc không tồn tại</p>
       </div>
     `;
     return;
@@ -121,7 +121,7 @@ function addToCart(itemId) {
 
   if (!item) return;
 
-  // Kiểm tra xem sản phẩm đã có trong giỏ hàng chưa
+  // Kiểm tra xem mặt hàng đã có trong giỏ hàng chưa
   const existingIndex = cart.findIndex(
     (cartItem) => cartItem.itemId === itemId
   );
@@ -134,7 +134,7 @@ function addToCart(itemId) {
     cart[existingIndex].totalPriceAfterVAT =
       cart[existingIndex].quantity * item.unitPriceAfterVAT;
   } else {
-    // Thêm sản phẩm mới
+    // Thêm mặt hàng mới
     cart.push({
       itemId: itemId,
       itemName: item.name,
@@ -304,7 +304,7 @@ function addGroupToUI(group) {
       <h4>
         <span class="group-toggle">▼</span>
         ${group.name}
-        <span class="group-badge">${group.items.length} sản phẩm</span>
+        <span class="group-badge">${group.items.length} mặt hàng</span>
       </h4>
       <div class="group-actions">
         <button class="group-action-btn" onclick="event.stopPropagation(); renameGroup('${
@@ -347,7 +347,7 @@ function addGroupToUI(group) {
                   : "";
               })
               .join("")
-          : '<div style="padding: 20px; text-align: center; color: #666;">Chưa có sản phẩm trong nhóm</div>'
+          : '<div style="padding: 20px; text-align: center; color: #666;">Chưa có mặt hàng trong nhóm</div>'
       }
     </div>
   `;
@@ -394,7 +394,7 @@ function renameGroup(groupId) {
   groupNameElement.innerHTML = `
     <span class="group-toggle">▼</span>
     ${group.name}
-    <span class="group-badge">${group.items.length} sản phẩm</span>
+    <span class="group-badge">${group.items.length} mặt hàng</span>
   `;
 
   updateCart();
@@ -404,7 +404,7 @@ function renameGroup(groupId) {
 function deleteGroup(groupId) {
   if (
     !confirm(
-      "Bạn có chắc chắn muốn xóa nhóm này? Các sản phẩm trong nhóm sẽ được chuyển sang không nhóm."
+      "Bạn có chắc chắn muốn xóa nhóm này? Các mặt hàng trong nhóm sẽ được chuyển sang không nhóm."
     )
   ) {
     return;
@@ -439,7 +439,7 @@ function removeItemFromGroup(groupId, itemId) {
   updateGroupUI(group);
   updateCart();
 
-  showAlert("Đã xóa sản phẩm khỏi nhóm", "info");
+  showAlert("Đã xóa mặt hàng khỏi nhóm", "info");
 }
 
 function updateGroupUI(group) {
@@ -448,7 +448,7 @@ function updateGroupUI(group) {
 
   const groupBadge = groupElement.querySelector(".group-badge");
   if (groupBadge) {
-    groupBadge.textContent = `${group.items.length} sản phẩm`;
+    groupBadge.textContent = `${group.items.length} mặt hàng`;
   }
 
   const groupContent = groupElement.querySelector(`#group-content-${group.id}`);
@@ -480,7 +480,7 @@ function updateGroupUI(group) {
                 : "";
             })
             .join("")
-        : '<div style="padding: 20px; text-align: center; color: #666;">Chưa có sản phẩm trong nhóm</div>';
+        : '<div style="padding: 20px; text-align: center; color: #666;">Chưa có mặt hàng trong nhóm</div>';
   }
 }
 
@@ -492,7 +492,7 @@ function clearAllGroups() {
 
   if (
     !confirm(
-      "Bạn có chắc chắn muốn xóa tất cả nhóm? Các sản phẩm sẽ được chuyển sang không nhóm."
+      "Bạn có chắc chắn muốn xóa tất cả nhóm? Các mặt hàng sẽ được chuyển sang không nhóm."
     )
   ) {
     return;
@@ -527,7 +527,7 @@ function assignItemToGroup(itemId, groupId) {
   }
 
   updateCart();
-  showAlert("Đã thêm sản phẩm vào nhóm", "success");
+  showAlert("Đã thêm mặt hàng vào nhóm", "success");
 }
 
 function getGroupForItem(itemId) {
@@ -612,7 +612,7 @@ function renderCartWithGroups() {
               ${group.name}
               <span class="group-badge">${
                 groupData.items.length
-              } sản phẩm</span>
+              } mặt hàng</span>
             </h4>
           </div>
           <div class="group-content" id="group-content-${group.id}">
@@ -629,7 +629,7 @@ function renderCartWithGroups() {
   if (ungroupedItems.length > 0) {
     html += `
       <div class="ungrouped-items-section">
-        <h4>📦 Sản phẩm không nhóm (${ungroupedItems.length})</h4>
+        <h4>📦 Mặt hàng không nhóm (${ungroupedItems.length})</h4>
         ${ungroupedItems.map((item) => renderCartItem(item, null)).join("")}
       </div>
     `;
@@ -838,7 +838,7 @@ function renderRecentOrders(orders) {
           </div>
           <div class="order-details">
             <div>
-              <strong>Sản phẩm:</strong> ${order.items.length}
+              <strong>Mặt hàng:</strong> ${order.items.length}
             </div>
             <div>
               <strong>Ghi chú:</strong> ${order.notes || "Không có"}
@@ -911,7 +911,7 @@ function renderOrderModal(order) {
 
         return `
         <div class="group-in-modal">
-          <h5>📁 ${group.name} (${groupItems.length} sản phẩm)</h5>
+          <h5>📁 ${group.name} (${groupItems.length} mặt hàng)</h5>
           <div class="group-items-list">
             ${groupItems
               .map(
@@ -937,11 +937,11 @@ function renderOrderModal(order) {
   modalBody.innerHTML = `
     <div class="order-details-grid">
       <div class="detail-item">
-        <div class="detail-label">Khách hàng</div>
+        <div class="detail-label">Người nộp</div>
         <div class="detail-value">${order.username}</div>
       </div>
       <div class="detail-item">
-        <div class="detail-label">Ngày đặt hàng</div>
+        <div class="detail-label">Ngày đặt</div>
         <div class="detail-value">${order.formattedOrderDate}</div>
       </div>
       <div class="detail-item">
@@ -967,7 +967,7 @@ function renderOrderModal(order) {
         )}</div>
       </div>
       <div class="detail-item">
-        <div class="detail-label">Số lượng sản phẩm</div>
+        <div class="detail-label">Số lượng mặt hàng</div>
         <div class="detail-value">${order.items.length}</div>
       </div>
     </div>
@@ -976,7 +976,7 @@ function renderOrderModal(order) {
       groupsHtml
         ? `
       <div style="margin: 20px 0;">
-        <h4 style="margin-bottom: 15px; color: #333;">Nhóm Sản Phẩm</h4>
+        <h4 style="margin-bottom: 15px; color: #333;">Nhóm Mặt hàng</h4>
         ${groupsHtml}
       </div>
     `
@@ -994,11 +994,11 @@ function renderOrderModal(order) {
         : ""
     }
     
-    <h4 style="margin: 20px 0 10px 0; color: #333;">Chi Tiết Sản Phẩm</h4>
+    <h4 style="margin: 20px 0 10px 0; color: #333;">Chi Tiết Mặt hàng</h4>
     <table class="items-table">
       <thead>
         <tr>
-          <th>Tên sản phẩm</th>
+          <th>Tên mặt hàng</th>
           <th>Mã</th>
           <th class="text-center">Đơn vị</th>
           <th class="text-right">Đơn giá</th>
@@ -1119,16 +1119,16 @@ function renderEditModal(order) {
     </div>
 
     <div id="edit-items-container">
-      <h3>Sản phẩm trong đơn hàng</h3>
+      <h3>Mặt hàng trong đơn hàng</h3>
       <div id="current-order-items">
         ${renderEditOrderItems(order.items)}
       </div>
     </div>
 
     <div class="add-items-section">
-      <h3>Thêm sản phẩm mới</h3>
+      <h3>Thêm mặt hàng mới</h3>
       <div class="available-items-edit" id="available-items-edit">
-        <!-- Sản phẩm có sẵn sẽ được tải ở đây -->
+        <!-- Mặt hàng có sẵn sẽ được tải ở đây -->
       </div>
     </div>
 
@@ -1226,7 +1226,7 @@ function clearEditOrderNumberWarning() {
 
 function renderEditOrderItems(items) {
   if (items.length === 0) {
-    return '<div class="no-items-message">Chưa có sản phẩm nào trong đơn hàng</div>';
+    return '<div class="no-items-message">Chưa có mặt hàng nào trong đơn hàng</div>';
   }
 
   return items
@@ -1283,7 +1283,7 @@ function loadAvailableItemsForEdit() {
   if (availableItems.length === 0) {
     container.innerHTML = `
       <div class="no-items-message">
-        Không có sản phẩm nào có sẵn để thêm
+        Không có mặt hàng nào có sẵn để thêm
       </div>
     `;
     return;
@@ -1297,7 +1297,7 @@ function loadAvailableItemsForEdit() {
   if (filteredAvailableItems.length === 0) {
     container.innerHTML = `
       <div class="no-items-message">
-        Tất cả sản phẩm đã có trong đơn hàng
+        Tất cả mặt hàng đã có trong đơn hàng
       </div>
     `;
     return;
@@ -1403,7 +1403,7 @@ function addNewItemToOrder(itemId) {
   const item = availableItems.find((i) => i._id === itemId);
 
   if (!item) {
-    showAlert("Không tìm thấy sản phẩm", "error");
+    showAlert("Không tìm thấy mặt hàng", "error");
     return;
   }
 
@@ -1439,7 +1439,7 @@ function addNewItemToOrder(itemId) {
   if (remainingItems.length === 0) {
     container.innerHTML = `
       <div class="no-items-message">
-        Tất cả sản phẩm đã có trong đơn hàng
+        Tất cả mặt hàng đã có trong đơn hàng
       </div>
     `;
   }
@@ -1449,7 +1449,7 @@ function addNewItemToOrder(itemId) {
 }
 
 function removeEditItem(index) {
-  if (!confirm("Bạn có chắc chắn muốn xóa sản phẩm này khỏi đơn hàng?")) {
+  if (!confirm("Bạn có chắc chắn muốn xóa mặt hàng này khỏi đơn hàng?")) {
     return;
   }
 

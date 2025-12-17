@@ -47,7 +47,19 @@ exports.getAllOrderNumbers = async (req, res) => {
   }
 };
 
-// Create new order with nested groups
+// Check if user has permission to view all orders
+const canViewAllOrders = (user) => {
+  const allowedRoles = [
+    "superAdmin",
+    "director",
+    "deputyDirector",
+    "headOfPurchasing",
+    "captainOfPurchasing",
+  ];
+  return user && user.role && allowedRoles.includes(user.role);
+};
+
+// Create new order
 exports.createOrder = async (req, res) => {
   try {
     const { items, notes, customOrderNumber, groups } = req.body;
@@ -197,10 +209,17 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-// Get all orders for current user
+// Get all orders for current user (or all orders for privileged users)
 exports.getMyOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ user: req.user.id }).sort({
+    let query = {};
+
+    // If user doesn't have permission to view all orders, only show their own
+    if (!canViewAllOrders(req.user)) {
+      query.user = req.user.id;
+    }
+
+    const orders = await Order.find(query).sort({
       orderDate: -1,
     });
 
@@ -218,15 +237,15 @@ exports.getMyOrders = async (req, res) => {
   }
 };
 
-// Get all orders
+// Get all orders (with filters) - for privileged users only
 exports.getAllOrders = async (req, res) => {
   try {
-    const { status, startDate, endDate, username } = req.query;
+    const { status, startDate, endDate, username, userId } = req.query;
     let query = {};
 
-    // For regular users, only show their own orders
-    if (!req.user.role || req.user.role !== "admin") {
-      query.user = req.user.id;
+    // Only privileged users can use getAllOrders endpoint
+    if (!canViewAllOrders(req.user)) {
+      return res.status(403).json({ error: "Unauthorized to view all orders" });
     }
 
     // Apply filters
@@ -236,6 +255,10 @@ exports.getAllOrders = async (req, res) => {
 
     if (username) {
       query.username = { $regex: username, $options: "i" };
+    }
+
+    if (userId) {
+      query.user = userId;
     }
 
     // Convert date strings to Date objects for filtering
@@ -274,7 +297,7 @@ exports.getAllOrders = async (req, res) => {
   }
 };
 
-// Get single order
+// Get single order - anyone can view any order
 exports.getOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
@@ -283,12 +306,7 @@ exports.getOrder = async (req, res) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    // Check if user is authorized to view this order
-    // Only the user who created the order can view it
-    if (order.user.toString() !== req.user.id) {
-      return res.status(403).json({ error: "Unauthorized to view this order" });
-    }
-
+    // Anyone can view any order
     // Add formatted dates
     const orderWithFormattedDates = {
       ...order.toObject(),
@@ -303,12 +321,11 @@ exports.getOrder = async (req, res) => {
   }
 };
 
-// Update order (edit items, notes, order number)
+// Update order (edit items, notes, order number) - anyone can update any order
 exports.updateOrder = async (req, res) => {
   try {
     const { items, notes, customOrderNumber } = req.body;
     const orderId = req.params.id;
-    const user = req.user;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res
@@ -320,13 +337,6 @@ exports.updateOrder = async (req, res) => {
     const order = await Order.findById(orderId);
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
-    }
-
-    // Check if user is the owner of the order
-    if (order.user.toString() !== user.id) {
-      return res
-        .status(403)
-        .json({ error: "Unauthorized to update this order" });
     }
 
     // Check if order can be modified (only pending orders can be modified)
@@ -430,22 +440,14 @@ exports.updateOrder = async (req, res) => {
   }
 };
 
-// Delete order
+// Delete order - anyone can delete any order
 exports.deleteOrder = async (req, res) => {
   try {
     const orderId = req.params.id;
-    const user = req.user;
 
     const order = await Order.findById(orderId);
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
-    }
-
-    // Check if user is the owner of the order
-    if (order.user.toString() !== user.id) {
-      return res
-        .status(403)
-        .json({ error: "Unauthorized to delete this order" });
     }
 
     // Check if order can be deleted (only pending orders can be deleted)
@@ -466,7 +468,7 @@ exports.deleteOrder = async (req, res) => {
   }
 };
 
-// Update order status
+// Update order status - anyone can update any order status
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -478,13 +480,6 @@ exports.updateOrderStatus = async (req, res) => {
     const order = await Order.findById(req.params.id);
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
-    }
-
-    // Check if user is authorized (only order owner can update status)
-    if (order.user.toString() !== req.user.id) {
-      return res
-        .status(403)
-        .json({ error: "Unauthorized to update this order" });
     }
 
     order.status = status;
@@ -508,21 +503,15 @@ exports.updateOrderStatus = async (req, res) => {
   }
 };
 
-// Add notes to order
+// Add notes to order - anyone can update any order notes
 exports.addOrderNotes = async (req, res) => {
   try {
     const { notes } = req.body;
+
     const order = await Order.findById(req.params.id);
 
     if (!order) {
       return res.status(404).json({ error: "Order not found" });
-    }
-
-    // Check if user is authorized
-    if (order.user.toString() !== req.user.id) {
-      return res
-        .status(403)
-        .json({ error: "Unauthorized to update this order" });
     }
 
     order.notes = notes || "";
@@ -549,8 +538,13 @@ exports.addOrderNotes = async (req, res) => {
 // Get order statistics
 exports.getOrderStats = async (req, res) => {
   try {
+    let userFilter = {};
+
     // For regular users, only get their own statistics
-    const userFilter = { user: req.user.id };
+    // For privileged users, get all statistics
+    if (!canViewAllOrders(req.user)) {
+      userFilter.user = req.user.id;
+    }
 
     const [
       totalOrders,
@@ -559,6 +553,7 @@ exports.getOrderStats = async (req, res) => {
       pendingOrders,
       processingOrders,
       completedOrders,
+      cancelledOrders,
     ] = await Promise.all([
       // Total orders
       Order.countDocuments(userFilter),
@@ -579,6 +574,7 @@ exports.getOrderStats = async (req, res) => {
       Order.countDocuments({ ...userFilter, status: "pending" }),
       Order.countDocuments({ ...userFilter, status: "processing" }),
       Order.countDocuments({ ...userFilter, status: "completed" }),
+      Order.countDocuments({ ...userFilter, status: "cancelled" }),
     ]);
 
     res.json({
@@ -589,10 +585,36 @@ exports.getOrderStats = async (req, res) => {
         pending: pendingOrders,
         processing: processingOrders,
         completed: completedOrders,
+        cancelled: cancelledOrders,
       },
     });
   } catch (error) {
     console.error("Error fetching order stats:", error);
     res.status(500).json({ error: "Failed to fetch order statistics" });
+  }
+};
+
+// Get users who have placed orders (for privileged users)
+exports.getOrderUsers = async (req, res) => {
+  try {
+    // Only privileged users can see all users
+    if (!canViewAllOrders(req.user)) {
+      return res.status(403).json({ error: "Unauthorized to view all users" });
+    }
+
+    const users = await Order.aggregate([
+      {
+        $group: {
+          _id: "$user",
+          username: { $first: "$username" },
+        },
+      },
+      { $sort: { username: 1 } },
+    ]);
+
+    res.json(users);
+  } catch (error) {
+    console.error("Error fetching order users:", error);
+    res.status(500).json({ error: "Failed to fetch order users" });
   }
 };
