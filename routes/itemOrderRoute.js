@@ -1,3 +1,4 @@
+// routes/itemOrderRoute.js
 const express = require("express");
 const router = express.Router();
 const orderController = require("../controllers/itemOrderController");
@@ -25,6 +26,20 @@ router.get("/itemOrderControl", authMiddleware, orderController.getAllOrders);
 
 // Get single order
 router.get("/itemOrderControl/:id", authMiddleware, orderController.getOrder);
+
+// Update order
+router.put(
+  "/itemOrderControl/:id",
+  authMiddleware,
+  orderController.updateOrder
+);
+
+// Delete order
+router.delete(
+  "/itemOrderControl/:id",
+  authMiddleware,
+  orderController.deleteOrder
+);
 
 // Update order status
 router.put(

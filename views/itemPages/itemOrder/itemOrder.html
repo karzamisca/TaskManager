@@ -9,7 +9,7 @@
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="itemPages/itemOrder/itemOrder.css?v=1.0" />
+    <link rel="stylesheet" href="itemPages/itemOrder/itemOrder.css?v=1.1" />
   </head>
   <body>
     <div class="container">
@@ -95,7 +95,20 @@
       </div>
     </div>
 
-    <script src="itemPages/itemOrder/itemOrder.js?v=1.1"></script>
+    <!-- Modal Chỉnh Sửa Đơn Hàng -->
+    <div id="edit-order-modal" class="modal edit-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="edit-modal-title">Chỉnh Sửa Đơn Hàng</h2>
+          <button class="close-btn" onclick="closeEditModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="edit-modal-body">
+          <!-- Nội dung chỉnh sửa sẽ được tải ở đây -->
+        </div>
+      </div>
+    </div>
+
+    <script src="itemPages/itemOrder/itemOrder.js?v=1.2"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>

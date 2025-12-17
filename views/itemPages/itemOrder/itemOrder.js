@@ -2,6 +2,8 @@
 // Biến toàn cục
 let availableItems = [];
 let cart = [];
+let editingOrder = null;
+let originalOrderItems = [];
 
 // Định dạng tiền tệ
 function formatCurrency(amount) {
@@ -370,11 +372,21 @@ function renderRecentOrders(orders) {
               )}
             </div>
           </div>
-          <div style="text-align: right; margin-top: 10px;">
+          <div class="order-actions">
             <button class="view-order-btn" onclick="event.stopPropagation(); viewOrderDetails('${
               order._id
             }')">
               Xem Chi Tiết
+            </button>
+            <button class="edit-order-btn" onclick="event.stopPropagation(); openEditOrderModal('${
+              order._id
+            }')" ${order.status !== "pending" ? "disabled" : ""}>
+              Chỉnh Sửa
+            </button>
+            <button class="delete-order-history-btn" onclick="event.stopPropagation(); deleteOrderFromHistory('${
+              order._id
+            }')" ${order.status !== "pending" ? "disabled" : ""}>
+              Xóa Đơn Hàng
             </button>
           </div>
         </div>
@@ -516,6 +528,467 @@ function closeModal() {
   document.getElementById("order-modal").style.display = "none";
 }
 
+// Mở modal chỉnh sửa
+async function openEditOrderModal(orderId) {
+  try {
+    const response = await fetch(`/itemOrderControl/${orderId}`, {
+      credentials: "include",
+    });
+
+    if (!response.ok) throw new Error("Không thể tải đơn hàng để chỉnh sửa");
+
+    const order = await response.json();
+
+    editingOrder = order;
+    originalOrderItems = JSON.parse(JSON.stringify(order.items)); // Deep copy
+
+    renderEditModal(order);
+    document.getElementById("edit-order-modal").style.display = "flex";
+  } catch (error) {
+    showAlert("Lỗi tải đơn hàng để chỉnh sửa: " + error.message, "error");
+  }
+}
+
+// Hiển thị modal chỉnh sửa
+function renderEditModal(order) {
+  document.getElementById(
+    "edit-modal-title"
+  ).textContent = `Chỉnh Sửa Đơn Hàng #${order.orderNumber}`;
+
+  const modalBody = document.getElementById("edit-modal-body");
+
+  modalBody.innerHTML = `
+    <div style="margin-bottom: 20px;">
+      <div class="detail-item">
+        <div class="detail-label">Khách hàng</div>
+        <div class="detail-value">${order.username}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Ngày đặt hàng</div>
+        <div class="detail-value">${order.formattedOrderDate}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Trạng thái</div>
+        <div class="detail-value">
+          <span class="order-status ${order.status}">
+            ${order.status.toUpperCase()}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div id="edit-items-container">
+      <h3>Sản phẩm trong đơn hàng</h3>
+      <div id="current-order-items">
+        ${renderEditOrderItems(order.items)}
+      </div>
+    </div>
+
+    <div class="add-items-section">
+      <h3>Thêm sản phẩm mới</h3>
+      <div class="available-items-edit" id="available-items-edit">
+        <!-- Sản phẩm có sẵn sẽ được tải ở đây -->
+      </div>
+    </div>
+
+    <div class="edit-summary">
+      <div>
+        <strong>Tổng tiền tạm tính:</strong>
+      </div>
+      <div class="edit-summary-total" id="edit-summary-total">
+        ${formatCurrency(calculateEditTotal())}
+      </div>
+    </div>
+
+    <div class="notes" style="margin-top: 20px;">
+      <label for="edit-order-notes">Ghi chú:</label>
+      <textarea
+        id="edit-order-notes"
+        placeholder="Cập nhật ghi chú cho đơn hàng..."
+      >${order.notes || ""}</textarea>
+    </div>
+
+    <div class="edit-modal-actions">
+      <button class="edit-modal-btn cancel-edit-btn" onclick="closeEditModal()">
+        Hủy
+      </button>
+      <button class="edit-modal-btn update-order-btn" onclick="updateOrder()">
+        Cập Nhật Đơn Hàng
+      </button>
+    </div>
+  `;
+
+  // Tải sản phẩm có sẵn cho modal
+  loadAvailableItemsForEdit();
+}
+
+// Hiển thị sản phẩm trong modal chỉnh sửa
+function renderEditOrderItems(items) {
+  if (items.length === 0) {
+    return '<div class="no-items-message">Chưa có sản phẩm nào trong đơn hàng</div>';
+  }
+
+  return items
+    .map(
+      (item, index) => `
+        <div class="edit-item-row" id="edit-item-${index}">
+          <div class="edit-item-info">
+            <h4>${item.itemName}</h4>
+            <div class="edit-item-meta">
+              <span>Mã: ${item.itemCode}</span>
+              <span>Đơn vị: ${item.unit}</span>
+              <span>VAT: ${item.vat}%</span>
+            </div>
+            <div class="edit-item-vat">
+              Giá sau VAT: ${formatCurrency(item.unitPriceAfterVAT)}/đơn vị
+            </div>
+          </div>
+          <div class="edit-item-price">
+            <div class="price-breakdown">
+              <div class="price-before-vat-small">
+                ${formatCurrency(item.totalPrice)}
+              </div>
+              <div class="price-after-vat-small">
+                ${formatCurrency(item.totalPriceAfterVAT)}
+              </div>
+            </div>
+          </div>
+          <div class="edit-item-controls">
+            <div class="edit-quantity-control">
+              <button class="quantity-btn" onclick="decreaseEditQuantity(${index})">-</button>
+              <input 
+                type="number" 
+                id="edit-qty-${index}" 
+                class="edit-quantity-input" 
+                value="${item.quantity}" 
+                min="1" 
+                onchange="updateEditItemQuantity(${index}, this.value)"
+              >
+              <button class="quantity-btn" onclick="increaseEditQuantity(${index})">+</button>
+            </div>
+            <button class="remove-item-btn" onclick="removeEditItem(${index})">
+              ✕
+            </button>
+          </div>
+        </div>
+      `
+    )
+    .join("");
+}
+
+// Tải sản phẩm có sẵn cho modal
+function loadAvailableItemsForEdit() {
+  const container = document.getElementById("available-items-edit");
+
+  // Sử dụng danh sách sản phẩm đã tải sẵn
+  if (availableItems.length === 0) {
+    container.innerHTML = `
+      <div class="no-items-message">
+        Không có sản phẩm nào có sẵn để thêm
+      </div>
+    `;
+    return;
+  }
+
+  // Lọc ra các sản phẩm chưa có trong đơn hàng
+  const existingItemIds = editingOrder.items.map((item) => item.itemId);
+  const filteredAvailableItems = availableItems.filter(
+    (item) => !existingItemIds.includes(item._id) && !item.isDeleted
+  );
+
+  if (filteredAvailableItems.length === 0) {
+    container.innerHTML = `
+      <div class="no-items-message">
+        Tất cả sản phẩm đã có trong đơn hàng
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filteredAvailableItems
+    .map(
+      (item) => `
+        <div class="item">
+          <div class="item-info">
+            <h3>${item.name}</h3>
+            <div class="item-meta">
+              <span>Mã: ${item.code}</span>
+              <span>Đơn vị: ${item.unit}</span>
+              <span>Giá: ${formatCurrency(item.unitPrice)}</span>
+              <span>VAT: ${item.vat}%</span>
+            </div>
+            <div class="item-vat-info">
+              Giá sau VAT: ${formatCurrency(item.unitPriceAfterVAT)}
+            </div>
+          </div>
+          <div class="item-actions">
+            <div class="quantity-control">
+              <button class="quantity-btn" onclick="decreaseNewItemQuantity('${
+                item._id
+              }')">-</button>
+              <input 
+                type="number" 
+                id="new-qty-${item._id}" 
+                class="quantity-input" 
+                value="1" 
+                min="1" 
+              >
+              <button class="quantity-btn" onclick="increaseNewItemQuantity('${
+                item._id
+              }')">+</button>
+            </div>
+            <button class="add-btn" onclick="addNewItemToOrder('${item._id}')">
+              Thêm Vào Đơn Hàng
+            </button>
+          </div>
+        </div>
+      `
+    )
+    .join("");
+}
+
+// Điều khiển số lượng trong modal chỉnh sửa - FIXED VERSION
+function increaseEditQuantity(index) {
+  const input = document.getElementById(`edit-qty-${index}`);
+  input.value = parseInt(input.value) + 1;
+  updateEditItemQuantity(index, input.value);
+}
+
+function decreaseEditQuantity(index) {
+  const input = document.getElementById(`edit-qty-${index}`);
+  if (parseInt(input.value) > 1) {
+    input.value = parseInt(input.value) - 1;
+    updateEditItemQuantity(index, input.value);
+  }
+}
+
+function updateEditItemQuantity(index, quantity) {
+  const qty = parseInt(quantity) || 1;
+  editingOrder.items[index].quantity = qty;
+  editingOrder.items[index].totalPrice =
+    qty * editingOrder.items[index].unitPrice;
+  editingOrder.items[index].totalPriceAfterVAT =
+    qty * editingOrder.items[index].unitPriceAfterVAT;
+
+  // Cập nhật hiển thị
+  const itemRow = document.getElementById(`edit-item-${index}`);
+  if (itemRow) {
+    const priceElements = itemRow.querySelectorAll(
+      ".price-before-vat-small, .price-after-vat-small"
+    );
+    if (priceElements[0]) {
+      priceElements[0].textContent = formatCurrency(
+        editingOrder.items[index].totalPrice
+      );
+    }
+    if (priceElements[1]) {
+      priceElements[1].textContent = formatCurrency(
+        editingOrder.items[index].totalPriceAfterVAT
+      );
+    }
+  }
+
+  updateEditSummary();
+}
+
+function increaseNewItemQuantity(itemId) {
+  const input = document.getElementById(`new-qty-${itemId}`);
+  input.value = parseInt(input.value) + 1;
+}
+
+function decreaseNewItemQuantity(itemId) {
+  const input = document.getElementById(`new-qty-${itemId}`);
+  if (parseInt(input.value) > 1) {
+    input.value = parseInt(input.value) - 1;
+  }
+}
+
+// Thêm sản phẩm mới vào đơn hàng
+function addNewItemToOrder(itemId) {
+  const item = availableItems.find((i) => i._id === itemId);
+
+  if (!item) {
+    showAlert("Không tìm thấy sản phẩm", "error");
+    return;
+  }
+
+  const quantity =
+    parseInt(document.getElementById(`new-qty-${itemId}`).value) || 1;
+
+  // Thêm vào mảng items
+  editingOrder.items.push({
+    itemId: item._id,
+    itemName: item.name,
+    itemCode: item.code,
+    unit: item.unit,
+    unitPrice: item.unitPrice,
+    vat: item.vat,
+    unitPriceAfterVAT: item.unitPriceAfterVAT,
+    quantity: quantity,
+    totalPrice: quantity * item.unitPrice,
+    totalPriceAfterVAT: quantity * item.unitPriceAfterVAT,
+  });
+
+  // Cập nhật hiển thị
+  document.getElementById("current-order-items").innerHTML =
+    renderEditOrderItems(editingOrder.items);
+  updateEditSummary();
+
+  // Xóa sản phẩm khỏi danh sách có sẵn
+  const itemElement = document
+    .querySelector(`[onclick*="addNewItemToOrder('${itemId}')"]`)
+    ?.closest(".item");
+  if (itemElement) {
+    itemElement.remove();
+  }
+
+  // Kiểm tra xem còn sản phẩm nào không
+  const container = document.getElementById("available-items-edit");
+  const remainingItems = container.querySelectorAll(".item");
+  if (remainingItems.length === 0) {
+    container.innerHTML = `
+      <div class="no-items-message">
+        Tất cả sản phẩm đã có trong đơn hàng
+      </div>
+    `;
+  }
+
+  // Đặt lại số lượng nhập
+  document.getElementById(`new-qty-${itemId}`).value = 1;
+
+  showAlert(`Đã thêm ${quantity} ${item.name} vào đơn hàng`, "success");
+}
+
+// Xóa sản phẩm khỏi đơn hàng đang chỉnh sửa
+function removeEditItem(index) {
+  if (!confirm("Bạn có chắc chắn muốn xóa sản phẩm này khỏi đơn hàng?")) {
+    return;
+  }
+
+  const removedItem = editingOrder.items[index];
+  editingOrder.items.splice(index, 1);
+
+  // Cập nhật hiển thị
+  document.getElementById("current-order-items").innerHTML =
+    renderEditOrderItems(editingOrder.items);
+  updateEditSummary();
+
+  // Thêm sản phẩm trở lại danh sách có sẵn
+  loadAvailableItemsForEdit();
+
+  showAlert(`Đã xóa ${removedItem.itemName} khỏi đơn hàng`, "success");
+}
+
+// Tính tổng tiền trong modal chỉnh sửa
+function calculateEditTotal() {
+  if (!editingOrder || !editingOrder.items) return 0;
+  return editingOrder.items.reduce(
+    (sum, item) => sum + item.totalPriceAfterVAT,
+    0
+  );
+}
+
+// Cập nhật tổng tiền
+function updateEditSummary() {
+  const total = calculateEditTotal();
+  document.getElementById("edit-summary-total").textContent =
+    formatCurrency(total);
+}
+
+// Cập nhật đơn hàng
+async function updateOrder() {
+  if (!editingOrder || editingOrder.items.length === 0) {
+    showAlert("Đơn hàng không thể trống", "error");
+    return;
+  }
+
+  const notes = document.getElementById("edit-order-notes").value;
+
+  // Kiểm tra xem có thay đổi không
+  const itemsChanged =
+    JSON.stringify(editingOrder.items) !== JSON.stringify(originalOrderItems);
+  const notesChanged = notes !== editingOrder.notes;
+
+  if (!itemsChanged && !notesChanged) {
+    showAlert("Không có thay đổi nào để cập nhật", "info");
+    closeEditModal();
+    return;
+  }
+
+  const orderData = {
+    items: editingOrder.items.map((item) => ({
+      itemId: item.itemId,
+      quantity: item.quantity,
+    })),
+    notes: notes,
+  };
+
+  try {
+    const response = await fetch(`/itemOrderControl/${editingOrder._id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(orderData),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || "Không thể cập nhật đơn hàng");
+    }
+
+    showAlert("Đơn hàng đã được cập nhật thành công!", "success");
+
+    // Làm mới đơn hàng gần đây
+    fetchRecentOrders();
+
+    // Đóng modal
+    closeEditModal();
+  } catch (error) {
+    showAlert("Lỗi cập nhật đơn hàng: " + error.message, "error");
+  }
+}
+
+// Xóa đơn hàng từ lịch sử
+async function deleteOrderFromHistory(orderId) {
+  if (
+    !confirm(
+      "Bạn có chắc chắn muốn xóa đơn hàng này? Hành động này không thể hoàn tác."
+    )
+  ) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/itemOrderControl/${orderId}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || "Không thể xóa đơn hàng");
+    }
+
+    showAlert("Đơn hàng đã được xóa thành công!", "success");
+
+    // Làm mới đơn hàng gần đây
+    fetchRecentOrders();
+  } catch (error) {
+    showAlert("Lỗi xóa đơn hàng: " + error.message, "error");
+  }
+}
+
+// Đóng modal chỉnh sửa
+function closeEditModal() {
+  editingOrder = null;
+  originalOrderItems = [];
+  document.getElementById("edit-order-modal").style.display = "none";
+}
+
 // Khởi tạo
 document.addEventListener("DOMContentLoaded", () => {
   // Thiết lập nút gửi
@@ -530,15 +1003,28 @@ document.addEventListener("DOMContentLoaded", () => {
   // Đóng modal khi click bên ngoài
   window.onclick = (event) => {
     const modal = document.getElementById("order-modal");
+    const editModal = document.getElementById("edit-order-modal");
+
     if (event.target === modal) {
       closeModal();
+    }
+    if (event.target === editModal) {
+      closeEditModal();
     }
   };
 
   // Đóng modal bằng phím ESC
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
-      closeModal();
+      const modal = document.getElementById("order-modal");
+      const editModal = document.getElementById("edit-order-modal");
+
+      if (modal.style.display === "flex") {
+        closeModal();
+      }
+      if (editModal.style.display === "flex") {
+        closeEditModal();
+      }
     }
   });
 });

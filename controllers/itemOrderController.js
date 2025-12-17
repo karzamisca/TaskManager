@@ -219,6 +219,7 @@ exports.getOrder = async (req, res) => {
     }
 
     // Check if user is authorized to view this order
+    // Only the user who created the order can view it
     if (order.user.toString() !== req.user.id) {
       return res.status(403).json({ error: "Unauthorized to view this order" });
     }
@@ -237,6 +238,146 @@ exports.getOrder = async (req, res) => {
   }
 };
 
+// Update order (edit items, notes)
+exports.updateOrder = async (req, res) => {
+  try {
+    const { items, notes } = req.body;
+    const orderId = req.params.id;
+    const user = req.user;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res
+        .status(400)
+        .json({ error: "Order must have at least one item" });
+    }
+
+    // Find the order
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // Check if user is the owner of the order
+    if (order.user.toString() !== user.id) {
+      return res
+        .status(403)
+        .json({ error: "Unauthorized to update this order" });
+    }
+
+    // Check if order can be modified (only pending orders can be modified)
+    if (order.status !== "pending") {
+      return res.status(400).json({
+        error: "Only pending orders can be modified",
+      });
+    }
+
+    // Process items
+    const processedItems = [];
+    let totalAmount = 0;
+    let totalAmountAfterVAT = 0;
+
+    for (const orderItem of items) {
+      const item = await Item.findById(orderItem.itemId);
+
+      if (!item) {
+        return res.status(404).json({
+          error: `Item with ID ${orderItem.itemId} not found`,
+        });
+      }
+
+      if (item.isDeleted) {
+        return res.status(400).json({
+          error: `Item "${item.name}" is deleted and cannot be ordered`,
+        });
+      }
+
+      const quantity = parseInt(orderItem.quantity);
+      if (isNaN(quantity) || quantity < 1) {
+        return res.status(400).json({
+          error: `Invalid quantity for item "${item.name}"`,
+        });
+      }
+
+      const itemTotal = item.unitPrice * quantity;
+      const itemTotalAfterVAT = item.unitPriceAfterVAT * quantity;
+
+      processedItems.push({
+        itemId: item._id,
+        itemName: item.name,
+        itemCode: item.code,
+        unit: item.unit,
+        unitPrice: item.unitPrice,
+        vat: item.vat,
+        unitPriceAfterVAT: item.unitPriceAfterVAT,
+        quantity: quantity,
+        totalPrice: itemTotal,
+        totalPriceAfterVAT: itemTotalAfterVAT,
+      });
+
+      totalAmount += itemTotal;
+      totalAmountAfterVAT += itemTotalAfterVAT;
+    }
+
+    // Update order
+    order.items = processedItems;
+    order.totalAmount = totalAmount;
+    order.totalAmountAfterVAT = totalAmountAfterVAT;
+    order.notes = notes || "";
+    order.formattedUpdatedAt = formatDateTime(new Date());
+    order.updatedAt = new Date();
+
+    await order.save();
+
+    res.json({
+      message: "Order updated successfully",
+      order: {
+        ...order.toObject(),
+        formattedOrderDate: formatDate(order.orderDate),
+        formattedUpdatedAt: order.formattedUpdatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating order:", error);
+    res.status(500).json({ error: "Failed to update order" });
+  }
+};
+
+// Delete order
+exports.deleteOrder = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const user = req.user;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    // Check if user is the owner of the order
+    if (order.user.toString() !== user.id) {
+      return res
+        .status(403)
+        .json({ error: "Unauthorized to delete this order" });
+    }
+
+    // Check if order can be deleted (only pending orders can be deleted)
+    if (order.status !== "pending") {
+      return res.status(400).json({
+        error: "Only pending orders can be deleted",
+      });
+    }
+
+    await Order.findByIdAndDelete(orderId);
+
+    res.json({
+      message: "Order deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting order:", error);
+    res.status(500).json({ error: "Failed to delete order" });
+  }
+};
+
 // Update order status
 exports.updateOrderStatus = async (req, res) => {
   try {
@@ -251,7 +392,7 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(404).json({ error: "Order not found" });
     }
 
-    // Check if user is authorized
+    // Check if user is authorized (only order owner can update status)
     if (order.user.toString() !== req.user.id) {
       return res
         .status(403)
