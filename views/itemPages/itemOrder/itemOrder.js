@@ -45,52 +45,53 @@ function renderAvailableItems() {
 
   if (availableItems.length === 0) {
     container.innerHTML = `
-                    <div class="empty-cart">
-                        <h3>Không có sản phẩm nào</h3>
-                        <p>Tất cả sản phẩm có thể đã bị xóa hoặc không tồn tại</p>
-                    </div>
-                `;
+      <div class="empty-cart">
+        <h3>Không có sản phẩm nào</h3>
+        <p>Tất cả sản phẩm có thể đã bị xóa hoặc không tồn tại</p>
+      </div>
+    `;
     return;
   }
 
   container.innerHTML = availableItems
     .map(
       (item) => `
-                <div class="item">
-                    <div class="item-info">
-                        <h3>${item.name}</h3>
-                        <div class="item-meta">
-                            <span>Mã: ${item.code}</span>
-                            <span>Giá: ${formatCurrency(item.unitPrice)}</span>
-                        </div>
-                    </div>
-                    <div class="item-actions">
-                        <div class="quantity-control">
-                            <button class="quantity-btn" onclick="decreaseQuantity('${
-                              item._id
-                            }')">-</button>
-                            <input 
-                                type="number" 
-                                id="qty-${item._id}" 
-                                class="quantity-input" 
-                                value="1" 
-                                min="1" 
-                                onchange="updateCartItem('${
-                                  item._id
-                                }', this.value)"
-                            >
-                            <button class="quantity-btn" onclick="increaseQuantity('${
-                              item._id
-                            }')">+</button>
-                        </div>
-                        <button class="add-btn" onclick="addToCart('${
-                          item._id
-                        }')">
-                            Thêm
-                        </button>
-                    </div>
-                </div>
-            `
+        <div class="item">
+          <div class="item-info">
+            <h3>${item.name}</h3>
+            <div class="item-meta">
+              <span>Mã: ${item.code}</span>
+              <span>Đơn vị: ${item.unit}</span>
+              <span>Giá: ${formatCurrency(item.unitPrice)}</span>
+              <span>VAT: ${item.vat}%</span>
+            </div>
+            <div class="item-vat-info">
+              Giá sau VAT: ${formatCurrency(item.unitPriceAfterVAT)}
+            </div>
+          </div>
+          <div class="item-actions">
+            <div class="quantity-control">
+              <button class="quantity-btn" onclick="decreaseQuantity('${
+                item._id
+              }')">-</button>
+              <input 
+                type="number" 
+                id="qty-${item._id}" 
+                class="quantity-input" 
+                value="1" 
+                min="1" 
+                onchange="updateCartItem('${item._id}', this.value)"
+              >
+              <button class="quantity-btn" onclick="increaseQuantity('${
+                item._id
+              }')">+</button>
+            </div>
+            <button class="add-btn" onclick="addToCart('${item._id}')">
+              Thêm
+            </button>
+          </div>
+        </div>
+      `
     )
     .join("");
 }
@@ -126,15 +127,21 @@ function addToCart(itemId) {
     cart[existingIndex].quantity += quantity;
     cart[existingIndex].totalPrice =
       cart[existingIndex].quantity * item.unitPrice;
+    cart[existingIndex].totalPriceAfterVAT =
+      cart[existingIndex].quantity * item.unitPriceAfterVAT;
   } else {
     // Thêm sản phẩm mới
     cart.push({
       itemId: itemId,
       itemName: item.name,
       itemCode: item.code,
+      unit: item.unit,
       unitPrice: item.unitPrice,
+      vat: item.vat,
+      unitPriceAfterVAT: item.unitPriceAfterVAT,
       quantity: quantity,
       totalPrice: quantity * item.unitPrice,
+      totalPriceAfterVAT: quantity * item.unitPriceAfterVAT,
     });
   }
 
@@ -152,6 +159,7 @@ function updateCartItem(itemId, quantity) {
   if (item) {
     item.quantity = qty;
     item.totalPrice = qty * item.unitPrice;
+    item.totalPriceAfterVAT = qty * item.unitPriceAfterVAT;
     updateCart();
   }
 }
@@ -168,11 +176,18 @@ function updateCart() {
 
   // Tính tổng giỏ hàng
   const cartTotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
+  const cartTotalAfterVAT = cart.reduce(
+    (sum, item) => sum + item.totalPriceAfterVAT,
+    0
+  );
+  const vatAmount = cartTotalAfterVAT - cartTotal;
 
+  // Update display
   document.getElementById("items-total").textContent =
     formatCurrency(cartTotal);
+  document.getElementById("vat-total").textContent = formatCurrency(vatAmount);
   document.getElementById("cart-summary-total").textContent =
-    formatCurrency(cartTotal);
+    formatCurrency(cartTotalAfterVAT);
 
   // Bật/tắt nút gửi
   document.getElementById("submit-order").disabled = cart.length === 0;
@@ -200,31 +215,43 @@ function updateCart() {
       cartSummary.style.display = "block";
     }
 
-    // Hiển thị sản phẩm trong giỏ hàng
+    // Hiển thị sản phẩm trong giỏ hàng với VAT information
     cartItemsContainer.innerHTML = cart
       .map(
         (item) => `
-                    <div class="cart-item">
-                        <div class="cart-item-info">
-                            <h4>${item.itemName}</h4>
-                            <div class="cart-item-details">
-                                <span>Mã: ${item.itemCode}</span> • 
-                                <span>Giá: ${formatCurrency(
-                                  item.unitPrice
-                                )}</span> • 
-                                <span>SL: ${item.quantity}</span>
-                            </div>
-                        </div>
-                        <div class="cart-item-actions">
-                            <span>${formatCurrency(item.totalPrice)}</span>
-                            <button class="remove-btn" onclick="removeFromCart('${
-                              item.itemId
-                            }')">
-                                ✕
-                            </button>
-                        </div>
-                    </div>
-                `
+          <div class="cart-item">
+            <div class="cart-item-info">
+              <h4>${item.itemName}</h4>
+              <div class="cart-item-details">
+                <span>Mã: ${item.itemCode}</span> • 
+                <span>Đơn vị: ${item.unit}</span> • 
+                <span>Giá: ${formatCurrency(item.unitPrice)}</span> • 
+                <span>VAT: ${item.vat}%</span> • 
+                <span>SL: ${item.quantity}</span>
+              </div>
+              <div class="cart-item-vat">
+                <span>Giá sau VAT: ${formatCurrency(
+                  item.unitPriceAfterVAT
+                )}/đơn vị</span>
+              </div>
+            </div>
+            <div class="cart-item-actions">
+              <div style="text-align: right;">
+                <div class="price-before-vat">${formatCurrency(
+                  item.totalPrice
+                )}</div>
+                <div class="price-after-vat">${formatCurrency(
+                  item.totalPriceAfterVAT
+                )}</div>
+              </div>
+              <button class="remove-btn" onclick="removeFromCart('${
+                item.itemId
+              }')">
+                ✕
+              </button>
+            </div>
+          </div>
+        `
       )
       .join("");
   }
@@ -301,11 +328,11 @@ function renderRecentOrders(orders) {
 
   if (orders.length === 0) {
     container.innerHTML = `
-                    <div class="empty-cart">
-                        <h3>Chưa có đơn hàng nào</h3>
-                        <p>Đơn hàng bạn đã gửi sẽ xuất hiện ở đây</p>
-                    </div>
-                `;
+      <div class="empty-cart">
+        <h3>Chưa có đơn hàng nào</h3>
+        <p>Đơn hàng bạn đã gửi sẽ xuất hiện ở đây</p>
+      </div>
+    `;
     return;
   }
 
@@ -313,42 +340,45 @@ function renderRecentOrders(orders) {
     .slice(0, 5)
     .map(
       (order) => `
-                <div class="order" onclick="viewOrderDetails('${order._id}')">
-                    <div class="order-header">
-                        <div>
-                            <span class="order-number">Đơn hàng #${
-                              order.orderNumber
-                            }</span>
-                            <span style="margin-left: 10px; opacity: 0.8;">
-                                ${order.formattedOrderDate}
-                            </span>
-                        </div>
-                        <span class="order-status">
-                            ${order.status.toUpperCase()}
-                        </span>
-                    </div>
-                    <div class="order-details">
-                        <div>
-                            <strong>Sản phẩm:</strong> ${order.items.length}
-                        </div>
-                        <div>
-                            <strong>Ghi chú:</strong> ${
-                              order.notes || "Không có"
-                            }
-                        </div>
-                    </div>
-                    <div class="order-total">
-                        Tổng: ${formatCurrency(order.totalAmount)}
-                    </div>
-                    <div style="text-align: right; margin-top: 10px;">
-                        <button class="view-order-btn" onclick="event.stopPropagation(); viewOrderDetails('${
-                          order._id
-                        }')">
-                            Xem Chi Tiết
-                        </button>
-                    </div>
-                </div>
-            `
+        <div class="order" onclick="viewOrderDetails('${order._id}')">
+          <div class="order-header">
+            <div>
+              <span class="order-number">Đơn hàng #${order.orderNumber}</span>
+              <span style="margin-left: 10px; opacity: 0.8;">
+                ${order.formattedOrderDate}
+              </span>
+            </div>
+            <span class="order-status ${order.status}">
+              ${order.status.toUpperCase()}
+            </span>
+          </div>
+          <div class="order-details">
+            <div>
+              <strong>Sản phẩm:</strong> ${order.items.length}
+            </div>
+            <div>
+              <strong>Ghi chú:</strong> ${order.notes || "Không có"}
+            </div>
+            <div>
+              <strong>Tổng (chưa VAT):</strong> ${formatCurrency(
+                order.totalAmount
+              )}
+            </div>
+            <div>
+              <strong>Tổng (sau VAT):</strong> ${formatCurrency(
+                order.totalAmountAfterVAT
+              )}
+            </div>
+          </div>
+          <div style="text-align: right; margin-top: 10px;">
+            <button class="view-order-btn" onclick="event.stopPropagation(); viewOrderDetails('${
+              order._id
+            }')">
+              Xem Chi Tiết
+            </button>
+          </div>
+        </div>
+      `
     )
     .join("");
 }
@@ -378,85 +408,107 @@ function renderOrderModal(order) {
 
   const modalBody = document.getElementById("modal-body");
   modalBody.innerHTML = `
-                <div class="order-details-grid">
-                    <div class="detail-item">
-                        <div class="detail-label">Khách hàng</div>
-                        <div class="detail-value">${order.username}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Ngày đặt hàng</div>
-                        <div class="detail-value">${
-                          order.formattedOrderDate
-                        }</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Cập nhật lần cuối</div>
-                        <div class="detail-value">${
-                          order.formattedUpdatedAt
-                        }</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Trạng thái</div>
-                        <div class="detail-value">
-                            <span class="order-status">
-                                ${order.status.toUpperCase()}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Tổng tiền</div>
-                        <div class="detail-value">${formatCurrency(
-                          order.totalAmount
-                        )}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Số lượng sản phẩm</div>
-                        <div class="detail-value">${order.items.length}</div>
-                    </div>
-                </div>
-                
-                ${
-                  order.notes
-                    ? `
-                <div class="detail-item" style="grid-column: 1 / -1; margin-top: 10px;">
-                    <div class="detail-label">Ghi chú</div>
-                    <div class="detail-value">${order.notes}</div>
-                </div>
-                `
-                    : ""
-                }
-                
-                <table class="items-table">
-                    <thead>
-                        <tr>
-                            <th>Tên sản phẩm</th>
-                            <th>Mã</th>
-                            <th>Đơn giá</th>
-                            <th>Số lượng</th>
-                            <th>Tổng</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${order.items
-                          .map(
-                            (item) => `
-                            <tr>
-                                <td>${item.itemName}</td>
-                                <td>${item.itemCode}</td>
-                                <td>${formatCurrency(item.unitPrice)}</td>
-                                <td>${item.quantity}</td>
-                                <td>${formatCurrency(item.totalPrice)}</td>
-                            </tr>
-                        `
-                          )
-                          .join("")}
-                        <tr style="font-weight: bold; border-top: 1px solid black;">
-                            <td colspan="4" style="text-align: right;">Tổng cộng:</td>
-                            <td>${formatCurrency(order.totalAmount)}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            `;
+    <div class="order-details-grid">
+      <div class="detail-item">
+        <div class="detail-label">Khách hàng</div>
+        <div class="detail-value">${order.username}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Ngày đặt hàng</div>
+        <div class="detail-value">${order.formattedOrderDate}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Cập nhật lần cuối</div>
+        <div class="detail-value">${order.formattedUpdatedAt}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Trạng thái</div>
+        <div class="detail-value">
+          <span class="order-status ${order.status}">
+            ${order.status.toUpperCase()}
+          </span>
+        </div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Tổng tiền (chưa VAT)</div>
+        <div class="detail-value">${formatCurrency(order.totalAmount)}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Tổng tiền (sau VAT)</div>
+        <div class="detail-value total-vat">${formatCurrency(
+          order.totalAmountAfterVAT
+        )}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Số lượng sản phẩm</div>
+        <div class="detail-value">${order.items.length}</div>
+      </div>
+    </div>
+    
+    ${
+      order.notes
+        ? `
+    <div class="detail-item" style="grid-column: 1 / -1; margin-top: 10px;">
+      <div class="detail-label">Ghi chú</div>
+      <div class="detail-value">${order.notes}</div>
+    </div>
+    `
+        : ""
+    }
+    
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Tên sản phẩm</th>
+          <th>Mã</th>
+          <th class="text-center">Đơn vị</th>
+          <th class="text-right">Đơn giá</th>
+          <th class="text-center">VAT</th>
+          <th class="text-right">Đơn giá sau VAT</th>
+          <th class="text-center">SL</th>
+          <th class="text-right">Tổng (chưa VAT)</th>
+          <th class="text-right">Tổng (sau VAT)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${order.items
+          .map(
+            (item) => `
+          <tr>
+            <td>${item.itemName}</td>
+            <td>${item.itemCode}</td>
+            <td class="text-center">${item.unit}</td>
+            <td class="text-right">${formatCurrency(item.unitPrice)}</td>
+            <td class="text-center">${item.vat}%</td>
+            <td class="text-right">${formatCurrency(
+              item.unitPriceAfterVAT
+            )}</td>
+            <td class="text-center">${item.quantity}</td>
+            <td class="text-right">${formatCurrency(item.totalPrice)}</td>
+            <td class="text-right vat-amount">${formatCurrency(
+              item.totalPriceAfterVAT
+            )}</td>
+          </tr>
+        `
+          )
+          .join("")}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="7" class="text-right">Tổng cộng (chưa VAT):</td>
+          <td class="text-right">${formatCurrency(order.totalAmount)}</td>
+          <td></td>
+        </tr>
+        <tr>
+          <td colspan="7" class="text-right">Tổng cộng (sau VAT):</td>
+          <td></td>
+          <td class="text-right vat-total">${formatCurrency(
+            order.totalAmountAfterVAT
+          )}</td>
+        </tr>
+      </tfoot>
+    </table>
+  `;
 }
 
 // Đóng modal

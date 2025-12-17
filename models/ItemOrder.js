@@ -1,3 +1,4 @@
+//models/ItemOrder.js
 const mongoose = require("mongoose");
 
 const orderItemSchema = new mongoose.Schema({
@@ -14,7 +15,19 @@ const orderItemSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  unit: {
+    type: String,
+    required: true,
+  },
   unitPrice: {
+    type: Number,
+    required: true,
+  },
+  vat: {
+    type: Number,
+    required: true,
+  },
+  unitPriceAfterVAT: {
     type: Number,
     required: true,
   },
@@ -24,6 +37,10 @@ const orderItemSchema = new mongoose.Schema({
     min: 1,
   },
   totalPrice: {
+    type: Number,
+    required: true,
+  },
+  totalPriceAfterVAT: {
     type: Number,
     required: true,
   },
@@ -45,6 +62,11 @@ const orderSchema = new mongoose.Schema({
   },
   items: [orderItemSchema],
   totalAmount: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  totalAmountAfterVAT: {
     type: Number,
     required: true,
     min: 0,

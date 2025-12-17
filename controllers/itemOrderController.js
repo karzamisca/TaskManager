@@ -35,6 +35,7 @@ exports.createOrder = async (req, res) => {
     // Validate and process items
     const processedItems = [];
     let totalAmount = 0;
+    let totalAmountAfterVAT = 0;
 
     for (const orderItem of items) {
       const item = await Item.findById(orderItem.itemId);
@@ -59,17 +60,23 @@ exports.createOrder = async (req, res) => {
       }
 
       const itemTotal = item.unitPrice * quantity;
+      const itemTotalAfterVAT = item.unitPriceAfterVAT * quantity;
 
       processedItems.push({
         itemId: item._id,
         itemName: item.name,
         itemCode: item.code,
+        unit: item.unit,
         unitPrice: item.unitPrice,
+        vat: item.vat,
+        unitPriceAfterVAT: item.unitPriceAfterVAT,
         quantity: quantity,
         totalPrice: itemTotal,
+        totalPriceAfterVAT: itemTotalAfterVAT,
       });
 
       totalAmount += itemTotal;
+      totalAmountAfterVAT += itemTotalAfterVAT;
     }
 
     // Generate unique order number based on timestamp
@@ -91,6 +98,7 @@ exports.createOrder = async (req, res) => {
       username: user.username,
       items: processedItems,
       totalAmount: totalAmount,
+      totalAmountAfterVAT: totalAmountAfterVAT,
       notes: notes || "",
       status: "pending",
       formattedOrderDate: formattedOrderDate,
@@ -318,6 +326,7 @@ exports.getOrderStats = async (req, res) => {
     const [
       totalOrders,
       totalAmount,
+      totalAmountAfterVAT,
       pendingOrders,
       processingOrders,
       completedOrders,
@@ -325,10 +334,16 @@ exports.getOrderStats = async (req, res) => {
       // Total orders
       Order.countDocuments(userFilter),
 
-      // Total amount
+      // Total amount before VAT
       Order.aggregate([
         { $match: userFilter },
         { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+      ]),
+
+      // Total amount after VAT
+      Order.aggregate([
+        { $match: userFilter },
+        { $group: { _id: null, total: { $sum: "$totalAmountAfterVAT" } } },
       ]),
 
       // Status counts
@@ -340,6 +355,7 @@ exports.getOrderStats = async (req, res) => {
     res.json({
       totalOrders,
       totalAmount: totalAmount[0]?.total || 0,
+      totalAmountAfterVAT: totalAmountAfterVAT[0]?.total || 0,
       statusCounts: {
         pending: pendingOrders,
         processing: processingOrders,
