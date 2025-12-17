@@ -7,6 +7,10 @@ let originalOrderItems = [];
 let groups = []; // Mỗi group chứa items bên trong
 let existingOrderNumbers = new Set();
 
+// Global variables for edit modal
+let editGroups = [];
+let originalEditGroups = [];
+
 // Định dạng tiền tệ
 function formatCurrency(amount) {
   return new Intl.NumberFormat("en-US", {
@@ -1055,7 +1059,9 @@ function closeModal() {
   document.getElementById("order-modal").style.display = "none";
 }
 
-// Mở modal chỉnh sửa
+// EDIT MODAL FUNCTIONS WITH GROUP MANAGEMENT
+
+// Mở modal chỉnh sửa với group management
 async function openEditOrderModal(orderId) {
   try {
     const response = await fetch(`/itemOrderControl/${orderId}`, {
@@ -1069,6 +1075,20 @@ async function openEditOrderModal(orderId) {
     editingOrder = order;
     originalOrderItems = JSON.parse(JSON.stringify(order.items));
 
+    // Initialize groups from order data with unique IDs
+    editGroups = order.groups ? JSON.parse(JSON.stringify(order.groups)) : [];
+    // Add unique IDs to groups if not present
+    editGroups.forEach((group, index) => {
+      if (!group.id) {
+        group.id = `edit-group-${Date.now()}-${index}`;
+      }
+      // Ensure items is an array
+      if (!Array.isArray(group.items)) {
+        group.items = [];
+      }
+    });
+    originalEditGroups = JSON.parse(JSON.stringify(editGroups));
+
     renderEditModal(order);
     document.getElementById("edit-order-modal").style.display = "flex";
   } catch (error) {
@@ -1076,7 +1096,7 @@ async function openEditOrderModal(orderId) {
   }
 }
 
-// Hiển thị modal chỉnh sửa
+// Hiển thị modal chỉnh sửa với group management
 function renderEditModal(order) {
   document.getElementById(
     "edit-modal-title"
@@ -1118,10 +1138,43 @@ function renderEditModal(order) {
       </div>
     </div>
 
+    <!-- Group Management Section in Edit Modal -->
+    <div class="edit-groups-section">
+      <h3>📁 Quản Lý Nhóm Mặt hàng</h3>
+
+      <div class="edit-group-controls">
+        <input
+          type="text"
+          id="edit-new-group-name"
+          class="edit-group-input"
+          placeholder="Nhập tên nhóm mới..."
+        />
+        <button
+          class="edit-group-btn"
+          onclick="createEditGroup()"
+          id="edit-create-group-btn"
+        >
+          <span>+ Tạo Nhóm</span>
+        </button>
+        <button
+          class="edit-group-btn edit-clear-groups-btn"
+          onclick="clearAllEditGroups()"
+          id="edit-clear-groups-btn"
+          ${editGroups.length === 0 ? "disabled" : ""}
+        >
+          <span>🗑️ Xóa Tất Cả Nhóm</span>
+        </button>
+      </div>
+
+      <div class="edit-group-list" id="edit-group-list">
+        ${renderEditGroups()}
+      </div>
+    </div>
+
     <div id="edit-items-container">
       <h3>Mặt hàng trong đơn hàng</h3>
       <div id="current-order-items">
-        ${renderEditOrderItems(order.items)}
+        ${renderEditOrderItemsWithGroups(order.items)}
       </div>
     </div>
 
@@ -1153,7 +1206,7 @@ function renderEditModal(order) {
       <button class="edit-modal-btn cancel-edit-btn" onclick="closeEditModal()">
         Hủy
       </button>
-      <button class="edit-modal-btn update-order-btn" onclick="updateOrder()">
+      <button class="edit-modal-btn update-order-btn" onclick="updateOrderWithGroups()">
         Cập Nhật Đơn Hàng
       </button>
     </div>
@@ -1171,6 +1224,531 @@ function renderEditModal(order) {
         checkEditOrderNumber(e.target.value, order.orderNumber);
       }, 500);
     });
+  }
+
+  // Setup group name input enter key
+  const groupNameInput = document.getElementById("edit-new-group-name");
+  if (groupNameInput) {
+    groupNameInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        createEditGroup();
+      }
+    });
+  }
+}
+
+// Render groups in edit modal
+function renderEditGroups() {
+  if (editGroups.length === 0) {
+    return '<div style="padding: 20px; text-align: center; color: #666;">Chưa có nhóm nào</div>';
+  }
+
+  return editGroups
+    .map(
+      (group) => `
+        <div class="edit-item-group" id="edit-group-${group.id}">
+          <div class="edit-group-header" onclick="toggleEditGroup('${
+            group.id
+          }')">
+            <h4>
+              <span class="edit-group-toggle">▼</span>
+              <span id="edit-group-name-${group.id}">${group.name}</span>
+              <span class="edit-group-badge">${getEditGroupItemCount(
+                group.id
+              )} mặt hàng</span>
+            </h4>
+            <div class="edit-group-actions">
+              <button class="edit-group-action-btn" onclick="event.stopPropagation(); renameEditGroup('${
+                group.id
+              }')" title="Đổi tên">
+                ✏️
+              </button>
+              <button class="edit-group-action-btn" onclick="event.stopPropagation(); deleteEditGroup('${
+                group.id
+              }')" title="Xóa nhóm">
+                🗑️
+              </button>
+            </div>
+          </div>
+          <div class="edit-group-content" id="edit-group-content-${group.id}">
+            ${renderEditGroupItems(group.id)}
+          </div>
+        </div>
+      `
+    )
+    .join("");
+}
+
+// Get count of items in a group in edit modal
+function getEditGroupItemCount(groupId) {
+  const group = editGroups.find((g) => g.id === groupId);
+  return group ? group.items.length : 0;
+}
+
+// Render items in a group in edit modal
+function renderEditGroupItems(groupId) {
+  const group = editGroups.find((g) => g.id === groupId);
+  if (!group || group.items.length === 0) {
+    return '<div style="padding: 20px; text-align: center; color: #666;">Chưa có mặt hàng trong nhóm</div>';
+  }
+
+  return group.items
+    .map((itemId) => {
+      const item = editingOrder.items.find((i) => i.itemId === itemId);
+      return item
+        ? `
+          <div class="edit-group-item">
+            <div class="edit-group-item-info">
+              <h5>${item.itemName}</h5>
+              <div class="edit-group-item-details">
+                Mã: ${item.itemCode} • SL: ${item.quantity} • 
+                ${formatCurrency(item.totalPriceAfterVAT)}
+              </div>
+            </div>
+            <div class="edit-group-item-actions">
+              <button class="edit-group-action-btn" onclick="removeEditItemFromGroup('${groupId}', '${itemId}')" title="Xóa khỏi nhóm">
+                ✕
+              </button>
+            </div>
+          </div>
+        `
+        : "";
+    })
+    .join("");
+}
+
+// Toggle group visibility in edit modal
+function toggleEditGroup(groupId) {
+  const content = document.getElementById(`edit-group-content-${groupId}`);
+  const header = content.parentElement.querySelector(".edit-group-header");
+
+  if (content.classList.contains("collapsed")) {
+    content.classList.remove("collapsed");
+    header.classList.remove("collapsed");
+  } else {
+    content.classList.add("collapsed");
+    header.classList.add("collapsed");
+  }
+}
+
+// Create new group in edit modal
+function createEditGroup() {
+  const groupNameInput = document.getElementById("edit-new-group-name");
+  const groupName = groupNameInput.value.trim();
+
+  if (!groupName) {
+    showAlert("Vui lòng nhập tên nhóm", "error");
+    return;
+  }
+
+  // Kiểm tra tên nhóm đã tồn tại
+  if (
+    editGroups.some((g) => g.name.toLowerCase() === groupName.toLowerCase())
+  ) {
+    showAlert("Tên nhóm đã tồn tại", "error");
+    return;
+  }
+
+  const groupId = `edit-group-${Date.now()}-${editGroups.length}`;
+  const newGroup = {
+    id: groupId,
+    name: groupName,
+    items: [],
+  };
+
+  editGroups.push(newGroup);
+
+  // Update UI
+  const groupList = document.getElementById("edit-group-list");
+  const groupElement = document.createElement("div");
+  groupElement.className = "edit-item-group";
+  groupElement.id = `edit-group-${groupId}`;
+  groupElement.innerHTML = `
+    <div class="edit-group-header" onclick="toggleEditGroup('${groupId}')">
+      <h4>
+        <span class="edit-group-toggle">▼</span>
+        <span id="edit-group-name-${groupId}">${groupName}</span>
+        <span class="edit-group-badge">0 mặt hàng</span>
+      </h4>
+      <div class="edit-group-actions">
+        <button class="edit-group-action-btn" onclick="event.stopPropagation(); renameEditGroup('${groupId}')" title="Đổi tên">
+          ✏️
+        </button>
+        <button class="edit-group-action-btn" onclick="event.stopPropagation(); deleteEditGroup('${groupId}')" title="Xóa nhóm">
+          🗑️
+        </button>
+      </div>
+    </div>
+    <div class="edit-group-content" id="edit-group-content-${groupId}">
+      <div style="padding: 20px; text-align: center; color: #666;">Chưa có mặt hàng trong nhóm</div>
+    </div>
+  `;
+
+  groupList.appendChild(groupElement);
+
+  // Update clear groups button state
+  document.getElementById("edit-clear-groups-btn").disabled = false;
+
+  groupNameInput.value = "";
+  groupNameInput.focus();
+
+  // Update the items list to show group selection
+  updateEditOrderItemsDisplay();
+
+  showAlert(`Đã tạo nhóm "${groupName}"`, "success");
+}
+
+// Rename group in edit modal
+function renameEditGroup(groupId) {
+  const group = editGroups.find((g) => g.id === groupId);
+  if (!group) return;
+
+  const groupNameElement = document.getElementById(
+    `edit-group-name-${groupId}`
+  );
+  const oldName = group.name;
+
+  // Create input field for renaming
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "group-rename-input";
+  input.value = oldName;
+  input.style.marginRight = "10px";
+
+  // Replace the span with input
+  const parent = groupNameElement.parentNode;
+  parent.replaceChild(input, groupNameElement);
+  input.focus();
+  input.select();
+
+  // Handle rename completion
+  const completeRename = () => {
+    const newName = input.value.trim();
+
+    if (!newName || newName === oldName) {
+      // Restore original name
+      const span = document.createElement("span");
+      span.id = `edit-group-name-${groupId}`;
+      span.textContent = oldName;
+      parent.replaceChild(span, input);
+      return;
+    }
+
+    // Check for duplicate names
+    if (
+      editGroups.some(
+        (g) =>
+          g.id !== groupId && g.name.toLowerCase() === newName.toLowerCase()
+      )
+    ) {
+      showAlert("Tên nhóm đã tồn tại", "error");
+
+      const span = document.createElement("span");
+      span.id = `edit-group-name-${groupId}`;
+      span.textContent = oldName;
+      parent.replaceChild(span, input);
+      return;
+    }
+
+    // Update group name
+    group.name = newName;
+
+    // Update UI
+    const span = document.createElement("span");
+    span.id = `edit-group-name-${groupId}`;
+    span.textContent = newName;
+    parent.replaceChild(span, input);
+
+    // Update items display to show new group name
+    updateEditOrderItemsDisplay();
+
+    showAlert(`Đã đổi tên nhóm thành "${newName}"`, "success");
+  };
+
+  // Handle Enter key
+  input.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      completeRename();
+    }
+  });
+
+  // Handle blur (focus lost)
+  input.addEventListener("blur", completeRename);
+
+  // Handle Escape key
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const span = document.createElement("span");
+      span.id = `edit-group-name-${groupId}`;
+      span.textContent = oldName;
+      parent.replaceChild(span, input);
+    }
+  });
+}
+
+// Delete group in edit modal
+function deleteEditGroup(groupId) {
+  if (
+    !confirm(
+      "Bạn có chắc chắn muốn xóa nhóm này? Các mặt hàng trong nhóm sẽ được chuyển sang không nhóm."
+    )
+  ) {
+    return;
+  }
+
+  const groupIndex = editGroups.findIndex((g) => g.id === groupId);
+  if (groupIndex === -1) return;
+
+  const deletedGroup = editGroups.splice(groupIndex, 1)[0];
+
+  // Remove group from UI
+  const groupElement = document.getElementById(`edit-group-${groupId}`);
+  if (groupElement) {
+    groupElement.remove();
+  }
+
+  // Update clear groups button state
+  if (editGroups.length === 0) {
+    document.getElementById("edit-clear-groups-btn").disabled = true;
+  }
+
+  // Update items display (move items to ungrouped)
+  updateEditOrderItemsDisplay();
+
+  showAlert(`Đã xóa nhóm "${deletedGroup.name}"`, "success");
+}
+
+// Clear all groups in edit modal
+function clearAllEditGroups() {
+  if (editingOrder.items.length === 0) {
+    showAlert("Đơn hàng đang trống", "info");
+    return;
+  }
+
+  if (
+    !confirm(
+      "Bạn có chắc chắn muốn xóa tất cả nhóm? Các mặt hàng sẽ được chuyển sang không nhóm."
+    )
+  ) {
+    return;
+  }
+
+  editGroups = [];
+
+  // Clear group list UI
+  const groupList = document.getElementById("edit-group-list");
+  groupList.innerHTML =
+    '<div style="padding: 20px; text-align: center; color: #666;">Chưa có nhóm nào</div>';
+
+  // Update clear groups button state
+  document.getElementById("edit-clear-groups-btn").disabled = true;
+
+  // Update items display
+  updateEditOrderItemsDisplay();
+
+  showAlert("Đã xóa tất cả nhóm", "success");
+}
+
+// Get group for item in edit modal
+function getEditGroupForItem(itemId) {
+  return editGroups.find((group) => group.items.includes(itemId));
+}
+
+// Assign item to group in edit modal
+function assignEditItemToGroup(itemId, groupId) {
+  const item = editingOrder.items.find((i) => i.itemId === itemId);
+  if (!item) return;
+
+  // Remove from all groups
+  editGroups.forEach((group) => {
+    const index = group.items.indexOf(itemId);
+    if (index > -1) {
+      group.items.splice(index, 1);
+      updateEditGroupUI(group);
+    }
+  });
+
+  // Add to new group
+  if (groupId) {
+    const group = editGroups.find((g) => g.id === groupId);
+    if (group && !group.items.includes(itemId)) {
+      group.items.push(itemId);
+      updateEditGroupUI(group);
+    }
+  }
+
+  // Update the item display to show group
+  updateEditOrderItemDisplay(itemId);
+  showAlert("Đã cập nhật nhóm cho mặt hàng", "success");
+}
+
+// Remove item from group in edit modal
+function removeEditItemFromGroup(groupId, itemId) {
+  const group = editGroups.find((g) => g.id === groupId);
+  if (!group) return;
+
+  const itemIndex = group.items.indexOf(itemId);
+  if (itemIndex === -1) return;
+
+  group.items.splice(itemIndex, 1);
+  updateEditGroupUI(group);
+
+  // Update the item display
+  updateEditOrderItemDisplay(itemId);
+
+  showAlert("Đã xóa mặt hàng khỏi nhóm", "info");
+}
+
+// Update group UI in edit modal
+function updateEditGroupUI(group) {
+  const groupElement = document.getElementById(`edit-group-${group.id}`);
+  if (!groupElement) return;
+
+  // Update badge count
+  const groupBadge = groupElement.querySelector(".edit-group-badge");
+  if (groupBadge) {
+    groupBadge.textContent = `${group.items.length} mặt hàng`;
+  }
+
+  // Update group items list
+  const groupContent = groupElement.querySelector(
+    `#edit-group-content-${group.id}`
+  );
+  if (groupContent) {
+    groupContent.innerHTML = renderEditGroupItems(group.id);
+  }
+}
+
+// Render order items with groups in edit modal
+function renderEditOrderItemsWithGroups(items) {
+  if (items.length === 0) {
+    return '<div class="no-items-message">Chưa có mặt hàng nào trong đơn hàng</div>';
+  }
+
+  return items
+    .map((item, index) => renderEditOrderItemWithGroup(item, index))
+    .join("");
+}
+
+// Render single order item with group controls
+function renderEditOrderItemWithGroup(item, index) {
+  const group = getEditGroupForItem(item.itemId);
+
+  return `
+    <div class="edit-item-row edit-item-with-group" id="edit-item-${index}" data-item-id="${
+    item.itemId
+  }">
+      <div class="edit-item-info">
+        ${
+          group
+            ? `<div class="edit-cart-item-group">
+                <span class="edit-group-indicator">${group.name}</span>
+              </div>`
+            : ""
+        }
+        <h4>${item.itemName}</h4>
+        <div class="edit-item-meta">
+          <span>Mã: ${item.itemCode}</span>
+          <span>Đơn vị: ${item.unit}</span>
+          <span>VAT: ${item.vat}%</span>
+        </div>
+        <div class="edit-item-vat">
+          Giá sau VAT: ${formatCurrency(item.unitPriceAfterVAT)}/đơn vị
+        </div>
+        
+        <!-- Group assignment controls -->
+        <div class="edit-group-assignment">
+          <div class="edit-group-control">
+            <select class="edit-group-select" id="edit-group-select-${
+              item.itemId
+            }" 
+                    onchange="assignEditItemToGroup('${
+                      item.itemId
+                    }', this.value)">
+              <option value="">-- Không nhóm --</option>
+              ${editGroups
+                .map(
+                  (g) => `
+                <option value="${g.id}" ${
+                    group && group.id === g.id ? "selected" : ""
+                  }>
+                  ${g.name}
+                </option>
+              `
+                )
+                .join("")}
+            </select>
+            ${
+              group
+                ? `
+                  <button class="edit-remove-from-group-btn" 
+                          onclick="removeEditItemFromGroup('${group.id}', '${item.itemId}')">
+                    ✕ Xóa khỏi nhóm
+                  </button>
+                `
+                : editGroups.length > 0
+                ? `
+                  <button class="edit-move-to-group-btn" 
+                          onclick="assignEditItemToGroup('${item.itemId}', document.getElementById('edit-group-select-${item.itemId}').value)">
+                    Thêm vào nhóm
+                  </button>
+                `
+                : ""
+            }
+          </div>
+        </div>
+      </div>
+      <div class="edit-item-price">
+        <div class="price-breakdown">
+          <div class="price-before-vat-small">
+            ${formatCurrency(item.totalPrice)}
+          </div>
+          <div class="price-after-vat-small">
+            ${formatCurrency(item.totalPriceAfterVAT)}
+          </div>
+        </div>
+      </div>
+      <div class="edit-item-controls">
+        <div class="edit-quantity-control">
+          <button class="quantity-btn" onclick="decreaseEditQuantity(${index})">-</button>
+          <input 
+            type="number" 
+            id="edit-qty-${index}" 
+            class="edit-quantity-input" 
+            value="${item.quantity}" 
+            min="1" 
+            onchange="updateEditItemQuantity(${index}, this.value)"
+          >
+          <button class="quantity-btn" onclick="increaseEditQuantity(${index})">+</button>
+        </div>
+        <button class="remove-item-btn" onclick="removeEditItem(${index})">
+          ✕
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// Update edit order item display
+function updateEditOrderItemDisplay(itemId) {
+  const itemIndex = editingOrder.items.findIndex((i) => i.itemId === itemId);
+  if (itemIndex === -1) return;
+
+  const itemContainer = document.getElementById(`edit-item-${itemIndex}`);
+  if (itemContainer) {
+    const newItemHTML = renderEditOrderItemWithGroup(
+      editingOrder.items[itemIndex],
+      itemIndex
+    );
+    itemContainer.outerHTML = newItemHTML;
+  }
+}
+
+// Update all edit order items display
+function updateEditOrderItemsDisplay() {
+  const container = document.getElementById("current-order-items");
+  if (container) {
+    container.innerHTML = renderEditOrderItemsWithGroups(editingOrder.items);
   }
 }
 
@@ -1424,7 +2002,7 @@ function addNewItemToOrder(itemId) {
   });
 
   document.getElementById("current-order-items").innerHTML =
-    renderEditOrderItems(editingOrder.items);
+    renderEditOrderItemsWithGroups(editingOrder.items);
   updateEditSummary();
 
   const itemElement = document
@@ -1457,7 +2035,7 @@ function removeEditItem(index) {
   editingOrder.items.splice(index, 1);
 
   document.getElementById("current-order-items").innerHTML =
-    renderEditOrderItems(editingOrder.items);
+    renderEditOrderItemsWithGroups(editingOrder.items);
   updateEditSummary();
 
   loadAvailableItemsForEdit();
@@ -1478,7 +2056,8 @@ function updateEditSummary() {
     formatCurrency(total);
 }
 
-async function updateOrder() {
+// Update order with groups
+async function updateOrderWithGroups() {
   if (!editingOrder || editingOrder.items.length === 0) {
     showAlert("Đơn hàng không thể trống", "error");
     return;
@@ -1505,12 +2084,20 @@ async function updateOrder() {
   const notesChanged = notes !== editingOrder.notes;
   const orderNumberChanged =
     customOrderNumber && customOrderNumber !== editingOrder.orderNumber;
+  const groupsChanged =
+    JSON.stringify(editGroups) !== JSON.stringify(originalEditGroups);
 
-  if (!itemsChanged && !notesChanged && !orderNumberChanged) {
+  if (!itemsChanged && !notesChanged && !orderNumberChanged && !groupsChanged) {
     showAlert("Không có thay đổi nào để cập nhật", "info");
     closeEditModal();
     return;
   }
+
+  // Prepare groups data for API
+  const processedGroups = editGroups.map((group) => ({
+    name: group.name,
+    items: group.items, // Array of item IDs
+  }));
 
   const orderData = {
     items: editingOrder.items.map((item) => ({
@@ -1519,6 +2106,7 @@ async function updateOrder() {
     })),
     notes: notes,
     customOrderNumber: orderNumberChanged ? customOrderNumber : undefined,
+    groups: processedGroups,
   };
 
   try {
@@ -1582,6 +2170,8 @@ async function deleteOrderFromHistory(orderId) {
 function closeEditModal() {
   editingOrder = null;
   originalOrderItems = [];
+  editGroups = [];
+  originalEditGroups = [];
   document.getElementById("edit-order-modal").style.display = "none";
 }
 

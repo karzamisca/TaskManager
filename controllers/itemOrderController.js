@@ -321,10 +321,10 @@ exports.getOrder = async (req, res) => {
   }
 };
 
-// Update order (edit items, notes, order number) - anyone can update any order
+// Update order
 exports.updateOrder = async (req, res) => {
   try {
-    const { items, notes, customOrderNumber } = req.body;
+    const { items, notes, customOrderNumber, groups } = req.body;
     const orderId = req.params.id;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -364,6 +364,9 @@ exports.updateOrder = async (req, res) => {
     let totalAmount = 0;
     let totalAmountAfterVAT = 0;
 
+    // Create a map of item IDs for quick lookup
+    const itemIdMap = new Map();
+
     for (const orderItem of items) {
       const item = await Item.findById(orderItem.itemId);
 
@@ -389,7 +392,7 @@ exports.updateOrder = async (req, res) => {
       const itemTotal = item.unitPrice * quantity;
       const itemTotalAfterVAT = item.unitPriceAfterVAT * quantity;
 
-      processedItems.push({
+      const processedItem = {
         itemId: item._id,
         itemName: item.name,
         itemCode: item.code,
@@ -400,10 +403,33 @@ exports.updateOrder = async (req, res) => {
         quantity: quantity,
         totalPrice: itemTotal,
         totalPriceAfterVAT: itemTotalAfterVAT,
-      });
+      };
+
+      processedItems.push(processedItem);
+      itemIdMap.set(item._id.toString(), processedItem);
 
       totalAmount += itemTotal;
       totalAmountAfterVAT += itemTotalAfterVAT;
+    }
+
+    // Process groups - validate that all items in groups exist in order
+    const processedGroups = [];
+    if (groups && Array.isArray(groups)) {
+      for (const group of groups) {
+        if (group.name && group.items && Array.isArray(group.items)) {
+          // Filter out items that don't exist in the order
+          const validItems = group.items.filter((itemId) =>
+            itemIdMap.has(itemId.toString())
+          );
+
+          if (validItems.length > 0) {
+            processedGroups.push({
+              name: group.name.trim(),
+              items: validItems,
+            });
+          }
+        }
+      }
     }
 
     // Update order
@@ -411,6 +437,7 @@ exports.updateOrder = async (req, res) => {
     order.totalAmount = totalAmount;
     order.totalAmountAfterVAT = totalAmountAfterVAT;
     order.notes = notes || "";
+    order.groups = processedGroups;
     order.formattedUpdatedAt = formatDateTime(new Date());
     order.updatedAt = new Date();
 

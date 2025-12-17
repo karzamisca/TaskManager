@@ -495,6 +495,35 @@ body {
   cursor: not-allowed;
 }
 
+.delete-order-history-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  border-radius: 4px;
+  margin-top: 10px;
+  transition: all 0.3s ease;
+}
+
+.delete-order-history-btn:hover {
+  background: #c82333;
+}
+
+.delete-order-history-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* Order actions container */
+.order-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
 /* Modal Styles */
 .modal {
   display: none;
@@ -657,36 +686,6 @@ body {
   font-size: 0.85rem;
   font-weight: 600;
   text-transform: uppercase;
-}
-
-/* Delete button styles */
-.delete-order-history-btn {
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  border-radius: 4px;
-  margin-top: 10px;
-  transition: all 0.3s ease;
-}
-
-.delete-order-history-btn:hover {
-  background: #c82333;
-}
-
-.delete-order-history-btn:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-/* Order actions container */
-.order-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: wrap;
 }
 
 /* Responsive table */
@@ -1369,58 +1368,669 @@ body {
   margin-left: 10px;
 }
 
-/* Responsive Adjustments */
+/* Edit Modal Group Management Styles */
+.edit-groups-section {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.edit-groups-section h3 {
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-group-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.edit-group-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.edit-group-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.edit-group-btn {
+  padding: 10px 16px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.edit-group-btn:hover:not(:disabled) {
+  background: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.edit-group-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.edit-clear-groups-btn {
+  background: #dc3545;
+}
+
+.edit-clear-groups-btn:hover:not(:disabled) {
+  background: #c82333;
+}
+
+/* Edit Group List Styles */
+.edit-group-list {
+  margin-top: 15px;
+}
+
+/* Edit Group Styles */
+.edit-item-group {
+  margin-bottom: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.edit-group-header {
+  background: #f8f9fa;
+  padding: 15px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.edit-group-header:hover {
+  background: #e9ecef;
+}
+
+.edit-group-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.edit-group-toggle {
+  font-size: 0.9rem;
+  transition: transform 0.3s ease;
+  color: #666;
+}
+
+.edit-group-header.collapsed .edit-group-toggle {
+  transform: rotate(-90deg);
+}
+
+.edit-group-badge {
+  background: #007bff;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.edit-group-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-group-action-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.edit-group-action-btn:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.edit-group-content {
+  padding: 10px;
+  max-height: 1000px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.edit-group-content.collapsed {
+  max-height: 0;
+  padding: 0;
+}
+
+.edit-group-item-list {
+  margin-top: 10px;
+}
+
+.edit-group-item {
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #f9f9f9;
+  border-radius: 4px;
+  border-left: 3px solid #007bff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.edit-group-item-info h5 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 1rem;
+}
+
+.edit-group-item-details {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.edit-group-item-actions {
+  display: flex;
+  gap: 5px;
+}
+
+/* Edit Ungrouped Items Section */
+.edit-ungrouped-items-section {
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px dashed #ddd;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.edit-ungrouped-items-section h4 {
+  margin-bottom: 15px;
+  color: #666;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Edit Group Item Controls */
+.edit-group-control {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.edit-group-select {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  min-width: 150px;
+}
+
+.edit-group-select:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.edit-move-to-group-btn {
+  padding: 6px 12px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.edit-move-to-group-btn:hover {
+  background: #0056b3;
+}
+
+.edit-remove-from-group-btn {
+  padding: 6px 12px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+
+.edit-remove-from-group-btn:hover {
+  background: #5a6268;
+}
+
+/* Edit Cart Item Group Context */
+.edit-cart-item-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+}
+
+.edit-group-indicator {
+  background: #e9ecef;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: #495057;
+  margin-right: 8px;
+  border: 1px solid #dee2e6;
+  font-weight: 500;
+}
+
+/* Group rename input styles */
+.group-rename-input {
+  padding: 4px 8px;
+  border: 1px solid #007bff;
+  border-radius: 4px;
+  font-size: 1rem;
+  width: 200px;
+}
+
+.group-rename-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Edit item group assignment styles */
+.edit-item-with-group {
+  position: relative;
+}
+
+.edit-group-assignment {
+  margin-top: 10px;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #6c757d;
+}
+
+.edit-group-assignment h5 {
+  margin: 0 0 8px 0;
+  font-size: 0.9rem;
+  color: #495057;
+  font-weight: 600;
+}
+
+/* Edit item with group styling */
+.edit-item-with-group .edit-item-info {
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #e0e0e0;
+  margin-bottom: 10px;
+}
+
+.edit-item-with-group .edit-group-assignment {
+  margin-top: 15px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+}
+
+/* Loading state for edit modal */
+.edit-modal-loading {
+  text-align: center;
+  padding: 30px;
+  color: #666;
+}
+
+.edit-modal-spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 10px;
+}
+
+/* Edit modal group section enhancements */
+.edit-groups-section .edit-group-list > div:last-child {
+  margin-bottom: 0;
+}
+
+/* Edit modal item group selection */
+.edit-item-with-group .edit-group-control {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.edit-item-with-group .edit-group-select {
+  flex: 1;
+  min-width: 180px;
+}
+
+.edit-item-with-group .edit-move-to-group-btn,
+.edit-item-with-group .edit-remove-from-group-btn {
+  white-space: nowrap;
+}
+
+/* Empty group message styling */
+.edit-group-content > div[style*="padding: 20px"] {
+  font-style: italic;
+  color: #6c757d;
+}
+
+/* Edit modal responsive adjustments */
 @media (max-width: 768px) {
-  .group-controls {
+  .edit-group-controls {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .group-input {
+  .edit-group-input {
     min-width: 100%;
   }
 
-  .order-number-edit {
+  .edit-group-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .edit-item-with-group .edit-group-control {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .order-number-edit label {
-    margin-bottom: 5px;
+  .edit-item-with-group .edit-group-select {
+    width: 100%;
+    min-width: 100%;
   }
 
-  .group-header {
+  .edit-item-with-group .edit-move-to-group-btn,
+  .edit-item-with-group .edit-remove-from-group-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .group-rename-input {
+    width: 100%;
+  }
+
+  .edit-group-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
   }
 
-  .group-header h4 {
+  .edit-group-header h4 {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
   }
 
-  .group-actions {
+  .edit-group-actions {
     align-self: flex-end;
   }
 
-  .cart-item {
+  .edit-item-row {
     flex-direction: column;
     gap: 15px;
   }
 
-  .cart-item-actions {
+  .edit-item-controls {
     width: 100%;
-    align-items: flex-start;
+    justify-content: space-between;
   }
 
-  .group-control {
+  .edit-quantity-control {
+    margin-right: auto;
+  }
+}
+
+/* Group transition animations */
+.group-content,
+.edit-group-content {
+  transition: all 0.3s ease-in-out;
+}
+
+.group-header,
+.edit-group-header {
+  transition: background-color 0.2s ease;
+}
+
+.group-item,
+.edit-group-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.group-item:hover,
+.edit-group-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Edit modal scroll adjustments */
+.edit-modal .modal-content {
+  max-height: 85vh;
+}
+
+.edit-modal .modal-body {
+  max-height: calc(85vh - 70px);
+  overflow-y: auto;
+}
+
+/* Color coding for different group actions */
+.edit-group-btn {
+  background: linear-gradient(135deg, #28a745, #218838);
+}
+
+.edit-clear-groups-btn {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+.edit-move-to-group-btn {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+}
+
+.edit-remove-from-group-btn {
+  background: linear-gradient(135deg, #6c757d, #5a6268);
+}
+
+/* Hover effects for buttons */
+.edit-group-btn:hover:not(:disabled),
+.edit-clear-groups-btn:hover:not(:disabled),
+.edit-move-to-group-btn:hover,
+.edit-remove-from-group-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Active state for buttons */
+.edit-group-btn:active:not(:disabled),
+.edit-clear-groups-btn:active:not(:disabled),
+.edit-move-to-group-btn:active,
+.edit-remove-from-group-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Focus states for accessibility */
+.edit-group-input:focus,
+.edit-group-select:focus,
+.group-rename-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+/* Disabled state styling */
+.edit-group-btn:disabled,
+.edit-clear-groups-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Group badge styling variations */
+.edit-group-badge.empty {
+  background: #6c757d;
+}
+
+.edit-group-badge.has-items {
+  background: #28a745;
+}
+
+/* Edit item with group highlight */
+.edit-item-with-group.has-group {
+  border-left: 4px solid #007bff;
+}
+
+.edit-item-with-group.no-group {
+  border-left: 4px solid #6c757d;
+}
+
+/* Group assignment status indicator */
+.group-assignment-status {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.group-assignment-status.assigned {
+  background-color: #28a745;
+}
+
+.group-assignment-status.unassigned {
+  background-color: #6c757d;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 576px) {
+  .edit-modal .modal-content {
+    width: 95%;
+    margin: 10px;
+  }
+
+  .edit-modal-body {
+    padding: 15px;
+  }
+
+  .edit-item-row {
+    padding: 10px;
+  }
+
+  .edit-item-controls {
     flex-direction: column;
-    align-items: flex-start;
+    gap: 10px;
   }
 
-  .group-select {
-    width: 100%;
+  .edit-quantity-control {
+    order: 2;
+    margin-right: 0;
   }
+
+  .remove-item-btn {
+    order: 1;
+    align-self: flex-end;
+  }
+
+  .edit-group-assignment {
+    padding: 8px;
+  }
+}
+
+/* Print styles for order details */
+@media print {
+  .modal-content {
+    box-shadow: none;
+    max-height: none;
+  }
+
+  .close-btn,
+  .edit-modal-actions,
+  .edit-groups-section,
+  .add-items-section {
+    display: none;
+  }
+
+  .edit-modal .modal-body {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+/* Animation for group operations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.edit-item-group,
+.edit-group-item {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Smooth scrolling for modal content */
+.edit-modal-body {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for edit modal */
+.edit-modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.edit-modal-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.edit-modal-body::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.edit-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
