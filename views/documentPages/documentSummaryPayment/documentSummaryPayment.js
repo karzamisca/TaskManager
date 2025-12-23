@@ -13,33 +13,53 @@ const state = {
   currentEditDoc: null,
   currentTagFilter: "",
   currentCostCenterFilter: [], // Changed to array for multiple selection
-  currentGroupFilter: "",
+  currentGroupFilter: [], // Changed to array for multiple selection
   currentGroupDeclarationFilter: "",
   currentPaymentMethodFilter: "",
-  costCenters: [], // Store cost centers for multi-select
+  costCenters: [],
+  groups: [], // Store groups for multi-select
 };
 
 // Multi-select functionality for cost centers
 const initializeMultiSelect = () => {
-  const button = document.getElementById("costCenterMultiSelectButton");
-  const dropdown = document.getElementById("costCenterMultiSelectDropdown");
-  const text = document.getElementById("costCenterMultiSelectText");
+  const costCenterButton = document.getElementById(
+    "costCenterMultiSelectButton"
+  );
+  const costCenterDropdown = document.getElementById(
+    "costCenterMultiSelectDropdown"
+  );
 
-  // Toggle dropdown
-  button.addEventListener("click", (e) => {
+  const groupButton = document.getElementById("groupMultiSelectButton");
+  const groupDropdown = document.getElementById("groupMultiSelectDropdown");
+
+  // Toggle cost center dropdown
+  costCenterButton.addEventListener("click", (e) => {
     e.stopPropagation();
-    dropdown.classList.toggle("open");
-    button.classList.toggle("open");
+    costCenterDropdown.classList.toggle("open");
+    costCenterButton.classList.toggle("open");
   });
 
-  // Close dropdown when clicking outside
+  // Toggle group dropdown
+  groupButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    groupDropdown.classList.toggle("open");
+    groupButton.classList.toggle("open");
+  });
+
+  // Close dropdowns when clicking outside
   document.addEventListener("click", () => {
-    dropdown.classList.remove("open");
-    button.classList.remove("open");
+    costCenterDropdown.classList.remove("open");
+    costCenterButton.classList.remove("open");
+    groupDropdown.classList.remove("open");
+    groupButton.classList.remove("open");
   });
 
-  // Prevent dropdown from closing when clicking inside
-  dropdown.addEventListener("click", (e) => {
+  // Prevent dropdowns from closing when clicking inside
+  costCenterDropdown.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+
+  groupDropdown.addEventListener("click", (e) => {
     e.stopPropagation();
   });
 };
@@ -125,6 +145,85 @@ const populateCostCenterMultiSelect = async () => {
   }
 };
 
+// Populate multi-select dropdown with groups
+const populateGroupMultiSelect = async () => {
+  try {
+    const response = await fetch("/getGroupDocument");
+    const groups = await response.json();
+    state.groups = groups;
+
+    const dropdown = document.getElementById("groupMultiSelectDropdown");
+    dropdown.innerHTML = "";
+
+    // Add "Select All" option
+    const selectAllOption = document.createElement("div");
+    selectAllOption.className = "multi-select-option";
+    selectAllOption.innerHTML = `
+      <input type="checkbox" id="selectAllGroups">
+      <label for="selectAllGroups">Chọn tất cả</label>
+    `;
+    dropdown.appendChild(selectAllOption);
+
+    // Add individual group options
+    groups.forEach((group) => {
+      const option = document.createElement("div");
+      option.className = "multi-select-option";
+      option.innerHTML = `
+        <input type="checkbox" id="group_${group.name}" value="${group.name}">
+        <label for="group_${group.name}">${group.name}</label>
+      `;
+      dropdown.appendChild(option);
+    });
+
+    // Add event listeners
+    const selectAllCheckbox = document.getElementById("selectAllGroups");
+    selectAllCheckbox.addEventListener("change", (e) => {
+      const checkboxes = dropdown.querySelectorAll(
+        'input[type="checkbox"]:not(#selectAllGroups)'
+      );
+      checkboxes.forEach((checkbox) => {
+        checkbox.checked = e.target.checked;
+      });
+      updateGroupFilter();
+    });
+
+    const checkboxes = dropdown.querySelectorAll(
+      'input[type="checkbox"]:not(#selectAllGroups)'
+    );
+    checkboxes.forEach((checkbox) => {
+      checkbox.addEventListener("change", () => {
+        // Update "Select All" checkbox state
+        const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
+        const someChecked = Array.from(checkboxes).some((cb) => cb.checked);
+
+        selectAllCheckbox.checked = allChecked;
+        selectAllCheckbox.indeterminate = someChecked && !allChecked;
+
+        updateGroupFilter();
+      });
+    });
+
+    // Add clear button
+    const clearButton = document.createElement("button");
+    clearButton.className = "multi-select-clear";
+    clearButton.innerHTML = '<i class="fas fa-times"></i> Xóa tất cả';
+    clearButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach((checkbox) => {
+        checkbox.checked = false;
+      });
+      selectAllCheckbox.indeterminate = false;
+      updateGroupFilter();
+    });
+
+    const buttonContainer = document.getElementById("groupMultiSelectButton");
+    buttonContainer.appendChild(clearButton);
+  } catch (error) {
+    console.error("Error fetching groups for multi-select:", error);
+  }
+};
+
 // Update cost center filter based on selected options
 const updateCostCenterFilter = () => {
   const checkboxes = document.querySelectorAll(
@@ -138,7 +237,12 @@ const updateCostCenterFilter = () => {
 
   // Update button text
   const textElement = document.getElementById("costCenterMultiSelectText");
-  const countElement = document.querySelector(".multi-select-selected-count");
+  const buttonContainer = document.getElementById(
+    "costCenterMultiSelectButton"
+  );
+  const countElement = buttonContainer.querySelector(
+    ".multi-select-selected-count"
+  );
 
   if (selectedCostCenters.length === 0) {
     textElement.textContent = "Tất cả";
@@ -155,6 +259,46 @@ const updateCostCenterFilter = () => {
       textElement.parentNode.appendChild(countSpan);
     } else {
       countElement.textContent = `(${selectedCostCenters.length})`;
+    }
+  }
+
+  state.currentPage = 1;
+  fetchPaymentDocuments();
+};
+
+// Update group filter based on selected options
+const updateGroupFilter = () => {
+  const checkboxes = document.querySelectorAll(
+    '#groupMultiSelectDropdown input[type="checkbox"]:not(#selectAllGroups)'
+  );
+  const selectedGroups = Array.from(checkboxes)
+    .filter((cb) => cb.checked)
+    .map((cb) => cb.value);
+
+  state.currentGroupFilter = selectedGroups;
+
+  // Update button text
+  const textElement = document.getElementById("groupMultiSelectText");
+  const buttonContainer = document.getElementById("groupMultiSelectButton");
+  const countElement = buttonContainer.querySelector(
+    ".multi-select-selected-count"
+  );
+
+  if (selectedGroups.length === 0) {
+    textElement.textContent = "Tất cả";
+    if (countElement) countElement.remove();
+  } else if (selectedGroups.length === 1) {
+    textElement.textContent = selectedGroups[0];
+    if (countElement) countElement.remove();
+  } else {
+    textElement.textContent = `${selectedGroups.length} nhóm đã chọn`;
+    if (!countElement) {
+      const countSpan = document.createElement("span");
+      countSpan.className = "multi-select-selected-count";
+      countSpan.textContent = `(${selectedGroups.length})`;
+      textElement.parentNode.appendChild(countSpan);
+    } else {
+      countElement.textContent = `(${selectedGroups.length})`;
     }
   }
 
@@ -379,10 +523,10 @@ const filterDocumentsForCurrentUser = (documents) => {
     );
   }
 
-  // Apply group filter if selected
-  if (state.currentGroupFilter) {
-    filteredDocs = filteredDocs.filter(
-      (doc) => doc.groupName === state.currentGroupFilter
+  // Apply group filter if selected (now handles multiple)
+  if (state.currentGroupFilter.length > 0) {
+    filteredDocs = filteredDocs.filter((doc) =>
+      state.currentGroupFilter.includes(doc.groupName)
     );
   }
 
@@ -436,43 +580,6 @@ const filterByTag = () => {
   fetchPaymentDocuments();
 };
 
-const filterByGroup = () => {
-  state.currentGroupFilter = document.getElementById("groupFilter").value;
-  state.currentPage = 1;
-  fetchPaymentDocuments();
-};
-
-const filterByGroupDeclaration = () => {
-  state.currentGroupDeclarationFilter = document.getElementById(
-    "groupDeclarationFilter"
-  ).value;
-  state.currentPage = 1;
-  fetchPaymentDocuments();
-};
-
-const fetchGroups = async () => {
-  try {
-    const response = await fetch("/getGroupDocument");
-    const groups = await response.json();
-    const filterDropdown = document.getElementById("groupFilter");
-
-    // Clear existing options except the first one
-    while (filterDropdown.options.length > 1) {
-      filterDropdown.remove(1);
-    }
-
-    // Add new options
-    groups.forEach((group) => {
-      const option = document.createElement("option");
-      option.value = group.name;
-      option.textContent = group.name;
-      filterDropdown.appendChild(option);
-    });
-  } catch (error) {
-    console.error("Error fetching groups:", error);
-  }
-};
-
 const fetchGroupDeclaration = async () => {
   try {
     const response = await fetch("/getGroupDeclaration");
@@ -494,6 +601,14 @@ const fetchGroupDeclaration = async () => {
   } catch (error) {
     console.error("Error fetching groups:", error);
   }
+};
+
+const filterByGroupDeclaration = () => {
+  state.currentGroupDeclarationFilter = document.getElementById(
+    "groupDeclarationFilter"
+  ).value;
+  state.currentPage = 1;
+  fetchPaymentDocuments();
 };
 
 const filterByPaymentMethod = () => {
@@ -729,6 +844,8 @@ const renderDocumentsTable = (documents) => {
           }
         </div>
       </td>
+      <td>${doc.costCenter || "-"}</td>
+      <td>${doc.groupName || "-"}</td>
       <td>
         <div>${doc.content || "-"}</div>
         ${
@@ -3460,11 +3577,6 @@ const setupEventListeners = () => {
 
   document.getElementById("tagFilter").addEventListener("input", filterByTag);
 
-  // Group filter
-  document
-    .getElementById("groupFilter")
-    .addEventListener("change", filterByGroup);
-
   // Declaration Group filter
   document
     .getElementById("groupDeclarationFilter")
@@ -3493,9 +3605,9 @@ const setupEventListeners = () => {
 // Initialize the application
 const initialize = async () => {
   await fetchCurrentUser();
-  await populateCostCenterMultiSelect(); // Replace populateCostCenterFilter
-  initializeMultiSelect(); // Initialize multi-select functionality
-  await fetchGroups();
+  await populateCostCenterMultiSelect();
+  initializeMultiSelect();
+  await populateGroupMultiSelect();
   await fetchGroupDeclaration();
   setupEventListeners();
   await fetchPaymentDocuments();
