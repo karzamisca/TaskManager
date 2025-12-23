@@ -7,7 +7,7 @@
     <title>Phiếu mua hàng</title>
     <link
       rel="stylesheet"
-      href="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.css?v=1.3"
+      href="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.css?v=1.4"
     />
     <link
       rel="stylesheet"
@@ -49,7 +49,7 @@
       <div class="control-group">
         <label for="costCenterFilter">
           <span>Trạm:</span>
-          <!-- Replace the single select with multi-select -->
+          <!-- Multi-select for cost centers -->
           <div class="multi-select-container" id="costCenterMultiSelect">
             <button
               type="button"
@@ -72,10 +72,20 @@
       <div class="control-group">
         <label for="groupFilter">
           <span>Nhóm:</span>
-          <select id="groupFilter" class="filter-select">
-            <option value="">Tất cả</option>
-            <!-- Options will be populated dynamically -->
-          </select>
+          <!-- Multi-select for groups (replacing single select) -->
+          <div class="multi-select-container" id="groupMultiSelect">
+            <button
+              type="button"
+              class="multi-select-button"
+              id="groupMultiSelectButton"
+            >
+              <span id="groupMultiSelectText">Tất cả</span>
+              <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="multi-select-dropdown" id="groupMultiSelectDropdown">
+              <!-- Options will be populated dynamically -->
+            </div>
+          </div>
         </label>
       </div>
 
@@ -105,6 +115,7 @@
             <th width="40px">Chọn</th>
             <th>Tên</th>
             <th>Trạm</th>
+            <th>Nhóm</th>
             <th>Sản phẩm</th>
             <th>Tệp tin kèm theo</th>
             <th>Tổng chi phí</th>
@@ -193,7 +204,7 @@
       </div>
     </div>
 
-    <script src="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.js?v=1.24"></script>
+    <script src="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.js?v=1.25"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>

@@ -883,6 +883,10 @@ tr:hover {
   td {
     padding: var(--space-xs) var(--space-sm);
   }
+
+  .multi-select-container {
+    width: 100%;
+  }
 }
 
 /* Print Styles */
