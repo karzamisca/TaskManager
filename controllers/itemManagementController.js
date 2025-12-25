@@ -1,8 +1,40 @@
 // controllers/itemManagementController.js
 const Item = require("../models/Item");
+const Order = require("../models/ItemOrder");
 const ExcelJS = require("exceljs");
 const fs = require("fs");
 const path = require("path");
+
+// Format date with time helper function
+const formatDateTime = (date) => {
+  const d = new Date(date);
+  const day = d.getDate().toString().padStart(2, "0");
+  const month = (d.getMonth() + 1).toString().padStart(2, "0");
+  const year = d.getFullYear();
+  const hours = d.getHours().toString().padStart(2, "0");
+  const minutes = d.getMinutes().toString().padStart(2, "0");
+  return `${day}-${month}-${year} ${hours}:${minutes}`;
+};
+
+exports.getItemManagementViews = (req, res) => {
+  if (
+    ![
+      "approver",
+      "superAdmin",
+      "director",
+      "deputyDirector",
+      "headOfPurchasing",
+      "captainOfPurchasing",
+    ].includes(req.user.role)
+  ) {
+    return res
+      .status(403)
+      .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+  }
+  res.sendFile("itemManagement.html", {
+    root: "./views/itemPages/itemManagement",
+  });
+};
 
 // Get all active items with sorting
 exports.getAllItems = async (req, res) => {
@@ -159,6 +191,16 @@ exports.updateItem = async (req, res) => {
       action: "update",
     };
 
+    // Store old values for order updates
+    const oldItemData = {
+      name: item.name,
+      code: item.code,
+      unit: item.unit,
+      unitPrice: item.unitPrice,
+      vat: item.vat,
+      unitPriceAfterVAT: item.unitPriceAfterVAT,
+    };
+
     // Update item
     item.name = name;
     item.code = code;
@@ -170,11 +212,88 @@ exports.updateItem = async (req, res) => {
 
     await item.save();
 
+    // Update all pending orders that contain this item
+    let pendingOrders = [];
+    if (
+      name !== oldItemData.name ||
+      code !== oldItemData.code ||
+      unit !== oldItemData.unit ||
+      unitPriceValue !== oldItemData.unitPrice ||
+      vatPercentage !== oldItemData.vat
+    ) {
+      try {
+        // Find all pending orders that contain this item
+        pendingOrders = await Order.find({
+          status: "pending",
+          "items.itemId": itemId,
+        });
+
+        // Update each pending order
+        for (const order of pendingOrders) {
+          let orderUpdated = false;
+
+          // Update item details in order items array
+          order.items = order.items.map((orderItem) => {
+            if (orderItem.itemId.toString() === itemId) {
+              orderUpdated = true;
+
+              // Calculate new totals based on quantity
+              const quantity = orderItem.quantity;
+              const newTotalPrice = unitPriceValue * quantity;
+              const newTotalPriceAfterVAT = unitPriceAfterVAT * quantity;
+
+              return {
+                ...orderItem.toObject(),
+                itemName: name,
+                itemCode: code,
+                unit: unit || orderItem.unit,
+                unitPrice: unitPriceValue,
+                vat: vatPercentage,
+                unitPriceAfterVAT: unitPriceAfterVAT,
+                totalPrice: newTotalPrice,
+                totalPriceAfterVAT: newTotalPriceAfterVAT,
+              };
+            }
+            return orderItem;
+          });
+
+          // Recalculate order totals if item was updated
+          if (orderUpdated) {
+            order.totalAmount = order.items.reduce(
+              (sum, item) => sum + item.totalPrice,
+              0
+            );
+            order.totalAmountAfterVAT = order.items.reduce(
+              (sum, item) => sum + item.totalPriceAfterVAT,
+              0
+            );
+
+            // Update formatted date
+            order.formattedUpdatedAt = formatDateTime(new Date());
+            order.updatedAt = new Date();
+
+            await order.save();
+          }
+        }
+
+        console.log(
+          `Updated ${pendingOrders.length} pending orders for item ${itemId}`
+        );
+      } catch (orderUpdateError) {
+        console.error("Error updating orders:", orderUpdateError);
+        // Don't fail the item update if order update fails
+        // Log the error but continue with item update
+      }
+    }
+
     // Populate fields before sending response
     await item.populate("createdBy", "username");
     await item.populate("auditHistory.editedBy", "username");
 
-    res.json(item);
+    res.json({
+      ...item.toObject(),
+      ordersUpdated: pendingOrders ? pendingOrders.length : 0,
+    });
   } catch (error) {
     console.error("Error updating item:", error);
     res.status(500).json({ error: "Failed to update item" });
@@ -206,6 +325,19 @@ exports.deleteItem = async (req, res) => {
       editedBy: req.user.id,
       action: "delete",
     };
+
+    // Check if item exists in any pending orders
+    const pendingOrders = await Order.find({
+      status: "pending",
+      "items.itemId": itemId,
+    });
+
+    if (pendingOrders.length > 0) {
+      return res.status(400).json({
+        error: `Cannot delete item. It exists in ${pendingOrders.length} pending order(s).`,
+        pendingOrdersCount: pendingOrders.length,
+      });
+    }
 
     // Soft delete the item
     item.isDeleted = true;
@@ -441,6 +573,8 @@ exports.importFromExcel = async (req, res) => {
       updated: 0,
       created: 0,
       total: 0,
+      ordersUpdated: 0,
+      orderUpdateErrors: [],
     };
 
     // Skip header row (row 1)
@@ -539,6 +673,70 @@ exports.importFromExcel = async (req, res) => {
           await existingItem.save();
           importResults.updated++;
           importResults.success++;
+
+          // Update pending orders that contain this item
+          try {
+            const pendingOrders = await Order.find({
+              status: "pending",
+              "items.itemId": existingItem._id,
+            });
+
+            for (const order of pendingOrders) {
+              let orderUpdated = false;
+
+              order.items = order.items.map((orderItem) => {
+                if (
+                  orderItem.itemId.toString() === existingItem._id.toString()
+                ) {
+                  orderUpdated = true;
+
+                  const quantity = orderItem.quantity;
+                  const newTotalPrice = unitPrice * quantity;
+                  const newTotalPriceAfterVAT = unitPriceAfterVAT * quantity;
+
+                  return {
+                    ...orderItem.toObject(),
+                    itemName: name,
+                    itemCode: code,
+                    unit: unit,
+                    unitPrice: unitPrice,
+                    vat: vat,
+                    unitPriceAfterVAT: unitPriceAfterVAT,
+                    totalPrice: newTotalPrice,
+                    totalPriceAfterVAT: newTotalPriceAfterVAT,
+                  };
+                }
+                return orderItem;
+              });
+
+              if (orderUpdated) {
+                order.totalAmount = order.items.reduce(
+                  (sum, item) => sum + item.totalPrice,
+                  0
+                );
+                order.totalAmountAfterVAT = order.items.reduce(
+                  (sum, item) => sum + item.totalPriceAfterVAT,
+                  0
+                );
+
+                order.formattedUpdatedAt = formatDateTime(new Date());
+                order.updatedAt = new Date();
+
+                await order.save();
+              }
+            }
+
+            importResults.ordersUpdated += pendingOrders.length;
+          } catch (orderUpdateError) {
+            console.error(
+              "Error updating orders during import:",
+              orderUpdateError
+            );
+            importResults.orderUpdateErrors.push({
+              code,
+              error: "Failed to update orders: " + orderUpdateError.message,
+            });
+          }
         } else {
           // Nếu không tồn tại, tạo item mới
 
@@ -610,7 +808,19 @@ exports.importFromExcel = async (req, res) => {
       resultWorksheet.addRow(["Thành công:", importResults.success]);
       resultWorksheet.addRow(["  - Tạo mới:", importResults.created]);
       resultWorksheet.addRow(["  - Cập nhật:", importResults.updated]);
+      resultWorksheet.addRow([
+        "Đơn hàng được cập nhật:",
+        importResults.ordersUpdated,
+      ]);
       resultWorksheet.addRow(["Thất bại:", importResults.failed]);
+
+      if (importResults.orderUpdateErrors.length > 0) {
+        resultWorksheet.addRow([
+          "Lỗi cập nhật đơn hàng:",
+          importResults.orderUpdateErrors.length,
+        ]);
+      }
+
       resultWorksheet.addRow([]);
 
       if (importResults.errors.length > 0) {
@@ -618,15 +828,15 @@ exports.importFromExcel = async (req, res) => {
         resultWorksheet.addRow(["Dòng", "Mã hàng", "Thông báo", "Loại"]);
 
         // Style headers
-        resultWorksheet.getRow(10).font = { bold: true };
-        resultWorksheet.getRow(10).fill = {
+        resultWorksheet.getRow(13).font = { bold: true };
+        resultWorksheet.getRow(13).fill = {
           type: "pattern",
           pattern: "solid",
           fgColor: { argb: "FFFFEBEE" },
         };
 
         // Add error details
-        let errorRow = 11;
+        let errorRow = 14;
         importResults.errors.forEach((error) => {
           const row = resultWorksheet.addRow([
             error.row,
@@ -643,6 +853,28 @@ exports.importFromExcel = async (req, res) => {
             };
           }
           errorRow++;
+        });
+      }
+
+      // Add order update errors if any
+      if (importResults.orderUpdateErrors.length > 0) {
+        resultWorksheet.addRow([]);
+        resultWorksheet.addRow(["Chi tiết lỗi cập nhật đơn hàng:"]);
+        resultWorksheet.addRow(["Mã hàng", "Lỗi"]);
+
+        // Style headers
+        resultWorksheet.getRow(errorRow + 2).font = { bold: true };
+        resultWorksheet.getRow(errorRow + 2).fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFF3E5F5" },
+        };
+
+        // Add order error details
+        let orderErrorRow = errorRow + 3;
+        importResults.orderUpdateErrors.forEach((error) => {
+          resultWorksheet.addRow([error.code, error.error]);
+          orderErrorRow++;
         });
       }
 

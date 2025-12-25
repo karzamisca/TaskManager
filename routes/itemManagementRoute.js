@@ -22,11 +22,11 @@ const upload = multer({
   },
 });
 
-router.get("/itemManagement", authMiddleware, (req, res) => {
-  res.sendFile("/itemManagement.html", {
-    root: "./views/itemPages/itemManagement",
-  });
-});
+router.get(
+  "/itemManagement",
+  authMiddleware,
+  itemManagementController.getItemManagementViews
+);
 
 // Get all active items
 router.get(
