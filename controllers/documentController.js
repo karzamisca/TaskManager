@@ -1981,7 +1981,14 @@ exports.suspendDocument = async (req, res) => {
 
   try {
     // Restrict access
-    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfPurchasing",
+      ].includes(req.user.role)
+    ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
