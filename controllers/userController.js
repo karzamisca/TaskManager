@@ -423,11 +423,19 @@ exports.getAllUserMonthlyRecord = async (req, res) => {
         match: { role: { $nin: privilegedRoles } }, // Exclude privileged users
       })
       .populate("costCenter", "name")
-      .populate("assignedManager", "username")
+      .populate({
+        path: "assignedManager",
+        select: "username role",
+      })
       .sort({ recordYear: -1, recordMonth: -1 });
 
-    // Filter out records where userId is null (due to populate match filter)
-    const filteredRecords = records.filter((record) => record.userId !== null);
+    // Filter out records where:
+    // 1. userId is null (due to populate match filter)
+    // 2. assignedManager has role "superAdmin"
+    const filteredRecords = records.filter(
+      (record) =>
+        record.userId !== null && record.assignedManager?.role !== "superAdmin"
+    );
 
     res.json(filteredRecords);
   } catch (error) {
@@ -553,10 +561,19 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
         match: { role: { $nin: privilegedRoles } }, // Exclude privileged users
       })
       .populate("costCenter")
+      .populate({
+        path: "assignedManager",
+        select: "role",
+      })
       .sort({ realName: 1 });
 
-    // Filter out records where userId is null (due to populate match filter)
-    records = records.filter((record) => record.userId !== null);
+    // Filter out records where:
+    // 1. userId is null (due to populate match filter)
+    // 2. assignedManager has role "superAdmin"
+    records = records.filter(
+      (record) =>
+        record.userId !== null && record.assignedManager?.role !== "superAdmin"
+    );
 
     // Apply cost center filter AFTER population
     if (costCenter) {
@@ -635,7 +652,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
     const docDefinition = {
       pageSize: "A4",
       pageOrientation: "landscape",
-      pageMargins: [15, 15, 15, 15], // Minimal margins for maximum space
+      pageMargins: [15, 15, 15, 15],
       content: [
         {
           text: "DANH SÁCH CHI LƯƠNG",
@@ -777,7 +794,6 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
     // Set response headers
     let fileName = `ChiLuong_${month}_${year}`;
     if (costCenter) {
-      // Sanitize costCenter name to remove invalid characters
       const sanitizedCostCenter = costCenter.replace(
         /[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF\s-]/g,
         ""
@@ -786,7 +802,6 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
     }
     fileName += ".pdf";
 
-    // Ensure filename is properly encoded
     const encodedFileName = encodeURIComponent(fileName).replace(
       /['()]/g,
       escape
@@ -870,10 +885,19 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         match: { role: { $nin: privilegedRoles } }, // Exclude privileged users
       })
       .populate("costCenter")
+      .populate({
+        path: "assignedManager",
+        select: "role",
+      })
       .sort({ realName: 1 });
 
-    // Filter out records where userId is null (due to populate match filter)
-    records = records.filter((record) => record.userId !== null);
+    // Filter out records where:
+    // 1. userId is null (due to populate match filter)
+    // 2. assignedManager has role "superAdmin"
+    records = records.filter(
+      (record) =>
+        record.userId !== null && record.assignedManager?.role !== "superAdmin"
+    );
 
     // Apply cost center filter AFTER population
     if (costCenter) {
@@ -1094,7 +1118,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     // Set response headers
     let fileName = `ChiLuong_${month}_${year}`;
     if (costCenter) {
-      // Sanitize costCenter name to remove invalid characters
       const sanitizedCostCenter = costCenter.replace(
         /[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF\s-]/g,
         ""
@@ -1103,7 +1126,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     }
     fileName += ".xlsx";
 
-    // Ensure filename is properly encoded
     const encodedFileName = encodeURIComponent(fileName).replace(
       /['()]/g,
       escape
