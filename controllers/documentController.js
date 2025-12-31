@@ -4117,7 +4117,7 @@ exports.approvePaymentStage = async (req, res) => {
       // Special rule: Director and deputyDirector can approve anytime for amounts under 100M
       if (
         (userRole === "director" || userRole === "deputyDirector") &&
-        stageAmount < 100000000
+        stageAmount <= 100000000
       ) {
         return { canApprove: true };
       }
@@ -4242,6 +4242,7 @@ exports.approvePaymentStage = async (req, res) => {
     });
   }
 };
+
 exports.approvePaymentDocument = async (req, res) => {
   const { id } = req.params;
   try {
