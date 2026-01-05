@@ -588,7 +588,13 @@ class NextcloudController {
   }
 
   getDirectDownloadUrl(filePath) {
-    const encodedPath = encodeURIComponent(filePath);
+    // Split path and encode each segment separately
+    const pathSegments = filePath.split("/");
+    const encodedSegments = pathSegments.map((segment) =>
+      encodeURIComponent(segment)
+    );
+    const encodedPath = encodedSegments.join("/");
+
     return `${this.baseUrl}/${encodedPath}`;
   }
 
