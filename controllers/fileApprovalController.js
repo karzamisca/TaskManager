@@ -477,7 +477,7 @@ class NextcloudController {
 
       this.storeCookies(response);
 
-      // Create share link
+      // Create share link - now forced to use public share
       const shareLink = await this.createPublicShare(remotePath);
 
       return {
@@ -509,7 +509,7 @@ class NextcloudController {
 
       this.storeCookies(response);
 
-      // Create new share link for the moved file
+      // Create new share link for the moved file - forced public share
       const shareLink = await this.createPublicShare(destinationPath);
 
       return {
@@ -539,56 +539,74 @@ class NextcloudController {
     }
   }
 
+  // SIMPLIFIED PUBLIC SHARE METHOD - NO FALLBACK TO DIRECT URL
   async createPublicShare(filePath) {
-    try {
-      const shareParams = new URLSearchParams({
-        path: filePath,
-        shareType: "3",
-        permissions: "1",
-        publicUpload: "false",
-        password: "",
-        expireDate: "",
-      });
+    const baseUrl = this.baseUrl.replace(
+      "/remote.php/dav/files/" + this.username,
+      ""
+    );
 
-      const baseUrl = this.baseUrl.replace(
-        "/remote.php/dav/files/" + this.username,
-        ""
-      );
+    const shareParams = new URLSearchParams({
+      path: filePath,
+      shareType: "3", // Public link share
+      permissions: "1", // Read-only permission
+      publicUpload: "false",
+    });
 
-      const response = await axios.post(
-        `${baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares`,
-        shareParams.toString(),
-        {
-          headers: {
-            Authorization: `Basic ${this.auth}`,
-            "OCS-APIRequest": "true",
-            "Content-Type": "application/x-www-form-urlencoded",
-            Accept: "application/json",
-            ...(Object.keys(this.cookies).length > 0 && {
-              Cookie: this.getCookieHeader(),
-            }),
-          },
+    const headers = {
+      Authorization: `Basic ${this.auth}`,
+      "OCS-APIRequest": "true",
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+      ...(Object.keys(this.cookies).length > 0 && {
+        Cookie: this.getCookieHeader(),
+      }),
+    };
+
+    // Try up to 3 times with increasing timeout
+    const attempts = [
+      { timeout: 5000 },
+      { timeout: 10000 },
+      { timeout: 15000 },
+    ];
+
+    for (let i = 0; i < attempts.length; i++) {
+      try {
+        const response = await axios.post(
+          `${baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares`,
+          shareParams.toString(),
+          {
+            headers,
+            timeout: attempts[i].timeout,
+          }
+        );
+
+        this.storeCookies(response);
+
+        if (response.data?.ocs?.data?.url) {
+          return response.data.ocs.data.url;
         }
-      );
 
-      this.storeCookies(response);
+        // If no URL in response, try next attempt
+        throw new Error("No share URL in response");
+      } catch (attemptError) {
+        console.warn(`Share attempt ${i + 1} failed:`, attemptError.message);
 
-      if (response.data && response.data.ocs && response.data.ocs.data) {
-        const shareData = response.data.ocs.data;
-        if (shareData.url) {
-          return shareData.url;
+        if (i === attempts.length - 1) {
+          // Last attempt failed, throw error - NO FALLBACK TO DIRECT URL
+          throw new Error(
+            `Failed to create public share after ${attempts.length} attempts: ${attemptError.message}`
+          );
         }
+
+        // Wait a bit before next attempt
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
-
-      // Fallback to direct URL
-      return this.getDirectDownloadUrl(filePath);
-    } catch (error) {
-      return this.getDirectDownloadUrl(filePath);
     }
   }
 
   getDirectDownloadUrl(filePath) {
-    // Split path and encode each segment separately
+    // This method is kept for other uses, but NOT used as fallback for createPublicShare
     const pathSegments = filePath.split("/");
     const encodedSegments = pathSegments.map((segment) =>
       encodeURIComponent(segment)
