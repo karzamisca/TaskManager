@@ -1,7 +1,4 @@
 // views\userPages\userMonthlyRecord\userMonthlyRecord.js
-// ====================================================================
-// USER MONTHLY RECORD - IMPROVED VERSION
-// ====================================================================
 
 // ====================================================================
 // CONSTANTS AND CONFIGURATION
@@ -432,6 +429,8 @@ const createRecordRow = (record) => {
     <td>${monthName} ${record.recordYear || "N/A"}</td>
     <td>${record.baseSalary.toLocaleString()}</td>
     <td>${record.hourlyWage.toLocaleString()}</td>
+    <td>${record.commissionBonus.toLocaleString()}</td>
+    <td>${record.otherBonus.toLocaleString()}</td>
     <td>${record.overtimePay.toLocaleString()}</td>
     <td>${record.currentSalary.toLocaleString()}</td>
     <td>${record.tax.toLocaleString()}</td>
@@ -460,7 +459,7 @@ const renderTable = (records) => {
   if (records.length === 0) {
     recordsBody.innerHTML = `
       <tr>
-        <td colspan="8" style="text-align: center; padding: 20px; color: #666;">
+        <td colspan="11" style="text-align: center; padding: 20px; color: #666;">
           Không tìm thấy bản ghi nào phù hợp với tiêu chí tìm kiếm.
         </td>
       </tr>
@@ -619,6 +618,7 @@ const createModalContent = (record) => {
       <p><strong>Trách nhiệm:</strong> ${record.responsibility.toLocaleString()}</p>
       <p><strong>Công tác phí:</strong> ${record.travelExpense.toLocaleString()}</p>
       <p><strong>Hoa hồng:</strong> ${record.commissionBonus.toLocaleString()}</p>
+      <p><strong>Thưởng khác:</strong> ${record.otherBonus.toLocaleString()}</p>
     </div>
 
     <div class="modal-section">

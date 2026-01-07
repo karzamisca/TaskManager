@@ -180,6 +180,7 @@ exports.createUser = async (req, res) => {
       baseSalary,
       commissionBonus,
       responsibility,
+      otherBonus,
       weekdayOvertimeHour,
       weekendOvertimeHour,
       holidayOvertimeHour,
@@ -210,6 +211,7 @@ exports.createUser = async (req, res) => {
       baseSalary,
       commissionBonus: commissionBonus || 0,
       responsibility: responsibility || 0,
+      otherBonus: otherBonus || 0,
       weekdayOvertimeHour: weekdayOvertimeHour || 0,
       weekendOvertimeHour: weekendOvertimeHour || 0,
       holidayOvertimeHour: holidayOvertimeHour || 0,
@@ -258,6 +260,7 @@ exports.updateUser = async (req, res) => {
       citizenID,
       commissionBonus,
       responsibility,
+      otherBonus,
       weekdayOvertimeHour,
       weekendOvertimeHour,
       holidayOvertimeHour,
@@ -299,6 +302,7 @@ exports.updateUser = async (req, res) => {
       user.commissionBonus = commissionBonus;
     }
     if (responsibility !== undefined) user.responsibility = responsibility;
+    if (otherBonus !== undefined) user.otherBonus = otherBonus;
     if (weekdayOvertimeHour !== undefined)
       user.weekdayOvertimeHour = weekdayOvertimeHour;
     if (weekendOvertimeHour !== undefined)

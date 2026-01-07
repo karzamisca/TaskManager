@@ -1,4 +1,4 @@
-//views\userPages\userSalaryCalculation\userSalaryCalculation.js
+// views\userPages\userSalaryCalculation\userSalaryCalculation.js
 let selectedUsers = new Set();
 let currentFilteredUsers = [];
 
@@ -71,6 +71,7 @@ async function exportToExcel() {
     "Lương cơ bản",
     "Lương theo giờ",
     "Hoa hồng",
+    "Thưởng khác",
     "Trách nhiệm",
     "Giờ tăng ca trong tuần",
     "Giờ tăng ca Chủ Nhật",
@@ -101,6 +102,7 @@ async function exportToExcel() {
     safeFormat(user.baseSalary),
     safeFormat(user.hourlyWage),
     safeFormat(user.commissionBonus),
+    safeFormat(user.otherBonus),
     safeFormat(user.responsibility),
     safeFormat(user.weekdayOvertimeHour),
     safeFormat(user.weekendOvertimeHour),
@@ -362,7 +364,7 @@ function renderUsers() {
   }
 
   if (currentFilteredUsers.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="24" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="25" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
     return;
   }
 
@@ -404,6 +406,7 @@ function renderUsers() {
       <td>${formatNumber(user.baseSalary)}</td>
       <td>${formatNumber(user.hourlyWage)}</td>
       <td>${formatNumber(user.commissionBonus)}</td>
+      <td>${formatNumber(user.otherBonus)}</td>
       <td>${formatNumber(user.responsibility)}</td>
       <td>${user.weekdayOvertimeHour || 0}</td>
       <td>${user.weekendOvertimeHour || 0}</td>
@@ -449,6 +452,8 @@ async function addUser(e) {
     commissionBonus: parseFloat(
       document.getElementById("new-commission-bonus").value
     ),
+    otherBonus:
+      parseFloat(document.getElementById("new-other-bonus").value) || 0,
     responsibility: parseFloat(
       document.getElementById("new-responsibility").value
     ),
@@ -506,6 +511,7 @@ async function editUser(id) {
   document.getElementById("edit-citizen-id").value = user.citizenID || "0";
   document.getElementById("edit-base-salary").value = user.baseSalary;
   document.getElementById("edit-commission-bonus").value = user.commissionBonus;
+  document.getElementById("edit-other-bonus").value = user.otherBonus || 0;
   document.getElementById("edit-responsibility").value = user.responsibility;
   document.getElementById("edit-weekday-overtime").value =
     user.weekdayOvertimeHour;
@@ -557,6 +563,8 @@ async function updateUser(e) {
     commissionBonus: parseFloat(
       document.getElementById("edit-commission-bonus").value
     ),
+    otherBonus:
+      parseFloat(document.getElementById("edit-other-bonus").value) || 0,
     responsibility: parseFloat(
       document.getElementById("edit-responsibility").value
     ),

@@ -34,6 +34,7 @@ const userSchema = new mongoose.Schema({
   hourlyWage: { type: Number, default: 0 },
   commissionBonus: { type: Number, default: 0 },
   responsibility: { type: Number, default: 0 },
+  otherBonus: { type: Number, default: 0 },
   weekdayOvertimeHour: { type: Number, default: 0 },
   weekendOvertimeHour: { type: Number, default: 0 },
   holidayOvertimeHour: { type: Number, default: 0 },
@@ -76,6 +77,7 @@ userSchema.pre("save", function (next) {
     this.baseSalary +
     this.commissionBonus +
     this.responsibility +
+    this.otherBonus +
     this.overtimePay +
     this.travelExpense;
 

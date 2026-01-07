@@ -73,6 +73,7 @@ async function createMonthlyUserRecords(recordDate = new Date()) {
           hourlyWage: user.hourlyWage,
           commissionBonus: user.commissionBonus,
           responsibility: user.responsibility,
+          otherBonus: user.otherBonus,
           weekdayOvertimeHour: user.weekdayOvertimeHour,
           weekendOvertimeHour: user.weekendOvertimeHour,
           holidayOvertimeHour: user.holidayOvertimeHour,
