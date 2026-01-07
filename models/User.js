@@ -85,7 +85,7 @@ userSchema.pre("save", function (next) {
 
   // Vietnam has both minimum salary and regional minimum salary
   const minimumSalary = 2340000; // Basic minimum salary in VND
-  const regionalMinSalary = 4960000; // Region I minimum salary in VND
+  const regionalMinSalary = 5310000; // Region I minimum salary in VND
 
   // For social insurance and health insurance, cap is based on 20x basic minimum salary
   // For unemployment insurance, cap is based on 20x regional minimum salary
@@ -100,8 +100,8 @@ userSchema.pre("save", function (next) {
     this.insurableSalary > 0 ? siHiContribution + uiContribution : 0;
 
   // Calculate taxable income according to Vietnamese law
-  const standardDeduction = 11000000; // 11 million VND/month
-  const dependantDeduction = 4400000 * this.dependantCount; // 4.4 million per dependant
+  const standardDeduction = 15500000;
+  const dependantDeduction = 6200000 * this.dependantCount;
 
   this.taxableIncome = Math.max(
     0,
