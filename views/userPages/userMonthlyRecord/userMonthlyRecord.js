@@ -68,12 +68,6 @@ const elements = {
 // ====================================================================
 
 /**
- * Formats a number as Vietnamese currency
- * @param {number} amount - The amount to format
- * @returns {string} Formatted currency string
- */
-
-/**
  * Formats a date to Vietnamese locale
  * @param {string|Date} date - The date to format
  * @returns {string} Formatted date string
@@ -127,6 +121,19 @@ const safeGet = (obj, path, fallback = "N/A") => {
         current && current[key] !== undefined ? current[key] : fallback,
       obj
     );
+};
+
+/**
+ * Safely converts value to locale string for numbers
+ * @param {*} value - Value to convert
+ * @returns {string} Formatted number or "0" if invalid
+ */
+const safeToLocaleString = (value) => {
+  if (value === null || value === undefined || value === "" || isNaN(value)) {
+    return "0";
+  }
+  const num = Number(value);
+  return isNaN(num) ? "0" : num.toLocaleString();
 };
 
 /**
@@ -427,13 +434,13 @@ const createRecordRow = (record) => {
   row.innerHTML = `
     <td>${safeGet(record, "realName", "N/A")}</td>
     <td>${monthName} ${record.recordYear || "N/A"}</td>
-    <td>${record.baseSalary.toLocaleString()}</td>
-    <td>${record.hourlyWage.toLocaleString()}</td>
-    <td>${record.commissionBonus.toLocaleString()}</td>
-    <td>${record.otherBonus.toLocaleString()}</td>
-    <td>${record.overtimePay.toLocaleString()}</td>
-    <td>${record.currentSalary.toLocaleString()}</td>
-    <td>${record.tax.toLocaleString()}</td>
+    <td>${safeToLocaleString(record.baseSalary)}</td>
+    <td>${safeToLocaleString(record.hourlyWage)}</td>
+    <td>${safeToLocaleString(record.commissionBonus)}</td>
+    <td>${safeToLocaleString(record.otherBonus)}</td>
+    <td>${safeToLocaleString(record.overtimePay)}</td>
+    <td>${safeToLocaleString(record.currentSalary)}</td>
+    <td>${safeToLocaleString(record.tax)}</td>
     <td>${safeGet(record, "costCenter.name")}</td>
     <td>
       <button class="view-details" data-id="${record._id}" 
@@ -610,15 +617,27 @@ const createModalContent = (record) => {
       <p><strong>Ngân hàng thụ hưởng:</strong> ${
         record.beneficiaryBank || "Chưa cập nhật"
       }</p>
-      <p><strong>Lương cơ bản:</strong> ${record.baseSalary.toLocaleString()}</p>
-      <p><strong>Lương theo giờ:</strong> ${record.hourlyWage.toLocaleString()}</p>
+      <p><strong>Lương cơ bản:</strong> ${safeToLocaleString(
+        record.baseSalary
+      )}</p>
+      <p><strong>Lương theo giờ:</strong> ${safeToLocaleString(
+        record.hourlyWage
+      )}</p>
     </div>
 
     <div class="modal-section">
-      <p><strong>Trách nhiệm:</strong> ${record.responsibility.toLocaleString()}</p>
-      <p><strong>Công tác phí:</strong> ${record.travelExpense.toLocaleString()}</p>
-      <p><strong>Hoa hồng:</strong> ${record.commissionBonus.toLocaleString()}</p>
-      <p><strong>Thưởng khác:</strong> ${record.otherBonus.toLocaleString()}</p>
+      <p><strong>Trách nhiệm:</strong> ${safeToLocaleString(
+        record.responsibility
+      )}</p>
+      <p><strong>Công tác phí:</strong> ${safeToLocaleString(
+        record.travelExpense
+      )}</p>
+      <p><strong>Hoa hồng:</strong> ${safeToLocaleString(
+        record.commissionBonus
+      )}</p>
+      <p><strong>Thưởng khác:</strong> ${safeToLocaleString(
+        record.otherBonus
+      )}</p>
     </div>
 
     <div class="modal-section">
@@ -631,23 +650,35 @@ const createModalContent = (record) => {
       <p><strong>Giờ tăng ca ngày lễ:</strong> ${
         record.holidayOvertimeHour || 0
       } giờ</p>
-      <p><strong>Lương tăng ca:</strong> ${record.overtimePay.toLocaleString()}</p>
+      <p><strong>Lương tăng ca:</strong> ${safeToLocaleString(
+        record.overtimePay
+      )}</p>
     </div>
 
     <div class="modal-section">
-      <p><strong>Tổng lương:</strong> ${record.grossSalary.toLocaleString()}</p>
+      <p><strong>Tổng lương:</strong> ${safeToLocaleString(
+        record.grossSalary
+      )}</p>
     </div>
 
     <div class="modal-section">
-      <p><strong>Lương tính thuế:</strong> ${record.taxableIncome.toLocaleString()}</p>
-      <p><strong>Thuế thu nhập:</strong> ${record.tax.toLocaleString()}</p>
+      <p><strong>Lương tính thuế:</strong> ${safeToLocaleString(
+        record.taxableIncome
+      )}</p>
+      <p><strong>Thuế thu nhập:</strong> ${safeToLocaleString(record.tax)}</p>
       <p><strong>Số người phụ thuộc:</strong> ${record.dependantCount || 0}</p>
-      <p><strong>Lương đóng bảo hiểm:</strong> ${record.insurableSalary.toLocaleString()}</p>
-      <p><strong>Bảo hiểm bắt buộc:</strong> ${record.mandatoryInsurance.toLocaleString()}</p>
+      <p><strong>Lương đóng bảo hiểm:</strong> ${safeToLocaleString(
+        record.insurableSalary
+      )}</p>
+      <p><strong>Bảo hiểm bắt buộc:</strong> ${safeToLocaleString(
+        record.mandatoryInsurance
+      )}</p>
     </div>
 
     <div class="modal-section">  
-      <p><strong>Lương thực lĩnh:</strong> ${record.currentSalary.toLocaleString()}</p>
+      <p><strong>Lương thực lĩnh:</strong> ${safeToLocaleString(
+        record.currentSalary
+      )}</p>
     </div>
   `;
 };
@@ -705,7 +736,28 @@ const handleResetFilters = () => {
   if (costCenterFilter) costCenterFilter.value = "";
   if (bankFilter) bankFilter.value = "";
 
-  state.filters = { year: "", month: "", costCenter: "", bank: "" };
+  // Reset reverse filter buttons
+  ["yearReverse", "monthReverse", "costCenterReverse", "bankReverse"].forEach(
+    (id) => {
+      const button = document.getElementById(id);
+      if (button) {
+        button.classList.remove("active");
+      }
+    }
+  );
+
+  state.filters = {
+    year: "",
+    month: "",
+    costCenter: "",
+    bank: "",
+    reverseFilters: {
+      year: false,
+      month: false,
+      costCenter: false,
+      bank: false,
+    },
+  };
   state.currentPage = 1;
   updateDisplay();
 };
@@ -939,6 +991,7 @@ if (typeof module !== "undefined" && module.exports) {
     formatDate,
     getMonthName,
     safeGet,
+    safeToLocaleString,
     filterRecords,
     paginateRecords,
     extractUniqueYears,
