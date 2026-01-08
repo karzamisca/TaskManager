@@ -568,8 +568,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       .populate({
         path: "assignedManager",
         select: "role",
-      })
-      .sort({ realName: 1 });
+      });
 
     // Filter out records where:
     // 1. userId is null (due to populate match filter)
@@ -618,6 +617,21 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
         .status(404)
         .json({ message: "Không tìm thấy bản ghi nào phù hợp" });
     }
+
+    // Sort records by costCenter name, then by realName
+    records.sort((a, b) => {
+      const costCenterA = a.costCenter?.name || "";
+      const costCenterB = b.costCenter?.name || "";
+      const nameA = a.realName || "";
+      const nameB = b.realName || "";
+
+      // First sort by cost center
+      if (costCenterA < costCenterB) return -1;
+      if (costCenterA > costCenterB) return 1;
+
+      // If same cost center, sort by name
+      return nameA.localeCompare(nameB);
+    });
 
     // Download fonts with error handling
     let fonts;
@@ -892,8 +906,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       .populate({
         path: "assignedManager",
         select: "role",
-      })
-      .sort({ realName: 1 });
+      });
 
     // Filter out records where:
     // 1. userId is null (due to populate match filter)
@@ -942,6 +955,21 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         .status(404)
         .json({ message: "Không tìm thấy bản ghi nào phù hợp" });
     }
+
+    // Sort records by costCenter name, then by realName
+    records.sort((a, b) => {
+      const costCenterA = a.costCenter?.name || "";
+      const costCenterB = b.costCenter?.name || "";
+      const nameA = a.realName || "";
+      const nameB = b.realName || "";
+
+      // First sort by cost center
+      if (costCenterA < costCenterB) return -1;
+      if (costCenterA > costCenterB) return 1;
+
+      // If same cost center, sort by name
+      return nameA.localeCompare(nameB);
+    });
 
     // Create a new workbook
     const workbook = new ExcelJS.Workbook();
