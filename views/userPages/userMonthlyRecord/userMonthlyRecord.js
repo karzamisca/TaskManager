@@ -237,12 +237,12 @@ const filterRecords = (records, filters) => {
         : record.recordYear == filters.year
       : true;
 
-    // Month filter with reverse option
+    // Month filter with reverse option - handle "all months" (empty string)
     const monthMatch = filters.month
       ? filters.reverseFilters.month
         ? record.recordMonth != filters.month
         : record.recordMonth == filters.month
-      : true;
+      : true; // If month is empty, show all months
 
     // Cost Center filter with reverse option
     const costCenterMatch = filters.costCenter
@@ -302,12 +302,17 @@ const exportToPDF = () => {
   const { year, month, costCenter, bank } = state.filters;
   const { reverseFilters } = state.filters;
 
-  if (!year || !month) {
-    alert("Vui lòng chọn cả năm và tháng để xuất báo cáo chi lương");
+  if (!year) {
+    alert("Vui lòng chọn năm để xuất báo cáo chi lương");
     return;
   }
 
-  let url = `/exportSalaryPDF?month=${month}&year=${year}`;
+  let url = `/exportSalaryPDF?year=${year}`;
+
+  // Add month if selected
+  if (month) {
+    url += `&month=${month}`;
+  }
 
   if (costCenter) {
     url += `&costCenter=${costCenter}`;
@@ -345,8 +350,8 @@ const exportToExcel = async () => {
   const { year, month, costCenter, bank } = state.filters;
   const { reverseFilters } = state.filters;
 
-  if (!year || !month) {
-    alert("Vui lòng chọn cả năm và tháng để xuất báo cáo chi lương");
+  if (!year) {
+    alert("Vui lòng chọn năm để xuất báo cáo chi lương");
     return;
   }
 
@@ -355,7 +360,12 @@ const exportToExcel = async () => {
   loadingDiv.style.display = "block";
   loadingDiv.innerHTML = "Đang tạo báo cáo Excel, vui lòng chờ...";
 
-  let url = `/exportSalaryExcel?month=${month}&year=${year}`;
+  let url = `/exportSalaryExcel?year=${year}`;
+
+  // Add month if selected
+  if (month) {
+    url += `&month=${month}`;
+  }
 
   if (costCenter) {
     url += `&costCenter=${costCenter}`;
