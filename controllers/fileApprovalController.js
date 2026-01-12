@@ -49,11 +49,12 @@ class NextcloudController {
     this.getSubcategoryPath = this.getSubcategoryPath.bind(this);
     this.convertToAsciiFolderName = this.convertToAsciiFolderName.bind(this);
     this.isMonthlyDocument = this.isMonthlyDocument.bind(this);
-
-    // New methods for approved file viewing
     this.getApprovedFiles = this.getApprovedFiles.bind(this);
     this.setFilePermissions = this.setFilePermissions.bind(this);
     this.getEligibleUsers = this.getEligibleUsers.bind(this);
+    this.moveFileOnly = this.moveFileOnly.bind(this);
+    this.deleteShare = this.deleteShare.bind(this);
+    this.getShareId = this.getShareId.bind(this);
   }
 
   // Helper method to convert Vietnamese categories to ASCII folder names
@@ -493,7 +494,83 @@ class NextcloudController {
     }
   }
 
-  async moveFileInNextcloud(sourcePath, destinationPath) {
+  // NEW: Get share ID from file path
+  async getShareId(filePath) {
+    const baseUrl = this.baseUrl.replace(
+      "/remote.php/dav/files/" + this.username,
+      ""
+    );
+
+    try {
+      const response = await axios.get(
+        `${baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares`,
+        {
+          headers: {
+            Authorization: `Basic ${this.auth}`,
+            "OCS-APIRequest": "true",
+            Accept: "application/json",
+            ...(Object.keys(this.cookies).length > 0 && {
+              Cookie: this.getCookieHeader(),
+            }),
+          },
+          params: {
+            path: filePath,
+          },
+        }
+      );
+
+      this.storeCookies(response);
+
+      if (response.data?.ocs?.data && Array.isArray(response.data.ocs.data)) {
+        // Find public link shares (shareType: 3)
+        const publicShares = response.data.ocs.data.filter(
+          (share) => share.share_type === 3
+        );
+
+        if (publicShares.length > 0) {
+          return publicShares.map((share) => share.id);
+        }
+      }
+
+      return [];
+    } catch (error) {
+      console.warn("Failed to get share IDs:", error.message);
+      return [];
+    }
+  }
+
+  // NEW: Delete existing share link
+  async deleteShare(shareId) {
+    const baseUrl = this.baseUrl.replace(
+      "/remote.php/dav/files/" + this.username,
+      ""
+    );
+
+    try {
+      const response = await axios.delete(
+        `${baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares/${shareId}`,
+        {
+          headers: {
+            Authorization: `Basic ${this.auth}`,
+            "OCS-APIRequest": "true",
+            Accept: "application/json",
+            ...(Object.keys(this.cookies).length > 0 && {
+              Cookie: this.getCookieHeader(),
+            }),
+          },
+        }
+      );
+
+      this.storeCookies(response);
+      return { success: true };
+    } catch (error) {
+      console.warn("Failed to delete share:", error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // NEW: Move file only (without creating share)
+  async moveFileOnly(sourcePath, destinationPath) {
     try {
       const response = await axios.request({
         method: "MOVE",
@@ -509,13 +586,41 @@ class NextcloudController {
 
       this.storeCookies(response);
 
-      // Create new share link for the moved file - forced public share
-      const shareLink = await this.createPublicShare(destinationPath);
+      return {
+        success: true,
+        newPath: destinationPath,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // UPDATED: Move file and RECREATE share link
+  async moveFileInNextcloud(sourcePath, destinationPath) {
+    try {
+      // Step 1: Get existing share IDs for the source file
+      const shareIds = await this.getShareId(sourcePath);
+
+      // Step 2: Delete all existing shares for this file
+      if (shareIds.length > 0) {
+        console.log(
+          `Deleting ${shareIds.length} existing share(s) for ${sourcePath}...`
+        );
+        for (const shareId of shareIds) {
+          await this.deleteShare(shareId);
+        }
+      }
+
+      // Step 3: Move the file
+      await this.moveFileOnly(sourcePath, destinationPath);
+
+      // Step 4: Create NEW share link for the moved file
+      const newShareLink = await this.createPublicShare(destinationPath);
 
       return {
         success: true,
         newPath: destinationPath,
-        downloadUrl: shareLink,
+        downloadUrl: newShareLink,
       };
     } catch (error) {
       throw error;
@@ -539,7 +644,7 @@ class NextcloudController {
     }
   }
 
-  // SIMPLIFIED PUBLIC SHARE METHOD - NO FALLBACK TO DIRECT URL
+  // Create public share link
   async createPublicShare(filePath) {
     const baseUrl = this.baseUrl.replace(
       "/remote.php/dav/files/" + this.username,
@@ -593,7 +698,7 @@ class NextcloudController {
         console.warn(`Share attempt ${i + 1} failed:`, attemptError.message);
 
         if (i === attempts.length - 1) {
-          // Last attempt failed, throw error - NO FALLBACK TO DIRECT URL
+          // Last attempt failed, throw error
           throw new Error(
             `Failed to create public share after ${attempts.length} attempts: ${attemptError.message}`
           );
@@ -635,7 +740,7 @@ class NextcloudController {
     return mimeTypes[ext] || "application/octet-stream";
   }
 
-  // NEW METHODS FOR APPROVED FILE VIEWING
+  // APPROVED FILE VIEWING METHODS
 
   // Get approved files with permission filtering
   async getApprovedFiles(req, res) {
@@ -951,6 +1056,10 @@ class NextcloudController {
       const sourcePath = fileApproval.nextcloudPath;
       const destinationPath = `${approvedPath}/${fileApproval.fileName}`;
 
+      // This will:
+      // 1. Delete old share from Pending folder
+      // 2. Move file to Approved folder
+      // 3. Create NEW share for the moved file
       const moveResult = await this.moveFileInNextcloud(
         sourcePath,
         destinationPath
@@ -958,7 +1067,7 @@ class NextcloudController {
 
       fileApproval.status = "approved";
       fileApproval.nextcloudPath = moveResult.newPath;
-      fileApproval.shareUrl = moveResult.downloadUrl;
+      fileApproval.shareUrl = moveResult.downloadUrl; // NEW share URL
       fileApproval.actionTakenAt = new Date();
       fileApproval.actionTakenBy = req.user ? req.user.username : "system";
 
@@ -966,7 +1075,7 @@ class NextcloudController {
 
       res.json({
         success: true,
-        message: `File approved and moved to ${fileApproval.category} category`,
+        message: `File approved and moved to ${fileApproval.category} category with new share link`,
         shareUrl: moveResult.downloadUrl,
         file: fileApproval,
       });
@@ -1208,7 +1317,7 @@ class NextcloudController {
                     ],
                   },
                   in: {
-                    $arrayElemAt: ["$$months", { $subtract: ["$month", 1] }],
+                    $arrayElemAt: ["$months", { $subtract: ["$month", 1] }],
                   },
                 },
               },
