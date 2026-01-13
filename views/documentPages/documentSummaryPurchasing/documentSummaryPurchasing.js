@@ -16,10 +16,478 @@ const state = {
   nameFilter: "",
   currentGroupFilter: [], // Changed from string to array for multiple selection
   currentCostCenterFilter: [], // Array for multiple selection
+  currentTotalCostFilter: "", // NEW: Total cost filter
+  currentDateFilter: "", // NEW: Date filter
+  customTotalCostRange: { min: null, max: null }, // NEW: Custom cost range
+  customDateRange: { from: null, to: null }, // NEW: Custom date range
   costCenters: [],
   groups: [], // Add groups array
 };
 
+// Helper function to validate and parse dd/mm/yyyy dates
+const validateAndParseDate = (dateStr) => {
+  if (!dateStr) return { isValid: false, date: null, message: "" };
+
+  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+  const match = dateStr.match(regex);
+
+  if (!match) {
+    return {
+      isValid: false,
+      date: null,
+      message:
+        "Định dạng ngày không hợp lệ. Vui lòng nhập theo định dạng dd/mm/yyyy",
+    };
+  }
+
+  const day = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const year = parseInt(match[3], 10);
+
+  // Basic validation
+  if (month < 1 || month > 12) {
+    return {
+      isValid: false,
+      date: null,
+      message: "Tháng phải từ 01 đến 12",
+    };
+  }
+
+  // Check day range based on month
+  const daysInMonth = new Date(year, month, 0).getDate();
+  if (day < 1 || day > daysInMonth) {
+    return {
+      isValid: false,
+      date: null,
+      message: `Tháng ${month} chỉ có từ 01 đến ${daysInMonth} ngày`,
+    };
+  }
+
+  // Check year range (reasonable range)
+  const currentYear = new Date().getFullYear();
+  if (year < 2000 || year > currentYear + 10) {
+    return {
+      isValid: false,
+      date: null,
+      message: `Năm phải từ 2000 đến ${currentYear + 10}`,
+    };
+  }
+
+  const date = new Date(year, month - 1, day);
+
+  // Verify the parsed date matches the input
+  if (
+    date.getDate() !== day ||
+    date.getMonth() !== month - 1 ||
+    date.getFullYear() !== year
+  ) {
+    return {
+      isValid: false,
+      date: null,
+      message: "Ngày không hợp lệ",
+    };
+  }
+
+  return { isValid: true, date, message: "" };
+};
+
+// Helper functions for date parsing and filtering
+const parseSubmissionDate = (dateString) => {
+  if (!dateString) return null;
+
+  // Parse DD-MM-YYYY HH:MM:SS format
+  const parts = dateString.split(" ");
+  if (parts.length < 2) return null;
+
+  const datePart = parts[0];
+  const timePart = parts[1] || "00:00:00";
+
+  const dateParts = datePart.split("-");
+  if (dateParts.length !== 3) return null;
+
+  const day = parseInt(dateParts[0], 10);
+  const month = parseInt(dateParts[1], 10) - 1; // Month is 0-indexed
+  const year = parseInt(dateParts[2], 10);
+
+  const timeParts = timePart.split(":");
+  const hour = timeParts.length > 0 ? parseInt(timeParts[0], 10) : 0;
+  const minute = timeParts.length > 1 ? parseInt(timeParts[1], 10) : 0;
+  const second = timeParts.length > 2 ? parseInt(timeParts[2], 10) : 0;
+
+  return new Date(year, month, day, hour, minute, second);
+};
+
+const getDateRange = (filterType, customRange = null) => {
+  const now = new Date();
+  const start = new Date();
+  const end = new Date();
+
+  // If custom range is provided, use it
+  if (filterType === "custom" && customRange) {
+    if (customRange.from) {
+      const fromParts = customRange.from.split("/");
+      if (fromParts.length === 3) {
+        start.setDate(parseInt(fromParts[0], 10));
+        start.setMonth(parseInt(fromParts[1], 10) - 1);
+        start.setFullYear(parseInt(fromParts[2], 10));
+        start.setHours(0, 0, 0, 0);
+      }
+    } else {
+      start.setTime(new Date(0).getTime()); // Earliest possible date
+    }
+
+    if (customRange.to) {
+      const toParts = customRange.to.split("/");
+      if (toParts.length === 3) {
+        end.setDate(parseInt(toParts[0], 10));
+        end.setMonth(parseInt(toParts[1], 10) - 1);
+        end.setFullYear(parseInt(toParts[2], 10));
+        end.setHours(23, 59, 59, 999);
+      }
+    } else {
+      end.setTime(new Date().getTime()); // Current date
+      end.setHours(23, 59, 59, 999);
+    }
+
+    return { start, end };
+  }
+
+  switch (filterType) {
+    case "today":
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case "thisWeek":
+      // Start from Monday (0 = Sunday, 1 = Monday in getDay())
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      start.setDate(diff);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case "thisMonth":
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      end.setMonth(now.getMonth() + 1, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case "lastMonth":
+      start.setMonth(now.getMonth() - 1, 1);
+      start.setHours(0, 0, 0, 0);
+      end.setMonth(now.getMonth(), 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case "last3Months":
+      start.setMonth(now.getMonth() - 3);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case "thisYear":
+      start.setMonth(0, 1);
+      start.setHours(0, 0, 0, 0);
+      end.setMonth(11, 31);
+      end.setHours(23, 59, 59, 999);
+      break;
+    default:
+      return { start: null, end: null };
+  }
+
+  return { start, end };
+};
+
+const isDateInRange = (dateString, filterType, customRange = null) => {
+  if (!dateString || !filterType) return true;
+
+  const { start, end } = getDateRange(filterType, customRange);
+  if (!start || !end) return true;
+
+  const date = parseSubmissionDate(dateString);
+  if (!date) return true;
+
+  return date >= start && date <= end;
+};
+
+const isInTotalCostRange = (amount, range, customRange = null) => {
+  if (!amount && amount !== 0) return true;
+
+  // If custom range is provided, use it
+  if (range === "custom" && customRange) {
+    const { min, max } = customRange;
+    if (min !== null && amount < min) return false;
+    if (max !== null && amount > max) return false;
+    return true;
+  }
+
+  if (!range) return true;
+
+  if (range === "0-500000") {
+    return amount < 500000;
+  } else if (range === "500000-2000000") {
+    return amount >= 500000 && amount < 2000000;
+  } else if (range === "2000000-5000000") {
+    return amount >= 2000000 && amount < 5000000;
+  } else if (range === "5000000-10000000") {
+    return amount >= 5000000 && amount < 10000000;
+  } else if (range === "10000000-") {
+    return amount >= 10000000;
+  }
+
+  return true;
+};
+
+// Format date to dd/mm/yyyy
+const formatDateToDDMMYYYY = (date) => {
+  if (!date) return "";
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  return `${day}/${month}/${year}`;
+};
+
+// Format date for display
+const formatDisplayDate = (dateStr) => {
+  if (!dateStr) return "";
+
+  // If it's already in dd/mm/yyyy format, return as is
+  if (dateStr.includes("/")) {
+    return dateStr;
+  }
+
+  // If it's a Date object string, format it
+  try {
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      return formatDateToDDMMYYYY(date);
+    }
+  } catch (e) {
+    console.error("Error formatting date:", e);
+  }
+
+  return dateStr;
+};
+
+// Custom filter UI handlers
+const setupCustomFilterHandlers = () => {
+  // Total cost custom filter (remains the same)
+  const totalCostFilter = document.getElementById("totalCostFilter");
+  const totalCostCustomContainer = document.getElementById(
+    "totalCostCustomContainer"
+  );
+  const applyTotalCostCustom = document.getElementById("applyTotalCostCustom");
+  const clearTotalCostCustom = document.getElementById("clearTotalCostCustom");
+  const totalCostMin = document.getElementById("totalCostMin");
+  const totalCostMax = document.getElementById("totalCostMax");
+
+  totalCostFilter.addEventListener("change", (e) => {
+    if (e.target.value === "custom") {
+      totalCostCustomContainer.style.display = "block";
+      // Reset custom inputs
+      totalCostMin.value = "";
+      totalCostMax.value = "";
+    } else {
+      totalCostCustomContainer.style.display = "none";
+      state.customTotalCostRange = { min: null, max: null };
+      state.currentTotalCostFilter = e.target.value;
+      state.currentPage = 1;
+      fetchPurchasingDocuments();
+    }
+  });
+
+  applyTotalCostCustom.addEventListener("click", () => {
+    const min = totalCostMin.value ? parseFloat(totalCostMin.value) : null;
+    const max = totalCostMax.value ? parseFloat(totalCostMax.value) : null;
+
+    if (min === null && max === null) {
+      showMessage(
+        "Vui lòng nhập ít nhất một giá trị cho khoảng tùy chỉnh",
+        true
+      );
+      return;
+    }
+
+    if (min !== null && max !== null && min > max) {
+      showMessage('Giá trị "Từ" không được lớn hơn giá trị "Đến"', true);
+      return;
+    }
+
+    if (min !== null && min < 0) {
+      showMessage("Giá trị không được âm", true);
+      return;
+    }
+
+    if (max !== null && max < 0) {
+      showMessage("Giá trị không được âm", true);
+      return;
+    }
+
+    state.customTotalCostRange = { min, max };
+    state.currentTotalCostFilter = "custom";
+    state.currentPage = 1;
+    fetchPurchasingDocuments();
+
+    // Update dropdown text to show custom range
+    let rangeText = "Tùy chỉnh: ";
+    if (min !== null && max !== null) {
+      rangeText += `${min.toLocaleString()} - ${max.toLocaleString()}`;
+    } else if (min !== null) {
+      rangeText += `Trên ${min.toLocaleString()}`;
+    } else if (max !== null) {
+      rangeText += `Dưới ${max.toLocaleString()}`;
+    }
+
+    // Change the selected option text
+    const customOption = totalCostFilter.querySelector(
+      'option[value="custom"]'
+    );
+    customOption.textContent = rangeText;
+    customOption.title = rangeText;
+
+    showMessage("Đã áp dụng khoảng tùy chỉnh");
+  });
+
+  clearTotalCostCustom.addEventListener("click", () => {
+    totalCostMin.value = "";
+    totalCostMax.value = "";
+    state.customTotalCostRange = { min: null, max: null };
+    state.currentTotalCostFilter = "";
+    totalCostFilter.value = "";
+    totalCostCustomContainer.style.display = "none";
+
+    // Reset custom option text
+    const customOption = totalCostFilter.querySelector(
+      'option[value="custom"]'
+    );
+    customOption.textContent = "Nhập khoảng tùy chỉnh...";
+    customOption.title = "";
+
+    state.currentPage = 1;
+    fetchPurchasingDocuments();
+  });
+
+  // Date custom filter with SIMPLIFIED input (no auto-formatting)
+  const dateFilter = document.getElementById("dateFilter");
+  const dateCustomContainer = document.getElementById("dateCustomContainer");
+  const applyDateCustom = document.getElementById("applyDateCustom");
+  const clearDateCustom = document.getElementById("clearDateCustom");
+  const dateFrom = document.getElementById("dateFrom");
+  const dateTo = document.getElementById("dateTo");
+
+  dateFilter.addEventListener("change", (e) => {
+    if (e.target.value === "custom") {
+      dateCustomContainer.style.display = "block";
+      // Reset date inputs
+      dateFrom.value = "";
+      dateTo.value = "";
+      dateFrom.classList.remove("invalid");
+      dateTo.classList.remove("invalid");
+    } else {
+      dateCustomContainer.style.display = "none";
+      state.customDateRange = { from: null, to: null };
+      state.currentDateFilter = e.target.value;
+      state.currentPage = 1;
+      fetchPurchasingDocuments();
+    }
+  });
+
+  applyDateCustom.addEventListener("click", () => {
+    const from = dateFrom.value.trim();
+    const to = dateTo.value.trim();
+
+    if (!from && !to) {
+      showMessage("Vui lòng nhập ít nhất một ngày cho khoảng tùy chỉnh", true);
+      return;
+    }
+
+    // Validate dates using the helper function
+    let fromDate = null;
+    let toDate = null;
+
+    if (from) {
+      const fromResult = validateAndParseDate(from);
+      if (!fromResult.isValid) {
+        showMessage(`Ngày "Từ": ${fromResult.message}`, true);
+        dateFrom.focus();
+        return;
+      }
+      fromDate = fromResult.date;
+    }
+
+    if (to) {
+      const toResult = validateAndParseDate(to);
+      if (!toResult.isValid) {
+        showMessage(`Ngày "Đến": ${toResult.message}`, true);
+        dateTo.focus();
+        return;
+      }
+      toDate = toResult.date;
+    }
+
+    if (fromDate && toDate && fromDate > toDate) {
+      showMessage('Ngày "Từ" không được sau ngày "Đến"', true);
+      dateFrom.focus();
+      return;
+    }
+
+    state.customDateRange = {
+      from: fromDate ? formatDateToDDMMYYYY(fromDate) : null,
+      to: toDate ? formatDateToDDMMYYYY(toDate) : null,
+    };
+    state.currentDateFilter = "custom";
+    state.currentPage = 1;
+    fetchPurchasingDocuments();
+
+    // Update dropdown text to show custom range
+    let dateText = "Tùy chỉnh: ";
+    if (from && to) {
+      dateText += `${from} - ${to}`;
+    } else if (from) {
+      dateText += `Từ ${from}`;
+    } else if (to) {
+      dateText += `Đến ${to}`;
+    }
+
+    // Change the selected option text
+    const customOption = dateFilter.querySelector('option[value="custom"]');
+    customOption.textContent = dateText;
+    customOption.title = dateText;
+
+    showMessage("Đã áp dụng khoảng ngày tùy chỉnh");
+  });
+
+  clearDateCustom.addEventListener("click", () => {
+    dateFrom.value = "";
+    dateTo.value = "";
+    dateFrom.classList.remove("invalid");
+    dateTo.classList.remove("invalid");
+    state.customDateRange = { from: null, to: null };
+    state.currentDateFilter = "";
+    dateFilter.value = "";
+    dateCustomContainer.style.display = "none";
+
+    // Reset custom option text
+    const customOption = dateFilter.querySelector('option[value="custom"]');
+    customOption.textContent = "Chọn khoảng ngày tùy chỉnh...";
+    customOption.title = "";
+
+    state.currentPage = 1;
+    fetchPurchasingDocuments();
+  });
+
+  // Also handle Enter key in custom date inputs
+  dateFrom.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      applyDateCustom.click();
+    }
+  });
+
+  dateTo.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      applyDateCustom.click();
+    }
+  });
+};
 // Multi-select functionality for cost centers
 const initializeCostCenterMultiSelect = () => {
   const button = document.getElementById("costCenterMultiSelectButton");
@@ -563,6 +1031,28 @@ const filterDocumentsForCurrentUser = (documents) => {
   if (state.currentGroupFilter.length > 0) {
     filteredDocs = filteredDocs.filter((doc) =>
       state.currentGroupFilter.includes(doc.groupName)
+    );
+  }
+
+  // Apply total cost filter
+  if (state.currentTotalCostFilter) {
+    filteredDocs = filteredDocs.filter((doc) =>
+      isInTotalCostRange(
+        doc.grandTotalCost,
+        state.currentTotalCostFilter,
+        state.customTotalCostRange
+      )
+    );
+  }
+
+  // Apply date filter
+  if (state.currentDateFilter) {
+    filteredDocs = filteredDocs.filter((doc) =>
+      isDateInRange(
+        doc.submissionDate,
+        state.currentDateFilter,
+        state.customDateRange
+      )
     );
   }
 
@@ -2430,6 +2920,28 @@ const setupEventListeners = () => {
     fetchPurchasingDocuments();
   });
 
+  // Total cost filter (standard options)
+  const totalCostFilter = document.getElementById("totalCostFilter");
+  totalCostFilter.addEventListener("change", (e) => {
+    if (e.target.value !== "custom") {
+      state.currentTotalCostFilter = e.target.value;
+      state.customTotalCostRange = { min: null, max: null };
+      state.currentPage = 1;
+      fetchPurchasingDocuments();
+    }
+  });
+
+  // Date filter (standard options)
+  const dateFilter = document.getElementById("dateFilter");
+  dateFilter.addEventListener("change", (e) => {
+    if (e.target.value !== "custom") {
+      state.currentDateFilter = e.target.value;
+      state.customDateRange = { from: null, to: null };
+      state.currentPage = 1;
+      fetchPurchasingDocuments();
+    }
+  });
+
   document.addEventListener("keypress", (e) => {
     if (e.target.id === "pageInput" && e.key === "Enter") {
       goToPage();
@@ -2475,6 +2987,7 @@ const setupEventListeners = () => {
 const initialize = async () => {
   await fetchCurrentUser();
   setupEventListeners();
+  setupCustomFilterHandlers(); // NEW: Setup custom filter handlers
   await populateCostCenterMultiSelect();
   initializeCostCenterMultiSelect();
   await populateGroupMultiSelect();

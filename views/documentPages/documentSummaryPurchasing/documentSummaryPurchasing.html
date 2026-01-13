@@ -7,7 +7,7 @@
     <title>Phiếu mua hàng</title>
     <link
       rel="stylesheet"
-      href="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.css?v=1.4"
+      href="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.css?v=1.5"
     />
     <link
       rel="stylesheet"
@@ -84,6 +84,120 @@
             </button>
             <div class="multi-select-dropdown" id="groupMultiSelectDropdown">
               <!-- Options will be populated dynamically -->
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <!-- NEW: Total Cost Filter with Custom Input -->
+      <div class="control-group">
+        <label for="totalCostFilter">
+          <span>Tổng chi phí:</span>
+          <div class="filter-with-custom">
+            <select id="totalCostFilter" class="filter-select">
+              <option value="">Tất cả</option>
+              <option value="0-500000">Dưới 500,000</option>
+              <option value="500000-2000000">500,000 - 2,000,000</option>
+              <option value="2000000-5000000">2,000,000 - 5,000,000</option>
+              <option value="5000000-10000000">5,000,000 - 10,000,000</option>
+              <option value="10000000-">Trên 10,000,000</option>
+              <option value="custom">Nhập khoảng tùy chỉnh...</option>
+            </select>
+            <div
+              id="totalCostCustomContainer"
+              class="custom-input-container"
+              style="display: none"
+            >
+              <div class="custom-input-group">
+                <input
+                  type="number"
+                  id="totalCostMin"
+                  class="filter-select"
+                  placeholder="Từ"
+                  min="0"
+                />
+                <span class="custom-input-separator">-</span>
+                <input
+                  type="number"
+                  id="totalCostMax"
+                  class="filter-select"
+                  placeholder="Đến"
+                  min="0"
+                />
+                <button
+                  type="button"
+                  id="applyTotalCostCustom"
+                  class="btn btn-primary btn-sm"
+                >
+                  <i class="fas fa-check"></i>
+                </button>
+                <button
+                  type="button"
+                  id="clearTotalCostCustom"
+                  class="btn btn-secondary btn-sm"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <!-- NEW: Submission Date Filter with Custom Date Range -->
+      <div class="control-group">
+        <label for="dateFilter">
+          <span>Ngày nộp:</span>
+          <div class="filter-with-custom">
+            <select id="dateFilter" class="filter-select">
+              <option value="">Tất cả</option>
+              <option value="today">Hôm nay</option>
+              <option value="thisWeek">Tuần này</option>
+              <option value="thisMonth">Tháng này</option>
+              <option value="lastMonth">Tháng trước</option>
+              <option value="last3Months">3 tháng gần đây</option>
+              <option value="thisYear">Năm nay</option>
+              <option value="custom">Chọn khoảng ngày tùy chỉnh...</option>
+            </select>
+            <div
+              id="dateCustomContainer"
+              class="custom-input-container"
+              style="display: none"
+            >
+              <div class="custom-input-group">
+                <input
+                  type="text"
+                  id="dateFrom"
+                  class="filter-select date-picker"
+                  placeholder="Từ ngày (dd/mm/yyyy)"
+                  pattern="\d{2}/\d{2}/\d{4}"
+                />
+                <span class="custom-input-separator">-</span>
+                <input
+                  type="text"
+                  id="dateTo"
+                  class="filter-select date-picker"
+                  placeholder="Đến ngày (dd/mm/yyyy)"
+                  pattern="\d{2}/\d{2}/\d{4}"
+                />
+                <button
+                  type="button"
+                  id="applyDateCustom"
+                  class="btn btn-primary btn-sm"
+                >
+                  <i class="fas fa-check"></i>
+                </button>
+                <button
+                  type="button"
+                  id="clearDateCustom"
+                  class="btn btn-secondary btn-sm"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+              <small class="form-text"
+                >Định dạng: dd/mm/yyyy (ví dụ: 15/01/2024)</small
+              >
             </div>
           </div>
         </label>
@@ -204,7 +318,7 @@
       </div>
     </div>
 
-    <script src="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.js?v=1.25"></script>
+    <script src="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.js?v=1.26"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
