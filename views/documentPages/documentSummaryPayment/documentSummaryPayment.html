@@ -7,7 +7,7 @@
     <title>Phiếu thanh toán</title>
     <link
       rel="stylesheet"
-      href="documentPages/documentSummaryPayment/documentSummaryPayment.css?v=1.6"
+      href="documentPages/documentSummaryPayment/documentSummaryPayment.css?v=1.7"
     />
     <link
       rel="stylesheet"
@@ -106,6 +106,180 @@
         </label>
       </div>
 
+      <!-- Total Payment Filter -->
+      <div class="control-group">
+        <label for="totalPaymentFilter">
+          <span>Tổng thanh toán:</span>
+          <div class="filter-with-custom">
+            <select id="totalPaymentFilter" class="filter-select">
+              <option value="">Tất cả</option>
+              <option value="0-500000">Dưới 500,000</option>
+              <option value="500000-2000000">500,000 - 2,000,000</option>
+              <option value="2000000-5000000">2,000,000 - 5,000,000</option>
+              <option value="5000000-10000000">5,000,000 - 10,000,000</option>
+              <option value="10000000-">Trên 10,000,000</option>
+              <option value="custom">Nhập khoảng tùy chỉnh...</option>
+            </select>
+            <div
+              id="totalPaymentCustomContainer"
+              class="custom-input-container"
+              style="display: none"
+            >
+              <div class="custom-input-group">
+                <input
+                  type="number"
+                  id="totalPaymentMin"
+                  class="filter-select"
+                  placeholder="Từ"
+                  min="0"
+                />
+                <span class="custom-input-separator">-</span>
+                <input
+                  type="number"
+                  id="totalPaymentMax"
+                  class="filter-select"
+                  placeholder="Đến"
+                  min="0"
+                />
+                <button
+                  type="button"
+                  id="applyTotalPaymentCustom"
+                  class="btn btn-primary btn-sm"
+                >
+                  <i class="fas fa-check"></i>
+                </button>
+                <button
+                  type="button"
+                  id="clearTotalPaymentCustom"
+                  class="btn btn-secondary btn-sm"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Payment Deadline Filter -->
+      <div class="control-group">
+        <label for="deadlineFilter">
+          <span>Hạn trả:</span>
+          <div class="filter-with-custom">
+            <select id="deadlineFilter" class="filter-select">
+              <option value="">Tất cả</option>
+              <option value="today">Hôm nay</option>
+              <option value="thisWeek">Tuần này</option>
+              <option value="thisMonth">Tháng này</option>
+              <option value="nextMonth">Tháng sau</option>
+              <option value="last3Months">3 tháng gần đây</option>
+              <option value="thisYear">Năm nay</option>
+              <option value="overdue">Quá hạn</option>
+              <option value="custom">Chọn khoảng ngày tùy chỉnh...</option>
+            </select>
+            <div
+              id="deadlineCustomContainer"
+              class="custom-input-container"
+              style="display: none"
+            >
+              <div class="custom-input-group">
+                <input
+                  type="text"
+                  id="deadlineFrom"
+                  class="filter-select date-picker"
+                  placeholder="Từ ngày (dd/mm/yyyy)"
+                  pattern="\d{2}/\d{2}/\d{4}"
+                />
+                <span class="custom-input-separator">-</span>
+                <input
+                  type="text"
+                  id="deadlineTo"
+                  class="filter-select date-picker"
+                  placeholder="Đến ngày (dd/mm/yyyy)"
+                  pattern="\d{2}/\d{2}/\d{4}"
+                />
+                <button
+                  type="button"
+                  id="applyDeadlineCustom"
+                  class="btn btn-primary btn-sm"
+                >
+                  <i class="fas fa-check"></i>
+                </button>
+                <button
+                  type="button"
+                  id="clearDeadlineCustom"
+                  class="btn btn-secondary btn-sm"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+              <small class="form-text"
+                >Định dạng: dd/mm/yyyy (ví dụ: 15/01/2024)</small
+              >
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Submission Date Filter -->
+      <div class="control-group">
+        <label for="submissionDateFilter">
+          <span>Ngày nộp:</span>
+          <div class="filter-with-custom">
+            <select id="submissionDateFilter" class="filter-select">
+              <option value="">Tất cả</option>
+              <option value="today">Hôm nay</option>
+              <option value="thisWeek">Tuần này</option>
+              <option value="thisMonth">Tháng này</option>
+              <option value="lastMonth">Tháng trước</option>
+              <option value="last3Months">3 tháng gần đây</option>
+              <option value="thisYear">Năm nay</option>
+              <option value="custom">Chọn khoảng ngày tùy chỉnh...</option>
+            </select>
+            <div
+              id="submissionDateCustomContainer"
+              class="custom-input-container"
+              style="display: none"
+            >
+              <div class="custom-input-group">
+                <input
+                  type="text"
+                  id="submissionDateFrom"
+                  class="filter-select date-picker"
+                  placeholder="Từ ngày (dd/mm/yyyy)"
+                  pattern="\d{2}/\d{2}/\d{4}"
+                />
+                <span class="custom-input-separator">-</span>
+                <input
+                  type="text"
+                  id="submissionDateTo"
+                  class="filter-select date-picker"
+                  placeholder="Đến ngày (dd/mm/yyyy)"
+                  pattern="\d{2}/\d{2}/\d{4}"
+                />
+                <button
+                  type="button"
+                  id="applySubmissionDateCustom"
+                  class="btn btn-primary btn-sm"
+                >
+                  <i class="fas fa-check"></i>
+                </button>
+                <button
+                  type="button"
+                  id="clearSubmissionDateCustom"
+                  class="btn btn-secondary btn-sm"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+              <small class="form-text"
+                >Định dạng: dd/mm/yyyy (ví dụ: 15/01/2024)</small
+              >
+            </div>
+          </div>
+        </label>
+      </div>
+
       <div class="control-group">
         <label class="toggle-switch">
           <input type="checkbox" id="pendingToggle" />
@@ -137,6 +311,7 @@
             <th>Phương thức thanh toán</th>
             <th>Tổng thanh toán</th>
             <th>Hạn trả</th>
+            <th>Ngày nộp</th>
             <th>Tình trạng</th>
             <th>Trạng thái phê duyệt</th>
             <th>Hành động</th>
@@ -545,7 +720,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="documentPages/documentSummaryPayment/documentSummaryPayment.js?v=1.36"></script>
+    <script src="documentPages/documentSummaryPayment/documentSummaryPayment.js?v=1.37"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>

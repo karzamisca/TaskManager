@@ -16,8 +16,648 @@ const state = {
   currentGroupFilter: [], // Changed to array for multiple selection
   currentGroupDeclarationFilter: "",
   currentPaymentMethodFilter: "",
+  currentTotalPaymentFilter: "", // NEW: Total payment filter
+  currentDeadlineFilter: "", // NEW: Payment deadline filter
+  currentSubmissionDateFilter: "", // NEW: Submission date filter
+  customTotalPaymentRange: { min: null, max: null }, // NEW: Custom total payment range
+  customDeadlineRange: { from: null, to: null }, // NEW: Custom deadline date range
+  customSubmissionDateRange: { from: null, to: null }, // NEW: Custom submission date range
   costCenters: [],
   groups: [], // Store groups for multi-select
+};
+
+// Helper function to validate and parse dd/mm/yyyy dates
+const validateAndParseDate = (dateStr) => {
+  if (!dateStr) return { isValid: false, date: null, message: "" };
+
+  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+  const match = dateStr.match(regex);
+
+  if (!match) {
+    return {
+      isValid: false,
+      date: null,
+      message:
+        "Định dạng ngày không hợp lệ. Vui lòng nhập theo định dạng dd/mm/yyyy",
+    };
+  }
+
+  const day = parseInt(match[1], 10);
+  const month = parseInt(match[2], 10);
+  const year = parseInt(match[3], 10);
+
+  // Basic validation
+  if (month < 1 || month > 12) {
+    return {
+      isValid: false,
+      date: null,
+      message: "Tháng phải từ 01 đến 12",
+    };
+  }
+
+  // Check day range based on month
+  const daysInMonth = new Date(year, month, 0).getDate();
+  if (day < 1 || day > daysInMonth) {
+    return {
+      isValid: false,
+      date: null,
+      message: `Tháng ${month} chỉ có từ 01 đến ${daysInMonth} ngày`,
+    };
+  }
+
+  // Check year range (reasonable range)
+  const currentYear = new Date().getFullYear();
+  if (year < 2000 || year > currentYear + 10) {
+    return {
+      isValid: false,
+      date: null,
+      message: `Năm phải từ 2000 đến ${currentYear + 10}`,
+    };
+  }
+
+  const date = new Date(year, month - 1, day);
+
+  // Verify the parsed date matches the input
+  if (
+    date.getDate() !== day ||
+    date.getMonth() !== month - 1 ||
+    date.getFullYear() !== year
+  ) {
+    return {
+      isValid: false,
+      date: null,
+      message: "Ngày không hợp lệ",
+    };
+  }
+
+  return { isValid: true, date, message: "" };
+};
+
+// Helper functions for date parsing and filtering
+const parseDateFromString = (dateString) => {
+  if (!dateString) return null;
+
+  // Handle DD-MM-YYYY format (for paymentDeadline)
+  if (dateString.includes("-") && !dateString.includes(":")) {
+    // DD-MM-YYYY format
+    const parts = dateString.split("-");
+    if (parts.length !== 3) return null;
+
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const year = parseInt(parts[2], 10);
+
+    return new Date(year, month, day);
+  }
+  // Handle DD-MM-YYYY HH:MM:SS format (for submissionDate)
+  else if (dateString.includes("-") && dateString.includes(":")) {
+    // DD-MM-YYYY HH:MM:SS format
+    const spaceIndex = dateString.indexOf(" ");
+    const datePart = dateString.substring(0, spaceIndex);
+    const timePart = dateString.substring(spaceIndex + 1);
+
+    const dateParts = datePart.split("-");
+    if (dateParts.length !== 3) return null;
+
+    const day = parseInt(dateParts[0], 10);
+    const month = parseInt(dateParts[1], 10) - 1;
+    const year = parseInt(dateParts[2], 10);
+
+    const timeParts = timePart.split(":");
+    const hour = timeParts.length > 0 ? parseInt(timeParts[0], 10) : 0;
+    const minute = timeParts.length > 1 ? parseInt(timeParts[1], 10) : 0;
+    const second = timeParts.length > 2 ? parseInt(timeParts[2], 10) : 0;
+
+    return new Date(year, month, day, hour, minute, second);
+  }
+
+  return null;
+};
+
+// Check if a payment deadline is in range
+const isDeadlineInRange = (deadlineStr, filterType, customRange = null) => {
+  if (!deadlineStr || !filterType) return true;
+
+  const deadlineDate = parseDateFromString(deadlineStr);
+  if (!deadlineDate) return true;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // For overdue filter
+  if (filterType === "overdue") {
+    return deadlineDate < today;
+  }
+
+  const { start, end } = getDateRange(filterType, customRange);
+  if (!start || !end) return true;
+
+  return deadlineDate >= start && deadlineDate <= end;
+};
+
+// Check if submission date is in range
+const isSubmissionDateInRange = (
+  submissionDateStr,
+  filterType,
+  customRange = null
+) => {
+  if (!submissionDateStr || !filterType) return true;
+
+  const submissionDate = parseDateFromString(submissionDateStr);
+  if (!submissionDate) return true;
+
+  const { start, end } = getDateRange(filterType, customRange);
+  if (!start || !end) return true;
+
+  return submissionDate >= start && submissionDate <= end;
+};
+
+// Get date range based on filter type
+const getDateRange = (filterType, customRange = null) => {
+  const now = new Date();
+  const start = new Date();
+  const end = new Date();
+
+  // If custom range is provided, use it
+  if (filterType === "custom" && customRange) {
+    if (customRange.from) {
+      const fromParts = customRange.from.split("/");
+      if (fromParts.length === 3) {
+        start.setDate(parseInt(fromParts[0], 10));
+        start.setMonth(parseInt(fromParts[1], 10) - 1);
+        start.setFullYear(parseInt(fromParts[2], 10));
+        start.setHours(0, 0, 0, 0);
+      }
+    } else {
+      start.setTime(new Date(0).getTime()); // Earliest possible date
+    }
+
+    if (customRange.to) {
+      const toParts = customRange.to.split("/");
+      if (toParts.length === 3) {
+        end.setDate(parseInt(toParts[0], 10));
+        end.setMonth(parseInt(toParts[1], 10) - 1);
+        end.setFullYear(parseInt(toParts[2], 10));
+        end.setHours(23, 59, 59, 999);
+      }
+    } else {
+      end.setTime(new Date().getTime()); // Current date
+      end.setHours(23, 59, 59, 999);
+    }
+
+    return { start, end };
+  }
+
+  switch (filterType) {
+    case "today":
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case "thisWeek":
+      // Start from Monday (0 = Sunday, 1 = Monday in getDay())
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+      start.setDate(diff);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case "thisMonth":
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      end.setMonth(now.getMonth() + 1, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case "nextMonth":
+      start.setMonth(now.getMonth() + 1, 1);
+      start.setHours(0, 0, 0, 0);
+      end.setMonth(now.getMonth() + 2, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case "lastMonth":
+      start.setMonth(now.getMonth() - 1, 1);
+      start.setHours(0, 0, 0, 0);
+      end.setMonth(now.getMonth(), 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case "last3Months":
+      start.setMonth(now.getMonth() - 3);
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+      break;
+    case "thisYear":
+      start.setMonth(0, 1);
+      start.setHours(0, 0, 0, 0);
+      end.setMonth(11, 31);
+      end.setHours(23, 59, 59, 999);
+      break;
+    default:
+      return { start: null, end: null };
+  }
+
+  return { start, end };
+};
+
+// Check if total payment is in range
+const isInTotalPaymentRange = (amount, range, customRange = null) => {
+  if (!amount && amount !== 0) return true;
+
+  // If custom range is provided, use it
+  if (range === "custom" && customRange) {
+    const { min, max } = customRange;
+    if (min !== null && amount < min) return false;
+    if (max !== null && amount > max) return false;
+    return true;
+  }
+
+  if (!range) return true;
+
+  if (range === "0-500000") {
+    return amount < 500000;
+  } else if (range === "500000-2000000") {
+    return amount >= 500000 && amount < 2000000;
+  } else if (range === "2000000-5000000") {
+    return amount >= 2000000 && amount < 5000000;
+  } else if (range === "5000000-10000000") {
+    return amount >= 5000000 && amount < 10000000;
+  } else if (range === "10000000-") {
+    return amount >= 10000000;
+  }
+
+  return true;
+};
+
+// Format date to dd/mm/yyyy
+const formatDateToDDMMYYYY = (date) => {
+  if (!date) return "";
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  return `${day}/${month}/${year}`;
+};
+
+// Format date for display
+const formatDisplayDate = (dateStr) => {
+  if (!dateStr) return "";
+
+  // If it's a date string with time, extract just the date part
+  if (dateStr.includes(" ")) {
+    return dateStr.split(" ")[0];
+  }
+
+  return dateStr;
+};
+
+// Custom filter UI handlers
+const setupCustomFilterHandlers = () => {
+  // Total payment custom filter
+  const totalPaymentFilter = document.getElementById("totalPaymentFilter");
+  const totalPaymentCustomContainer = document.getElementById(
+    "totalPaymentCustomContainer"
+  );
+  const applyTotalPaymentCustom = document.getElementById(
+    "applyTotalPaymentCustom"
+  );
+  const clearTotalPaymentCustom = document.getElementById(
+    "clearTotalPaymentCustom"
+  );
+  const totalPaymentMin = document.getElementById("totalPaymentMin");
+  const totalPaymentMax = document.getElementById("totalPaymentMax");
+
+  totalPaymentFilter.addEventListener("change", (e) => {
+    if (e.target.value === "custom") {
+      totalPaymentCustomContainer.style.display = "block";
+      // Reset custom inputs
+      totalPaymentMin.value = "";
+      totalPaymentMax.value = "";
+    } else {
+      totalPaymentCustomContainer.style.display = "none";
+      state.customTotalPaymentRange = { min: null, max: null };
+      state.currentTotalPaymentFilter = e.target.value;
+      state.currentPage = 1;
+      fetchPaymentDocuments();
+    }
+  });
+
+  applyTotalPaymentCustom.addEventListener("click", () => {
+    const min = totalPaymentMin.value
+      ? parseFloat(totalPaymentMin.value)
+      : null;
+    const max = totalPaymentMax.value
+      ? parseFloat(totalPaymentMax.value)
+      : null;
+
+    if (min === null && max === null) {
+      showMessage(
+        "Vui lòng nhập ít nhất một giá trị cho khoảng tùy chỉnh",
+        true
+      );
+      return;
+    }
+
+    if (min !== null && max !== null && min > max) {
+      showMessage('Giá trị "Từ" không được lớn hơn giá trị "Đến"', true);
+      return;
+    }
+
+    if (min !== null && min < 0) {
+      showMessage("Giá trị không được âm", true);
+      return;
+    }
+
+    if (max !== null && max < 0) {
+      showMessage("Giá trị không được âm", true);
+      return;
+    }
+
+    state.customTotalPaymentRange = { min, max };
+    state.currentTotalPaymentFilter = "custom";
+    state.currentPage = 1;
+    fetchPaymentDocuments();
+
+    // Update dropdown text to show custom range
+    let rangeText = "Tùy chỉnh: ";
+    if (min !== null && max !== null) {
+      rangeText += `${min.toLocaleString()} - ${max.toLocaleString()}`;
+    } else if (min !== null) {
+      rangeText += `Trên ${min.toLocaleString()}`;
+    } else if (max !== null) {
+      rangeText += `Dưới ${max.toLocaleString()}`;
+    }
+
+    // Change the selected option text
+    const customOption = totalPaymentFilter.querySelector(
+      'option[value="custom"]'
+    );
+    customOption.textContent = rangeText;
+    customOption.title = rangeText;
+
+    showMessage("Đã áp dụng khoảng tùy chỉnh");
+  });
+
+  clearTotalPaymentCustom.addEventListener("click", () => {
+    totalPaymentMin.value = "";
+    totalPaymentMax.value = "";
+    state.customTotalPaymentRange = { min: null, max: null };
+    state.currentTotalPaymentFilter = "";
+    totalPaymentFilter.value = "";
+    totalPaymentCustomContainer.style.display = "none";
+
+    // Reset custom option text
+    const customOption = totalPaymentFilter.querySelector(
+      'option[value="custom"]'
+    );
+    customOption.textContent = "Nhập khoảng tùy chỉnh...";
+    customOption.title = "";
+
+    state.currentPage = 1;
+    fetchPaymentDocuments();
+  });
+
+  // Deadline custom filter
+  const deadlineFilter = document.getElementById("deadlineFilter");
+  const deadlineCustomContainer = document.getElementById(
+    "deadlineCustomContainer"
+  );
+  const applyDeadlineCustom = document.getElementById("applyDeadlineCustom");
+  const clearDeadlineCustom = document.getElementById("clearDeadlineCustom");
+  const deadlineFrom = document.getElementById("deadlineFrom");
+  const deadlineTo = document.getElementById("deadlineTo");
+
+  deadlineFilter.addEventListener("change", (e) => {
+    if (e.target.value === "custom") {
+      deadlineCustomContainer.style.display = "block";
+      // Reset date inputs
+      deadlineFrom.value = "";
+      deadlineTo.value = "";
+      deadlineFrom.classList.remove("invalid");
+      deadlineTo.classList.remove("invalid");
+    } else {
+      deadlineCustomContainer.style.display = "none";
+      state.customDeadlineRange = { from: null, to: null };
+      state.currentDeadlineFilter = e.target.value;
+      state.currentPage = 1;
+      fetchPaymentDocuments();
+    }
+  });
+
+  applyDeadlineCustom.addEventListener("click", () => {
+    const from = deadlineFrom.value.trim();
+    const to = deadlineTo.value.trim();
+
+    if (!from && !to) {
+      showMessage("Vui lòng nhập ít nhất một ngày cho khoảng tùy chỉnh", true);
+      return;
+    }
+
+    // Validate dates using the helper function
+    let fromDate = null;
+    let toDate = null;
+
+    if (from) {
+      const fromResult = validateAndParseDate(from);
+      if (!fromResult.isValid) {
+        showMessage(`Ngày "Từ": ${fromResult.message}`, true);
+        deadlineFrom.focus();
+        return;
+      }
+      fromDate = fromResult.date;
+    }
+
+    if (to) {
+      const toResult = validateAndParseDate(to);
+      if (!toResult.isValid) {
+        showMessage(`Ngày "Đến": ${toResult.message}`, true);
+        deadlineTo.focus();
+        return;
+      }
+      toDate = toResult.date;
+    }
+
+    if (fromDate && toDate && fromDate > toDate) {
+      showMessage('Ngày "Từ" không được sau ngày "Đến"', true);
+      deadlineFrom.focus();
+      return;
+    }
+
+    state.customDeadlineRange = {
+      from: fromDate ? formatDateToDDMMYYYY(fromDate) : null,
+      to: toDate ? formatDateToDDMMYYYY(toDate) : null,
+    };
+    state.currentDeadlineFilter = "custom";
+    state.currentPage = 1;
+    fetchPaymentDocuments();
+
+    // Update dropdown text to show custom range
+    let dateText = "Tùy chỉnh: ";
+    if (from && to) {
+      dateText += `${from} - ${to}`;
+    } else if (from) {
+      dateText += `Từ ${from}`;
+    } else if (to) {
+      dateText += `Đến ${to}`;
+    }
+
+    // Change the selected option text
+    const customOption = deadlineFilter.querySelector('option[value="custom"]');
+    customOption.textContent = dateText;
+    customOption.title = dateText;
+
+    showMessage("Đã áp dụng khoảng ngày tùy chỉnh");
+  });
+
+  clearDeadlineCustom.addEventListener("click", () => {
+    deadlineFrom.value = "";
+    deadlineTo.value = "";
+    deadlineFrom.classList.remove("invalid");
+    deadlineTo.classList.remove("invalid");
+    state.customDeadlineRange = { from: null, to: null };
+    state.currentDeadlineFilter = "";
+    deadlineFilter.value = "";
+    deadlineCustomContainer.style.display = "none";
+
+    // Reset custom option text
+    const customOption = deadlineFilter.querySelector('option[value="custom"]');
+    customOption.textContent = "Chọn khoảng ngày tùy chỉnh...";
+    customOption.title = "";
+
+    state.currentPage = 1;
+    fetchPaymentDocuments();
+  });
+
+  // Submission date custom filter
+  const submissionDateFilter = document.getElementById("submissionDateFilter");
+  const submissionDateCustomContainer = document.getElementById(
+    "submissionDateCustomContainer"
+  );
+  const applySubmissionDateCustom = document.getElementById(
+    "applySubmissionDateCustom"
+  );
+  const clearSubmissionDateCustom = document.getElementById(
+    "clearSubmissionDateCustom"
+  );
+  const submissionDateFrom = document.getElementById("submissionDateFrom");
+  const submissionDateTo = document.getElementById("submissionDateTo");
+
+  submissionDateFilter.addEventListener("change", (e) => {
+    if (e.target.value === "custom") {
+      submissionDateCustomContainer.style.display = "block";
+      // Reset date inputs
+      submissionDateFrom.value = "";
+      submissionDateTo.value = "";
+      submissionDateFrom.classList.remove("invalid");
+      submissionDateTo.classList.remove("invalid");
+    } else {
+      submissionDateCustomContainer.style.display = "none";
+      state.customSubmissionDateRange = { from: null, to: null };
+      state.currentSubmissionDateFilter = e.target.value;
+      state.currentPage = 1;
+      fetchPaymentDocuments();
+    }
+  });
+
+  applySubmissionDateCustom.addEventListener("click", () => {
+    const from = submissionDateFrom.value.trim();
+    const to = submissionDateTo.value.trim();
+
+    if (!from && !to) {
+      showMessage("Vui lòng nhập ít nhất một ngày cho khoảng tùy chỉnh", true);
+      return;
+    }
+
+    // Validate dates using the helper function
+    let fromDate = null;
+    let toDate = null;
+
+    if (from) {
+      const fromResult = validateAndParseDate(from);
+      if (!fromResult.isValid) {
+        showMessage(`Ngày "Từ": ${fromResult.message}`, true);
+        submissionDateFrom.focus();
+        return;
+      }
+      fromDate = fromResult.date;
+    }
+
+    if (to) {
+      const toResult = validateAndParseDate(to);
+      if (!toResult.isValid) {
+        showMessage(`Ngày "Đến": ${toResult.message}`, true);
+        submissionDateTo.focus();
+        return;
+      }
+      toDate = toResult.date;
+    }
+
+    if (fromDate && toDate && fromDate > toDate) {
+      showMessage('Ngày "Từ" không được sau ngày "Đến"', true);
+      submissionDateFrom.focus();
+      return;
+    }
+
+    state.customSubmissionDateRange = {
+      from: fromDate ? formatDateToDDMMYYYY(fromDate) : null,
+      to: toDate ? formatDateToDDMMYYYY(toDate) : null,
+    };
+    state.currentSubmissionDateFilter = "custom";
+    state.currentPage = 1;
+    fetchPaymentDocuments();
+
+    // Update dropdown text to show custom range
+    let dateText = "Tùy chỉnh: ";
+    if (from && to) {
+      dateText += `${from} - ${to}`;
+    } else if (from) {
+      dateText += `Từ ${from}`;
+    } else if (to) {
+      dateText += `Đến ${to}`;
+    }
+
+    // Change the selected option text
+    const customOption = submissionDateFilter.querySelector(
+      'option[value="custom"]'
+    );
+    customOption.textContent = dateText;
+    customOption.title = dateText;
+
+    showMessage("Đã áp dụng khoảng ngày tùy chỉnh");
+  });
+
+  clearSubmissionDateCustom.addEventListener("click", () => {
+    submissionDateFrom.value = "";
+    submissionDateTo.value = "";
+    submissionDateFrom.classList.remove("invalid");
+    submissionDateTo.classList.remove("invalid");
+    state.customSubmissionDateRange = { from: null, to: null };
+    state.currentSubmissionDateFilter = "";
+    submissionDateFilter.value = "";
+    submissionDateCustomContainer.style.display = "none";
+
+    // Reset custom option text
+    const customOption = submissionDateFilter.querySelector(
+      'option[value="custom"]'
+    );
+    customOption.textContent = "Chọn khoảng ngày tùy chỉnh...";
+    customOption.title = "";
+
+    state.currentPage = 1;
+    fetchPaymentDocuments();
+  });
+
+  // Handle Enter key in custom inputs
+  const handleEnterKey = (inputElement, buttonElement) => {
+    inputElement.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        buttonElement.click();
+      }
+    });
+  };
+
+  handleEnterKey(deadlineFrom, applyDeadlineCustom);
+  handleEnterKey(deadlineTo, applyDeadlineCustom);
+  handleEnterKey(submissionDateFrom, applySubmissionDateCustom);
+  handleEnterKey(submissionDateTo, applySubmissionDateCustom);
 };
 
 // Multi-select functionality for cost centers
@@ -555,6 +1195,39 @@ const filterDocumentsForCurrentUser = (documents) => {
     );
   }
 
+  // Apply total payment filter
+  if (state.currentTotalPaymentFilter) {
+    filteredDocs = filteredDocs.filter((doc) =>
+      isInTotalPaymentRange(
+        doc.totalPayment,
+        state.currentTotalPaymentFilter,
+        state.customTotalPaymentRange
+      )
+    );
+  }
+
+  // Apply deadline filter
+  if (state.currentDeadlineFilter) {
+    filteredDocs = filteredDocs.filter((doc) =>
+      isDeadlineInRange(
+        doc.paymentDeadline,
+        state.currentDeadlineFilter,
+        state.customDeadlineRange
+      )
+    );
+  }
+
+  // Apply submission date filter
+  if (state.currentSubmissionDateFilter) {
+    filteredDocs = filteredDocs.filter((doc) =>
+      isSubmissionDateInRange(
+        doc.submissionDate,
+        state.currentSubmissionDateFilter,
+        state.customSubmissionDateRange
+      )
+    );
+  }
+
   // Apply pending approval filter if enabled
   if (state.showOnlyPendingApprovals && state.currentUser) {
     filteredDocs = filteredDocs.filter((doc) => {
@@ -946,6 +1619,7 @@ const renderDocumentsTable = (documents) => {
       <td>${renderPaymentMethod(doc.paymentMethod)}</td>
       <td>${formatCurrency(doc.totalPayment)}</td>
       <td>${doc.paymentDeadline || "-"}</td>
+      <td>${formatDisplayDate(doc.submissionDate) || "-"}</td>
       <td>${renderStatus(doc.status)}</td>
       <td class="approval-status">${renderApprovalStatus(
         doc.approvers,
@@ -1111,7 +1785,7 @@ const updateDocumentPriority = async () => {
   }
 };
 
-const parseDateFromString = (dateStr) => {
+const parseDateFromStringForSummary = (dateStr) => {
   if (!dateStr) return null;
 
   const parts = dateStr.split("-");
@@ -1197,30 +1871,10 @@ const updateSummary = (filteredDocuments) => {
       // Skip approved and suspended documents
       if (doc.status !== "Pending") return acc;
 
-      // Helper function to parse DD-MM-YYYY dates
-      const parseDate = (dateStr) => {
-        if (!dateStr) return null;
-        const parts = dateStr.split("-");
-        if (parts.length !== 3) return null;
-        const day = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10) - 1;
-        const year = parseInt(parts[2], 10);
-        const date = new Date(year, month, day);
-        // Validate the date
-        if (
-          date.getFullYear() !== year ||
-          date.getMonth() !== month ||
-          date.getDate() !== day
-        ) {
-          return null;
-        }
-        return date;
-      };
-
       // For documents with stages
       if (doc.stages && doc.stages.length > 0) {
         doc.stages.forEach((stage) => {
-          const deadline = parseDate(stage.deadline);
+          const deadline = parseDateFromStringForSummary(stage.deadline);
           if (!deadline) return;
 
           const amount = stage.amount || 0;
@@ -1234,7 +1888,7 @@ const updateSummary = (filteredDocuments) => {
       }
       // For documents without stages
       else {
-        const deadline = parseDate(doc.paymentDeadline);
+        const deadline = parseDateFromStringForSummary(doc.paymentDeadline);
         if (!deadline) return;
 
         const amount = doc.totalPayment || 0;
@@ -3600,6 +4254,39 @@ const setupEventListeners = () => {
     e.preventDefault();
     handleEditSubmit(e);
   });
+
+  // Total payment filter (standard options)
+  const totalPaymentFilter = document.getElementById("totalPaymentFilter");
+  totalPaymentFilter.addEventListener("change", (e) => {
+    if (e.target.value !== "custom") {
+      state.currentTotalPaymentFilter = e.target.value;
+      state.customTotalPaymentRange = { min: null, max: null };
+      state.currentPage = 1;
+      fetchPaymentDocuments();
+    }
+  });
+
+  // Deadline filter (standard options)
+  const deadlineFilter = document.getElementById("deadlineFilter");
+  deadlineFilter.addEventListener("change", (e) => {
+    if (e.target.value !== "custom") {
+      state.currentDeadlineFilter = e.target.value;
+      state.customDeadlineRange = { from: null, to: null };
+      state.currentPage = 1;
+      fetchPaymentDocuments();
+    }
+  });
+
+  // Submission date filter (standard options)
+  const submissionDateFilter = document.getElementById("submissionDateFilter");
+  submissionDateFilter.addEventListener("change", (e) => {
+    if (e.target.value !== "custom") {
+      state.currentSubmissionDateFilter = e.target.value;
+      state.customSubmissionDateRange = { from: null, to: null };
+      state.currentPage = 1;
+      fetchPaymentDocuments();
+    }
+  });
 };
 
 // Initialize the application
@@ -3610,6 +4297,7 @@ const initialize = async () => {
   await populateGroupMultiSelect();
   await fetchGroupDeclaration();
   setupEventListeners();
+  setupCustomFilterHandlers(); // NEW: Setup custom filter handlers
   await fetchPaymentDocuments();
 };
 
