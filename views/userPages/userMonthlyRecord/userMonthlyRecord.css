@@ -1,6 +1,6 @@
 /* views\userPages\userMonthlyRecord\userMonthlyRecord.css */
 /* ====================================================================
-   USER MONTHLY RECORD - IMPROVED STYLES
+   USER MONTHLY RECORD - IMPROVED STYLES WITH USER GROUPING
    ==================================================================== */
 
 /* ====================================================================
@@ -244,7 +244,7 @@ button:disabled {
 }
 
 /* ====================================================================
-   TABLE STYLES
+   TABLE STYLES - MODIFIED FOR USER GROUPING
    ==================================================================== */
 .table-container {
   overflow-x: auto;
@@ -252,6 +252,11 @@ button:disabled {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
   position: relative;
+  max-width: 100%;
+  margin-left: -5px;
+  margin-right: -5px;
+  padding-left: 5px;
+  padding-right: 5px;
 }
 
 table {
@@ -259,15 +264,18 @@ table {
   border-collapse: collapse;
   background-color: var(--surface-color);
   font-size: var(--font-size-sm);
-  min-width: 1600px;
+  min-width: 1900px; /* Increased to remove white space */
+  table-layout: auto;
+  border-spacing: 0;
 }
 
 th,
 td {
-  padding: var(--spacing-sm) var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-lg);
   text-align: left;
   border-bottom: 1px solid var(--border-light);
   white-space: nowrap;
+  min-width: auto;
 }
 
 th {
@@ -283,39 +291,71 @@ th {
   border: 1px solid var(--border-light);
 }
 
-tbody tr {
-  transition: background-color var(--transition-fast);
+/* User group styling */
+.user-group {
+  background-color: rgba(76, 175, 80, 0.15);
+  border-left: 4px solid var(--primary-color);
+  border-right: 4px solid var(--primary-color);
 }
 
-tbody tr:hover {
-  background-color: var(--surface-hover);
+.user-group td {
+  font-weight: 700;
+  color: var(--text-primary);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--font-size-base);
 }
 
-tbody tr:nth-child(even) {
+/* User summary row - FIXED ALIGNMENT */
+.user-summary-row {
+  background-color: rgba(76, 175, 80, 0.08);
+  border-top: 2px solid var(--primary-color);
+  border-bottom: 2px solid var(--primary-color);
+}
+
+.user-summary-row td {
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: var(--spacing-md) var(--spacing-lg);
+  background-color: rgba(76, 175, 80, 0.05);
+  font-size: var(--font-size-sm);
+}
+
+/* Reset alternating row colors for grouped structure */
+tbody tr:not(.user-group):not(.user-summary-row):nth-child(4n + 1),
+tbody tr:not(.user-group):not(.user-summary-row):nth-child(4n + 2) {
   background-color: rgba(0, 0, 0, 0.02);
 }
 
-tbody tr:nth-child(even):hover {
+tbody tr:not(.user-group):not(.user-summary-row):nth-child(4n + 3),
+tbody tr:not(.user-group):not(.user-summary-row):nth-child(4n + 4) {
+  background-color: var(--surface-color);
+}
+
+tbody tr:not(.user-group):not(.user-summary-row):hover {
   background-color: var(--surface-hover);
 }
 
-/* Table cell alignment */
+/* Table cell alignment - FIXED FOR SUMMARY ROW ALIGNMENT */
 td:nth-child(1) {
   /* STT */
   text-align: center;
   font-weight: 500;
+  width: 60px;
+  padding-left: 20px !important;
 }
 
 td:nth-child(2) {
   /* Nhân viên */
   text-align: left;
-  min-width: 120px;
+  min-width: 160px;
+  width: 160px;
 }
 
 td:nth-child(3) {
   /* Tháng/Năm */
   text-align: center;
-  min-width: 80px;
+  min-width: 100px;
+  width: 100px;
 }
 
 td:nth-child(4),   /* Lương cơ bản */
@@ -332,7 +372,8 @@ td:nth-child(17) {
   /* Lương thực lĩnh */
   text-align: right;
   font-weight: 500;
-  min-width: 90px;
+  min-width: 130px;
+  width: 130px;
 }
 
 td:nth-child(10),  /* Giờ TC tuần */
@@ -341,19 +382,70 @@ td:nth-child(12) {
   /* Giờ TC lễ */
   text-align: center;
   font-weight: 500;
-  min-width: 60px;
+  min-width: 90px;
+  width: 90px;
 }
 
 td:nth-child(18) {
   /* Trạm */
   text-align: left;
-  min-width: 100px;
+  min-width: 130px;
+  width: 130px;
 }
 
 td:nth-child(19) {
   /* Thao tác */
   text-align: center;
-  min-width: 100px;
+  min-width: 120px;
+  width: 120px;
+  padding-right: 20px !important;
+}
+
+/* FIRST ROW OF SUMMARY - TITLE AND RECORD COUNT */
+.user-summary-row td:nth-child(1),
+.user-summary-row td:nth-child(2) {
+  text-align: left !important;
+  font-weight: 700;
+  font-style: italic;
+}
+
+.user-summary-row td:nth-child(3),
+.user-summary-row td:nth-child(4) {
+  text-align: center !important;
+}
+
+/* Make sure summary row cells align with their respective columns */
+.user-summary-row td:nth-child(4),   /* Lương cơ bản */
+.user-summary-row td:nth-child(5),   /* Lương theo giờ */
+.user-summary-row td:nth-child(6),   /* Trách nhiệm */
+.user-summary-row td:nth-child(7),   /* Công tác phí */
+.user-summary-row td:nth-child(8),   /* Hoa hồng */
+.user-summary-row td:nth-child(9),   /* Thưởng khác */
+.user-summary-row td:nth-child(13),  /* Lương tăng ca */
+.user-summary-row td:nth-child(14),  /* Lương tính thuế */
+.user-summary-row td:nth-child(15),  /* Lương gộp */
+.user-summary-row td:nth-child(16),  /* Thuế */
+.user-summary-row td:nth-child(17) {
+  /* Lương thực lĩnh */
+  text-align: right !important;
+}
+
+.user-summary-row td:nth-child(10),  /* Giờ TC tuần */
+.user-summary-row td:nth-child(11),  /* Giờ TC CN */
+.user-summary-row td:nth-child(12) {
+  /* Giờ TC lễ */
+  text-align: center !important;
+}
+
+/* First and last cell adjustments */
+th:first-child,
+td:first-child {
+  padding-left: 20px !important;
+}
+
+th:last-child,
+td:last-child {
+  padding-right: 20px !important;
 }
 
 /* Action buttons in table */
@@ -672,11 +764,11 @@ td:nth-child(19) {
 
   th,
   td {
-    padding: var(--spacing-xs) 3px;
+    padding: var(--spacing-xs) 8px;
   }
 
   table {
-    min-width: 1400px;
+    min-width: 1600px;
     font-size: 0.75rem;
   }
 
@@ -705,6 +797,41 @@ td:nth-child(19) {
     min-width: 35px;
     font-size: 0.75rem;
   }
+
+  /* Adjust column widths for mobile */
+  td:nth-child(1) {
+    width: 50px;
+  }
+  td:nth-child(2) {
+    width: 130px;
+  }
+  td:nth-child(3) {
+    width: 80px;
+  }
+  td:nth-child(4),
+  td:nth-child(5),
+  td:nth-child(6),
+  td:nth-child(7),
+  td:nth-child(8),
+  td:nth-child(9),
+  td:nth-child(13),
+  td:nth-child(14),
+  td:nth-child(15),
+  td:nth-child(16),
+  td:nth-child(17) {
+    width: 100px;
+  }
+  td:nth-child(10),
+  td:nth-child(11),
+  td:nth-child(12) {
+    width: 70px;
+  }
+  td:nth-child(18) {
+    width: 100px;
+  }
+  td:nth-child(19) {
+    width: 100px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -719,12 +846,12 @@ td:nth-child(19) {
 
   table {
     font-size: 0.65rem;
-    min-width: 1200px;
+    min-width: 1400px;
   }
 
   th,
   td {
-    padding: 4px 2px;
+    padding: 4px 6px;
   }
 
   .view-details {
@@ -788,6 +915,14 @@ input:focus-visible {
 
   tbody tr:nth-child(even) {
     background-color: rgba(255, 255, 255, 0.02);
+  }
+
+  .user-group {
+    background-color: rgba(76, 175, 80, 0.25);
+  }
+
+  .user-summary-row {
+    background-color: rgba(76, 175, 80, 0.15);
   }
 }
 

@@ -1,11 +1,12 @@
 // views\userPages\userMonthlyRecord\userMonthlyRecord.js
+// ====================================================================
+// USER MONTHLY RECORD - IMPROVED WITH USER GROUPING AND NO PAGINATION
+// ====================================================================
 
 // ====================================================================
 // CONSTANTS AND CONFIGURATION
 // ====================================================================
 const CONFIG = {
-  ITEMS_PER_PAGE: 10,
-  MAX_VISIBLE_PAGES: 5,
   API_ENDPOINT: "/userMonthlyRecordGet",
   DEBOUNCE_DELAY: 300,
   MONTH_NAMES: [
@@ -30,7 +31,6 @@ const CONFIG = {
 const state = {
   allRecords: [],
   filteredRecords: [],
-  currentPage: 1,
   isLoading: false,
   filters: {
     year: "",
@@ -62,7 +62,6 @@ const elements = {
   resetFiltersBtn: () => document.getElementById("resetFilters"),
   recordsBody: () => document.getElementById("recordsBody"),
   loadingDiv: () => document.getElementById("loading"),
-  paginationDiv: () => document.getElementById("pagination"),
   modal: () => document.getElementById("recordModal"),
   modalContent: () => document.getElementById("modalContent"),
   closeModal: () => document.querySelector(".close"),
@@ -78,8 +77,6 @@ const elements = {
 
 /**
  * Formats a date to Vietnamese locale
- * @param {string|Date} date - The date to format
- * @returns {string} Formatted date string
  */
 const formatDate = (date) => {
   if (!date) return "N/A";
@@ -93,8 +90,6 @@ const formatDate = (date) => {
 
 /**
  * Gets month name by month number
- * @param {number} monthNumber - Month number (1-12)
- * @returns {string} Month name in Vietnamese
  */
 const getMonthName = (monthNumber) => {
   const index = monthNumber - 1;
@@ -103,9 +98,6 @@ const getMonthName = (monthNumber) => {
 
 /**
  * Debounce function to limit API calls
- * @param {Function} func - Function to debounce
- * @param {number} delay - Delay in milliseconds
- * @returns {Function} Debounced function
  */
 const debounce = (func, delay) => {
   let timeoutId;
@@ -117,25 +109,22 @@ const debounce = (func, delay) => {
 
 /**
  * Safe property access with fallback
- * @param {Object} obj - Object to access
- * @param {string} path - Property path (e.g., 'costCenter.name')
- * @param {*} fallback - Fallback value
- * @returns {*} Property value or fallback
  */
 const safeGet = (obj, path, fallback = "N/A") => {
+  if (!obj) return fallback;
   return path
     .split(".")
     .reduce(
       (current, key) =>
-        current && current[key] !== undefined ? current[key] : fallback,
+        current && current[key] !== undefined && current[key] !== null
+          ? current[key]
+          : fallback,
       obj
     );
 };
 
 /**
  * Safely converts value to locale string for numbers
- * @param {*} value - Value to convert
- * @returns {string} Formatted number or "0" if invalid
  */
 const safeToLocaleString = (value) => {
   if (value === null || value === undefined || value === "" || isNaN(value)) {
@@ -147,7 +136,6 @@ const safeToLocaleString = (value) => {
 
 /**
  * Shows error message to user
- * @param {string} message - Error message to display
  */
 const showError = (message) => {
   const loadingDiv = elements.loadingDiv();
@@ -173,7 +161,6 @@ const hideLoading = () => {
 
 /**
  * Fetches monthly records from the server
- * @returns {Promise<Array>} Array of monthly records
  */
 const fetchMonthlyRecords = async () => {
   try {
@@ -206,9 +193,174 @@ const fetchMonthlyRecords = async () => {
 // ====================================================================
 
 /**
+ * Groups records by user and sorts them
+ */
+const groupRecordsByUser = (records) => {
+  // Separate records with undefined/null realName
+  const recordsWithName = records.filter(
+    (record) => record.realName && record.realName.trim() !== ""
+  );
+
+  const recordsWithoutName = records.filter(
+    (record) => !record.realName || record.realName.trim() === ""
+  );
+
+  // Sort records with name alphabetically, then by year/month
+  const sortedRecordsWithName = [...recordsWithName].sort((a, b) => {
+    const nameA = a.realName?.toLowerCase() || "";
+    const nameB = b.realName?.toLowerCase() || "";
+    if (nameA < nameB) return -1;
+    if (nameA > nameB) return 1;
+
+    if (a.recordYear < b.recordYear) return -1;
+    if (a.recordYear > b.recordYear) return 1;
+
+    return a.recordMonth - b.recordMonth;
+  });
+
+  // Sort records without name by year/month
+  const sortedRecordsWithoutName = [...recordsWithoutName].sort((a, b) => {
+    if (a.recordYear < b.recordYear) return -1;
+    if (a.recordYear > b.recordYear) return 1;
+    return a.recordMonth - b.recordMonth;
+  });
+
+  return [...sortedRecordsWithName, ...sortedRecordsWithoutName];
+};
+
+/**
+ * Creates display items for rendering (headers, records, summaries)
+ */
+const createDisplayItems = (records) => {
+  const groupedRecords = groupRecordsByUser(records);
+  const displayItems = [];
+  let currentUser = null;
+  let currentUserRecords = [];
+  let globalRecordIndex = 0;
+  let groupIndex = 0;
+
+  // Helper to add user group
+  const addUserGroup = (user, userRecords, isFirst = false) => {
+    if (!isFirst && userRecords.length > 0) {
+      const userSummary = calculateUserSummary(userRecords);
+      if (userSummary) {
+        displayItems.push({
+          type: "summary",
+          data: userSummary,
+          userRealName: user,
+        });
+      }
+    }
+
+    if (user && user.trim() !== "") {
+      displayItems.push({
+        type: "header",
+        data: userRecords[0],
+        userRealName: user,
+        groupIndex: groupIndex,
+      });
+      groupIndex++;
+    }
+  };
+
+  // Process all records
+  groupedRecords.forEach((record) => {
+    const userName = record.realName || "Không có tên";
+
+    if (currentUser !== userName) {
+      if (currentUser !== null) {
+        addUserGroup(currentUser, currentUserRecords, currentUser === null);
+      }
+      currentUser = userName;
+      currentUserRecords = [record];
+    } else {
+      currentUserRecords.push(record);
+    }
+
+    globalRecordIndex++;
+    displayItems.push({
+      type: "record",
+      data: record,
+      globalIndex: globalRecordIndex,
+    });
+  });
+
+  // Add summary for last user
+  if (currentUser !== null && currentUserRecords.length > 0) {
+    const userSummary = calculateUserSummary(currentUserRecords);
+    if (userSummary) {
+      displayItems.push({
+        type: "summary",
+        data: userSummary,
+        userRealName: currentUser,
+      });
+    }
+  }
+
+  return displayItems;
+};
+
+/**
+ * Calculates summary for a user group
+ */
+const calculateUserSummary = (userRecords) => {
+  if (!userRecords || userRecords.length === 0) {
+    return null;
+  }
+
+  const summary = {
+    userRealName: userRecords[0].realName || "Không có tên",
+    recordCount: userRecords.length,
+    totalBaseSalary: 0,
+    totalHourlyWage: 0,
+    totalResponsibility: 0,
+    totalTravelExpense: 0,
+    totalCommissionBonus: 0,
+    totalOtherBonus: 0,
+    totalWeekdayOvertimeHours: 0,
+    totalWeekendOvertimeHours: 0,
+    totalHolidayOvertimeHours: 0,
+    totalOvertimePay: 0,
+    totalTaxableIncome: 0,
+    totalGrossSalary: 0,
+    totalTax: 0,
+    totalCurrentSalary: 0,
+    averageCurrentSalary: 0,
+    averageTax: 0,
+  };
+
+  userRecords.forEach((record) => {
+    summary.totalBaseSalary += Number(record.baseSalary) || 0;
+    summary.totalHourlyWage += Number(record.hourlyWage) || 0;
+    summary.totalResponsibility += Number(record.responsibility) || 0;
+    summary.totalTravelExpense += Number(record.travelExpense) || 0;
+    summary.totalCommissionBonus += Number(record.commissionBonus) || 0;
+    summary.totalOtherBonus += Number(record.otherBonus) || 0;
+    summary.totalWeekdayOvertimeHours +=
+      Number(record.weekdayOvertimeHour) || 0;
+    summary.totalWeekendOvertimeHours +=
+      Number(record.weekendOvertimeHour) || 0;
+    summary.totalHolidayOvertimeHours +=
+      Number(record.holidayOvertimeHour) || 0;
+    summary.totalOvertimePay += Number(record.overtimePay) || 0;
+    summary.totalTaxableIncome += Number(record.taxableIncome) || 0;
+    summary.totalGrossSalary += Number(record.grossSalary) || 0;
+    summary.totalTax += Number(record.tax) || 0;
+    summary.totalCurrentSalary += Number(record.currentSalary) || 0;
+  });
+
+  if (summary.recordCount > 0) {
+    summary.averageCurrentSalary = Math.round(
+      summary.totalCurrentSalary / summary.recordCount
+    );
+    summary.averageTax = Math.round(summary.totalTax / summary.recordCount);
+  }
+
+  return summary;
+};
+
+/**
  * Extracts unique years from records and sorts them
- * @param {Array} records - Array of records
- * @returns {Array} Sorted array of unique years
  */
 const extractUniqueYears = (records) => {
   const years = records
@@ -220,22 +372,26 @@ const extractUniqueYears = (records) => {
 
 /**
  * Extracts unique cost centers from records and sorts them
- * @param {Array} records - Array of records
- * @returns {Array} Sorted array of unique cost center names
  */
 const extractUniqueCostCenters = (records) => {
   const costCenters = records
-    .filter((record) => record.costCenter?.name)
-    .map((record) => record.costCenter.name);
+    .map((record) => safeGet(record, "costCenter.name", ""))
+    .filter((name) => name && name.trim() !== "");
 
-  return [...new Set(costCenters)].sort();
+  const uniqueCostCenters = [...new Set(costCenters)].sort();
+
+  const hasNoCostCenter = records.some(
+    (record) => !safeGet(record, "costCenter.name")
+  );
+  if (hasNoCostCenter) {
+    uniqueCostCenters.push("Không có trạm");
+  }
+
+  return uniqueCostCenters;
 };
 
 /**
  * Filters records based on current filter criteria
- * @param {Array} records - Array of records to filter
- * @param {Object} filters - Filter criteria
- * @returns {Array} Filtered records
  */
 const filterRecords = (records, filters) => {
   return records.filter((record) => {
@@ -296,8 +452,6 @@ const filterRecords = (records, filters) => {
 
 /**
  * Calculates summary statistics for records
- * @param {Array} records - Records to summarize
- * @returns {Object} Summary statistics
  */
 const calculateSummary = (records) => {
   if (!records || records.length === 0) {
@@ -385,35 +539,10 @@ const calculateSummary = (records) => {
       ? Math.round(totals.totalTax / totals.totalRecords)
       : 0;
 
-  // Reset min/max if no valid values
   if (totals.minCurrentSalary === Infinity) totals.minCurrentSalary = 0;
   if (totals.maxCurrentSalary === -Infinity) totals.maxCurrentSalary = 0;
 
   return totals;
-};
-
-/**
- * Paginates records array
- * @param {Array} records - Records to paginate
- * @param {number} page - Current page number
- * @param {number} itemsPerPage - Items per page
- * @returns {Object} Paginated data with records and pagination info
- */
-const paginateRecords = (records, page, itemsPerPage) => {
-  const totalItems = records.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (page - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-  const paginatedRecords = records.slice(startIndex, endIndex);
-
-  return {
-    records: paginatedRecords,
-    totalPages,
-    totalItems,
-    currentPage: page,
-    hasNextPage: page < totalPages,
-    hasPreviousPage: page > 1,
-  };
 };
 
 // ====================================================================
@@ -434,7 +563,6 @@ const exportToPDF = () => {
 
   let url = `/exportSalaryPDF?year=${year}`;
 
-  // Add month if selected
   if (month) {
     url += `&month=${month}`;
   }
@@ -460,17 +588,14 @@ const exportToPDF = () => {
     }
   }
 
-  // Add summary data to URL
   if (state.summary && state.summary.totalRecords > 0) {
     url += `&includeSummary=true`;
   }
 
-  // Show loading message in Vietnamese
   const loadingDiv = elements.loadingDiv();
   loadingDiv.style.display = "block";
   loadingDiv.innerHTML = "Đang tạo báo cáo PDF, vui lòng chờ...";
 
-  // Create a temporary iframe for download
   const iframe = document.createElement("iframe");
   iframe.style.display = "none";
   iframe.src = url;
@@ -495,14 +620,12 @@ const exportToExcel = async () => {
     return;
   }
 
-  // Show loading message in Vietnamese
   const loadingDiv = elements.loadingDiv();
   loadingDiv.style.display = "block";
   loadingDiv.innerHTML = "Đang tạo báo cáo Excel, vui lòng chờ...";
 
   let url = `/exportSalaryExcel?year=${year}`;
 
-  // Add month if selected
   if (month) {
     url += `&month=${month}`;
   }
@@ -528,12 +651,10 @@ const exportToExcel = async () => {
     }
   }
 
-  // Add summary data to URL
   if (state.summary && state.summary.totalRecords > 0) {
     url += `&includeSummary=true`;
   }
 
-  // Create a temporary iframe for download
   const iframe = document.createElement("iframe");
   iframe.style.display = "none";
   iframe.src = url;
@@ -551,14 +672,240 @@ const exportToExcel = async () => {
 // ====================================================================
 
 /**
+ * Creates a user group header row
+ */
+const createUserGroupHeader = (user, groupIndex) => {
+  const row = document.createElement("tr");
+  row.className = "user-group";
+  row.setAttribute("role", "row");
+  const employeeInfo = `${user.realName || "Không có tên"}${
+    user.costCenter?.name ? ` - ${user.costCenter.name}` : ""
+  }`;
+
+  row.innerHTML = `
+    <td colspan="19" role="gridcell">
+      <strong>Nhóm ${groupIndex + 1}:</strong> ${employeeInfo}
+      <span style="float: right; font-weight: normal; font-size: 0.9em; color: var(--text-secondary);">
+        ${user.email || ""}
+      </span>
+    </td>
+  `;
+
+  return row;
+};
+
+/**
+ * Creates a user summary row WITHOUT RECORD COUNT COLUMN
+ */
+const createUserSummaryRow = (summary) => {
+  const row = document.createElement("tr");
+  row.className = "user-summary-row";
+  row.setAttribute("role", "row");
+
+  const cells = [
+    { text: "", colSpan: 1, align: "center" },
+    { text: `<strong>Tổng hợp cho:</strong>`, colSpan: 2, align: "left" },
+    {
+      text: summary.totalBaseSalary.toLocaleString(),
+      colSpan: 1,
+      align: "right",
+    },
+    {
+      text: summary.totalHourlyWage.toLocaleString(),
+      colSpan: 1,
+      align: "right",
+    },
+    {
+      text: summary.totalResponsibility.toLocaleString(),
+      colSpan: 1,
+      align: "right",
+    },
+    {
+      text: summary.totalTravelExpense.toLocaleString(),
+      colSpan: 1,
+      align: "right",
+    },
+    {
+      text: summary.totalCommissionBonus.toLocaleString(),
+      colSpan: 1,
+      align: "right",
+    },
+    {
+      text: summary.totalOtherBonus.toLocaleString(),
+      colSpan: 1,
+      align: "right",
+    },
+    {
+      text: summary.totalWeekdayOvertimeHours.toFixed(1),
+      colSpan: 1,
+      align: "center",
+    },
+    {
+      text: summary.totalWeekendOvertimeHours.toFixed(1),
+      colSpan: 1,
+      align: "center",
+    },
+    {
+      text: summary.totalHolidayOvertimeHours.toFixed(1),
+      colSpan: 1,
+      align: "center",
+    },
+    {
+      text: summary.totalOvertimePay.toLocaleString(),
+      colSpan: 1,
+      align: "right",
+    },
+    {
+      text: summary.totalTaxableIncome.toLocaleString(),
+      colSpan: 1,
+      align: "right",
+    },
+    {
+      text: summary.totalGrossSalary.toLocaleString(),
+      colSpan: 1,
+      align: "right",
+    },
+    { text: summary.totalTax.toLocaleString(), colSpan: 1, align: "right" },
+    {
+      text: `<strong>${summary.totalCurrentSalary.toLocaleString()}</strong>`,
+      colSpan: 1,
+      align: "right",
+    },
+    {
+      text: `TB: ${summary.averageCurrentSalary.toLocaleString()} | Thuế TB: ${summary.averageTax.toLocaleString()}`,
+      colSpan: 2,
+      align: "left",
+    },
+  ];
+
+  let html = "";
+  let cellIndex = 0;
+
+  for (let i = 0; i < 19; i++) {
+    if (cellIndex < cells.length) {
+      const cell = cells[cellIndex];
+
+      if (cell.colSpan > 1) {
+        html += `<td colspan="${cell.colSpan}" role="gridcell" style="text-align: ${cell.align}">${cell.text}</td>`;
+        i += cell.colSpan - 1;
+      } else {
+        html += `<td role="gridcell" style="text-align: ${cell.align}">${cell.text}</td>`;
+      }
+
+      cellIndex++;
+    } else {
+      html += `<td role="gridcell"></td>`;
+    }
+  }
+
+  row.innerHTML = html;
+
+  return row;
+};
+
+/**
+ * Creates a table row for a record
+ */
+const createRecordRow = (record, index) => {
+  const row = document.createElement("tr");
+  row.setAttribute("role", "row");
+  const monthName = getMonthName(record.recordMonth);
+
+  row.innerHTML = `
+    <td role="gridcell">${index + 1}</td>
+    <td role="gridcell">${safeGet(record, "realName", "Không có tên")}</td>
+    <td role="gridcell">${monthName} ${record.recordYear || "N/A"}</td>
+    <td role="gridcell">${safeToLocaleString(record.baseSalary)}</td>
+    <td role="gridcell">${safeToLocaleString(record.hourlyWage)}</td>
+    <td role="gridcell">${safeToLocaleString(record.responsibility)}</td>
+    <td role="gridcell">${safeToLocaleString(record.travelExpense)}</td>
+    <td role="gridcell">${safeToLocaleString(record.commissionBonus)}</td>
+    <td role="gridcell">${safeToLocaleString(record.otherBonus)}</td>
+    <td role="gridcell">${record.weekdayOvertimeHour || 0}</td>
+    <td role="gridcell">${record.weekendOvertimeHour || 0}</td>
+    <td role="gridcell">${record.holidayOvertimeHour || 0}</td>
+    <td role="gridcell">${safeToLocaleString(record.overtimePay)}</td>
+    <td role="gridcell">${safeToLocaleString(record.taxableIncome)}</td>
+    <td role="gridcell">${safeToLocaleString(record.grossSalary)}</td>
+    <td role="gridcell">${safeToLocaleString(record.tax)}</td>
+    <td role="gridcell">${safeToLocaleString(record.currentSalary)}</td>
+    <td role="gridcell">${safeGet(
+      record,
+      "costCenter.name",
+      "Không có trạm"
+    )}</td>
+    <td role="gridcell">
+      <button class="view-details" data-id="${record._id}" 
+              title="Xem chi tiết bản ghi" role="button">
+        Xem chi tiết
+      </button>
+    </td>
+  `;
+
+  return row;
+};
+
+/**
+ * Renders the records table with ALL records at once
+ */
+const renderTableWithGrouping = (items) => {
+  const recordsBody = elements.recordsBody();
+  if (!recordsBody) return;
+
+  recordsBody.innerHTML = "";
+
+  if (items.length === 0) {
+    recordsBody.innerHTML = `
+      <tr role="row">
+        <td colspan="19" role="gridcell" style="text-align: center; padding: 20px; color: #666;">
+          Không tìm thấy bản ghi nào phù hợp với tiêu chí tìm kiếm.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  let userGroupCount = 0;
+  let currentUser = null;
+
+  items.forEach((item) => {
+    switch (item.type) {
+      case "header":
+        if (
+          item.userRealName !== currentUser &&
+          item.userRealName !== "Không có tên"
+        ) {
+          fragment.appendChild(
+            createUserGroupHeader(item.data, userGroupCount)
+          );
+          currentUser = item.userRealName;
+          userGroupCount++;
+        }
+        break;
+
+      case "record":
+        fragment.appendChild(createRecordRow(item.data, item.globalIndex - 1));
+        break;
+
+      case "summary":
+        fragment.appendChild(createUserSummaryRow(item.data));
+        currentUser = null;
+        break;
+    }
+  });
+
+  recordsBody.appendChild(fragment);
+  attachDetailButtonListeners();
+};
+
+/**
  * Populates year filter dropdown
- * @param {Array} years - Array of unique years
  */
 const populateYearFilter = (years) => {
   const yearFilter = elements.yearFilter();
   if (!yearFilter) return;
 
-  // Clear existing options except the first one
   yearFilter.innerHTML = '<option value="">Tất cả năm</option>';
 
   years.forEach((year) => {
@@ -571,13 +918,11 @@ const populateYearFilter = (years) => {
 
 /**
  * Populates cost center filter dropdown
- * @param {Array} costCenters - Array of unique cost center names
  */
 const populateCostCenterFilter = (costCenters) => {
   const costCenterFilter = elements.costCenterFilter();
   if (!costCenterFilter) return;
 
-  // Clear existing options except the first one
   costCenterFilter.innerHTML = '<option value="">Tất cả trạm</option>';
 
   costCenters.forEach((name) => {
@@ -589,80 +934,7 @@ const populateCostCenterFilter = (costCenters) => {
 };
 
 /**
- * Creates a table row for a record
- * @param {Object} record - Monthly record data
- * @param {number} index - Row index (for STT)
- * @returns {HTMLElement} Table row element
- */
-const createRecordRow = (record, index) => {
-  const row = document.createElement("tr");
-  const monthName = getMonthName(record.recordMonth);
-  const startIndex =
-    (state.currentPage - 1) * CONFIG.ITEMS_PER_PAGE + index + 1;
-
-  row.innerHTML = `
-    <td>${startIndex}</td>
-    <td>${safeGet(record, "realName", "N/A")}</td>
-    <td>${monthName} ${record.recordYear || "N/A"}</td>
-    <td>${safeToLocaleString(record.baseSalary)}</td>
-    <td>${safeToLocaleString(record.hourlyWage)}</td>
-    <td>${safeToLocaleString(record.responsibility)}</td>
-    <td>${safeToLocaleString(record.travelExpense)}</td>
-    <td>${safeToLocaleString(record.commissionBonus)}</td>
-    <td>${safeToLocaleString(record.otherBonus)}</td>
-    <td>${record.weekdayOvertimeHour || 0}</td>
-    <td>${record.weekendOvertimeHour || 0}</td>
-    <td>${record.holidayOvertimeHour || 0}</td>
-    <td>${safeToLocaleString(record.overtimePay)}</td>
-    <td>${safeToLocaleString(record.taxableIncome)}</td>
-    <td>${safeToLocaleString(record.grossSalary)}</td>
-    <td>${safeToLocaleString(record.tax)}</td>
-    <td>${safeToLocaleString(record.currentSalary)}</td>
-    <td>${safeGet(record, "costCenter.name", "N/A")}</td>
-    <td>
-      <button class="view-details" data-id="${record._id}" 
-              title="Xem chi tiết bản ghi">
-        Xem chi tiết
-      </button>
-    </td>
-  `;
-
-  return row;
-};
-
-/**
- * Renders the records table
- * @param {Array} records - Records to display
- */
-const renderTable = (records) => {
-  const recordsBody = elements.recordsBody();
-  if (!recordsBody) return;
-
-  recordsBody.innerHTML = "";
-
-  if (records.length === 0) {
-    recordsBody.innerHTML = `
-      <tr>
-        <td colspan="19" style="text-align: center; padding: 20px; color: #666;">
-          Không tìm thấy bản ghi nào phù hợp với tiêu chí tìm kiếm.
-        </td>
-      </tr>
-    `;
-    return;
-  }
-
-  const fragment = document.createDocumentFragment();
-  records.forEach((record, index) => {
-    fragment.appendChild(createRecordRow(record, index));
-  });
-
-  recordsBody.appendChild(fragment);
-  attachDetailButtonListeners();
-};
-
-/**
  * Renders the summary section
- * @param {Object} summaryData - Summary statistics to display
  */
 const renderSummary = (summaryData) => {
   const summarySection = elements.summarySection();
@@ -794,127 +1066,58 @@ const renderSummary = (summaryData) => {
 };
 
 /**
- * Creates a pagination button
- * @param {string} text - Button text
- * @param {number|null} page - Page number (null for disabled buttons)
- * @param {boolean} isActive - Whether button is active
- * @returns {HTMLElement} Button element
+ * Shows record count
  */
-const createPaginationButton = (text, page, isActive = false) => {
-  const button = document.createElement("button");
-  button.textContent = text;
-  button.disabled = page === null;
+const showRecordCount = (count) => {
+  let recordCountDisplay = document.getElementById("recordCountDisplay");
 
-  if (isActive) {
-    button.style.fontWeight = "bold";
-    button.style.backgroundColor = "#45a049";
-  }
+  if (!recordCountDisplay) {
+    recordCountDisplay = document.createElement("div");
+    recordCountDisplay.id = "recordCountDisplay";
+    recordCountDisplay.style.cssText = `
+      margin: 10px 0;
+      padding: 8px 12px;
+      background-color: var(--primary-light);
+      border-radius: var(--radius-sm);
+      font-size: var(--font-size-sm);
+      color: var(--text-secondary);
+      text-align: center;
+      border: 1px solid var(--border-light);
+    `;
 
-  if (page !== null) {
-    button.addEventListener("click", () => changePage(page));
-  }
-
-  return button;
-};
-
-/**
- * Renders pagination controls
- * @param {Object} paginationInfo - Pagination information
- */
-const renderPagination = (paginationInfo) => {
-  const paginationDiv = elements.paginationDiv();
-  if (!paginationDiv) return;
-
-  paginationDiv.innerHTML = "";
-
-  const { totalPages, currentPage, hasPreviousPage, hasNextPage } =
-    paginationInfo;
-
-  if (totalPages <= 1) return;
-
-  const fragment = document.createDocumentFragment();
-
-  // Previous button
-  fragment.appendChild(
-    createPaginationButton("Trước", hasPreviousPage ? currentPage - 1 : null)
-  );
-
-  // Page number buttons
-  const { startPage, endPage } = calculatePageRange(currentPage, totalPages);
-
-  // First page and ellipsis
-  if (startPage > 1) {
-    fragment.appendChild(createPaginationButton("1", 1));
-    if (startPage > 2) {
-      const ellipsis = document.createElement("span");
-      ellipsis.textContent = "...";
-      ellipsis.style.padding = "5px 10px";
-      fragment.appendChild(ellipsis);
+    const tableContainer = document.querySelector(".table-container");
+    if (tableContainer && tableContainer.parentNode) {
+      tableContainer.parentNode.insertBefore(
+        recordCountDisplay,
+        tableContainer.nextSibling
+      );
     }
   }
 
-  // Page numbers
-  for (let i = startPage; i <= endPage; i++) {
-    fragment.appendChild(
-      createPaginationButton(i.toString(), i, i === currentPage)
-    );
-  }
-
-  // Last page and ellipsis
-  if (endPage < totalPages) {
-    if (endPage < totalPages - 1) {
-      const ellipsis = document.createElement("span");
-      ellipsis.textContent = "...";
-      ellipsis.style.padding = "5px 10px";
-      fragment.appendChild(ellipsis);
-    }
-    fragment.appendChild(
-      createPaginationButton(totalPages.toString(), totalPages)
-    );
-  }
-
-  // Next button
-  fragment.appendChild(
-    createPaginationButton("Sau", hasNextPage ? currentPage + 1 : null)
-  );
-
-  paginationDiv.appendChild(fragment);
-};
-
-/**
- * Calculates the range of page numbers to display
- * @param {number} currentPage - Current page number
- * @param {number} totalPages - Total number of pages
- * @returns {Object} Start and end page numbers
- */
-const calculatePageRange = (currentPage, totalPages) => {
-  const maxVisible = CONFIG.MAX_VISIBLE_PAGES;
-  let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-  let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-
-  if (endPage - startPage + 1 < maxVisible) {
-    startPage = Math.max(1, endPage - maxVisible + 1);
-  }
-
-  return { startPage, endPage };
+  recordCountDisplay.textContent = `Đang hiển thị ${count.toLocaleString()} bản ghi`;
 };
 
 /**
  * Creates modal content for record details
- * @param {Object} record - Record to display
- * @returns {string} HTML content for modal
  */
 const createModalContent = (record) => {
   const monthName = getMonthName(record.recordMonth);
 
   return `
-    <h2>${safeGet(record, "realName")} - ${monthName} ${record.recordYear}</h2>
+    <h2>${safeGet(record, "realName", "Không có tên")} - ${monthName} ${
+    record.recordYear
+  }</h2>
     <p><strong>Ngày ghi nhận:</strong> ${formatDate(record.recordDate)}</p>
-    <p><strong>Email:</strong> ${safeGet(record, "email")}</p>
-    <p><strong>Trạm:</strong> ${safeGet(record, "costCenter.name")}</p>
+    <p><strong>Email:</strong> ${safeGet(record, "email", "Không có")}</p>
+    <p><strong>Trạm:</strong> ${safeGet(
+      record,
+      "costCenter.name",
+      "Không có trạm"
+    )}</p>
     <p><strong>Người phụ trách:</strong> ${safeGet(
       record,
-      "assignedManager.realName"
+      "assignedManager.realName",
+      "Không có"
     )}</p>
     
     <div class="modal-section">
@@ -999,19 +1202,16 @@ const createModalContent = (record) => {
 
 /**
  * Toggles reverse filter for a filter type
- * @param {string} filterType - Type of filter to toggle
  */
 const toggleReverseFilter = (filterType) => {
   state.filters.reverseFilters[filterType] =
     !state.filters.reverseFilters[filterType];
 
-  // Update button appearance
   const button = document.getElementById(`${filterType}Reverse`);
   if (button) {
     button.classList.toggle("active", state.filters.reverseFilters[filterType]);
   }
 
-  state.currentPage = 1;
   updateDisplay();
 };
 
@@ -1034,7 +1234,6 @@ const handleApplyFilters = () => {
     realName: realNameFilter?.value || "",
   };
 
-  state.currentPage = 1;
   updateDisplay();
 };
 
@@ -1054,7 +1253,6 @@ const handleResetFilters = () => {
   if (bankFilter) bankFilter.value = "";
   if (realNameFilter) realNameFilter.value = "";
 
-  // Reset reverse filter buttons
   [
     "yearReverse",
     "monthReverse",
@@ -1082,28 +1280,11 @@ const handleResetFilters = () => {
       realName: false,
     },
   };
-  state.currentPage = 1;
   updateDisplay();
-};
-
-/**
- * Handles page change
- * @param {number} page - New page number
- */
-const changePage = (page) => {
-  state.currentPage = page;
-  updateDisplay();
-
-  // Scroll to top of table
-  const table = document.getElementById("recordsTable");
-  if (table) {
-    table.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
 };
 
 /**
  * Shows record details in modal
- * @param {string} recordId - ID of the record to show
  */
 const showRecordDetails = (recordId) => {
   const record = state.allRecords.find((r) => r._id === recordId);
@@ -1120,7 +1301,6 @@ const showRecordDetails = (recordId) => {
   modalContent.innerHTML = createModalContent(record);
   modal.style.display = "block";
 
-  // Focus on modal for accessibility
   modal.setAttribute("tabindex", "-1");
   modal.focus();
 };
@@ -1149,6 +1329,10 @@ const attachDetailButtonListeners = () => {
     });
   });
 };
+
+// ====================================================================
+// SETUP FUNCTIONS
+// ====================================================================
 
 /**
  * Sets up all event listeners
@@ -1239,10 +1423,6 @@ const setupEventListeners = () => {
     ?.addEventListener("click", () => toggleReverseFilter("realName"));
 };
 
-// ====================================================================
-// MAIN FUNCTIONS
-// ====================================================================
-
 /**
  * Updates the display with current data and filters
  */
@@ -1250,20 +1430,16 @@ const updateDisplay = () => {
   // Filter records
   state.filteredRecords = filterRecords(state.allRecords, state.filters);
 
-  // Calculate summary
+  // Calculate overall summary
   state.summary = calculateSummary(state.filteredRecords);
 
-  // Paginate results
-  const paginationInfo = paginateRecords(
-    state.filteredRecords,
-    state.currentPage,
-    CONFIG.ITEMS_PER_PAGE
-  );
+  // Create display items
+  const displayItems = createDisplayItems(state.filteredRecords);
 
-  // Render table, pagination, and summary
-  renderTable(paginationInfo.records);
-  renderPagination(paginationInfo);
+  // Render table with all items
+  renderTableWithGrouping(displayItems);
   renderSummary(state.summary);
+  showRecordCount(state.filteredRecords.length);
 };
 
 /**
@@ -1309,7 +1485,9 @@ const initializeApp = async () => {
     // Load initial data
     await loadData();
 
-    console.log("User Monthly Record application initialized successfully");
+    console.log(
+      "User Monthly Record application initialized successfully without pagination"
+    );
   } catch (error) {
     console.error("Application initialization failed:", error);
     showError("Không thể khởi tạo ứng dụng. Vui lòng tải lại trang.");
@@ -1322,18 +1500,3 @@ const initializeApp = async () => {
 
 // Initialize when DOM is ready
 document.addEventListener("DOMContentLoaded", initializeApp);
-
-// Export functions for testing (if needed)
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = {
-    formatDate,
-    getMonthName,
-    safeGet,
-    safeToLocaleString,
-    filterRecords,
-    calculateSummary,
-    paginateRecords,
-    extractUniqueYears,
-    extractUniqueCostCenters,
-  };
-}

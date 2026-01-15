@@ -11,7 +11,7 @@
     <title>Bản Ghi Hàng Tháng</title>
     <link
       rel="stylesheet"
-      href="userPages/userMonthlyRecord/userMonthlyRecord.css?=v1.1"
+      href="userPages/userMonthlyRecord/userMonthlyRecord.css?=v1.2"
     />
 
     <!-- Preconnect for performance -->
@@ -230,17 +230,16 @@
             </tbody>
           </table>
         </div>
-
-        <!-- Pagination -->
-        <nav
-          class="pagination"
-          role="navigation"
-          aria-label="Phân trang"
-          id="pagination"
-        >
-          <!-- Pagination buttons will be populated by JavaScript -->
-        </nav>
+        <!-- Note: Pagination section has been removed -->
       </main>
+
+      <!-- Summary Section -->
+      <div id="summarySection" class="summary-container" style="display: none">
+        <h3>Tổng Hợp Thống Kê</h3>
+        <div id="summaryGrid" class="summary-grid">
+          <!-- Summary items will be populated by JavaScript -->
+        </div>
+      </div>
     </div>
 
     <!-- Modal for Record Details -->
@@ -273,7 +272,7 @@
     <!-- JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="userPages/userMonthlyRecord/userMonthlyRecord.js?=v1.11"></script>
+    <script src="userPages/userMonthlyRecord/userMonthlyRecord.js?=v1.12"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -306,6 +305,18 @@
 
       .skip-link:focus {
         top: 6px;
+      }
+
+      /* Ensure table expands fully on all screens */
+      @media (min-width: 1600px) {
+        .table-container {
+          margin-left: -20px;
+          margin-right: -20px;
+        }
+
+        table {
+          min-width: 2000px;
+        }
       }
     </style>
 
