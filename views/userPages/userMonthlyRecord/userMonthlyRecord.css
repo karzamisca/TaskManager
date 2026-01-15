@@ -62,32 +62,105 @@
 }
 
 /* ====================================================================
-   RESET AND BASE STYLES
+   EDGE-TO-EDGE LAYOUT & CONFLICT PREVENTION
    ==================================================================== */
-* {
-  box-sizing: border-box;
-}
 
+/* Reset body for edge-to-edge when header is present */
 body {
   font-family: var(--font-family);
   margin: 0;
-  padding: var(--spacing-xl);
+  padding: 0 !important; /* Override any other padding */
   background-color: var(--background-color);
   color: var(--text-primary);
   line-height: 1.6;
   font-size: var(--font-size-base);
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Header detection - reset padding when header exists */
+body:has(.dashboard-header) {
+  padding-top: 0 !important;
+}
+
+/* Force full-width container */
+.container {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: var(--spacing-xl) !important;
+  background-color: var(--surface-color);
+  border-radius: 0 !important; /* Remove rounded corners for edge-to-edge */
+  box-shadow: none !important; /* Remove shadow for cleaner edge-to-edge */
+  box-sizing: border-box;
+  position: relative;
+  left: 0;
+  right: 0;
+}
+
+/* CSS containment to prevent external style interference */
+.container {
+  contain: layout style paint;
+  isolation: isolate;
 }
 
 /* ====================================================================
-   LAYOUT COMPONENTS
+   FULL WIDTH TABLE CONTAINER
    ==================================================================== */
-.container {
-  max-width: 1800px;
-  margin: 0 auto;
+.table-container {
+  overflow-x: auto;
+  margin: var(--spacing-xl) 0 !important;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  width: 100% !important;
+  max-width: 100% !important;
+  left: 0;
+  right: 0;
+
+  /* Full width calculations */
+  margin-left: calc(-50vw + 50%) !important;
+  margin-right: calc(-50vw + 50%) !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+/* Table itself should be full width */
+table {
+  width: 100%;
+  border-collapse: collapse;
   background-color: var(--surface-color);
-  padding: var(--spacing-xl) var(--spacing-xxl);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  font-size: var(--font-size-sm);
+  min-width: 1900px;
+  table-layout: auto;
+  border-spacing: 0;
+  margin: 0 !important;
+}
+
+/* Reset all Bootstrap table styles */
+#recordsTable {
+  --bs-table-bg: transparent !important;
+  --bs-table-accent-bg: transparent !important;
+  --bs-table-striped-color: inherit !important;
+  --bs-table-striped-bg: transparent !important;
+  --bs-table-active-color: inherit !important;
+  --bs-table-active-bg: transparent !important;
+  --bs-table-hover-color: inherit !important;
+  --bs-table-hover-bg: transparent !important;
+  border-color: transparent !important;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  background-clip: padding-box !important;
+}
+
+/* ====================================================================
+   RESET AND BASE STYLES
+   ==================================================================== */
+* {
+  box-sizing: border-box;
 }
 
 /* ====================================================================
@@ -148,6 +221,9 @@ h3 {
   padding: var(--spacing-lg);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
 }
 
 .filter-group {
@@ -174,9 +250,14 @@ input[type="number"] {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
   font-size: var(--font-size-base);
-  font-family: inherit;
+  font-family: var(--font-family) !important; /* Force our font family */
   transition: all var(--transition-fast);
   outline: none;
+  background-color: var(--surface-color) !important;
+  color: var(--text-primary) !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
 }
 
 select:focus,
@@ -191,21 +272,26 @@ input:hover {
 }
 
 /* ====================================================================
-   BUTTONS
+   BUTTONS - PREVENT BOOTSTRAP OVERRIDES
    ==================================================================== */
 button {
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
+  background-color: var(--primary-color) !important;
+  color: white !important;
+  border: none !important;
   cursor: pointer;
   font-weight: 500;
   white-space: nowrap;
   position: relative;
   overflow: hidden;
+  font-family: var(--font-family) !important;
+  padding: var(--spacing-sm) var(--spacing-md) !important;
+  border-radius: var(--radius-sm) !important;
+  text-decoration: none !important;
+  display: inline-block !important;
 }
 
 button:hover:not(:disabled) {
-  background-color: var(--primary-hover);
+  background-color: var(--primary-hover) !important;
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
 }
@@ -216,146 +302,135 @@ button:active:not(:disabled) {
 }
 
 button:disabled {
-  background-color: var(--text-muted);
+  background-color: var(--text-muted) !important;
   cursor: not-allowed;
   opacity: 0.6;
 }
 
-/* Button Variants */
+/* Reset Bootstrap button classes that might affect us */
+.btn {
+  --bs-btn-padding-x: var(--spacing-md) !important;
+  --bs-btn-padding-y: var(--spacing-sm) !important;
+  --bs-btn-font-family: var(--font-family) !important;
+  --bs-btn-border-radius: var(--radius-sm) !important;
+}
+
+/* Button Variants - override Bootstrap */
 .btn-secondary {
-  background-color: var(--secondary-color);
+  background-color: var(--secondary-color) !important;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: var(--secondary-hover);
+  background-color: var(--secondary-hover) !important;
 }
 
 .btn-danger {
-  background-color: var(--danger-color);
+  background-color: var(--danger-color) !important;
 }
 
 .btn-danger:hover:not(:disabled) {
-  background-color: var(--danger-hover);
+  background-color: var(--danger-hover) !important;
 }
 
 .btn-small {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: var(--font-size-sm);
+  padding: var(--spacing-xs) var(--spacing-sm) !important;
+  font-size: var(--font-size-sm) !important;
 }
 
 /* ====================================================================
    TABLE STYLES - MODIFIED FOR USER GROUPING
    ==================================================================== */
-.table-container {
-  overflow-x: auto;
-  margin-top: var(--spacing-xl);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  position: relative;
-  max-width: 100%;
-  margin-left: -5px;
-  margin-right: -5px;
-  padding-left: 5px;
-  padding-right: 5px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: var(--surface-color);
-  font-size: var(--font-size-sm);
-  min-width: 1900px; /* Increased to remove white space */
-  table-layout: auto;
-  border-spacing: 0;
-}
-
 th,
 td {
   padding: var(--spacing-sm) var(--spacing-lg);
   text-align: left;
-  border-bottom: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light) !important;
   white-space: nowrap;
   min-width: auto;
+  background-clip: padding-box !important;
+  border: 1px solid var(--border-light) !important;
+  position: relative;
 }
 
 th {
-  background-color: var(--primary-light);
+  background-color: var(--primary-light) !important;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
   position: sticky;
   top: 0;
   z-index: 10;
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border-light) !important;
 }
 
 /* User group styling */
 .user-group {
-  background-color: rgba(76, 175, 80, 0.15);
-  border-left: 4px solid var(--primary-color);
-  border-right: 4px solid var(--primary-color);
+  background-color: rgba(76, 175, 80, 0.15) !important;
+  border-left: 4px solid var(--primary-color) !important;
+  border-right: 4px solid var(--primary-color) !important;
 }
 
 .user-group td {
-  font-weight: 700;
-  color: var(--text-primary);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  font-size: var(--font-size-base);
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+  padding: var(--spacing-sm) var(--spacing-lg) !important;
+  font-size: var(--font-size-base) !important;
+  background-color: rgba(76, 175, 80, 0.15) !important;
 }
 
 /* User summary row - FIXED ALIGNMENT */
 .user-summary-row {
-  background-color: rgba(76, 175, 80, 0.08);
-  border-top: 2px solid var(--primary-color);
-  border-bottom: 2px solid var(--primary-color);
+  background-color: rgba(76, 175, 80, 0.08) !important;
+  border-top: 2px solid var(--primary-color) !important;
+  border-bottom: 2px solid var(--primary-color) !important;
 }
 
 .user-summary-row td {
-  font-weight: 600;
-  color: var(--text-primary);
-  padding: var(--spacing-md) var(--spacing-lg);
-  background-color: rgba(76, 175, 80, 0.05);
-  font-size: var(--font-size-sm);
+  font-weight: 600 !important;
+  color: var(--text-primary) !important;
+  padding: var(--spacing-md) var(--spacing-lg) !important;
+  background-color: rgba(76, 175, 80, 0.05) !important;
+  font-size: var(--font-size-sm) !important;
 }
 
 /* Reset alternating row colors for grouped structure */
 tbody tr:not(.user-group):not(.user-summary-row):nth-child(4n + 1),
 tbody tr:not(.user-group):not(.user-summary-row):nth-child(4n + 2) {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: rgba(0, 0, 0, 0.02) !important;
 }
 
 tbody tr:not(.user-group):not(.user-summary-row):nth-child(4n + 3),
 tbody tr:not(.user-group):not(.user-summary-row):nth-child(4n + 4) {
-  background-color: var(--surface-color);
+  background-color: var(--surface-color) !important;
 }
 
 tbody tr:not(.user-group):not(.user-summary-row):hover {
-  background-color: var(--surface-hover);
+  background-color: var(--surface-hover) !important;
 }
 
 /* Table cell alignment - FIXED FOR SUMMARY ROW ALIGNMENT */
 td:nth-child(1) {
   /* STT */
-  text-align: center;
-  font-weight: 500;
-  width: 60px;
+  text-align: center !important;
+  font-weight: 500 !important;
+  width: 60px !important;
   padding-left: 20px !important;
 }
 
 td:nth-child(2) {
   /* Nhân viên */
-  text-align: left;
-  min-width: 160px;
-  width: 160px;
+  text-align: left !important;
+  min-width: 160px !important;
+  width: 160px !important;
 }
 
 td:nth-child(3) {
   /* Tháng/Năm */
-  text-align: center;
-  min-width: 100px;
-  width: 100px;
+  text-align: center !important;
+  min-width: 100px !important;
+  width: 100px !important;
 }
 
 td:nth-child(4),   /* Lương cơ bản */
@@ -370,34 +445,34 @@ td:nth-child(15),  /* Lương gộp */
 td:nth-child(16),  /* Thuế */
 td:nth-child(17) {
   /* Lương thực lĩnh */
-  text-align: right;
-  font-weight: 500;
-  min-width: 130px;
-  width: 130px;
+  text-align: right !important;
+  font-weight: 500 !important;
+  min-width: 130px !important;
+  width: 130px !important;
 }
 
 td:nth-child(10),  /* Giờ TC tuần */
 td:nth-child(11),  /* Giờ TC CN */
 td:nth-child(12) {
   /* Giờ TC lễ */
-  text-align: center;
-  font-weight: 500;
-  min-width: 90px;
-  width: 90px;
+  text-align: center !important;
+  font-weight: 500 !important;
+  min-width: 90px !important;
+  width: 90px !important;
 }
 
 td:nth-child(18) {
   /* Trạm */
-  text-align: left;
-  min-width: 130px;
-  width: 130px;
+  text-align: left !important;
+  min-width: 130px !important;
+  width: 130px !important;
 }
 
 td:nth-child(19) {
   /* Thao tác */
-  text-align: center;
-  min-width: 120px;
-  width: 120px;
+  text-align: center !important;
+  min-width: 120px !important;
+  width: 120px !important;
   padding-right: 20px !important;
 }
 
@@ -405,8 +480,8 @@ td:nth-child(19) {
 .user-summary-row td:nth-child(1),
 .user-summary-row td:nth-child(2) {
   text-align: left !important;
-  font-weight: 700;
-  font-style: italic;
+  font-weight: 700 !important;
+  font-style: italic !important;
 }
 
 .user-summary-row td:nth-child(3),
@@ -450,14 +525,18 @@ td:last-child {
 
 /* Action buttons in table */
 .view-details {
-  padding: var(--spacing-xs) var(--spacing-sm);
-  font-size: 0.75rem;
-  background-color: var(--secondary-color);
-  border-radius: var(--radius-sm);
+  padding: var(--spacing-xs) var(--spacing-sm) !important;
+  font-size: 0.75rem !important;
+  background-color: var(--secondary-color) !important;
+  border-radius: var(--radius-sm) !important;
+  border: none !important;
+  color: white !important;
+  cursor: pointer !important;
+  font-family: var(--font-family) !important;
 }
 
 .view-details:hover {
-  background-color: var(--secondary-hover);
+  background-color: var(--secondary-hover) !important;
 }
 
 /* ====================================================================
@@ -508,24 +587,24 @@ td:last-child {
 }
 
 .pagination button {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md) !important;
   min-width: 40px;
   font-size: var(--font-size-sm);
-  background-color: var(--surface-color);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+  background-color: var(--surface-color) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
 }
 
 .pagination button:hover:not(:disabled) {
-  background-color: var(--primary-light);
-  border-color: var(--primary-color);
-  color: var(--primary-color);
+  background-color: var(--primary-light) !important;
+  border-color: var(--primary-color) !important;
+  color: var(--primary-color) !important;
 }
 
 .pagination button[style*="font-weight: bold"] {
-  background-color: var(--primary-color);
-  color: white;
-  border-color: var(--primary-color);
+  background-color: var(--primary-color) !important;
+  color: white !important;
+  border-color: var(--primary-color) !important;
 }
 
 .pagination span {
@@ -535,12 +614,12 @@ td:last-child {
 }
 
 /* ====================================================================
-   MODAL STYLES
+   MODAL STYLES - PROTECT FROM BOOTSTRAP
    ==================================================================== */
 .modal {
   display: none;
   position: fixed;
-  z-index: 1000;
+  z-index: 99999 !important; /* Higher than Bootstrap's default */
   left: 0;
   top: 0;
   width: 100%;
@@ -561,10 +640,10 @@ td:last-child {
 }
 
 .modal-content {
-  background-color: var(--surface-color);
+  background-color: var(--surface-color) !important;
   margin: 5% auto;
   padding: var(--spacing-xxl);
-  border: none;
+  border: none !important;
   width: 90%;
   max-width: 900px;
   border-radius: var(--radius-lg);
@@ -573,6 +652,7 @@ td:last-child {
   overflow-y: auto;
   position: relative;
   animation: slideIn var(--transition-base) ease;
+  contain: layout style paint;
 }
 
 @keyframes slideIn {
@@ -587,7 +667,7 @@ td:last-child {
 }
 
 .close {
-  color: var(--text-muted);
+  color: var(--text-muted) !important;
   float: right;
   font-size: 28px;
   font-weight: bold;
@@ -599,20 +679,22 @@ td:last-child {
   position: absolute;
   top: var(--spacing-lg);
   right: var(--spacing-lg);
+  background: none !important;
+  border: none !important;
 }
 
 .close:hover {
-  color: var(--danger-color);
-  background-color: var(--danger-color);
-  color: white;
+  color: var(--danger-color) !important;
+  background-color: rgba(244, 67, 54, 0.1) !important;
 }
 
 .modal-section {
   margin-bottom: var(--spacing-xl);
   padding: var(--spacing-lg);
-  background-color: var(--surface-hover);
+  background-color: var(--surface-hover) !important;
   border-radius: var(--radius-md);
-  border-left: 4px solid var(--primary-color);
+  border-left: 4px solid var(--primary-color) !important;
+  border: none !important;
 }
 
 .modal-section:last-child {
@@ -627,52 +709,62 @@ td:last-child {
 }
 
 .modal-section strong {
-  color: var(--text-primary);
-  font-weight: 600;
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
   min-width: 180px;
 }
 
 .reverse-btn {
-  padding: 0;
+  padding: 0 !important;
   width: 24px;
   height: 24px;
-  border-radius: 50%;
-  background-color: var(--surface-color);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
+  border-radius: 50% !important;
+  background-color: var(--surface-color) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
   font-weight: bold;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .reverse-btn:hover {
-  background-color: var(--primary-light);
-  color: var(--primary-color);
-  border-color: var(--primary-color);
+  background-color: var(--primary-light) !important;
+  color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
 }
 
 .reverse-btn.active {
-  background-color: var(--primary-color);
-  color: white;
-  border-color: var(--primary-color);
+  background-color: var(--primary-color) !important;
+  color: white !important;
+  border-color: var(--primary-color) !important;
 }
 
 /* ====================================================================
-   SUMMARY SECTION
+   SUMMARY SECTION - FULL WIDTH
    ==================================================================== */
 .summary-container {
   margin-top: var(--spacing-xl);
-  padding: var(--spacing-lg);
-  background-color: var(--primary-light);
+  padding: var(--spacing-lg) !important;
+  background-color: var(--primary-light) !important;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border-light) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+
+  /* Full width calculation */
+  margin-left: calc(-50vw + 50%) !important;
+  margin-right: calc(-50vw + 50%) !important;
+  width: 100vw !important;
+  padding-left: calc(50vw - 50% + var(--spacing-lg)) !important;
+  padding-right: calc(50vw - 50% + var(--spacing-lg)) !important;
 }
 
 .summary-container h3 {
   margin-top: 0;
-  color: var(--text-primary);
-  font-size: var(--font-size-lg);
-  border-bottom: 2px solid var(--primary-color);
+  color: var(--text-primary) !important;
+  font-size: var(--font-size-lg) !important;
+  border-bottom: 2px solid var(--primary-color) !important;
   padding-bottom: var(--spacing-sm);
 }
 
@@ -684,16 +776,17 @@ td:last-child {
 }
 
 .summary-item {
-  background-color: var(--surface-color);
+  background-color: var(--surface-color) !important;
   padding: var(--spacing-md);
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-color) !important;
   box-shadow: var(--shadow-sm);
+  contain: layout style;
 }
 
 .summary-label {
   font-size: var(--font-size-sm);
-  color: var(--text-secondary);
+  color: var(--text-secondary) !important;
   font-weight: 500;
   margin-bottom: var(--spacing-xs);
 }
@@ -701,24 +794,23 @@ td:last-child {
 .summary-value {
   font-size: var(--font-size-base);
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
 }
 
 .summary-value.positive {
-  color: var(--primary-color);
+  color: var(--primary-color) !important;
 }
 
 .summary-value.negative {
-  color: var(--danger-color);
+  color: var(--danger-color) !important;
 }
 
 /* ====================================================================
-   RESPONSIVE DESIGN
+   RESPONSIVE DESIGN - EDGE-TO-EDGE ADJUSTMENTS
    ==================================================================== */
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
   .container {
-    max-width: 100%;
-    padding: var(--spacing-lg);
+    padding: var(--spacing-lg) !important;
   }
 
   .filters {
@@ -732,15 +824,64 @@ td:last-child {
   table {
     font-size: 0.8rem;
   }
+
+  /* Adjust table container for smaller screens */
+  .table-container {
+    margin-left: calc(-50vw + 50% + 20px) !important;
+    margin-right: calc(-50vw + 50% + 20px) !important;
+    width: calc(100vw - 40px) !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+
+  .summary-container {
+    margin-left: calc(-50vw + 50% + 20px) !important;
+    margin-right: calc(-50vw + 50% + 20px) !important;
+    width: calc(100vw - 40px) !important;
+    padding-left: calc(50vw - 50% + var(--spacing-lg) - 20px) !important;
+    padding-right: calc(50vw - 50% + var(--spacing-lg) - 20px) !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .table-container {
+    margin-left: calc(-50vw + 50% + 15px) !important;
+    margin-right: calc(-50vw + 50% + 15px) !important;
+    width: calc(100vw - 30px) !important;
+  }
+
+  .summary-container {
+    margin-left: calc(-50vw + 50% + 15px) !important;
+    margin-right: calc(-50vw + 50% + 15px) !important;
+    width: calc(100vw - 30px) !important;
+    padding-left: calc(50vw - 50% + var(--spacing-lg) - 15px) !important;
+    padding-right: calc(50vw - 50% + var(--spacing-lg) - 15px) !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .table-container {
+    margin-left: calc(-50vw + 50% + 10px) !important;
+    margin-right: calc(-50vw + 50% + 10px) !important;
+    width: calc(100vw - 20px) !important;
+  }
+
+  .summary-container {
+    margin-left: calc(-50vw + 50% + 10px) !important;
+    margin-right: calc(-50vw + 50% + 10px) !important;
+    width: calc(100vw - 20px) !important;
+    padding-left: calc(50vw - 50% + var(--spacing-lg) - 10px) !important;
+    padding-right: calc(50vw - 50% + var(--spacing-lg) - 10px) !important;
+  }
 }
 
 @media (max-width: 768px) {
   body {
-    padding: var(--spacing-md);
+    padding: 0 !important;
   }
 
   .container {
-    padding: var(--spacing-md);
+    padding: var(--spacing-md) !important;
   }
 
   .filters {
@@ -760,11 +901,16 @@ td:last-child {
 
   .table-container {
     font-size: 0.7rem;
+    margin-left: -10px !important;
+    margin-right: -10px !important;
+    width: calc(100% + 20px) !important;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
   }
 
   th,
   td {
-    padding: var(--spacing-xs) 8px;
+    padding: var(--spacing-xs) 8px !important;
   }
 
   table {
@@ -793,20 +939,20 @@ td:last-child {
   }
 
   .pagination button {
-    padding: var(--spacing-xs) var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-sm) !important;
     min-width: 35px;
     font-size: 0.75rem;
   }
 
   /* Adjust column widths for mobile */
   td:nth-child(1) {
-    width: 50px;
+    width: 50px !important;
   }
   td:nth-child(2) {
-    width: 130px;
+    width: 130px !important;
   }
   td:nth-child(3) {
-    width: 80px;
+    width: 80px !important;
   }
   td:nth-child(4),
   td:nth-child(5),
@@ -819,22 +965,31 @@ td:last-child {
   td:nth-child(15),
   td:nth-child(16),
   td:nth-child(17) {
-    width: 100px;
+    width: 100px !important;
   }
   td:nth-child(10),
   td:nth-child(11),
   td:nth-child(12) {
-    width: 70px;
+    width: 70px !important;
   }
   td:nth-child(18) {
-    width: 100px;
+    width: 100px !important;
   }
   td:nth-child(19) {
-    width: 100px;
+    width: 100px !important;
+  }
+
+  /* Summary section mobile adjustments */
+  .summary-container {
+    margin-left: -10px !important;
+    margin-right: -10px !important;
+    width: calc(100% + 20px) !important;
+    padding-left: var(--spacing-lg) !important;
+    padding-right: var(--spacing-lg) !important;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 576px) {
   .filters {
     gap: var(--spacing-sm);
   }
@@ -851,12 +1006,12 @@ td:last-child {
 
   th,
   td {
-    padding: 4px 6px;
+    padding: 4px 6px !important;
   }
 
   .view-details {
-    padding: 2px 6px;
-    font-size: 0.65rem;
+    padding: 2px 6px !important;
+    font-size: 0.65rem !important;
   }
 
   .summary-grid {
@@ -866,6 +1021,21 @@ td:last-child {
 
   .summary-item {
     padding: var(--spacing-sm);
+  }
+
+  /* Extra small screens */
+  .table-container {
+    margin-left: -5px !important;
+    margin-right: -5px !important;
+    width: calc(100% + 10px) !important;
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+  }
+
+  .summary-container {
+    margin-left: -5px !important;
+    margin-right: -5px !important;
+    width: calc(100% + 10px) !important;
   }
 }
 
@@ -886,7 +1056,7 @@ td:last-child {
 button:focus-visible,
 select:focus-visible,
 input:focus-visible {
-  outline: 2px solid var(--primary-color);
+  outline: 2px solid var(--primary-color) !important;
   outline-offset: 2px;
 }
 
@@ -914,15 +1084,15 @@ input:focus-visible {
   }
 
   tbody tr:nth-child(even) {
-    background-color: rgba(255, 255, 255, 0.02);
+    background-color: rgba(255, 255, 255, 0.02) !important;
   }
 
   .user-group {
-    background-color: rgba(76, 175, 80, 0.25);
+    background-color: rgba(76, 175, 80, 0.25) !important;
   }
 
   .user-summary-row {
-    background-color: rgba(76, 175, 80, 0.15);
+    background-color: rgba(76, 175, 80, 0.15) !important;
   }
 }
 
@@ -944,4 +1114,100 @@ input:focus-visible {
 
 .table-container::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+/* ====================================================================
+   HEADER CONFLICT SPECIFIC OVERRIDES
+   ==================================================================== */
+
+/* When header is present, adjust spacing */
+.dashboard-header + .container {
+  margin-top: 0 !important;
+  padding-top: var(--spacing-xl) !important;
+}
+
+/* Override Bootstrap navbar styles that might affect our page */
+.navbar {
+  margin-bottom: 0 !important;
+}
+
+/* Ensure our page takes priority over any header styles */
+.container {
+  z-index: 1;
+  position: relative;
+}
+
+/* Header button styles should not affect our buttons */
+.dashboard-header .btn {
+  --bs-btn-font-family: inherit !important;
+  --bs-btn-border-radius: 0.375rem !important;
+}
+
+/* Our buttons should never inherit header styles */
+.filters button,
+#applyFilters,
+#resetFilters,
+#exportPDF,
+#exportExcel,
+.view-details {
+  all: unset !important;
+  background-color: var(--primary-color) !important;
+  color: white !important;
+  padding: var(--spacing-sm) var(--spacing-md) !important;
+  border-radius: var(--radius-sm) !important;
+  cursor: pointer !important;
+  font-family: var(--font-family) !important;
+  font-size: var(--font-size-base) !important;
+  border: none !important;
+  display: inline-block !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  transition: all var(--transition-fast) !important;
+}
+
+/* Hover states for our buttons */
+.filters button:hover,
+#applyFilters:hover,
+#resetFilters:hover,
+#exportPDF:hover,
+#exportExcel:hover,
+.view-details:hover {
+  background-color: var(--primary-hover) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* ====================================================================
+   FINAL EDGE-TO-EDGE GUARANTEES
+   ==================================================================== */
+
+/* Force full viewport width on large screens */
+@media (min-width: 1400px) {
+  .table-container {
+    margin-left: calc(-50vw + 50%) !important;
+    margin-right: calc(-50vw + 50%) !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+
+  .summary-container {
+    margin-left: calc(-50vw + 50%) !important;
+    margin-right: calc(-50vw + 50%) !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+}
+
+/* Prevent any horizontal overflow */
+html,
+body {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Last-resort override for any conflicting styles */
+body *:not(.dashboard-header):not(.dashboard-header *):not(script):not(style) {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }

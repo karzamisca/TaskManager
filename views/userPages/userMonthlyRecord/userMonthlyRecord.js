@@ -1,7 +1,4 @@
 // views\userPages\userMonthlyRecord\userMonthlyRecord.js
-// ====================================================================
-// USER MONTHLY RECORD - IMPROVED WITH USER GROUPING AND NO PAGINATION
-// ====================================================================
 
 // ====================================================================
 // CONSTANTS AND CONFIGURATION
@@ -189,112 +186,199 @@ const fetchMonthlyRecords = async () => {
 };
 
 // ====================================================================
-// DATA PROCESSING FUNCTIONS
+// DATA PROCESSING FUNCTIONS - UPDATED FOR COST CENTER SORTING
 // ====================================================================
 
 /**
- * Groups records by user and sorts them
+ * Groups records by cost center, then by user, and sorts them
  */
-const groupRecordsByUser = (records) => {
-  // Separate records with undefined/null realName
-  const recordsWithName = records.filter(
-    (record) => record.realName && record.realName.trim() !== ""
+const groupRecordsByCostCenterAndUser = (records) => {
+  // First, separate records with and without cost centers
+  const recordsWithCostCenter = records.filter(
+    (record) => record.costCenter && record.costCenter.name
   );
 
-  const recordsWithoutName = records.filter(
-    (record) => !record.realName || record.realName.trim() === ""
+  const recordsWithoutCostCenter = records.filter(
+    (record) => !record.costCenter || !record.costCenter.name
   );
 
-  // Sort records with name alphabetically, then by year/month
-  const sortedRecordsWithName = [...recordsWithName].sort((a, b) => {
-    const nameA = a.realName?.toLowerCase() || "";
-    const nameB = b.realName?.toLowerCase() || "";
-    if (nameA < nameB) return -1;
-    if (nameA > nameB) return 1;
+  // Group records by cost center
+  const recordsByCostCenter = {};
 
-    if (a.recordYear < b.recordYear) return -1;
-    if (a.recordYear > b.recordYear) return 1;
-
-    return a.recordMonth - b.recordMonth;
+  // Process records with cost centers
+  recordsWithCostCenter.forEach((record) => {
+    const costCenterName = record.costCenter.name;
+    if (!recordsByCostCenter[costCenterName]) {
+      recordsByCostCenter[costCenterName] = [];
+    }
+    recordsByCostCenter[costCenterName].push(record);
   });
 
-  // Sort records without name by year/month
-  const sortedRecordsWithoutName = [...recordsWithoutName].sort((a, b) => {
-    if (a.recordYear < b.recordYear) return -1;
-    if (a.recordYear > b.recordYear) return 1;
-    return a.recordMonth - b.recordMonth;
+  // Add records without cost center to a special group
+  if (recordsWithoutCostCenter.length > 0) {
+    recordsByCostCenter["Không có trạm"] = recordsWithoutCostCenter;
+  }
+
+  // Sort cost centers alphabetically
+  const sortedCostCenterNames = Object.keys(recordsByCostCenter).sort();
+
+  // Sort records within each cost center by user name, then by year/month
+  const sortedResult = [];
+
+  sortedCostCenterNames.forEach((costCenterName) => {
+    const costCenterRecords = recordsByCostCenter[costCenterName];
+
+    // Separate records with and without user names within this cost center
+    const namedRecords = costCenterRecords.filter(
+      (record) => record.realName && record.realName.trim() !== ""
+    );
+
+    const unnamedRecords = costCenterRecords.filter(
+      (record) => !record.realName || record.realName.trim() === ""
+    );
+
+    // Sort named records by user name, then by year/month
+    const sortedNamedRecords = [...namedRecords].sort((a, b) => {
+      // Sort by user name
+      const nameA = a.realName?.toLowerCase() || "";
+      const nameB = b.realName?.toLowerCase() || "";
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
+
+      // If same user, sort by year
+      if (a.recordYear < b.recordYear) return -1;
+      if (a.recordYear > b.recordYear) return 1;
+
+      // If same year, sort by month
+      return a.recordMonth - b.recordMonth;
+    });
+
+    // Sort unnamed records by year/month
+    const sortedUnnamedRecords = [...unnamedRecords].sort((a, b) => {
+      if (a.recordYear < b.recordYear) return -1;
+      if (a.recordYear > b.recordYear) return 1;
+      return a.recordMonth - b.recordMonth;
+    });
+
+    // Combine sorted records for this cost center
+    sortedResult.push(...sortedNamedRecords, ...sortedUnnamedRecords);
   });
 
-  return [...sortedRecordsWithName, ...sortedRecordsWithoutName];
+  return sortedResult;
 };
 
 /**
- * Creates display items for rendering (headers, records, summaries)
+ * Creates display items for rendering (cost center headers, user headers, records, summaries)
  */
 const createDisplayItems = (records) => {
-  const groupedRecords = groupRecordsByUser(records);
+  const groupedRecords = groupRecordsByCostCenterAndUser(records);
   const displayItems = [];
+
+  let currentCostCenter = null;
   let currentUser = null;
   let currentUserRecords = [];
   let globalRecordIndex = 0;
-  let groupIndex = 0;
+  let costCenterGroupIndex = 0;
+  let userGroupIndex = 0;
 
-  // Helper to add user group
-  const addUserGroup = (user, userRecords, isFirst = false) => {
-    if (!isFirst && userRecords.length > 0) {
+  // Helper to add user group (header and summary)
+  const addUserGroup = (user, userRecords) => {
+    if (userRecords.length > 0) {
+      // Add user header (skip for undefined/null names)
+      if (user && user.trim() !== "") {
+        displayItems.push({
+          type: "userHeader",
+          data: userRecords[0],
+          userRealName: user,
+          costCenterName: currentCostCenter,
+          groupIndex: userGroupIndex,
+        });
+        userGroupIndex++;
+      }
+
+      // Add user summary
       const userSummary = calculateUserSummary(userRecords);
       if (userSummary) {
         displayItems.push({
-          type: "summary",
+          type: "userSummary",
           data: userSummary,
           userRealName: user,
+          costCenterName: currentCostCenter,
         });
       }
     }
+  };
 
-    if (user && user.trim() !== "") {
+  // Helper to add cost center group
+  const addCostCenterGroup = (costCenterName, isFirst = false) => {
+    if (!isFirst) {
+      // Add a separator row between cost centers
       displayItems.push({
-        type: "header",
-        data: userRecords[0],
-        userRealName: user,
-        groupIndex: groupIndex,
+        type: "costCenterSeparator",
+        data: { costCenterName: currentCostCenter },
       });
-      groupIndex++;
     }
+
+    // Add cost center header
+    if (costCenterName) {
+      displayItems.push({
+        type: "costCenterHeader",
+        data: { costCenterName: costCenterName },
+        groupIndex: costCenterGroupIndex,
+      });
+      costCenterGroupIndex++;
+    }
+
+    // Reset user group index for new cost center
+    userGroupIndex = 0;
   };
 
   // Process all records
   groupedRecords.forEach((record) => {
+    const costCenterName = record.costCenter?.name || "Không có trạm";
     const userName = record.realName || "Không có tên";
 
-    if (currentUser !== userName) {
+    // Check if cost center changed
+    if (currentCostCenter !== costCenterName) {
+      // Add summary for previous user if exists
       if (currentUser !== null) {
-        addUserGroup(currentUser, currentUserRecords, currentUser === null);
+        addUserGroup(currentUser, currentUserRecords);
       }
+
+      // Add cost center group
+      addCostCenterGroup(costCenterName, currentCostCenter === null);
+
+      currentCostCenter = costCenterName;
       currentUser = userName;
       currentUserRecords = [record];
-    } else {
+    }
+    // Check if user changed within same cost center
+    else if (currentUser !== userName) {
+      // Add summary for previous user
+      addUserGroup(currentUser, currentUserRecords);
+
+      currentUser = userName;
+      currentUserRecords = [record];
+    }
+    // Same user in same cost center
+    else {
       currentUserRecords.push(record);
     }
 
+    // Add the record
     globalRecordIndex++;
     displayItems.push({
       type: "record",
       data: record,
       globalIndex: globalRecordIndex,
+      costCenterName: costCenterName,
+      userName: userName,
     });
   });
 
   // Add summary for last user
   if (currentUser !== null && currentUserRecords.length > 0) {
-    const userSummary = calculateUserSummary(currentUserRecords);
-    if (userSummary) {
-      displayItems.push({
-        type: "summary",
-        data: userSummary,
-        userRealName: currentUser,
-      });
-    }
+    addUserGroup(currentUser, currentUserRecords);
   }
 
   return displayItems;
@@ -310,6 +394,7 @@ const calculateUserSummary = (userRecords) => {
 
   const summary = {
     userRealName: userRecords[0].realName || "Không có tên",
+    costCenterName: userRecords[0].costCenter?.name || "Không có trạm",
     recordCount: userRecords.length,
     totalBaseSalary: 0,
     totalHourlyWage: 0,
@@ -668,13 +753,52 @@ const exportToExcel = async () => {
 };
 
 // ====================================================================
-// UI RENDERING FUNCTIONS
+// UI RENDERING FUNCTIONS - UPDATED FOR COST CENTER GROUPING
 // ====================================================================
+
+/**
+ * Creates a cost center header row
+ */
+const createCostCenterHeader = (costCenter, groupIndex) => {
+  const row = document.createElement("tr");
+  row.className = "cost-center-header";
+  row.setAttribute("role", "row");
+
+  row.innerHTML = `
+    <td colspan="19" role="gridcell">
+      <strong style="color: #1976d2; font-size: 1.1em;">TRẠM ${
+        groupIndex + 1
+      }: ${costCenter}</strong>
+      <span style="float: right; font-weight: normal; font-size: 0.9em; color: var(--text-secondary);">
+        Nhóm theo trạm
+      </span>
+    </td>
+  `;
+
+  return row;
+};
+
+/**
+ * Creates a cost center separator row
+ */
+const createCostCenterSeparator = () => {
+  const row = document.createElement("tr");
+  row.className = "cost-center-separator";
+  row.setAttribute("role", "row");
+
+  row.innerHTML = `
+    <td colspan="19" role="gridcell">
+      <div style="height: 1px; background-color: #e0e0e0; margin: 10px 0;"></div>
+    </td>
+  `;
+
+  return row;
+};
 
 /**
  * Creates a user group header row
  */
-const createUserGroupHeader = (user, groupIndex) => {
+const createUserGroupHeader = (user, costCenter, groupIndex) => {
   const row = document.createElement("tr");
   row.className = "user-group";
   row.setAttribute("role", "row");
@@ -684,7 +808,7 @@ const createUserGroupHeader = (user, groupIndex) => {
 
   row.innerHTML = `
     <td colspan="19" role="gridcell">
-      <strong>Nhóm ${groupIndex + 1}:</strong> ${employeeInfo}
+      <strong>Nhân viên ${groupIndex + 1}:</strong> ${employeeInfo}
       <span style="float: right; font-weight: normal; font-size: 0.9em; color: var(--text-secondary);">
         ${user.email || ""}
       </span>
@@ -704,7 +828,7 @@ const createUserSummaryRow = (summary) => {
 
   const cells = [
     { text: "", colSpan: 1, align: "center" },
-    { text: `<strong>Tổng hợp cho:</strong>`, colSpan: 2, align: "left" },
+    { text: `<strong>Tổng hợp:</strong>`, colSpan: 2, align: "left" },
     {
       text: summary.totalBaseSalary.toLocaleString(),
       colSpan: 1,
@@ -846,7 +970,7 @@ const createRecordRow = (record, index) => {
 };
 
 /**
- * Renders the records table with ALL records at once
+ * Renders the records table with ALL records at once, grouped by cost center then user
  */
 const renderTableWithGrouping = (items) => {
   const recordsBody = elements.recordsBody();
@@ -866,18 +990,42 @@ const renderTableWithGrouping = (items) => {
   }
 
   const fragment = document.createDocumentFragment();
+  let costCenterGroupCount = 0;
   let userGroupCount = 0;
+  let currentCostCenter = null;
   let currentUser = null;
 
   items.forEach((item) => {
     switch (item.type) {
-      case "header":
+      case "costCenterHeader":
+        if (item.data.costCenterName !== currentCostCenter) {
+          fragment.appendChild(
+            createCostCenterHeader(
+              item.data.costCenterName,
+              costCenterGroupCount
+            )
+          );
+          currentCostCenter = item.data.costCenterName;
+          costCenterGroupCount++;
+          userGroupCount = 0; // Reset user count for new cost center
+        }
+        break;
+
+      case "costCenterSeparator":
+        fragment.appendChild(createCostCenterSeparator());
+        break;
+
+      case "userHeader":
         if (
           item.userRealName !== currentUser &&
           item.userRealName !== "Không có tên"
         ) {
           fragment.appendChild(
-            createUserGroupHeader(item.data, userGroupCount)
+            createUserGroupHeader(
+              item.data,
+              item.costCenterName,
+              userGroupCount
+            )
           );
           currentUser = item.userRealName;
           userGroupCount++;
@@ -888,7 +1036,7 @@ const renderTableWithGrouping = (items) => {
         fragment.appendChild(createRecordRow(item.data, item.globalIndex - 1));
         break;
 
-      case "summary":
+      case "userSummary":
         fragment.appendChild(createUserSummaryRow(item.data));
         currentUser = null;
         break;
@@ -1094,7 +1242,7 @@ const showRecordCount = (count) => {
     }
   }
 
-  recordCountDisplay.textContent = `Đang hiển thị ${count.toLocaleString()} bản ghi`;
+  recordCountDisplay.textContent = `Đang hiển thị ${count.toLocaleString()} bản ghi (nhóm theo trạm)`;
 };
 
 /**
@@ -1486,7 +1634,7 @@ const initializeApp = async () => {
     await loadData();
 
     console.log(
-      "User Monthly Record application initialized successfully without pagination"
+      "User Monthly Record application initialized successfully with cost center grouping"
     );
   } catch (error) {
     console.error("Application initialization failed:", error);
