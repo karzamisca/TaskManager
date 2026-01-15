@@ -37,13 +37,16 @@ const state = {
     month: "",
     costCenter: "",
     bank: "",
+    realName: "",
     reverseFilters: {
       year: false,
       month: false,
       costCenter: false,
       bank: false,
+      realName: false,
     },
   },
+  summary: null,
 };
 
 // ====================================================================
@@ -53,6 +56,8 @@ const elements = {
   yearFilter: () => document.getElementById("yearFilter"),
   monthFilter: () => document.getElementById("monthFilter"),
   costCenterFilter: () => document.getElementById("costCenterFilter"),
+  bankFilter: () => document.getElementById("bankFilter"),
+  realNameFilter: () => document.getElementById("realNameFilter"),
   applyFiltersBtn: () => document.getElementById("applyFilters"),
   resetFiltersBtn: () => document.getElementById("resetFilters"),
   recordsBody: () => document.getElementById("recordsBody"),
@@ -61,6 +66,10 @@ const elements = {
   modal: () => document.getElementById("recordModal"),
   modalContent: () => document.getElementById("modalContent"),
   closeModal: () => document.querySelector(".close"),
+  exportPDFBtn: () => document.getElementById("exportPDF"),
+  exportExcelBtn: () => document.getElementById("exportExcel"),
+  summarySection: () => document.getElementById("summarySection"),
+  summaryGrid: () => document.getElementById("summaryGrid"),
 };
 
 // ====================================================================
@@ -237,12 +246,12 @@ const filterRecords = (records, filters) => {
         : record.recordYear == filters.year
       : true;
 
-    // Month filter with reverse option - handle "all months" (empty string)
+    // Month filter with reverse option
     const monthMatch = filters.month
       ? filters.reverseFilters.month
         ? record.recordMonth != filters.month
         : record.recordMonth == filters.month
-      : true; // If month is empty, show all months
+      : true;
 
     // Cost Center filter with reverse option
     const costCenterMatch = filters.costCenter
@@ -266,8 +275,121 @@ const filterRecords = (records, filters) => {
             .includes(filters.bank.toLowerCase())
       : true;
 
-    return yearMatch && monthMatch && costCenterMatch && bankMatch;
+    // RealName filter with reverse option
+    const realNameMatch = filters.realName
+      ? filters.reverseFilters.realName
+        ? !(
+            record.realName &&
+            record.realName
+              .toLowerCase()
+              .includes(filters.realName.toLowerCase())
+          )
+        : record.realName &&
+          record.realName.toLowerCase().includes(filters.realName.toLowerCase())
+      : true;
+
+    return (
+      yearMatch && monthMatch && costCenterMatch && bankMatch && realNameMatch
+    );
   });
+};
+
+/**
+ * Calculates summary statistics for records
+ * @param {Array} records - Records to summarize
+ * @returns {Object} Summary statistics
+ */
+const calculateSummary = (records) => {
+  if (!records || records.length === 0) {
+    return {
+      totalRecords: 0,
+      totalBaseSalary: 0,
+      totalHourlyWage: 0,
+      totalResponsibility: 0,
+      totalTravelExpense: 0,
+      totalCommissionBonus: 0,
+      totalOtherBonus: 0,
+      totalWeekdayOvertimeHours: 0,
+      totalWeekendOvertimeHours: 0,
+      totalHolidayOvertimeHours: 0,
+      totalOvertimePay: 0,
+      totalTaxableIncome: 0,
+      totalGrossSalary: 0,
+      totalTax: 0,
+      totalCurrentSalary: 0,
+      averageBaseSalary: 0,
+      averageCurrentSalary: 0,
+      averageTax: 0,
+      minCurrentSalary: 0,
+      maxCurrentSalary: 0,
+    };
+  }
+
+  const totals = {
+    totalRecords: records.length,
+    totalBaseSalary: 0,
+    totalHourlyWage: 0,
+    totalResponsibility: 0,
+    totalTravelExpense: 0,
+    totalCommissionBonus: 0,
+    totalOtherBonus: 0,
+    totalWeekdayOvertimeHours: 0,
+    totalWeekendOvertimeHours: 0,
+    totalHolidayOvertimeHours: 0,
+    totalOvertimePay: 0,
+    totalTaxableIncome: 0,
+    totalGrossSalary: 0,
+    totalTax: 0,
+    totalCurrentSalary: 0,
+    minCurrentSalary: Infinity,
+    maxCurrentSalary: -Infinity,
+  };
+
+  records.forEach((record) => {
+    totals.totalBaseSalary += Number(record.baseSalary) || 0;
+    totals.totalHourlyWage += Number(record.hourlyWage) || 0;
+    totals.totalResponsibility += Number(record.responsibility) || 0;
+    totals.totalTravelExpense += Number(record.travelExpense) || 0;
+    totals.totalCommissionBonus += Number(record.commissionBonus) || 0;
+    totals.totalOtherBonus += Number(record.otherBonus) || 0;
+    totals.totalWeekdayOvertimeHours += Number(record.weekdayOvertimeHour) || 0;
+    totals.totalWeekendOvertimeHours += Number(record.weekendOvertimeHour) || 0;
+    totals.totalHolidayOvertimeHours += Number(record.holidayOvertimeHour) || 0;
+    totals.totalOvertimePay += Number(record.overtimePay) || 0;
+    totals.totalTaxableIncome += Number(record.taxableIncome) || 0;
+    totals.totalGrossSalary += Number(record.grossSalary) || 0;
+    totals.totalTax += Number(record.tax) || 0;
+
+    const currentSalary = Number(record.currentSalary) || 0;
+    totals.totalCurrentSalary += currentSalary;
+
+    if (currentSalary < totals.minCurrentSalary) {
+      totals.minCurrentSalary = currentSalary;
+    }
+    if (currentSalary > totals.maxCurrentSalary) {
+      totals.maxCurrentSalary = currentSalary;
+    }
+  });
+
+  // Calculate averages
+  totals.averageBaseSalary =
+    totals.totalRecords > 0
+      ? Math.round(totals.totalBaseSalary / totals.totalRecords)
+      : 0;
+  totals.averageCurrentSalary =
+    totals.totalRecords > 0
+      ? Math.round(totals.totalCurrentSalary / totals.totalRecords)
+      : 0;
+  totals.averageTax =
+    totals.totalRecords > 0
+      ? Math.round(totals.totalTax / totals.totalRecords)
+      : 0;
+
+  // Reset min/max if no valid values
+  if (totals.minCurrentSalary === Infinity) totals.minCurrentSalary = 0;
+  if (totals.maxCurrentSalary === -Infinity) totals.maxCurrentSalary = 0;
+
+  return totals;
 };
 
 /**
@@ -295,11 +417,14 @@ const paginateRecords = (records, page, itemsPerPage) => {
 };
 
 // ====================================================================
-// UI RENDERING FUNCTIONS
+// EXPORT FUNCTIONS
 // ====================================================================
 
+/**
+ * Exports data to PDF
+ */
 const exportToPDF = () => {
-  const { year, month, costCenter, bank } = state.filters;
+  const { year, month, costCenter, bank, realName } = state.filters;
   const { reverseFilters } = state.filters;
 
   if (!year) {
@@ -328,6 +453,18 @@ const exportToPDF = () => {
     }
   }
 
+  if (realName) {
+    url += `&realName=${encodeURIComponent(realName)}`;
+    if (reverseFilters.realName) {
+      url += `&realNameReverse=true`;
+    }
+  }
+
+  // Add summary data to URL
+  if (state.summary && state.summary.totalRecords > 0) {
+    url += `&includeSummary=true`;
+  }
+
   // Show loading message in Vietnamese
   const loadingDiv = elements.loadingDiv();
   loadingDiv.style.display = "block";
@@ -346,8 +483,11 @@ const exportToPDF = () => {
   document.body.appendChild(iframe);
 };
 
+/**
+ * Exports data to Excel
+ */
 const exportToExcel = async () => {
-  const { year, month, costCenter, bank } = state.filters;
+  const { year, month, costCenter, bank, realName } = state.filters;
   const { reverseFilters } = state.filters;
 
   if (!year) {
@@ -381,6 +521,18 @@ const exportToExcel = async () => {
     }
   }
 
+  if (realName) {
+    url += `&realName=${encodeURIComponent(realName)}`;
+    if (reverseFilters.realName) {
+      url += `&realNameReverse=true`;
+    }
+  }
+
+  // Add summary data to URL
+  if (state.summary && state.summary.totalRecords > 0) {
+    url += `&includeSummary=true`;
+  }
+
   // Create a temporary iframe for download
   const iframe = document.createElement("iframe");
   iframe.style.display = "none";
@@ -393,6 +545,10 @@ const exportToExcel = async () => {
 
   document.body.appendChild(iframe);
 };
+
+// ====================================================================
+// UI RENDERING FUNCTIONS
+// ====================================================================
 
 /**
  * Populates year filter dropdown
@@ -435,23 +591,34 @@ const populateCostCenterFilter = (costCenters) => {
 /**
  * Creates a table row for a record
  * @param {Object} record - Monthly record data
+ * @param {number} index - Row index (for STT)
  * @returns {HTMLElement} Table row element
  */
-const createRecordRow = (record) => {
+const createRecordRow = (record, index) => {
   const row = document.createElement("tr");
   const monthName = getMonthName(record.recordMonth);
+  const startIndex =
+    (state.currentPage - 1) * CONFIG.ITEMS_PER_PAGE + index + 1;
 
   row.innerHTML = `
+    <td>${startIndex}</td>
     <td>${safeGet(record, "realName", "N/A")}</td>
     <td>${monthName} ${record.recordYear || "N/A"}</td>
     <td>${safeToLocaleString(record.baseSalary)}</td>
     <td>${safeToLocaleString(record.hourlyWage)}</td>
+    <td>${safeToLocaleString(record.responsibility)}</td>
+    <td>${safeToLocaleString(record.travelExpense)}</td>
     <td>${safeToLocaleString(record.commissionBonus)}</td>
     <td>${safeToLocaleString(record.otherBonus)}</td>
+    <td>${record.weekdayOvertimeHour || 0}</td>
+    <td>${record.weekendOvertimeHour || 0}</td>
+    <td>${record.holidayOvertimeHour || 0}</td>
     <td>${safeToLocaleString(record.overtimePay)}</td>
-    <td>${safeToLocaleString(record.currentSalary)}</td>
+    <td>${safeToLocaleString(record.taxableIncome)}</td>
+    <td>${safeToLocaleString(record.grossSalary)}</td>
     <td>${safeToLocaleString(record.tax)}</td>
-    <td>${safeGet(record, "costCenter.name")}</td>
+    <td>${safeToLocaleString(record.currentSalary)}</td>
+    <td>${safeGet(record, "costCenter.name", "N/A")}</td>
     <td>
       <button class="view-details" data-id="${record._id}" 
               title="Xem chi tiết bản ghi">
@@ -476,7 +643,7 @@ const renderTable = (records) => {
   if (records.length === 0) {
     recordsBody.innerHTML = `
       <tr>
-        <td colspan="11" style="text-align: center; padding: 20px; color: #666;">
+        <td colspan="19" style="text-align: center; padding: 20px; color: #666;">
           Không tìm thấy bản ghi nào phù hợp với tiêu chí tìm kiếm.
         </td>
       </tr>
@@ -485,12 +652,145 @@ const renderTable = (records) => {
   }
 
   const fragment = document.createDocumentFragment();
-  records.forEach((record) => {
-    fragment.appendChild(createRecordRow(record));
+  records.forEach((record, index) => {
+    fragment.appendChild(createRecordRow(record, index));
   });
 
   recordsBody.appendChild(fragment);
   attachDetailButtonListeners();
+};
+
+/**
+ * Renders the summary section
+ * @param {Object} summaryData - Summary statistics to display
+ */
+const renderSummary = (summaryData) => {
+  const summarySection = elements.summarySection();
+  const summaryGrid = elements.summaryGrid();
+
+  if (!summarySection || !summaryGrid) return;
+
+  if (!summaryData || summaryData.totalRecords === 0) {
+    summarySection.style.display = "none";
+    return;
+  }
+
+  summarySection.style.display = "block";
+  summaryGrid.innerHTML = "";
+
+  const summaryItems = [
+    {
+      label: "Tổng số bản ghi",
+      value: summaryData.totalRecords.toLocaleString(),
+      className: "summary-value",
+    },
+    {
+      label: "Tổng lương cơ bản",
+      value: summaryData.totalBaseSalary.toLocaleString() + " VND",
+      className: "summary-value positive",
+    },
+    {
+      label: "Tổng lương theo giờ",
+      value: summaryData.totalHourlyWage.toLocaleString() + " VND",
+      className: "summary-value positive",
+    },
+    {
+      label: "Tổng trách nhiệm",
+      value: summaryData.totalResponsibility.toLocaleString() + " VND",
+      className: "summary-value positive",
+    },
+    {
+      label: "Tổng công tác phí",
+      value: summaryData.totalTravelExpense.toLocaleString() + " VND",
+      className: "summary-value positive",
+    },
+    {
+      label: "Tổng hoa hồng",
+      value: summaryData.totalCommissionBonus.toLocaleString() + " VND",
+      className: "summary-value positive",
+    },
+    {
+      label: "Tổng thưởng khác",
+      value: summaryData.totalOtherBonus.toLocaleString() + " VND",
+      className: "summary-value positive",
+    },
+    {
+      label: "Tổng giờ TC tuần",
+      value: summaryData.totalWeekdayOvertimeHours.toFixed(1) + " giờ",
+      className: "summary-value",
+    },
+    {
+      label: "Tổng giờ TC CN",
+      value: summaryData.totalWeekendOvertimeHours.toFixed(1) + " giờ",
+      className: "summary-value",
+    },
+    {
+      label: "Tổng giờ TC lễ",
+      value: summaryData.totalHolidayOvertimeHours.toFixed(1) + " giờ",
+      className: "summary-value",
+    },
+    {
+      label: "Tổng lương tăng ca",
+      value: summaryData.totalOvertimePay.toLocaleString() + " VND",
+      className: "summary-value positive",
+    },
+    {
+      label: "Tổng lương tính thuế",
+      value: summaryData.totalTaxableIncome.toLocaleString() + " VND",
+      className: "summary-value",
+    },
+    {
+      label: "Tổng lương gộp",
+      value: summaryData.totalGrossSalary.toLocaleString() + " VND",
+      className: "summary-value positive",
+    },
+    {
+      label: "Tổng thuế",
+      value: summaryData.totalTax.toLocaleString() + " VND",
+      className: "summary-value negative",
+    },
+    {
+      label: "Tổng lương thực lĩnh",
+      value: summaryData.totalCurrentSalary.toLocaleString() + " VND",
+      className: "summary-value positive",
+    },
+    {
+      label: "Lương TB thực lĩnh",
+      value: summaryData.averageCurrentSalary.toLocaleString() + " VND",
+      className: "summary-value",
+    },
+    {
+      label: "Thuế TB",
+      value: summaryData.averageTax.toLocaleString() + " VND",
+      className: "summary-value",
+    },
+    {
+      label: "Lương thực lĩnh thấp nhất",
+      value: summaryData.minCurrentSalary.toLocaleString() + " VND",
+      className: "summary-value",
+    },
+    {
+      label: "Lương thực lĩnh cao nhất",
+      value: summaryData.maxCurrentSalary.toLocaleString() + " VND",
+      className: "summary-value",
+    },
+  ];
+
+  const fragment = document.createDocumentFragment();
+
+  summaryItems.forEach((item) => {
+    const summaryItem = document.createElement("div");
+    summaryItem.className = "summary-item";
+
+    summaryItem.innerHTML = `
+      <div class="summary-label">${item.label}</div>
+      <div class="${item.className}">${item.value}</div>
+    `;
+
+    fragment.appendChild(summaryItem);
+  });
+
+  summaryGrid.appendChild(fragment);
 };
 
 /**
@@ -698,26 +998,9 @@ const createModalContent = (record) => {
 // ====================================================================
 
 /**
- * Handles filter application
+ * Toggles reverse filter for a filter type
+ * @param {string} filterType - Type of filter to toggle
  */
-const handleApplyFilters = () => {
-  const yearFilter = elements.yearFilter();
-  const monthFilter = elements.monthFilter();
-  const costCenterFilter = elements.costCenterFilter();
-  const bankFilter = document.getElementById("bankFilter");
-
-  state.filters = {
-    ...state.filters,
-    year: yearFilter?.value || "",
-    month: monthFilter?.value || "",
-    costCenter: costCenterFilter?.value || "",
-    bank: bankFilter?.value || "",
-  };
-
-  state.currentPage = 1;
-  updateDisplay();
-};
-
 const toggleReverseFilter = (filterType) => {
   state.filters.reverseFilters[filterType] =
     !state.filters.reverseFilters[filterType];
@@ -733,39 +1016,70 @@ const toggleReverseFilter = (filterType) => {
 };
 
 /**
+ * Handles filter application
+ */
+const handleApplyFilters = () => {
+  const yearFilter = elements.yearFilter();
+  const monthFilter = elements.monthFilter();
+  const costCenterFilter = elements.costCenterFilter();
+  const bankFilter = elements.bankFilter();
+  const realNameFilter = elements.realNameFilter();
+
+  state.filters = {
+    ...state.filters,
+    year: yearFilter?.value || "",
+    month: monthFilter?.value || "",
+    costCenter: costCenterFilter?.value || "",
+    bank: bankFilter?.value || "",
+    realName: realNameFilter?.value || "",
+  };
+
+  state.currentPage = 1;
+  updateDisplay();
+};
+
+/**
  * Handles filter reset
  */
 const handleResetFilters = () => {
   const yearFilter = elements.yearFilter();
   const monthFilter = elements.monthFilter();
   const costCenterFilter = elements.costCenterFilter();
-  const bankFilter = document.getElementById("bankFilter");
+  const bankFilter = elements.bankFilter();
+  const realNameFilter = elements.realNameFilter();
 
   if (yearFilter) yearFilter.value = "";
   if (monthFilter) monthFilter.value = "";
   if (costCenterFilter) costCenterFilter.value = "";
   if (bankFilter) bankFilter.value = "";
+  if (realNameFilter) realNameFilter.value = "";
 
   // Reset reverse filter buttons
-  ["yearReverse", "monthReverse", "costCenterReverse", "bankReverse"].forEach(
-    (id) => {
-      const button = document.getElementById(id);
-      if (button) {
-        button.classList.remove("active");
-      }
+  [
+    "yearReverse",
+    "monthReverse",
+    "costCenterReverse",
+    "bankReverse",
+    "realNameReverse",
+  ].forEach((id) => {
+    const button = document.getElementById(id);
+    if (button) {
+      button.classList.remove("active");
     }
-  );
+  });
 
   state.filters = {
     year: "",
     month: "",
     costCenter: "",
     bank: "",
+    realName: "",
     reverseFilters: {
       year: false,
       month: false,
       costCenter: false,
       bank: false,
+      realName: false,
     },
   };
   state.currentPage = 1;
@@ -844,6 +1158,8 @@ const setupEventListeners = () => {
   const resetFiltersBtn = elements.resetFiltersBtn();
   const closeModal = elements.closeModal();
   const modal = elements.modal();
+  const exportPDFBtn = elements.exportPDFBtn();
+  const exportExcelBtn = elements.exportExcelBtn();
 
   // Filter buttons
   if (applyFiltersBtn) {
@@ -867,6 +1183,15 @@ const setupEventListeners = () => {
     });
   }
 
+  // Export buttons
+  if (exportPDFBtn) {
+    exportPDFBtn.addEventListener("click", exportToPDF);
+  }
+
+  if (exportExcelBtn) {
+    exportExcelBtn.addEventListener("click", exportToExcel);
+  }
+
   // Keyboard accessibility
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
@@ -886,11 +1211,17 @@ const setupEventListeners = () => {
       element.addEventListener("change", debouncedApplyFilters);
     });
 
-  const bankFilter = document.getElementById("bankFilter");
+  const bankFilter = elements.bankFilter();
   if (bankFilter) {
     bankFilter.addEventListener("input", debouncedApplyFilters);
   }
 
+  const realNameFilter = elements.realNameFilter();
+  if (realNameFilter) {
+    realNameFilter.addEventListener("input", debouncedApplyFilters);
+  }
+
+  // Reverse filter buttons
   document
     .getElementById("yearReverse")
     ?.addEventListener("click", () => toggleReverseFilter("year"));
@@ -903,16 +1234,9 @@ const setupEventListeners = () => {
   document
     .getElementById("bankReverse")
     ?.addEventListener("click", () => toggleReverseFilter("bank"));
-
-  const exportBtn = document.getElementById("exportPDF");
-  if (exportBtn) {
-    exportBtn.addEventListener("click", exportToPDF);
-  }
-
-  const exportExcelBtn = document.getElementById("exportExcel");
-  if (exportExcelBtn) {
-    exportExcelBtn.addEventListener("click", exportToExcel);
-  }
+  document
+    .getElementById("realNameReverse")
+    ?.addEventListener("click", () => toggleReverseFilter("realName"));
 };
 
 // ====================================================================
@@ -926,6 +1250,9 @@ const updateDisplay = () => {
   // Filter records
   state.filteredRecords = filterRecords(state.allRecords, state.filters);
 
+  // Calculate summary
+  state.summary = calculateSummary(state.filteredRecords);
+
   // Paginate results
   const paginationInfo = paginateRecords(
     state.filteredRecords,
@@ -933,9 +1260,10 @@ const updateDisplay = () => {
     CONFIG.ITEMS_PER_PAGE
   );
 
-  // Render table and pagination
+  // Render table, pagination, and summary
   renderTable(paginationInfo.records);
   renderPagination(paginationInfo);
+  renderSummary(state.summary);
 };
 
 /**
@@ -1003,6 +1331,7 @@ if (typeof module !== "undefined" && module.exports) {
     safeGet,
     safeToLocaleString,
     filterRecords,
+    calculateSummary,
     paginateRecords,
     extractUniqueYears,
     extractUniqueCostCenters,

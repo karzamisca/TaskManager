@@ -82,7 +82,7 @@ body {
    LAYOUT COMPONENTS
    ==================================================================== */
 .container {
-  max-width: 1400px;
+  max-width: 1800px;
   margin: 0 auto;
   background-color: var(--surface-color);
   padding: var(--spacing-xl) var(--spacing-xxl);
@@ -251,6 +251,7 @@ button:disabled {
   margin-top: var(--spacing-xl);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+  position: relative;
 }
 
 table {
@@ -258,13 +259,15 @@ table {
   border-collapse: collapse;
   background-color: var(--surface-color);
   font-size: var(--font-size-sm);
+  min-width: 1600px;
 }
 
 th,
 td {
-  padding: var(--spacing-md) var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-xs);
   text-align: left;
   border-bottom: 1px solid var(--border-light);
+  white-space: nowrap;
 }
 
 th {
@@ -277,6 +280,7 @@ th {
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
+  border: 1px solid var(--border-light);
 }
 
 tbody tr {
@@ -296,11 +300,60 @@ tbody tr:nth-child(even):hover {
 }
 
 /* Table cell alignment */
-td:nth-child(3),
-td:nth-child(4),
-td:nth-child(5) {
+td:nth-child(1) {
+  /* STT */
+  text-align: center;
+  font-weight: 500;
+}
+
+td:nth-child(2) {
+  /* Nhân viên */
+  text-align: left;
+  min-width: 120px;
+}
+
+td:nth-child(3) {
+  /* Tháng/Năm */
+  text-align: center;
+  min-width: 80px;
+}
+
+td:nth-child(4),   /* Lương cơ bản */
+td:nth-child(5),   /* Lương theo giờ */
+td:nth-child(6),   /* Trách nhiệm */
+td:nth-child(7),   /* Công tác phí */
+td:nth-child(8),   /* Hoa hồng */
+td:nth-child(9),   /* Thưởng khác */
+td:nth-child(13),  /* Lương tăng ca */
+td:nth-child(14),  /* Lương tính thuế */
+td:nth-child(15),  /* Lương gộp */
+td:nth-child(16),  /* Thuế */
+td:nth-child(17) {
+  /* Lương thực lĩnh */
   text-align: right;
   font-weight: 500;
+  min-width: 90px;
+}
+
+td:nth-child(10),  /* Giờ TC tuần */
+td:nth-child(11),  /* Giờ TC CN */
+td:nth-child(12) {
+  /* Giờ TC lễ */
+  text-align: center;
+  font-weight: 500;
+  min-width: 60px;
+}
+
+td:nth-child(18) {
+  /* Trạm */
+  text-align: left;
+  min-width: 100px;
+}
+
+td:nth-child(19) {
+  /* Thao tác */
+  text-align: center;
+  min-width: 100px;
 }
 
 /* Action buttons in table */
@@ -421,7 +474,7 @@ td:nth-child(5) {
   padding: var(--spacing-xxl);
   border: none;
   width: 90%;
-  max-width: 700px;
+  max-width: 900px;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   max-height: 85vh;
@@ -513,24 +566,100 @@ td:nth-child(5) {
 }
 
 /* ====================================================================
+   SUMMARY SECTION
+   ==================================================================== */
+.summary-container {
+  margin-top: var(--spacing-xl);
+  padding: var(--spacing-lg);
+  background-color: var(--primary-light);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+}
+
+.summary-container h3 {
+  margin-top: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: var(--spacing-sm);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.summary-item {
+  background-color: var(--surface-color);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.summary-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: var(--spacing-xs);
+}
+
+.summary-value {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.summary-value.positive {
+  color: var(--primary-color);
+}
+
+.summary-value.negative {
+  color: var(--danger-color);
+}
+
+/* ====================================================================
    RESPONSIVE DESIGN
    ==================================================================== */
+@media (max-width: 1200px) {
+  .container {
+    max-width: 100%;
+    padding: var(--spacing-lg);
+  }
+
+  .filters {
+    gap: var(--spacing-md);
+  }
+
+  .filter-group {
+    min-width: 120px;
+  }
+
+  table {
+    font-size: 0.8rem;
+  }
+}
+
 @media (max-width: 768px) {
   body {
     padding: var(--spacing-md);
   }
 
   .container {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
   }
 
   .filters {
     flex-direction: column;
     align-items: stretch;
+    gap: var(--spacing-md);
   }
 
   .filter-group {
     min-width: auto;
+    width: 100%;
   }
 
   h1 {
@@ -538,12 +667,17 @@ td:nth-child(5) {
   }
 
   .table-container {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
   }
 
   th,
   td {
-    padding: var(--spacing-sm) var(--spacing-xs);
+    padding: var(--spacing-xs) 3px;
+  }
+
+  table {
+    min-width: 1400px;
+    font-size: 0.75rem;
   }
 
   .modal-content {
@@ -575,7 +709,7 @@ td:nth-child(5) {
 
 @media (max-width: 480px) {
   .filters {
-    gap: var(--spacing-md);
+    gap: var(--spacing-sm);
   }
 
   .pagination {
@@ -584,17 +718,27 @@ td:nth-child(5) {
   }
 
   table {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
+    min-width: 1200px;
   }
 
   th,
   td {
-    padding: var(--spacing-xs);
+    padding: 4px 2px;
   }
 
   .view-details {
     padding: 2px 6px;
     font-size: 0.65rem;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: var(--spacing-sm);
+  }
+
+  .summary-item {
+    padding: var(--spacing-sm);
   }
 }
 
@@ -645,4 +789,24 @@ input:focus-visible {
   tbody tr:nth-child(even) {
     background-color: rgba(255, 255, 255, 0.02);
   }
+}
+
+/* Scrollbar styling */
+.table-container::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: var(--background-color);
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }

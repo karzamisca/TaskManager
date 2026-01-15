@@ -11,7 +11,7 @@
     <title>Bản Ghi Hàng Tháng</title>
     <link
       rel="stylesheet"
-      href="userPages/userMonthlyRecord/userMonthlyRecord.css?=v1.0"
+      href="userPages/userMonthlyRecord/userMonthlyRecord.css?=v1.1"
     />
 
     <!-- Preconnect for performance -->
@@ -123,6 +123,29 @@
         </div>
 
         <div class="filter-group">
+          <label for="realNameFilter">Tên nhân viên:</label>
+          <div style="display: flex; align-items: center; gap: 5px">
+            <input
+              type="text"
+              id="realNameFilter"
+              placeholder="Tìm kiếm tên..."
+              aria-describedby="realname-help"
+            />
+            <button
+              id="realNameReverse"
+              class="reverse-btn"
+              title="Tìm bản ghi KHÔNG chứa tên này"
+              aria-label="Đảo ngược tìm kiếm tên"
+            >
+              ≠
+            </button>
+          </div>
+          <small id="realname-help" class="sr-only"
+            >Tìm kiếm theo tên nhân viên (tìm kiếm một phần)</small
+          >
+        </div>
+
+        <div class="filter-group">
           <button id="applyFilters" type="button" aria-describedby="apply-help">
             Áp dụng
           </button>
@@ -181,15 +204,23 @@
           >
             <thead>
               <tr role="row">
+                <th scope="col" role="columnheader">STT</th>
                 <th scope="col" role="columnheader">Nhân viên</th>
                 <th scope="col" role="columnheader">Tháng/Năm</th>
                 <th scope="col" role="columnheader">Lương cơ bản</th>
                 <th scope="col" role="columnheader">Lương theo giờ</th>
+                <th scope="col" role="columnheader">Trách nhiệm</th>
+                <th scope="col" role="columnheader">Công tác phí</th>
                 <th scope="col" role="columnheader">Hoa hồng</th>
                 <th scope="col" role="columnheader">Thưởng khác</th>
+                <th scope="col" role="columnheader">Giờ TC tuần</th>
+                <th scope="col" role="columnheader">Giờ TC CN</th>
+                <th scope="col" role="columnheader">Giờ TC lễ</th>
                 <th scope="col" role="columnheader">Lương tăng ca</th>
-                <th scope="col" role="columnheader">Lương thực lĩnh</th>
+                <th scope="col" role="columnheader">Lương tính thuế</th>
+                <th scope="col" role="columnheader">Lương gộp</th>
                 <th scope="col" role="columnheader">Thuế</th>
+                <th scope="col" role="columnheader">Lương thực lĩnh</th>
                 <th scope="col" role="columnheader">Trạm</th>
                 <th scope="col" role="columnheader">Thao tác</th>
               </tr>
@@ -242,7 +273,7 @@
     <!-- JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="userPages/userMonthlyRecord/userMonthlyRecord.js?=v1.10"></script>
+    <script src="userPages/userMonthlyRecord/userMonthlyRecord.js?=v1.11"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 

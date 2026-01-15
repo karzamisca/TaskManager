@@ -524,8 +524,11 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       year,
       costCenter,
       beneficiaryBank,
+      realName,
       costCenterReverse,
       beneficiaryBankReverse,
+      realNameReverse,
+      includeSummary,
     } = req.query;
 
     // Validate input - only year is required
@@ -613,6 +616,23 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
             record.beneficiaryBank
               .toLowerCase()
               .includes(beneficiaryBank.toLowerCase())
+        );
+      }
+    }
+
+    // Apply realName filter
+    if (realName) {
+      if (realNameReverse === "true") {
+        records = records.filter(
+          (record) =>
+            !record.realName ||
+            !record.realName.toLowerCase().includes(realName.toLowerCase())
+        );
+      } else {
+        records = records.filter(
+          (record) =>
+            record.realName &&
+            record.realName.toLowerCase().includes(realName.toLowerCase())
         );
       }
     }
@@ -674,28 +694,80 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
 
     const printer = new PdfPrinter(fonts);
 
-    // Prepare document content - modified for year report
+    // Prepare document content
     const reportTitle = month
-      ? `DANH SÁCH CHI LƯƠNG THÁNG ${month} NĂM ${year}`
-      : `DANH SÁCH CHI LƯƠNG NĂM ${year}`;
+      ? `BÁO CÁO CHI TIẾT LƯƠNG THÁNG ${month} NĂM ${year}`
+      : `BÁO CÁO CHI TIẾT LƯƠNG NĂM ${year}`;
 
     const description = month
-      ? `(Kèm theo Hợp đồng Dịch vụ chi lương số 41/HDCL-HDBCH ngày 15 tháng 09 năm 2022 được kì kết giữa Ngân Hàng TMCP Phát Triển TP. Hồ Chí Minh – Chi nhánh Cộng Hòa và Công ty TNHH Đầu Tư Thương Mại Dịch Vụ Kỳ Long)`
-      : `Báo cáo chi lương cả năm ${year}`;
+      ? `(Kèm theo Hợp đồng Dịch vụ chi lương số 41/HDCL-HDBCH ngày 15 tháng 09 năm 2022)`
+      : `Báo cáo chi tiết lương cả năm ${year}`;
 
     // Calculate totals for summary
-    const totalSalary = records.reduce(
-      (sum, record) => sum + Math.ceil(record.currentSalary),
-      0
-    );
-    const totalTax = records.reduce(
-      (sum, record) => sum + Math.ceil(record.tax || 0),
-      0
-    );
-    const totalGross = records.reduce(
-      (sum, record) => sum + Math.ceil(record.grossSalary || 0),
-      0
-    );
+    const totalSummary = {
+      totalRecords: records.length,
+      totalBaseSalary: records.reduce(
+        (sum, r) => sum + Math.ceil(r.baseSalary || 0),
+        0
+      ),
+      totalHourlyWage: records.reduce(
+        (sum, r) => sum + Math.ceil(r.hourlyWage || 0),
+        0
+      ),
+      totalResponsibility: records.reduce(
+        (sum, r) => sum + Math.ceil(r.responsibility || 0),
+        0
+      ),
+      totalTravelExpense: records.reduce(
+        (sum, r) => sum + Math.ceil(r.travelExpense || 0),
+        0
+      ),
+      totalCommissionBonus: records.reduce(
+        (sum, r) => sum + Math.ceil(r.commissionBonus || 0),
+        0
+      ),
+      totalOtherBonus: records.reduce(
+        (sum, r) => sum + Math.ceil(r.otherBonus || 0),
+        0
+      ),
+      totalWeekdayOvertimeHours: records.reduce(
+        (sum, r) => sum + (r.weekdayOvertimeHour || 0),
+        0
+      ),
+      totalWeekendOvertimeHours: records.reduce(
+        (sum, r) => sum + (r.weekendOvertimeHour || 0),
+        0
+      ),
+      totalHolidayOvertimeHours: records.reduce(
+        (sum, r) => sum + (r.holidayOvertimeHour || 0),
+        0
+      ),
+      totalOvertimePay: records.reduce(
+        (sum, r) => sum + Math.ceil(r.overtimePay || 0),
+        0
+      ),
+      totalTaxableIncome: records.reduce(
+        (sum, r) => sum + Math.ceil(r.taxableIncome || 0),
+        0
+      ),
+      totalGrossSalary: records.reduce(
+        (sum, r) => sum + Math.ceil(r.grossSalary || 0),
+        0
+      ),
+      totalTax: records.reduce((sum, r) => sum + Math.ceil(r.tax || 0), 0),
+      totalCurrentSalary: records.reduce(
+        (sum, r) => sum + Math.ceil(r.currentSalary || 0),
+        0
+      ),
+      averageCurrentSalary: Math.round(
+        records.reduce((sum, r) => sum + Math.ceil(r.currentSalary || 0), 0) /
+          records.length
+      ),
+      averageTax: Math.round(
+        records.reduce((sum, r) => sum + Math.ceil(r.tax || 0), 0) /
+          records.length
+      ),
+    };
 
     // Prepare content array
     const content = [
@@ -713,114 +785,155 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       },
     ];
 
-    // Main table for monthly records
+    // Main table for detailed records with all fields
     content.push({
       table: {
         headerRows: 1,
-        widths: month
-          ? ["4%", "16%", "12%", "10%", "12%", "15%", "10%", "12%", "9%"]
-          : ["4%", "14%", "11%", "9%", "11%", "13%", "9%", "11%", "8%", "10%"],
+        widths: [
+          "3%",
+          "12%",
+          "5%",
+          "5%",
+          "8%",
+          "8%",
+          "8%",
+          "8%",
+          "8%",
+          "8%",
+          "6%",
+          "6%",
+          "6%",
+          "8%",
+          "8%",
+          "8%",
+          "8%",
+          "8%",
+          "10%",
+        ],
         body: [
-          month
-            ? [
-                { text: "STT", style: "tableHeader" },
-                { text: "Họ và tên", style: "tableHeader" },
-                { text: "Số tài khoản", style: "tableHeader" },
-                { text: "Số CMND/CCCD", style: "tableHeader" },
-                { text: "Số tiền chi lương", style: "tableHeader" },
-                { text: "Nội dung chi lương", style: "tableHeader" },
-                { text: "Trạm", style: "tableHeader" },
-                { text: "Ngân hàng hưởng", style: "tableHeader" },
-                { text: "Tháng", style: "tableHeader" },
-              ]
-            : [
-                { text: "STT", style: "tableHeader" },
-                { text: "Họ và tên", style: "tableHeader" },
-                { text: "Số tài khoản", style: "tableHeader" },
-                { text: "Số CMND/CCCD", style: "tableHeader" },
-                { text: "Số tiền chi lương", style: "tableHeader" },
-                { text: "Nội dung chi lương", style: "tableHeader" },
-                { text: "Tháng", style: "tableHeader" },
-                { text: "Trạm", style: "tableHeader" },
-                { text: "Ngân hàng hưởng", style: "tableHeader" },
-                { text: "Thuế", style: "tableHeader" },
-              ],
-          ...records.map((record, index) => {
-            const descriptionText = month
-              ? `Thanh toán lương tháng ${parseInt(month) - 1}`
-              : `Thanh toán lương tháng ${record.recordMonth}`;
-
-            const baseRow = [
-              {
-                text: (index + 1).toString(),
-                style: "tableContent",
-                alignment: "center",
-              },
-              { text: record.realName || "N/A", style: "tableContent" },
-              {
-                text: record.bankAccountNumber || "N/A",
-                style: "tableContent",
-                alignment: "center",
-              },
-              {
-                text: record.citizenID || "N/A",
-                style: "tableContent",
-                alignment: "center",
-              },
-              {
-                text: Math.ceil(record.currentSalary).toLocaleString("vi-VN"),
-                style: "tableContent",
-                alignment: "right",
-              },
-              {
-                text: descriptionText,
-                style: "tableContent",
-              },
-            ];
-
-            if (month) {
-              // Monthly report layout
-              baseRow.push(
-                {
-                  text: record.costCenter?.name || "N/A",
-                  style: "tableContent",
-                },
-                {
-                  text: record.beneficiaryBank || "N/A",
-                  style: "tableContent",
-                },
-                {
-                  text: record.recordMonth.toString(),
-                  style: "tableContent",
-                  alignment: "center",
-                }
-              );
-            } else {
-              // Yearly report layout
-              baseRow.push(
-                {
-                  text: record.recordMonth.toString(),
-                  style: "tableContent",
-                  alignment: "center",
-                },
-                {
-                  text: record.costCenter?.name || "N/A",
-                  style: "tableContent",
-                },
-                {
-                  text: record.beneficiaryBank || "N/A",
-                  style: "tableContent",
-                },
-                {
-                  text: Math.ceil(record.tax || 0).toLocaleString("vi-VN"),
-                  style: "tableContent",
-                  alignment: "right",
-                }
-              );
-            }
-
-            return baseRow;
-          }),
+          [
+            { text: "STT", style: "tableHeader" },
+            { text: "Họ và tên", style: "tableHeader" },
+            { text: "Tháng", style: "tableHeader" },
+            { text: "Năm", style: "tableHeader" },
+            { text: "Lương cơ bản", style: "tableHeader" },
+            { text: "Lương giờ", style: "tableHeader" },
+            { text: "Trách nhiệm", style: "tableHeader" },
+            { text: "Công tác phí", style: "tableHeader" },
+            { text: "Hoa hồng", style: "tableHeader" },
+            { text: "Thưởng khác", style: "tableHeader" },
+            { text: "TC tuần", style: "tableHeader" },
+            { text: "TC CN", style: "tableHeader" },
+            { text: "TC lễ", style: "tableHeader" },
+            { text: "Lương TC", style: "tableHeader" },
+            { text: "Lương tính thuế", style: "tableHeader" },
+            { text: "Lương gộp", style: "tableHeader" },
+            { text: "Thuế", style: "tableHeader" },
+            { text: "Lương thực", style: "tableHeader" },
+            { text: "Trạm", style: "tableHeader" },
+          ],
+          ...records.map((record, index) => [
+            {
+              text: (index + 1).toString(),
+              style: "tableContent",
+              alignment: "center",
+            },
+            { text: record.realName || "N/A", style: "tableContent" },
+            {
+              text: record.recordMonth.toString(),
+              style: "tableContent",
+              alignment: "center",
+            },
+            {
+              text: record.recordYear.toString(),
+              style: "tableContent",
+              alignment: "center",
+            },
+            {
+              text: Math.ceil(record.baseSalary || 0).toLocaleString("vi-VN"),
+              style: "tableContent",
+              alignment: "right",
+            },
+            {
+              text: Math.ceil(record.hourlyWage || 0).toLocaleString("vi-VN"),
+              style: "tableContent",
+              alignment: "right",
+            },
+            {
+              text: Math.ceil(record.responsibility || 0).toLocaleString(
+                "vi-VN"
+              ),
+              style: "tableContent",
+              alignment: "right",
+            },
+            {
+              text: Math.ceil(record.travelExpense || 0).toLocaleString(
+                "vi-VN"
+              ),
+              style: "tableContent",
+              alignment: "right",
+            },
+            {
+              text: Math.ceil(record.commissionBonus || 0).toLocaleString(
+                "vi-VN"
+              ),
+              style: "tableContent",
+              alignment: "right",
+            },
+            {
+              text: Math.ceil(record.otherBonus || 0).toLocaleString("vi-VN"),
+              style: "tableContent",
+              alignment: "right",
+            },
+            {
+              text: (record.weekdayOvertimeHour || 0).toFixed(1),
+              style: "tableContent",
+              alignment: "center",
+            },
+            {
+              text: (record.weekendOvertimeHour || 0).toFixed(1),
+              style: "tableContent",
+              alignment: "center",
+            },
+            {
+              text: (record.holidayOvertimeHour || 0).toFixed(1),
+              style: "tableContent",
+              alignment: "center",
+            },
+            {
+              text: Math.ceil(record.overtimePay || 0).toLocaleString("vi-VN"),
+              style: "tableContent",
+              alignment: "right",
+            },
+            {
+              text: Math.ceil(record.taxableIncome || 0).toLocaleString(
+                "vi-VN"
+              ),
+              style: "tableContent",
+              alignment: "right",
+            },
+            {
+              text: Math.ceil(record.grossSalary || 0).toLocaleString("vi-VN"),
+              style: "tableContent",
+              alignment: "right",
+            },
+            {
+              text: Math.ceil(record.tax || 0).toLocaleString("vi-VN"),
+              style: "tableContent",
+              alignment: "right",
+            },
+            {
+              text: Math.ceil(record.currentSalary || 0).toLocaleString(
+                "vi-VN"
+              ),
+              style: "tableContent",
+              alignment: "right",
+            },
+            {
+              text: record.costCenter?.name || "N/A",
+              style: "tableContent",
+            },
+          ]),
         ],
       },
       layout: {
@@ -835,123 +948,150 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       },
     });
 
-    // Add summary table for yearly report only
-    if (!month) {
-      // Create summary data: total salary per user per year
-      // Use the records that are already filtered and displayed in the main table
-      const userSummary = {};
-
-      records.forEach((record) => {
-        // Use realName from the record (already available)
-        const userName = record.realName || "N/A";
-        const costCenterName = record.costCenter?.name || "N/A";
-        const salary = Math.ceil(record.currentSalary);
-
-        // Create a unique key using name and cost center to group by user
-        const userKey = `${userName}-${costCenterName}`;
-
-        if (!userSummary[userKey]) {
-          userSummary[userKey] = {
-            userName: userName,
-            costCenter: costCenterName,
-            totalSalary: 0,
-            monthsWorked: new Set(),
-          };
-        }
-
-        userSummary[userKey].totalSalary += salary;
-        userSummary[userKey].monthsWorked.add(record.recordMonth);
-      });
-
-      // Convert to array and sort by costCenter, then by name
-      const summaryArray = Object.values(userSummary).map((user) => ({
-        ...user,
-        monthsCount: user.monthsWorked.size,
-      }));
-
-      summaryArray.sort((a, b) => {
-        // First sort by cost center
-        const costCenterA = a.costCenter || "";
-        const costCenterB = b.costCenter || "";
-        if (costCenterA < costCenterB) return -1;
-        if (costCenterA > costCenterB) return 1;
-
-        // If same cost center, sort by name
-        return a.userName.localeCompare(b.userName);
-      });
-
-      // Calculate total summary salary
-      const summaryTotalSalary = summaryArray.reduce(
-        (sum, user) => sum + user.totalSalary,
-        0
-      );
-
-      // Add spacing before summary table
+    // Add summary section if requested
+    if (includeSummary === "true") {
+      // Add spacing before summary
       content.push({
-        text: "TỔNG HỢP LƯƠNG CẢ NĂM THEO NHÂN VIÊN",
+        text: " ",
+        margin: [0, 20, 0, 0],
+      });
+
+      // Add summary title
+      content.push({
+        text: "TỔNG HỢP THỐNG KÊ",
         style: "summaryHeader",
-        margin: [0, 20, 0, 10],
+        margin: [0, 0, 0, 10],
       });
 
       // Add summary table
       content.push({
         table: {
           headerRows: 1,
-          widths: ["4%", "20%", "20%", "18%", "18%", "20%"],
+          widths: ["20%", "20%", "20%", "20%", "20%"],
           body: [
             [
-              { text: "STT", style: "tableHeader" },
-              { text: "Họ và tên", style: "tableHeader" },
-              { text: "Trạm", style: "tableHeader" },
-              { text: "Số tháng làm việc", style: "tableHeader" },
-              { text: "Tổng lương cả năm", style: "tableHeader" },
-              { text: "Ghi chú", style: "tableHeader" },
+              { text: "Chỉ số", style: "tableHeader" },
+              { text: "Giá trị", style: "tableHeader" },
+              { text: "Chỉ số", style: "tableHeader" },
+              { text: "Giá trị", style: "tableHeader" },
+              { text: "Chỉ số", style: "tableHeader" },
             ],
-            ...summaryArray.map((user, index) => [
+            [
+              { text: "Tổng số bản ghi", style: "tableContent" },
               {
-                text: (index + 1).toString(),
-                style: "tableContent",
-                alignment: "center",
-              },
-              { text: user.userName, style: "tableContent" },
-              { text: user.costCenter, style: "tableContent" },
-              {
-                text: user.monthsCount.toString(),
-                style: "tableContent",
-                alignment: "center",
-              },
-              {
-                text: user.totalSalary.toLocaleString("vi-VN"),
+                text: totalSummary.totalRecords.toString(),
                 style: "tableContent",
                 alignment: "right",
               },
+              { text: "Tổng lương cơ bản", style: "tableContent" },
               {
-                text:
-                  user.monthsCount === 12
-                    ? "Làm việc cả năm"
-                    : `Thiếu ${12 - user.monthsCount} tháng`,
+                text: totalSummary.totalBaseSalary.toLocaleString("vi-VN"),
                 style: "tableContent",
+                alignment: "right",
               },
-            ]),
+              { text: "Tổng lương theo giờ", style: "tableContent" },
+            ],
             [
               {
-                text: "TỔNG CỘNG",
-                style: "tableHeader",
-                colSpan: 4,
-                alignment: "center",
-              },
-              {}, // empty for colspan
-              {}, // empty for colspan
-              {}, // empty for colspan
-              {
-                text: summaryTotalSalary.toLocaleString("vi-VN"),
-                style: "tableHeader",
+                text: totalSummary.totalHourlyWage.toLocaleString("vi-VN"),
+                style: "tableContent",
                 alignment: "right",
               },
+              { text: "Tổng trách nhiệm", style: "tableContent" },
               {
-                text: "",
-                style: "tableHeader",
+                text: totalSummary.totalResponsibility.toLocaleString("vi-VN"),
+                style: "tableContent",
+                alignment: "right",
               },
+              { text: "Tổng công tác phí", style: "tableContent" },
+              {
+                text: totalSummary.totalTravelExpense.toLocaleString("vi-VN"),
+                style: "tableContent",
+                alignment: "right",
+              },
+            ],
+            [
+              { text: "Tổng hoa hồng", style: "tableContent" },
+              {
+                text: totalSummary.totalCommissionBonus.toLocaleString("vi-VN"),
+                style: "tableContent",
+                alignment: "right",
+              },
+              { text: "Tổng thưởng khác", style: "tableContent" },
+              {
+                text: totalSummary.totalOtherBonus.toLocaleString("vi-VN"),
+                style: "tableContent",
+                alignment: "right",
+              },
+              { text: "Tổng giờ TC tuần", style: "tableContent" },
+            ],
+            [
+              {
+                text: totalSummary.totalWeekdayOvertimeHours.toFixed(1),
+                style: "tableContent",
+                alignment: "right",
+              },
+              { text: "Tổng giờ TC CN", style: "tableContent" },
+              {
+                text: totalSummary.totalWeekendOvertimeHours.toFixed(1),
+                style: "tableContent",
+                alignment: "right",
+              },
+              { text: "Tổng giờ TC lễ", style: "tableContent" },
+              {
+                text: totalSummary.totalHolidayOvertimeHours.toFixed(1),
+                style: "tableContent",
+                alignment: "right",
+              },
+            ],
+            [
+              { text: "Tổng lương tăng ca", style: "tableContent" },
+              {
+                text: totalSummary.totalOvertimePay.toLocaleString("vi-VN"),
+                style: "tableContent",
+                alignment: "right",
+              },
+              { text: "Tổng lương tính thuế", style: "tableContent" },
+              {
+                text: totalSummary.totalTaxableIncome.toLocaleString("vi-VN"),
+                style: "tableContent",
+                alignment: "right",
+              },
+              { text: "Tổng lương gộp", style: "tableContent" },
+            ],
+            [
+              {
+                text: totalSummary.totalGrossSalary.toLocaleString("vi-VN"),
+                style: "tableContent",
+                alignment: "right",
+              },
+              { text: "Tổng thuế", style: "tableContent" },
+              {
+                text: totalSummary.totalTax.toLocaleString("vi-VN"),
+                style: "tableContent",
+                alignment: "right",
+              },
+              { text: "Tổng lương thực lĩnh", style: "tableContent" },
+              {
+                text: totalSummary.totalCurrentSalary.toLocaleString("vi-VN"),
+                style: "tableContent",
+                alignment: "right",
+              },
+            ],
+            [
+              { text: "Lương TB thực lĩnh", style: "tableContent" },
+              {
+                text: totalSummary.averageCurrentSalary.toLocaleString("vi-VN"),
+                style: "tableContent",
+                alignment: "right",
+              },
+              { text: "Thuế TB", style: "tableContent" },
+              {
+                text: totalSummary.averageTax.toLocaleString("vi-VN"),
+                style: "tableContent",
+                alignment: "right",
+              },
+              { text: "", style: "tableContent" },
             ],
           ],
         },
@@ -966,38 +1106,15 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
           paddingBottom: () => 2,
         },
       });
-
-      // Add yearly summary section
-      content.push({
-        text: [
-          { text: "TỔNG HỢP NĂM:\n", style: "summaryHeader" },
-          {
-            text: `Tổng lương thực lĩnh: ${totalSalary.toLocaleString(
-              "vi-VN"
-            )} VND\n`,
-            style: "summaryText",
-          },
-          {
-            text: `Tổng thuế thu nhập: ${totalTax.toLocaleString(
-              "vi-VN"
-            )} VND\n`,
-            style: "summaryText",
-          },
-          {
-            text: `Tổng lương gộp: ${totalGross.toLocaleString("vi-VN")} VND`,
-            style: "summaryText",
-          },
-        ],
-        style: "summary",
-        margin: [0, 15, 0, 0],
-      });
     }
 
     // Add total salary row
     content.push({
-      text: `Tổng lương thực lĩnh: ${totalSalary.toLocaleString("vi-VN")} VND`,
+      text: `TỔNG LƯƠNG THỰC LĨNH: ${totalSummary.totalCurrentSalary.toLocaleString(
+        "vi-VN"
+      )} VND`,
       style: "total",
-      margin: [0, 15, 0, 0],
+      margin: [0, 20, 0, 0],
     });
 
     // Add signature
@@ -1020,56 +1137,47 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
     const docDefinition = {
       pageSize: "A4",
       pageOrientation: "landscape",
-      pageMargins: [15, 15, 15, 15],
+      pageMargins: [10, 10, 10, 10],
       content: content,
       styles: {
         header: {
-          fontSize: 16,
+          fontSize: 14,
           bold: true,
           margin: [0, 0, 0, 10],
         },
         subheader: {
-          fontSize: 9,
+          fontSize: 8,
           margin: [0, 0, 0, 10],
         },
         tableHeader: {
           bold: true,
-          fontSize: month ? 8 : 7,
+          fontSize: 6,
           color: "black",
           fillColor: "#f5f5f5",
           alignment: "center",
         },
         tableContent: {
-          fontSize: month ? 7 : 6.5,
+          fontSize: 5.5,
           margin: [0, 1, 0, 1],
         },
         total: {
           bold: true,
-          fontSize: 11,
+          fontSize: 10,
           alignment: "right",
         },
         signature: {
           bold: true,
-          fontSize: 11,
-        },
-        summary: {
-          fontSize: 9,
-          margin: [0, 10, 0, 5],
-          background: "#f0f0f0",
-          padding: 5,
+          fontSize: 10,
         },
         summaryHeader: {
           bold: true,
-          fontSize: 10,
-          margin: [0, 5, 0, 5],
-        },
-        summaryText: {
           fontSize: 9,
+          margin: [0, 5, 0, 5],
         },
       },
       defaultStyle: {
         font: "Roboto",
-        fontSize: 10,
+        fontSize: 8,
       },
     };
 
@@ -1078,8 +1186,8 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
 
     // Set response headers
     let fileName = month
-      ? `ChiLuong_Thang${month}_${year}`
-      : `ChiLuong_Nam${year}`;
+      ? `BaoCaoLuong_Thang${month}_${year}`
+      : `BaoCaoLuong_Nam${year}`;
 
     if (costCenter) {
       const sanitizedCostCenter = costCenter.replace(
@@ -1087,6 +1195,13 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
         ""
       );
       fileName += `_${sanitizedCostCenter}`;
+    }
+    if (realName) {
+      const sanitizedRealName = realName.replace(
+        /[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF\s-]/g,
+        ""
+      );
+      fileName += `_${sanitizedRealName}`;
     }
     fileName += ".pdf";
 
@@ -1132,8 +1247,11 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       year,
       costCenter,
       beneficiaryBank,
+      realName,
       costCenterReverse,
       beneficiaryBankReverse,
+      realNameReverse,
+      includeSummary,
     } = req.query;
 
     // Validate input - only year is required
@@ -1225,6 +1343,23 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       }
     }
 
+    // Apply realName filter
+    if (realName) {
+      if (realNameReverse === "true") {
+        records = records.filter(
+          (record) =>
+            !record.realName ||
+            !record.realName.toLowerCase().includes(realName.toLowerCase())
+        );
+      } else {
+        records = records.filter(
+          (record) =>
+            record.realName &&
+            record.realName.toLowerCase().includes(realName.toLowerCase())
+        );
+      }
+    }
+
     if (records.length === 0) {
       return res
         .status(404)
@@ -1252,8 +1387,8 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     // Create a new workbook
     const workbook = new ExcelJS.Workbook();
     const worksheetName = month
-      ? `Chi lương tháng ${month}-${year}`
-      : `Chi lương năm ${year}`;
+      ? `Chi tiết lương tháng ${month}-${year}`
+      : `Chi tiết lương năm ${year}`;
     const worksheet = workbook.addWorksheet(worksheetName);
 
     // Set page setup for better printing
@@ -1264,8 +1399,8 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       fitToWidth: 1,
       fitToHeight: 0,
       margins: {
-        left: 0.7,
-        right: 0.7,
+        left: 0.5,
+        right: 0.5,
         top: 0.75,
         bottom: 0.75,
         header: 0.3,
@@ -1275,10 +1410,10 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
 
     // Add main title
     const reportTitle = month
-      ? `DANH SÁCH CHI LƯƠNG THÁNG ${month} NĂM ${year}`
-      : `DANH SÁCH CHI LƯƠNG NĂM ${year}`;
+      ? `BÁO CÁO CHI TIẾT LƯƠNG THÁNG ${month} NĂM ${year}`
+      : `BÁO CÁO CHI TIẾT LƯƠNG NĂM ${year}`;
 
-    const columnsCount = month ? 9 : 10; // 9 columns for monthly, 10 for yearly (adds tax column)
+    const columnsCount = 19; // All fields
 
     worksheet.mergeCells(`A1:${String.fromCharCode(64 + columnsCount)}1`);
     worksheet.getCell("A1").value = reportTitle;
@@ -1289,11 +1424,11 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     };
     worksheet.getRow(1).height = 25;
 
-    // Add subtitle with contract info
+    // Add subtitle
     worksheet.mergeCells(`A2:${String.fromCharCode(64 + columnsCount)}3`);
     const description = month
-      ? "(Kèm theo Hợp đồng Dịch vụ chi lương số 41/HDCL-HDBCH ngày 15 tháng 09 năm 2022 được kì kết giữa Ngân Hàng TMCP Phát Triển TP. Hồ Chí Minh – Chi nhánh Cộng Hòa và Công ty TNHH Đầu Tư Thương Mại Dịch Vụ Kỳ Long)"
-      : `Báo cáo chi lương cả năm ${year}`;
+      ? "(Kèm theo Hợp đồng Dịch vụ chi lương số 41/HDCL-HDBCH ngày 15 tháng 09 năm 2022)"
+      : `Báo cáo chi tiết lương cả năm ${year}`;
 
     worksheet.getCell("A2").value = description;
     worksheet.getCell("A2").font = { size: 10, name: "Arial" };
@@ -1308,33 +1443,28 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     // Add empty row for spacing
     worksheet.addRow([]);
 
-    // Define headers based on report type
-    const headers = month
-      ? // Monthly report headers
-        [
-          { header: "STT", key: "stt", width: 5 },
-          { header: "Họ và tên", key: "name", width: 20 },
-          { header: "Số tài khoản", key: "account", width: 15 },
-          { header: "Số CMND/CCCD", key: "id", width: 13 },
-          { header: "Số tiền chi lương", key: "salary", width: 14 },
-          { header: "Nội dung chi lương", key: "description", width: 18 },
-          { header: "Trạm", key: "costCenter", width: 15 },
-          { header: "Ngân hàng hưởng", key: "bank", width: 20 },
-          { header: "Tháng", key: "month", width: 8 },
-        ]
-      : // Yearly report headers (adds tax column)
-        [
-          { header: "STT", key: "stt", width: 5 },
-          { header: "Họ và tên", key: "name", width: 18 },
-          { header: "Số tài khoản", key: "account", width: 13 },
-          { header: "Số CMND/CCCD", key: "id", width: 12 },
-          { header: "Số tiền chi lương", key: "salary", width: 12 },
-          { header: "Nội dung chi lương", key: "description", width: 16 },
-          { header: "Tháng", key: "month", width: 7 },
-          { header: "Trạm", key: "costCenter", width: 13 },
-          { header: "Ngân hàng hưởng", key: "bank", width: 18 },
-          { header: "Thuế", key: "tax", width: 10 },
-        ];
+    // Define headers for all fields
+    const headers = [
+      { header: "STT", key: "stt", width: 4 },
+      { header: "Họ và tên", key: "name", width: 18 },
+      { header: "Tháng", key: "month", width: 6 },
+      { header: "Năm", key: "year", width: 6 },
+      { header: "Lương cơ bản", key: "baseSalary", width: 12 },
+      { header: "Lương theo giờ", key: "hourlyWage", width: 12 },
+      { header: "Trách nhiệm", key: "responsibility", width: 11 },
+      { header: "Công tác phí", key: "travelExpense", width: 11 },
+      { header: "Hoa hồng", key: "commissionBonus", width: 11 },
+      { header: "Thưởng khác", key: "otherBonus", width: 11 },
+      { header: "Giờ TC tuần", key: "weekdayOvertime", width: 9 },
+      { header: "Giờ TC CN", key: "weekendOvertime", width: 8 },
+      { header: "Giờ TC lễ", key: "holidayOvertime", width: 8 },
+      { header: "Lương tăng ca", key: "overtimePay", width: 11 },
+      { header: "Lương tính thuế", key: "taxableIncome", width: 11 },
+      { header: "Lương gộp", key: "grossSalary", width: 10 },
+      { header: "Thuế", key: "tax", width: 10 },
+      { header: "Lương thực lĩnh", key: "currentSalary", width: 12 },
+      { header: "Trạm", key: "costCenter", width: 15 },
+    ];
 
     // Set column widths
     worksheet.columns = headers;
@@ -1344,7 +1474,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     headers.forEach((header, index) => {
       const cell = headerRow.getCell(index + 1);
       cell.value = header.header;
-      cell.font = { bold: true, size: 10, name: "Arial" };
+      cell.font = { bold: true, size: 9, name: "Arial" };
       cell.fill = {
         type: "pattern",
         pattern: "solid",
@@ -1365,53 +1495,65 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     headerRow.height = 25;
 
     // Add data rows starting from row 6
-    let totalSalary = 0;
+    let totalBaseSalary = 0;
+    let totalHourlyWage = 0;
+    let totalResponsibility = 0;
+    let totalTravelExpense = 0;
+    let totalCommissionBonus = 0;
+    let totalOtherBonus = 0;
+    let totalWeekdayOvertime = 0;
+    let totalWeekendOvertime = 0;
+    let totalHolidayOvertime = 0;
+    let totalOvertimePay = 0;
+    let totalTaxableIncome = 0;
+    let totalGrossSalary = 0;
     let totalTax = 0;
-    let totalGross = 0;
+    let totalCurrentSalary = 0;
 
     records.forEach((record, index) => {
-      const salaryAmount = Math.ceil(record.currentSalary);
-      const taxAmount = Math.ceil(record.tax || 0);
-      const grossAmount = Math.ceil(record.grossSalary || 0);
+      const rowData = {
+        stt: index + 1,
+        name: record.realName || "N/A",
+        month: record.recordMonth,
+        year: record.recordYear,
+        baseSalary: Math.ceil(record.baseSalary || 0),
+        hourlyWage: Math.ceil(record.hourlyWage || 0),
+        responsibility: Math.ceil(record.responsibility || 0),
+        travelExpense: Math.ceil(record.travelExpense || 0),
+        commissionBonus: Math.ceil(record.commissionBonus || 0),
+        otherBonus: Math.ceil(record.otherBonus || 0),
+        weekdayOvertime: record.weekdayOvertimeHour || 0,
+        weekendOvertime: record.weekendOvertimeHour || 0,
+        holidayOvertime: record.holidayOvertimeHour || 0,
+        overtimePay: Math.ceil(record.overtimePay || 0),
+        taxableIncome: Math.ceil(record.taxableIncome || 0),
+        grossSalary: Math.ceil(record.grossSalary || 0),
+        tax: Math.ceil(record.tax || 0),
+        currentSalary: Math.ceil(record.currentSalary || 0),
+        costCenter: record.costCenter?.name || "N/A",
+      };
 
-      totalSalary += salaryAmount;
-      totalTax += taxAmount;
-      totalGross += grossAmount;
-
-      const description = month
-        ? `Thanh toán lương tháng ${parseInt(month) - 1}`
-        : `Thanh toán lương tháng ${record.recordMonth}`;
-
-      const rowData = month
-        ? {
-            stt: index + 1,
-            name: record.realName || "N/A",
-            account: record.bankAccountNumber || "N/A",
-            id: record.citizenID || "N/A",
-            salary: salaryAmount,
-            description: description,
-            costCenter: record.costCenter?.name || "N/A",
-            bank: record.beneficiaryBank || "N/A",
-            month: record.recordMonth,
-          }
-        : {
-            stt: index + 1,
-            name: record.realName || "N/A",
-            account: record.bankAccountNumber || "N/A",
-            id: record.citizenID || "N/A",
-            salary: salaryAmount,
-            description: description,
-            month: record.recordMonth,
-            costCenter: record.costCenter?.name || "N/A",
-            bank: record.beneficiaryBank || "N/A",
-            tax: taxAmount,
-          };
+      // Accumulate totals
+      totalBaseSalary += rowData.baseSalary;
+      totalHourlyWage += rowData.hourlyWage;
+      totalResponsibility += rowData.responsibility;
+      totalTravelExpense += rowData.travelExpense;
+      totalCommissionBonus += rowData.commissionBonus;
+      totalOtherBonus += rowData.otherBonus;
+      totalWeekdayOvertime += rowData.weekdayOvertime;
+      totalWeekendOvertime += rowData.weekendOvertime;
+      totalHolidayOvertime += rowData.holidayOvertime;
+      totalOvertimePay += rowData.overtimePay;
+      totalTaxableIncome += rowData.taxableIncome;
+      totalGrossSalary += rowData.grossSalary;
+      totalTax += rowData.tax;
+      totalCurrentSalary += rowData.currentSalary;
 
       const dataRow = worksheet.addRow(rowData);
 
       // Format each cell in the data row
       dataRow.eachCell((cell, colNumber) => {
-        cell.font = { size: 9, name: "Arial" };
+        cell.font = { size: 8, name: "Arial" };
         cell.border = {
           top: { style: "thin", color: { argb: "FF000000" } },
           left: { style: "thin", color: { argb: "FF000000" } },
@@ -1420,16 +1562,24 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         };
 
         // Alignment based on column
-        if (colNumber === 1 || (month ? colNumber === 9 : colNumber === 7)) {
-          // STT and Month
+        if (colNumber === 1 || colNumber === 3 || colNumber === 4) {
+          // STT, Month, Year
           cell.alignment = { horizontal: "center", vertical: "middle" };
-        } else if (colNumber === 5 || (!month && colNumber === 10)) {
-          // Salary and Tax (for yearly)
+        } else if (colNumber >= 5 && colNumber <= 10) {
+          // Salary fields (5-10): baseSalary to otherBonus
           cell.alignment = { horizontal: "right", vertical: "middle" };
           cell.numFmt = "#,##0";
-        } else if (colNumber === 3 || colNumber === 4) {
-          // Account & ID
+        } else if (colNumber >= 11 && colNumber <= 13) {
+          // Overtime hours (11-13)
           cell.alignment = { horizontal: "center", vertical: "middle" };
+          cell.numFmt = "0.0";
+        } else if (colNumber >= 14 && colNumber <= 18) {
+          // Other salary fields (14-18): overtimePay to currentSalary
+          cell.alignment = { horizontal: "right", vertical: "middle" };
+          cell.numFmt = "#,##0";
+        } else if (colNumber === 19) {
+          // Cost center
+          cell.alignment = { horizontal: "left", vertical: "middle" };
         } else {
           cell.alignment = {
             horizontal: "left",
@@ -1439,59 +1589,79 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         }
       });
 
-      dataRow.height = 20;
+      dataRow.height = 18;
     });
 
-    // Add summary section for yearly report
-    if (!month) {
-      // Calculate user summary for the year using the same records
-      const userSummary = {};
+    // Add total row after all data
+    const totalRowIndex = worksheet.lastRow.number + 1;
+    const totalRow = worksheet.getRow(totalRowIndex);
+    totalRow.height = 22;
 
-      records.forEach((record) => {
-        // Use realName from the record (already available)
-        const userName = record.realName || "N/A";
-        const costCenterName = record.costCenter?.name || "N/A";
-        const salary = Math.ceil(record.currentSalary);
+    // Merge cells for total label
+    worksheet.mergeCells(`A${totalRowIndex}:D${totalRowIndex}`);
+    totalRow.getCell(1).value = "TỔNG CỘNG";
+    totalRow.getCell(1).font = { bold: true, size: 10, name: "Arial" };
+    totalRow.getCell(1).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FFE6E6E6" },
+    };
+    totalRow.getCell(1).alignment = {
+      horizontal: "center",
+      vertical: "middle",
+    };
 
-        // Create a unique key using name and cost center to group by user
-        const userKey = `${userName}-${costCenterName}`;
+    // Add totals for each column
+    const totals = [
+      { col: 5, value: totalBaseSalary }, // baseSalary
+      { col: 6, value: totalHourlyWage }, // hourlyWage
+      { col: 7, value: totalResponsibility }, // responsibility
+      { col: 8, value: totalTravelExpense }, // travelExpense
+      { col: 9, value: totalCommissionBonus }, // commissionBonus
+      { col: 10, value: totalOtherBonus }, // otherBonus
+      { col: 11, value: totalWeekdayOvertime }, // weekdayOvertime
+      { col: 12, value: totalWeekendOvertime }, // weekendOvertime
+      { col: 13, value: totalHolidayOvertime }, // holidayOvertime
+      { col: 14, value: totalOvertimePay }, // overtimePay
+      { col: 15, value: totalTaxableIncome }, // taxableIncome
+      { col: 16, value: totalGrossSalary }, // grossSalary
+      { col: 17, value: totalTax }, // tax
+      { col: 18, value: totalCurrentSalary }, // currentSalary
+    ];
 
-        if (!userSummary[userKey]) {
-          userSummary[userKey] = {
-            userName: userName,
-            costCenter: costCenterName,
-            totalSalary: 0,
-            monthsWorked: new Set(),
-          };
-        }
+    totals.forEach((total) => {
+      const cell = totalRow.getCell(total.col);
+      cell.value = total.value;
+      cell.font = { bold: true, size: 9, name: "Arial" };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE6E6E6" },
+      };
 
-        userSummary[userKey].totalSalary += salary;
-        userSummary[userKey].monthsWorked.add(record.recordMonth);
-      });
+      if (total.col >= 11 && total.col <= 13) {
+        // Overtime hours
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+        cell.numFmt = "0.0";
+      } else {
+        // Money fields
+        cell.alignment = { horizontal: "right", vertical: "middle" };
+        cell.numFmt = "#,##0";
+      }
+    });
 
-      // Convert to array and sort by costCenter, then by name
-      const summaryArray = Object.values(userSummary).map((user) => ({
-        ...user,
-        monthsCount: user.monthsWorked.size,
-      }));
+    // Add borders to total row
+    for (let i = 1; i <= columnsCount; i++) {
+      totalRow.getCell(i).border = {
+        top: { style: "thin", color: { argb: "FF000000" } },
+        left: { style: "thin", color: { argb: "FF000000" } },
+        bottom: { style: "thin", color: { argb: "FF000000" } },
+        right: { style: "thin", color: { argb: "FF000000" } },
+      };
+    }
 
-      summaryArray.sort((a, b) => {
-        // First sort by cost center
-        const costCenterA = a.costCenter || "";
-        const costCenterB = b.costCenter || "";
-        if (costCenterA < costCenterB) return -1;
-        if (costCenterA > costCenterB) return 1;
-
-        // If same cost center, sort by name
-        return a.userName.localeCompare(b.userName);
-      });
-
-      // Calculate total summary salary
-      const summaryTotalSalary = summaryArray.reduce(
-        (sum, user) => sum + user.totalSalary,
-        0
-      );
-
+    // Add summary section if requested
+    if (includeSummary === "true") {
       // Add empty rows before summary
       worksheet.addRow([]);
       worksheet.addRow([]);
@@ -1499,9 +1669,9 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       // Add summary title
       const summaryTitleRow = worksheet.addRow([]);
       worksheet.mergeCells(
-        `A${summaryTitleRow.number}:F${summaryTitleRow.number}`
+        `A${summaryTitleRow.number}:S${summaryTitleRow.number}`
       );
-      summaryTitleRow.getCell(1).value = "TỔNG HỢP LƯƠNG CẢ NĂM THEO NHÂN VIÊN";
+      summaryTitleRow.getCell(1).value = "TỔNG HỢP THỐNG KÊ";
       summaryTitleRow.getCell(1).font = { bold: true, size: 14, name: "Arial" };
       summaryTitleRow.getCell(1).alignment = {
         horizontal: "center",
@@ -1511,21 +1681,20 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
 
       // Add summary headers
       const summaryHeaders = [
-        { header: "STT", width: 5 },
-        { header: "Họ và tên", width: 25 },
-        { header: "Trạm", width: 20 },
-        { header: "Số tháng làm việc", width: 15 },
-        { header: "Tổng lương cả năm", width: 18 },
-        { header: "Ghi chú", width: 20 },
+        "Chỉ số",
+        "Giá trị",
+        "Chỉ số",
+        "Giá trị",
+        "Chỉ số",
+        "Giá trị",
+        "Chỉ số",
+        "Giá trị",
       ];
 
-      const summaryHeaderRow = worksheet.addRow([]);
-      summaryHeaderRow.height = 25;
-
-      summaryHeaders.forEach((header, index) => {
-        const cell = summaryHeaderRow.getCell(index + 1);
-        cell.value = header.header;
-        cell.font = { bold: true, size: 10, name: "Arial" };
+      const summaryHeaderRow = worksheet.addRow(summaryHeaders);
+      summaryHeaderRow.height = 22;
+      summaryHeaderRow.eachCell((cell) => {
+        cell.font = { bold: true, size: 9, name: "Arial" };
         cell.fill = {
           type: "pattern",
           pattern: "solid",
@@ -1544,21 +1713,73 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         };
       });
 
-      // Add summary data rows
-      summaryArray.forEach((user, index) => {
-        const summaryDataRow = worksheet.addRow([
-          index + 1,
-          user.userName,
-          user.costCenter,
-          user.monthsCount,
-          user.totalSalary,
-          user.monthsCount === 12
-            ? "Làm việc cả năm"
-            : `Thiếu ${12 - user.monthsCount} tháng`,
-        ]);
+      // Calculate averages
+      const averageCurrentSalary = Math.round(
+        totalCurrentSalary / records.length
+      );
+      const averageTax = Math.round(totalTax / records.length);
+      const averageBaseSalary = Math.round(totalBaseSalary / records.length);
 
-        summaryDataRow.eachCell((cell, colNumber) => {
-          cell.font = { size: 9, name: "Arial" };
+      // Add summary data - organized in 4 columns
+      const summaryData = [
+        [
+          "Tổng số bản ghi",
+          records.length,
+          "Tổng lương cơ bản",
+          totalBaseSalary,
+          "Tổng lương giờ",
+          totalHourlyWage,
+          "Tổng trách nhiệm",
+          totalResponsibility,
+        ],
+        [
+          "Tổng công tác phí",
+          totalTravelExpense,
+          "Tổng hoa hồng",
+          totalCommissionBonus,
+          "Tổng thưởng khác",
+          totalOtherBonus,
+          "Tổng giờ TC tuần",
+          totalWeekdayOvertime,
+        ],
+        [
+          "Tổng giờ TC CN",
+          totalWeekendOvertime,
+          "Tổng giờ TC lễ",
+          totalHolidayOvertime,
+          "Tổng lương tăng ca",
+          totalOvertimePay,
+          "Tổng lương tính thuế",
+          totalTaxableIncome,
+        ],
+        [
+          "Tổng lương gộp",
+          totalGrossSalary,
+          "Tổng thuế",
+          totalTax,
+          "Tổng lương thực lĩnh",
+          totalCurrentSalary,
+          "Lương TB thực lĩnh",
+          averageCurrentSalary,
+        ],
+        [
+          "Thuế TB",
+          averageTax,
+          "Lương TB cơ bản",
+          averageBaseSalary,
+          "",
+          "",
+          "",
+          "",
+        ],
+      ];
+
+      summaryData.forEach((row) => {
+        const summaryRow = worksheet.addRow(row);
+        summaryRow.height = 20;
+
+        summaryRow.eachCell((cell, colNumber) => {
+          cell.font = { size: 8, name: "Arial" };
           cell.border = {
             top: { style: "thin", color: { argb: "FF000000" } },
             left: { style: "thin", color: { argb: "FF000000" } },
@@ -1566,166 +1787,83 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
             right: { style: "thin", color: { argb: "FF000000" } },
           };
 
-          if (colNumber === 1 || colNumber === 4) {
-            cell.alignment = { horizontal: "center", vertical: "middle" };
-          } else if (colNumber === 5) {
+          if (colNumber % 2 === 0) {
+            // Even columns (values)
             cell.alignment = { horizontal: "right", vertical: "middle" };
-            cell.numFmt = "#,##0";
+            if (typeof row[colNumber - 1] === "number") {
+              if (
+                colNumber === 2 ||
+                colNumber === 4 ||
+                colNumber === 6 ||
+                colNumber === 8
+              ) {
+                // Check which columns contain hours vs money
+                const headerText = summaryHeaders[colNumber - 2];
+                if (headerText.includes("giờ") || headerText.includes("TC")) {
+                  // Overtime hours
+                  cell.numFmt = "0.0";
+                } else if (headerText === "Tổng số bản ghi") {
+                  // Count field
+                  cell.numFmt = "0";
+                } else {
+                  // Money fields
+                  cell.numFmt = "#,##0";
+                }
+              }
+            }
           } else {
+            // Odd columns (labels)
             cell.alignment = { horizontal: "left", vertical: "middle" };
           }
         });
-
-        summaryDataRow.height = 20;
       });
 
-      // Add summary total row
-      const summaryTotalRow = worksheet.addRow([]);
-      summaryTotalRow.height = 25;
-
-      // Merge cells for total label
+      // Add final summary row with key metrics
+      const finalSummaryRow = worksheet.addRow([]);
+      finalSummaryRow.height = 22;
       worksheet.mergeCells(
-        `A${summaryTotalRow.number}:D${summaryTotalRow.number}`
+        `A${finalSummaryRow.number}:H${finalSummaryRow.number}`
       );
-      summaryTotalRow.getCell(1).value = "TỔNG CỘNG";
-      summaryTotalRow.getCell(1).font = { bold: true, size: 10, name: "Arial" };
-      summaryTotalRow.getCell(1).alignment = {
+
+      finalSummaryRow.getCell(1).value = `TỔNG KẾT: ${
+        records.length
+      } bản ghi | Tổng lương thực lĩnh: ${totalCurrentSalary.toLocaleString()} VND | Thuế trung bình: ${averageTax.toLocaleString()} VND`;
+      finalSummaryRow.getCell(1).font = {
+        bold: true,
+        size: 10,
+        name: "Arial",
+        color: { argb: "FF0000FF" },
+      };
+      finalSummaryRow.getCell(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFFFF2CC" },
+      };
+      finalSummaryRow.getCell(1).alignment = {
         horizontal: "center",
         vertical: "middle",
       };
-      summaryTotalRow.getCell(1).fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFE6E6E6" },
-      };
 
-      // Total salary cell
-      summaryTotalRow.getCell(5).value = summaryTotalSalary;
-      summaryTotalRow.getCell(5).font = { bold: true, size: 10, name: "Arial" };
-      summaryTotalRow.getCell(5).alignment = {
-        horizontal: "right",
-        vertical: "middle",
-      };
-      summaryTotalRow.getCell(5).numFmt = "#,##0";
-      summaryTotalRow.getCell(5).fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFE6E6E6" },
-      };
-
-      // Empty cell for notes
-      summaryTotalRow.getCell(6).value = "";
-      summaryTotalRow.getCell(6).fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFE6E6E6" },
-      };
-
-      // Add borders to total row
-      for (let i = 1; i <= 6; i++) {
-        summaryTotalRow.getCell(i).border = {
+      for (let i = 1; i <= 8; i++) {
+        finalSummaryRow.getCell(i).border = {
           top: { style: "thin", color: { argb: "FF000000" } },
           left: { style: "thin", color: { argb: "FF000000" } },
           bottom: { style: "thin", color: { argb: "FF000000" } },
           right: { style: "thin", color: { argb: "FF000000" } },
         };
       }
-
-      // Add empty rows
-      worksheet.addRow([]);
-      worksheet.addRow([]);
-
-      // Add yearly summary section
-      const yearlySummaryRow = worksheet.addRow([]);
-      yearlySummaryRow.height = 25;
-
-      // Merge cells for summary header
-      worksheet.mergeCells(
-        `A${yearlySummaryRow.number}:E${yearlySummaryRow.number}`
-      );
-      const summaryHeaderCell = yearlySummaryRow.getCell(1);
-      summaryHeaderCell.value = "TỔNG HỢP NĂM";
-      summaryHeaderCell.font = { bold: true, size: 11, name: "Arial" };
-      summaryHeaderCell.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFE6E6E6" },
-      };
-      summaryHeaderCell.alignment = {
-        horizontal: "center",
-        vertical: "middle",
-      };
-
-      // Add summary data rows
-      const summaryData = [
-        { label: "Tổng lương thực lĩnh:", value: totalSalary },
-        { label: "Tổng thuế thu nhập:", value: totalTax },
-        { label: "Tổng lương gộp:", value: totalGross },
-      ];
-
-      summaryData.forEach((item, index) => {
-        const dataRow = worksheet.addRow([]);
-        const labelCell = dataRow.getCell(1);
-        const valueCell = dataRow.getCell(5);
-
-        labelCell.value = item.label;
-        labelCell.font = { bold: true, size: 10, name: "Arial" };
-        labelCell.alignment = { horizontal: "right", vertical: "middle" };
-
-        valueCell.value = item.value;
-        valueCell.font = { size: 10, name: "Arial" };
-        valueCell.numFmt = "#,##0";
-        valueCell.alignment = { horizontal: "right", vertical: "middle" };
-
-        dataRow.height = 20;
-      });
-
-      // Add empty row after summary
-      worksheet.addRow([]);
     }
 
-    // Add total row
-    const totalRowIndex = worksheet.lastRow.number + 1;
-    const totalRow = worksheet.getRow(totalRowIndex);
-
-    // Merge cells for total amount
-    const totalMergeStart = month ? "D" : "C";
-    const totalMergeEnd = month ? "E" : "D";
-    worksheet.mergeCells(
-      `${totalMergeStart}${totalRowIndex}:${totalMergeEnd}${totalRowIndex}`
-    );
-    totalRow.getCell(
-      totalMergeStart.charCodeAt(0) - 64
-    ).value = `Tổng: ${totalSalary.toLocaleString()} VND`;
-    totalRow.getCell(totalMergeStart.charCodeAt(0) - 64).font = {
-      bold: true,
-      size: 11,
-      name: "Arial",
-    };
-    totalRow.getCell(totalMergeStart.charCodeAt(0) - 64).alignment = {
-      horizontal: "right",
-      vertical: "middle",
-    };
-
-    // Add borders to total row
-    for (let i = 1; i <= columnsCount; i++) {
-      totalRow.getCell(i).border = {
-        top: { style: "thin", color: { argb: "FF000000" } },
-        left: { style: "thin", color: { argb: "FF000000" } },
-        bottom: { style: "thin", color: { argb: "FF000000" } },
-        right: { style: "thin", color: { argb: "FF000000" } },
-      };
-    }
-    totalRow.height = 25;
-
-    // Add empty rows for spacing
+    // Add empty rows for spacing before signature
     worksheet.addRow([]);
     worksheet.addRow([]);
 
     // Add signature section
     const signatureRowIndex = worksheet.lastRow.number + 1;
     const signatureRow = worksheet.getRow(signatureRowIndex);
-    const signatureColumn = String.fromCharCode(64 + (month ? 8 : 9));
+    const signatureColumn = String.fromCharCode(
+      64 + Math.floor(columnsCount / 2)
+    );
     signatureRow.getCell(signatureColumn).value = "ĐẠI DIỆN CÔNG TY";
     signatureRow.getCell(signatureColumn).font = {
       bold: true,
@@ -1739,15 +1877,20 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     signatureRow.height = 20;
 
     // Set print area
-    const printAreaEnd = signatureRowIndex + 2; // Include some padding
+    const printAreaEnd = signatureRowIndex + 2;
     worksheet.pageSetup.printArea = `A1:${String.fromCharCode(
-      64 + (month ? columnsCount : Math.max(columnsCount, 6)) // Use max columns for yearly report
+      64 + columnsCount
     )}${printAreaEnd}`;
+
+    // Freeze header row
+    worksheet.views = [
+      { state: "frozen", xSplit: 0, ySplit: 5, activeCell: "A6" },
+    ];
 
     // Set response headers
     let fileName = month
-      ? `ChiLuong_Thang${month}_${year}`
-      : `ChiLuong_Nam${year}`;
+      ? `BaoCaoLuong_Thang${month}_${year}`
+      : `BaoCaoLuong_Nam${year}`;
 
     if (costCenter) {
       const sanitizedCostCenter = costCenter.replace(
@@ -1755,6 +1898,13 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         ""
       );
       fileName += `_${sanitizedCostCenter}`;
+    }
+    if (realName) {
+      const sanitizedRealName = realName.replace(
+        /[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF\s-]/g,
+        ""
+      );
+      fileName += `_${sanitizedRealName}`;
     }
     fileName += ".xlsx";
 
