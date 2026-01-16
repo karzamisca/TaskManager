@@ -1184,7 +1184,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         path: "assignedManager",
         select: "role",
       })
-      .sort({ recordMonth: 1, realName: 1 }); // Sort by month, then name
+      .sort({ recordMonth: 1, realName: 1 });
 
     // Filter out records where:
     // 1. userId is null (due to populate match filter)
@@ -1251,23 +1251,26 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         .json({ message: "Không tìm thấy bản ghi nào phù hợp" });
     }
 
-    // Sort records by month, then by costCenter name, then by realName
-    records.sort((a, b) => {
-      // First sort by month
-      if (a.recordMonth < b.recordMonth) return -1;
-      if (a.recordMonth > b.recordMonth) return 1;
+    // Group records by cost center, then by user (similar to HTML view)
+    const groupedRecords = {};
 
-      // If same month, sort by cost center
-      const costCenterA = a.costCenter?.name || "";
-      const costCenterB = b.costCenter?.name || "";
-      if (costCenterA < costCenterB) return -1;
-      if (costCenterA > costCenterB) return 1;
+    records.forEach((record) => {
+      const costCenterName = record.costCenter?.name || "Không có trạm";
+      const userName = record.realName || "Không có tên";
 
-      // If same cost center, sort by name
-      const nameA = a.realName || "";
-      const nameB = b.realName || "";
-      return nameA.localeCompare(nameB);
+      if (!groupedRecords[costCenterName]) {
+        groupedRecords[costCenterName] = {};
+      }
+
+      if (!groupedRecords[costCenterName][userName]) {
+        groupedRecords[costCenterName][userName] = [];
+      }
+
+      groupedRecords[costCenterName][userName].push(record);
     });
+
+    // Sort cost centers alphabetically
+    const sortedCostCenters = Object.keys(groupedRecords).sort();
 
     // Create a new workbook
     const workbook = new ExcelJS.Workbook();
@@ -1379,7 +1382,8 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     });
     headerRow.height = 25;
 
-    // Add data rows starting from row 6
+    // Initialize totals
+    let totalRecords = 0;
     let totalBaseSalary = 0;
     let totalHourlyWage = 0;
     let totalResponsibility = 0;
@@ -1395,90 +1399,369 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     let totalTax = 0;
     let totalCurrentSalary = 0;
 
-    records.forEach((record, index) => {
-      const rowData = {
-        stt: index + 1,
-        name: record.realName || "N/A",
-        month: record.recordMonth,
-        year: record.recordYear,
-        baseSalary: Math.ceil(record.baseSalary || 0),
-        hourlyWage: Math.ceil(record.hourlyWage || 0),
-        responsibility: Math.ceil(record.responsibility || 0),
-        travelExpense: Math.ceil(record.travelExpense || 0),
-        commissionBonus: Math.ceil(record.commissionBonus || 0),
-        otherBonus: Math.ceil(record.otherBonus || 0),
-        weekdayOvertime: record.weekdayOvertimeHour || 0,
-        weekendOvertime: record.weekendOvertimeHour || 0,
-        holidayOvertime: record.holidayOvertimeHour || 0,
-        overtimePay: Math.ceil(record.overtimePay || 0),
-        taxableIncome: Math.ceil(record.taxableIncome || 0),
-        grossSalary: Math.ceil(record.grossSalary || 0),
-        tax: Math.ceil(record.tax || 0),
-        currentSalary: Math.ceil(record.currentSalary || 0),
-        costCenter: record.costCenter?.name || "N/A",
+    let currentRow = 6; // Start after header row
+    let globalIndex = 1;
+
+    // Process each cost center group
+    sortedCostCenters.forEach((costCenterName, costCenterIndex) => {
+      // Add cost center header row
+      const costCenterRow = worksheet.getRow(currentRow++);
+      costCenterRow.height = 22;
+
+      // Merge all cells for cost center header
+      worksheet.mergeCells(`A${currentRow - 1}:S${currentRow - 1}`);
+      costCenterRow.getCell(1).value = `TRẠM ${
+        costCenterIndex + 1
+      }: ${costCenterName}`;
+      costCenterRow.getCell(1).font = {
+        bold: true,
+        size: 11,
+        name: "Arial",
+        color: { argb: "FF1976D2" },
+      };
+      costCenterRow.getCell(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFE8F5E8" },
+      };
+      costCenterRow.getCell(1).alignment = {
+        horizontal: "left",
+        vertical: "middle",
       };
 
-      // Accumulate totals
-      totalBaseSalary += rowData.baseSalary;
-      totalHourlyWage += rowData.hourlyWage;
-      totalResponsibility += rowData.responsibility;
-      totalTravelExpense += rowData.travelExpense;
-      totalCommissionBonus += rowData.commissionBonus;
-      totalOtherBonus += rowData.otherBonus;
-      totalWeekdayOvertime += rowData.weekdayOvertime;
-      totalWeekendOvertime += rowData.weekendOvertime;
-      totalHolidayOvertime += rowData.holidayOvertime;
-      totalOvertimePay += rowData.overtimePay;
-      totalTaxableIncome += rowData.taxableIncome;
-      totalGrossSalary += rowData.grossSalary;
-      totalTax += rowData.tax;
-      totalCurrentSalary += rowData.currentSalary;
-
-      const dataRow = worksheet.addRow(rowData);
-
-      // Format each cell in the data row
-      dataRow.eachCell((cell, colNumber) => {
-        cell.font = { size: 8, name: "Arial" };
-        cell.border = {
+      // Style all cells in the cost center row
+      for (let i = 1; i <= columnsCount; i++) {
+        costCenterRow.getCell(i).fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFE8F5E8" },
+        };
+        costCenterRow.getCell(i).border = {
           top: { style: "thin", color: { argb: "FF000000" } },
           left: { style: "thin", color: { argb: "FF000000" } },
           bottom: { style: "thin", color: { argb: "FF000000" } },
           right: { style: "thin", color: { argb: "FF000000" } },
         };
+      }
 
-        // Alignment based on column
-        if (colNumber === 1 || colNumber === 3 || colNumber === 4) {
-          // STT, Month, Year
-          cell.alignment = { horizontal: "center", vertical: "middle" };
-        } else if (colNumber >= 5 && colNumber <= 10) {
-          // Salary fields (5-10): baseSalary to otherBonus
-          cell.alignment = { horizontal: "right", vertical: "middle" };
-          cell.numFmt = "#,##0";
-        } else if (colNumber >= 11 && colNumber <= 13) {
-          // Overtime hours (11-13)
-          cell.alignment = { horizontal: "center", vertical: "middle" };
-          cell.numFmt = "0.0";
-        } else if (colNumber >= 14 && colNumber <= 18) {
-          // Other salary fields (14-18): overtimePay to currentSalary
-          cell.alignment = { horizontal: "right", vertical: "middle" };
-          cell.numFmt = "#,##0";
-        } else if (colNumber === 19) {
-          // Cost center
-          cell.alignment = { horizontal: "left", vertical: "middle" };
-        } else {
-          cell.alignment = {
-            horizontal: "left",
-            vertical: "middle",
-            wrapText: true,
+      // Get users in this cost center and sort them alphabetically
+      const usersInCostCenter = Object.keys(
+        groupedRecords[costCenterName]
+      ).sort();
+
+      // Process each user in this cost center
+      usersInCostCenter.forEach((userName, userIndex) => {
+        const userRecords = groupedRecords[costCenterName][userName];
+
+        // Sort user's records by month
+        userRecords.sort((a, b) => a.recordMonth - b.recordMonth);
+
+        // Add user group header row
+        const userHeaderRow = worksheet.getRow(currentRow++);
+        userHeaderRow.height = 20;
+
+        // Merge all cells for user header
+        worksheet.mergeCells(`A${currentRow - 1}:S${currentRow - 1}`);
+        userHeaderRow.getCell(1).value = `Nhân viên ${
+          userIndex + 1
+        }: ${userName}${costCenterName ? ` - ${costCenterName}` : ""}`;
+        userHeaderRow.getCell(1).font = {
+          bold: true,
+          size: 10,
+          name: "Arial",
+        };
+        userHeaderRow.getCell(1).fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFF0F8FF" },
+        };
+        userHeaderRow.getCell(1).alignment = {
+          horizontal: "left",
+          vertical: "middle",
+        };
+
+        // Style all cells in the user header row
+        for (let i = 1; i <= columnsCount; i++) {
+          userHeaderRow.getCell(i).fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFF0F8FF" },
+          };
+          userHeaderRow.getCell(i).border = {
+            top: { style: "thin", color: { argb: "FF000000" } },
+            left: { style: "thin", color: { argb: "FF000000" } },
+            bottom: { style: "thin", color: { argb: "FF000000" } },
+            right: { style: "thin", color: { argb: "FF000000" } },
           };
         }
+
+        // Add individual records for this user
+        let userTotalBaseSalary = 0;
+        let userTotalHourlyWage = 0;
+        let userTotalResponsibility = 0;
+        let userTotalTravelExpense = 0;
+        let userTotalCommissionBonus = 0;
+        let userTotalOtherBonus = 0;
+        let userTotalWeekdayOvertime = 0;
+        let userTotalWeekendOvertime = 0;
+        let userTotalHolidayOvertime = 0;
+        let userTotalOvertimePay = 0;
+        let userTotalTaxableIncome = 0;
+        let userTotalGrossSalary = 0;
+        let userTotalTax = 0;
+        let userTotalCurrentSalary = 0;
+
+        userRecords.forEach((record, recordIndex) => {
+          const rowData = {
+            stt: globalIndex++,
+            name: record.realName || "N/A",
+            month: record.recordMonth,
+            year: record.recordYear,
+            baseSalary: Math.ceil(record.baseSalary || 0),
+            hourlyWage: Math.ceil(record.hourlyWage || 0),
+            responsibility: Math.ceil(record.responsibility || 0),
+            travelExpense: Math.ceil(record.travelExpense || 0),
+            commissionBonus: Math.ceil(record.commissionBonus || 0),
+            otherBonus: Math.ceil(record.otherBonus || 0),
+            weekdayOvertime: record.weekdayOvertimeHour || 0,
+            weekendOvertime: record.weekendOvertimeHour || 0,
+            holidayOvertime: record.holidayOvertimeHour || 0,
+            overtimePay: Math.ceil(record.overtimePay || 0),
+            taxableIncome: Math.ceil(record.taxableIncome || 0),
+            grossSalary: Math.ceil(record.grossSalary || 0),
+            tax: Math.ceil(record.tax || 0),
+            currentSalary: Math.ceil(record.currentSalary || 0),
+            costCenter: record.costCenter?.name || "N/A",
+          };
+
+          // Accumulate user totals
+          userTotalBaseSalary += rowData.baseSalary;
+          userTotalHourlyWage += rowData.hourlyWage;
+          userTotalResponsibility += rowData.responsibility;
+          userTotalTravelExpense += rowData.travelExpense;
+          userTotalCommissionBonus += rowData.commissionBonus;
+          userTotalOtherBonus += rowData.otherBonus;
+          userTotalWeekdayOvertime += rowData.weekdayOvertime;
+          userTotalWeekendOvertime += rowData.weekendOvertime;
+          userTotalHolidayOvertime += rowData.holidayOvertime;
+          userTotalOvertimePay += rowData.overtimePay;
+          userTotalTaxableIncome += rowData.taxableIncome;
+          userTotalGrossSalary += rowData.grossSalary;
+          userTotalTax += rowData.tax;
+          userTotalCurrentSalary += rowData.currentSalary;
+
+          // Add to global totals
+          totalBaseSalary += rowData.baseSalary;
+          totalHourlyWage += rowData.hourlyWage;
+          totalResponsibility += rowData.responsibility;
+          totalTravelExpense += rowData.travelExpense;
+          totalCommissionBonus += rowData.commissionBonus;
+          totalOtherBonus += rowData.otherBonus;
+          totalWeekdayOvertime += rowData.weekdayOvertime;
+          totalWeekendOvertime += rowData.weekendOvertime;
+          totalHolidayOvertime += rowData.holidayOvertime;
+          totalOvertimePay += rowData.overtimePay;
+          totalTaxableIncome += rowData.taxableIncome;
+          totalGrossSalary += rowData.grossSalary;
+          totalTax += rowData.tax;
+          totalCurrentSalary += rowData.currentSalary;
+          totalRecords++;
+
+          const dataRow = worksheet.getRow(currentRow++);
+
+          // Set values for each cell
+          dataRow.getCell(1).value = rowData.stt;
+          dataRow.getCell(2).value = rowData.name;
+          dataRow.getCell(3).value = rowData.month;
+          dataRow.getCell(4).value = rowData.year;
+          dataRow.getCell(5).value = rowData.baseSalary;
+          dataRow.getCell(6).value = rowData.hourlyWage;
+          dataRow.getCell(7).value = rowData.responsibility;
+          dataRow.getCell(8).value = rowData.travelExpense;
+          dataRow.getCell(9).value = rowData.commissionBonus;
+          dataRow.getCell(10).value = rowData.otherBonus;
+          dataRow.getCell(11).value = rowData.weekdayOvertime;
+          dataRow.getCell(12).value = rowData.weekendOvertime;
+          dataRow.getCell(13).value = rowData.holidayOvertime;
+          dataRow.getCell(14).value = rowData.overtimePay;
+          dataRow.getCell(15).value = rowData.taxableIncome;
+          dataRow.getCell(16).value = rowData.grossSalary;
+          dataRow.getCell(17).value = rowData.tax;
+          dataRow.getCell(18).value = rowData.currentSalary;
+          dataRow.getCell(19).value = rowData.costCenter;
+
+          // Format each cell in the data row
+          dataRow.eachCell((cell, colNumber) => {
+            cell.font = { size: 8, name: "Arial" };
+            cell.border = {
+              top: { style: "thin", color: { argb: "FF000000" } },
+              left: { style: "thin", color: { argb: "FF000000" } },
+              bottom: { style: "thin", color: { argb: "FF000000" } },
+              right: { style: "thin", color: { argb: "FF000000" } },
+            };
+
+            // Alternate row colors for readability
+            if (recordIndex % 2 === 0) {
+              cell.fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FFF9F9F9" },
+              };
+            }
+
+            // Alignment based on column
+            if (colNumber === 1 || colNumber === 3 || colNumber === 4) {
+              // STT, Month, Year
+              cell.alignment = { horizontal: "center", vertical: "middle" };
+            } else if (colNumber >= 5 && colNumber <= 10) {
+              // Salary fields (5-10): baseSalary to otherBonus
+              cell.alignment = { horizontal: "right", vertical: "middle" };
+              cell.numFmt = "#,##0";
+            } else if (colNumber >= 11 && colNumber <= 13) {
+              // Overtime hours (11-13)
+              cell.alignment = { horizontal: "center", vertical: "middle" };
+              cell.numFmt = "0.0";
+            } else if (colNumber >= 14 && colNumber <= 18) {
+              // Other salary fields (14-18): overtimePay to currentSalary
+              cell.alignment = { horizontal: "right", vertical: "middle" };
+              cell.numFmt = "#,##0";
+            } else if (colNumber === 19) {
+              // Cost center
+              cell.alignment = { horizontal: "left", vertical: "middle" };
+            } else {
+              cell.alignment = {
+                horizontal: "left",
+                vertical: "middle",
+                wrapText: true,
+              };
+            }
+          });
+
+          dataRow.height = 18;
+        });
+
+        // Add user summary row
+        const userSummaryRow = worksheet.getRow(currentRow++);
+        userSummaryRow.height = 20;
+
+        // Calculate user averages
+        const userRecordCount = userRecords.length;
+        const userAverageCurrentSalary =
+          userRecordCount > 0
+            ? Math.round(userTotalCurrentSalary / userRecordCount)
+            : 0;
+        const userAverageTax =
+          userRecordCount > 0 ? Math.round(userTotalTax / userRecordCount) : 0;
+
+        // User summary row with merged cells
+        worksheet.mergeCells(`A${currentRow - 1}:B${currentRow - 1}`);
+        userSummaryRow.getCell(1).value = "Tổng hợp:";
+        userSummaryRow.getCell(1).font = {
+          bold: true,
+          size: 9,
+          name: "Arial",
+          italic: true,
+        };
+        userSummaryRow.getCell(1).alignment = {
+          horizontal: "left",
+          vertical: "middle",
+        };
+
+        // Set user summary values
+        userSummaryRow.getCell(3).value = ""; // Month column
+        userSummaryRow.getCell(4).value = ""; // Year column
+        userSummaryRow.getCell(5).value = userTotalBaseSalary;
+        userSummaryRow.getCell(6).value = userTotalHourlyWage;
+        userSummaryRow.getCell(7).value = userTotalResponsibility;
+        userSummaryRow.getCell(8).value = userTotalTravelExpense;
+        userSummaryRow.getCell(9).value = userTotalCommissionBonus;
+        userSummaryRow.getCell(10).value = userTotalOtherBonus;
+        userSummaryRow.getCell(11).value = userTotalWeekdayOvertime;
+        userSummaryRow.getCell(12).value = userTotalWeekendOvertime;
+        userSummaryRow.getCell(13).value = userTotalHolidayOvertime;
+        userSummaryRow.getCell(14).value = userTotalOvertimePay;
+        userSummaryRow.getCell(15).value = userTotalTaxableIncome;
+        userSummaryRow.getCell(16).value = userTotalGrossSalary;
+        userSummaryRow.getCell(17).value = userTotalTax;
+        userSummaryRow.getCell(18).value = userTotalCurrentSalary;
+        userSummaryRow.getCell(18).font = {
+          bold: true,
+          size: 9,
+          name: "Arial",
+        };
+
+        // Merge last two cells for note
+        worksheet.mergeCells(`S${currentRow - 1}:T${currentRow - 1}`);
+        userSummaryRow.getCell(
+          19
+        ).value = `TB: ${userAverageCurrentSalary.toLocaleString()} | Thuế TB: ${userAverageTax.toLocaleString()}`;
+        userSummaryRow.getCell(19).font = { size: 8, name: "Arial" };
+        userSummaryRow.getCell(19).alignment = {
+          horizontal: "left",
+          vertical: "middle",
+        };
+
+        // Format user summary row
+        userSummaryRow.eachCell((cell, colNumber) => {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFF0FFF0" },
+          };
+          cell.border = {
+            top: { style: "thin", color: { argb: "FF000000" } },
+            left: { style: "thin", color: { argb: "FF000000" } },
+            bottom: { style: "thin", color: { argb: "FF000000" } },
+            right: { style: "thin", color: { argb: "FF000000" } },
+          };
+          cell.font = { size: 8, name: "Arial" };
+
+          // Alignment for summary row
+          if (colNumber === 1 || colNumber === 2) {
+            cell.alignment = { horizontal: "left", vertical: "middle" };
+          } else if (colNumber >= 5 && colNumber <= 10) {
+            cell.alignment = { horizontal: "right", vertical: "middle" };
+            cell.numFmt = "#,##0";
+          } else if (colNumber >= 11 && colNumber <= 13) {
+            cell.alignment = { horizontal: "center", vertical: "middle" };
+            cell.numFmt = "0.0";
+          } else if (colNumber >= 14 && colNumber <= 18) {
+            cell.alignment = { horizontal: "right", vertical: "middle" };
+            cell.numFmt = "#,##0";
+          } else if (colNumber === 19 || colNumber === 20) {
+            cell.alignment = { horizontal: "left", vertical: "middle" };
+          } else if (colNumber === 3 || colNumber === 4) {
+            cell.alignment = { horizontal: "center", vertical: "middle" };
+          }
+        });
+
+        // Add empty row between users
+        currentRow++;
       });
 
-      dataRow.height = 18;
+      // Add empty row between cost centers
+      const separatorRow = worksheet.getRow(currentRow++);
+      separatorRow.height = 5;
+      worksheet.mergeCells(`A${currentRow - 1}:S${currentRow - 1}`);
+      separatorRow.getCell(1).value = "";
+      separatorRow.getCell(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFD3D3D3" },
+      };
+
+      for (let i = 1; i <= columnsCount; i++) {
+        separatorRow.getCell(i).border = {
+          top: { style: "thin", color: { argb: "FFD3D3D3" } },
+          left: { style: "thin", color: { argb: "FFD3D3D3" } },
+          bottom: { style: "thin", color: { argb: "FFD3D3D3" } },
+          right: { style: "thin", color: { argb: "FFD3D3D3" } },
+        };
+      }
     });
 
-    // Add total row after all data
-    const totalRowIndex = worksheet.lastRow.number + 1;
+    // Add grand total row
+    const totalRowIndex = currentRow;
     const totalRow = worksheet.getRow(totalRowIndex);
     totalRow.height = 22;
 
@@ -1548,11 +1831,12 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     // Add summary section if requested
     if (includeSummary === "true") {
       // Add empty rows before summary
+      currentRow += 2;
       worksheet.addRow([]);
       worksheet.addRow([]);
 
       // Add summary title
-      const summaryTitleRow = worksheet.addRow([]);
+      const summaryTitleRow = worksheet.getRow(currentRow++);
       worksheet.mergeCells(
         `A${summaryTitleRow.number}:S${summaryTitleRow.number}`
       );
@@ -1564,188 +1848,103 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       };
       summaryTitleRow.height = 25;
 
-      // Add summary headers
-      const summaryHeaders = [
-        "Chỉ số",
-        "Giá trị",
-        "Chỉ số",
-        "Giá trị",
-        "Chỉ số",
-        "Giá trị",
-        "Chỉ số",
-        "Giá trị",
-      ];
-
-      const summaryHeaderRow = worksheet.addRow(summaryHeaders);
-      summaryHeaderRow.height = 22;
-      summaryHeaderRow.eachCell((cell) => {
-        cell.font = { bold: true, size: 9, name: "Arial" };
-        cell.fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FFE6E6E6" },
-        };
-        cell.border = {
-          top: { style: "thin", color: { argb: "FF000000" } },
-          left: { style: "thin", color: { argb: "FF000000" } },
-          bottom: { style: "thin", color: { argb: "FF000000" } },
-          right: { style: "thin", color: { argb: "FF000000" } },
-        };
-        cell.alignment = {
-          horizontal: "center",
-          vertical: "middle",
-          wrapText: true,
-        };
-      });
-
       // Calculate averages
       const averageCurrentSalary = Math.round(
-        totalCurrentSalary / records.length
+        totalCurrentSalary / totalRecords
       );
-      const averageTax = Math.round(totalTax / records.length);
-      const averageBaseSalary = Math.round(totalBaseSalary / records.length);
+      const averageTax = Math.round(totalTax / totalRecords);
+      const averageBaseSalary = Math.round(totalBaseSalary / totalRecords);
 
-      // Add summary data - organized in 4 columns
+      // Add summary data in a compact format
       const summaryData = [
         [
           "Tổng số bản ghi",
-          records.length,
-          "Tổng lương cơ bản",
-          totalBaseSalary,
-          "Tổng lương giờ",
-          totalHourlyWage,
-          "Tổng trách nhiệm",
-          totalResponsibility,
+          totalRecords,
+          "Tổng lương thực lĩnh",
+          totalCurrentSalary,
         ],
-        [
-          "Tổng công tác phí",
-          totalTravelExpense,
-          "Tổng hoa hồng",
-          totalCommissionBonus,
-          "Tổng thưởng khác",
-          totalOtherBonus,
-          "Tổng giờ TC tuần",
-          totalWeekdayOvertime,
-        ],
-        [
-          "Tổng giờ TC CN",
-          totalWeekendOvertime,
-          "Tổng giờ TC lễ",
-          totalHolidayOvertime,
-          "Tổng lương tăng ca",
-          totalOvertimePay,
-          "Tổng lương tính thuế",
-          totalTaxableIncome,
-        ],
+        ["Tổng thuế", totalTax, "Thuế TB", averageTax],
         [
           "Tổng lương gộp",
           totalGrossSalary,
-          "Tổng thuế",
-          totalTax,
-          "Tổng lương thực lĩnh",
-          totalCurrentSalary,
           "Lương TB thực lĩnh",
           averageCurrentSalary,
         ],
         [
-          "Thuế TB",
-          averageTax,
+          "Tổng lương cơ bản",
+          totalBaseSalary,
           "Lương TB cơ bản",
           averageBaseSalary,
-          "",
-          "",
-          "",
-          "",
         ],
       ];
 
-      summaryData.forEach((row) => {
-        const summaryRow = worksheet.addRow(row);
-        summaryRow.height = 20;
+      summaryData.forEach((row, index) => {
+        const summaryRow = worksheet.getRow(currentRow++);
+        summaryRow.height = 18;
 
-        summaryRow.eachCell((cell, colNumber) => {
-          cell.font = { size: 8, name: "Arial" };
-          cell.border = {
-            top: { style: "thin", color: { argb: "FF000000" } },
-            left: { style: "thin", color: { argb: "FF000000" } },
-            bottom: { style: "thin", color: { argb: "FF000000" } },
-            right: { style: "thin", color: { argb: "FF000000" } },
-          };
-
-          if (colNumber % 2 === 0) {
-            // Even columns (values)
-            cell.alignment = { horizontal: "right", vertical: "middle" };
-            if (typeof row[colNumber - 1] === "number") {
-              if (
-                colNumber === 2 ||
-                colNumber === 4 ||
-                colNumber === 6 ||
-                colNumber === 8
-              ) {
-                // Check which columns contain hours vs money
-                const headerText = summaryHeaders[colNumber - 2];
-                if (headerText.includes("giờ") || headerText.includes("TC")) {
-                  // Overtime hours
-                  cell.numFmt = "0.0";
-                } else if (headerText === "Tổng số bản ghi") {
-                  // Count field
-                  cell.numFmt = "0";
-                } else {
-                  // Money fields
-                  cell.numFmt = "#,##0";
-                }
-              }
-            }
-          } else {
-            // Odd columns (labels)
-            cell.alignment = { horizontal: "left", vertical: "middle" };
-          }
-        });
-      });
-
-      // Add final summary row with key metrics
-      const finalSummaryRow = worksheet.addRow([]);
-      finalSummaryRow.height = 22;
-      worksheet.mergeCells(
-        `A${finalSummaryRow.number}:H${finalSummaryRow.number}`
-      );
-
-      finalSummaryRow.getCell(1).value = `TỔNG KẾT: ${
-        records.length
-      } bản ghi | Tổng lương thực lĩnh: ${totalCurrentSalary.toLocaleString()} VND | Thuế trung bình: ${averageTax.toLocaleString()} VND`;
-      finalSummaryRow.getCell(1).font = {
-        bold: true,
-        size: 10,
-        name: "Arial",
-        color: { argb: "FF0000FF" },
-      };
-      finalSummaryRow.getCell(1).fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFFFF2CC" },
-      };
-      finalSummaryRow.getCell(1).alignment = {
-        horizontal: "center",
-        vertical: "middle",
-      };
-
-      for (let i = 1; i <= 8; i++) {
-        finalSummaryRow.getCell(i).border = {
-          top: { style: "thin", color: { argb: "FF000000" } },
-          left: { style: "thin", color: { argb: "FF000000" } },
-          bottom: { style: "thin", color: { argb: "FF000000" } },
-          right: { style: "thin", color: { argb: "FF000000" } },
+        // Create two columns of summary data
+        worksheet.mergeCells(`A${summaryRow.number}:C${summaryRow.number}`);
+        summaryRow.getCell(1).value = row[0];
+        summaryRow.getCell(1).font = { size: 9, name: "Arial" };
+        summaryRow.getCell(1).alignment = {
+          horizontal: "left",
+          vertical: "middle",
         };
-      }
+
+        worksheet.mergeCells(`D${summaryRow.number}:F${summaryRow.number}`);
+        summaryRow.getCell(4).value = row[1];
+        summaryRow.getCell(4).font = { bold: true, size: 9, name: "Arial" };
+        summaryRow.getCell(4).alignment = {
+          horizontal: "right",
+          vertical: "middle",
+        };
+        summaryRow.getCell(4).numFmt =
+          typeof row[1] === "number" ? "#,##0" : "0";
+
+        worksheet.mergeCells(`G${summaryRow.number}:I${summaryRow.number}`);
+        summaryRow.getCell(7).value = row[2];
+        summaryRow.getCell(7).font = { size: 9, name: "Arial" };
+        summaryRow.getCell(7).alignment = {
+          horizontal: "left",
+          vertical: "middle",
+        };
+
+        worksheet.mergeCells(`J${summaryRow.number}:L${summaryRow.number}`);
+        summaryRow.getCell(10).value = row[3];
+        summaryRow.getCell(10).font = { bold: true, size: 9, name: "Arial" };
+        summaryRow.getCell(10).alignment = {
+          horizontal: "right",
+          vertical: "middle",
+        };
+        summaryRow.getCell(10).numFmt =
+          typeof row[3] === "number" ? "#,##0" : "0";
+
+        // Add borders
+        for (let i = 1; i <= 12; i++) {
+          if (summaryRow.getCell(i)) {
+            summaryRow.getCell(i).border = {
+              top: { style: "thin", color: { argb: "FF000000" } },
+              left: { style: "thin", color: { argb: "FF000000" } },
+              bottom: { style: "thin", color: { argb: "FF000000" } },
+              right: { style: "thin", color: { argb: "FF000000" } },
+            };
+
+            // Alternate row colors
+            if (index % 2 === 0) {
+              summaryRow.getCell(i).fill = {
+                type: "pattern",
+                pattern: "solid",
+                fgColor: { argb: "FFF0F8FF" },
+              };
+            }
+          }
+        }
+      });
     }
 
-    // Add empty rows for spacing before signature
-    worksheet.addRow([]);
-    worksheet.addRow([]);
-
     // Add signature section
-    const signatureRowIndex = worksheet.lastRow.number + 1;
-    const signatureRow = worksheet.getRow(signatureRowIndex);
+    currentRow += 3;
+    const signatureRow = worksheet.getRow(currentRow);
     const signatureColumn = String.fromCharCode(
       64 + Math.floor(columnsCount / 2)
     );
@@ -1762,7 +1961,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     signatureRow.height = 20;
 
     // Set print area
-    const printAreaEnd = signatureRowIndex + 2;
+    const printAreaEnd = currentRow + 2;
     worksheet.pageSetup.printArea = `A1:${String.fromCharCode(
       64 + columnsCount
     )}${printAreaEnd}`;
@@ -1774,8 +1973,8 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
 
     // Set response headers
     let fileName = month
-      ? `BaoCaoLuong_Thang${month}_${year}`
-      : `BaoCaoLuong_Nam${year}`;
+      ? `BaoCaoLuong_Thang${month}_${year}_TheoTrạmVàNhanVien`
+      : `BaoCaoLuong_Nam${year}_TheoTrạmVàNhanVien`;
 
     if (costCenter) {
       const sanitizedCostCenter = costCenter.replace(
