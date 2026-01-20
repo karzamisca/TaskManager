@@ -54,6 +54,7 @@ const canViewAllOrders = (user) => {
     "director",
     "deputyDirector",
     "headOfPurchasing",
+    "headOfNorthernRepresentativeOffice",
     "captainOfPurchasing",
   ];
   return user && user.role && allowedRoles.includes(user.role);
@@ -149,7 +150,7 @@ exports.createOrder = async (req, res) => {
         if (group.name && group.items && Array.isArray(group.items)) {
           // Filter out items that don't exist in the order
           const validItems = group.items.filter((itemId) =>
-            itemIdMap.has(itemId.toString())
+            itemIdMap.has(itemId.toString()),
           );
 
           if (validItems.length > 0) {
@@ -419,7 +420,7 @@ exports.updateOrder = async (req, res) => {
         if (group.name && group.items && Array.isArray(group.items)) {
           // Filter out items that don't exist in the order
           const validItems = group.items.filter((itemId) =>
-            itemIdMap.has(itemId.toString())
+            itemIdMap.has(itemId.toString()),
           );
 
           if (validItems.length > 0) {

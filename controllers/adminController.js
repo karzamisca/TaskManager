@@ -85,7 +85,7 @@ exports.addCostCenter = async (req, res) => {
     } catch (cleanupError) {
       console.error(
         "Error cleaning up cost center after FinanceGas creation failed:",
-        cleanupError
+        cleanupError,
       );
     }
     res.json({ message: "Server error" });
@@ -128,7 +128,7 @@ exports.editCostCenter = async (req, res) => {
     const updatedCostCenter = await CostCenter.findByIdAndUpdate(
       id,
       { name, allowedUsers: usersArray },
-      { new: true }
+      { new: true },
     );
 
     // If name changed, update the corresponding FinanceGas entry instead of creating new one
@@ -136,12 +136,12 @@ exports.editCostCenter = async (req, res) => {
       const updatedFinanceGas = await FinanceGas.findOneAndUpdate(
         { name: oldName }, // Find by old name
         { name: name }, // Update to new name
-        { new: true }
+        { new: true },
       );
 
       if (!updatedFinanceGas) {
         console.warn(
-          `FinanceGas entry with name "${oldName}" not found. Creating new one.`
+          `FinanceGas entry with name "${oldName}" not found. Creating new one.`,
         );
         // If for some reason the FinanceGas entry doesn't exist, create it
         const newFinanceGas = new FinanceGas({
@@ -187,6 +187,7 @@ exports.getProductAdminPage = (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "headOfNorthernRepresentativeOffice",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -211,6 +212,7 @@ exports.getProducts = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "headOfNorthernRepresentativeOffice",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -246,6 +248,7 @@ exports.getProductById = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "headOfNorthernRepresentativeOffice",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -367,11 +370,11 @@ async function calculateAllProductsStorageInfo() {
     Object.keys(storageInfo).forEach((productName) => {
       storageInfo[productName].inStorage = Math.max(
         0,
-        storageInfo[productName].inStorage
+        storageInfo[productName].inStorage,
       );
       storageInfo[productName].aboutToTransfer = Math.max(
         0,
-        storageInfo[productName].aboutToTransfer
+        storageInfo[productName].aboutToTransfer,
       );
     });
 
@@ -391,6 +394,7 @@ exports.createProduct = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "headOfNorthernRepresentativeOffice",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -427,6 +431,7 @@ exports.updateProduct = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "headOfNorthernRepresentativeOffice",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -524,7 +529,7 @@ exports.updateProduct = async (req, res) => {
           }),
         },
       },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true },
     );
 
     if (!updatedProduct) {
@@ -556,7 +561,7 @@ async function syncProductChangesToPurchasing(
   oldName,
   oldCode,
   newName,
-  newCode
+  newCode,
 ) {
   try {
     // Update product name in purchasing documents' products array
@@ -569,7 +574,7 @@ async function syncProductChangesToPurchasing(
       },
       {
         arrayFilters: [{ "elem.productName": oldName }],
-      }
+      },
     );
 
     // Also update by code if needed (if you store code in purchasing documents)
@@ -583,12 +588,12 @@ async function syncProductChangesToPurchasing(
       },
       {
         arrayFilters: [{ "elem.code": oldCode }],
-      }
+      },
     );
   } catch (error) {
     console.error(
       "Error syncing product changes to purchasing documents:",
-      error
+      error,
     );
     // Don't throw error here to avoid failing the main product update
   }
@@ -598,7 +603,7 @@ async function syncProductChangesToDelivery(
   oldName,
   oldCode,
   newName,
-  newCode
+  newCode,
 ) {
   try {
     // Update product name in purchasing documents' products array
@@ -611,7 +616,7 @@ async function syncProductChangesToDelivery(
       },
       {
         arrayFilters: [{ "elem.productName": oldName }],
-      }
+      },
     );
 
     // Also update by code if needed (if you store code in purchasing documents)
@@ -625,12 +630,12 @@ async function syncProductChangesToDelivery(
       },
       {
         arrayFilters: [{ "elem.code": oldCode }],
-      }
+      },
     );
   } catch (error) {
     console.error(
       "Error syncing product changes to purchasing documents:",
-      error
+      error,
     );
     // Don't throw error here to avoid failing the main product update
   }
@@ -648,7 +653,7 @@ async function syncProductChangesToReceipt(oldName, oldCode, newName, newCode) {
       },
       {
         arrayFilters: [{ "elem.productName": oldName }],
-      }
+      },
     );
 
     // Also update by code if needed (if you store code in purchasing documents)
@@ -662,12 +667,12 @@ async function syncProductChangesToReceipt(oldName, oldCode, newName, newCode) {
       },
       {
         arrayFilters: [{ "elem.code": oldCode }],
-      }
+      },
     );
   } catch (error) {
     console.error(
       "Error syncing product changes to purchasing documents:",
-      error
+      error,
     );
     // Don't throw error here to avoid failing the main product update
   }
@@ -700,6 +705,7 @@ exports.importProducts = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "headOfNorthernRepresentativeOffice",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -723,7 +729,7 @@ exports.importProducts = async (req, res) => {
 
         if (!name || !code) {
           results.errors.push(
-            `Missing required fields for product: ${JSON.stringify(product)}`
+            `Missing required fields for product: ${JSON.stringify(product)}`,
           );
           continue;
         }
@@ -747,7 +753,7 @@ exports.importProducts = async (req, res) => {
         results.errors.push(
           `Error importing product: ${JSON.stringify(product)} - ${
             error.message
-          }`
+          }`,
         );
       }
     }
@@ -772,6 +778,7 @@ exports.importProductsFromFile = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "headOfNorthernRepresentativeOffice",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -840,7 +847,7 @@ exports.importProductsFromFile = async (req, res) => {
         const existingProduct = await Product.findOne({ code: codeStr });
         if (existingProduct) {
           results.errors.push(
-            `Row ${rowNum}: Product with code '${codeStr}' already exists`
+            `Row ${rowNum}: Product with code '${codeStr}' already exists`,
           );
           return;
         }
@@ -896,6 +903,7 @@ exports.exportProducts = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "headOfNorthernRepresentativeOffice",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -913,7 +921,7 @@ exports.exportProducts = async (req, res) => {
           inStorage: storageInfo.inStorage,
           aboutToTransfer: storageInfo.aboutToTransfer,
         };
-      })
+      }),
     );
 
     // Create a new workbook
@@ -944,7 +952,7 @@ exports.exportProducts = async (req, res) => {
     // Set content type and disposition
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader("Content-Disposition", "attachment; filename=products.xlsx");
 

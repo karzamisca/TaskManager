@@ -24,6 +24,7 @@ exports.getItemManagementViews = (req, res) => {
       "director",
       "deputyDirector",
       "headOfPurchasing",
+      "headOfNorthernRepresentativeOffice",
       "captainOfPurchasing",
     ].includes(req.user.role)
   ) {
@@ -261,11 +262,11 @@ exports.updateItem = async (req, res) => {
           if (orderUpdated) {
             order.totalAmount = order.items.reduce(
               (sum, item) => sum + item.totalPrice,
-              0
+              0,
             );
             order.totalAmountAfterVAT = order.items.reduce(
               (sum, item) => sum + item.totalPriceAfterVAT,
-              0
+              0,
             );
 
             // Update formatted date
@@ -277,7 +278,7 @@ exports.updateItem = async (req, res) => {
         }
 
         console.log(
-          `Updated ${pendingOrders.length} pending orders for item ${itemId}`
+          `Updated ${pendingOrders.length} pending orders for item ${itemId}`,
         );
       } catch (orderUpdateError) {
         console.error("Error updating orders:", orderUpdateError);
@@ -458,7 +459,7 @@ exports.exportToExcel = async (req, res) => {
     } else {
       items = await Item.find({ isDeleted: false }).populate(
         "createdBy",
-        "username"
+        "username",
       );
     }
 
@@ -538,7 +539,7 @@ exports.exportToExcel = async (req, res) => {
 
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
 
@@ -712,11 +713,11 @@ exports.importFromExcel = async (req, res) => {
               if (orderUpdated) {
                 order.totalAmount = order.items.reduce(
                   (sum, item) => sum + item.totalPrice,
-                  0
+                  0,
                 );
                 order.totalAmountAfterVAT = order.items.reduce(
                   (sum, item) => sum + item.totalPriceAfterVAT,
-                  0
+                  0,
                 );
 
                 order.formattedUpdatedAt = formatDateTime(new Date());
@@ -730,7 +731,7 @@ exports.importFromExcel = async (req, res) => {
           } catch (orderUpdateError) {
             console.error(
               "Error updating orders during import:",
-              orderUpdateError
+              orderUpdateError,
             );
             importResults.orderUpdateErrors.push({
               code,
@@ -950,11 +951,11 @@ exports.downloadTemplate = async (req, res) => {
     // Set response headers
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader(
       "Content-Disposition",
-      'attachment; filename="mau-nhap-file-mat-hang.xlsx"'
+      'attachment; filename="mau-nhap-file-mat-hang.xlsx"',
     );
 
     // Write workbook to response
