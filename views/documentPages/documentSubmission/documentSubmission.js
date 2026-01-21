@@ -2,6 +2,7 @@
 
 // Global variable to store Choice.js instances
 let choiceInstances = [];
+let isSubmitting = false;
 
 // Initialize Choice.js for product dropdowns
 function initializeProductDropdowns() {
@@ -64,7 +65,7 @@ async function populateProductDropdowns() {
     document.querySelectorAll(".product-dropdown").forEach((dropdown) => {
       // Store current value before updating
       const choiceInstance = choiceInstances.find(
-        (instance) => instance.passedElement.element === dropdown
+        (instance) => instance.passedElement.element === dropdown,
       );
       const currentValue = choiceInstance
         ? choiceInstance.getValue(true)
@@ -95,7 +96,7 @@ async function populateProductDropdowns() {
           })),
           "value",
           "label",
-          true
+          true,
         );
 
         // Restore previous value
@@ -152,7 +153,7 @@ function addProductEntry() {
 
   // Get the newly added dropdown
   const newDropdowns = productEntries.querySelectorAll(
-    ".product-dropdown:not([data-choice-initialized])"
+    ".product-dropdown:not([data-choice-initialized])",
   );
 
   // Initialize only the new dropdown and populate it
@@ -208,7 +209,7 @@ async function populateSingleProductDropdown(dropdown) {
 
     // Find the corresponding Choice instance and update it
     const choiceInstance = choiceInstances.find(
-      (instance) => instance.passedElement.element === dropdown
+      (instance) => instance.passedElement.element === dropdown,
     );
 
     if (choiceInstance) {
@@ -224,7 +225,7 @@ async function populateSingleProductDropdown(dropdown) {
         })),
         "value",
         "label",
-        true
+        true,
       );
 
       // Restore the previous value if it exists
@@ -286,7 +287,7 @@ function handleProposalDocument() {
 function handlePurchasingDocument() {
   const contentFields = document.getElementById("content-fields");
   const approvedProposalSection = document.getElementById(
-    "approved-proposal-section"
+    "approved-proposal-section",
   );
 
   contentFields.innerHTML = `
@@ -343,7 +344,7 @@ function handlePurchasingDocument() {
 function handlePaymentDocument() {
   const contentFields = document.getElementById("content-fields");
   const appendPurchasingSection = document.getElementById(
-    "append-purchasing-documents-section"
+    "append-purchasing-documents-section",
   );
 
   appendPurchasingSection.style.display = "block";
@@ -399,7 +400,7 @@ function handlePaymentDocument() {
 function handleAdvancePaymentDocument() {
   const contentFields = document.getElementById("content-fields");
   const appendPurchasingSection = document.getElementById(
-    "append-purchasing-documents-section"
+    "append-purchasing-documents-section",
   );
 
   appendPurchasingSection.style.display = "block";
@@ -447,7 +448,7 @@ function handleAdvancePaymentDocument() {
 function handleAdvancePaymentReclaimDocument() {
   const contentFields = document.getElementById("content-fields");
   const appendPurchasingSection = document.getElementById(
-    "append-purchasing-documents-section"
+    "append-purchasing-documents-section",
   );
 
   appendPurchasingSection.style.display = "block";
@@ -495,7 +496,7 @@ function handleAdvancePaymentReclaimDocument() {
 function handleDeliveryDocument() {
   const contentFields = document.getElementById("content-fields");
   const approvedProposalSection = document.getElementById(
-    "approved-proposal-section"
+    "approved-proposal-section",
   );
 
   contentFields.innerHTML = `
@@ -545,7 +546,7 @@ function handleDeliveryDocument() {
 function handleReceiptDocument() {
   const contentFields = document.getElementById("content-fields");
   const approvedProposalSection = document.getElementById(
-    "approved-proposal-section"
+    "approved-proposal-section",
   );
 
   contentFields.innerHTML = `
@@ -596,7 +597,7 @@ function handleProjectProposalDocument() {
   const contentFields = document.getElementById("content-fields");
   const addContentButton = document.getElementById("add-content-btn");
   const appendApprovedDocumentsSection = document.getElementById(
-    "append-approved-documents-section"
+    "append-approved-documents-section",
   );
 
   contentFields.innerHTML = `
@@ -624,7 +625,7 @@ function handleGenericDocument() {
   const contentFields = document.getElementById("content-fields");
   const addContentButton = document.getElementById("add-content-btn");
   const appendApprovedDocumentsSection = document.getElementById(
-    "append-approved-documents-section"
+    "append-approved-documents-section",
   );
 
   contentFields.innerHTML = `
@@ -701,16 +702,16 @@ document
     const contentFields = document.getElementById("content-fields");
     const addContentButton = document.getElementById("add-content-btn");
     const approvedProposalSection = document.getElementById(
-      "approved-proposal-section"
+      "approved-proposal-section",
     );
     const appendApprovedDocumentsSection = document.getElementById(
-      "append-approved-documents-section"
+      "append-approved-documents-section",
     );
     const appendPurchasingSection = document.getElementById(
-      "append-purchasing-documents-section"
+      "append-purchasing-documents-section",
     );
     const purchasingDocumentPreview = document.getElementById(
-      "purchasingDocumentPreview"
+      "purchasingDocumentPreview",
     );
 
     // Reset all sections and content fields
@@ -973,7 +974,7 @@ async function previewProposalContent(selectElement) {
             }</a>
             ${file.size ? ` (${file.size})` : ""}
           </li>
-        `
+        `,
           )
           .join("")}
       </ul>
@@ -1012,7 +1013,7 @@ async function previewProposalContent(selectElement) {
           .map(
             (approval) => `
           <li>${approval.username} - ${approval.approvalDate}</li>
-        `
+        `,
           )
           .join("")}
       </ul>
@@ -1039,7 +1040,7 @@ async function fetchPurchasingDocumentsForAdvancePayment() {
 // Function to fetch purchasing documents for advance payment reclaim documents
 async function fetchPurchasingDocumentsForAdvancePaymentReclaim() {
   const response = await fetch(
-    "/approvedPurchasingDocumentsForAdvancePaymentReclaim"
+    "/approvedPurchasingDocumentsForAdvancePaymentReclaim",
   );
   const purchasingDocs = await response.json();
   populatePurchasingDocumentsDropdown(purchasingDocs);
@@ -1068,7 +1069,7 @@ document
     const dropdown = document.getElementById("purchasingDocumentsDropdown");
     const selectedDocId = dropdown.value;
     const purchasingDocumentsList = document.getElementById(
-      "purchasingDocumentsList"
+      "purchasingDocumentsList",
     );
 
     if (!selectedDocId) {
@@ -1103,7 +1104,7 @@ document
               }</a>
               ${file.size ? ` (${file.size})` : ""}
             </li>
-          `
+          `,
             )
             .join("")}
         </ul>
@@ -1129,7 +1130,7 @@ document
                     }</a>
                     ${file.size ? ` (${file.size})` : ""}
                   </li>
-                `
+                `,
                   )
                   .join("")}
               </ul>
@@ -1173,7 +1174,7 @@ document
                     Thành tiền sau thuế: ${product.totalCostAfterVat.toLocaleString()}<br>
                     Ghi chú: ${product.note || "None"}
                 </li>
-            `
+            `,
               )
               .join("")}
         </ul>
@@ -1263,18 +1264,27 @@ fetchApprovers();
 document
   .getElementById("submit-form")
   .addEventListener("submit", async function (event) {
+    // ALWAYS prevent default first to stop the form from submitting immediately
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Prevent double submission
+    if (isSubmitting) {
+      console.log("Submission already in progress, ignoring duplicate");
+      return;
+    }
+
     const approvers = document.querySelectorAll(
-      'input[name="approvers"]:checked'
+      'input[name="approvers"]:checked',
     );
     if (approvers.length === 0) {
-      event.preventDefault();
       alert("Xin hãy chọn ít nhất một người phê duyệt");
       return;
     }
 
     // Validate product cost centers
     const productCostCenters = document.querySelectorAll(
-      ".product-cost-center"
+      ".product-cost-center",
     );
     let allCostCentersValid = true;
 
@@ -1290,7 +1300,7 @@ document
         .filter(
           (center) =>
             center.allowedUsers.length === 0 ||
-            center.allowedUsers.includes(currentUser)
+            center.allowedUsers.includes(currentUser),
         )
         .map((center) => center.name);
 
@@ -1305,15 +1315,35 @@ document
       });
 
       if (!allCostCentersValid) {
-        event.preventDefault();
         alert(
-          "Một số trạm sản phẩm không hợp lệ hoặc bạn không có quyền sử dụng. Vui lòng kiểm tra lại."
+          "Một số trạm sản phẩm không hợp lệ hoặc bạn không có quyền sử dụng. Vui lòng kiểm tra lại.",
         );
         return;
       }
+
+      // All validations passed, set flag
+      isSubmitting = true;
+
+      // Disable the submit button to prevent manual double-clicks
+      const submitButton = this.querySelector('button[type="submit"]');
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
+      }
+
+      // Now manually submit the form
+      this.submit();
     } catch (error) {
       console.error("Error validating cost centers:", error);
-      event.preventDefault();
+      isSubmitting = false; // Reset flag on error
+
+      // Re-enable submit button on error
+      const submitButton = this.querySelector('button[type="submit"]');
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.innerHTML = '<i class="fas fa-paper-plane"></i> Nộp phiếu';
+      }
       return;
     }
   });
@@ -1360,7 +1390,7 @@ document.getElementById("files").addEventListener("change", function (e) {
     fileItem.innerHTML = `
       <span class="file-name">${file.name}</span>
       <span class="file-size">(${(file.size / 1024 / 1024).toFixed(
-        2
+        2,
       )} MB)</span>
     `;
     fileListElement.appendChild(fileItem);
