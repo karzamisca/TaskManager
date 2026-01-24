@@ -244,9 +244,18 @@
   border-left: 4px solid #28a745;
 }
 
+.finance-bank-page .global-summary {
+  background: #cce5ff;
+  border-left: 4px solid #0066cc;
+}
+
 .finance-bank-page .summary h3 {
   margin-bottom: 15px;
   color: #155724;
+}
+
+.finance-bank-page .global-summary h3 {
+  color: #004085;
 }
 
 .finance-bank-page .summary-item {
@@ -255,6 +264,10 @@
   font-size: 16px;
   color: #155724;
   font-weight: 500;
+}
+
+.finance-bank-page .global-summary .summary-item {
+  color: #004085;
 }
 
 .finance-bank-page .summary-item strong {
@@ -420,6 +433,82 @@
   font-style: italic;
 }
 
+/* Global Summary Button */
+.finance-bank-page .view-global-btn {
+  background: #6f42c1;
+  border-color: #6f42c1;
+  margin-left: 10px;
+}
+
+.finance-bank-page .view-global-btn:hover {
+  background: #5a3791;
+  border-color: #5a3791;
+}
+
+/* Modal Styles */
+.finance-bank-page .modal-content {
+  border-radius: 8px;
+  border: none;
+}
+
+.finance-bank-page .modal-header {
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  border-radius: 8px 8px 0 0;
+}
+
+.finance-bank-page .modal-title {
+  color: #333;
+  font-weight: bold;
+}
+
+.finance-bank-page .modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.finance-bank-page .table-hover tbody tr:hover {
+  background-color: rgba(0, 123, 255, 0.1);
+  cursor: pointer;
+}
+
+.finance-bank-page .text-success {
+  color: #28a745 !important;
+}
+
+.finance-bank-page .text-danger {
+  color: #dc3545 !important;
+}
+
+.finance-bank-page .table-secondary {
+  background-color: #f8f9fa;
+}
+
+.finance-bank-page .table-dark {
+  background-color: #343a40;
+  color: white;
+}
+
+.finance-bank-page .btn-primary {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.finance-bank-page .btn-primary:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
+}
+
+.finance-bank-page .btn-secondary {
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+
+.finance-bank-page .btn-secondary:hover {
+  background-color: #545b62;
+  border-color: #545b62;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .finance-bank-page {
@@ -471,6 +560,10 @@
   }
 
   .finance-bank-page .filter-actions {
+    flex-direction: column;
+  }
+
+  .finance-bank-page .bulk-actions {
     flex-direction: column;
   }
 }
@@ -547,11 +640,38 @@
     color: #e9ecef;
   }
 
+  .finance-bank-page .global-summary {
+    background: #0c3b66;
+    color: #e9ecef;
+  }
+
   .finance-bank-page .summary h3 {
     color: #e9ecef;
   }
 
   .finance-bank-page .summary-item {
     color: #e9ecef;
+  }
+
+  .finance-bank-page .modal-content {
+    background-color: #2d2d2d;
+    color: #e9ecef;
+  }
+
+  .finance-bank-page .modal-header {
+    background: #3a3a3a;
+    border-color: #555;
+  }
+
+  .finance-bank-page .modal-title {
+    color: #e9ecef;
+  }
+
+  .finance-bank-page .table-dark {
+    background-color: #495057;
+  }
+
+  .finance-bank-page .table-secondary {
+    background-color: #3a3a3a;
   }
 }
