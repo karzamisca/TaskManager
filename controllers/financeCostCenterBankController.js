@@ -1,6 +1,7 @@
 // controllers/financeCostCenterBankController.js
 const CostCenter = require("../models/CostCenter");
 const FinanceCostCenterBankLog = require("../models/FinanceCostCenterBankLog");
+const Fund = require("../models/Fund");
 
 // Helper function to get client IP
 const getClientIp = (req) => {
@@ -19,7 +20,7 @@ const logAction = async (
   action,
   costCenterId = null,
   bankEntryId = null,
-  requestData = null
+  requestData = null,
 ) => {
   const logData = {
     userId: req.user.id,
@@ -90,7 +91,7 @@ exports.getBankEntries = async (req, res) => {
       null,
       {
         error: error.message,
-      }
+      },
     );
     res.status(500).json({ message: error.message });
   }
@@ -263,7 +264,7 @@ exports.updateBankEntry = async (req, res) => {
       req.params.entryId,
       {
         error: error.message,
-      }
+      },
     );
     res.status(400).json({ message: error.message });
   }
@@ -334,7 +335,7 @@ exports.deleteBankEntry = async (req, res) => {
       req.params.entryId,
       {
         error: error.message,
-      }
+      },
     );
     res.status(400).json({ message: error.message });
   }
@@ -374,5 +375,58 @@ exports.getCostCenters = async (req, res) => {
       error: error.message,
     });
     res.status(500).json({ message: error.message });
+  }
+};
+
+// Get fund limit for costCenterBank
+exports.getCostCenterBankFundLimit = async (req, res) => {
+  try {
+    const fund = await Fund.findOne({ name: "costCenterBank" });
+
+    if (!fund) {
+      // Create default fund if not exists
+      const newFund = new Fund({
+        name: "costCenterBank",
+        amount: 162000000000, // Default 162 billion
+      });
+      await newFund.save();
+      return res.status(200).json({
+        fund: newFund,
+        message: "Default fund created successfully",
+      });
+    }
+
+    res.status(200).json({ fund });
+  } catch (error) {
+    console.error("Error fetching fund limit:", error);
+    res.status(500).json({ error: "Failed to fetch fund limit" });
+  }
+};
+
+// Update fund limit for costCenterBank
+exports.updateCostCenterBankFundLimit = async (req, res) => {
+  try {
+    const { amount } = req.body;
+
+    if (typeof amount !== "number" || amount < 0) {
+      return res.status(400).json({
+        error: "Amount must be a positive number",
+      });
+    }
+
+    // Find and update or create the fund
+    const fund = await Fund.findOneAndUpdate(
+      { name: "costCenterBank" },
+      { amount: amount },
+      { new: true, upsert: true, runValidators: true },
+    );
+
+    res.status(200).json({
+      fund,
+      message: "Fund limit updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating fund limit:", error);
+    res.status(500).json({ error: "Failed to update fund limit" });
   }
 };
