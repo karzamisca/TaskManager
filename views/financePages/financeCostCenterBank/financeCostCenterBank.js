@@ -20,6 +20,9 @@ let filterState = {
   searchName: "",
 };
 
+// Hard set fund limit as 162 billion
+const FUND_LIMIT = 162000000000;
+
 // Tải trạm khi trang load
 document.addEventListener("DOMContentLoaded", loadCostCenters);
 
@@ -96,6 +99,9 @@ function calculateGlobalSummary() {
 
   const globalTotalProfit = globalTotalIncome - globalTotalExpense;
 
+  // Calculate fund available: fund limit - global total expense + global total income
+  const fundAvailable = FUND_LIMIT - globalTotalExpense + globalTotalIncome;
+
   // Cập nhật UI
   document.getElementById("globalTotalIncome").textContent =
     globalTotalIncome.toLocaleString("vi-VN");
@@ -103,6 +109,20 @@ function calculateGlobalSummary() {
     globalTotalExpense.toLocaleString("vi-VN");
   document.getElementById("globalTotalProfit").textContent =
     globalTotalProfit.toLocaleString("vi-VN");
+
+  // Update fund limit and available
+  document.getElementById("globalFundLimit").textContent =
+    FUND_LIMIT.toLocaleString("vi-VN");
+  document.getElementById("globalFundAvailable").textContent =
+    fundAvailable.toLocaleString("vi-VN");
+
+  // Add CSS class for highlighting
+  const fundAvailableElement = document.getElementById("globalFundAvailable");
+  if (fundAvailable >= 0) {
+    fundAvailableElement.className = "fund-available-highlight";
+  } else {
+    fundAvailableElement.className = "text-danger fund-available-highlight";
+  }
 }
 
 // Cập nhật dữ liệu toàn hệ thống khi có thay đổi
@@ -975,7 +995,7 @@ function showGlobalDetails() {
                   </tr>
                 </tfoot>
               </table>
-            </div>
+            </div>         
             <div class="mt-3">
               <small class="text-muted">* Nhấp vào tên trạm để chuyển sang xem chi tiết</small>
             </div>
