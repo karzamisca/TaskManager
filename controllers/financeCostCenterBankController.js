@@ -19,7 +19,7 @@ const logAction = async (
   action,
   costCenterId = null,
   bankEntryId = null,
-  requestData = null
+  requestData = null,
 ) => {
   const logData = {
     userId: req.user.id,
@@ -41,7 +41,6 @@ const logAction = async (
 
 // Helper to extract response message
 const getResponseMessage = (res) => {
-  // You might need to adjust this based on how you send responses
   return "Operation completed";
 };
 
@@ -90,7 +89,7 @@ exports.getBankEntries = async (req, res) => {
       null,
       {
         error: error.message,
-      }
+      },
     );
     res.status(500).json({ message: error.message });
   }
@@ -119,7 +118,6 @@ exports.addBankEntry = async (req, res) => {
     const { costCenterId } = req.params;
     const { name, income, expense, date } = req.body;
 
-    // Validate date format
     const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
     if (!dateRegex.test(date)) {
       await logAction(req, res, "ADD_BANK_ENTRY", costCenterId, null, {
@@ -146,7 +144,6 @@ exports.addBankEntry = async (req, res) => {
       date,
     };
 
-    // Initialize bank array if it doesn't exist
     if (!costCenter.bank) {
       costCenter.bank = [];
     }
@@ -154,7 +151,6 @@ exports.addBankEntry = async (req, res) => {
     costCenter.bank.push(newEntry);
     await costCenter.save();
 
-    // Get the saved entry ID
     const savedEntry = costCenter.bank[costCenter.bank.length - 1];
 
     await logAction(req, res, "ADD_BANK_ENTRY", costCenterId, savedEntry._id, {
@@ -198,7 +194,6 @@ exports.updateBankEntry = async (req, res) => {
     const { costCenterId, entryId } = req.params;
     const { name, income, expense, date } = req.body;
 
-    // Validate date format
     const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
     if (date && !dateRegex.test(date)) {
       await logAction(req, res, "UPDATE_BANK_ENTRY", costCenterId, entryId, {
@@ -228,7 +223,6 @@ exports.updateBankEntry = async (req, res) => {
       return res.status(404).json({ message: "Entry not found" });
     }
 
-    // Store old values for logging
     const oldValues = {
       name: entry.name,
       income: entry.income,
@@ -263,7 +257,7 @@ exports.updateBankEntry = async (req, res) => {
       req.params.entryId,
       {
         error: error.message,
-      }
+      },
     );
     res.status(400).json({ message: error.message });
   }
@@ -309,7 +303,6 @@ exports.deleteBankEntry = async (req, res) => {
       return res.status(404).json({ message: "Entry not found" });
     }
 
-    // Store entry data for logging before deletion
     const deletedEntryData = {
       name: entryToDelete.name,
       income: entryToDelete.income,
@@ -334,7 +327,7 @@ exports.deleteBankEntry = async (req, res) => {
       req.params.entryId,
       {
         error: error.message,
-      }
+      },
     );
     res.status(400).json({ message: error.message });
   }
@@ -361,7 +354,6 @@ exports.getCostCenters = async (req, res) => {
         .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
-    // Fetch cost centers sorted alphabetically by name
     const costCenters = await CostCenter.find({}, "name _id").sort({ name: 1 });
 
     await logAction(req, res, "GET_COST_CENTERS", null, null, {
@@ -374,5 +366,154 @@ exports.getCostCenters = async (req, res) => {
       error: error.message,
     });
     res.status(500).json({ message: error.message });
+  }
+};
+
+// Get cost center with fund limit info
+exports.getCostCenterWithFundLimit = async (req, res) => {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "captainOfFinance",
+        "submitterOfFinance",
+      ].includes(req.user.role) &&
+      !req.user.permissions?.includes("Nhập liệu tài chính ngân hàng")
+    ) {
+      await logAction(req, res, "GET_COST_CENTER_WITH_FUND", null, null, {
+        error: "Permission denied",
+      });
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
+    const { costCenterId } = req.params;
+    const costCenter = await CostCenter.findById(
+      costCenterId,
+      "name fundLimitBank bank",
+    );
+
+    if (!costCenter) {
+      await logAction(
+        req,
+        res,
+        "GET_COST_CENTER_WITH_FUND",
+        costCenterId,
+        null,
+        {
+          error: "Cost center not found",
+        },
+      );
+      return res.status(404).json({ message: "Cost center not found" });
+    }
+
+    let totalIncome = 0;
+    let totalExpense = 0;
+
+    if (costCenter.bank && costCenter.bank.length > 0) {
+      costCenter.bank.forEach((entry) => {
+        totalIncome += entry.income || 0;
+        totalExpense += entry.expense || 0;
+      });
+    }
+
+    const fundAvailableBank =
+      (costCenter.fundLimitBank || 0) - totalExpense + totalIncome;
+
+    await logAction(req, res, "GET_COST_CENTER_WITH_FUND", costCenterId, null, {
+      fundLimitBank: costCenter.fundLimitBank,
+      calculatedTotals: { totalIncome, totalExpense, fundAvailableBank },
+    });
+
+    res.json({
+      name: costCenter.name,
+      fundLimitBank: costCenter.fundLimitBank || 0,
+      fundAvailableBank,
+      totalIncome,
+      totalExpense,
+    });
+  } catch (error) {
+    await logAction(
+      req,
+      res,
+      "GET_COST_CENTER_WITH_FUND",
+      req.params.costCenterId,
+      null,
+      {
+        error: error.message,
+      },
+    );
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Update fund limit bank
+exports.updateFundLimitBank = async (req, res) => {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "captainOfFinance",
+      ].includes(req.user.role) &&
+      !req.user.permissions?.includes("Nhập liệu tài chính ngân hàng")
+    ) {
+      await logAction(req, res, "UPDATE_FUND_LIMIT_BANK", null, null, {
+        error: "Permission denied",
+      });
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
+    const { costCenterId } = req.params;
+    const { fundLimitBank } = req.body;
+
+    if (fundLimitBank === undefined || fundLimitBank === null) {
+      await logAction(req, res, "UPDATE_FUND_LIMIT_BANK", costCenterId, null, {
+        error: "Fund limit is required",
+      });
+      return res.status(400).json({ message: "Fund limit is required" });
+    }
+
+    const costCenter = await CostCenter.findById(costCenterId);
+    if (!costCenter) {
+      await logAction(req, res, "UPDATE_FUND_LIMIT_BANK", costCenterId, null, {
+        error: "Cost center not found",
+      });
+      return res.status(404).json({ message: "Cost center not found" });
+    }
+
+    const oldValue = costCenter.fundLimitBank;
+
+    costCenter.fundLimitBank = parseFloat(fundLimitBank) || 0;
+    await costCenter.save();
+
+    await logAction(req, res, "UPDATE_FUND_LIMIT_BANK", costCenterId, null, {
+      oldValue,
+      newValue: costCenter.fundLimitBank,
+    });
+
+    res.json({
+      success: true,
+      fundLimitBank: costCenter.fundLimitBank,
+      message: "Cập nhật hạn mức ngân hàng thành công!",
+    });
+  } catch (error) {
+    await logAction(
+      req,
+      res,
+      "UPDATE_FUND_LIMIT_BANK",
+      req.params.costCenterId,
+      null,
+      {
+        error: error.message,
+      },
+    );
+    res.status(400).json({ message: error.message });
   }
 };

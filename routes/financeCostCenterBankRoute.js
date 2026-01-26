@@ -7,6 +7,8 @@ const {
   addBankEntry,
   updateBankEntry,
   deleteBankEntry,
+  getCostCenterWithFundLimit,
+  updateFundLimitBank,
 } = require("../controllers/financeCostCenterBankController");
 
 const authMiddleware = require("../middlewares/authMiddleware");
@@ -23,25 +25,37 @@ router.get("/financeCostCenterBankControl/cost-centers", getCostCenters);
 // GET bank entries for a specific cost center
 router.get(
   "/financeCostCenterBankControl/:costCenterId/entries",
-  getBankEntries
+  getBankEntries,
 );
 
 // POST new bank entry to a cost center
 router.post(
   "/financeCostCenterBankControl/:costCenterId/entries",
-  addBankEntry
+  addBankEntry,
 );
 
 // PUT update bank entry in a cost center
 router.put(
   "/financeCostCenterBankControl/:costCenterId/entries/:entryId",
-  updateBankEntry
+  updateBankEntry,
 );
 
 // DELETE bank entry from a cost center
 router.delete(
   "/financeCostCenterBankControl/:costCenterId/entries/:entryId",
-  deleteBankEntry
+  deleteBankEntry,
+);
+
+// GET cost center with fund limit info
+router.get(
+  "/financeCostCenterBankControl/:costCenterId/fund-info",
+  getCostCenterWithFundLimit,
+);
+
+// PUT update fund limit bank
+router.put(
+  "/financeCostCenterBankControl/:costCenterId/fund-limit",
+  updateFundLimitBank,
 );
 
 module.exports = router;

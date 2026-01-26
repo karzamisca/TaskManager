@@ -8,6 +8,7 @@ let currentSortDirection = "asc";
 let isAdding = false;
 let editingEntryId = null;
 let multipleEntryCounter = 0;
+let currentFundLimitBank = 0;
 
 // Filter state
 let filterState = {
@@ -51,18 +52,41 @@ async function loadCostCenterData() {
     return;
   }
 
-  // Hiển thị thông tin trạm được chọn
   const selectedOption =
     document.getElementById("costCenterSelect").selectedOptions[0];
   document.getElementById("costCenterName").textContent =
     selectedOption.textContent;
+
+  await loadFundInfo();
+
   document.getElementById("costCenterInfo").classList.remove("hidden");
   document.getElementById("addFormContainer").classList.remove("hidden");
   document.getElementById("bulkActions").classList.remove("hidden");
   document.getElementById("filtersSection").classList.remove("hidden");
 
-  // Tải các mục
   await loadEntries();
+}
+
+// Tải thông tin quỹ
+async function loadFundInfo() {
+  if (!currentCostCenterId) return;
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/${currentCostCenterId}/fund-info`,
+    );
+    const fundData = await response.json();
+
+    currentFundLimitBank = fundData.fundLimitBank || 0;
+
+    updateFundSummary(fundData);
+  } catch (error) {
+    console.error("Error loading fund info:", error);
+    // Set defaults
+    currentFundLimitBank = 0;
+    document.getElementById("fundLimitBankSummary").textContent = "0";
+    document.getElementById("fundAvailableBank").textContent = "0";
+  }
 }
 
 // Tải tất cả mục cho trạm hiện tại
@@ -73,11 +97,11 @@ async function loadEntries() {
     const response = await fetch(`${API_BASE}/${currentCostCenterId}/entries`);
     entries = await response.json();
 
-    // Apply current filters
     applyFilters();
 
-    // Reset states
     resetEditStates();
+
+    await loadFundInfo();
   } catch (error) {
     alert("Lỗi khi tải dữ liệu: " + error.message);
   }
@@ -107,7 +131,6 @@ function sortEntries(field, direction) {
     let aValue = a[field];
     let bValue = b[field];
 
-    // Special handling for date field
     if (field === "date") {
       aValue = parseDate(aValue);
       bValue = parseDate(bValue);
@@ -118,7 +141,6 @@ function sortEntries(field, direction) {
     return 0;
   });
 
-  // Update sort indicators
   updateSortIndicators(field, direction);
 }
 
@@ -128,7 +150,7 @@ function parseDate(dateString) {
   if (parts.length === 3) {
     return new Date(parts[2], parts[1] - 1, parts[0]);
   }
-  return new Date(0); // Invalid date
+  return new Date(0);
 }
 
 // Update sort indicators in table headers
@@ -145,10 +167,8 @@ function updateSortIndicators(field, direction) {
 // Sort table when header is clicked
 function sortTable(field) {
   if (currentSortField === field) {
-    // Toggle direction if same field
     currentSortDirection = currentSortDirection === "asc" ? "desc" : "asc";
   } else {
-    // New field, default to ascending
     currentSortField = field;
     currentSortDirection = "asc";
   }
@@ -168,6 +188,7 @@ function calculateSummary() {
   });
 
   const totalProfit = totalIncome - totalExpense;
+  const fundAvailableBank = currentFundLimitBank - totalExpense + totalIncome;
 
   document.getElementById("totalIncome").textContent =
     totalIncome.toLocaleString("vi-VN");
@@ -175,9 +196,31 @@ function calculateSummary() {
     totalExpense.toLocaleString("vi-VN");
   document.getElementById("totalProfit").textContent =
     totalProfit.toLocaleString("vi-VN");
+  document.getElementById("fundLimitBankSummary").textContent =
+    currentFundLimitBank.toLocaleString("vi-VN");
+  document.getElementById("fundAvailableBank").textContent =
+    fundAvailableBank.toLocaleString("vi-VN");
 
-  // Hiển thị phần tổng kết
   document.getElementById("summarySection").classList.remove("hidden");
+}
+
+// Cập nhật thông tin quỹ
+function updateFundSummary(fundData) {
+  const fundAvailableBank = fundData.fundAvailableBank || 0;
+
+  document.getElementById("fundLimitBankSummary").textContent =
+    fundData.fundLimitBank.toLocaleString("vi-VN");
+  document.getElementById("fundAvailableBank").textContent =
+    fundAvailableBank.toLocaleString("vi-VN");
+  document.getElementById("totalIncome").textContent = (
+    fundData.totalIncome || 0
+  ).toLocaleString("vi-VN");
+  document.getElementById("totalExpense").textContent = (
+    fundData.totalExpense || 0
+  ).toLocaleString("vi-VN");
+  document.getElementById("totalProfit").textContent = (
+    (fundData.totalIncome || 0) - (fundData.totalExpense || 0)
+  ).toLocaleString("vi-VN");
 }
 
 // Hiển thị các mục trong bảng
@@ -185,7 +228,6 @@ function renderEntries() {
   const tbody = document.getElementById("entriesBody");
   tbody.innerHTML = "";
 
-  // Update table info
   document.getElementById("currentEntriesCount").textContent =
     filteredEntries.length;
   document.getElementById("totalEntriesCount").textContent = entries.length;
@@ -208,7 +250,6 @@ function renderEntries() {
   filteredEntries.forEach((entry) => {
     const row = document.createElement("tr");
 
-    // Check if this row is being edited
     if (entry._id === editingEntryId) {
       row.className = "editing-row";
       row.innerHTML = `
@@ -244,13 +285,11 @@ function renderEntries() {
 // Hiển thị hàng thêm mới
 function showAddRow() {
   if (isAdding || editingEntryId) {
-    // If already adding or editing, don't allow multiple operations
     return;
   }
 
   const tbody = document.getElementById("entriesBody");
 
-  // Clear any existing add row
   const existingAddRow = document.getElementById("addEntryRow");
   if (existingAddRow) {
     existingAddRow.remove();
@@ -270,10 +309,8 @@ function showAddRow() {
     </td>
   `;
 
-  // Insert at the beginning of the table
   tbody.insertBefore(row, tbody.firstChild);
 
-  // Set state and hide add button
   isAdding = true;
   hideAddButton();
 }
@@ -285,11 +322,9 @@ function cancelAdd() {
     addRow.remove();
   }
 
-  // Reset state and show add button
   isAdding = false;
   showAddButton();
 
-  // If table is empty after cancel, show empty message
   if (filteredEntries.length === 0) {
     renderEntries();
   }
@@ -304,7 +339,6 @@ async function saveNewEntry() {
   const expense = parseFloat(document.getElementById("newExpense").value);
   const date = document.getElementById("newDate").value;
 
-  // Validate inputs
   if (!name.trim()) {
     alert("Vui lòng nhập tên");
     return;
@@ -315,7 +349,6 @@ async function saveNewEntry() {
     return;
   }
 
-  // Validate date format
   if (!isValidDate(date)) {
     alert("Vui lòng nhập ngày theo định dạng DD/MM/YYYY");
     return;
@@ -352,7 +385,6 @@ async function saveNewEntry() {
 // Bắt đầu chỉnh sửa mục
 function startEdit(entryId) {
   if (isAdding) {
-    // If adding, cancel add first
     cancelAdd();
   }
 
@@ -374,14 +406,13 @@ async function saveEdit(entryId) {
 
   const name = document.getElementById(`editName_${entryId}`).value;
   const income = parseFloat(
-    document.getElementById(`editIncome_${entryId}`).value
+    document.getElementById(`editIncome_${entryId}`).value,
   );
   const expense = parseFloat(
-    document.getElementById(`editExpense_${entryId}`).value
+    document.getElementById(`editExpense_${entryId}`).value,
   );
   const date = document.getElementById(`editDate_${entryId}`).value;
 
-  // Validate inputs
   if (!name.trim()) {
     alert("Vui lòng nhập tên");
     return;
@@ -392,7 +423,6 @@ async function saveEdit(entryId) {
     return;
   }
 
-  // Validate date format
   if (!isValidDate(date)) {
     alert("Vui lòng nhập ngày theo định dạng DD/MM/YYYY");
     return;
@@ -415,7 +445,7 @@ async function saveEdit(entryId) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(entry),
-      }
+      },
     );
 
     if (response.ok) {
@@ -440,7 +470,7 @@ async function deleteEntry(entryId) {
         `${API_BASE}/${currentCostCenterId}/entries/${entryId}`,
         {
           method: "DELETE",
-        }
+        },
       );
 
       if (response.ok) {
@@ -469,7 +499,6 @@ function isValidDate(dateString) {
 
   const monthLength = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 
-  // Adjust for leap years
   if (year % 400 === 0 || (year % 100 !== 0 && year % 4 === 0)) {
     monthLength[1] = 29;
   }
@@ -479,16 +508,13 @@ function isValidDate(dateString) {
 
 // Filter Functions
 function applyFilters() {
-  // Get current filter values
   filterState.dateFrom = document.getElementById("dateFrom").value;
   filterState.dateTo = document.getElementById("dateTo").value;
   filterState.searchName = document
     .getElementById("searchName")
     .value.toLowerCase();
 
-  // Apply filters to entries
   filteredEntries = entries.filter((entry) => {
-    // Date filter
     if (
       filterState.dateFrom &&
       !isDateOnOrAfter(entry.date, filterState.dateFrom)
@@ -503,7 +529,6 @@ function applyFilters() {
       return false;
     }
 
-    // Name search filter
     if (
       filterState.searchName &&
       !entry.name.toLowerCase().includes(filterState.searchName)
@@ -514,26 +539,22 @@ function applyFilters() {
     return true;
   });
 
-  // Sort and render filtered entries
   sortEntries(currentSortField, currentSortDirection);
   renderEntries();
   calculateSummary();
 }
 
 function resetFilters() {
-  // Reset filter inputs
   document.getElementById("dateFrom").value = "";
   document.getElementById("dateTo").value = "";
   document.getElementById("searchName").value = "";
 
-  // Reset filter state
   filterState = {
     dateFrom: "",
     dateTo: "",
     searchName: "",
   };
 
-  // Apply reset filters (show all entries)
   applyFilters();
 }
 
@@ -561,7 +582,6 @@ function showMultipleEntryForm() {
   document.getElementById("bulkActions").classList.add("hidden");
   hideAddButton();
 
-  // Add initial entry row
   addEntryRow();
 }
 
@@ -596,7 +616,6 @@ function removeEntryRow(entryId) {
     entryRow.remove();
   }
 
-  // If no entries left, hide the form
   const container = document.getElementById("multipleEntriesContainer");
   if (container.children.length === 0) {
     hideMultipleEntryForm();
@@ -623,19 +642,17 @@ async function saveMultipleEntries() {
   const entries = [];
   let hasError = false;
 
-  // Validate all entries first
   for (let row of entryRows) {
     const entryId = row.id;
     const name = document.getElementById(`${entryId}_name`).value.trim();
     const income = parseFloat(
-      document.getElementById(`${entryId}_income`).value
+      document.getElementById(`${entryId}_income`).value,
     );
     const expense = parseFloat(
-      document.getElementById(`${entryId}_expense`).value
+      document.getElementById(`${entryId}_expense`).value,
     );
     const date = document.getElementById(`${entryId}_date`).value;
 
-    // Validate inputs
     if (!name) {
       alert(`Vui lòng nhập tên cho mục ${entryId}`);
       hasError = true;
@@ -664,7 +681,6 @@ async function saveMultipleEntries() {
 
   if (hasError) return;
 
-  // Show loading state
   const saveBtn = document.querySelector("#multipleEntryForm .save-btn");
   const originalText = saveBtn.textContent;
   saveBtn.textContent = "Đang lưu...";
@@ -674,7 +690,6 @@ async function saveMultipleEntries() {
     let successCount = 0;
     let errorCount = 0;
 
-    // Save entries one by one
     for (const entry of entries) {
       try {
         const response = await fetch(
@@ -685,7 +700,7 @@ async function saveMultipleEntries() {
               "Content-Type": "application/json",
             },
             body: JSON.stringify(entry),
-          }
+          },
         );
 
         if (response.ok) {
@@ -698,18 +713,16 @@ async function saveMultipleEntries() {
       }
     }
 
-    // Reset button
     saveBtn.textContent = originalText;
     saveBtn.disabled = false;
 
-    // Show result
     if (errorCount === 0) {
       alert(`Đã thêm thành công ${successCount} mục!`);
       hideMultipleEntryForm();
       await loadEntries();
     } else {
       alert(
-        `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`
+        `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`,
       );
       if (successCount > 0) {
         hideMultipleEntryForm();
@@ -717,7 +730,6 @@ async function saveMultipleEntries() {
       }
     }
   } catch (error) {
-    // Reset button
     saveBtn.textContent = originalText;
     saveBtn.disabled = false;
 
@@ -730,5 +742,75 @@ function cancelMultipleEntries() {
     confirm("Bạn có chắc chắn muốn hủy? Tất cả dữ liệu chưa lưu sẽ bị mất.")
   ) {
     hideMultipleEntryForm();
+  }
+}
+
+// Fund Limit Functions - Simple prompt approach
+function showEditFundLimit() {
+  if (!currentCostCenterId) {
+    alert("Vui lòng chọn trạm trước khi chỉnh sửa hạn mức");
+    return;
+  }
+
+  const currentValue = currentFundLimitBank.toLocaleString("vi-VN");
+  const newValue = prompt(
+    "Nhập hạn mức ngân hàng mới (VND):\n\n" +
+      `Hạn mức hiện tại: ${currentValue} VND`,
+    currentFundLimitBank,
+  );
+
+  if (newValue === null) {
+    return;
+  }
+
+  const newFundLimit = parseFloat(newValue.replace(/[^\d.-]/g, ""));
+
+  if (isNaN(newFundLimit) || newFundLimit < 0) {
+    alert("Vui lòng nhập số hợp lệ cho hạn mức ngân hàng (số dương)");
+    return;
+  }
+
+  if (
+    !confirm(
+      `Bạn có chắc chắn muốn đổi hạn mức từ ${currentValue} VND thành ${newFundLimit.toLocaleString("vi-VN")} VND?`,
+    )
+  ) {
+    return;
+  }
+
+  saveFundLimit(newFundLimit);
+}
+
+async function saveFundLimit(newFundLimit) {
+  if (!currentCostCenterId) return;
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/${currentCostCenterId}/fund-limit`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fundLimitBank: newFundLimit }),
+      },
+    );
+
+    if (response.ok) {
+      const result = await response.json();
+      currentFundLimitBank = newFundLimit;
+
+      document.getElementById("fundLimitBankSummary").textContent =
+        newFundLimit.toLocaleString("vi-VN");
+
+      await loadFundInfo();
+
+      alert(result.message || "Cập nhật hạn mức thành công!");
+    } else {
+      const error = await response.json();
+      alert("Lỗi khi cập nhật: " + (error.message || "Không xác định"));
+    }
+  } catch (error) {
+    alert("Lỗi khi cập nhật hạn mức: " + error.message);
   }
 }

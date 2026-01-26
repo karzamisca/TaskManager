@@ -90,6 +90,10 @@ const costCenterSchema = new mongoose.Schema({
   construction: [constructionSchema],
   bank: [bankSchema],
   daily: [dailySchema],
+  fundLimitBank: {
+    type: Number,
+    default: 0,
+  },
 });
 
 // Pre-save hooks to calculate totals

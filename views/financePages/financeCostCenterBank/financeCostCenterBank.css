@@ -235,6 +235,39 @@
   color: #495057;
 }
 
+/* Fund Limit in Summary */
+.finance-bank-page .fund-limit-item {
+  position: relative;
+  padding-right: 100px;
+}
+
+.finance-bank-page .fund-limit-item strong {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.finance-bank-page .fund-limit-item span {
+  color: #28a745;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.finance-bank-page .fund-limit-item .edit-fund-btn {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 4px 10px;
+  font-size: 12px;
+  background: #6c757d;
+  border-color: #6c757d;
+  margin: 0;
+}
+
+.finance-bank-page .fund-limit-item .edit-fund-btn:hover {
+  background: #545b62;
+  border-color: #545b62;
+}
+
 .finance-bank-page .summary {
   background: #d4edda;
   padding: 15px;
@@ -250,11 +283,14 @@
 }
 
 .finance-bank-page .summary-item {
+  position: relative;
   display: inline-block;
-  margin: 5px 20px;
-  font-size: 16px;
-  color: #155724;
-  font-weight: 500;
+  min-width: 200px;
+  padding: 12px 15px;
+  margin: 8px 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  vertical-align: top;
 }
 
 .finance-bank-page .summary-item strong {
@@ -262,6 +298,13 @@
   font-size: 14px;
   font-weight: normal;
   margin-bottom: 5px;
+  color: #155724;
+}
+
+.finance-bank-page .summary-item span {
+  font-size: 16px;
+  font-weight: 500;
+  color: #155724;
 }
 
 .finance-bank-page .add-row {
@@ -432,7 +475,19 @@
 
   .finance-bank-page .summary-item {
     display: block;
+    min-width: 100%;
     margin: 10px 0;
+  }
+
+  .finance-bank-page .fund-limit-item {
+    padding-right: 15px;
+  }
+
+  .finance-bank-page .fund-limit-item .edit-fund-btn {
+    position: static;
+    display: block;
+    margin-top: 8px;
+    width: 100%;
   }
 
   .finance-bank-page .actions {
@@ -518,6 +573,31 @@
     color: #e9ecef;
   }
 
+  .finance-bank-page .summary {
+    background: #1e4620;
+    color: #e9ecef;
+  }
+
+  .finance-bank-page .summary h3 {
+    color: #e9ecef;
+  }
+
+  .finance-bank-page .summary-item strong {
+    color: #d4edda;
+  }
+
+  .finance-bank-page .summary-item span {
+    color: #d4edda;
+  }
+
+  .finance-bank-page .fund-limit-item span {
+    color: #28a745;
+  }
+
+  .finance-bank-page .summary-item {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
   .finance-bank-page .edit-form {
     background: #3a3a3a;
     border-color: #555;
@@ -540,18 +620,5 @@
   .finance-bank-page .filters-section {
     background: #3a3a3a;
     border-color: #555;
-  }
-
-  .finance-bank-page .summary {
-    background: #1e4620;
-    color: #e9ecef;
-  }
-
-  .finance-bank-page .summary h3 {
-    color: #e9ecef;
-  }
-
-  .finance-bank-page .summary-item {
-    color: #e9ecef;
   }
 }
