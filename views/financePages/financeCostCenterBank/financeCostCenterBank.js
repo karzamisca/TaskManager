@@ -20,11 +20,11 @@ let filterState = {
   searchName: "",
 };
 
-// Tải trạm và fund limit khi trang load
-document.addEventListener("DOMContentLoaded", function () {
-  loadCostCenters();
-  fetchFundLimit();
-});
+// Hard set fund limit as 162 billion
+const FUND_LIMIT = 162000000000;
+
+// Tải trạm khi trang load
+document.addEventListener("DOMContentLoaded", loadCostCenters);
 
 // Tải tất cả trạm cho dropdown và tổng kết toàn hệ thống
 async function loadCostCenters() {
@@ -48,198 +48,6 @@ async function loadCostCenters() {
     console.error("Lỗi khi tải trạm:", error);
     alert("Lỗi khi tải danh sách trạm: " + error.message);
   }
-}
-
-// Fetch fund limit from API
-async function fetchFundLimit() {
-  try {
-    const response = await fetch(`${API_BASE}/fund`);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (data.fund && data.fund.amount) {
-      FUND_LIMIT = data.fund.amount;
-      document.getElementById("globalFundLimit").textContent =
-        FUND_LIMIT.toLocaleString("vi-VN");
-
-      // Recalculate global summary with new fund limit
-      calculateGlobalSummary();
-    } else {
-      console.warn("Fund data structure is not as expected:", data);
-    }
-  } catch (error) {
-    console.error("Error fetching fund limit:", error);
-    // Keep using default value and show it
-    document.getElementById("globalFundLimit").textContent =
-      FUND_LIMIT.toLocaleString("vi-VN");
-    calculateGlobalSummary();
-  }
-}
-
-// Update fund limit via API
-async function updateFundLimit(newAmount) {
-  try {
-    const response = await fetch(`${API_BASE}/fund`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ amount: newAmount }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || `HTTP error! status: ${response.status}`,
-      );
-    }
-
-    const data = await response.json();
-
-    if (data.fund) {
-      FUND_LIMIT = data.fund.amount;
-
-      // Update the fund limit display
-      document.getElementById("globalFundLimit").textContent =
-        FUND_LIMIT.toLocaleString("vi-VN");
-
-      // Recalculate global summary
-      calculateGlobalSummary();
-
-      // Show success message
-      showNotification(
-        data.message || "Cập nhật hạn mức ngân sách thành công!",
-        "success",
-      );
-
-      // Close modal
-      const modal = bootstrap.Modal.getInstance(
-        document.getElementById("fundLimitModal"),
-      );
-      if (modal) modal.hide();
-    }
-  } catch (error) {
-    console.error("Error updating fund limit:", error);
-    showNotification(
-      "Lỗi khi cập nhật hạn mức ngân sách: " + error.message,
-      "error",
-    );
-  }
-}
-
-// Show notification
-function showNotification(message, type = "info") {
-  // Remove existing notification
-  const existingNotification = document.getElementById("globalNotification");
-  if (existingNotification) {
-    existingNotification.remove();
-  }
-
-  // Create notification element
-  const notification = document.createElement("div");
-  notification.id = "globalNotification";
-  notification.className = `alert alert-${type === "error" ? "danger" : type} alert-dismissible fade show`;
-  notification.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 9999;
-    min-width: 300px;
-    max-width: 400px;
-    animation: slideIn 0.3s ease-out;
-  `;
-
-  notification.innerHTML = `
-    ${message}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  `;
-
-  document.body.appendChild(notification);
-
-  // Auto remove after 5 seconds
-  setTimeout(() => {
-    if (notification.parentNode) {
-      notification.remove();
-    }
-  }, 5000);
-
-  // Add CSS for animation
-  if (!document.getElementById("notificationStyles")) {
-    const style = document.createElement("style");
-    style.id = "notificationStyles";
-    style.textContent = `
-      @keyframes slideIn {
-        from {
-          transform: translateX(100%);
-          opacity: 0;
-        }
-        to {
-          transform: translateX(0);
-          opacity: 1;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-}
-
-// Show fund limit edit modal
-function showFundLimitEdit() {
-  // Clear previous value
-  document.getElementById("newFundLimit").value =
-    FUND_LIMIT.toLocaleString("vi-VN");
-
-  // Show modal
-  const modal = new bootstrap.Modal(document.getElementById("fundLimitModal"));
-  modal.show();
-}
-
-// Save fund limit from modal
-function saveFundLimit() {
-  const input = document.getElementById("newFundLimit").value;
-
-  // Clean the input - remove all non-digit characters
-  const cleanAmount = input.replace(/[^0-9]/g, "");
-  const numericAmount = parseInt(cleanAmount, 10);
-
-  if (isNaN(numericAmount)) {
-    showNotification("Vui lòng nhập số tiền hợp lệ!", "error");
-    return;
-  }
-
-  if (numericAmount < 0) {
-    showNotification("Hạn mức ngân sách không thể là số âm!", "error");
-    return;
-  }
-
-  if (numericAmount === FUND_LIMIT) {
-    showNotification("Hạn mức ngân sách không thay đổi!", "info");
-    const modal = bootstrap.Modal.getInstance(
-      document.getElementById("fundLimitModal"),
-    );
-    if (modal) modal.hide();
-    return;
-  }
-
-  // Ask for confirmation for large changes
-  const percentageChange =
-    Math.abs((numericAmount - FUND_LIMIT) / FUND_LIMIT) * 100;
-  if (percentageChange > 10) {
-    // More than 10% change
-    if (
-      !confirm(
-        `Bạn đang thay đổi hạn mức ngân sách ${percentageChange.toFixed(1)}%.\n\nHạn mức hiện tại: ${FUND_LIMIT.toLocaleString("vi-VN")} VND\nHạn mức mới: ${numericAmount.toLocaleString("vi-VN")} VND\n\nBạn có chắc chắn muốn thay đổi không?`,
-      )
-    ) {
-      return;
-    }
-  }
-
-  updateFundLimit(numericAmount);
 }
 
 // Tải dữ liệu cho tất cả cost centers
@@ -310,22 +118,10 @@ function calculateGlobalSummary() {
 
   // Add CSS class for highlighting
   const fundAvailableElement = document.getElementById("globalFundAvailable");
-  const fundLimitElement = document.getElementById("globalFundLimit");
-
-  // Reset classes
-  fundAvailableElement.className = "";
-  fundLimitElement.className = "";
-
-  // Add highlighting classes
-  fundLimitElement.classList.add("fund-limit-highlight");
-
   if (fundAvailable >= 0) {
-    fundAvailableElement.classList.add("fund-available-highlight");
+    fundAvailableElement.className = "fund-available-highlight";
   } else {
-    fundAvailableElement.classList.add(
-      "text-danger",
-      "fund-available-highlight",
-    );
+    fundAvailableElement.className = "text-danger fund-available-highlight";
   }
 }
 
@@ -349,29 +145,6 @@ async function updateGlobalSummary() {
 
   // Tính toán lại tổng kết
   calculateGlobalSummary();
-}
-
-// Refresh all data
-async function refreshAllData() {
-  try {
-    showNotification("Đang làm mới dữ liệu...", "info");
-
-    // Refresh fund limit
-    await fetchFundLimit();
-
-    // Refresh cost centers
-    await loadCostCenters();
-
-    // Refresh current cost center data if selected
-    if (currentCostCenterId) {
-      await loadEntries();
-    }
-
-    showNotification("Đã làm mới dữ liệu thành công!", "success");
-  } catch (error) {
-    console.error("Lỗi khi làm mới dữ liệu:", error);
-    showNotification("Lỗi khi làm mới dữ liệu: " + error.message, "error");
-  }
 }
 
 // Tải dữ liệu cho trạm được chọn
@@ -687,12 +460,12 @@ async function saveNewEntry() {
       cancelAdd();
       await loadEntries();
       await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
-      showNotification("Thêm mục thành công!", "success");
+      alert("Thêm mục thành công!");
     } else {
-      showNotification("Lỗi khi thêm mục", "error");
+      alert("Lỗi khi thêm mục");
     }
   } catch (error) {
-    showNotification("Lỗi khi thêm mục: " + error.message, "error");
+    alert("Lỗi khi thêm mục: " + error.message);
   }
 }
 
@@ -769,12 +542,12 @@ async function saveEdit(entryId) {
       editingEntryId = null;
       await loadEntries();
       await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
-      showNotification("Cập nhật thành công!", "success");
+      alert("Cập nhật thành công!");
     } else {
-      showNotification("Lỗi khi cập nhật mục", "error");
+      alert("Lỗi khi cập nhật mục");
     }
   } catch (error) {
-    showNotification("Lỗi khi cập nhật mục: " + error.message, "error");
+    alert("Lỗi khi cập nhật mục: " + error.message);
   }
 }
 
@@ -794,12 +567,12 @@ async function deleteEntry(entryId) {
       if (response.ok) {
         await loadEntries();
         await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
-        showNotification("Xóa mục thành công!", "success");
+        alert("Xóa mục thành công!");
       } else {
-        showNotification("Lỗi khi xóa mục", "error");
+        alert("Lỗi khi xóa mục");
       }
     } catch (error) {
-      showNotification("Lỗi khi xóa mục: " + error.message, "error");
+      alert("Lỗi khi xóa mục: " + error.message);
     }
   }
 }
@@ -1053,14 +826,13 @@ async function saveMultipleEntries() {
 
     // Show result
     if (errorCount === 0) {
-      showNotification(`Đã thêm thành công ${successCount} mục!`, "success");
+      alert(`Đã thêm thành công ${successCount} mục!`);
       hideMultipleEntryForm();
       await loadEntries();
       await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
     } else {
-      showNotification(
+      alert(
         `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`,
-        successCount > 0 ? "warning" : "error",
       );
       if (successCount > 0) {
         hideMultipleEntryForm();
@@ -1073,7 +845,7 @@ async function saveMultipleEntries() {
     saveBtn.textContent = originalText;
     saveBtn.disabled = false;
 
-    showNotification("Lỗi khi lưu các mục: " + error.message, "error");
+    alert("Lỗi khi lưu các mục: " + error.message);
   }
 }
 
@@ -1272,5 +1044,5 @@ function switchToCostCenter(costCenterId) {
 // Hàm làm mới dữ liệu toàn hệ thống
 async function refreshGlobalData() {
   await loadAllCostCentersData();
-  showNotification("Đã cập nhật dữ liệu toàn hệ thống!", "success");
+  alert("Đã cập nhật dữ liệu toàn hệ thống!");
 }
