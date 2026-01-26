@@ -277,40 +277,6 @@
   margin-bottom: 5px;
 }
 
-/* Fund available specific styling */
-.finance-bank-page .fund-summary {
-  background: #d1ecf1;
-  padding: 15px;
-  border-radius: 4px;
-  margin: 15px 0;
-  border-left: 4px solid #17a2b8;
-}
-
-.finance-bank-page .fund-summary h4 {
-  color: #0c5460;
-  margin-bottom: 10px;
-}
-
-.finance-bank-page .fund-available-value {
-  font-size: 20px;
-  font-weight: bold;
-  color: #155724;
-}
-
-.finance-bank-page .global-summary .fund-available-value {
-  color: #004085;
-}
-
-.finance-bank-page .fund-limit-highlight {
-  color: #0066cc;
-  font-weight: bold;
-}
-
-.finance-bank-page .fund-available-highlight {
-  color: #28a745;
-  font-weight: bold;
-}
-
 .finance-bank-page .add-row {
   background-color: #f8f9fa;
   border: 2px dashed #dee2e6;
@@ -600,10 +566,6 @@
   .finance-bank-page .bulk-actions {
     flex-direction: column;
   }
-
-  .finance-bank-page .fund-available-value {
-    font-size: 18px;
-  }
 }
 
 /* Dark mode support */
@@ -689,27 +651,6 @@
 
   .finance-bank-page .summary-item {
     color: #e9ecef;
-  }
-
-  .finance-bank-page .fund-summary {
-    background: #0c5460;
-    color: #e9ecef;
-  }
-
-  .finance-bank-page .fund-summary h4 {
-    color: #d1ecf1;
-  }
-
-  .finance-bank-page .fund-available-value {
-    color: #d4edda;
-  }
-
-  .finance-bank-page .fund-limit-highlight {
-    color: #85c5e5;
-  }
-
-  .finance-bank-page .fund-available-highlight {
-    color: #8fd19e;
   }
 
   .finance-bank-page .modal-content {
