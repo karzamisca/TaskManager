@@ -58,6 +58,18 @@ const bankSchema = new mongoose.Schema({
   },
 });
 
+// Define the schema for daily entries (same structure as bank)
+const dailySchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  income: { type: Number, default: 0 },
+  expense: { type: Number, default: 0 },
+  date: {
+    type: String,
+    required: true,
+    match: [/^\d{2}\/\d{2}\/\d{4}$/, "Date must be in DD/MM/YYYY format"],
+  },
+});
+
 // Define the merged cost center schema
 const costCenterSchema = new mongoose.Schema({
   name: {
@@ -76,7 +88,8 @@ const costCenterSchema = new mongoose.Schema({
   },
   years: [yearSchema],
   construction: [constructionSchema],
-  bank: [bankSchema], // New field for bank entries
+  bank: [bankSchema],
+  daily: [dailySchema],
 });
 
 // Pre-save hooks to calculate totals
@@ -93,6 +106,12 @@ constructionSchema.pre("save", function (next) {
 
 bankSchema.pre("save", function (next) {
   // Calculate net for bank entries
+  this.net = this.income - this.expense;
+  next();
+});
+
+dailySchema.pre("save", function (next) {
+  // Calculate net for daily entries
   this.net = this.income - this.expense;
   next();
 });

@@ -17,8 +17,9 @@ const userPermissionRoute = require("./routes/userPermissionRoute");
 const messageRoute = require("./routes/messageRoute");
 const reportRoute = require("./routes/reportRoute");
 const financeGasRoute = require("./routes/financeGasRoute");
-const financeCostCenterConstructionRoute = require("./routes/financeCostCenterConstructionRoute");
 const financeCostCenterBankRoute = require("./routes/financeCostCenterBankRoute");
+const financeCostCenterConstructionRoute = require("./routes/financeCostCenterConstructionRoute");
+const financeCostCenterDailyRoute = require("./routes/financeCostCenterDailyRoute");
 const financeSummaryRoute = require("./routes/financeSummaryRoute");
 const fileApprovalRoute = require("./routes/fileApprovalRoute");
 const reportFinanceCostCenterRoute = require("./routes/reportFinanceCostCenterRoute");
@@ -84,8 +85,9 @@ app.use("/", authMiddleware, userPermissionRoute);
 app.use("/", authMiddleware, reportRoute);
 app.use("/", authMiddleware, sftpRoutes);
 app.use("/", authMiddleware, financeGasRoute);
-app.use("/", authMiddleware, financeCostCenterConstructionRoute);
 app.use("/", authMiddleware, financeCostCenterBankRoute);
+app.use("/", authMiddleware, financeCostCenterConstructionRoute);
+app.use("/", authMiddleware, financeCostCenterDailyRoute);
 app.use("/", authMiddleware, financeSummaryRoute);
 app.use("/", authMiddleware, fileApprovalRoute);
 app.use("/", authMiddleware, reportFinanceCostCenterRoute);
@@ -146,12 +148,12 @@ cron.schedule("0 */8 * * *", async () => {
 
       // Facebook/Chatfuel notifications
       documentController.sendPendingApprovalChatfuelMessages(
-        allPendingDocuments
+        allPendingDocuments,
       ),
     ]);
 
     console.log(
-      `Sent notifications for ${allPendingDocuments.length} pending documents`
+      `Sent notifications for ${allPendingDocuments.length} pending documents`,
     );
   } catch (error) {
     console.error("Error in pending approval notification scheduler:", error);
@@ -168,7 +170,8 @@ cron.schedule("* * * * *", async () => {
       // Check if either HoangLong or PhongTran has approved
       return doc.approvedBy.some(
         (approval) =>
-          approval.username === "HoangLong" || approval.username === "PhongTran"
+          approval.username === "HoangLong" ||
+          approval.username === "PhongTran",
       );
     };
 
@@ -179,7 +182,8 @@ cron.schedule("* * * * *", async () => {
       // Check if either HoangLong or PhongTran has approved this stage
       return stage.approvedBy.some(
         (approval) =>
-          approval.username === "HoangLong" || approval.username === "PhongTran"
+          approval.username === "HoangLong" ||
+          approval.username === "PhongTran",
       );
     };
 
@@ -190,7 +194,8 @@ cron.schedule("* * * * *", async () => {
       // Return the first approval from either HoangLong or PhongTran
       return doc.approvedBy.find(
         (approval) =>
-          approval.username === "HoangLong" || approval.username === "PhongTran"
+          approval.username === "HoangLong" ||
+          approval.username === "PhongTran",
       );
     };
 
@@ -201,7 +206,8 @@ cron.schedule("* * * * *", async () => {
       // Return the first approval from either HoangLong or PhongTran
       return stage.approvedBy.find(
         (approval) =>
-          approval.username === "HoangLong" || approval.username === "PhongTran"
+          approval.username === "HoangLong" ||
+          approval.username === "PhongTran",
       );
     };
 
@@ -219,7 +225,7 @@ cron.schedule("* * * * *", async () => {
         day,
         hours,
         minutes,
-        seconds
+        seconds,
       );
 
       // If approval time is at or after 12:30 PM, move to next day
@@ -312,7 +318,7 @@ cron.schedule("* * * * *", async () => {
 
     // Filter to only include documents where either deciding approver has approved (for documents without stages)
     const documentsWithDecidingApproval = allDocumentsWithoutStages.filter(
-      hasDecidingApproverApproved
+      hasDecidingApproverApproved,
     );
 
     let documentsAssigned = 0;
@@ -351,7 +357,7 @@ cron.schedule("* * * * *", async () => {
 
       // Process each approver-date group
       for (const [key, groupInfo] of Object.entries(
-        documentsByApproverAndDate
+        documentsByApproverAndDate,
       )) {
         const { approver, date, documents } = groupInfo;
 
@@ -421,7 +427,7 @@ cron.schedule("* * * * *", async () => {
 
                 // Get the work day date (considering 12:30 PM cutoff)
                 const workDayDate = getWorkDayDate(
-                  decidingApprovalInfo.approvalDate
+                  decidingApprovalInfo.approvalDate,
                 );
 
                 // Create a key combining approver and date
@@ -531,7 +537,7 @@ cron.schedule("*/5 * * * *", async () => {
         if (proposal.approvedBy && proposal.approvedBy.length > 0) {
           // Sort by approval date (assuming dates are in a format that sorts correctly)
           const sortedApprovals = [...proposal.approvedBy].sort(
-            (a, b) => new Date(b.approvalDate) - new Date(a.approvalDate)
+            (a, b) => new Date(b.approvalDate) - new Date(a.approvalDate),
           );
           finalApprovalDate = sortedApprovals[0].approvalDate;
         }
@@ -547,7 +553,7 @@ cron.schedule("*/5 * * * *", async () => {
       } catch (error) {
         console.error(
           `Error processing proposal ${proposal.name || "unknown"}:`,
-          error.message
+          error.message,
         );
       }
     }
@@ -597,7 +603,7 @@ cron.schedule("*/5 * * * *", async () => {
       }
     } else {
       console.log(
-        "SFTP Cron: SFTP manager not available, attempting initialization..."
+        "SFTP Cron: SFTP manager not available, attempting initialization...",
       );
       await initializeSFTP();
       console.log("SFTP Cron: SFTP initialized successfully");
@@ -605,7 +611,7 @@ cron.schedule("*/5 * * * *", async () => {
   } catch (error) {
     console.error(
       "SFTP Cron: Failed to refresh SFTP connection:",
-      error.message
+      error.message,
     );
 
     // Attempt to reinitialize if connection refresh fails
@@ -616,7 +622,7 @@ cron.schedule("*/5 * * * *", async () => {
     } catch (reinitError) {
       console.error(
         "SFTP Cron: Failed to reinitialize SFTP:",
-        reinitError.message
+        reinitError.message,
       );
     }
   }
@@ -634,7 +640,7 @@ const connectionMonitor = {
       try {
         if (!sftpManager.isConnected()) {
           console.log(
-            "Connection monitor: SFTP connection lost, attempting to reconnect..."
+            "Connection monitor: SFTP connection lost, attempting to reconnect...",
           );
           await sftpManager.connect(sftpConfig.connection);
         }
