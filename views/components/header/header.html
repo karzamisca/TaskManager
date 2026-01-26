@@ -150,21 +150,21 @@
           <div class="nav-actions">
             <button
               class="btn btn-primary btn-sm"
-              onclick="location.href='/documentSummaryUnapproved'"
+              onclick="location.href = '/documentSummaryUnapproved'"
             >
               <i class="bi-exclamation-circle"></i> Phiếu chưa duyệt
             </button>
 
             <button
               class="btn btn-primary btn-sm"
-              onclick="location.href='/documentSubmission'"
+              onclick="location.href = '/documentSubmission'"
             >
               <i class="bi bi-plus-circle"></i> Tạo phiếu mới
             </button>
 
             <button
               class="btn btn-primary btn-sm"
-              onclick="location.href='/itemOrder'"
+              onclick="location.href = '/itemOrder'"
             >
               <i class="bi bi-plus-circle"></i> Đơn hàng
             </button>
@@ -348,7 +348,7 @@
               <ul class="dropdown-menu">
                 <li>
                   <a class="dropdown-item" href="/userSalaryCalculation"
-                    ><i class="bi bi-person-gear"></i> Thông tin người dùng</a
+                    ><i class="bi bi-person-gear"></i> Bảng lương</a
                   >
                 </li>
                 <li>
@@ -401,11 +401,11 @@
   // Enable Bootstrap dark mode based on system preference
   function setBootstrapTheme() {
     const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)"
+      "(prefers-color-scheme: dark)",
     ).matches;
     document.documentElement.setAttribute(
       "data-bs-theme",
-      prefersDark ? "dark" : "light"
+      prefersDark ? "dark" : "light",
     );
   }
 

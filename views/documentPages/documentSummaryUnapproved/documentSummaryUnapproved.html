@@ -1,5 +1,5 @@
 <!-- views/documentPages/documentSummaryUnapproved/documentSummaryUnapproved.html -->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
   <head>
     <meta charset="UTF-8" />
@@ -37,14 +37,14 @@
               <div class="nav-actions">
                 <button
                   class="btn btn-primary btn-sm"
-                  onclick="location.href='/documentSubmission'"
+                  onclick="location.href = '/documentSubmission'"
                 >
                   <i class="bi bi-plus-circle"></i> Tạo phiếu mới
                 </button>
 
                 <button
                   class="btn btn-primary btn-sm"
-                  onclick="location.href='/itemOrder'"
+                  onclick="location.href = '/itemOrder'"
                 >
                   <i class="bi bi-plus-circle"></i> Đơn hàng
                 </button>
@@ -237,8 +237,7 @@
                   <ul class="dropdown-menu">
                     <li>
                       <a class="dropdown-item" href="/userSalaryCalculation"
-                        ><i class="bi bi-person-gear"></i> Thông tin người
-                        dùng</a
+                        ><i class="bi bi-person-gear"></i> Bảng lương</a
                       >
                     </li>
                     <li>
