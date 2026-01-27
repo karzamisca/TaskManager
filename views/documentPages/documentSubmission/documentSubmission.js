@@ -3,6 +3,8 @@
 // Global variable to store Choice.js instances
 let choiceInstances = [];
 let isSubmitting = false;
+let productEntries = [];
+let grandTotalCost = 0;
 
 // Initialize Choice.js for product dropdowns
 function initializeProductDropdowns() {
@@ -49,6 +51,18 @@ function initializeProductDropdowns() {
           noChoices: "has-no-choices",
         },
       });
+
+      // Add event listener for product name change
+      choiceInstance.passedElement.element.addEventListener(
+        "change",
+        function () {
+          const productEntry = this.closest(".product-entry");
+          if (productEntry) {
+            const index = parseInt(productEntry.id.split("-")[2]);
+            updateProductEntryCost(index);
+          }
+        },
+      );
 
       // Mark as initialized
       select.setAttribute("data-choice-initialized", "true");
@@ -110,50 +124,276 @@ async function populateProductDropdowns() {
   }
 }
 
-// Enhanced addProductEntry function with Choice.js support
+// Function to calculate cost for a single product entry
+function calculateProductCost(index) {
+  const productEntry = document.getElementById(`product-entry-${index}`);
+  if (!productEntry) return 0;
+
+  const costPerUnitInput = productEntry.querySelector(
+    `input[name="products[${index}][costPerUnit]"]`,
+  );
+  const amountInput = productEntry.querySelector(
+    `input[name="products[${index}][amount]"]`,
+  );
+  const vatInput = productEntry.querySelector(
+    `input[name="products[${index}][vat]"]`,
+  );
+  const productNameSelect = productEntry.querySelector(
+    `select[name="products[${index}][productName]"]`,
+  );
+
+  if (!costPerUnitInput || !amountInput || !vatInput || !productNameSelect) {
+    return 0;
+  }
+
+  const costPerUnit = parseFloat(costPerUnitInput.value) || 0;
+  const amount = parseFloat(amountInput.value) || 0;
+  const vat = parseFloat(vatInput.value) || 0;
+  const productName = productNameSelect.value || `Sản phẩm ${index + 1}`;
+
+  // Calculate costs
+  const subtotal = costPerUnit * amount;
+  const vatAmount = subtotal * (vat / 100);
+  const totalCost = subtotal + vatAmount;
+
+  // Update product entry cost display
+  const costDisplayId = `product-cost-${index}`;
+  let costDisplay = document.getElementById(costDisplayId);
+
+  if (!costDisplay) {
+    costDisplay = document.createElement("div");
+    costDisplay.id = costDisplayId;
+    costDisplay.className = "product-entry-cost";
+
+    // Find where to insert it - after the note field
+    const noteInput = productEntry.querySelector(
+      `input[name="products[${index}][note]"]`,
+    );
+    if (noteInput && noteInput.parentNode) {
+      noteInput.parentNode.insertBefore(costDisplay, noteInput.nextSibling);
+    }
+  }
+
+  costDisplay.textContent = `Tổng chi phí: ${totalCost.toLocaleString("vi-VN")}₫ (${subtotal.toLocaleString("vi-VN")}₫ + ${vatAmount.toLocaleString("vi-VN")}₫ VAT)`;
+
+  // Update product entries array
+  productEntries[index] = {
+    productName,
+    costPerUnit,
+    amount,
+    vat,
+    subtotal,
+    vatAmount,
+    totalCost,
+  };
+
+  // Update grand total
+  updateGrandTotal();
+
+  return totalCost;
+}
+
+// Function to update product entry when product name changes
+function updateProductEntryCost(index) {
+  calculateProductCost(index);
+}
+
+// Function to update grand total display with summary at top and bottom
+function updateGrandTotal() {
+  grandTotalCost = productEntries.reduce(
+    (total, product) => total + (product?.totalCost || 0),
+    0,
+  );
+
+  // Find the product-entries container
+  const productEntriesContainer = document.getElementById("product-entries");
+  if (!productEntriesContainer) return;
+
+  // Remove existing summary displays
+  const existingTopSummary = document.getElementById("cost-summary-top");
+  const existingBottomSummary = document.getElementById("cost-summary-bottom");
+  if (existingTopSummary) existingTopSummary.remove();
+  if (existingBottomSummary) existingBottomSummary.remove();
+
+  // Only create summaries if there are products
+  if (productEntries.length > 0 && productEntries.some((p) => p)) {
+    // Create top summary
+    const topSummaryDiv = document.createElement("div");
+    topSummaryDiv.id = "cost-summary-top";
+    topSummaryDiv.className = "cost-summary cost-summary-top";
+
+    // Create bottom summary
+    const bottomSummaryDiv = document.createElement("div");
+    bottomSummaryDiv.id = "cost-summary-bottom";
+    bottomSummaryDiv.className = "cost-summary cost-summary-bottom";
+
+    // Build summary content
+    const buildSummaryContent = () => {
+      let summaryHTML =
+        '<h4><i class="fas fa-calculator"></i> Tổng hợp chi phí</h4>';
+
+      // Add individual item costs
+      productEntries.forEach((product, index) => {
+        if (product) {
+          const displayName = product.productName || `Sản phẩm ${index + 1}`;
+          summaryHTML += `
+            <div class="item-cost ${product.totalCost > 0 ? "summary-highlight" : ""}">
+              <span class="cost-label product-name-summary" title="${displayName}">
+                ${displayName}
+              </span>
+              <span class="cost-value product-cost-summary">
+                ${product.totalCost.toLocaleString("vi-VN")}₫
+              </span>
+            </div>
+          `;
+        }
+      });
+
+      // Add grand total
+      summaryHTML += `
+        <div class="total-cost">
+          <span class="cost-label">TỔNG CỘNG:</span>
+          <span class="cost-value">${grandTotalCost.toLocaleString("vi-VN")}₫</span>
+        </div>
+      `;
+
+      return summaryHTML;
+    };
+
+    topSummaryDiv.innerHTML = buildSummaryContent();
+    bottomSummaryDiv.innerHTML = buildSummaryContent();
+
+    // Insert top summary at the beginning of product entries
+    productEntriesContainer.insertBefore(
+      topSummaryDiv,
+      productEntriesContainer.firstChild,
+    );
+
+    // Insert bottom summary at the end of product entries
+    productEntriesContainer.appendChild(bottomSummaryDiv);
+  }
+}
+
+// Function to attach event listeners to product inputs
+function attachProductCostListeners(index) {
+  const productEntry = document.getElementById(`product-entry-${index}`);
+  if (!productEntry) return;
+
+  const costInputs = [
+    productEntry.querySelector(`input[name="products[${index}][costPerUnit]"]`),
+    productEntry.querySelector(`input[name="products[${index}][amount]"]`),
+    productEntry.querySelector(`input[name="products[${index}][vat]"]`),
+  ];
+
+  costInputs.forEach((input) => {
+    if (input) {
+      // Remove existing listener to avoid duplicates
+      const newInput = input.cloneNode(true);
+      input.parentNode.replaceChild(newInput, input);
+
+      // Add event listener
+      newInput.addEventListener("input", () => calculateProductCost(index));
+      newInput.addEventListener("change", () => calculateProductCost(index));
+
+      // Also listen for focusout/blur
+      newInput.addEventListener("blur", () => {
+        // Format the number with 2 decimal places
+        if (newInput.value && !isNaN(newInput.value)) {
+          newInput.value = parseFloat(newInput.value).toFixed(2);
+        }
+        calculateProductCost(index);
+      });
+    }
+  });
+
+  // Also attach listener to product name dropdown
+  const productNameSelect = productEntry.querySelector(
+    `select[name="products[${index}][productName]"]`,
+  );
+  if (productNameSelect) {
+    productNameSelect.addEventListener("change", () =>
+      calculateProductCost(index),
+    );
+  }
+}
+
+// Enhanced addProductEntry function with cost calculation
 function addProductEntry() {
-  const productEntries = document.getElementById("product-entries");
+  const productEntriesContainer = document.getElementById("product-entries");
   const selectedTitle = document.getElementById("title-dropdown").value;
 
   // Count existing product entries
   const existingProductEntries =
-    productEntries.querySelectorAll(".product-dropdown");
+    productEntriesContainer.querySelectorAll(".product-entry");
   const productCount = existingProductEntries.length;
 
   let newEntry;
   if (selectedTitle === "Purchasing Document") {
     newEntry = `
-      <label>Tên sản phẩm</label>
-      <select name="products[${productCount}][productName]" class="product-dropdown" required>
-        <option value="">Chọn sản phẩm</option>
-      </select>
-      <label>Đơn giá</label><input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required />
-      <label>Số lượng</label><input type="number" step="0.01" name="products[${productCount}][amount]" required />
-      <label>Thuế VAT(%)</label><input type="number" step="0.01" name="products[${productCount}][vat]" required />
-      <label>Trạm sản phẩm</label>
-      <select name="products[${productCount}][costCenter]" class="product-cost-center" required>
-        <option value="">Chọn trạm</option>
-      </select>
-      <label>Ghi chú</label><input type="text" name="products[${productCount}][note]" />
+      <div class="product-entry" id="product-entry-${productCount}">
+        <label><i class="fas fa-box"></i> Tên sản phẩm</label>
+        <select name="products[${productCount}][productName]" class="product-dropdown" required>
+          <option value="">Chọn sản phẩm</option>
+        </select>
+        <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
+        <input type="number" step="0.01" min="0" name="products[${productCount}][costPerUnit]" required 
+               placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
+        <label><i class="fas fa-hashtag"></i> Số lượng</label>
+        <input type="number" step="0.01" min="0" name="products[${productCount}][amount]" required 
+               placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
+        <label><i class="fas fa-percentage"></i> Thuế VAT (%)</label>
+        <input type="number" step="0.01" min="0" max="100" name="products[${productCount}][vat]" required 
+               placeholder="10" value="10" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='10'" />
+        <label><i class="fas fa-building"></i> Trạm sản phẩm</label>
+        <select name="products[${productCount}][costCenter]" class="product-cost-center" required>
+          <option value="">Chọn trạm</option>
+        </select>
+        <label><i class="fas fa-sticky-note"></i> Ghi chú</label>
+        <input type="text" name="products[${productCount}][note]" />
+      </div>
     `;
   } else {
     newEntry = `
-      <label>Tên sản phẩm</label>
-      <select name="products[${productCount}][productName]" class="product-dropdown" required>
-        <option value="">Chọn sản phẩm</option>
-      </select>
-      <label>Đơn giá</label><input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required />
-      <label>Số lượng</label><input type="number" step="0.01" name="products[${productCount}][amount]" required />
-      <label>Thuế (%)</label><input type="number" step="0.01" name="products[${productCount}][vat]" required />
-      <label>Ghi chú</label><input type="text" name="products[${productCount}][note]" />
+      <div class="product-entry" id="product-entry-${productCount}">
+        <label><i class="fas fa-box"></i> Tên sản phẩm</label>
+        <select name="products[${productCount}][productName]" class="product-dropdown" required>
+          <option value="">Chọn sản phẩm</option>
+        </select>
+        <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
+        <input type="number" step="0.01" min="0" name="products[${productCount}][costPerUnit]" required 
+               placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
+        <label><i class="fas fa-hashtag"></i> Số lượng</label>
+        <input type="number" step="0.01" min="0" name="products[${productCount}][amount]" required 
+               placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
+        <label><i class="fas fa-percentage"></i> Thuế (%)</label>
+        <input type="number" step="0.01" min="0" max="100" name="products[${productCount}][vat]" required 
+               placeholder="10" value="10" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='10'" />
+        <label><i class="fas fa-sticky-note"></i> Ghi chú</label>
+        <input type="text" name="products[${productCount}][note]" />
+      </div>
     `;
   }
 
-  productEntries.insertAdjacentHTML("beforeend", newEntry);
+  // Insert new entry before the bottom summary if it exists
+  const bottomSummary = document.getElementById("cost-summary-bottom");
+  if (bottomSummary) {
+    productEntriesContainer.insertBefore(
+      document.createRange().createContextualFragment(newEntry),
+      bottomSummary,
+    );
+  } else {
+    productEntriesContainer.insertAdjacentHTML("beforeend", newEntry);
+  }
 
+  // Initialize the new product entry
+  initializeNewProductEntry(productCount);
+}
+
+// Function to initialize a new product entry
+function initializeNewProductEntry(index) {
   // Get the newly added dropdown
-  const newDropdowns = productEntries.querySelectorAll(
-    ".product-dropdown:not([data-choice-initialized])",
+  const newDropdowns = document.querySelectorAll(
+    `#product-entry-${index} .product-dropdown:not([data-choice-initialized])`,
   );
 
   // Initialize only the new dropdown and populate it
@@ -173,6 +413,14 @@ function addProductEntry() {
       position: "auto",
     });
 
+    // Add event listener for product name change
+    choiceInstance.passedElement.element.addEventListener(
+      "change",
+      function () {
+        updateProductEntryCost(index);
+      },
+    );
+
     newDropdown.setAttribute("data-choice-initialized", "true");
     choiceInstances.push(choiceInstance);
 
@@ -181,9 +429,16 @@ function addProductEntry() {
   });
 
   // Only populate cost centers for purchasing documents
+  const selectedTitle = document.getElementById("title-dropdown").value;
   if (selectedTitle === "Purchasing Document") {
     populateProductCostCenters();
   }
+
+  // Attach cost calculation listeners
+  setTimeout(() => {
+    attachProductCostListeners(index);
+    calculateProductCost(index);
+  }, 100);
 }
 
 // Function to populate a single product dropdown without affecting others
@@ -250,21 +505,23 @@ function handleProposalDocument() {
   const addContentButton = document.getElementById("add-content-btn");
 
   contentFields.innerHTML = `
-      <label for="task">Công việc</label>
+      <label for="task"><i class="fas fa-tasks"></i> Công việc</label>
       <input type="text" name="task" required />
-      <label for="costCenter">Trạm</label>
+      <label for="costCenter"><i class="fas fa-building"></i> Trạm</label>
       <select name="costCenter" id="costCenter" required>
         <option value="">Chọn một trạm</option>
       </select>
-      <label for="dateOfError">Ngày xảy ra lỗi</label>
+      <label for="dateOfError"><i class="fas fa-calendar-day"></i> Ngày xảy ra lỗi</label>
       <input type="text" name="dateOfError" id="dateOfError" required />
-      <label for="detailsDescription">Mô tả chi tiết</label>
+      <label for="detailsDescription"><i class="fas fa-align-left"></i> Mô tả chi tiết</label>
       <textarea name="detailsDescription" rows="3" required></textarea>
-      <label for="direction">Hướng xử lý</label>
+      <label for="direction"><i class="fas fa-directions"></i> Hướng xử lý</label>
       <input type="text" name="direction" required />
+      <label for="groupName"><i class="fas fa-users"></i> Nhóm</label>
       <select name="groupName" id="groupName">
         <option value="">Chọn nhóm</option>
       </select>
+      <label for="projectName"><i class="fas fa-project-diagram"></i> Dự án</label>
       <select name="projectName" id="projectName">
         <option value="">Chọn dự án</option>
       </select>          
@@ -290,31 +547,48 @@ function handlePurchasingDocument() {
     "approved-proposal-section",
   );
 
+  // Reset product entries
+  productEntries = [];
+  grandTotalCost = 0;
+
   contentFields.innerHTML = `
-      <label for="name">Tên</label>
+      <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
       <input type="text" name="name" required />
-      <label for="costCenter">Trạm</label>
+      <label for="costCenter"><i class="fas fa-building"></i> Trạm</label>
       <select name="costCenter" id="costCenter" required>
         <option value="">Chọn một trạm</option>
       </select>
       <div id="product-entries">
-        <label>Tên sản phẩm</label>
-        <select name="products[0][productName]" class="product-dropdown" required>
-          <option value="">Chọn sản phẩm</option>
-        </select> 
-        <label>Đơn giá</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
-        <label>Số lượng</label><input type="number" step="0.01" name="products[0][amount]" required />
-        <label>Thuế (%)</label><input type="number" step="0.01" name="products[0][vat]" required />
-        <label>Trạm sản phẩm</label>
-        <select name="products[0][costCenter]" class="product-cost-center" required>
-          <option value="">Chọn trạm</option>
-        </select>
-        <label>Ghi chú</label><input type="text" name="products[0][note]" />
+        <div class="product-entry" id="product-entry-0">
+          <label><i class="fas fa-box"></i> Tên sản phẩm</label>
+          <select name="products[0][productName]" class="product-dropdown" required>
+            <option value="">Chọn sản phẩm</option>
+          </select>
+          <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
+          <input type="number" step="0.01" min="0" name="products[0][costPerUnit]" required 
+                 placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
+          <label><i class="fas fa-hashtag"></i> Số lượng</label>
+          <input type="number" step="0.01" min="0" name="products[0][amount]" required 
+                 placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
+          <label><i class="fas fa-percentage"></i> Thuế VAT (%)</label>
+          <input type="number" step="0.01" min="0" max="100" name="products[0][vat]" required 
+                 placeholder="10" value="10" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='10'" />
+          <label><i class="fas fa-building"></i> Trạm sản phẩm</label>
+          <select name="products[0][costCenter]" class="product-cost-center" required>
+            <option value="">Chọn trạm</option>
+          </select>
+          <label><i class="fas fa-sticky-note"></i> Ghi chú</label>
+          <input type="text" name="products[0][note]" />
+        </div>
       </div>
-      <button type="button" onclick="addProductEntry()">Thêm sản phẩm</button>
+      <button type="button" onclick="addProductEntry()" class="secondary-button">
+        <i class="fas fa-plus"></i> Thêm sản phẩm
+      </button>
+      <label for="groupName"><i class="fas fa-users"></i> Nhóm</label>
       <select name="groupName" id="groupName">
         <option value="">Chọn nhóm</option>
       </select>
+      <label for="projectName"><i class="fas fa-project-diagram"></i> Dự án</label>
       <select name="projectName" id="projectName">
         <option value="">Chọn dự án</option>
       </select>     
@@ -324,6 +598,9 @@ function handlePurchasingDocument() {
   setTimeout(() => {
     initializeProductDropdowns();
     populateProductDropdowns();
+    populateProductCostCenters();
+    attachProductCostListeners(0);
+    calculateProductCost(0);
   }, 100);
 
   populateGroupDropdown();
@@ -335,9 +612,6 @@ function handlePurchasingDocument() {
 
   // Fetch current user and populate cost centers
   fetchCostCenters();
-
-  // Populate product cost centers
-  populateProductCostCenters();
 }
 
 // Function to handle Payment Document selection
@@ -351,37 +625,39 @@ function handlePaymentDocument() {
   fetchPurchasingDocumentsForPayment(); // Changed to specialized function
 
   contentFields.innerHTML = `
-      <label for="name">Tên</label>
+      <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
       <input type="text" name="name" required />
-      <label for="content">Nội dung</label>
+      <label for="content"><i class="fas fa-align-left"></i> Nội dung</label>
       <input type="text" name="content" required />
-      <label for="costCenter">Trạm</label>
+      <label for="costCenter"><i class="fas fa-building"></i> Trạm</label>
       <select name="costCenter" id="costCenter">
         <option value="">Chọn một trạm</option>
       </select>
-      <label for="paymentMethod">Hình thức thanh toán</label>
+      <label for="paymentMethod"><i class="fas fa-credit-card"></i> Hình thức thanh toán</label>
       <select name="paymentMethod">
         <option value="Tiền mặt">Tiền mặt</option>
         <option value="Chuyển khoản nội bộ">Chuyển khoản nội bộ</option>
         <option value="Hợp đồng">Hợp đồng</option>
       </select>
-      <label for="totalPayment">Tổng thanh toán:</label>
+      <label for="totalPayment"><i class="fas fa-money-bill-wave"></i> Tổng thanh toán:</label>
       <input type="number" step="0.01" name="totalPayment" required />
-      <label for="paymentDeadline">Thời hạn trả</label>
+      <label for="paymentDeadline"><i class="fas fa-calendar-times"></i> Thời hạn trả</label>
       <input type="text" name="paymentDeadline" id="paymentDeadline"/>
-      <label for="priority">Mức độ ưu tiên</label>
+      <label for="priority"><i class="fas fa-exclamation-triangle"></i> Mức độ ưu tiên</label>
       <select name="priority" id="priority" required>
         <option value="Thấp" selected>Thấp</option>
         <option value="Trung bình">Trung bình</option>
         <option value="Cao">Cao</option>
       </select>
+      <label for="groupName"><i class="fas fa-users"></i> Nhóm</label>
       <select name="groupName" id="groupName">
         <option value="">Chọn nhóm</option>
       </select>
+      <label for="projectName"><i class="fas fa-project-diagram"></i> Dự án</label>
       <select name="projectName" id="projectName">
         <option value="">Chọn dự án</option>
       </select>       
-      <label for="notes">Ghi chú</label>
+      <label for="notes"><i class="fas fa-sticky-note"></i> Ghi chú</label>
         <textarea name="notes" rows="3"></textarea>            
     `;
   populateGroupDropdown();
@@ -407,27 +683,29 @@ function handleAdvancePaymentDocument() {
   fetchPurchasingDocumentsForAdvancePayment(); // Changed to specialized function
 
   contentFields.innerHTML = `
-      <label for="name">Tên</label>
+      <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
       <input type="text" name="name" required />
-      <label for="content">Nội dung</label>
+      <label for="content"><i class="fas fa-align-left"></i> Nội dung</label>
       <input type="text" name="content" required />
-      <label for="costCenter">Trạm</label>
+      <label for="costCenter"><i class="fas fa-building"></i> Trạm</label>
       <select name="costCenter" id="costCenter">
         <option value="">Chọn một trạm</option>
       </select>
-      <label for="paymentMethod">Hình thức thanh toán</label>
+      <label for="paymentMethod"><i class="fas fa-credit-card"></i> Hình thức thanh toán</label>
       <select name="paymentMethod">
         <option value="Tiền mặt">Tiền mặt</option>
         <option value="Chuyển khoản nội bộ">Chuyển khoản nội bộ</option>
         <option value="Hợp đồng">Hợp đồng</option>
       </select>
-      <label for="advancePayment">Tạm ứng:</label>
+      <label for="advancePayment"><i class="fas fa-money-bill-wave"></i> Tạm ứng:</label>
       <input type="number" step="0.01" name="advancePayment"/>
-      <label for="paymentDeadline">Thời hạn trả</label>
+      <label for="paymentDeadline"><i class="fas fa-calendar-times"></i> Thời hạn trả</label>
       <input type="text" name="paymentDeadline" id="paymentDeadline"/>
+      <label for="groupName"><i class="fas fa-users"></i> Nhóm</label>
       <select name="groupName" id="groupName">
         <option value="">Chọn nhóm</option>
       </select>
+      <label for="projectName"><i class="fas fa-project-diagram"></i> Dự án</label>
       <select name="projectName" id="projectName">
         <option value="">Chọn dự án</option>
       </select>             
@@ -455,27 +733,29 @@ function handleAdvancePaymentReclaimDocument() {
   fetchPurchasingDocumentsForAdvancePaymentReclaim(); // Changed to specialized function
 
   contentFields.innerHTML = `
-      <label for="name">Tên</label>
+      <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
       <input type="text" name="name" required />
-      <label for="content">Nội dung</label>
+      <label for="content"><i class="fas fa-align-left"></i> Nội dung</label>
       <input type="text" name="content" required />
-      <label for="costCenter">Trạm</label>
+      <label for="costCenter"><i class="fas fa-building"></i> Trạm</label>
       <select name="costCenter" id="costCenter">
         <option value="">Chọn một trạm</option>
       </select>
-      <label for="paymentMethod">Hình thức thanh toán</label>
+      <label for="paymentMethod"><i class="fas fa-credit-card"></i> Hình thức thanh toán</label>
       <select name="paymentMethod">
         <option value="Tiền mặt">Tiền mặt</option>
         <option value="Chuyển khoản nội bộ">Chuyển khoản nội bộ</option>
         <option value="Hợp đồng">Hợp đồng</option>
       </select>
-      <label for="advancePaymentReclaim">Số tiền thu lại:</label>
+      <label for="advancePaymentReclaim"><i class="fas fa-money-bill-wave"></i> Số tiền thu lại:</label>
       <input type="number" step="0.01" name="advancePaymentReclaim"/>
-      <label for="paymentDeadline">Thời hạn trả</label>
+      <label for="paymentDeadline"><i class="fas fa-calendar-times"></i> Thời hạn trả</label>
       <input type="text" name="paymentDeadline" id="paymentDeadline"/>
+      <label for="groupName"><i class="fas fa-users"></i> Nhóm</label>
       <select name="groupName" id="groupName">
         <option value="">Chọn nhóm</option>
       </select>
+      <label for="projectName"><i class="fas fa-project-diagram"></i> Dự án</label>
       <select name="projectName" id="projectName">
         <option value="">Chọn dự án</option>
       </select>             
@@ -499,27 +779,44 @@ function handleDeliveryDocument() {
     "approved-proposal-section",
   );
 
+  // Reset product entries
+  productEntries = [];
+  grandTotalCost = 0;
+
   contentFields.innerHTML = `
-      <label for="name">Tên</label>
+      <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
       <input type="text" name="name" required />
-      <label for="costCenter">Trạm</label>
+      <label for="costCenter"><i class="fas fa-building"></i> Trạm</label>
       <select name="costCenter" id="costCenter" required>
         <option value="">Chọn một trạm</option>
       </select>
       <div id="product-entries">
-        <label>Tên sản phẩm</label>
-        <select name="products[0][productName]" class="product-dropdown" required>
-          <option value="">Chọn sản phẩm</option>
-        </select> 
-        <label>Đơn giá</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
-        <label>Số lượng</label><input type="number" step="0.01" name="products[0][amount]" required />
-        <label>Thuế (%)</label><input type="number" step="0.01" name="products[0][vat]" required />
-        <label>Ghi chú</label><input type="text" name="products[0][note]" />
+        <div class="product-entry" id="product-entry-0">
+          <label><i class="fas fa-box"></i> Tên sản phẩm</label>
+          <select name="products[0][productName]" class="product-dropdown" required>
+            <option value="">Chọn sản phẩm</option>
+          </select>
+          <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
+          <input type="number" step="0.01" min="0" name="products[0][costPerUnit]" required 
+                 placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
+          <label><i class="fas fa-hashtag"></i> Số lượng</label>
+          <input type="number" step="0.01" min="0" name="products[0][amount]" required 
+                 placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
+          <label><i class="fas fa-percentage"></i> Thuế (%)</label>
+          <input type="number" step="0.01" min="0" max="100" name="products[0][vat]" required 
+                 placeholder="10" value="10" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='10'" />
+          <label><i class="fas fa-sticky-note"></i> Ghi chú</label>
+          <input type="text" name="products[0][note]" />
+        </div>
       </div>
-      <button type="button" onclick="addProductEntry()">Thêm sản phẩm</button>
+      <button type="button" onclick="addProductEntry()" class="secondary-button">
+        <i class="fas fa-plus"></i> Thêm sản phẩm
+      </button>
+      <label for="groupName"><i class="fas fa-users"></i> Nhóm</label>
       <select name="groupName" id="groupName">
         <option value="">Chọn nhóm</option>
       </select>
+      <label for="projectName"><i class="fas fa-project-diagram"></i> Dự án</label>
       <select name="projectName" id="projectName">
         <option value="">Chọn dự án</option>
       </select>             
@@ -529,6 +826,8 @@ function handleDeliveryDocument() {
   setTimeout(() => {
     initializeProductDropdowns();
     populateProductDropdowns();
+    attachProductCostListeners(0);
+    calculateProductCost(0);
   }, 100);
 
   populateGroupDropdown();
@@ -549,27 +848,44 @@ function handleReceiptDocument() {
     "approved-proposal-section",
   );
 
+  // Reset product entries
+  productEntries = [];
+  grandTotalCost = 0;
+
   contentFields.innerHTML = `
-      <label for="name">Tên</label>
+      <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
       <input type="text" name="name" required />
-      <label for="costCenter">Trạm</label>
+      <label for="costCenter"><i class="fas fa-building"></i> Trạm</label>
       <select name="costCenter" id="costCenter" required>
         <option value="">Chọn một trạm</option>
       </select>
       <div id="product-entries">
-        <label>Tên sản phẩm</label>
-        <select name="products[0][productName]" class="product-dropdown" required>
-          <option value="">Chọn sản phẩm</option>
-        </select> 
-        <label>Đơn giá</label><input type="number" step="0.01" name="products[0][costPerUnit]" required />
-        <label>Số lượng</label><input type="number" step="0.01" name="products[0][amount]" required />
-        <label>Thuế (%)</label><input type="number" step="0.01" name="products[0][vat]" required />
-        <label>Ghi chú</label><input type="text" name="products[0][note]" />
+        <div class="product-entry" id="product-entry-0">
+          <label><i class="fas fa-box"></i> Tên sản phẩm</label>
+          <select name="products[0][productName]" class="product-dropdown" required>
+            <option value="">Chọn sản phẩm</option>
+          </select>
+          <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
+          <input type="number" step="0.01" min="0" name="products[0][costPerUnit]" required 
+                 placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
+          <label><i class="fas fa-hashtag"></i> Số lượng</label>
+          <input type="number" step="0.01" min="0" name="products[0][amount]" required 
+                 placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
+          <label><i class="fas fa-percentage"></i> Thuế (%)</label>
+          <input type="number" step="0.01" min="0" max="100" name="products[0][vat]" required 
+                 placeholder="10" value="10" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='10'" />
+          <label><i class="fas fa-sticky-note"></i> Ghi chú</label>
+          <input type="text" name="products[0][note]" />
+        </div>
       </div>
-      <button type="button" onclick="addProductEntry()">Thêm sản phẩm</button>
+      <button type="button" onclick="addProductEntry()" class="secondary-button">
+        <i class="fas fa-plus"></i> Thêm sản phẩm
+      </button>
+      <label for="groupName"><i class="fas fa-users"></i> Nhóm</label>
       <select name="groupName" id="groupName">
         <option value="">Chọn nhóm</option>
       </select>
+      <label for="projectName"><i class="fas fa-project-diagram"></i> Dự án</label>
       <select name="projectName" id="projectName">
         <option value="">Chọn dự án</option>
       </select>             
@@ -579,6 +895,8 @@ function handleReceiptDocument() {
   setTimeout(() => {
     initializeProductDropdowns();
     populateProductDropdowns();
+    attachProductCostListeners(0);
+    calculateProductCost(0);
   }, 100);
 
   populateGroupDropdown();
@@ -601,15 +919,17 @@ function handleProjectProposalDocument() {
   );
 
   contentFields.innerHTML = `
-      <label for="name">Tên</label>
+      <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
       <input type="text" name="name" required />
-      <label for="contentName">Tên nội dung</label>
+      <label for="contentName"><i class="fas fa-heading"></i> Tên nội dung</label>
       <input type="text" name="contentName" required />
-      <label for="contentText">Nội dung</label>
+      <label for="contentText"><i class="fas fa-align-left"></i> Nội dung</label>
       <textarea name="contentText" rows="5" required></textarea>
+      <label for="groupName"><i class="fas fa-users"></i> Nhóm</label>
       <select name="groupName" id="groupName">
         <option value="">Chọn nhóm</option>
       </select>
+      <label for="projectName"><i class="fas fa-project-diagram"></i> Dự án</label>
       <select name="projectName" id="projectName">
         <option value="">Chọn dự án</option>
       </select>             
@@ -629,13 +949,15 @@ function handleGenericDocument() {
   );
 
   contentFields.innerHTML = `
-      <label for="contentName">Tên nội dung</label>
+      <label for="contentName"><i class="fas fa-heading"></i> Tên nội dung</label>
       <input type="text" name="contentName" required />
-      <label for="contentText">Nội dung</label>
+      <label for="contentText"><i class="fas fa-align-left"></i> Nội dung</label>
       <textarea name="contentText" rows="5" required></textarea>
+      <label for="groupName"><i class="fas fa-users"></i> Nhóm</label>
       <select name="groupName" id="groupName">
         <option value="">Chọn nhóm</option>
       </select>
+      <label for="projectName"><i class="fas fa-project-diagram"></i> Dự án</label>
       <select name="projectName" id="projectName">
         <option value="">Chọn dự án</option>
       </select>             
@@ -721,6 +1043,10 @@ document
     appendApprovedDocumentsSection.style.display = "none";
     appendPurchasingSection.style.display = "none";
     purchasingDocumentPreview.style.display = "none";
+
+    // Reset product entries and grand total
+    productEntries = [];
+    grandTotalCost = 0;
 
     // Call respective handler based on selected document type
     switch (selectedTitle) {
@@ -1321,6 +1647,41 @@ document
         return;
       }
 
+      // Add grand total to form data if it's a document with products
+      const selectedTitle = document.getElementById("title-dropdown").value;
+      if (
+        [
+          "Purchasing Document",
+          "Delivery Document",
+          "Receipt Document",
+        ].includes(selectedTitle)
+      ) {
+        // Remove any existing grand total hidden field
+        const existingField = document.getElementById("grand-total-hidden");
+        if (existingField) {
+          existingField.remove();
+        }
+
+        // Add new hidden field with current grand total
+        const grandTotalField = document.createElement("input");
+        grandTotalField.type = "hidden";
+        grandTotalField.name = "grandTotalCost";
+        grandTotalField.value = grandTotalCost.toFixed(2);
+        grandTotalField.id = "grand-total-hidden";
+        this.appendChild(grandTotalField);
+
+        // Also add individual product costs as hidden fields
+        productEntries.forEach((product, index) => {
+          if (product) {
+            const productCostField = document.createElement("input");
+            productCostField.type = "hidden";
+            productCostField.name = `products[${index}][totalCost]`;
+            productCostField.value = product.totalCost.toFixed(2);
+            this.appendChild(productCostField);
+          }
+        });
+      }
+
       // All validations passed, set flag
       isSubmitting = true;
 
@@ -1353,13 +1714,13 @@ document
   .addEventListener("click", function () {
     const contentFields = document.getElementById("content-fields");
     const nameLabel = document.createElement("label");
-    nameLabel.innerText = "Tên nội dung";
+    nameLabel.innerHTML = '<i class="fas fa-heading"></i> Tên nội dung';
     const nameInput = document.createElement("input");
     nameInput.type = "text";
     nameInput.name = "contentName";
 
     const textLabel = document.createElement("label");
-    textLabel.innerText = "Nội dung";
+    textLabel.innerHTML = '<i class="fas fa-align-left"></i> Nội dung';
     const textArea = document.createElement("textarea");
     textArea.name = "contentText";
     textArea.rows = 5;
@@ -1382,13 +1743,14 @@ document.getElementById("files").addEventListener("change", function (e) {
   }
 
   const fileListElement = document.getElementById("file-list");
-  fileListElement.innerHTML = "<h4>Tệp sẽ được tải lên:</h4>";
+  fileListElement.innerHTML =
+    "<h4><i class='fas fa-file-upload'></i> Tệp sẽ được tải lên:</h4>";
 
   Array.from(files).forEach((file) => {
     const fileItem = document.createElement("div");
     fileItem.className = "file-item";
     fileItem.innerHTML = `
-      <span class="file-name">${file.name}</span>
+      <span class="file-name"><i class="fas fa-file"></i> ${file.name}</span>
       <span class="file-size">(${(file.size / 1024 / 1024).toFixed(
         2,
       )} MB)</span>
