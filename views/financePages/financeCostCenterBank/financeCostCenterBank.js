@@ -10,6 +10,11 @@ let editingEntryId = null;
 let multipleEntryCounter = 0;
 let currentFundLimitBank = 0;
 
+// Biến cho tổng kết toàn hệ thống
+let allCostCenters = [];
+let allEntries = {}; // Lưu entries của từng cost center: { costCenterId: { name: string, entries: array } }
+let allFundInfo = {}; // Lưu fund info của từng cost center
+
 // Filter state
 let filterState = {
   dateFrom: "",
@@ -20,22 +25,158 @@ let filterState = {
 // Tải trạm khi trang load
 document.addEventListener("DOMContentLoaded", loadCostCenters);
 
-// Tải tất cả trạm cho dropdown
+// Tải tất cả trạm cho dropdown và tổng kết toàn hệ thống
 async function loadCostCenters() {
   try {
     const response = await fetch(`${API_BASE}/cost-centers`);
-    const costCenters = await response.json();
+    allCostCenters = await response.json();
 
     const select = document.getElementById("costCenterSelect");
-    costCenters.forEach((cc) => {
+    select.innerHTML = '<option value="">-- Chọn Trạm --</option>';
+
+    allCostCenters.forEach((cc) => {
       const option = document.createElement("option");
       option.value = cc._id;
       option.textContent = cc.name;
       select.appendChild(option);
     });
+
+    // Tải dữ liệu cho tất cả cost centers
+    await loadAllCostCentersData();
   } catch (error) {
-    alert("Lỗi khi tải trạm: " + error.message);
+    console.error("Lỗi khi tải trạm:", error);
+    alert("Lỗi khi tải danh sách trạm: " + error.message);
   }
+}
+
+// Tải dữ liệu cho tất cả cost centers
+async function loadAllCostCentersData() {
+  try {
+    const loadingPromises = allCostCenters.map(async (costCenter) => {
+      try {
+        // Tải entries
+        const entriesResponse = await fetch(
+          `${API_BASE}/${costCenter._id}/entries`,
+        );
+        const costCenterEntries = await entriesResponse.json();
+
+        // Tải fund info
+        let fundInfo = {
+          fundLimitBank: 0,
+          totalIncome: 0,
+          totalExpense: 0,
+          fundAvailableBank: 0,
+        };
+        try {
+          const fundResponse = await fetch(
+            `${API_BASE}/${costCenter._id}/fund-info`,
+          );
+          fundInfo = await fundResponse.json();
+        } catch (fundError) {
+          console.error(
+            `Lỗi khi tải fund info cho trạm ${costCenter.name}:`,
+            fundError,
+          );
+        }
+
+        allEntries[costCenter._id] = {
+          name: costCenter.name,
+          entries: costCenterEntries,
+        };
+
+        allFundInfo[costCenter._id] = fundInfo;
+      } catch (error) {
+        console.error(
+          `Lỗi khi tải dữ liệu cho trạm ${costCenter.name}:`,
+          error,
+        );
+        allEntries[costCenter._id] = {
+          name: costCenter.name,
+          entries: [],
+        };
+        allFundInfo[costCenter._id] = {
+          fundLimitBank: 0,
+          totalIncome: 0,
+          totalExpense: 0,
+          fundAvailableBank: 0,
+        };
+      }
+    });
+
+    await Promise.all(loadingPromises);
+
+    // Tính toán và hiển thị tổng kết toàn hệ thống
+    calculateGlobalSummary();
+  } catch (error) {
+    console.error("Lỗi khi tải dữ liệu toàn hệ thống:", error);
+  }
+}
+
+// Tính tổng kết toàn hệ thống
+function calculateGlobalSummary() {
+  let globalTotalIncome = 0;
+  let globalTotalExpense = 0;
+  let globalTotalFundLimit = 0;
+  let globalTotalFundAvailable = 0;
+
+  // Duyệt qua tất cả cost centers
+  Object.values(allFundInfo).forEach((fundInfo) => {
+    globalTotalIncome += fundInfo.totalIncome || 0;
+    globalTotalExpense += fundInfo.totalExpense || 0;
+    globalTotalFundLimit += fundInfo.fundLimitBank || 0;
+    globalTotalFundAvailable += fundInfo.fundAvailableBank || 0;
+  });
+
+  const globalTotalProfit = globalTotalIncome - globalTotalExpense;
+
+  // Cập nhật UI
+  document.getElementById("globalTotalIncome").textContent =
+    globalTotalIncome.toLocaleString("vi-VN");
+  document.getElementById("globalTotalExpense").textContent =
+    globalTotalExpense.toLocaleString("vi-VN");
+  document.getElementById("globalTotalProfit").textContent =
+    globalTotalProfit.toLocaleString("vi-VN");
+  document.getElementById("globalTotalFundLimit").textContent =
+    globalTotalFundLimit.toLocaleString("vi-VN");
+  document.getElementById("globalTotalFundAvailable").textContent =
+    globalTotalFundAvailable.toLocaleString("vi-VN");
+}
+
+// Cập nhật dữ liệu toàn hệ thống khi có thay đổi
+async function updateGlobalSummary() {
+  // Làm mới dữ liệu của cost center hiện tại
+  if (currentCostCenterId) {
+    try {
+      // Tải entries
+      const entriesResponse = await fetch(
+        `${API_BASE}/${currentCostCenterId}/entries`,
+      );
+      const updatedEntries = await entriesResponse.json();
+
+      // Tải fund info
+      let updatedFundInfo = {};
+      try {
+        const fundResponse = await fetch(
+          `${API_BASE}/${currentCostCenterId}/fund-info`,
+        );
+        updatedFundInfo = await fundResponse.json();
+      } catch (fundError) {
+        console.error("Lỗi khi tải fund info:", fundError);
+      }
+
+      allEntries[currentCostCenterId] = {
+        name: document.getElementById("costCenterName").textContent,
+        entries: updatedEntries,
+      };
+
+      allFundInfo[currentCostCenterId] = updatedFundInfo;
+    } catch (error) {
+      console.error("Lỗi khi cập nhật dữ liệu:", error);
+    }
+  }
+
+  // Tính toán lại tổng kết
+  calculateGlobalSummary();
 }
 
 // Tải dữ liệu cho trạm được chọn
@@ -65,6 +206,15 @@ async function loadCostCenterData() {
   document.getElementById("filtersSection").classList.remove("hidden");
 
   await loadEntries();
+
+  // Cập nhật dữ liệu trong allEntries và allFundInfo
+  allEntries[currentCostCenterId] = {
+    name: selectedOption.textContent,
+    entries: entries,
+  };
+
+  // Tính toán lại tổng kết toàn hệ thống
+  await updateGlobalSummary();
 }
 
 // Tải thông tin quỹ
@@ -373,6 +523,7 @@ async function saveNewEntry() {
     if (response.ok) {
       cancelAdd();
       await loadEntries();
+      await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
       alert("Thêm mục thành công!");
     } else {
       alert("Lỗi khi thêm mục");
@@ -451,6 +602,7 @@ async function saveEdit(entryId) {
     if (response.ok) {
       editingEntryId = null;
       await loadEntries();
+      await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
       alert("Cập nhật thành công!");
     } else {
       alert("Lỗi khi cập nhật mục");
@@ -475,6 +627,7 @@ async function deleteEntry(entryId) {
 
       if (response.ok) {
         await loadEntries();
+        await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
         alert("Xóa mục thành công!");
       } else {
         alert("Lỗi khi xóa mục");
@@ -639,7 +792,7 @@ async function saveMultipleEntries() {
     return;
   }
 
-  const entries = [];
+  const entriesToSave = [];
   let hasError = false;
 
   for (let row of entryRows) {
@@ -671,7 +824,7 @@ async function saveMultipleEntries() {
       break;
     }
 
-    entries.push({
+    entriesToSave.push({
       name,
       income,
       expense,
@@ -690,7 +843,7 @@ async function saveMultipleEntries() {
     let successCount = 0;
     let errorCount = 0;
 
-    for (const entry of entries) {
+    for (const entry of entriesToSave) {
       try {
         const response = await fetch(
           `${API_BASE}/${currentCostCenterId}/entries`,
@@ -720,6 +873,7 @@ async function saveMultipleEntries() {
       alert(`Đã thêm thành công ${successCount} mục!`);
       hideMultipleEntryForm();
       await loadEntries();
+      await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
     } else {
       alert(
         `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`,
@@ -727,6 +881,7 @@ async function saveMultipleEntries() {
       if (successCount > 0) {
         hideMultipleEntryForm();
         await loadEntries();
+        await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
       }
     }
   } catch (error) {
@@ -804,6 +959,7 @@ async function saveFundLimit(newFundLimit) {
         newFundLimit.toLocaleString("vi-VN");
 
       await loadFundInfo();
+      await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
 
       alert(result.message || "Cập nhật hạn mức thành công!");
     } else {
@@ -813,4 +969,179 @@ async function saveFundLimit(newFundLimit) {
   } catch (error) {
     alert("Lỗi khi cập nhật hạn mức: " + error.message);
   }
+}
+
+// Global Summary Functions
+function showGlobalDetails() {
+  const modalContent = `
+    <div class="modal fade" id="globalDetailsModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">📊 Tổng Kết Chi Tiết Toàn Hệ Thống</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="table-responsive">
+              <table class="table table-hover table-striped">
+                <thead class="table-dark">
+                  <tr>
+                    <th>Trạm</th>
+                    <th>Số Giao Dịch</th>
+                    <th>Tổng Thu (VND)</th>
+                    <th>Tổng Chi (VND)</th>
+                    <th>Lợi Nhuận (VND)</th>
+                    <th>Hạn Mức (VND)</th>
+                    <th>Quỹ Khả Dụng (VND)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${Object.entries(allEntries)
+                    .map(([costCenterId, data]) => {
+                      const fundInfo = allFundInfo[costCenterId] || {};
+                      const entryCount = data.entries ? data.entries.length : 0;
+                      const totalIncome = fundInfo.totalIncome || 0;
+                      const totalExpense = fundInfo.totalExpense || 0;
+                      const profit = totalIncome - totalExpense;
+                      const fundLimit = fundInfo.fundLimitBank || 0;
+                      const fundAvailable = fundInfo.fundAvailableBank || 0;
+
+                      const profitClass =
+                        profit >= 0
+                          ? "text-success fw-bold"
+                          : "text-danger fw-bold";
+                      const fundAvailableClass =
+                        fundAvailable >= 0 ? "text-success" : "text-danger";
+
+                      return `
+                        <tr onclick="switchToCostCenter('${costCenterId}')" style="cursor: pointer;" title="Nhấp để xem chi tiết trạm ${data.name}">
+                          <td><strong>${data.name}</strong></td>
+                          <td>${entryCount}</td>
+                          <td>${totalIncome.toLocaleString("vi-VN")}</td>
+                          <td>${totalExpense.toLocaleString("vi-VN")}</td>
+                          <td class="${profitClass}">${profit.toLocaleString("vi-VN")}</td>
+                          <td>${fundLimit.toLocaleString("vi-VN")}</td>
+                          <td class="${fundAvailableClass}">${fundAvailable.toLocaleString("vi-VN")}</td>
+                        </tr>
+                      `;
+                    })
+                    .join("")}
+                </tbody>
+                <tfoot class="table-secondary">
+                  <tr>
+                    <td><strong>TỔNG CỘNG</strong></td>
+                    <td><strong>${Object.values(allEntries).reduce(
+                      (sum, data) =>
+                        sum + (data.entries ? data.entries.length : 0),
+                      0,
+                    )}</strong></td>
+                    <td><strong>${Object.values(allFundInfo)
+                      .reduce(
+                        (sum, fundInfo) => sum + (fundInfo.totalIncome || 0),
+                        0,
+                      )
+                      .toLocaleString("vi-VN")}</strong></td>
+                    <td><strong>${Object.values(allFundInfo)
+                      .reduce(
+                        (sum, fundInfo) => sum + (fundInfo.totalExpense || 0),
+                        0,
+                      )
+                      .toLocaleString("vi-VN")}</strong></td>
+                    <td><strong class="${
+                      Object.values(allFundInfo).reduce(
+                        (sum, fundInfo) =>
+                          sum +
+                          ((fundInfo.totalIncome || 0) -
+                            (fundInfo.totalExpense || 0)),
+                        0,
+                      ) >= 0
+                        ? "text-success"
+                        : "text-danger"
+                    }">
+                      ${Object.values(allFundInfo)
+                        .reduce(
+                          (sum, fundInfo) =>
+                            sum +
+                            ((fundInfo.totalIncome || 0) -
+                              (fundInfo.totalExpense || 0)),
+                          0,
+                        )
+                        .toLocaleString("vi-VN")}
+                    </strong></td>
+                    <td><strong>${Object.values(allFundInfo)
+                      .reduce(
+                        (sum, fundInfo) => sum + (fundInfo.fundLimitBank || 0),
+                        0,
+                      )
+                      .toLocaleString("vi-VN")}</strong></td>
+                    <td><strong class="${
+                      Object.values(allFundInfo).reduce(
+                        (sum, fundInfo) =>
+                          sum + (fundInfo.fundAvailableBank || 0),
+                        0,
+                      ) >= 0
+                        ? "text-success"
+                        : "text-danger"
+                    }">
+                      ${Object.values(allFundInfo)
+                        .reduce(
+                          (sum, fundInfo) =>
+                            sum + (fundInfo.fundAvailableBank || 0),
+                          0,
+                        )
+                        .toLocaleString("vi-VN")}
+                    </strong></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <div class="mt-3">
+              <small class="text-muted">* Nhấp vào tên trạm để chuyển sang xem chi tiết</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            <button type="button" class="btn btn-primary" onclick="refreshGlobalData()">
+              🔄 Làm Mới Dữ Liệu
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Thêm modal vào DOM nếu chưa có
+  const existingModal = document.getElementById("globalDetailsModal");
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  document.body.insertAdjacentHTML("beforeend", modalContent);
+
+  // Hiển thị modal
+  const modal = new bootstrap.Modal(
+    document.getElementById("globalDetailsModal"),
+  );
+  modal.show();
+}
+
+// Hàm chuyển sang cost center khi click
+function switchToCostCenter(costCenterId) {
+  // Đóng modal
+  const modal = bootstrap.Modal.getInstance(
+    document.getElementById("globalDetailsModal"),
+  );
+  if (modal) modal.hide();
+
+  // Chọn cost center trong dropdown
+  document.getElementById("costCenterSelect").value = costCenterId;
+
+  // Tải dữ liệu cho cost center đó
+  loadCostCenterData();
+}
+
+// Hàm làm mới dữ liệu toàn hệ thống
+async function refreshGlobalData() {
+  await loadAllCostCentersData();
+  alert("Đã cập nhật dữ liệu toàn hệ thống!");
 }
