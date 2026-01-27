@@ -9,6 +9,10 @@ let isAdding = false;
 let editingEntryId = null;
 let multipleEntryCounter = 0;
 
+// Biến cho tổng kết toàn hệ thống
+let allCostCenters = [];
+let allEntries = {}; // Lưu entries của từng cost center: { costCenterId: { name: string, entries: array } }
+
 // Filter state
 let filterState = {
   dateFrom: "",
@@ -19,22 +23,115 @@ let filterState = {
 // Tải trạm khi trang load
 document.addEventListener("DOMContentLoaded", loadCostCenters);
 
-// Tải tất cả trạm cho dropdown
+// Tải tất cả trạm cho dropdown và tổng kết toàn hệ thống
 async function loadCostCenters() {
   try {
     const response = await fetch(`${API_BASE}/cost-centers`);
-    const costCenters = await response.json();
+    allCostCenters = await response.json();
 
     const select = document.getElementById("costCenterSelect");
-    costCenters.forEach((cc) => {
+    select.innerHTML = '<option value="">-- Chọn Trạm --</option>';
+
+    allCostCenters.forEach((cc) => {
       const option = document.createElement("option");
       option.value = cc._id;
       option.textContent = cc.name;
       select.appendChild(option);
     });
+
+    // Tải dữ liệu cho tất cả cost centers
+    await loadAllCostCentersData();
   } catch (error) {
-    alert("Lỗi khi tải trạm: " + error.message);
+    console.error("Lỗi khi tải trạm:", error);
+    alert("Lỗi khi tải danh sách trạm: " + error.message);
   }
+}
+
+// Tải dữ liệu cho tất cả cost centers
+async function loadAllCostCentersData() {
+  try {
+    const loadingPromises = allCostCenters.map(async (costCenter) => {
+      try {
+        const response = await fetch(`${API_BASE}/${costCenter._id}/entries`);
+        const costCenterEntries = await response.json();
+        allEntries[costCenter._id] = {
+          name: costCenter.name,
+          entries: costCenterEntries,
+        };
+      } catch (error) {
+        console.error(
+          `Lỗi khi tải dữ liệu cho trạm ${costCenter.name}:`,
+          error,
+        );
+        allEntries[costCenter._id] = {
+          name: costCenter.name,
+          entries: [],
+        };
+      }
+    });
+
+    await Promise.all(loadingPromises);
+
+    // Tính toán và hiển thị tổng kết toàn hệ thống
+    calculateGlobalSummary();
+  } catch (error) {
+    console.error("Lỗi khi tải dữ liệu toàn hệ thống:", error);
+  }
+}
+
+// Tính tổng kết toàn hệ thống
+function calculateGlobalSummary() {
+  let globalTotalIncome = 0;
+  let globalTotalExpense = 0;
+
+  // Duyệt qua tất cả cost centers
+  Object.values(allEntries).forEach((costCenterData) => {
+    if (costCenterData.entries) {
+      const costCenterTotals = costCenterData.entries.reduce(
+        (acc, entry) => {
+          acc.income += entry.income || 0;
+          acc.expense += entry.expense || 0;
+          return acc;
+        },
+        { income: 0, expense: 0 },
+      );
+
+      globalTotalIncome += costCenterTotals.income;
+      globalTotalExpense += costCenterTotals.expense;
+    }
+  });
+
+  const globalTotalProfit = globalTotalIncome - globalTotalExpense;
+
+  // Cập nhật UI
+  document.getElementById("globalTotalIncome").textContent =
+    globalTotalIncome.toLocaleString("vi-VN");
+  document.getElementById("globalTotalExpense").textContent =
+    globalTotalExpense.toLocaleString("vi-VN");
+  document.getElementById("globalTotalProfit").textContent =
+    globalTotalProfit.toLocaleString("vi-VN");
+}
+
+// Cập nhật dữ liệu toàn hệ thống khi có thay đổi
+async function updateGlobalSummary() {
+  // Làm mới dữ liệu của cost center hiện tại
+  if (currentCostCenterId) {
+    try {
+      const response = await fetch(
+        `${API_BASE}/${currentCostCenterId}/entries`,
+      );
+      const updatedEntries = await response.json();
+      allEntries[currentCostCenterId] = {
+        name: document.getElementById("costCenterName").textContent,
+        entries: updatedEntries,
+      };
+    } catch (error) {
+      console.error("Lỗi khi cập nhật dữ liệu:", error);
+    }
+  }
+
+  // Tính toán lại tổng kết
+  calculateGlobalSummary();
 }
 
 // Tải dữ liệu cho trạm được chọn
@@ -63,6 +160,15 @@ async function loadCostCenterData() {
 
   // Tải các mục
   await loadEntries();
+
+  // Cập nhật dữ liệu trong allEntries
+  allEntries[currentCostCenterId] = {
+    name: selectedOption.textContent,
+    entries: entries,
+  };
+
+  // Tính toán lại tổng kết toàn hệ thống
+  calculateGlobalSummary();
 }
 
 // Tải tất cả mục cho trạm hiện tại
@@ -157,7 +263,7 @@ function sortTable(field) {
   renderEntries();
 }
 
-// Tính toán tổng kết
+// Tính toán tổng kết cho trạm hiện tại
 function calculateSummary() {
   let totalIncome = 0;
   let totalExpense = 0;
@@ -340,6 +446,7 @@ async function saveNewEntry() {
     if (response.ok) {
       cancelAdd();
       await loadEntries();
+      await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
       alert("Thêm mục thành công!");
     } else {
       alert("Lỗi khi thêm mục");
@@ -421,6 +528,7 @@ async function saveEdit(entryId) {
     if (response.ok) {
       editingEntryId = null;
       await loadEntries();
+      await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
       alert("Cập nhật thành công!");
     } else {
       alert("Lỗi khi cập nhật mục");
@@ -445,6 +553,7 @@ async function deleteEntry(entryId) {
 
       if (response.ok) {
         await loadEntries();
+        await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
         alert("Xóa mục thành công!");
       } else {
         alert("Lỗi khi xóa mục");
@@ -620,7 +729,7 @@ async function saveMultipleEntries() {
     return;
   }
 
-  const entries = [];
+  const entriesToSave = [];
   let hasError = false;
 
   // Validate all entries first
@@ -654,7 +763,7 @@ async function saveMultipleEntries() {
       break;
     }
 
-    entries.push({
+    entriesToSave.push({
       name,
       income,
       expense,
@@ -675,7 +784,7 @@ async function saveMultipleEntries() {
     let errorCount = 0;
 
     // Save entries one by one
-    for (const entry of entries) {
+    for (const entry of entriesToSave) {
       try {
         const response = await fetch(
           `${API_BASE}/${currentCostCenterId}/entries`,
@@ -707,6 +816,7 @@ async function saveMultipleEntries() {
       alert(`Đã thêm thành công ${successCount} mục!`);
       hideMultipleEntryForm();
       await loadEntries();
+      await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
     } else {
       alert(
         `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`,
@@ -714,6 +824,7 @@ async function saveMultipleEntries() {
       if (successCount > 0) {
         hideMultipleEntryForm();
         await loadEntries();
+        await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
       }
     }
   } catch (error) {
@@ -731,4 +842,194 @@ function cancelMultipleEntries() {
   ) {
     hideMultipleEntryForm();
   }
+}
+
+// Global Summary Functions
+function showGlobalDetails() {
+  const modalContent = `
+    <div class="modal fade" id="globalDetailsModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">📊 Tổng Kết Chi Tiết Toàn Hệ Thống</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div class="table-responsive">
+              <table class="table table-hover table-striped">
+                <thead class="table-dark">
+                  <tr>
+                    <th>Trạm</th>
+                    <th>Số Giao Dịch</th>
+                    <th>Tổng Thu (VND)</th>
+                    <th>Tổng Chi (VND)</th>
+                    <th>Lợi Nhuận (VND)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${Object.entries(allEntries)
+                    .map(([costCenterId, data]) => {
+                      if (!data.entries || data.entries.length === 0) {
+                        return `
+                          <tr>
+                            <td>${data.name}</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                          </tr>
+                        `;
+                      }
+
+                      const totals = data.entries.reduce(
+                        (acc, entry) => {
+                          acc.totalIncome += entry.income || 0;
+                          acc.totalExpense += entry.expense || 0;
+                          return acc;
+                        },
+                        { totalIncome: 0, totalExpense: 0 },
+                      );
+
+                      const profit = totals.totalIncome - totals.totalExpense;
+                      const profitClass =
+                        profit >= 0
+                          ? "text-success fw-bold"
+                          : "text-danger fw-bold";
+
+                      return `
+                        <tr onclick="switchToCostCenter('${costCenterId}')" style="cursor: pointer;" title="Nhấp để xem chi tiết trạm ${data.name}">
+                          <td><strong>${data.name}</strong></td>
+                          <td>${data.entries.length}</td>
+                          <td>${totals.totalIncome.toLocaleString("vi-VN")}</td>
+                          <td>${totals.totalExpense.toLocaleString("vi-VN")}</td>
+                          <td class="${profitClass}">${profit.toLocaleString("vi-VN")}</td>
+                        </tr>
+                      `;
+                    })
+                    .join("")}
+                </tbody>
+                <tfoot class="table-secondary">
+                  <tr>
+                    <td><strong>TỔNG CỘNG</strong></td>
+                    <td><strong>${Object.values(allEntries).reduce(
+                      (sum, data) =>
+                        sum + (data.entries ? data.entries.length : 0),
+                      0,
+                    )}</strong></td>
+                    <td><strong>${Object.values(allEntries)
+                      .reduce(
+                        (sum, data) =>
+                          sum +
+                          (data.entries
+                            ? data.entries.reduce(
+                                (acc, entry) => acc + (entry.income || 0),
+                                0,
+                              )
+                            : 0),
+                        0,
+                      )
+                      .toLocaleString("vi-VN")}</strong></td>
+                    <td><strong>${Object.values(allEntries)
+                      .reduce(
+                        (sum, data) =>
+                          sum +
+                          (data.entries
+                            ? data.entries.reduce(
+                                (acc, entry) => acc + (entry.expense || 0),
+                                0,
+                              )
+                            : 0),
+                        0,
+                      )
+                      .toLocaleString("vi-VN")}</strong></td>
+                    <td><strong class="${
+                      Object.values(allEntries).reduce((sum, data) => {
+                        if (!data.entries) return sum;
+                        const costCenterTotal = data.entries.reduce(
+                          (acc, entry) => {
+                            acc.income += entry.income || 0;
+                            acc.expense += entry.expense || 0;
+                            return acc;
+                          },
+                          { income: 0, expense: 0 },
+                        );
+                        return (
+                          sum +
+                          (costCenterTotal.income - costCenterTotal.expense)
+                        );
+                      }, 0) >= 0
+                        ? "text-success"
+                        : "text-danger"
+                    }">
+                      ${Object.values(allEntries)
+                        .reduce((sum, data) => {
+                          if (!data.entries) return sum;
+                          const costCenterTotal = data.entries.reduce(
+                            (acc, entry) => {
+                              acc.income += entry.income || 0;
+                              acc.expense += entry.expense || 0;
+                              return acc;
+                            },
+                            { income: 0, expense: 0 },
+                          );
+                          return (
+                            sum +
+                            (costCenterTotal.income - costCenterTotal.expense)
+                          );
+                        }, 0)
+                        .toLocaleString("vi-VN")}
+                    </strong></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <div class="mt-3">
+              <small class="text-muted">* Nhấp vào tên trạm để chuyển sang xem chi tiết</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            <button type="button" class="btn btn-primary" onclick="refreshGlobalData()">
+              🔄 Làm Mới Dữ Liệu
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Thêm modal vào DOM nếu chưa có
+  const existingModal = document.getElementById("globalDetailsModal");
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  document.body.insertAdjacentHTML("beforeend", modalContent);
+
+  // Hiển thị modal
+  const modal = new bootstrap.Modal(
+    document.getElementById("globalDetailsModal"),
+  );
+  modal.show();
+}
+
+// Hàm chuyển sang cost center khi click
+function switchToCostCenter(costCenterId) {
+  // Đóng modal
+  const modal = bootstrap.Modal.getInstance(
+    document.getElementById("globalDetailsModal"),
+  );
+  if (modal) modal.hide();
+
+  // Chọn cost center trong dropdown
+  document.getElementById("costCenterSelect").value = costCenterId;
+
+  // Tải dữ liệu cho cost center đó
+  loadCostCenterData();
+}
+
+// Hàm làm mới dữ liệu toàn hệ thống
+async function refreshGlobalData() {
+  await loadAllCostCentersData();
+  alert("Đã cập nhật dữ liệu toàn hệ thống!");
 }

@@ -11,7 +11,7 @@
     />
     <link
       rel="stylesheet"
-      href="financePages/financeCostCenterDaily/financeCostCenterDaily.css"
+      href="financePages/financeCostCenterDaily/financeCostCenterDaily.css?v=1.0"
     />
   </head>
   <body>
@@ -21,6 +21,29 @@
     <div class="finance-daily-page">
       <div class="container">
         <h1>Quản Lý Tài Chính Hàng Ngày</h1>
+
+        <!-- Tổng kết toàn hệ thống -->
+        <div id="globalSummarySection" class="summary global-summary">
+          <h3>📊 Tổng Kết Toàn Hệ Thống</h3>
+          <div class="summary-item">
+            <strong>Tổng Thu Nhập Toàn Hệ Thống:</strong>
+            <span id="globalTotalIncome">0</span> VND
+          </div>
+          <div class="summary-item">
+            <strong>Tổng Chi Phí Toàn Hệ Thống:</strong>
+            <span id="globalTotalExpense">0</span> VND
+          </div>
+          <div class="summary-item">
+            <strong>Tổng Lợi Nhuận Toàn Hệ Thống:</strong>
+            <span id="globalTotalProfit">0</span> VND
+          </div>
+          <button
+            class="btn-finance view-global-btn"
+            onclick="showGlobalDetails()"
+          >
+            📈 Xem Chi Tiết Từng Trạm
+          </button>
+        </div>
 
         <!-- Lựa chọn trạm -->
         <div class="form-group">
@@ -34,9 +57,9 @@
           <h2>Trạm: <span id="costCenterName"></span></h2>
         </div>
 
-        <!-- Tóm tắt -->
+        <!-- Tóm tắt cho trạm được chọn -->
         <div id="summarySection" class="summary hidden">
-          <h3>Tổng Kết</h3>
+          <h3>Tổng Kết Trạm</h3>
           <div class="summary-item">
             <strong>Tổng Thu Nhập:</strong> <span id="totalIncome">0</span> VND
           </div>
@@ -133,16 +156,34 @@
           <table id="entriesTable">
             <thead>
               <tr>
-                <th class="sortable" onclick="sortTable('name')">
+                <th
+                  class="sortable"
+                  data-field="name"
+                  onclick="sortTable('name')"
+                >
                   Tên giao dịch
                 </th>
-                <th class="sortable" onclick="sortTable('income')">
+                <th
+                  class="sortable"
+                  data-field="income"
+                  onclick="sortTable('income')"
+                >
                   Thu nhập (VND)
                 </th>
-                <th class="sortable" onclick="sortTable('expense')">
+                <th
+                  class="sortable"
+                  data-field="expense"
+                  onclick="sortTable('expense')"
+                >
                   Chi phí (VND)
                 </th>
-                <th class="sortable" onclick="sortTable('date')">Ngày</th>
+                <th
+                  class="sortable"
+                  data-field="date"
+                  onclick="sortTable('date')"
+                >
+                  Ngày
+                </th>
                 <th>Thao tác</th>
               </tr>
             </thead>
@@ -165,6 +206,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="financePages/financeCostCenterDaily/financeCostCenterDaily.js"></script>
+    <script src="financePages/financeCostCenterDaily/financeCostCenterDaily.js?v=1.0"></script>
   </body>
 </html>
