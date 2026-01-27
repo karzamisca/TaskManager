@@ -65,6 +65,21 @@ body {
   margin: 0 auto;
 }
 
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-header h2 {
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+}
+
+.page-description {
+  color: var(--secondary-color);
+  margin-bottom: 0.25rem;
+  font-size: 0.95rem;
+}
+
 .section-title {
   color: var(--primary-color);
   font-size: 1.25rem;
@@ -183,12 +198,156 @@ button {
   background-color: #fff;
 }
 
+.file-hint {
+  display: block;
+  color: var(--secondary-color);
+  font-size: 0.875rem;
+  margin-top: -0.75rem;
+  margin-bottom: 1rem;
+}
+
 /* Product entries section */
 #product-entries {
   background: #f8fafc;
   padding: 1.25rem;
   border-radius: 8px;
   margin-bottom: 1.25rem;
+}
+
+.product-entry {
+  background: white;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  position: relative;
+}
+
+.product-entry:last-child {
+  margin-bottom: 0;
+}
+
+/* Cost summary styling */
+.cost-summary {
+  background-color: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  padding: 1rem;
+  margin: 1rem 0;
+  font-size: 0.95rem;
+}
+
+.cost-summary-top {
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #bae6fd;
+  padding-bottom: 0.75rem;
+}
+
+.cost-summary-bottom {
+  margin-top: 1.5rem;
+  border-top: 2px solid #bae6fd;
+  padding-top: 0.75rem;
+}
+
+.cost-summary h4 {
+  color: var(--primary-color);
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cost-summary h4 i {
+  font-size: 0.9rem;
+}
+
+.cost-summary .item-cost {
+  display: flex;
+  justify-content: space-between;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border-bottom: 1px dotted #e2e8f0;
+  align-items: center;
+}
+
+.cost-summary .item-cost:last-child {
+  border-bottom: none;
+}
+
+.cost-summary .total-cost {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--primary-color);
+  color: var(--primary-color);
+  background-color: rgba(49, 130, 206, 0.05);
+  padding: 0.75rem;
+  border-radius: 4px;
+}
+
+.cost-summary .cost-label {
+  color: var(--secondary-color);
+  font-weight: 500;
+}
+
+.cost-summary .cost-value {
+  font-weight: 500;
+  color: var(--dark-color);
+}
+
+.cost-summary .total-cost .cost-value {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+/* Product entry cost styling */
+.product-entry-cost {
+  font-size: 0.9rem;
+  color: var(--success-color);
+  font-weight: 500;
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  background-color: #f0fff4;
+  border-radius: 4px;
+  display: inline-block;
+  border-left: 3px solid var(--success-color);
+}
+
+/* Product name in summary */
+.product-name-summary {
+  font-weight: 500;
+  color: var(--dark-color);
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-name-summary:hover {
+  overflow: visible;
+  white-space: normal;
+  background: white;
+  padding: 2px 4px;
+  border-radius: 3px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 10;
+}
+
+.product-cost-summary {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+/* Summary highlight */
+.summary-highlight {
+  background-color: rgba(56, 161, 105, 0.05);
+  border-left: 3px solid var(--success-color);
 }
 
 /* Choice.js specific styles */
@@ -426,6 +585,31 @@ button {
   .choices__list[aria-expanded] .choices__item--selectable {
     padding: 0.625rem;
   }
+
+  .cost-summary {
+    padding: 0.75rem;
+  }
+
+  .product-name-summary {
+    max-width: 50%;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-name-summary {
+    max-width: 45%;
+  }
+
+  .cost-summary .item-cost {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .product-name-summary,
+  .product-cost-summary {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
 }
 
 /* Dark mode styles */
@@ -438,7 +622,8 @@ button {
   .container {
     background: #1e1e1e;
     color: #f1f1f1;
-    box-shadow: 0 4px 6px rgba(255, 255, 255, 0.1),
+    box-shadow:
+      0 4px 6px rgba(255, 255, 255, 0.1),
       0 1px 3px rgba(255, 255, 255, 0.08);
   }
 
@@ -484,6 +669,69 @@ button {
   .proposal-preview li ul li,
   #purchasingDocumentsList li ul li {
     background: #374151;
+  }
+
+  .product-entry {
+    background: #2d3748;
+    border-color: #4a5568;
+  }
+
+  /* Cost display dark mode */
+  .cost-summary {
+    background-color: #1a365d;
+    border-color: #2d3748;
+  }
+
+  .cost-summary-top {
+    border-bottom-color: #2d3748;
+  }
+
+  .cost-summary-bottom {
+    border-top-color: #2d3748;
+  }
+
+  .cost-summary .item-cost {
+    border-bottom-color: #4a5568;
+  }
+
+  .product-entry-cost {
+    background-color: #22543d;
+    color: #9ae6b4;
+    border-left-color: #38a169;
+  }
+
+  .cost-summary .cost-label {
+    color: #cbd5e0;
+  }
+
+  .cost-summary .cost-value {
+    color: #f7fafc;
+  }
+
+  .cost-summary .total-cost .cost-value {
+    color: #90cdf4;
+  }
+
+  .product-name-summary {
+    color: #e2e8f0;
+  }
+
+  .product-name-summary:hover {
+    background: #2d3748;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .product-cost-summary {
+    color: #90cdf4;
+  }
+
+  .summary-highlight {
+    background-color: rgba(56, 161, 105, 0.1);
+    border-left-color: #38a169;
+  }
+
+  .cost-summary .total-cost {
+    background-color: rgba(49, 130, 206, 0.1);
   }
 
   /* Dark mode for Choice.js */
