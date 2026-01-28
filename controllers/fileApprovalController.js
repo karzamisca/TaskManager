@@ -15,7 +15,7 @@ class NextcloudController {
     this.username = process.env.NEXTCLOUD_USERNAME;
     this.password = process.env.NEXTCLOUD_PASSWORD;
     this.auth = Buffer.from(`${this.username}:${this.password}`).toString(
-      "base64"
+      "base64",
     );
     this.cookies = {};
 
@@ -473,7 +473,7 @@ class NextcloudController {
               Cookie: this.getCookieHeader(),
             }),
           },
-        }
+        },
       );
 
       this.storeCookies(response);
@@ -498,7 +498,7 @@ class NextcloudController {
   async getShareId(filePath) {
     const baseUrl = this.baseUrl.replace(
       "/remote.php/dav/files/" + this.username,
-      ""
+      "",
     );
 
     try {
@@ -516,7 +516,7 @@ class NextcloudController {
           params: {
             path: filePath,
           },
-        }
+        },
       );
 
       this.storeCookies(response);
@@ -524,7 +524,7 @@ class NextcloudController {
       if (response.data?.ocs?.data && Array.isArray(response.data.ocs.data)) {
         // Find public link shares (shareType: 3)
         const publicShares = response.data.ocs.data.filter(
-          (share) => share.share_type === 3
+          (share) => share.share_type === 3,
         );
 
         if (publicShares.length > 0) {
@@ -543,7 +543,7 @@ class NextcloudController {
   async deleteShare(shareId) {
     const baseUrl = this.baseUrl.replace(
       "/remote.php/dav/files/" + this.username,
-      ""
+      "",
     );
 
     try {
@@ -558,7 +558,7 @@ class NextcloudController {
               Cookie: this.getCookieHeader(),
             }),
           },
-        }
+        },
       );
 
       this.storeCookies(response);
@@ -604,7 +604,7 @@ class NextcloudController {
       // Step 2: Delete all existing shares for this file
       if (shareIds.length > 0) {
         console.log(
-          `Deleting ${shareIds.length} existing share(s) for ${sourcePath}...`
+          `Deleting ${shareIds.length} existing share(s) for ${sourcePath}...`,
         );
         for (const shareId of shareIds) {
           await this.deleteShare(shareId);
@@ -648,7 +648,7 @@ class NextcloudController {
   async createPublicShare(filePath) {
     const baseUrl = this.baseUrl.replace(
       "/remote.php/dav/files/" + this.username,
-      ""
+      "",
     );
 
     const shareParams = new URLSearchParams({
@@ -683,7 +683,7 @@ class NextcloudController {
           {
             headers,
             timeout: attempts[i].timeout,
-          }
+          },
         );
 
         this.storeCookies(response);
@@ -700,7 +700,7 @@ class NextcloudController {
         if (i === attempts.length - 1) {
           // Last attempt failed, throw error
           throw new Error(
-            `Failed to create public share after ${attempts.length} attempts: ${attemptError.message}`
+            `Failed to create public share after ${attempts.length} attempts: ${attemptError.message}`,
           );
         }
 
@@ -714,7 +714,7 @@ class NextcloudController {
     // This method is kept for other uses, but NOT used as fallback for createPublicShare
     const pathSegments = filePath.split("/");
     const encodedSegments = pathSegments.map((segment) =>
-      encodeURIComponent(segment)
+      encodeURIComponent(segment),
     );
     const encodedPath = encodedSegments.join("/");
 
@@ -825,7 +825,7 @@ class NextcloudController {
       // Populate the response for better frontend display
       await fileApproval.populate(
         "viewableBy",
-        "username realName role department"
+        "username realName role department",
       );
       await fileApproval.populate("permissionsSetBy", "username realName");
 
@@ -933,7 +933,7 @@ class NextcloudController {
       const uploadResult = await this.uploadToNextcloud(
         req.file.path,
         pendingPath,
-        req.file.filename
+        req.file.filename,
       );
 
       // Store file approval with all data
@@ -1040,7 +1040,7 @@ class NextcloudController {
 
       const subcategoryPath = this.getSubcategoryPath(
         fileApproval.category,
-        subcategoryData
+        subcategoryData,
       );
       const approvedPath = `Approved/${subcategoryPath}`;
 
@@ -1062,7 +1062,7 @@ class NextcloudController {
       // 3. Create NEW share for the moved file
       const moveResult = await this.moveFileInNextcloud(
         sourcePath,
-        destinationPath
+        destinationPath,
       );
 
       fileApproval.status = "approved";
@@ -1089,7 +1089,12 @@ class NextcloudController {
   async rejectFile(req, res) {
     try {
       if (
-        !["superAdmin", "director", "deputyDirector"].includes(req.user.role)
+        ![
+          "superAdmin",
+          "director",
+          "deputyDirector",
+          "submitterOfAccounting",
+        ].includes(req.user.role)
       ) {
         return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập");
       }
