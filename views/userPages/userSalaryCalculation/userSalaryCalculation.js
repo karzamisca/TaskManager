@@ -1,6 +1,9 @@
 // views\userPages\userSalaryCalculation\userSalaryCalculation.js
 let selectedUsers = new Set();
 let currentFilteredUsers = [];
+let allUsers = [];
+let currentHistoryData = null;
+let currentHistoryUserId = null;
 
 function toggleSelectUser(userId) {
   if (selectedUsers.has(userId)) {
@@ -49,7 +52,7 @@ async function exportToExcel() {
           return cellValue.v.toString().length;
         }
         return cellValue ? cellValue.toString().length : 0;
-      })
+      }),
     );
 
     // Return the maximum between header length and data length, with some padding
@@ -195,6 +198,210 @@ async function exportToExcel() {
   // Generate Excel file and download
   const date = new Date().toISOString().slice(0, 10);
   XLSX.writeFile(wb, `bang_luong_${date}.xlsx`);
+
+  showSuccess("Xuất Excel thành công!");
+}
+
+// Function to view user history
+async function viewUserHistory(userId, username, realName) {
+  try {
+    currentHistoryUserId = userId;
+
+    // Show loading state
+    document.getElementById("history-user-name").textContent = realName;
+    document.getElementById("history-username").textContent = username;
+    document.getElementById("history-table-body").innerHTML = `
+      <tr>
+        <td colspan="21" style="text-align: center; padding: 20px;">
+          Đang tải dữ liệu...
+        </td>
+      </tr>
+    `;
+
+    // Show modal
+    document.getElementById("user-history-modal").style.display = "block";
+
+    // Fetch history data
+    const response = await fetch(`/userMonthlyRecords/${userId}`);
+
+    if (!response.ok) {
+      throw new Error("Không thể tải lịch sử lương");
+    }
+
+    const records = await response.json();
+    currentHistoryData = records;
+
+    // Render history table
+    renderHistoryTable(records);
+
+    // Show/hide export button
+    const exportBtn = document.getElementById("export-history-btn");
+    if (records.length > 0) {
+      exportBtn.style.display = "inline-block";
+    } else {
+      exportBtn.style.display = "none";
+    }
+  } catch (error) {
+    console.error("Error loading history:", error);
+    document.getElementById("history-table-body").innerHTML = `
+      <tr>
+        <td colspan="21" style="text-align: center; color: #dc3545; padding: 20px;">
+          Lỗi khi tải lịch sử: ${error.message}
+        </td>
+      </tr>
+    `;
+    document.getElementById("export-history-btn").style.display = "none";
+  }
+}
+
+// Function to render history table
+function renderHistoryTable(records) {
+  const tbody = document.getElementById("history-table-body");
+
+  if (records.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="21" style="text-align: center; padding: 20px;">
+          Không có dữ liệu lịch sử lương
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const formatNumber = (value) => {
+    return value !== null && value !== undefined ? value.toLocaleString() : "0";
+  };
+
+  tbody.innerHTML = records
+    .map(
+      (record) => `
+    <tr>
+      <td style="text-align: center;">${record.recordMonth}</td>
+      <td style="text-align: center;">${record.recordYear}</td>
+      <td style="text-align: right;">${formatNumber(record.baseSalary)}</td>
+      <td style="text-align: right;">${formatNumber(record.commissionBonus)}</td>
+      <td style="text-align: right;">${formatNumber(record.responsibility)}</td>
+      <td style="text-align: right;">${formatNumber(record.otherBonus)}</td>
+      <td style="text-align: center;">${record.weekdayOvertimeHour || 0}</td>
+      <td style="text-align: center;">${record.weekendOvertimeHour || 0}</td>
+      <td style="text-align: center;">${record.holidayOvertimeHour || 0}</td>
+      <td style="text-align: right;">${formatNumber(record.overtimePay)}</td>
+      <td style="text-align: right;">${formatNumber(record.travelExpense)}</td>
+      <td style="text-align: right; font-weight: bold;">${formatNumber(record.grossSalary)}</td>
+      <td style="text-align: right; color: #dc3545;">${formatNumber(record.tax)}</td>
+      <td style="text-align: right; font-weight: bold; color: #28a745;">${formatNumber(record.currentSalary)}</td>
+      <td style="text-align: right;">${formatNumber(record.insurableSalary)}</td>
+      <td style="text-align: right;">${formatNumber(record.mandatoryInsurance)}</td>
+      <td style="text-align: center;">${record.dependantCount || 0}</td>
+      <td style="text-align: right;">${formatNumber(record.taxableIncome)}</td>
+      <td>${record.costCenter ? record.costCenter.name : "N/A"}</td>
+      <td>${record.assignedManager ? record.assignedManager.username : "N/A"}</td>
+      <td>${new Date(record.recordDate).toLocaleDateString("vi-VN")}</td>
+    </tr>
+  `,
+    )
+    .join("");
+}
+
+// Function to export history to Excel
+async function exportHistoryToExcel() {
+  if (!currentHistoryData || currentHistoryData.length === 0) {
+    showError("Không có dữ liệu để xuất");
+    return;
+  }
+
+  const formatNumber = (value) => {
+    return value !== null && value !== undefined ? value : 0;
+  };
+
+  // Get user info
+  const user = allUsers.find((u) => u._id === currentHistoryUserId);
+  const userName = user ? user.realName : "N/A";
+  const username = user ? user.username : "N/A";
+
+  // Define headers in Vietnamese
+  const headers = [
+    "Tháng",
+    "Năm",
+    "Lương cơ bản",
+    "Hoa hồng",
+    "Trách nhiệm",
+    "Thưởng khác",
+    "Giờ tăng ca trong tuần",
+    "Giờ tăng ca Chủ Nhật",
+    "Giờ tăng ca ngày lễ",
+    "Lương tăng ca",
+    "Công tác phí",
+    "Lương gộp",
+    "Thuế",
+    "Lương thực lĩnh",
+    "Lương đóng bảo hiểm",
+    "Bảo hiểm bắt buộc",
+    "Số người phụ thuộc",
+    "Thu nhập tính thuế",
+    "Trạm",
+    "Người quản lý",
+    "Ngày ghi nhận",
+  ];
+
+  // Prepare the data
+  const data = currentHistoryData.map((record) => [
+    record.recordMonth,
+    record.recordYear,
+    formatNumber(record.baseSalary),
+    formatNumber(record.commissionBonus),
+    formatNumber(record.responsibility),
+    formatNumber(record.otherBonus),
+    formatNumber(record.weekdayOvertimeHour),
+    formatNumber(record.weekendOvertimeHour),
+    formatNumber(record.holidayOvertimeHour),
+    formatNumber(record.overtimePay),
+    formatNumber(record.travelExpense),
+    formatNumber(record.grossSalary),
+    formatNumber(record.tax),
+    formatNumber(record.currentSalary),
+    formatNumber(record.insurableSalary),
+    formatNumber(record.mandatoryInsurance),
+    formatNumber(record.dependantCount),
+    formatNumber(record.taxableIncome),
+    record.costCenter ? record.costCenter.name : "N/A",
+    record.assignedManager ? record.assignedManager.username : "N/A",
+    new Date(record.recordDate).toLocaleDateString("vi-VN"),
+  ]);
+
+  // Create a worksheet
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+
+  // Apply basic styling
+  const headerRange = XLSX.utils.decode_range(ws["!ref"]);
+  for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+    if (!ws[cellAddress]) continue;
+
+    ws[cellAddress].s = {
+      font: { bold: true, sz: 11 },
+      fill: { fgColor: { rgb: "E6E6FA" } },
+      alignment: { horizontal: "center", vertical: "center", wrapText: true },
+      border: {
+        top: { style: "thin" },
+        bottom: { style: "thin" },
+        left: { style: "thin" },
+        right: { style: "thin" },
+      },
+    };
+  }
+
+  // Create a workbook
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Lịch sử lương");
+
+  // Generate Excel file and download
+  const safeUserName = userName.replace(/[^\w\s]/gi, "").replace(/\s+/g, "_");
+  const date = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `lich_su_luong_${safeUserName}_${date}.xlsx`);
+
+  showSuccess("Xuất lịch sử lương thành công!");
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -209,6 +416,11 @@ document.addEventListener("DOMContentLoaded", function () {
   document
     .getElementById("export-xlsx-btn")
     .addEventListener("click", exportToExcel);
+
+  // History export button
+  document
+    .getElementById("export-history-btn")
+    .addEventListener("click", exportHistoryToExcel);
 
   // Tab functionality
   document.querySelectorAll(".tab-button").forEach((button) => {
@@ -252,9 +464,6 @@ document.addEventListener("DOMContentLoaded", function () {
     .getElementById("edit-user-form")
     .addEventListener("submit", updateUser);
 });
-
-// Global variables
-let allUsers = [];
 
 // Data loading functions
 async function loadCostCentersAndManagers() {
@@ -339,7 +548,7 @@ function applyFilters() {
 
 function renderUsers() {
   const filterCostCenterId = document.getElementById(
-    "user-cost-center-filter"
+    "user-cost-center-filter",
   ).value;
   const filterManagerId = document.getElementById("user-manager-filter").value;
   const tbody = document.querySelector("#users-table tbody");
@@ -350,7 +559,7 @@ function renderUsers() {
   // Apply cost center filter
   if (filterCostCenterId !== "all") {
     currentFilteredUsers = currentFilteredUsers.filter(
-      (u) => u.costCenter && u.costCenter._id === filterCostCenterId
+      (u) => u.costCenter && u.costCenter._id === filterCostCenterId,
     );
   }
 
@@ -359,19 +568,19 @@ function renderUsers() {
     currentFilteredUsers = currentFilteredUsers.filter(
       (u) =>
         (filterManagerId === "none" && !u.assignedManager) ||
-        (u.assignedManager && u.assignedManager._id === filterManagerId)
+        (u.assignedManager && u.assignedManager._id === filterManagerId),
     );
   }
 
   if (currentFilteredUsers.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="25" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="26" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
     return;
   }
 
   const selectAllToggle = document.getElementById("select-all-toggle");
   if (currentFilteredUsers.length > 0) {
     const allSelected = currentFilteredUsers.every((user) =>
-      selectedUsers.has(user._id)
+      selectedUsers.has(user._id),
     );
     selectAllToggle.checked = allSelected;
     selectAllToggle.disabled = false;
@@ -422,12 +631,11 @@ function renderUsers() {
       <td>${formatNumber(user.currentSalary)}</td>
       <td>
         <div class="action-buttons">
-          <button class="btn" onclick="editUser('${
-            user._id
-          }')">Chỉnh sửa</button>
-          <button class="btn btn-danger" onclick="deleteUser('${
-            user._id
-          }')">Xóa</button>
+          <button class="btn" onclick="editUser('${user._id}')">Chỉnh sửa</button>
+          <button class="btn btn-danger" onclick="deleteUser('${user._id}')">Xóa</button>
+          <button class="btn btn-history" onclick="viewUserHistory('${user._id}', '${user.username}', '${user.realName}')">
+            Lịch sử
+          </button>
         </div>
       </td>
     `;
@@ -450,30 +658,30 @@ async function addUser(e) {
     citizenID: document.getElementById("new-citizen-id").value,
     baseSalary: parseFloat(document.getElementById("new-base-salary").value),
     commissionBonus: parseFloat(
-      document.getElementById("new-commission-bonus").value
+      document.getElementById("new-commission-bonus").value,
     ),
     otherBonus:
       parseFloat(document.getElementById("new-other-bonus").value) || 0,
     responsibility: parseFloat(
-      document.getElementById("new-responsibility").value
+      document.getElementById("new-responsibility").value,
     ),
     weekdayOvertimeHour: parseFloat(
-      document.getElementById("new-weekday-overtime").value
+      document.getElementById("new-weekday-overtime").value,
     ),
     weekendOvertimeHour: parseFloat(
-      document.getElementById("new-weekend-overtime").value
+      document.getElementById("new-weekend-overtime").value,
     ),
     holidayOvertimeHour: parseFloat(
-      document.getElementById("new-holiday-overtime").value
+      document.getElementById("new-holiday-overtime").value,
     ),
     travelExpense: parseFloat(
-      document.getElementById("new-travel-expense").value
+      document.getElementById("new-travel-expense").value,
     ),
     insurableSalary: parseFloat(
-      document.getElementById("new-insurable-salary").value
+      document.getElementById("new-insurable-salary").value,
     ),
     dependantCount: parseInt(
-      document.getElementById("new-dependant-count").value
+      document.getElementById("new-dependant-count").value,
     ),
   };
 
@@ -532,7 +740,7 @@ async function editUser(id) {
   }
 
   const assignedManagerSelect = document.getElementById(
-    "edit-assigned-manager"
+    "edit-assigned-manager",
   );
   if (user.assignedManager) {
     Array.from(assignedManagerSelect.options).forEach((option) => {
@@ -561,30 +769,30 @@ async function updateUser(e) {
       .value,
     citizenID: document.getElementById("edit-citizen-id").value,
     commissionBonus: parseFloat(
-      document.getElementById("edit-commission-bonus").value
+      document.getElementById("edit-commission-bonus").value,
     ),
     otherBonus:
       parseFloat(document.getElementById("edit-other-bonus").value) || 0,
     responsibility: parseFloat(
-      document.getElementById("edit-responsibility").value
+      document.getElementById("edit-responsibility").value,
     ),
     weekdayOvertimeHour: parseFloat(
-      document.getElementById("edit-weekday-overtime").value
+      document.getElementById("edit-weekday-overtime").value,
     ),
     weekendOvertimeHour: parseFloat(
-      document.getElementById("edit-weekend-overtime").value
+      document.getElementById("edit-weekend-overtime").value,
     ),
     holidayOvertimeHour: parseFloat(
-      document.getElementById("edit-holiday-overtime").value
+      document.getElementById("edit-holiday-overtime").value,
     ),
     travelExpense: parseFloat(
-      document.getElementById("edit-travel-expense").value
+      document.getElementById("edit-travel-expense").value,
     ),
     insurableSalary: parseFloat(
-      document.getElementById("edit-insurable-salary").value
+      document.getElementById("edit-insurable-salary").value,
     ),
     dependantCount: parseInt(
-      document.getElementById("edit-dependant-count").value
+      document.getElementById("edit-dependant-count").value,
     ),
   };
 
@@ -598,7 +806,7 @@ async function updateUser(e) {
     if (!response.ok) {
       const error = await response.json();
       throw new Error(
-        error.message || "Không thể cập nhật thông tin nhân viên"
+        error.message || "Không thể cập nhật thông tin nhân viên",
       );
     }
 

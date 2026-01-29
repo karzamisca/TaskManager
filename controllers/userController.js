@@ -137,7 +137,7 @@ exports.getUserById = async (req, res) => {
       ].includes(req.user.role)
     ) {
       return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access."
+        "Truy cập bị từ chối. Bạn không có quyền truy cập./Access denied. You don't have permission to access.",
       );
     }
     const user = await User.findById(req.params.id).populate("costCenter");
@@ -438,7 +438,7 @@ exports.getAllUserMonthlyRecord = async (req, res) => {
     // 2. assignedManager has role "superAdmin"
     const filteredRecords = records.filter(
       (record) =>
-        record.userId !== null && record.assignedManager?.role !== "superAdmin"
+        record.userId !== null && record.assignedManager?.role !== "superAdmin",
     );
 
     res.json(filteredRecords);
@@ -580,18 +580,18 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
     // 2. assignedManager has role "superAdmin"
     records = records.filter(
       (record) =>
-        record.userId !== null && record.assignedManager?.role !== "superAdmin"
+        record.userId !== null && record.assignedManager?.role !== "superAdmin",
     );
 
     // Apply cost center filter AFTER population
     if (costCenter) {
       if (costCenterReverse === "true") {
         records = records.filter(
-          (record) => record.costCenter?.name !== costCenter
+          (record) => record.costCenter?.name !== costCenter,
         );
       } else {
         records = records.filter(
-          (record) => record.costCenter?.name === costCenter
+          (record) => record.costCenter?.name === costCenter,
         );
       }
     }
@@ -604,7 +604,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
             !record.beneficiaryBank ||
             !record.beneficiaryBank
               .toLowerCase()
-              .includes(beneficiaryBank.toLowerCase())
+              .includes(beneficiaryBank.toLowerCase()),
         );
       } else {
         records = records.filter(
@@ -612,7 +612,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
             record.beneficiaryBank &&
             record.beneficiaryBank
               .toLowerCase()
-              .includes(beneficiaryBank.toLowerCase())
+              .includes(beneficiaryBank.toLowerCase()),
         );
       }
     }
@@ -686,15 +686,15 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
     // Calculate totals for summary
     const totalSalary = records.reduce(
       (sum, record) => sum + Math.ceil(record.currentSalary),
-      0
+      0,
     );
     const totalTax = records.reduce(
       (sum, record) => sum + Math.ceil(record.tax || 0),
-      0
+      0,
     );
     const totalGross = records.reduce(
       (sum, record) => sum + Math.ceil(record.grossSalary || 0),
-      0
+      0,
     );
 
     // Prepare content array
@@ -793,7 +793,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
                   text: record.recordMonth.toString(),
                   style: "tableContent",
                   alignment: "center",
-                }
+                },
               );
             } else {
               // Yearly report layout
@@ -815,7 +815,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
                   text: Math.ceil(record.tax || 0).toLocaleString("vi-VN"),
                   style: "tableContent",
                   alignment: "right",
-                }
+                },
               );
             }
 
@@ -883,7 +883,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       // Calculate total summary salary
       const summaryTotalSalary = summaryArray.reduce(
         (sum, user) => sum + user.totalSalary,
-        0
+        0,
       );
 
       // Add spacing before summary table
@@ -973,13 +973,13 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
           { text: "TỔNG HỢP NĂM:\n", style: "summaryHeader" },
           {
             text: `Tổng lương thực lĩnh: ${totalSalary.toLocaleString(
-              "vi-VN"
+              "vi-VN",
             )} VND\n`,
             style: "summaryText",
           },
           {
             text: `Tổng thuế thu nhập: ${totalTax.toLocaleString(
-              "vi-VN"
+              "vi-VN",
             )} VND\n`,
             style: "summaryText",
           },
@@ -1084,7 +1084,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
     if (costCenter) {
       const sanitizedCostCenter = costCenter.replace(
         /[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF\s-]/g,
-        ""
+        "",
       );
       fileName += `_${sanitizedCostCenter}`;
     }
@@ -1092,13 +1092,13 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
 
     const encodedFileName = encodeURIComponent(fileName).replace(
       /['()]/g,
-      escape
+      escape,
     );
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`
+      `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`,
     );
 
     // Stream the PDF to the response
@@ -1191,18 +1191,18 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     // 2. assignedManager has role "superAdmin"
     records = records.filter(
       (record) =>
-        record.userId !== null && record.assignedManager?.role !== "superAdmin"
+        record.userId !== null && record.assignedManager?.role !== "superAdmin",
     );
 
     // Apply cost center filter AFTER population
     if (costCenter) {
       if (costCenterReverse === "true") {
         records = records.filter(
-          (record) => record.costCenter?.name !== costCenter
+          (record) => record.costCenter?.name !== costCenter,
         );
       } else {
         records = records.filter(
-          (record) => record.costCenter?.name === costCenter
+          (record) => record.costCenter?.name === costCenter,
         );
       }
     }
@@ -1215,7 +1215,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
             !record.beneficiaryBank ||
             !record.beneficiaryBank
               .toLowerCase()
-              .includes(beneficiaryBank.toLowerCase())
+              .includes(beneficiaryBank.toLowerCase()),
         );
       } else {
         records = records.filter(
@@ -1223,7 +1223,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
             record.beneficiaryBank &&
             record.beneficiaryBank
               .toLowerCase()
-              .includes(beneficiaryBank.toLowerCase())
+              .includes(beneficiaryBank.toLowerCase()),
         );
       }
     }
@@ -1234,13 +1234,13 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         records = records.filter(
           (record) =>
             !record.realName ||
-            !record.realName.toLowerCase().includes(realName.toLowerCase())
+            !record.realName.toLowerCase().includes(realName.toLowerCase()),
         );
       } else {
         records = records.filter(
           (record) =>
             record.realName &&
-            record.realName.toLowerCase().includes(realName.toLowerCase())
+            record.realName.toLowerCase().includes(realName.toLowerCase()),
         );
       }
     }
@@ -1446,7 +1446,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
 
       // Get users in this cost center and sort them alphabetically
       const usersInCostCenter = Object.keys(
-        groupedRecords[costCenterName]
+        groupedRecords[costCenterName],
       ).sort();
 
       // Process each user in this cost center
@@ -1692,9 +1692,8 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
 
         // Merge last two cells for note
         worksheet.mergeCells(`S${currentRow - 1}:T${currentRow - 1}`);
-        userSummaryRow.getCell(
-          19
-        ).value = `TB: ${userAverageCurrentSalary.toLocaleString()} | Thuế TB: ${userAverageTax.toLocaleString()}`;
+        userSummaryRow.getCell(19).value =
+          `TB: ${userAverageCurrentSalary.toLocaleString()} | Thuế TB: ${userAverageTax.toLocaleString()}`;
         userSummaryRow.getCell(19).font = { size: 8, name: "Arial" };
         userSummaryRow.getCell(19).alignment = {
           horizontal: "left",
@@ -1838,7 +1837,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       // Add summary title
       const summaryTitleRow = worksheet.getRow(currentRow++);
       worksheet.mergeCells(
-        `A${summaryTitleRow.number}:S${summaryTitleRow.number}`
+        `A${summaryTitleRow.number}:S${summaryTitleRow.number}`,
       );
       summaryTitleRow.getCell(1).value = "TỔNG HỢP THỐNG KÊ";
       summaryTitleRow.getCell(1).font = { bold: true, size: 14, name: "Arial" };
@@ -1850,7 +1849,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
 
       // Calculate averages
       const averageCurrentSalary = Math.round(
-        totalCurrentSalary / totalRecords
+        totalCurrentSalary / totalRecords,
       );
       const averageTax = Math.round(totalTax / totalRecords);
       const averageBaseSalary = Math.round(totalBaseSalary / totalRecords);
@@ -1946,7 +1945,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     currentRow += 3;
     const signatureRow = worksheet.getRow(currentRow);
     const signatureColumn = String.fromCharCode(
-      64 + Math.floor(columnsCount / 2)
+      64 + Math.floor(columnsCount / 2),
     );
     signatureRow.getCell(signatureColumn).value = "ĐẠI DIỆN CÔNG TY";
     signatureRow.getCell(signatureColumn).font = {
@@ -1963,7 +1962,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     // Set print area
     const printAreaEnd = currentRow + 2;
     worksheet.pageSetup.printArea = `A1:${String.fromCharCode(
-      64 + columnsCount
+      64 + columnsCount,
     )}${printAreaEnd}`;
 
     // Freeze header row
@@ -1979,14 +1978,14 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     if (costCenter) {
       const sanitizedCostCenter = costCenter.replace(
         /[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF\s-]/g,
-        ""
+        "",
       );
       fileName += `_${sanitizedCostCenter}`;
     }
     if (realName) {
       const sanitizedRealName = realName.replace(
         /[^a-zA-Z0-9_\u00C0-\u024F\u1E00-\u1EFF\s-]/g,
-        ""
+        "",
       );
       fileName += `_${sanitizedRealName}`;
     }
@@ -1994,16 +1993,16 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
 
     const encodedFileName = encodeURIComponent(fileName).replace(
       /['()]/g,
-      escape
+      escape,
     );
 
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`
+      `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`,
     );
 
     // Stream the Excel file to the response
@@ -2014,5 +2013,45 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     res
       .status(500)
       .json({ message: "Lỗi khi xuất file Excel: " + error.message });
+  }
+};
+
+// Add this function to exports.getAllUserMonthlyRecord
+exports.getUserMonthlyRecords = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Check if user has permission
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+        "headOfNorthernRepresentativeOffice",
+        "headOfSales",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Truy cập bị từ chối. Bạn không có quyền truy cập." });
+    }
+
+    // Get all monthly records for this user
+    const records = await UserMonthlyRecord.find({ userId })
+      .populate("costCenter", "name")
+      .populate({
+        path: "assignedManager",
+        select: "username realName",
+      })
+      .sort({ recordYear: -1, recordMonth: -1 });
+
+    res.json(records);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

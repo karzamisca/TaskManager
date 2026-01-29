@@ -7,7 +7,7 @@
     <title>Bảng tính lương</title>
     <link
       rel="stylesheet"
-      href="userPages/userSalaryCalculation/userSalaryCalculation.css?v=1.1"
+      href="userPages/userSalaryCalculation/userSalaryCalculation.css?v=1.2"
     />
   </head>
   <body>
@@ -383,11 +383,75 @@
             </form>
           </div>
         </div>
+
+        <!-- User History Modal -->
+        <div id="user-history-modal" class="modal">
+          <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Lịch sử lương nhân viên</h2>
+            <div
+              id="history-user-info"
+              style="
+                margin-bottom: 20px;
+                padding: 10px;
+                background: var(--header-bg);
+                border-radius: 4px;
+              "
+            >
+              <p>
+                <strong>Nhân viên:</strong> <span id="history-user-name"></span>
+              </p>
+              <p>
+                <strong>Tên đăng nhập:</strong>
+                <span id="history-username"></span>
+              </p>
+            </div>
+            <div class="table-container">
+              <table id="history-table">
+                <thead>
+                  <tr>
+                    <th>Tháng</th>
+                    <th>Năm</th>
+                    <th>Lương cơ bản</th>
+                    <th>Hoa hồng</th>
+                    <th>Trách nhiệm</th>
+                    <th>Thưởng khác</th>
+                    <th>Giờ tăng ca trong tuần</th>
+                    <th>Giờ tăng ca Chủ Nhật</th>
+                    <th>Giờ tăng ca ngày lễ</th>
+                    <th>Lương tăng ca</th>
+                    <th>Công tác phí</th>
+                    <th>Lương gộp</th>
+                    <th>Thuế</th>
+                    <th>Lương thực lĩnh</th>
+                    <th>Lương đóng bảo hiểm</th>
+                    <th>Bảo hiểm bắt buộc</th>
+                    <th>Số người phụ thuộc</th>
+                    <th>Thu nhập tính thuế</th>
+                    <th>Trạm</th>
+                    <th>Người quản lý</th>
+                    <th>Ngày ghi nhận</th>
+                  </tr>
+                </thead>
+                <tbody id="history-table-body"></tbody>
+              </table>
+            </div>
+            <div style="margin-top: 20px; text-align: center">
+              <button
+                id="export-history-btn"
+                class="btn btn-export"
+                style="display: none"
+              >
+                Xuất lịch sử ra Excel
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?v=1.8"></script>
+    <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?v=1.9"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>

@@ -7,7 +7,7 @@ const authMiddleware = require("../middlewares/authMiddleware");
 router.get(
   "/userSalaryCalculation",
   authMiddleware,
-  userController.getUserSalaryCalculationPage
+  userController.getUserSalaryCalculationPage,
 );
 router.get("/userControl", authMiddleware, userController.getAllUsers);
 router.get("/userControl/:id", authMiddleware, userController.getUserById);
@@ -17,31 +17,38 @@ router.delete("/userControl/:id", authMiddleware, userController.deleteUser);
 router.get(
   "/userControlCostCenters",
   authMiddleware,
-  userController.getAllCostCenters
+  userController.getAllCostCenters,
 );
 router.get("/userControlManagers", authMiddleware, userController.getManagers);
 
 router.get(
   "/userMonthlyRecord",
   authMiddleware,
-  userController.getUserMonthlyRecordPage
+  userController.getUserMonthlyRecordPage,
 );
 router.get(
   "/userMonthlyRecordGet",
   authMiddleware,
-  userController.getAllUserMonthlyRecord
+  userController.getAllUserMonthlyRecord,
+);
+
+// New route for user monthly records history
+router.get(
+  "/userMonthlyRecords/:userId",
+  authMiddleware,
+  userController.getUserMonthlyRecords,
 );
 
 router.get(
   "/exportSalaryPDF",
   authMiddleware,
-  userController.exportSalaryPaymentPDF
+  userController.exportSalaryPaymentPDF,
 );
 
 router.get(
   "/exportSalaryExcel",
   authMiddleware,
-  userController.exportSalaryPaymentExcel
+  userController.exportSalaryPaymentExcel,
 );
 
 module.exports = router;

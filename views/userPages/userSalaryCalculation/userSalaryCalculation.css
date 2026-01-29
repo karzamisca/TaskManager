@@ -21,6 +21,8 @@
   --scrollbar-track: #f1f1f1;
   --scrollbar-thumb: #888;
   --scrollbar-thumb-hover: #555;
+  --history-color: #17a2b8;
+  --history-hover: #138496;
 
   /* Spacing variables */
   --spacing-xs: 5px;
@@ -66,6 +68,8 @@
     --scrollbar-thumb: #555;
     --scrollbar-thumb-hover: #777;
     --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --history-color: #20c997;
+    --history-hover: #199d76;
   }
 }
 
@@ -78,7 +82,9 @@
   background-color: var(--background-color);
   color: var(--text-color);
   line-height: 1.6;
-  transition: background-color 0.3s, color 0.3s;
+  transition:
+    background-color 0.3s,
+    color 0.3s;
   min-height: 100vh;
   padding: 20px 0;
 }
@@ -201,7 +207,9 @@
   border-radius: var(--border-radius);
   cursor: pointer;
   font-weight: 500;
-  transition: background-color 0.2s, transform 0.1s;
+  transition:
+    background-color 0.2s,
+    transform 0.1s;
 }
 
 .salary-calculation-page .btn:hover {
@@ -219,6 +227,14 @@
 
 .salary-calculation-page .btn-danger:hover {
   background: var(--danger-hover);
+}
+
+.salary-calculation-page .btn-history {
+  background: var(--history-color);
+}
+
+.salary-calculation-page .btn-history:hover {
+  background: var(--history-hover);
 }
 
 .salary-calculation-page .tabs {
@@ -397,6 +413,41 @@
   white-space: nowrap;
 }
 
+/* History table specific styles */
+#history-table {
+  min-width: 1400px;
+}
+
+#history-table th {
+  font-size: 11px;
+  padding: 8px 6px;
+}
+
+#history-table td {
+  font-size: 11px;
+  padding: 8px 6px;
+}
+
+#history-user-info p {
+  margin: 5px 0;
+}
+
+.modal-content {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+/* History modal specific styles */
+#history-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  #history-table tbody tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+}
+
 /* Scrollbar styling - horizontal only */
 .salary-calculation-page .table-container::-webkit-scrollbar {
   height: 12px;
@@ -416,6 +467,25 @@
   background: var(--scrollbar-thumb-hover);
 }
 
+/* Modal scrollbar */
+.salary-calculation-page .modal-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.salary-calculation-page .modal-content::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: var(--border-radius);
+}
+
+.salary-calculation-page .modal-content::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--border-radius);
+}
+
+.salary-calculation-page .modal-content::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .salary-calculation-page .container {
@@ -425,6 +495,9 @@
   .salary-calculation-page .modal-content {
     width: 95%;
     padding: var(--spacing-lg);
+    margin: 10% auto;
+    transform: none;
+    top: 0;
   }
 
   .salary-calculation-page .tab-button {
@@ -434,5 +507,35 @@
 
   .salary-calculation-page .action-buttons {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .salary-calculation-page .action-buttons button {
+    width: 100%;
+    margin-bottom: 4px;
+  }
+
+  #history-table {
+    min-width: 800px;
+  }
+}
+
+@media (max-width: 480px) {
+  .salary-calculation-page h1 {
+    font-size: 1.5rem;
+  }
+
+  .salary-calculation-page h2 {
+    font-size: 1.2rem;
+  }
+
+  .salary-calculation-page .selection-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .salary-calculation-page .export-section {
+    width: 100%;
+    justify-content: center;
   }
 }
