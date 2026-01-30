@@ -188,6 +188,7 @@ exports.createUser = async (req, res) => {
       travelExpense,
       email,
       facebookUserId,
+      allowanceGeneral,
     } = req.body;
 
     const existingUser = await User.findOne({ username });
@@ -218,6 +219,7 @@ exports.createUser = async (req, res) => {
       insurableSalary: insurableSalary || 0,
       dependantCount: req.body.dependantCount || 0,
       travelExpense: travelExpense || 0,
+      allowanceGeneral: allowanceGeneral || 0,
       email: email || "",
       facebookUserId: facebookUserId || "",
     });
@@ -268,6 +270,7 @@ exports.updateUser = async (req, res) => {
       travelExpense,
       email,
       facebookUserId,
+      allowanceGeneral,
     } = req.body;
 
     const user = await User.findById(req.params.id);
@@ -313,6 +316,8 @@ exports.updateUser = async (req, res) => {
     if (travelExpense !== undefined) user.travelExpense = travelExpense;
     if (email !== undefined) user.email = email;
     if (facebookUserId !== undefined) user.facebookUserId = facebookUserId;
+    if (allowanceGeneral !== undefined)
+      user.allowanceGeneral = allowanceGeneral;
     if (assignedManager) {
       const managerExists = await User.findById(assignedManager);
       if (!managerExists) {

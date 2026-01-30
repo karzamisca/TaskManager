@@ -7,7 +7,7 @@
     <title>Bảng tính lương</title>
     <link
       rel="stylesheet"
-      href="userPages/userSalaryCalculation/userSalaryCalculation.css?v=1.2"
+      href="userPages/userSalaryCalculation/userSalaryCalculation.css?v=1.3"
     />
   </head>
   <body>
@@ -86,6 +86,7 @@
                     <th>Hoa hồng</th>
                     <th>Thưởng khác</th>
                     <th>Trách nhiệm</th>
+                    <th>Phụ cấp chung</th>
                     <th>Giờ tăng ca trong tuần</th>
                     <th>Giờ tăng ca Chủ Nhật</th>
                     <th>Giờ tăng ca ngày lễ</th>
@@ -172,6 +173,16 @@
                 <input
                   type="number"
                   id="new-responsibility"
+                  min="0"
+                  step="0.01"
+                  value="0"
+                />
+              </div>
+              <div class="form-group">
+                <label for="new-allowance-general">Phụ cấp:</label>
+                <input
+                  type="number"
+                  id="new-allowance-general"
                   min="0"
                   step="0.01"
                   value="0"
@@ -319,6 +330,16 @@
                 />
               </div>
               <div class="form-group">
+                <label for="edit-allowance-general">Phụ cấp chung:</label>
+                <input
+                  type="number"
+                  id="edit-allowance-general"
+                  min="0"
+                  step="0.01"
+                  value="0"
+                />
+              </div>
+              <div class="form-group">
                 <label for="edit-weekday-overtime"
                   >Giờ tăng ca trong tuần:</label
                 >
@@ -416,6 +437,7 @@
                     <th>Hoa hồng</th>
                     <th>Trách nhiệm</th>
                     <th>Thưởng khác</th>
+                    <th>Phụ cấp chung</th>
                     <th>Giờ tăng ca trong tuần</th>
                     <th>Giờ tăng ca Chủ Nhật</th>
                     <th>Giờ tăng ca ngày lễ</th>
@@ -451,7 +473,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?v=1.9"></script>
+    <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?v=1.10"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>

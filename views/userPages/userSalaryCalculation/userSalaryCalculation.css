@@ -295,7 +295,7 @@
 .salary-calculation-page table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1000px;
+  min-width: 1050px;
 }
 
 .salary-calculation-page th,
@@ -415,7 +415,7 @@
 
 /* History table specific styles */
 #history-table {
-  min-width: 1400px;
+  min-width: 1450px;
 }
 
 #history-table th {
@@ -515,8 +515,12 @@
     margin-bottom: 4px;
   }
 
+  #users-table {
+    min-width: 850px;
+  }
+
   #history-table {
-    min-width: 800px;
+    min-width: 900px;
   }
 }
 

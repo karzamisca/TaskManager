@@ -51,6 +51,7 @@ const userSchema = new mongoose.Schema({
   taxableIncome: { type: Number, default: 0 },
   // Travel Expense Fields
   travelExpense: { type: Number, default: 0 },
+  allowanceGeneral: { type: Number, default: 0 },
   // Permissions array
   permissions: [{ type: String }],
 });
@@ -79,7 +80,8 @@ userSchema.pre("save", function (next) {
     this.responsibility +
     this.otherBonus +
     this.overtimePay +
-    this.travelExpense;
+    this.travelExpense +
+    this.allowanceGeneral;
 
   // Calculate mandatory insurance according to Vietnamese law
   // Social Insurance (8%), Health Insurance (1.5%), Unemployment Insurance (1%)
@@ -110,7 +112,7 @@ userSchema.pre("save", function (next) {
     this.grossSalary -
       this.mandatoryInsurance -
       standardDeduction -
-      dependantDeduction
+      dependantDeduction,
   );
 
   // Vietnamese progressive tax rates (2023) - using official formula
