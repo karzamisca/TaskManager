@@ -1306,7 +1306,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       ? `BÁO CÁO CHI TIẾT LƯƠNG THÁNG ${month} NĂM ${year}`
       : `BÁO CÁO CHI TIẾT LƯƠNG NĂM ${year}`;
 
-    const columnsCount = 19; // All fields
+    const columnsCount = 20; // Updated from 19 to 20 for allowanceGeneral
 
     worksheet.mergeCells(`A1:${String.fromCharCode(64 + columnsCount)}1`);
     worksheet.getCell("A1").value = reportTitle;
@@ -1348,6 +1348,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       { header: "Công tác phí", key: "travelExpense", width: 11 },
       { header: "Hoa hồng", key: "commissionBonus", width: 11 },
       { header: "Thưởng khác", key: "otherBonus", width: 11 },
+      { header: "Phụ cấp chung", key: "allowanceGeneral", width: 11 }, // Added allowanceGeneral
       { header: "Giờ TC tuần", key: "weekdayOvertime", width: 9 },
       { header: "Giờ TC CN", key: "weekendOvertime", width: 8 },
       { header: "Giờ TC lễ", key: "holidayOvertime", width: 8 },
@@ -1395,6 +1396,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     let totalTravelExpense = 0;
     let totalCommissionBonus = 0;
     let totalOtherBonus = 0;
+    let totalAllowanceGeneral = 0; // Added for allowanceGeneral
     let totalWeekdayOvertime = 0;
     let totalWeekendOvertime = 0;
     let totalHolidayOvertime = 0;
@@ -1414,7 +1416,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       costCenterRow.height = 22;
 
       // Merge all cells for cost center header
-      worksheet.mergeCells(`A${currentRow - 1}:S${currentRow - 1}`);
+      worksheet.mergeCells(`A${currentRow - 1}:T${currentRow - 1}`); // Updated from S to T
       costCenterRow.getCell(1).value = `TRẠM ${
         costCenterIndex + 1
       }: ${costCenterName}`;
@@ -1466,7 +1468,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         userHeaderRow.height = 20;
 
         // Merge all cells for user header
-        worksheet.mergeCells(`A${currentRow - 1}:S${currentRow - 1}`);
+        worksheet.mergeCells(`A${currentRow - 1}:T${currentRow - 1}`); // Updated from S to T
         userHeaderRow.getCell(1).value = `Nhân viên ${
           userIndex + 1
         }: ${userName}${costCenterName ? ` - ${costCenterName}` : ""}`;
@@ -1507,6 +1509,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         let userTotalTravelExpense = 0;
         let userTotalCommissionBonus = 0;
         let userTotalOtherBonus = 0;
+        let userTotalAllowanceGeneral = 0; // Added for allowanceGeneral
         let userTotalWeekdayOvertime = 0;
         let userTotalWeekendOvertime = 0;
         let userTotalHolidayOvertime = 0;
@@ -1528,6 +1531,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
             travelExpense: Math.ceil(record.travelExpense || 0),
             commissionBonus: Math.ceil(record.commissionBonus || 0),
             otherBonus: Math.ceil(record.otherBonus || 0),
+            allowanceGeneral: Math.ceil(record.allowanceGeneral || 0), // Added allowanceGeneral
             weekdayOvertime: record.weekdayOvertimeHour || 0,
             weekendOvertime: record.weekendOvertimeHour || 0,
             holidayOvertime: record.holidayOvertimeHour || 0,
@@ -1546,6 +1550,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
           userTotalTravelExpense += rowData.travelExpense;
           userTotalCommissionBonus += rowData.commissionBonus;
           userTotalOtherBonus += rowData.otherBonus;
+          userTotalAllowanceGeneral += rowData.allowanceGeneral; // Added
           userTotalWeekdayOvertime += rowData.weekdayOvertime;
           userTotalWeekendOvertime += rowData.weekendOvertime;
           userTotalHolidayOvertime += rowData.holidayOvertime;
@@ -1562,6 +1567,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
           totalTravelExpense += rowData.travelExpense;
           totalCommissionBonus += rowData.commissionBonus;
           totalOtherBonus += rowData.otherBonus;
+          totalAllowanceGeneral += rowData.allowanceGeneral; // Added
           totalWeekdayOvertime += rowData.weekdayOvertime;
           totalWeekendOvertime += rowData.weekendOvertime;
           totalHolidayOvertime += rowData.holidayOvertime;
@@ -1574,7 +1580,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
 
           const dataRow = worksheet.getRow(currentRow++);
 
-          // Set values for each cell
+          // Set values for each cell (now 20 columns)
           dataRow.getCell(1).value = rowData.stt;
           dataRow.getCell(2).value = rowData.name;
           dataRow.getCell(3).value = rowData.month;
@@ -1585,15 +1591,16 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
           dataRow.getCell(8).value = rowData.travelExpense;
           dataRow.getCell(9).value = rowData.commissionBonus;
           dataRow.getCell(10).value = rowData.otherBonus;
-          dataRow.getCell(11).value = rowData.weekdayOvertime;
-          dataRow.getCell(12).value = rowData.weekendOvertime;
-          dataRow.getCell(13).value = rowData.holidayOvertime;
-          dataRow.getCell(14).value = rowData.overtimePay;
-          dataRow.getCell(15).value = rowData.taxableIncome;
-          dataRow.getCell(16).value = rowData.grossSalary;
-          dataRow.getCell(17).value = rowData.tax;
-          dataRow.getCell(18).value = rowData.currentSalary;
-          dataRow.getCell(19).value = rowData.costCenter;
+          dataRow.getCell(11).value = rowData.allowanceGeneral; // Added
+          dataRow.getCell(12).value = rowData.weekdayOvertime;
+          dataRow.getCell(13).value = rowData.weekendOvertime;
+          dataRow.getCell(14).value = rowData.holidayOvertime;
+          dataRow.getCell(15).value = rowData.overtimePay;
+          dataRow.getCell(16).value = rowData.taxableIncome;
+          dataRow.getCell(17).value = rowData.grossSalary;
+          dataRow.getCell(18).value = rowData.tax;
+          dataRow.getCell(19).value = rowData.currentSalary;
+          dataRow.getCell(20).value = rowData.costCenter;
 
           // Format each cell in the data row
           dataRow.eachCell((cell, colNumber) => {
@@ -1618,19 +1625,19 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
             if (colNumber === 1 || colNumber === 3 || colNumber === 4) {
               // STT, Month, Year
               cell.alignment = { horizontal: "center", vertical: "middle" };
-            } else if (colNumber >= 5 && colNumber <= 10) {
-              // Salary fields (5-10): baseSalary to otherBonus
+            } else if (colNumber >= 5 && colNumber <= 11) {
+              // Salary fields (5-11): baseSalary to allowanceGeneral
               cell.alignment = { horizontal: "right", vertical: "middle" };
               cell.numFmt = "#,##0";
-            } else if (colNumber >= 11 && colNumber <= 13) {
-              // Overtime hours (11-13)
+            } else if (colNumber >= 12 && colNumber <= 14) {
+              // Overtime hours (12-14)
               cell.alignment = { horizontal: "center", vertical: "middle" };
               cell.numFmt = "0.0";
-            } else if (colNumber >= 14 && colNumber <= 18) {
-              // Other salary fields (14-18): overtimePay to currentSalary
+            } else if (colNumber >= 15 && colNumber <= 19) {
+              // Other salary fields (15-19): overtimePay to currentSalary
               cell.alignment = { horizontal: "right", vertical: "middle" };
               cell.numFmt = "#,##0";
-            } else if (colNumber === 19) {
+            } else if (colNumber === 20) {
               // Cost center
               cell.alignment = { horizontal: "left", vertical: "middle" };
             } else {
@@ -1672,7 +1679,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
           vertical: "middle",
         };
 
-        // Set user summary values
+        // Set user summary values (now 20 columns)
         userSummaryRow.getCell(3).value = ""; // Month column
         userSummaryRow.getCell(4).value = ""; // Year column
         userSummaryRow.getCell(5).value = userTotalBaseSalary;
@@ -1681,26 +1688,27 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         userSummaryRow.getCell(8).value = userTotalTravelExpense;
         userSummaryRow.getCell(9).value = userTotalCommissionBonus;
         userSummaryRow.getCell(10).value = userTotalOtherBonus;
-        userSummaryRow.getCell(11).value = userTotalWeekdayOvertime;
-        userSummaryRow.getCell(12).value = userTotalWeekendOvertime;
-        userSummaryRow.getCell(13).value = userTotalHolidayOvertime;
-        userSummaryRow.getCell(14).value = userTotalOvertimePay;
-        userSummaryRow.getCell(15).value = userTotalTaxableIncome;
-        userSummaryRow.getCell(16).value = userTotalGrossSalary;
-        userSummaryRow.getCell(17).value = userTotalTax;
-        userSummaryRow.getCell(18).value = userTotalCurrentSalary;
-        userSummaryRow.getCell(18).font = {
+        userSummaryRow.getCell(11).value = userTotalAllowanceGeneral; // Added
+        userSummaryRow.getCell(12).value = userTotalWeekdayOvertime;
+        userSummaryRow.getCell(13).value = userTotalWeekendOvertime;
+        userSummaryRow.getCell(14).value = userTotalHolidayOvertime;
+        userSummaryRow.getCell(15).value = userTotalOvertimePay;
+        userSummaryRow.getCell(16).value = userTotalTaxableIncome;
+        userSummaryRow.getCell(17).value = userTotalGrossSalary;
+        userSummaryRow.getCell(18).value = userTotalTax;
+        userSummaryRow.getCell(19).value = userTotalCurrentSalary;
+        userSummaryRow.getCell(19).font = {
           bold: true,
           size: 9,
           name: "Arial",
         };
 
         // Merge last two cells for note
-        worksheet.mergeCells(`S${currentRow - 1}:T${currentRow - 1}`);
-        userSummaryRow.getCell(19).value =
+        worksheet.mergeCells(`T${currentRow - 1}:U${currentRow - 1}`); // Updated from S:T to T:U
+        userSummaryRow.getCell(20).value =
           `TB: ${userAverageCurrentSalary.toLocaleString()} | Thuế TB: ${userAverageTax.toLocaleString()}`;
-        userSummaryRow.getCell(19).font = { size: 8, name: "Arial" };
-        userSummaryRow.getCell(19).alignment = {
+        userSummaryRow.getCell(20).font = { size: 8, name: "Arial" };
+        userSummaryRow.getCell(20).alignment = {
           horizontal: "left",
           vertical: "middle",
         };
@@ -1723,16 +1731,17 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
           // Alignment for summary row
           if (colNumber === 1 || colNumber === 2) {
             cell.alignment = { horizontal: "left", vertical: "middle" };
-          } else if (colNumber >= 5 && colNumber <= 10) {
+          } else if (colNumber >= 5 && colNumber <= 11) {
+            // Updated range for allowanceGeneral
             cell.alignment = { horizontal: "right", vertical: "middle" };
             cell.numFmt = "#,##0";
-          } else if (colNumber >= 11 && colNumber <= 13) {
+          } else if (colNumber >= 12 && colNumber <= 14) {
             cell.alignment = { horizontal: "center", vertical: "middle" };
             cell.numFmt = "0.0";
-          } else if (colNumber >= 14 && colNumber <= 18) {
+          } else if (colNumber >= 15 && colNumber <= 19) {
             cell.alignment = { horizontal: "right", vertical: "middle" };
             cell.numFmt = "#,##0";
-          } else if (colNumber === 19 || colNumber === 20) {
+          } else if (colNumber === 20 || colNumber === 21) {
             cell.alignment = { horizontal: "left", vertical: "middle" };
           } else if (colNumber === 3 || colNumber === 4) {
             cell.alignment = { horizontal: "center", vertical: "middle" };
@@ -1746,7 +1755,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       // Add empty row between cost centers
       const separatorRow = worksheet.getRow(currentRow++);
       separatorRow.height = 5;
-      worksheet.mergeCells(`A${currentRow - 1}:S${currentRow - 1}`);
+      worksheet.mergeCells(`A${currentRow - 1}:T${currentRow - 1}`); // Updated from S to T
       separatorRow.getCell(1).value = "";
       separatorRow.getCell(1).fill = {
         type: "pattern",
@@ -1791,14 +1800,15 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       { col: 8, value: totalTravelExpense }, // travelExpense
       { col: 9, value: totalCommissionBonus }, // commissionBonus
       { col: 10, value: totalOtherBonus }, // otherBonus
-      { col: 11, value: totalWeekdayOvertime }, // weekdayOvertime
-      { col: 12, value: totalWeekendOvertime }, // weekendOvertime
-      { col: 13, value: totalHolidayOvertime }, // holidayOvertime
-      { col: 14, value: totalOvertimePay }, // overtimePay
-      { col: 15, value: totalTaxableIncome }, // taxableIncome
-      { col: 16, value: totalGrossSalary }, // grossSalary
-      { col: 17, value: totalTax }, // tax
-      { col: 18, value: totalCurrentSalary }, // currentSalary
+      { col: 11, value: totalAllowanceGeneral }, // allowanceGeneral
+      { col: 12, value: totalWeekdayOvertime }, // weekdayOvertime
+      { col: 13, value: totalWeekendOvertime }, // weekendOvertime
+      { col: 14, value: totalHolidayOvertime }, // holidayOvertime
+      { col: 15, value: totalOvertimePay }, // overtimePay
+      { col: 16, value: totalTaxableIncome }, // taxableIncome
+      { col: 17, value: totalGrossSalary }, // grossSalary
+      { col: 18, value: totalTax }, // tax
+      { col: 19, value: totalCurrentSalary }, // currentSalary
     ];
 
     totals.forEach((total) => {
@@ -1811,7 +1821,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         fgColor: { argb: "FFE6E6E6" },
       };
 
-      if (total.col >= 11 && total.col <= 13) {
+      if (total.col >= 12 && total.col <= 14) {
         // Overtime hours
         cell.alignment = { horizontal: "center", vertical: "middle" };
         cell.numFmt = "0.0";
@@ -1842,7 +1852,7 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       // Add summary title
       const summaryTitleRow = worksheet.getRow(currentRow++);
       worksheet.mergeCells(
-        `A${summaryTitleRow.number}:S${summaryTitleRow.number}`,
+        `A${summaryTitleRow.number}:T${summaryTitleRow.number}`, // Updated from S to T
       );
       summaryTitleRow.getCell(1).value = "TỔNG HỢP THỐNG KÊ";
       summaryTitleRow.getCell(1).font = { bold: true, size: 14, name: "Arial" };
@@ -1858,6 +1868,9 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       );
       const averageTax = Math.round(totalTax / totalRecords);
       const averageBaseSalary = Math.round(totalBaseSalary / totalRecords);
+      const averageAllowanceGeneral = Math.round(
+        totalAllowanceGeneral / totalRecords,
+      ); // Added
 
       // Add summary data in a compact format
       const summaryData = [
@@ -1879,6 +1892,12 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
           totalBaseSalary,
           "Lương TB cơ bản",
           averageBaseSalary,
+        ],
+        [
+          "Tổng phụ cấp chung",
+          totalAllowanceGeneral,
+          "Phụ cấp TB",
+          averageAllowanceGeneral,
         ],
       ];
 

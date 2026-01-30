@@ -51,6 +51,7 @@ const monthlyUserRecordSchema = new mongoose.Schema(
     commissionBonus: { type: Number, default: 0 },
     responsibility: { type: Number, default: 0 },
     otherBonus: { type: Number, default: 0 },
+    allowanceGeneral: { type: Number, default: 0 },
     weekdayOvertimeHour: { type: Number, default: 0 },
     weekendOvertimeHour: { type: Number, default: 0 },
     holidayOvertimeHour: { type: Number, default: 0 },
@@ -70,13 +71,13 @@ const monthlyUserRecordSchema = new mongoose.Schema(
   },
   {
     timestamps: true, // Adds createdAt and updatedAt
-  }
+  },
 );
 
 // Create compound index to ensure one record per user per month/year
 monthlyUserRecordSchema.index(
   { userId: 1, recordMonth: 1, recordYear: 1 },
-  { unique: true }
+  { unique: true },
 );
 
 // Index for efficient querying by date

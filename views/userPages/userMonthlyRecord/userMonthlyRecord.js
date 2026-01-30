@@ -116,7 +116,7 @@ const safeGet = (obj, path, fallback = "N/A") => {
         current && current[key] !== undefined && current[key] !== null
           ? current[key]
           : fallback,
-      obj
+      obj,
     );
 };
 
@@ -195,11 +195,11 @@ const fetchMonthlyRecords = async () => {
 const groupRecordsByCostCenterAndUser = (records) => {
   // First, separate records with and without cost centers
   const recordsWithCostCenter = records.filter(
-    (record) => record.costCenter && record.costCenter.name
+    (record) => record.costCenter && record.costCenter.name,
   );
 
   const recordsWithoutCostCenter = records.filter(
-    (record) => !record.costCenter || !record.costCenter.name
+    (record) => !record.costCenter || !record.costCenter.name,
   );
 
   // Group records by cost center
@@ -230,11 +230,11 @@ const groupRecordsByCostCenterAndUser = (records) => {
 
     // Separate records with and without user names within this cost center
     const namedRecords = costCenterRecords.filter(
-      (record) => record.realName && record.realName.trim() !== ""
+      (record) => record.realName && record.realName.trim() !== "",
     );
 
     const unnamedRecords = costCenterRecords.filter(
-      (record) => !record.realName || record.realName.trim() === ""
+      (record) => !record.realName || record.realName.trim() === "",
     );
 
     // Sort named records by user name, then by year/month
@@ -402,6 +402,7 @@ const calculateUserSummary = (userRecords) => {
     totalTravelExpense: 0,
     totalCommissionBonus: 0,
     totalOtherBonus: 0,
+    totalAllowanceGeneral: 0, // Added for allowanceGeneral
     totalWeekdayOvertimeHours: 0,
     totalWeekendOvertimeHours: 0,
     totalHolidayOvertimeHours: 0,
@@ -421,6 +422,7 @@ const calculateUserSummary = (userRecords) => {
     summary.totalTravelExpense += Number(record.travelExpense) || 0;
     summary.totalCommissionBonus += Number(record.commissionBonus) || 0;
     summary.totalOtherBonus += Number(record.otherBonus) || 0;
+    summary.totalAllowanceGeneral += Number(record.allowanceGeneral) || 0; // Added
     summary.totalWeekdayOvertimeHours +=
       Number(record.weekdayOvertimeHour) || 0;
     summary.totalWeekendOvertimeHours +=
@@ -436,7 +438,7 @@ const calculateUserSummary = (userRecords) => {
 
   if (summary.recordCount > 0) {
     summary.averageCurrentSalary = Math.round(
-      summary.totalCurrentSalary / summary.recordCount
+      summary.totalCurrentSalary / summary.recordCount,
     );
     summary.averageTax = Math.round(summary.totalTax / summary.recordCount);
   }
@@ -466,7 +468,7 @@ const extractUniqueCostCenters = (records) => {
   const uniqueCostCenters = [...new Set(costCenters)].sort();
 
   const hasNoCostCenter = records.some(
-    (record) => !safeGet(record, "costCenter.name")
+    (record) => !safeGet(record, "costCenter.name"),
   );
   if (hasNoCostCenter) {
     uniqueCostCenters.push("Không có trạm");
@@ -548,6 +550,7 @@ const calculateSummary = (records) => {
       totalTravelExpense: 0,
       totalCommissionBonus: 0,
       totalOtherBonus: 0,
+      totalAllowanceGeneral: 0, // Added for allowanceGeneral
       totalWeekdayOvertimeHours: 0,
       totalWeekendOvertimeHours: 0,
       totalHolidayOvertimeHours: 0,
@@ -557,6 +560,7 @@ const calculateSummary = (records) => {
       totalTax: 0,
       totalCurrentSalary: 0,
       averageBaseSalary: 0,
+      averageAllowanceGeneral: 0, // Added for allowanceGeneral
       averageCurrentSalary: 0,
       averageTax: 0,
       minCurrentSalary: 0,
@@ -572,6 +576,7 @@ const calculateSummary = (records) => {
     totalTravelExpense: 0,
     totalCommissionBonus: 0,
     totalOtherBonus: 0,
+    totalAllowanceGeneral: 0, // Added for allowanceGeneral
     totalWeekdayOvertimeHours: 0,
     totalWeekendOvertimeHours: 0,
     totalHolidayOvertimeHours: 0,
@@ -591,6 +596,7 @@ const calculateSummary = (records) => {
     totals.totalTravelExpense += Number(record.travelExpense) || 0;
     totals.totalCommissionBonus += Number(record.commissionBonus) || 0;
     totals.totalOtherBonus += Number(record.otherBonus) || 0;
+    totals.totalAllowanceGeneral += Number(record.allowanceGeneral) || 0; // Added
     totals.totalWeekdayOvertimeHours += Number(record.weekdayOvertimeHour) || 0;
     totals.totalWeekendOvertimeHours += Number(record.weekendOvertimeHour) || 0;
     totals.totalHolidayOvertimeHours += Number(record.holidayOvertimeHour) || 0;
@@ -614,6 +620,10 @@ const calculateSummary = (records) => {
   totals.averageBaseSalary =
     totals.totalRecords > 0
       ? Math.round(totals.totalBaseSalary / totals.totalRecords)
+      : 0;
+  totals.averageAllowanceGeneral =
+    totals.totalRecords > 0
+      ? Math.round(totals.totalAllowanceGeneral / totals.totalRecords)
       : 0;
   totals.averageCurrentSalary =
     totals.totalRecords > 0
@@ -765,7 +775,7 @@ const createCostCenterHeader = (costCenter, groupIndex) => {
   row.setAttribute("role", "row");
 
   row.innerHTML = `
-    <td colspan="19" role="gridcell">
+    <td colspan="20" role="gridcell">
       <strong style="color: #1976d2; font-size: 1.1em;">TRẠM ${
         groupIndex + 1
       }: ${costCenter}</strong>
@@ -787,7 +797,7 @@ const createCostCenterSeparator = () => {
   row.setAttribute("role", "row");
 
   row.innerHTML = `
-    <td colspan="19" role="gridcell">
+    <td colspan="20" role="gridcell">
       <div style="height: 1px; background-color: #e0e0e0; margin: 10px 0;"></div>
     </td>
   `;
@@ -807,7 +817,7 @@ const createUserGroupHeader = (user, costCenter, groupIndex) => {
   }`;
 
   row.innerHTML = `
-    <td colspan="19" role="gridcell">
+    <td colspan="20" role="gridcell">
       <strong>Nhân viên ${groupIndex + 1}:</strong> ${employeeInfo}
       <span style="float: right; font-weight: normal; font-size: 0.9em; color: var(--text-secondary);">
         ${user.email || ""}
@@ -819,7 +829,7 @@ const createUserGroupHeader = (user, costCenter, groupIndex) => {
 };
 
 /**
- * Creates a user summary row WITHOUT RECORD COUNT COLUMN
+ * Creates a user summary row WITH ALLOWANCE GENERAL COLUMN
  */
 const createUserSummaryRow = (summary) => {
   const row = document.createElement("tr");
@@ -856,6 +866,11 @@ const createUserSummaryRow = (summary) => {
     },
     {
       text: summary.totalOtherBonus.toLocaleString(),
+      colSpan: 1,
+      align: "right",
+    },
+    {
+      text: summary.totalAllowanceGeneral.toLocaleString(), // Added allowanceGeneral
       colSpan: 1,
       align: "right",
     },
@@ -905,7 +920,7 @@ const createUserSummaryRow = (summary) => {
   let html = "";
   let cellIndex = 0;
 
-  for (let i = 0; i < 19; i++) {
+  for (let i = 0; i < 20; i++) {
     if (cellIndex < cells.length) {
       const cell = cells[cellIndex];
 
@@ -945,6 +960,7 @@ const createRecordRow = (record, index) => {
     <td role="gridcell">${safeToLocaleString(record.travelExpense)}</td>
     <td role="gridcell">${safeToLocaleString(record.commissionBonus)}</td>
     <td role="gridcell">${safeToLocaleString(record.otherBonus)}</td>
+    <td role="gridcell">${safeToLocaleString(record.allowanceGeneral)}</td>
     <td role="gridcell">${record.weekdayOvertimeHour || 0}</td>
     <td role="gridcell">${record.weekendOvertimeHour || 0}</td>
     <td role="gridcell">${record.holidayOvertimeHour || 0}</td>
@@ -956,7 +972,7 @@ const createRecordRow = (record, index) => {
     <td role="gridcell">${safeGet(
       record,
       "costCenter.name",
-      "Không có trạm"
+      "Không có trạm",
     )}</td>
     <td role="gridcell">
       <button class="view-details" data-id="${record._id}" 
@@ -981,7 +997,7 @@ const renderTableWithGrouping = (items) => {
   if (items.length === 0) {
     recordsBody.innerHTML = `
       <tr role="row">
-        <td colspan="19" role="gridcell" style="text-align: center; padding: 20px; color: #666;">
+        <td colspan="20" role="gridcell" style="text-align: center; padding: 20px; color: #666;">
           Không tìm thấy bản ghi nào phù hợp với tiêu chí tìm kiếm.
         </td>
       </tr>
@@ -1002,8 +1018,8 @@ const renderTableWithGrouping = (items) => {
           fragment.appendChild(
             createCostCenterHeader(
               item.data.costCenterName,
-              costCenterGroupCount
-            )
+              costCenterGroupCount,
+            ),
           );
           currentCostCenter = item.data.costCenterName;
           costCenterGroupCount++;
@@ -1024,8 +1040,8 @@ const renderTableWithGrouping = (items) => {
             createUserGroupHeader(
               item.data,
               item.costCenterName,
-              userGroupCount
-            )
+              userGroupCount,
+            ),
           );
           currentUser = item.userRealName;
           userGroupCount++;
@@ -1135,6 +1151,11 @@ const renderSummary = (summaryData) => {
       className: "summary-value positive",
     },
     {
+      label: "Tổng phụ cấp chung",
+      value: summaryData.totalAllowanceGeneral.toLocaleString() + " VND", // Added
+      className: "summary-value positive",
+    },
+    {
       label: "Tổng giờ TC tuần",
       value: summaryData.totalWeekdayOvertimeHours.toFixed(1) + " giờ",
       className: "summary-value",
@@ -1182,6 +1203,11 @@ const renderSummary = (summaryData) => {
     {
       label: "Thuế TB",
       value: summaryData.averageTax.toLocaleString() + " VND",
+      className: "summary-value",
+    },
+    {
+      label: "Phụ cấp TB",
+      value: summaryData.averageAllowanceGeneral.toLocaleString() + " VND", // Added
       className: "summary-value",
     },
     {
@@ -1237,7 +1263,7 @@ const showRecordCount = (count) => {
     if (tableContainer && tableContainer.parentNode) {
       tableContainer.parentNode.insertBefore(
         recordCountDisplay,
-        tableContainer.nextSibling
+        tableContainer.nextSibling,
       );
     }
   }
@@ -1253,19 +1279,19 @@ const createModalContent = (record) => {
 
   return `
     <h2>${safeGet(record, "realName", "Không có tên")} - ${monthName} ${
-    record.recordYear
-  }</h2>
+      record.recordYear
+    }</h2>
     <p><strong>Ngày ghi nhận:</strong> ${formatDate(record.recordDate)}</p>
     <p><strong>Email:</strong> ${safeGet(record, "email", "Không có")}</p>
     <p><strong>Trạm:</strong> ${safeGet(
       record,
       "costCenter.name",
-      "Không có trạm"
+      "Không có trạm",
     )}</p>
     <p><strong>Người phụ trách:</strong> ${safeGet(
       record,
       "assignedManager.realName",
-      "Không có"
+      "Không có",
     )}</p>
     
     <div class="modal-section">
@@ -1279,25 +1305,28 @@ const createModalContent = (record) => {
         record.beneficiaryBank || "Chưa cập nhật"
       }</p>
       <p><strong>Lương cơ bản:</strong> ${safeToLocaleString(
-        record.baseSalary
+        record.baseSalary,
       )}</p>
       <p><strong>Lương theo giờ:</strong> ${safeToLocaleString(
-        record.hourlyWage
+        record.hourlyWage,
       )}</p>
     </div>
 
     <div class="modal-section">
       <p><strong>Trách nhiệm:</strong> ${safeToLocaleString(
-        record.responsibility
+        record.responsibility,
       )}</p>
       <p><strong>Công tác phí:</strong> ${safeToLocaleString(
-        record.travelExpense
+        record.travelExpense,
       )}</p>
       <p><strong>Hoa hồng:</strong> ${safeToLocaleString(
-        record.commissionBonus
+        record.commissionBonus,
       )}</p>
       <p><strong>Thưởng khác:</strong> ${safeToLocaleString(
-        record.otherBonus
+        record.otherBonus,
+      )}</p>
+      <p><strong>Phụ cấp chung:</strong> ${safeToLocaleString(
+        record.allowanceGeneral,
       )}</p>
     </div>
 
@@ -1312,33 +1341,33 @@ const createModalContent = (record) => {
         record.holidayOvertimeHour || 0
       } giờ</p>
       <p><strong>Lương tăng ca:</strong> ${safeToLocaleString(
-        record.overtimePay
+        record.overtimePay,
       )}</p>
     </div>
 
     <div class="modal-section">
       <p><strong>Tổng lương:</strong> ${safeToLocaleString(
-        record.grossSalary
+        record.grossSalary,
       )}</p>
     </div>
 
     <div class="modal-section">
       <p><strong>Lương tính thuế:</strong> ${safeToLocaleString(
-        record.taxableIncome
+        record.taxableIncome,
       )}</p>
       <p><strong>Thuế thu nhập:</strong> ${safeToLocaleString(record.tax)}</p>
       <p><strong>Số người phụ thuộc:</strong> ${record.dependantCount || 0}</p>
       <p><strong>Lương đóng bảo hiểm:</strong> ${safeToLocaleString(
-        record.insurableSalary
+        record.insurableSalary,
       )}</p>
       <p><strong>Bảo hiểm bắt buộc:</strong> ${safeToLocaleString(
-        record.mandatoryInsurance
+        record.mandatoryInsurance,
       )}</p>
     </div>
 
     <div class="modal-section">  
       <p><strong>Lương thực lĩnh:</strong> ${safeToLocaleString(
-        record.currentSalary
+        record.currentSalary,
       )}</p>
     </div>
   `;
@@ -1534,7 +1563,7 @@ const setupEventListeners = () => {
   // Auto-filter on dropdown change (debounced)
   const debouncedApplyFilters = debounce(
     handleApplyFilters,
-    CONFIG.DEBOUNCE_DELAY
+    CONFIG.DEBOUNCE_DELAY,
   );
 
   [elements.yearFilter(), elements.monthFilter(), elements.costCenterFilter()]
@@ -1634,7 +1663,7 @@ const initializeApp = async () => {
     await loadData();
 
     console.log(
-      "User Monthly Record application initialized successfully with cost center grouping"
+      "User Monthly Record application initialized successfully with cost center grouping and allowanceGeneral",
     );
   } catch (error) {
     console.error("Application initialization failed:", error);
