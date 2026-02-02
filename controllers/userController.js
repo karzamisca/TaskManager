@@ -2079,3 +2079,227 @@ exports.getUserMonthlyRecords = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+exports.sendSalaryCalculationEmails = async (req, res) => {
+  try {
+    const { userIds, month, year } = req.body;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({
+        message: "Vui lòng chọn ít nhất một nhân viên",
+      });
+    }
+
+    if (!month || !year) {
+      return res.status(400).json({
+        message: "Vui lòng chọn tháng và năm",
+      });
+    }
+
+    // Check permission
+    const allowedRoles = [
+      "superAdmin",
+      "director",
+      "deputyDirector",
+      "headOfAccounting",
+    ];
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        message: "Bạn không có quyền gửi email bảng lương",
+      });
+    }
+
+    // Fetch selected users with their monthly records
+    const users = await User.find({ _id: { $in: userIds } });
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        message: "Không tìm thấy nhân viên đã chọn",
+      });
+    }
+
+    // Check for users without email
+    const usersWithoutEmail = users.filter(
+      (user) => !user.email || user.email.trim() === "",
+    );
+
+    if (usersWithoutEmail.length > 0) {
+      const userNames = usersWithoutEmail
+        .map((u) => u.realName || u.username)
+        .join(", ");
+      return res.status(400).json({
+        message: `Các nhân viên sau không có email: ${userNames}. Vui lòng cập nhật email trước khi gửi.`,
+        usersWithoutEmail: usersWithoutEmail.map((u) => ({
+          id: u._id,
+          name: u.realName || u.username,
+        })),
+      });
+    }
+
+    // Get monthly records for the selected users
+    const records = await UserMonthlyRecord.find({
+      userId: { $in: userIds },
+      recordMonth: parseInt(month),
+      recordYear: parseInt(year),
+    }).populate("costCenter");
+
+    if (records.length === 0) {
+      return res.status(404).json({
+        message: "Không tìm thấy bản ghi lương cho tháng/năm đã chọn",
+      });
+    }
+
+    const emailService = require("../utils/emailService");
+    const results = [];
+    let successfulCount = 0;
+    let failedCount = 0;
+
+    // Send emails to each user
+    for (const user of users) {
+      const userRecord = records.find(
+        (r) => r.userId.toString() === user._id.toString(),
+      );
+
+      if (!userRecord) {
+        results.push({
+          userId: user._id,
+          username: user.username,
+          realName: user.realName,
+          status: "failed",
+          reason: "Không tìm thấy bản ghi lương",
+        });
+        failedCount++;
+        continue;
+      }
+
+      try {
+        const subject = `Bảng lương tháng ${month}/${year} - ${user.realName}`;
+        const htmlContent = emailService.generateSalaryEmailContent(user, {
+          month,
+          year,
+          baseSalary: userRecord.baseSalary,
+          commissionBonus: userRecord.commissionBonus,
+          responsibility: userRecord.responsibility,
+          otherBonus: userRecord.otherBonus,
+          allowanceGeneral: userRecord.allowanceGeneral || 0,
+          overtimePay: userRecord.overtimePay,
+          travelExpense: userRecord.travelExpense,
+          grossSalary: userRecord.grossSalary,
+          mandatoryInsurance: userRecord.mandatoryInsurance,
+          tax: userRecord.tax,
+          currentSalary: userRecord.currentSalary,
+        });
+
+        const result = await emailService.sendSalaryEmail(
+          user.email,
+          subject,
+          htmlContent,
+        );
+
+        if (result.success) {
+          results.push({
+            userId: user._id,
+            username: user.username,
+            realName: user.realName,
+            email: user.email,
+            status: "success",
+            messageId: result.messageId,
+          });
+          successfulCount++;
+        } else {
+          results.push({
+            userId: user._id,
+            username: user.username,
+            realName: user.realName,
+            email: user.email,
+            status: "failed",
+            reason: result.error,
+          });
+          failedCount++;
+        }
+      } catch (error) {
+        results.push({
+          userId: user._id,
+          username: user.username,
+          realName: user.realName,
+          email: user.email,
+          status: "failed",
+          reason: error.message,
+        });
+        failedCount++;
+      }
+    }
+
+    res.json({
+      message: `Đã gửi email thành công cho ${successfulCount}/${users.length} nhân viên`,
+      total: users.length,
+      successful: successfulCount,
+      failed: failedCount,
+      details: results,
+    });
+  } catch (error) {
+    console.error("Error sending salary emails:", error);
+    res.status(500).json({
+      message: "Lỗi khi gửi email: " + error.message,
+    });
+  }
+};
+
+// Also add a function to update email only
+exports.updateUserEmail = async (req, res) => {
+  try {
+    const { userId, email } = req.body;
+
+    if (!userId || !email) {
+      return res.status(400).json({
+        message: "Thiếu userId hoặc email",
+      });
+    }
+
+    // Simple email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        message: "Email không hợp lệ",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        message: "Không tìm thấy nhân viên",
+      });
+    }
+
+    // Check if email already exists for another user
+    const existingUser = await User.findOne({
+      email: email.trim().toLowerCase(),
+      _id: { $ne: userId },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        message: "Email đã được sử dụng bởi nhân viên khác",
+      });
+    }
+
+    user.email = email.trim().toLowerCase();
+    await user.save();
+
+    res.json({
+      message: "Cập nhật email thành công",
+      user: {
+        id: user._id,
+        username: user.username,
+        realName: user.realName,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating user email:", error);
+    res.status(500).json({
+      message: "Lỗi khi cập nhật email: " + error.message,
+    });
+  }
+};

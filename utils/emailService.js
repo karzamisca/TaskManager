@@ -71,12 +71,12 @@ const filterDocumentsByUsername = (documents, username) => {
   return documents.filter((doc) => {
     // Get all approver usernames
     const approverUsernames = doc.approvers.map(
-      (approver) => approver.username
+      (approver) => approver.username,
     );
 
     // Get all approved usernames
     const approvedUsernames = doc.approvedBy.map(
-      (approval) => approval.username
+      (approval) => approval.username,
     );
 
     // Check if current user has already approved this document
@@ -86,11 +86,11 @@ const filterDocumentsByUsername = (documents, username) => {
 
     // Find pending approvers (those not in approvedBy)
     const pendingApprovers = doc.approvers.filter(
-      (approver) => !approvedUsernames.includes(approver.username)
+      (approver) => !approvedUsernames.includes(approver.username),
     );
 
     const pendingUsernames = pendingApprovers.map(
-      (approver) => approver.username
+      (approver) => approver.username,
     );
 
     // If there are no pending approvers, document is fully approved
@@ -100,7 +100,7 @@ const filterDocumentsByUsername = (documents, username) => {
 
     // Check if all pending approvers are restricted users
     const allPendingAreRestricted = pendingApprovers.every((approver) =>
-      restrictedUsers.includes(approver.username)
+      restrictedUsers.includes(approver.username),
     );
 
     // Check if the current restricted user is among the pending approvers
@@ -140,8 +140,8 @@ const groupDocumentsByApprover = (documents, username) => {
     const pendingApprovers = document.approvers.filter(
       (approver) =>
         !document.approvedBy.some(
-          (approved) => approved.username === approver.username
-        )
+          (approved) => approved.username === approver.username,
+        ),
     );
 
     pendingApprovers.forEach((approver) => {
@@ -169,8 +169,8 @@ const sendPendingApprovalEmails = async (allDocuments) => {
     const allApproverIds = [
       ...new Set(
         allDocuments.flatMap((doc) =>
-          doc.approvers.map((approver) => approver.approver.toString())
-        )
+          doc.approvers.map((approver) => approver.approver.toString()),
+        ),
       ),
     ];
 
@@ -185,7 +185,7 @@ const sendPendingApprovalEmails = async (allDocuments) => {
       // Group documents by approver after applying filters
       const documentsByApprover = groupDocumentsByApprover(
         allDocuments,
-        user.username
+        user.username,
       );
       const userDocuments = documentsByApprover.get(user._id.toString());
 
@@ -231,9 +231,143 @@ const sendPendingApprovalEmails = async (allDocuments) => {
   }
 };
 
+// Function to send salary calculation email
+const sendSalaryEmail = async (to, subject, htmlContent) => {
+  try {
+    const mailOptions = {
+      from: process.env.GMAIL_USER,
+      to,
+      subject,
+      html: htmlContent,
+    };
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Salary email sent:", info.response);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error("Error sending salary email:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Function to generate salary calculation HTML content
+const generateSalaryEmailContent = (user, salaryData) => {
+  const formatNumber = (num) => {
+    return num ? num.toLocaleString("vi-VN") : "0";
+  };
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #4CAF50; color: white; padding: 15px; text-align: center; border-radius: 5px 5px 0 0; }
+        .content { background-color: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+        .salary-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .salary-table th, .salary-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        .salary-table th { background-color: #f2f2f2; font-weight: bold; }
+        .highlight { background-color: #e8f5e8; font-weight: bold; }
+        .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2>BẢNG LƯƠNG THÁNG ${salaryData.month}/${salaryData.year}</h2>
+        </div>
+        <div class="content">
+          <p>Kính gửi <strong>${user.realName}</strong>,</p>
+          <p>Dưới đây là bảng lương chi tiết của bạn tháng ${salaryData.month}/${salaryData.year}:</p>
+          
+          <table class="salary-table">
+            <tr>
+              <th>STT</th>
+              <th>Mục</th>
+              <th>Số tiền (VND)</th>
+            </tr>
+            <tr>
+              <td>1</td>
+              <td>Lương cơ bản</td>
+              <td>${formatNumber(salaryData.baseSalary)}</td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>Hoa hồng</td>
+              <td>${formatNumber(salaryData.commissionBonus)}</td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>Trách nhiệm</td>
+              <td>${formatNumber(salaryData.responsibility)}</td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>Thưởng khác</td>
+              <td>${formatNumber(salaryData.otherBonus)}</td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>Phụ cấp chung</td>
+              <td>${formatNumber(salaryData.allowanceGeneral)}</td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td>Lương tăng ca</td>
+              <td>${formatNumber(salaryData.overtimePay)}</td>
+            </tr>
+            <tr>
+              <td>7</td>
+              <td>Công tác phí</td>
+              <td>${formatNumber(salaryData.travelExpense)}</td>
+            </tr>
+            <tr class="highlight">
+              <td colspan="2"><strong>Tổng lương gộp</strong></td>
+              <td><strong>${formatNumber(salaryData.grossSalary)}</strong></td>
+            </tr>
+            <tr>
+              <td>8</td>
+              <td>Bảo hiểm bắt buộc</td>
+              <td>-${formatNumber(salaryData.mandatoryInsurance)}</td>
+            </tr>
+            <tr>
+              <td>9</td>
+              <td>Thuế thu nhập</td>
+              <td>-${formatNumber(salaryData.tax)}</td>
+            </tr>
+            <tr class="highlight">
+              <td colspan="2"><strong>Lương thực lĩnh</strong></td>
+              <td><strong>${formatNumber(salaryData.currentSalary)}</strong></td>
+            </tr>
+          </table>
+          
+          <p><strong>Thông tin chuyển khoản:</strong></p>
+          <ul>
+            <li>Ngân hàng: ${user.beneficiaryBank || "N/A"}</li>
+            <li>Số tài khoản: ${user.bankAccountNumber || "N/A"}</li>
+            <li>Số tiền: ${formatNumber(salaryData.currentSalary)} VND</li>
+          </ul>
+          
+          <p>Mọi thắc mắc vui lòng liên hệ bộ phận kế toán.</p>
+          <p>Trân trọng,</p>
+          <p><strong>Phòng Kế Toán<br>Công ty TNHH Đầu Tư Thương Mại Dịch Vụ Kỳ Long</strong></p>
+        </div>
+        <div class="footer">
+          <p>Đây là email tự động, vui lòng không trả lời email này.</p>
+          <p>© ${new Date().getFullYear()} Công ty TNHH Đầu Tư Thương Mại Dịch Vụ Kỳ Long</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
 module.exports = {
   sendEmail,
   groupDocumentsByApprover,
   filterDocumentsByUsername,
   sendPendingApprovalEmails,
+  sendSalaryEmail,
+  generateSalaryEmailContent,
 };

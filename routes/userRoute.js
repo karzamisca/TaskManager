@@ -51,4 +51,12 @@ router.get(
   userController.exportSalaryPaymentExcel,
 );
 
+router.post(
+  "/sendSalaryEmails",
+  authMiddleware,
+  userController.sendSalaryCalculationEmails,
+);
+
+router.post("/updateUserEmail", authMiddleware, userController.updateUserEmail);
+
 module.exports = router;

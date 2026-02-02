@@ -1,4 +1,4 @@
-<!-- views\userPages\userSalaryCalculation\userSalaryCalculation.html -->
+<!-- views/userPages/userSalaryCalculation/userSalaryCalculation.html -->
 <!doctype html>
 <html lang="vi">
   <head>
@@ -7,7 +7,7 @@
     <title>Bảng tính lương</title>
     <link
       rel="stylesheet"
-      href="userPages/userSalaryCalculation/userSalaryCalculation.css?v=1.3"
+      href="userPages/userSalaryCalculation/userSalaryCalculation.css?v=1.4"
     />
   </head>
   <body>
@@ -50,7 +50,52 @@
             </div>
 
             <div class="selection-controls">
+              <div class="selection-header">
+                <input
+                  type="checkbox"
+                  id="select-all-toggle"
+                  class="select-all-toggle"
+                />
+                <label for="select-all-toggle" class="select-all-label"
+                  >Chọn</label
+                >
+                <span style="margin-left: 15px; color: var(--light-text)">
+                  Đã chọn: <span id="selected-count">0</span>
+                </span>
+              </div>
               <div class="export-section">
+                <div
+                  class="email-section"
+                  style="display: flex; gap: 10px; align-items: center"
+                >
+                  <div style="display: flex; gap: 5px; align-items: center">
+                    <label for="send-month">Tháng:</label>
+                    <input
+                      type="number"
+                      id="send-month"
+                      min="1"
+                      max="12"
+                      style="width: 60px; padding: 5px"
+                    />
+                  </div>
+                  <div style="display: flex; gap: 5px; align-items: center">
+                    <label for="send-year">Năm:</label>
+                    <input
+                      type="number"
+                      id="send-year"
+                      min="2020"
+                      max="2030"
+                      style="width: 80px; padding: 5px"
+                    />
+                  </div>
+                  <button
+                    id="send-email-btn"
+                    class="btn"
+                    style="background: #9c27b0"
+                  >
+                    Gửi Email Bảng Lương
+                  </button>
+                </div>
                 <button id="export-xlsx-btn" class="btn btn-export">
                   Xuất Excel
                 </button>
@@ -62,20 +107,10 @@
               <table id="users-table">
                 <thead>
                   <tr>
-                    <th class="checkbox-cell">
-                      <div class="selection-header">
-                        <input
-                          type="checkbox"
-                          id="select-all-toggle"
-                          class="select-all-toggle"
-                        />
-                        <label for="select-all-toggle" class="select-all-label"
-                          >Chọn</label
-                        >
-                      </div>
-                    </th>
+                    <th class="checkbox-cell"></th>
                     <th>Tên đăng nhập</th>
                     <th>Tên thật</th>
+                    <th>Email</th>
                     <th>Trạm</th>
                     <th>Người quản lý</th>
                     <th>Ngân hàng</th>
@@ -117,6 +152,10 @@
               <div class="form-group">
                 <label for="new-real-name">Tên thật:</label>
                 <input type="text" id="new-real-name" required />
+              </div>
+              <div class="form-group">
+                <label for="new-email">Email:</label>
+                <input type="email" id="new-email" placeholder="Nhập email" />
               </div>
               <div class="form-group">
                 <label for="new-cost-center">Trạm:</label>
@@ -254,7 +293,7 @@
           </div>
         </div>
 
-        <!-- Edit User Modal -->
+        <!-- Edit User Modal (now includes email) -->
         <div id="edit-user-modal" class="modal">
           <div class="modal-content">
             <span class="close-modal">&times;</span>
@@ -268,6 +307,13 @@
               <div class="form-group">
                 <label for="edit-real-name">Tên thật:</label>
                 <input type="text" id="edit-real-name" required />
+              </div>
+              <div class="form-group">
+                <label for="edit-email">Email:</label>
+                <input type="email" id="edit-email" placeholder="Nhập email" />
+                <small style="color: var(--light-text)"
+                  >Cần email để gửi bảng lương</small
+                >
               </div>
               <div class="form-group">
                 <label for="edit-cost-center">Trạm:</label>
@@ -469,11 +515,22 @@
             </div>
           </div>
         </div>
+
+        <!-- Email Results Modal -->
+        <div id="email-results-modal" class="modal">
+          <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Kết quả gửi email</h2>
+            <div id="email-results-content">
+              <!-- Results will be displayed here -->
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?v=1.10"></script>
+    <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?v=1.11"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>

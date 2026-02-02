@@ -1,5 +1,4 @@
 /* views\userPages\userSalaryCalculation\userSalaryCalculation.css */
-
 .salary-calculation-page {
   /* Light mode colors */
   --primary-color: #3498db;
@@ -23,6 +22,8 @@
   --scrollbar-thumb-hover: #555;
   --history-color: #17a2b8;
   --history-hover: #138496;
+  --email-color: #9c27b0;
+  --email-hover: #7b1fa2;
 
   /* Spacing variables */
   --spacing-xs: 5px;
@@ -70,6 +71,8 @@
     --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     --history-color: #20c997;
     --history-hover: #199d76;
+    --email-color: #ba68c8;
+    --email-hover: #ab47bc;
   }
 }
 
@@ -295,7 +298,7 @@
 .salary-calculation-page table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1050px;
+  min-width: 1200px;
 }
 
 .salary-calculation-page th,
@@ -413,6 +416,72 @@
   white-space: nowrap;
 }
 
+/* Email section styles */
+.salary-calculation-page .email-section {
+  background: var(--card-background);
+  padding: 10px;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
+}
+
+.salary-calculation-page .email-section input {
+  width: auto;
+  padding: 5px 8px;
+  font-size: 14px;
+  border: 1px solid var(--border-color);
+}
+
+.salary-calculation-page .email-section label {
+  display: inline;
+  margin-right: 5px;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+.salary-calculation-page #send-email-btn {
+  padding: 8px 15px;
+  font-size: 14px;
+  background: var(--email-color);
+}
+
+.salary-calculation-page #send-email-btn:hover {
+  background: var(--email-hover);
+}
+
+/* Email results styles */
+.email-results-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 15px 0;
+}
+
+.email-results-table th,
+.email-results-table td {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  text-align: left;
+}
+
+.email-results-table th {
+  background-color: var(--header-bg);
+  font-weight: bold;
+}
+
+.email-status-success {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.email-status-failed {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+.email-status-warning {
+  color: #ffc107;
+  font-weight: bold;
+}
+
 /* History table specific styles */
 #history-table {
   min-width: 1450px;
@@ -516,11 +585,33 @@
   }
 
   #users-table {
-    min-width: 850px;
+    min-width: 1000px;
   }
 
   #history-table {
     min-width: 900px;
+  }
+
+  .salary-calculation-page .selection-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-lg);
+  }
+
+  .salary-calculation-page .export-section {
+    flex-direction: column;
+    width: 100%;
+    gap: var(--spacing-md);
+  }
+
+  .salary-calculation-page .email-section {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .salary-calculation-page .email-section > div {
+    flex: 1;
+    min-width: 120px;
   }
 }
 
@@ -540,6 +631,20 @@
 
   .salary-calculation-page .export-section {
     width: 100%;
-    justify-content: center;
+  }
+
+  .salary-calculation-page .email-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .salary-calculation-page .email-section > div {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .salary-calculation-page #send-email-btn {
+    width: 100%;
+    margin-top: 10px;
   }
 }

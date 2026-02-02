@@ -4,6 +4,8 @@ let currentFilteredUsers = [];
 let allUsers = [];
 let currentHistoryData = null;
 let currentHistoryUserId = null;
+let currentMonth = new Date().getMonth() + 1;
+let currentYear = new Date().getFullYear();
 
 function toggleSelectUser(userId) {
   if (selectedUsers.has(userId)) {
@@ -11,6 +13,11 @@ function toggleSelectUser(userId) {
   } else {
     selectedUsers.add(userId);
   }
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  document.getElementById("selected-count").textContent = selectedUsers.size;
 }
 
 function toggleSelectAll() {
@@ -26,6 +33,7 @@ function toggleSelectAll() {
     currentFilteredUsers.forEach((user) => selectedUsers.add(user._id));
     selectAllToggle.checked = true;
   }
+  updateSelectedCount();
   renderUsers();
 }
 
@@ -62,10 +70,11 @@ async function exportToExcel() {
     return Math.min(Math.max(optimalWidth, 8), 35);
   };
 
-  // Define headers in Vietnamese - UPDATED with allowanceGeneral
+  // Define headers in Vietnamese
   const headers = [
     "Tên đăng nhập",
     "Tên thật",
+    "Email",
     "Trạm",
     "Người quản lý",
     "Ngân hàng",
@@ -91,24 +100,25 @@ async function exportToExcel() {
     "Lương thực lĩnh",
   ];
 
-  // Prepare the data - UPDATED with allowanceGeneral
+  // Prepare the data
   const data = usersToExport.map((user) => [
     user.username,
     user.realName,
+    user.email || "Chưa có",
     user.costCenter ? user.costCenter.name : "Chưa có",
     user.assignedManager ? user.assignedManager.username : "Chưa có",
     user.beneficiaryBank || "Chưa có",
     {
       t: "s",
       v: user.bankAccountNumber ? user.bankAccountNumber.toString() : "Chưa có",
-    }, // Force string type
-    { t: "s", v: user.citizenID ? user.citizenID.toString() : "Chưa có" }, // Force string type
+    },
+    { t: "s", v: user.citizenID ? user.citizenID.toString() : "Chưa có" },
     safeFormat(user.baseSalary),
     safeFormat(user.hourlyWage),
     safeFormat(user.commissionBonus),
     safeFormat(user.otherBonus),
     safeFormat(user.responsibility),
-    safeFormat(user.allowanceGeneral || 0), // ADDED
+    safeFormat(user.allowanceGeneral || 0),
     safeFormat(user.weekdayOvertimeHour),
     safeFormat(user.weekendOvertimeHour),
     safeFormat(user.holidayOvertimeHour),
@@ -152,7 +162,7 @@ async function exportToExcel() {
 
     ws[cellAddress].s = {
       font: { bold: true, sz: 11 },
-      fill: { fgColor: { rgb: "E6E6FA" } }, // Light lavender background
+      fill: { fgColor: { rgb: "E6E6FA" } },
       alignment: { horizontal: "center", vertical: "center", wrapText: true },
       border: {
         top: { style: "thin" },
@@ -180,8 +190,7 @@ async function exportToExcel() {
       };
 
       // Right-align numeric columns
-      if (col >= 7) {
-        // Numeric columns start from index 7
+      if (col >= 8) {
         ws[cellAddress].s.alignment.horizontal = "right";
       }
     }
@@ -204,7 +213,6 @@ async function exportToExcel() {
   showSuccess("Xuất Excel thành công!");
 }
 
-// Function to view user history
 async function viewUserHistory(userId, username, realName) {
   try {
     currentHistoryUserId = userId;
@@ -256,7 +264,6 @@ async function viewUserHistory(userId, username, realName) {
   }
 }
 
-// Function to render history table
 function renderHistoryTable(records) {
   const tbody = document.getElementById("history-table-body");
 
@@ -307,7 +314,6 @@ function renderHistoryTable(records) {
     .join("");
 }
 
-// Function to export history to Excel
 async function exportHistoryToExcel() {
   if (!currentHistoryData || currentHistoryData.length === 0) {
     showError("Không có dữ liệu để xuất");
@@ -323,7 +329,7 @@ async function exportHistoryToExcel() {
   const userName = user ? user.realName : "N/A";
   const username = user ? user.username : "N/A";
 
-  // Define headers in Vietnamese - UPDATED with allowanceGeneral
+  // Define headers in Vietnamese
   const headers = [
     "Tháng",
     "Năm",
@@ -349,7 +355,7 @@ async function exportHistoryToExcel() {
     "Ngày ghi nhận",
   ];
 
-  // Prepare the data - UPDATED with allowanceGeneral
+  // Prepare the data
   const data = currentHistoryData.map((record) => [
     record.recordMonth,
     record.recordYear,
@@ -409,10 +415,166 @@ async function exportHistoryToExcel() {
   showSuccess("Xuất lịch sử lương thành công!");
 }
 
+// Function to send salary emails
+async function sendSalaryEmails() {
+  if (selectedUsers.size === 0) {
+    showError("Vui lòng chọn ít nhất một nhân viên để gửi email");
+    return;
+  }
+
+  const month = document.getElementById("send-month").value;
+  const year = document.getElementById("send-year").value;
+
+  if (!month || !year) {
+    showError("Vui lòng chọn tháng và năm");
+    return;
+  }
+
+  if (month < 1 || month > 12) {
+    showError("Tháng phải từ 1 đến 12");
+    return;
+  }
+
+  if (year < 2020 || year > 2030) {
+    showError("Năm phải từ 2020 đến 2030");
+    return;
+  }
+
+  if (
+    !confirm(
+      `Bạn có chắc muốn gửi bảng lương tháng ${month}/${year} cho ${selectedUsers.size} nhân viên đã chọn?`,
+    )
+  ) {
+    return;
+  }
+
+  // Show loading state
+  const sendBtn = document.getElementById("send-email-btn");
+  const originalText = sendBtn.textContent;
+  sendBtn.textContent = "Đang gửi...";
+  sendBtn.disabled = true;
+
+  try {
+    const response = await fetch("/sendSalaryEmails", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userIds: Array.from(selectedUsers),
+        month: parseInt(month),
+        year: parseInt(year),
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      // Check if it's an email validation error
+      if (response.status === 400 && result.usersWithoutEmail) {
+        let errorMessage = result.message + "\n\n";
+        result.usersWithoutEmail.forEach((user) => {
+          errorMessage += `• ${user.name}\n`;
+        });
+        errorMessage +=
+          "\nVui lòng cập nhật email cho các nhân viên trên trước khi gửi.";
+
+        if (
+          confirm(
+            errorMessage + "\n\nBạn có muốn cập nhật email ngay bây giờ không?",
+          )
+        ) {
+          // Open edit modal for first user without email
+          const firstUser = allUsers.find(
+            (u) => u._id === result.usersWithoutEmail[0].id,
+          );
+          if (firstUser) {
+            editUser(firstUser._id);
+          }
+        }
+        return;
+      }
+      throw new Error(result.message || "Không thể gửi email");
+    }
+
+    // Show results in modal
+    showEmailResults(result);
+  } catch (err) {
+    showError(err.message || "Lỗi khi gửi email");
+  } finally {
+    // Restore button state
+    sendBtn.textContent = originalText;
+    sendBtn.disabled = false;
+  }
+}
+
+// Function to show email results in modal
+function showEmailResults(result) {
+  const modal = document.getElementById("email-results-modal");
+  const content = document.getElementById("email-results-content");
+
+  let html = `
+    <div style="margin-bottom: 20px;">
+      <p style="font-size: 16px; margin-bottom: 10px;">
+        <strong>Tổng kết:</strong> ${result.message}
+      </p>
+      <p><strong>Tổng số:</strong> ${result.total} nhân viên</p>
+      <p><strong>Gửi thành công:</strong> <span class="email-status-success">${result.successful}</span></p>
+      <p><strong>Gửi thất bại:</strong> <span class="email-status-failed">${result.failed}</span></p>
+    </div>
+  `;
+
+  if (result.details && result.details.length > 0) {
+    html += `
+      <h3>Chi tiết:</h3>
+      <div class="table-container">
+        <table class="email-results-table">
+          <thead>
+            <tr>
+              <th>Nhân viên</th>
+              <th>Email</th>
+              <th>Trạng thái</th>
+              <th>Thông tin</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    result.details.forEach((detail) => {
+      const statusClass =
+        detail.status === "success"
+          ? "email-status-success"
+          : detail.status === "failed"
+            ? "email-status-failed"
+            : "email-status-warning";
+
+      html += `
+        <tr>
+          <td>${detail.realName} (${detail.username})</td>
+          <td>${detail.email || "Không có"}</td>
+          <td class="${statusClass}">${detail.status === "success" ? "Thành công" : "Thất bại"}</td>
+          <td>${detail.reason || detail.messageId || ""}</td>
+        </tr>
+      `;
+    });
+
+    html += `
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  content.innerHTML = html;
+  modal.style.display = "block";
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   // Load initial data
   loadCostCentersAndManagers();
   loadUsers();
+
+  // Initialize month and year fields
+  document.getElementById("send-month").value = currentMonth;
+  document.getElementById("send-year").value = currentYear;
 
   document
     .getElementById("select-all-toggle")
@@ -448,6 +610,11 @@ document.addEventListener("DOMContentLoaded", function () {
     .getElementById("filter-button")
     .addEventListener("click", applyFilters);
   document.getElementById("add-user-form").addEventListener("submit", addUser);
+
+  // Email functionality
+  document
+    .getElementById("send-email-btn")
+    .addEventListener("click", sendSalaryEmails);
 
   // Modal functionality
   document.querySelectorAll(".close-modal").forEach((btn) => {
@@ -578,7 +745,7 @@ function renderUsers() {
   }
 
   if (currentFilteredUsers.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="27" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="28" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
     return;
   }
 
@@ -601,6 +768,11 @@ function renderUsers() {
         : "0";
     };
 
+    const hasEmail = user.email && user.email.trim() !== "";
+    const emailDisplay = hasEmail
+      ? user.email
+      : '<span style="color: #dc3545; font-size: 0.8em;">(Chưa có email)</span>';
+
     const row = document.createElement("tr");
     row.innerHTML = `
       <td class="checkbox-cell">
@@ -610,6 +782,7 @@ function renderUsers() {
       </td>
       <td>${user.username}</td>
       <td>${user.realName}</td>
+      <td>${emailDisplay}</td>
       <td>${user.costCenter ? user.costCenter.name : "Chưa có"}</td>
       <td>${
         user.assignedManager ? user.assignedManager.username : "Chưa có"
@@ -647,6 +820,8 @@ function renderUsers() {
     `;
     tbody.appendChild(row);
   });
+
+  updateSelectedCount();
 }
 
 // CRUD Operations
@@ -656,6 +831,7 @@ async function addUser(e) {
   const newUser = {
     username: document.getElementById("new-username").value,
     realName: document.getElementById("new-real-name").value,
+    email: document.getElementById("new-email").value.trim() || "",
     costCenter: document.getElementById("new-cost-center").value,
     assignedManager:
       document.getElementById("new-assigned-manager").value || undefined,
@@ -720,6 +896,7 @@ async function editUser(id) {
   document.getElementById("edit-user-id").value = user._id;
   document.getElementById("edit-username").value = user.username;
   document.getElementById("edit-real-name").value = user.realName;
+  document.getElementById("edit-email").value = user.email || "";
   document.getElementById("edit-beneficiary-bank").value =
     user.beneficiaryBank || "";
   document.getElementById("edit-bank-account-number").value =
@@ -770,6 +947,7 @@ async function updateUser(e) {
   const userData = {
     username: document.getElementById("edit-username").value,
     realName: document.getElementById("edit-real-name").value,
+    email: document.getElementById("edit-email").value.trim() || "",
     costCenter: document.getElementById("edit-cost-center").value,
     assignedManager:
       document.getElementById("edit-assigned-manager").value || undefined,
