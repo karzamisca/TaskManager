@@ -121,6 +121,7 @@ async function populateProductDropdowns() {
     });
   } catch (error) {
     console.error("Error populating product dropdowns:", error);
+    return [];
   }
 }
 
@@ -151,7 +152,7 @@ function calculateProductCost(index) {
   const vat = parseFloat(vatInput.value) || 0;
   const productName = productNameSelect.value || `Sản phẩm ${index + 1}`;
 
-  // Calculate costs
+  // Calculate costs (allow negative values for refunds/adjustments)
   const subtotal = costPerUnit * amount;
   const vatAmount = subtotal * (vat / 100);
   const totalCost = subtotal + vatAmount;
@@ -172,6 +173,13 @@ function calculateProductCost(index) {
     if (noteInput && noteInput.parentNode) {
       noteInput.parentNode.insertBefore(costDisplay, noteInput.nextSibling);
     }
+  }
+
+  // Determine color based on total cost (red for negative, green for positive)
+  if (totalCost < 0) {
+    costDisplay.style.color = "#e53e3e"; // Red for negative values
+  } else {
+    costDisplay.style.color = "#38a169"; // Green for positive values
   }
 
   costDisplay.textContent = `Tổng chi phí: ${totalCost.toLocaleString("vi-VN")}₫ (${subtotal.toLocaleString("vi-VN")}₫ + ${vatAmount.toLocaleString("vi-VN")}₫ VAT)`;
@@ -236,12 +244,15 @@ function updateGrandTotal() {
       productEntries.forEach((product, index) => {
         if (product) {
           const displayName = product.productName || `Sản phẩm ${index + 1}`;
+          // Highlight positive costs, show negative costs in red
+          const costClass = product.totalCost > 0 ? "summary-highlight" : "";
+          const costColor = product.totalCost < 0 ? "color: #e53e3e;" : "";
           summaryHTML += `
-            <div class="item-cost ${product.totalCost > 0 ? "summary-highlight" : ""}">
+            <div class="item-cost ${costClass}">
               <span class="cost-label product-name-summary" title="${displayName}">
                 ${displayName}
               </span>
-              <span class="cost-value product-cost-summary">
+              <span class="cost-value product-cost-summary" style="${costColor}">
                 ${product.totalCost.toLocaleString("vi-VN")}₫
               </span>
             </div>
@@ -249,11 +260,13 @@ function updateGrandTotal() {
         }
       });
 
-      // Add grand total
+      // Add grand total with color based on value
+      const totalColor =
+        grandTotalCost < 0 ? "color: #e53e3e;" : "color: var(--primary-color);";
       summaryHTML += `
         <div class="total-cost">
           <span class="cost-label">TỔNG CỘNG:</span>
-          <span class="cost-value">${grandTotalCost.toLocaleString("vi-VN")}₫</span>
+          <span class="cost-value" style="${totalColor}">${grandTotalCost.toLocaleString("vi-VN")}₫</span>
         </div>
       `;
 
@@ -336,7 +349,7 @@ function addProductEntry() {
           <option value="">Chọn sản phẩm</option>
         </select>
         <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
-        <input type="number" step="0.01" min="0" name="products[${productCount}][costPerUnit]" required 
+        <input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required 
                placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
         <label><i class="fas fa-hashtag"></i> Số lượng</label>
         <input type="number" step="0.01" min="0" name="products[${productCount}][amount]" required 
@@ -360,7 +373,7 @@ function addProductEntry() {
           <option value="">Chọn sản phẩm</option>
         </select>
         <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
-        <input type="number" step="0.01" min="0" name="products[${productCount}][costPerUnit]" required 
+        <input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required 
                placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
         <label><i class="fas fa-hashtag"></i> Số lượng</label>
         <input type="number" step="0.01" min="0" name="products[${productCount}][amount]" required 
@@ -565,7 +578,7 @@ function handlePurchasingDocument() {
             <option value="">Chọn sản phẩm</option>
           </select>
           <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
-          <input type="number" step="0.01" min="0" name="products[0][costPerUnit]" required 
+          <input type="number" step="0.01" name="products[0][costPerUnit]" required 
                  placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
           <label><i class="fas fa-hashtag"></i> Số lượng</label>
           <input type="number" step="0.01" min="0" name="products[0][amount]" required 
@@ -797,7 +810,7 @@ function handleDeliveryDocument() {
             <option value="">Chọn sản phẩm</option>
           </select>
           <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
-          <input type="number" step="0.01" min="0" name="products[0][costPerUnit]" required 
+          <input type="number" step="0.01" name="products[0][costPerUnit]" required 
                  placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
           <label><i class="fas fa-hashtag"></i> Số lượng</label>
           <input type="number" step="0.01" min="0" name="products[0][amount]" required 
@@ -866,7 +879,7 @@ function handleReceiptDocument() {
             <option value="">Chọn sản phẩm</option>
           </select>
           <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
-          <input type="number" step="0.01" min="0" name="products[0][costPerUnit]" required 
+          <input type="number" step="0.01" name="products[0][costPerUnit]" required 
                  placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
           <label><i class="fas fa-hashtag"></i> Số lượng</label>
           <input type="number" step="0.01" min="0" name="products[0][amount]" required 
