@@ -1,10 +1,9 @@
-// views/financePages/financeCostCenterDaily/financeCostCenterDaily.js
 const API_BASE = "/financeCostCenterDailyControl";
 let currentCostCenterId = null;
 let entries = [];
 let filteredEntries = [];
 let currentSortField = "date";
-let currentSortDirection = "asc";
+let currentSortDirection = "desc";
 let isAdding = false;
 let editingEntryId = null;
 let multipleEntryCounter = 0;
@@ -18,6 +17,8 @@ let filterState = {
   dateFrom: "",
   dateTo: "",
   searchName: "",
+  predictionFilter: "all",
+  varianceFilter: "all",
 };
 
 // Tải trạm khi trang load
@@ -83,21 +84,19 @@ async function loadAllCostCentersData() {
 function calculateGlobalSummary() {
   let globalTotalIncome = 0;
   let globalTotalExpense = 0;
+  let globalTotalIncomePrediction = 0;
+  let globalTotalExpensePrediction = 0;
 
   // Duyệt qua tất cả cost centers
   Object.values(allEntries).forEach((costCenterData) => {
     if (costCenterData.entries) {
-      const costCenterTotals = costCenterData.entries.reduce(
-        (acc, entry) => {
-          acc.income += entry.income || 0;
-          acc.expense += entry.expense || 0;
-          return acc;
-        },
-        { income: 0, expense: 0 },
-      );
+      costCenterData.entries.forEach((entry) => {
+        globalTotalIncome += entry.income || 0;
+        globalTotalExpense += entry.expense || 0;
 
-      globalTotalIncome += costCenterTotals.income;
-      globalTotalExpense += costCenterTotals.expense;
+        globalTotalIncomePrediction += entry.incomePrediction || 0;
+        globalTotalExpensePrediction += entry.expensePrediction || 0;
+      });
     }
   });
 
@@ -207,6 +206,12 @@ function hideAddButton() {
   document.getElementById("addNewEntryBtn").style.display = "none";
 }
 
+// Hide multiple entry form
+function hideMultipleEntryForm() {
+  document.getElementById("multipleEntryForm").classList.add("hidden");
+  document.getElementById("bulkActions").classList.remove("hidden");
+}
+
 // Sort entries
 function sortEntries(field, direction) {
   filteredEntries.sort((a, b) => {
@@ -219,6 +224,12 @@ function sortEntries(field, direction) {
       bValue = parseDate(bValue);
     }
 
+    // Handle undefined/null values
+    if (aValue === undefined || aValue === null)
+      aValue = direction === "asc" ? Infinity : -Infinity;
+    if (bValue === undefined || bValue === null)
+      bValue = direction === "asc" ? Infinity : -Infinity;
+
     if (aValue < bValue) return direction === "asc" ? -1 : 1;
     if (aValue > bValue) return direction === "asc" ? 1 : -1;
     return 0;
@@ -230,11 +241,12 @@ function sortEntries(field, direction) {
 
 // Parse date from DD/MM/YYYY format
 function parseDate(dateString) {
+  if (!dateString) return null;
   const parts = dateString.split("/");
   if (parts.length === 3) {
     return new Date(parts[2], parts[1] - 1, parts[0]);
   }
-  return new Date(0); // Invalid date
+  return null;
 }
 
 // Update sort indicators in table headers
@@ -263,30 +275,55 @@ function sortTable(field) {
   renderEntries();
 }
 
-// Tính toán tổng kết cho trạm hiện tại
+// Tính toán tổng kết cho trạm hiện tại với dự báo
 function calculateSummary() {
   let totalIncome = 0;
   let totalExpense = 0;
+  let totalIncomePrediction = 0;
+  let totalExpensePrediction = 0;
+  let entriesWithPrediction = 0;
 
   filteredEntries.forEach((entry) => {
-    totalIncome += entry.income;
-    totalExpense += entry.expense;
+    totalIncome += entry.income || 0;
+    totalExpense += entry.expense || 0;
+
+    totalIncomePrediction += entry.incomePrediction || 0;
+    totalExpensePrediction += entry.expensePrediction || 0;
+
+    if (entry.incomePrediction || entry.expensePrediction) {
+      entriesWithPrediction++;
+    }
   });
 
   const totalProfit = totalIncome - totalExpense;
 
+  // Cập nhật UI
   document.getElementById("totalIncome").textContent =
     totalIncome.toLocaleString("vi-VN");
   document.getElementById("totalExpense").textContent =
     totalExpense.toLocaleString("vi-VN");
   document.getElementById("totalProfit").textContent =
     totalProfit.toLocaleString("vi-VN");
+  document.getElementById("totalIncomePrediction").textContent =
+    totalIncomePrediction.toLocaleString("vi-VN");
+  document.getElementById("totalExpensePrediction").textContent =
+    totalExpensePrediction.toLocaleString("vi-VN");
+
+  // Hiển thị thống kê dự báo
+  const predictionStats = document.getElementById("predictionStats");
+  if (entriesWithPrediction > 0) {
+    predictionStats.classList.remove("hidden");
+    document.getElementById("withPredictionCount").textContent =
+      entriesWithPrediction;
+  } else {
+    predictionStats.classList.add("hidden");
+  }
 
   // Hiển thị phần tổng kết
   document.getElementById("summarySection").classList.remove("hidden");
 }
 
-// Hiển thị các mục trong bảng
+// Hiển thị các mục trong bảng với dự báo
 function renderEntries() {
   const tbody = document.getElementById("entriesBody");
   tbody.innerHTML = "";
@@ -299,7 +336,7 @@ function renderEntries() {
   if (filteredEntries.length === 0 && !isAdding) {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td colspan="5" style="text-align: center; color: #666;">
+      <td colspan="10" style="text-align: center; color: #666;">
         ${
           entries.length === 0
             ? "Chưa có dữ liệu nào. Hãy thêm mục mới."
@@ -314,94 +351,162 @@ function renderEntries() {
   filteredEntries.forEach((entry) => {
     const row = document.createElement("tr");
 
+    // Calculate variance values
+    const incomeVariance = entry.incomeVariance || 0;
+    const expenseVariance = entry.expenseVariance || 0;
+    const netVariance = entry.netVariance || 0;
+
     // Check if this row is being edited
     if (entry._id === editingEntryId) {
       row.className = "editing-row";
       row.innerHTML = `
         <td><input type="text" id="editName_${entry._id}" value="${entry.name}" required></td>
+        <td><input type="text" id="editDate_${entry._id}" value="${entry.date}" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
+        
+        <!-- Actual Values -->
         <td><input type="number" id="editIncome_${entry._id}" value="${entry.income}" step="0.1" required></td>
         <td><input type="number" id="editExpense_${entry._id}" value="${entry.expense}" step="0.1" required></td>
-        <td><input type="text" id="editDate_${entry._id}" value="${entry.date}" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
+        
+        <!-- Prediction Values -->
+        <td><input type="number" id="editIncomePrediction_${entry._id}" value="${entry.incomePrediction || 0}" step="0.1"></td>
+        <td><input type="number" id="editExpensePrediction_${entry._id}" value="${entry.expensePrediction || 0}" step="0.1"></td>
+        
+        <!-- Variance Display (read-only during edit) -->
+        <td class="variance-cell ${getVarianceClass(incomeVariance)}">
+          ${formatVariance(incomeVariance)}
+        </td>
+        <td class="variance-cell ${getVarianceClass(expenseVariance)}">
+          ${formatVariance(expenseVariance)}
+        </td>
+        <td class="variance-cell ${getVarianceClass(netVariance)}">
+          ${formatVariance(netVariance)}
+        </td>
+        
         <td class="actions">
           <button class="save-btn" onclick="saveEdit('${entry._id}')">Lưu</button>
           <button class="cancel-btn" onclick="cancelEdit('${entry._id}')">Hủy</button>
         </td>
       `;
     } else {
+      // Normal display row
       row.innerHTML = `
         <td>${entry.name}</td>
-        <td>${entry.income.toLocaleString("vi-VN")}</td>
-        <td>${entry.expense.toLocaleString("vi-VN")}</td>
         <td>${entry.date}</td>
+        
+        <!-- Actual Values -->
+        <td style="background-color: #d4edda;">${entry.income.toLocaleString("vi-VN")}</td>
+        <td style="background-color: #d4edda;">${entry.expense.toLocaleString("vi-VN")}</td>
+        
+        <!-- Prediction Values -->
+        <td style="background-color: #fff3cd;">
+          ${(entry.incomePrediction || 0).toLocaleString("vi-VN")}
+        </td>
+        <td style="background-color: #fff3cd;">
+          ${(entry.expensePrediction || 0).toLocaleString("vi-VN")}
+        </td>
+        
+        <!-- Variance Values -->
+        <td class="variance-cell ${getVarianceClass(incomeVariance)}">
+          ${formatVariance(incomeVariance)}
+        </td>
+        <td class="variance-cell ${getVarianceClass(expenseVariance)}">
+          ${formatVariance(expenseVariance)}
+        </td>
+        <td class="variance-cell ${getVarianceClass(netVariance)}">
+          ${formatVariance(netVariance)}
+        </td>
+        
         <td class="actions">
-          <button class="edit-btn" onclick="startEdit('${
-            entry._id
-          }')">Sửa</button>
-          <button class="delete-btn" onclick="deleteEntry('${
-            entry._id
-          }')">Xóa</button>
+          <button class="edit-btn" onclick="startEdit('${entry._id}')">Sửa</button>
+          <button class="delete-btn" onclick="deleteEntry('${entry._id}')">Xóa</button>
         </td>
       `;
     }
     tbody.appendChild(row);
   });
+
+  // If adding new row, show it at the top
+  if (isAdding) {
+    const addRow = createAddRow();
+    tbody.insertBefore(addRow, tbody.firstChild);
+  }
 }
 
-// Hiển thị hàng thêm mới
-function showAddRow() {
-  if (isAdding || editingEntryId) {
-    // If already adding or editing, don't allow multiple operations
-    return;
-  }
+// Helper function to format variance with +/- sign and color
+function formatVariance(value) {
+  if (value === 0 || value === null || value === undefined) return "0";
+  const sign = value > 0 ? "+" : "";
+  const formattedValue = Math.abs(value).toLocaleString("vi-VN");
+  return `<span class="${value > 0 ? "variance-positive" : value < 0 ? "variance-negative" : "variance-neutral"}">${sign}${formattedValue}</span>`;
+}
 
-  const tbody = document.getElementById("entriesBody");
+// Helper function to get variance class
+function getVarianceClass(value) {
+  if (value > 0) return "positive";
+  if (value < 0) return "negative";
+  return "neutral";
+}
 
-  // Clear any existing add row
-  const existingAddRow = document.getElementById("addEntryRow");
-  if (existingAddRow) {
-    existingAddRow.remove();
-  }
-
+// Create the add row HTML
+function createAddRow() {
   const row = document.createElement("tr");
   row.id = "addEntryRow";
   row.className = "editing-row";
+
+  const today = new Date();
+  const formattedDate = `${today.getDate().toString().padStart(2, "0")}/${(
+    today.getMonth() + 1
+  )
+    .toString()
+    .padStart(2, "0")}/${today.getFullYear()}`;
+
   row.innerHTML = `
-    <td><input type="text" id="newName" placeholder="Tên" required></td>
-    <td><input type="number" id="newIncome" placeholder="Thu nhập" step="0.1" required></td>
-    <td><input type="number" id="newExpense" placeholder="Chi phí" step="0.1" required></td>
-    <td><input type="text" id="newDate" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
+    <td><input type="text" id="newName" placeholder="Tên giao dịch" required></td>
+    <td><input type="text" id="newDate" value="${formattedDate}" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
+    
+    <!-- Actual Values -->
+    <td><input type="number" id="newIncome" placeholder="Thu nhập" step="0.1" value="0" required></td>
+    <td><input type="number" id="newExpense" placeholder="Chi phí" step="0.1" value="0" required></td>
+    
+    <!-- Prediction Values -->
+    <td><input type="number" id="newIncomePrediction" placeholder="Dự báo thu" step="0.1" value="0"></td>
+    <td><input type="number" id="newExpensePrediction" placeholder="Dự báo chi" step="0.1" value="0"></td>
+    
+    <!-- Variance Display (initially empty) -->
+    <td class="variance-cell neutral">0</td>
+    <td class="variance-cell neutral">0</td>
+    <td class="variance-cell neutral">0</td>
+    
     <td class="actions">
       <button class="save-btn" onclick="saveNewEntry()">Lưu</button>
       <button class="cancel-btn" onclick="cancelAdd()">Hủy</button>
     </td>
   `;
 
-  // Insert at the beginning of the table
-  tbody.insertBefore(row, tbody.firstChild);
+  return row;
+}
 
-  // Set state and hide add button
+// Hiển thị hàng thêm mới với prediction fields
+function showAddRow() {
+  if (isAdding || editingEntryId) {
+    return;
+  }
+
   isAdding = true;
   hideAddButton();
+  renderEntries(); // This will now show the add row at the top
 }
 
 // Hủy thêm mới
 function cancelAdd() {
-  const addRow = document.getElementById("addEntryRow");
-  if (addRow) {
-    addRow.remove();
-  }
-
-  // Reset state and show add button
   isAdding = false;
   showAddButton();
 
-  // If table is empty after cancel, show empty message
-  if (filteredEntries.length === 0) {
-    renderEntries();
-  }
+  // Re-render the table to remove the add row
+  renderEntries();
 }
 
-// Lưu mục mới
+// Lưu mục mới với prediction fields
 async function saveNewEntry() {
   if (!currentCostCenterId) return;
 
@@ -409,6 +514,10 @@ async function saveNewEntry() {
   const income = parseFloat(document.getElementById("newIncome").value);
   const expense = parseFloat(document.getElementById("newExpense").value);
   const date = document.getElementById("newDate").value;
+  const incomePrediction =
+    parseFloat(document.getElementById("newIncomePrediction").value) || 0;
+  const expensePrediction =
+    parseFloat(document.getElementById("newExpensePrediction").value) || 0;
 
   // Validate inputs
   if (!name.trim()) {
@@ -432,6 +541,8 @@ async function saveNewEntry() {
     income,
     expense,
     date,
+    incomePrediction,
+    expensePrediction,
   };
 
   try {
@@ -446,10 +557,11 @@ async function saveNewEntry() {
     if (response.ok) {
       cancelAdd();
       await loadEntries();
-      await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
+      await updateGlobalSummary();
       alert("Thêm mục thành công!");
     } else {
-      alert("Lỗi khi thêm mục");
+      const errorData = await response.json();
+      alert("Lỗi khi thêm mục: " + (errorData.message || "Unknown error"));
     }
   } catch (error) {
     alert("Lỗi khi thêm mục: " + error.message);
@@ -475,7 +587,7 @@ function cancelEdit(entryId) {
   renderEntries();
 }
 
-// Lưu chỉnh sửa
+// Lưu chỉnh sửa với prediction fields
 async function saveEdit(entryId) {
   if (!currentCostCenterId) return;
 
@@ -487,6 +599,12 @@ async function saveEdit(entryId) {
     document.getElementById(`editExpense_${entryId}`).value,
   );
   const date = document.getElementById(`editDate_${entryId}`).value;
+  const incomePrediction = parseFloat(
+    document.getElementById(`editIncomePrediction_${entryId}`).value || 0,
+  );
+  const expensePrediction = parseFloat(
+    document.getElementById(`editExpensePrediction_${entryId}`).value || 0,
+  );
 
   // Validate inputs
   if (!name.trim()) {
@@ -511,6 +629,8 @@ async function saveEdit(entryId) {
     income,
     expense,
     date,
+    incomePrediction,
+    expensePrediction,
   };
 
   try {
@@ -528,10 +648,11 @@ async function saveEdit(entryId) {
     if (response.ok) {
       editingEntryId = null;
       await loadEntries();
-      await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
+      await updateGlobalSummary();
       alert("Cập nhật thành công!");
     } else {
-      alert("Lỗi khi cập nhật mục");
+      const errorData = await response.json();
+      alert("Lỗi khi cập nhật mục: " + (errorData.message || "Unknown error"));
     }
   } catch (error) {
     alert("Lỗi khi cập nhật mục: " + error.message);
@@ -553,7 +674,7 @@ async function deleteEntry(entryId) {
 
       if (response.ok) {
         await loadEntries();
-        await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
+        await updateGlobalSummary();
         alert("Xóa mục thành công!");
       } else {
         alert("Lỗi khi xóa mục");
@@ -566,6 +687,7 @@ async function deleteEntry(entryId) {
 
 // Validate date format
 function isValidDate(dateString) {
+  if (!dateString) return false;
   const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
   if (!regex.test(dateString)) return false;
 
@@ -594,6 +716,9 @@ function applyFilters() {
   filterState.searchName = document
     .getElementById("searchName")
     .value.toLowerCase();
+  filterState.predictionFilter =
+    document.getElementById("predictionFilter").value;
+  filterState.varianceFilter = document.getElementById("varianceFilter").value;
 
   // Apply filters to entries
   filteredEntries = entries.filter((entry) => {
@@ -620,6 +745,42 @@ function applyFilters() {
       return false;
     }
 
+    // Prediction filter
+    if (filterState.predictionFilter === "withPrediction") {
+      if (!entry.incomePrediction && !entry.expensePrediction) {
+        return false;
+      }
+    } else if (filterState.predictionFilter === "withoutPrediction") {
+      if (entry.incomePrediction || entry.expensePrediction) {
+        return false;
+      }
+    }
+
+    // Variance filter
+    if (filterState.varianceFilter === "positiveVariance") {
+      if (
+        (entry.incomeVariance || 0) <= 0 &&
+        (entry.expenseVariance || 0) >= 0
+      ) {
+        return false;
+      }
+    } else if (filterState.varianceFilter === "negativeVariance") {
+      if (
+        (entry.incomeVariance || 0) >= 0 &&
+        (entry.expenseVariance || 0) <= 0
+      ) {
+        return false;
+      }
+    } else if (filterState.varianceFilter === "accurate") {
+      const incomeAccuracy =
+        Math.abs(entry.incomeVariance || 0) / (entry.income || 1);
+      const expenseAccuracy =
+        Math.abs(entry.expenseVariance || 0) / (entry.expense || 1);
+      if (incomeAccuracy > 0.1 && expenseAccuracy > 0.1) {
+        return false;
+      }
+    }
+
     return true;
   });
 
@@ -634,12 +795,16 @@ function resetFilters() {
   document.getElementById("dateFrom").value = "";
   document.getElementById("dateTo").value = "";
   document.getElementById("searchName").value = "";
+  document.getElementById("predictionFilter").value = "all";
+  document.getElementById("varianceFilter").value = "all";
 
   // Reset filter state
   filterState = {
     dateFrom: "",
     dateTo: "",
     searchName: "",
+    predictionFilter: "all",
+    varianceFilter: "all",
   };
 
   // Apply reset filters (show all entries)
@@ -650,12 +815,14 @@ function resetFilters() {
 function isDateOnOrAfter(dateString, compareDateString) {
   const date = parseDate(dateString);
   const compareDate = parseDate(compareDateString);
+  if (!date || !compareDate) return true;
   return date >= compareDate;
 }
 
 function isDateOnOrBefore(dateString, compareDateString) {
   const date = parseDate(dateString);
   const compareDate = parseDate(compareDateString);
+  if (!date || !compareDate) return true;
   return date <= compareDate;
 }
 
@@ -674,25 +841,27 @@ function showMultipleEntryForm() {
   addEntryRow();
 }
 
-function hideMultipleEntryForm() {
-  document.getElementById("multipleEntryForm").classList.add("hidden");
-  document.getElementById("bulkActions").classList.remove("hidden");
-  showAddButton();
-  clearMultipleEntries();
-}
-
 function addEntryRow() {
   const container = document.getElementById("multipleEntriesContainer");
   const entryId = `entry_${multipleEntryCounter++}`;
+
+  const today = new Date();
+  const formattedDate = `${today.getDate().toString().padStart(2, "0")}/${(
+    today.getMonth() + 1
+  )
+    .toString()
+    .padStart(2, "0")}/${today.getFullYear()}`;
 
   const entryRow = document.createElement("div");
   entryRow.className = "entry-row";
   entryRow.id = entryId;
   entryRow.innerHTML = `
     <input type="text" id="${entryId}_name" placeholder="Tên giao dịch" required>
+    <input type="text" id="${entryId}_date" value="${formattedDate}" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required>
     <input type="number" id="${entryId}_income" placeholder="Thu nhập (VND)" step="0.1" value="0" required>
     <input type="number" id="${entryId}_expense" placeholder="Chi phí (VND)" step="0.1" value="0" required>
-    <input type="text" id="${entryId}_date" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required>
+    <input type="number" id="${entryId}_incomePrediction" placeholder="Dự báo thu" step="0.1" value="0">
+    <input type="number" id="${entryId}_expensePrediction" placeholder="Dự báo chi" step="0.1" value="0">
     <button type="button" class="remove-entry-btn" onclick="removeEntryRow('${entryId}')">×</button>
   `;
 
@@ -736,13 +905,19 @@ async function saveMultipleEntries() {
   for (let row of entryRows) {
     const entryId = row.id;
     const name = document.getElementById(`${entryId}_name`).value.trim();
+    const date = document.getElementById(`${entryId}_date`).value;
     const income = parseFloat(
       document.getElementById(`${entryId}_income`).value,
     );
     const expense = parseFloat(
       document.getElementById(`${entryId}_expense`).value,
     );
-    const date = document.getElementById(`${entryId}_date`).value;
+    const incomePrediction = parseFloat(
+      document.getElementById(`${entryId}_incomePrediction`).value || 0,
+    );
+    const expensePrediction = parseFloat(
+      document.getElementById(`${entryId}_expensePrediction`).value || 0,
+    );
 
     // Validate inputs
     if (!name) {
@@ -765,9 +940,11 @@ async function saveMultipleEntries() {
 
     entriesToSave.push({
       name,
+      date,
       income,
       expense,
-      date,
+      incomePrediction,
+      expensePrediction,
     });
   }
 
@@ -816,7 +993,7 @@ async function saveMultipleEntries() {
       alert(`Đã thêm thành công ${successCount} mục!`);
       hideMultipleEntryForm();
       await loadEntries();
-      await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
+      await updateGlobalSummary();
     } else {
       alert(
         `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`,
@@ -824,7 +1001,7 @@ async function saveMultipleEntries() {
       if (successCount > 0) {
         hideMultipleEntryForm();
         await loadEntries();
-        await updateGlobalSummary(); // Cập nhật tổng kết toàn hệ thống
+        await updateGlobalSummary();
       }
     }
   } catch (error) {
@@ -844,11 +1021,56 @@ function cancelMultipleEntries() {
   }
 }
 
+// Export Data
+async function exportData() {
+  if (!currentCostCenterId || filteredEntries.length === 0) {
+    alert("Không có dữ liệu để xuất");
+    return;
+  }
+
+  try {
+    // Create CSV content
+    let csvContent =
+      "Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Chênh lệch thu,Chênh lệch chi,Chênh lệch LN\n";
+
+    filteredEntries.forEach((entry) => {
+      const row = [
+        `"${entry.name}"`,
+        entry.date,
+        entry.income,
+        entry.expense,
+        entry.incomePrediction || 0,
+        entry.expensePrediction || 0,
+        entry.incomeVariance || 0,
+        entry.expenseVariance || 0,
+        entry.netVariance || 0,
+      ];
+      csvContent += row.join(",") + "\n";
+    });
+
+    // Create and download CSV file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `daily_finance_${currentCostCenterId}_${new Date().toISOString().split("T")[0]}.csv`,
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    alert("Lỗi khi xuất dữ liệu: " + error.message);
+  }
+}
+
 // Global Summary Functions
 function showGlobalDetails() {
   const modalContent = `
     <div class="modal fade" id="globalDetailsModal" tabindex="-1">
-      <div class="modal-dialog modal-lg">
+      <div class="modal-dialog modal-xl">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">📊 Tổng Kết Chi Tiết Toàn Hệ Thống</h5>
@@ -861,9 +1083,12 @@ function showGlobalDetails() {
                   <tr>
                     <th>Trạm</th>
                     <th>Số Giao Dịch</th>
+                    <th>Có Dự Báo</th>
                     <th>Tổng Thu (VND)</th>
                     <th>Tổng Chi (VND)</th>
                     <th>Lợi Nhuận (VND)</th>
+                    <th>Tổng Dự Báo Thu</th>
+                    <th>Tổng Dự Báo Chi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -877,6 +1102,9 @@ function showGlobalDetails() {
                             <td>0</td>
                             <td>0</td>
                             <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
                           </tr>
                         `;
                       }
@@ -885,9 +1113,25 @@ function showGlobalDetails() {
                         (acc, entry) => {
                           acc.totalIncome += entry.income || 0;
                           acc.totalExpense += entry.expense || 0;
+                          acc.totalIncomePrediction +=
+                            entry.incomePrediction || 0;
+                          acc.totalExpensePrediction +=
+                            entry.expensePrediction || 0;
+                          if (
+                            entry.incomePrediction ||
+                            entry.expensePrediction
+                          ) {
+                            acc.withPrediction++;
+                          }
                           return acc;
                         },
-                        { totalIncome: 0, totalExpense: 0 },
+                        {
+                          totalIncome: 0,
+                          totalExpense: 0,
+                          totalIncomePrediction: 0,
+                          totalExpensePrediction: 0,
+                          withPrediction: 0,
+                        },
                       );
 
                       const profit = totals.totalIncome - totals.totalExpense;
@@ -900,9 +1144,12 @@ function showGlobalDetails() {
                         <tr onclick="switchToCostCenter('${costCenterId}')" style="cursor: pointer;" title="Nhấp để xem chi tiết trạm ${data.name}">
                           <td><strong>${data.name}</strong></td>
                           <td>${data.entries.length}</td>
+                          <td>${totals.withPrediction}</td>
                           <td>${totals.totalIncome.toLocaleString("vi-VN")}</td>
                           <td>${totals.totalExpense.toLocaleString("vi-VN")}</td>
                           <td class="${profitClass}">${profit.toLocaleString("vi-VN")}</td>
+                          <td>${totals.totalIncomePrediction.toLocaleString("vi-VN")}</td>
+                          <td>${totals.totalExpensePrediction.toLocaleString("vi-VN")}</td>
                         </tr>
                       `;
                     })
@@ -914,6 +1161,16 @@ function showGlobalDetails() {
                     <td><strong>${Object.values(allEntries).reduce(
                       (sum, data) =>
                         sum + (data.entries ? data.entries.length : 0),
+                      0,
+                    )}</strong></td>
+                    <td><strong>${Object.values(allEntries).reduce(
+                      (sum, data) =>
+                        sum +
+                        (data.entries
+                          ? data.entries.filter(
+                              (e) => e.incomePrediction || e.expensePrediction,
+                            ).length
+                          : 0),
                       0,
                     )}</strong></td>
                     <td><strong>${Object.values(allEntries)
@@ -979,6 +1236,34 @@ function showGlobalDetails() {
                         }, 0)
                         .toLocaleString("vi-VN")}
                     </strong></td>
+                    <td><strong>${Object.values(allEntries)
+                      .reduce(
+                        (sum, data) =>
+                          sum +
+                          (data.entries
+                            ? data.entries.reduce(
+                                (acc, entry) =>
+                                  acc + (entry.incomePrediction || 0),
+                                0,
+                              )
+                            : 0),
+                        0,
+                      )
+                      .toLocaleString("vi-VN")}</strong></td>
+                    <td><strong>${Object.values(allEntries)
+                      .reduce(
+                        (sum, data) =>
+                          sum +
+                          (data.entries
+                            ? data.entries.reduce(
+                                (acc, entry) =>
+                                  acc + (entry.expensePrediction || 0),
+                                0,
+                              )
+                            : 0),
+                        0,
+                      )
+                      .toLocaleString("vi-VN")}</strong></td>
                   </tr>
                 </tfoot>
               </table>
@@ -991,6 +1276,9 @@ function showGlobalDetails() {
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
             <button type="button" class="btn btn-primary" onclick="refreshGlobalData()">
               🔄 Làm Mới Dữ Liệu
+            </button>
+            <button type="button" class="btn btn-success" onclick="exportAllData()">
+              📁 Xuất Toàn Bộ
             </button>
           </div>
         </div>
@@ -1032,4 +1320,48 @@ function switchToCostCenter(costCenterId) {
 async function refreshGlobalData() {
   await loadAllCostCentersData();
   alert("Đã cập nhật dữ liệu toàn hệ thống!");
+}
+
+// Hàm xuất toàn bộ dữ liệu
+async function exportAllData() {
+  try {
+    let csvContent =
+      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Chênh lệch thu,Chênh lệch chi,Chênh lệch LN\n";
+
+    Object.entries(allEntries).forEach(([costCenterId, data]) => {
+      if (data.entries && data.entries.length > 0) {
+        data.entries.forEach((entry) => {
+          const row = [
+            `"${data.name}"`,
+            `"${entry.name}"`,
+            entry.date,
+            entry.income,
+            entry.expense,
+            entry.incomePrediction || 0,
+            entry.expensePrediction || 0,
+            entry.incomeVariance || 0,
+            entry.expenseVariance || 0,
+            entry.netVariance || 0,
+          ];
+          csvContent += row.join(",") + "\n";
+        });
+      }
+    });
+
+    // Create and download CSV file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `all_daily_finance_${new Date().toISOString().split("T")[0]}.csv`,
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    alert("Lỗi khi xuất dữ liệu: " + error.message);
+  }
 }

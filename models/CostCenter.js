@@ -68,6 +68,9 @@ const dailySchema = new mongoose.Schema({
     required: true,
     match: [/^\d{2}\/\d{2}\/\d{4}$/, "Date must be in DD/MM/YYYY format"],
   },
+  // Prediction fields
+  incomePrediction: { type: Number, default: 0 },
+  expensePrediction: { type: Number, default: 0 },
 });
 
 // Define the merged cost center schema
@@ -117,6 +120,12 @@ bankSchema.pre("save", function (next) {
 dailySchema.pre("save", function (next) {
   // Calculate net for daily entries
   this.net = this.income - this.expense;
+  // Calculate predicted net
+  this.predictedNet = this.incomePrediction - this.expensePrediction;
+  // Calculate variance (actual vs prediction)
+  this.incomeVariance = this.income - this.incomePrediction;
+  this.expenseVariance = this.expense - this.expensePrediction;
+  this.netVariance = this.net - this.predictedNet;
   next();
 });
 

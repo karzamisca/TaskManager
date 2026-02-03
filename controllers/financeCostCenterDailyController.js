@@ -1,4 +1,3 @@
-// controllers/financeCostCenterDailyController.js
 const CostCenter = require("../models/CostCenter");
 const FinanceCostCenterDailyLog = require("../models/FinanceCostCenterDailyLog");
 
@@ -75,11 +74,24 @@ exports.getDailyEntries = async (req, res) => {
       return res.status(404).json({ message: "Cost center not found" });
     }
 
-    await logAction(req, res, "GET_DAILY_ENTRIES", costCenterId, null, {
-      entriesCount: costCenter.daily ? costCenter.daily.length : 0,
+    // Convert entries to include virtual fields
+    const entries = (costCenter.daily || []).map((entry) => {
+      const entryObj = entry.toObject();
+      // Add virtual fields
+      entryObj.net = entry.income - entry.expense;
+      entryObj.predictedNet =
+        (entry.incomePrediction || 0) - (entry.expensePrediction || 0);
+      entryObj.incomeVariance = entry.income - (entry.incomePrediction || 0);
+      entryObj.expenseVariance = entry.expense - (entry.expensePrediction || 0);
+      entryObj.netVariance = entryObj.net - entryObj.predictedNet;
+      return entryObj;
     });
 
-    res.json(costCenter.daily || []);
+    await logAction(req, res, "GET_DAILY_ENTRIES", costCenterId, null, {
+      entriesCount: entries.length,
+    });
+
+    res.json(entries);
   } catch (error) {
     await logAction(
       req,
@@ -116,7 +128,24 @@ exports.addDailyEntry = async (req, res) => {
     }
 
     const { costCenterId } = req.params;
-    const { name, income, expense, date } = req.body;
+    const {
+      name,
+      income,
+      expense,
+      date,
+      // Simplified prediction fields
+      incomePrediction,
+      expensePrediction,
+    } = req.body;
+
+    // Validate required fields
+    if (!name || !date) {
+      await logAction(req, res, "ADD_DAILY_ENTRY", costCenterId, null, {
+        error: "Missing required fields",
+        data: { name, date },
+      });
+      return res.status(400).json({ message: "Name and date are required" });
+    }
 
     // Validate date format
     const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
@@ -139,10 +168,13 @@ exports.addDailyEntry = async (req, res) => {
     }
 
     const newEntry = {
-      name,
+      name: name.trim(),
       income: parseFloat(income) || 0,
       expense: parseFloat(expense) || 0,
       date,
+      // Add simplified prediction fields
+      incomePrediction: parseFloat(incomePrediction) || 0,
+      expensePrediction: parseFloat(expensePrediction) || 0,
     };
 
     // Initialize daily array if it doesn't exist
@@ -155,17 +187,23 @@ exports.addDailyEntry = async (req, res) => {
 
     // Get the saved entry ID
     const savedEntry = costCenter.daily[costCenter.daily.length - 1];
+    const entryWithVirtuals = savedEntry.toObject();
+    // Add virtual fields
+    entryWithVirtuals.net = savedEntry.income - savedEntry.expense;
+    entryWithVirtuals.predictedNet =
+      (savedEntry.incomePrediction || 0) - (savedEntry.expensePrediction || 0);
+    entryWithVirtuals.incomeVariance =
+      savedEntry.income - (savedEntry.incomePrediction || 0);
+    entryWithVirtuals.expenseVariance =
+      savedEntry.expense - (savedEntry.expensePrediction || 0);
+    entryWithVirtuals.netVariance =
+      entryWithVirtuals.net - entryWithVirtuals.predictedNet;
 
     await logAction(req, res, "ADD_DAILY_ENTRY", costCenterId, savedEntry._id, {
-      entryData: {
-        name: newEntry.name,
-        income: newEntry.income,
-        expense: newEntry.expense,
-        date: newEntry.date,
-      },
+      entryData: newEntry,
     });
 
-    res.status(201).json(newEntry);
+    res.status(201).json(entryWithVirtuals);
   } catch (error) {
     await logAction(
       req,
@@ -202,9 +240,17 @@ exports.updateDailyEntry = async (req, res) => {
     }
 
     const { costCenterId, entryId } = req.params;
-    const { name, income, expense, date } = req.body;
+    const {
+      name,
+      income,
+      expense,
+      date,
+      // Simplified prediction fields
+      incomePrediction,
+      expensePrediction,
+    } = req.body;
 
-    // Validate date format
+    // Validate date format if provided
     const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
     if (date && !dateRegex.test(date)) {
       await logAction(req, res, "UPDATE_DAILY_ENTRY", costCenterId, entryId, {
@@ -240,14 +286,32 @@ exports.updateDailyEntry = async (req, res) => {
       income: entry.income,
       expense: entry.expense,
       date: entry.date,
+      incomePrediction: entry.incomePrediction,
+      expensePrediction: entry.expensePrediction,
     };
 
-    if (name) entry.name = name;
+    if (name !== undefined) entry.name = name.trim();
     if (income !== undefined) entry.income = parseFloat(income) || 0;
     if (expense !== undefined) entry.expense = parseFloat(expense) || 0;
-    if (date) entry.date = date;
+    if (date !== undefined) entry.date = date;
+
+    // Update simplified prediction fields
+    if (incomePrediction !== undefined)
+      entry.incomePrediction = parseFloat(incomePrediction) || 0;
+    if (expensePrediction !== undefined)
+      entry.expensePrediction = parseFloat(expensePrediction) || 0;
 
     await costCenter.save();
+
+    // Add virtual fields to response
+    const updatedEntry = entry.toObject();
+    updatedEntry.net = entry.income - entry.expense;
+    updatedEntry.predictedNet =
+      (entry.incomePrediction || 0) - (entry.expensePrediction || 0);
+    updatedEntry.incomeVariance = entry.income - (entry.incomePrediction || 0);
+    updatedEntry.expenseVariance =
+      entry.expense - (entry.expensePrediction || 0);
+    updatedEntry.netVariance = updatedEntry.net - updatedEntry.predictedNet;
 
     await logAction(req, res, "UPDATE_DAILY_ENTRY", costCenterId, entryId, {
       oldValues: oldValues,
@@ -256,10 +320,12 @@ exports.updateDailyEntry = async (req, res) => {
         income: entry.income,
         expense: entry.expense,
         date: entry.date,
+        incomePrediction: entry.incomePrediction,
+        expensePrediction: entry.expensePrediction,
       },
     });
 
-    res.json(entry);
+    res.json(updatedEntry);
   } catch (error) {
     await logAction(
       req,
@@ -321,6 +387,8 @@ exports.deleteDailyEntry = async (req, res) => {
       income: entryToDelete.income,
       expense: entryToDelete.expense,
       date: entryToDelete.date,
+      incomePrediction: entryToDelete.incomePrediction,
+      expensePrediction: entryToDelete.expensePrediction,
     };
 
     costCenter.daily.pull(entryId);
