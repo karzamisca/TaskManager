@@ -122,10 +122,6 @@ dailySchema.pre("save", function (next) {
   this.net = this.income - this.expense;
   // Calculate predicted net
   this.predictedNet = this.incomePrediction - this.expensePrediction;
-  // Calculate variance (actual vs prediction)
-  this.incomeVariance = this.income - this.incomePrediction;
-  this.expenseVariance = this.expense - this.expensePrediction;
-  this.netVariance = this.net - this.predictedNet;
   next();
 });
 

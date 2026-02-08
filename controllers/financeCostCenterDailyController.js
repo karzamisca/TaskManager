@@ -1,3 +1,4 @@
+// controllers/financeCostCenterDailyController.js
 const CostCenter = require("../models/CostCenter");
 const FinanceCostCenterDailyLog = require("../models/FinanceCostCenterDailyLog");
 
@@ -77,13 +78,10 @@ exports.getDailyEntries = async (req, res) => {
     // Convert entries to include virtual fields
     const entries = (costCenter.daily || []).map((entry) => {
       const entryObj = entry.toObject();
-      // Add virtual fields
+      // Add virtual fields (variance removed)
       entryObj.net = entry.income - entry.expense;
       entryObj.predictedNet =
         (entry.incomePrediction || 0) - (entry.expensePrediction || 0);
-      entryObj.incomeVariance = entry.income - (entry.incomePrediction || 0);
-      entryObj.expenseVariance = entry.expense - (entry.expensePrediction || 0);
-      entryObj.netVariance = entryObj.net - entryObj.predictedNet;
       return entryObj;
     });
 
@@ -188,16 +186,10 @@ exports.addDailyEntry = async (req, res) => {
     // Get the saved entry ID
     const savedEntry = costCenter.daily[costCenter.daily.length - 1];
     const entryWithVirtuals = savedEntry.toObject();
-    // Add virtual fields
+    // Add virtual fields (variance removed)
     entryWithVirtuals.net = savedEntry.income - savedEntry.expense;
     entryWithVirtuals.predictedNet =
       (savedEntry.incomePrediction || 0) - (savedEntry.expensePrediction || 0);
-    entryWithVirtuals.incomeVariance =
-      savedEntry.income - (savedEntry.incomePrediction || 0);
-    entryWithVirtuals.expenseVariance =
-      savedEntry.expense - (savedEntry.expensePrediction || 0);
-    entryWithVirtuals.netVariance =
-      entryWithVirtuals.net - entryWithVirtuals.predictedNet;
 
     await logAction(req, res, "ADD_DAILY_ENTRY", costCenterId, savedEntry._id, {
       entryData: newEntry,
@@ -303,15 +295,11 @@ exports.updateDailyEntry = async (req, res) => {
 
     await costCenter.save();
 
-    // Add virtual fields to response
+    // Add virtual fields to response (variance removed)
     const updatedEntry = entry.toObject();
     updatedEntry.net = entry.income - entry.expense;
     updatedEntry.predictedNet =
       (entry.incomePrediction || 0) - (entry.expensePrediction || 0);
-    updatedEntry.incomeVariance = entry.income - (entry.incomePrediction || 0);
-    updatedEntry.expenseVariance =
-      entry.expense - (entry.expensePrediction || 0);
-    updatedEntry.netVariance = updatedEntry.net - updatedEntry.predictedNet;
 
     await logAction(req, res, "UPDATE_DAILY_ENTRY", costCenterId, entryId, {
       oldValues: oldValues,

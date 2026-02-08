@@ -1,3 +1,4 @@
+/* views/financePages/financeCostCenterDaily/financeCostCenterDaily.css */
 .finance-daily-page {
   font-family: Arial, sans-serif;
   line-height: 1.6;
@@ -102,7 +103,7 @@
   width: 100%;
   border-collapse: collapse;
   background: white;
-  min-width: 1000px;
+  min-width: 800px;
 }
 
 .finance-daily-page th,
@@ -572,27 +573,6 @@
   border-color: #545b62;
 }
 
-/* Variance color coding */
-.finance-daily-page .variance-cell {
-  text-align: right;
-  font-weight: 500;
-}
-
-.finance-daily-page .variance-cell.positive {
-  background-color: rgba(40, 167, 69, 0.1);
-  color: #155724;
-}
-
-.finance-daily-page .variance-cell.negative {
-  background-color: rgba(220, 53, 69, 0.1);
-  color: #721c24;
-}
-
-.finance-daily-page .variance-cell.neutral {
-  background-color: rgba(108, 117, 125, 0.1);
-  color: #383d41;
-}
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .finance-daily-page {
@@ -786,20 +766,5 @@
 
   .finance-daily-page #predictionStats {
     color: #b19cd9;
-  }
-
-  .finance-daily-page .variance-cell.positive {
-    background-color: rgba(40, 167, 69, 0.2);
-    color: #90ee90;
-  }
-
-  .finance-daily-page .variance-cell.negative {
-    background-color: rgba(220, 53, 69, 0.2);
-    color: #ff6b6b;
-  }
-
-  .finance-daily-page .variance-cell.neutral {
-    background-color: rgba(108, 117, 125, 0.2);
-    color: #adb5bd;
   }
 }

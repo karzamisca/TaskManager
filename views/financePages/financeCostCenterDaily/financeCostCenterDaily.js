@@ -1,3 +1,4 @@
+//views/financePages/financeCostCenterDaily/financeCostCenterDaily.js
 const API_BASE = "/financeCostCenterDailyControl";
 let currentCostCenterId = null;
 let entries = [];
@@ -18,7 +19,6 @@ let filterState = {
   dateTo: "",
   searchName: "",
   predictionFilter: "all",
-  varianceFilter: "all",
 };
 
 // Tải trạm khi trang load
@@ -336,7 +336,7 @@ function renderEntries() {
   if (filteredEntries.length === 0 && !isAdding) {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td colspan="10" style="text-align: center; color: #666;">
+      <td colspan="7" style="text-align: center; color: #666;">
         ${
           entries.length === 0
             ? "Chưa có dữ liệu nào. Hãy thêm mục mới."
@@ -350,11 +350,6 @@ function renderEntries() {
 
   filteredEntries.forEach((entry) => {
     const row = document.createElement("tr");
-
-    // Calculate variance values
-    const incomeVariance = entry.incomeVariance || 0;
-    const expenseVariance = entry.expenseVariance || 0;
-    const netVariance = entry.netVariance || 0;
 
     // Check if this row is being edited
     if (entry._id === editingEntryId) {
@@ -370,17 +365,6 @@ function renderEntries() {
         <!-- Prediction Values -->
         <td><input type="number" id="editIncomePrediction_${entry._id}" value="${entry.incomePrediction || 0}" step="0.1"></td>
         <td><input type="number" id="editExpensePrediction_${entry._id}" value="${entry.expensePrediction || 0}" step="0.1"></td>
-        
-        <!-- Variance Display (read-only during edit) -->
-        <td class="variance-cell ${getVarianceClass(incomeVariance)}">
-          ${formatVariance(incomeVariance)}
-        </td>
-        <td class="variance-cell ${getVarianceClass(expenseVariance)}">
-          ${formatVariance(expenseVariance)}
-        </td>
-        <td class="variance-cell ${getVarianceClass(netVariance)}">
-          ${formatVariance(netVariance)}
-        </td>
         
         <td class="actions">
           <button class="save-btn" onclick="saveEdit('${entry._id}')">Lưu</button>
@@ -405,17 +389,6 @@ function renderEntries() {
           ${(entry.expensePrediction || 0).toLocaleString("vi-VN")}
         </td>
         
-        <!-- Variance Values -->
-        <td class="variance-cell ${getVarianceClass(incomeVariance)}">
-          ${formatVariance(incomeVariance)}
-        </td>
-        <td class="variance-cell ${getVarianceClass(expenseVariance)}">
-          ${formatVariance(expenseVariance)}
-        </td>
-        <td class="variance-cell ${getVarianceClass(netVariance)}">
-          ${formatVariance(netVariance)}
-        </td>
-        
         <td class="actions">
           <button class="edit-btn" onclick="startEdit('${entry._id}')">Sửa</button>
           <button class="delete-btn" onclick="deleteEntry('${entry._id}')">Xóa</button>
@@ -430,21 +403,6 @@ function renderEntries() {
     const addRow = createAddRow();
     tbody.insertBefore(addRow, tbody.firstChild);
   }
-}
-
-// Helper function to format variance with +/- sign and color
-function formatVariance(value) {
-  if (value === 0 || value === null || value === undefined) return "0";
-  const sign = value > 0 ? "+" : "";
-  const formattedValue = Math.abs(value).toLocaleString("vi-VN");
-  return `<span class="${value > 0 ? "variance-positive" : value < 0 ? "variance-negative" : "variance-neutral"}">${sign}${formattedValue}</span>`;
-}
-
-// Helper function to get variance class
-function getVarianceClass(value) {
-  if (value > 0) return "positive";
-  if (value < 0) return "negative";
-  return "neutral";
 }
 
 // Create the add row HTML
@@ -471,11 +429,6 @@ function createAddRow() {
     <!-- Prediction Values -->
     <td><input type="number" id="newIncomePrediction" placeholder="Dự báo thu" step="0.1" value="0"></td>
     <td><input type="number" id="newExpensePrediction" placeholder="Dự báo chi" step="0.1" value="0"></td>
-    
-    <!-- Variance Display (initially empty) -->
-    <td class="variance-cell neutral">0</td>
-    <td class="variance-cell neutral">0</td>
-    <td class="variance-cell neutral">0</td>
     
     <td class="actions">
       <button class="save-btn" onclick="saveNewEntry()">Lưu</button>
@@ -718,7 +671,6 @@ function applyFilters() {
     .value.toLowerCase();
   filterState.predictionFilter =
     document.getElementById("predictionFilter").value;
-  filterState.varianceFilter = document.getElementById("varianceFilter").value;
 
   // Apply filters to entries
   filteredEntries = entries.filter((entry) => {
@@ -756,31 +708,6 @@ function applyFilters() {
       }
     }
 
-    // Variance filter
-    if (filterState.varianceFilter === "positiveVariance") {
-      if (
-        (entry.incomeVariance || 0) <= 0 &&
-        (entry.expenseVariance || 0) >= 0
-      ) {
-        return false;
-      }
-    } else if (filterState.varianceFilter === "negativeVariance") {
-      if (
-        (entry.incomeVariance || 0) >= 0 &&
-        (entry.expenseVariance || 0) <= 0
-      ) {
-        return false;
-      }
-    } else if (filterState.varianceFilter === "accurate") {
-      const incomeAccuracy =
-        Math.abs(entry.incomeVariance || 0) / (entry.income || 1);
-      const expenseAccuracy =
-        Math.abs(entry.expenseVariance || 0) / (entry.expense || 1);
-      if (incomeAccuracy > 0.1 && expenseAccuracy > 0.1) {
-        return false;
-      }
-    }
-
     return true;
   });
 
@@ -796,7 +723,6 @@ function resetFilters() {
   document.getElementById("dateTo").value = "";
   document.getElementById("searchName").value = "";
   document.getElementById("predictionFilter").value = "all";
-  document.getElementById("varianceFilter").value = "all";
 
   // Reset filter state
   filterState = {
@@ -804,7 +730,6 @@ function resetFilters() {
     dateTo: "",
     searchName: "",
     predictionFilter: "all",
-    varianceFilter: "all",
   };
 
   // Apply reset filters (show all entries)
@@ -1031,7 +956,7 @@ async function exportData() {
   try {
     // Create CSV content
     let csvContent =
-      "Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Chênh lệch thu,Chênh lệch chi,Chênh lệch LN\n";
+      "Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND)\n";
 
     filteredEntries.forEach((entry) => {
       const row = [
@@ -1041,9 +966,6 @@ async function exportData() {
         entry.expense,
         entry.incomePrediction || 0,
         entry.expensePrediction || 0,
-        entry.incomeVariance || 0,
-        entry.expenseVariance || 0,
-        entry.netVariance || 0,
       ];
       csvContent += row.join(",") + "\n";
     });
@@ -1326,7 +1248,7 @@ async function refreshGlobalData() {
 async function exportAllData() {
   try {
     let csvContent =
-      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Chênh lệch thu,Chênh lệch chi,Chênh lệch LN\n";
+      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND)\n";
 
     Object.entries(allEntries).forEach(([costCenterId, data]) => {
       if (data.entries && data.entries.length > 0) {
@@ -1339,9 +1261,6 @@ async function exportAllData() {
             entry.expense,
             entry.incomePrediction || 0,
             entry.expensePrediction || 0,
-            entry.incomeVariance || 0,
-            entry.expenseVariance || 0,
-            entry.netVariance || 0,
           ];
           csvContent += row.join(",") + "\n";
         });
