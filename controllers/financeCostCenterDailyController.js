@@ -134,6 +134,7 @@ exports.addDailyEntry = async (req, res) => {
       // Simplified prediction fields
       incomePrediction,
       expensePrediction,
+      note,
     } = req.body;
 
     // Validate required fields
@@ -173,6 +174,7 @@ exports.addDailyEntry = async (req, res) => {
       // Add simplified prediction fields
       incomePrediction: parseFloat(incomePrediction) || 0,
       expensePrediction: parseFloat(expensePrediction) || 0,
+      note: note ? note.trim() : "",
     };
 
     // Initialize daily array if it doesn't exist
@@ -240,6 +242,7 @@ exports.updateDailyEntry = async (req, res) => {
       // Simplified prediction fields
       incomePrediction,
       expensePrediction,
+      note,
     } = req.body;
 
     // Validate date format if provided
@@ -280,12 +283,14 @@ exports.updateDailyEntry = async (req, res) => {
       date: entry.date,
       incomePrediction: entry.incomePrediction,
       expensePrediction: entry.expensePrediction,
+      note: entry.note,
     };
 
     if (name !== undefined) entry.name = name.trim();
     if (income !== undefined) entry.income = parseFloat(income) || 0;
     if (expense !== undefined) entry.expense = parseFloat(expense) || 0;
     if (date !== undefined) entry.date = date;
+    if (note !== undefined) entry.note = note.trim();
 
     // Update simplified prediction fields
     if (incomePrediction !== undefined)
@@ -310,6 +315,7 @@ exports.updateDailyEntry = async (req, res) => {
         date: entry.date,
         incomePrediction: entry.incomePrediction,
         expensePrediction: entry.expensePrediction,
+        note: entry.note,
       },
     });
 
@@ -377,6 +383,7 @@ exports.deleteDailyEntry = async (req, res) => {
       date: entryToDelete.date,
       incomePrediction: entryToDelete.incomePrediction,
       expensePrediction: entryToDelete.expensePrediction,
+      note: entryToDelete.note,
     };
 
     costCenter.daily.pull(entryId);

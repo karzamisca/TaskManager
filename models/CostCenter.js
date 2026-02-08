@@ -71,6 +71,7 @@ const dailySchema = new mongoose.Schema({
   // Prediction fields
   incomePrediction: { type: Number, default: 0 },
   expensePrediction: { type: Number, default: 0 },
+  note: { type: String, default: "" },
 });
 
 // Define the merged cost center schema

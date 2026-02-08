@@ -18,6 +18,7 @@ let filterState = {
   dateFrom: "",
   dateTo: "",
   searchName: "",
+  searchNote: "",
   predictionFilter: "all",
 };
 
@@ -336,7 +337,7 @@ function renderEntries() {
   if (filteredEntries.length === 0 && !isAdding) {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td colspan="7" style="text-align: center; color: #666;">
+      <td colspan="8" style="text-align: center; color: #666;">
         ${
           entries.length === 0
             ? "Chưa có dữ liệu nào. Hãy thêm mục mới."
@@ -366,6 +367,9 @@ function renderEntries() {
         <td><input type="number" id="editIncomePrediction_${entry._id}" value="${entry.incomePrediction || 0}" step="0.1"></td>
         <td><input type="number" id="editExpensePrediction_${entry._id}" value="${entry.expensePrediction || 0}" step="0.1"></td>
         
+        <!-- Note field -->
+        <td><input type="text" id="editNote_${entry._id}" value="${entry.note || ""}" placeholder="Ghi chú"></td>
+        
         <td class="actions">
           <button class="save-btn" onclick="saveEdit('${entry._id}')">Lưu</button>
           <button class="cancel-btn" onclick="cancelEdit('${entry._id}')">Hủy</button>
@@ -373,6 +377,10 @@ function renderEntries() {
       `;
     } else {
       // Normal display row
+      const note = entry.note || "";
+      const truncatedNote =
+        note.length > 50 ? note.substring(0, 50) + "..." : note;
+
       row.innerHTML = `
         <td>${entry.name}</td>
         <td>${entry.date}</td>
@@ -388,6 +396,9 @@ function renderEntries() {
         <td style="background-color: #fff3cd;">
           ${(entry.expensePrediction || 0).toLocaleString("vi-VN")}
         </td>
+        
+        <!-- Note field -->
+        <td title="${note}">${truncatedNote}</td>
         
         <td class="actions">
           <button class="edit-btn" onclick="startEdit('${entry._id}')">Sửa</button>
@@ -430,6 +441,9 @@ function createAddRow() {
     <td><input type="number" id="newIncomePrediction" placeholder="Dự báo thu" step="0.1" value="0"></td>
     <td><input type="number" id="newExpensePrediction" placeholder="Dự báo chi" step="0.1" value="0"></td>
     
+    <!-- Note field -->
+    <td><input type="text" id="newNote" placeholder="Ghi chú"></td>
+    
     <td class="actions">
       <button class="save-btn" onclick="saveNewEntry()">Lưu</button>
       <button class="cancel-btn" onclick="cancelAdd()">Hủy</button>
@@ -471,6 +485,7 @@ async function saveNewEntry() {
     parseFloat(document.getElementById("newIncomePrediction").value) || 0;
   const expensePrediction =
     parseFloat(document.getElementById("newExpensePrediction").value) || 0;
+  const note = document.getElementById("newNote").value.trim();
 
   // Validate inputs
   if (!name.trim()) {
@@ -496,6 +511,7 @@ async function saveNewEntry() {
     date,
     incomePrediction,
     expensePrediction,
+    note,
   };
 
   try {
@@ -558,6 +574,7 @@ async function saveEdit(entryId) {
   const expensePrediction = parseFloat(
     document.getElementById(`editExpensePrediction_${entryId}`).value || 0,
   );
+  const note = document.getElementById(`editNote_${entryId}`).value.trim();
 
   // Validate inputs
   if (!name.trim()) {
@@ -577,13 +594,13 @@ async function saveEdit(entryId) {
   }
 
   const entry = {
-    id: entryId,
     name: name.trim(),
     income,
     expense,
     date,
     incomePrediction,
     expensePrediction,
+    note,
   };
 
   try {
@@ -669,6 +686,9 @@ function applyFilters() {
   filterState.searchName = document
     .getElementById("searchName")
     .value.toLowerCase();
+  filterState.searchNote = document
+    .getElementById("searchNote")
+    .value.toLowerCase();
   filterState.predictionFilter =
     document.getElementById("predictionFilter").value;
 
@@ -693,6 +713,14 @@ function applyFilters() {
     if (
       filterState.searchName &&
       !entry.name.toLowerCase().includes(filterState.searchName)
+    ) {
+      return false;
+    }
+
+    // Note search filter
+    if (
+      filterState.searchNote &&
+      !(entry.note || "").toLowerCase().includes(filterState.searchNote)
     ) {
       return false;
     }
@@ -722,6 +750,7 @@ function resetFilters() {
   document.getElementById("dateFrom").value = "";
   document.getElementById("dateTo").value = "";
   document.getElementById("searchName").value = "";
+  document.getElementById("searchNote").value = "";
   document.getElementById("predictionFilter").value = "all";
 
   // Reset filter state
@@ -729,6 +758,7 @@ function resetFilters() {
     dateFrom: "",
     dateTo: "",
     searchName: "",
+    searchNote: "",
     predictionFilter: "all",
   };
 
@@ -787,6 +817,7 @@ function addEntryRow() {
     <input type="number" id="${entryId}_expense" placeholder="Chi phí (VND)" step="0.1" value="0" required>
     <input type="number" id="${entryId}_incomePrediction" placeholder="Dự báo thu" step="0.1" value="0">
     <input type="number" id="${entryId}_expensePrediction" placeholder="Dự báo chi" step="0.1" value="0">
+    <input type="text" id="${entryId}_note" placeholder="Ghi chú">
     <button type="button" class="remove-entry-btn" onclick="removeEntryRow('${entryId}')">×</button>
   `;
 
@@ -843,6 +874,7 @@ async function saveMultipleEntries() {
     const expensePrediction = parseFloat(
       document.getElementById(`${entryId}_expensePrediction`).value || 0,
     );
+    const note = document.getElementById(`${entryId}_note`).value.trim();
 
     // Validate inputs
     if (!name) {
@@ -870,6 +902,7 @@ async function saveMultipleEntries() {
       expense,
       incomePrediction,
       expensePrediction,
+      note,
     });
   }
 
@@ -956,7 +989,7 @@ async function exportData() {
   try {
     // Create CSV content
     let csvContent =
-      "Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND)\n";
+      "Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Ghi chú\n";
 
     filteredEntries.forEach((entry) => {
       const row = [
@@ -966,6 +999,7 @@ async function exportData() {
         entry.expense,
         entry.incomePrediction || 0,
         entry.expensePrediction || 0,
+        `"${entry.note || ""}"`,
       ];
       csvContent += row.join(",") + "\n";
     });
@@ -1248,7 +1282,7 @@ async function refreshGlobalData() {
 async function exportAllData() {
   try {
     let csvContent =
-      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND)\n";
+      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Ghi chú\n";
 
     Object.entries(allEntries).forEach(([costCenterId, data]) => {
       if (data.entries && data.entries.length > 0) {
@@ -1261,6 +1295,7 @@ async function exportAllData() {
             entry.expense,
             entry.incomePrediction || 0,
             entry.expensePrediction || 0,
+            `"${entry.note || ""}"`,
           ];
           csvContent += row.join(",") + "\n";
         });

@@ -12,7 +12,7 @@
 }
 
 .finance-daily-page .container {
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   background: white;
   padding: 20px;
@@ -103,7 +103,7 @@
   width: 100%;
   border-collapse: collapse;
   background: white;
-  min-width: 800px;
+  min-width: 1000px;
 }
 
 .finance-daily-page th,
@@ -358,6 +358,28 @@
   border-radius: 4px;
 }
 
+.finance-daily-page .editing-row input[type="text"] {
+  min-width: 150px;
+}
+
+/* Note field specific styling */
+.finance-daily-page td input[type="text"][placeholder*="Ghi chú"] {
+  width: 100%;
+  min-width: 200px;
+  padding: 6px;
+}
+
+.finance-daily-page td:nth-child(7) {
+  max-width: 250px;
+  min-width: 150px;
+  word-wrap: break-word;
+}
+
+.finance-daily-page td:nth-child(7):hover {
+  background-color: #f8f9fa;
+  cursor: default;
+}
+
 .finance-daily-page .multiple-entry-form {
   background: #f8f9fa;
   padding: 20px;
@@ -376,11 +398,16 @@
   gap: 10px;
   margin-bottom: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .finance-daily-page .entry-row input {
   flex: 1;
-  min-width: 150px;
+  min-width: 120px;
+}
+
+.finance-daily-page .entry-row input[placeholder*="Ghi chú"] {
+  min-width: 200px;
 }
 
 .finance-daily-page .entry-row .remove-entry-btn {
@@ -609,6 +636,10 @@
   .finance-daily-page th,
   .finance-daily-page td {
     padding: 8px 4px;
+  }
+
+  .finance-daily-page td:nth-child(7) {
+    max-width: 150px;
   }
 
   .finance-daily-page .entry-row {
