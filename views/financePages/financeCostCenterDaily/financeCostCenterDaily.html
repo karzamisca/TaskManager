@@ -11,7 +11,7 @@
     />
     <link
       rel="stylesheet"
-      href="financePages/financeCostCenterDaily/financeCostCenterDaily.css?v=1.4"
+      href="financePages/financeCostCenterDaily/financeCostCenterDaily.css?v=1.5"
     />
   </head>
   <body>
@@ -231,8 +231,9 @@
                       colspan="2"
                       style="
                         text-align: center;
-                        background-color: #d4edda;
-                        color: #155724;
+                        background-color: #e8f5e9;
+                        color: #333;
+                        border-bottom: 2px solid #c8e6c9;
                       "
                     >
                       Giá trị thực tế
@@ -242,8 +243,9 @@
                       colspan="2"
                       style="
                         text-align: center;
-                        background-color: #fff3cd;
-                        color: #856404;
+                        background-color: #fff9e6;
+                        color: #333;
+                        border-bottom: 2px solid #ffeaa7;
                       "
                     >
                       Dự báo
@@ -265,7 +267,10 @@
                       class="sortable"
                       data-field="income"
                       onclick="sortTable('income')"
-                      style="background-color: #d4edda"
+                      style="
+                        background-color: #e8f5e9;
+                        border-bottom: 2px solid #c8e6c9;
+                      "
                     >
                       Thu nhập (VND)
                     </th>
@@ -273,7 +278,10 @@
                       class="sortable"
                       data-field="expense"
                       onclick="sortTable('expense')"
-                      style="background-color: #d4edda"
+                      style="
+                        background-color: #e8f5e9;
+                        border-bottom: 2px solid #c8e6c9;
+                      "
                     >
                       Chi phí (VND)
                     </th>
@@ -282,7 +290,10 @@
                       class="sortable"
                       data-field="incomePrediction"
                       onclick="sortTable('incomePrediction')"
-                      style="background-color: #fff3cd"
+                      style="
+                        background-color: #fff9e6;
+                        border-bottom: 2px solid #ffeaa7;
+                      "
                     >
                       Dự báo thu (VND)
                     </th>
@@ -290,7 +301,10 @@
                       class="sortable"
                       data-field="expensePrediction"
                       onclick="sortTable('expensePrediction')"
-                      style="background-color: #fff3cd"
+                      style="
+                        background-color: #fff9e6;
+                        border-bottom: 2px solid #ffeaa7;
+                      "
                     >
                       Dự báo chi (VND)
                     </th>
@@ -320,19 +334,19 @@
           <div class="view-mode-selector">
             <button
               class="view-mode-btn active"
-              onclick="switchViewMode('grid')"
+              onclick="switchViewMode('spreadsheet')"
             >
-              Dạng lưới
+              📊 Dạng lưới
             </button>
             <button class="view-mode-btn" onclick="switchViewMode('column')">
-              Dạng cột
+              📋 Dạng cột
             </button>
           </div>
 
-          <!-- Grid View -->
-          <div id="gridView" class="cost-center-grid"></div>
+          <!-- Spreadsheet Grid View -->
+          <div id="spreadsheetView" class="cost-center-spreadsheet"></div>
 
-          <!-- Column View -->
+          <!-- Spreadsheet Column View -->
           <div id="columnView" class="column-view-container">
             <div id="columnViewGrid" class="column-view-grid"></div>
           </div>
@@ -354,6 +368,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="financePages/financeCostCenterDaily/financeCostCenterDaily.js?v=1.5"></script>
+    <script src="financePages/financeCostCenterDaily/financeCostCenterDaily.js?v=1.6"></script>
   </body>
 </html>

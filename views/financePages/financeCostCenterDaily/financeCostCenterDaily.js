@@ -1,4 +1,4 @@
-//views/financePages/financeCostCenterDaily/financeCostCenterDaily.js
+// views/financePages/financeCostCenterDaily/financeCostCenterDaily.js
 const API_BASE = "/financeCostCenterDailyControl";
 let currentCostCenterId = null;
 let entries = [];
@@ -15,7 +15,7 @@ let allEntries = {}; // Lưu entries của từng cost center: { costCenterId: {
 
 // Alternative view variables
 let alternativeViewActive = false;
-let alternativeViewMode = "grid"; // 'grid' or 'column'
+let alternativeViewMode = "spreadsheet"; // 'spreadsheet' or 'column'
 
 // Filter state
 let filterState = {
@@ -173,7 +173,7 @@ function toggleView() {
   }
 }
 
-// Switch between grid and column view modes
+// Switch between spreadsheet and column view modes
 function switchViewMode(mode) {
   alternativeViewMode = mode;
 
@@ -184,8 +184,8 @@ function switchViewMode(mode) {
   event.target.classList.add("active");
 
   // Show/hide views
-  document.getElementById("gridView").style.display =
-    mode === "grid" ? "grid" : "none";
+  document.getElementById("spreadsheetView").style.display =
+    mode === "spreadsheet" ? "grid" : "none";
   document
     .getElementById("columnView")
     .classList.toggle("active", mode === "column");
@@ -212,16 +212,16 @@ async function renderAlternativeView() {
   );
 
   if (costCentersWithEntries.length === 0) {
-    if (alternativeViewMode === "grid") {
-      document.getElementById("gridView").innerHTML = `
-        <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #6c757d;">
+    if (alternativeViewMode === "spreadsheet") {
+      document.getElementById("spreadsheetView").innerHTML = `
+        <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">
           <h4>Không có dữ liệu thực tế hàng ngày</h4>
           <p>Chưa có trạm nào có dữ liệu thực tế hàng ngày.</p>
         </div>
       `;
     } else {
       document.getElementById("columnViewGrid").innerHTML = `
-        <div style="text-align: center; padding: 40px; color: #6c757d;">
+        <div style="text-align: center; padding: 40px; color: #888;">
           <h4>Không có dữ liệu thực tế hàng ngày</h4>
           <p>Chưa có trạm nào có dữ liệu thực tế hàng ngày.</p>
         </div>
@@ -230,68 +230,91 @@ async function renderAlternativeView() {
     return;
   }
 
-  if (alternativeViewMode === "grid") {
-    renderGridView(costCentersWithEntries);
+  if (alternativeViewMode === "spreadsheet") {
+    renderSpreadsheetView(costCentersWithEntries);
   } else {
     renderColumnView(costCentersWithEntries);
   }
 }
 
-// Render grid view
-function renderGridView(costCentersData) {
-  const gridContainer = document.getElementById("gridView");
-  gridContainer.innerHTML = "";
+// Render spreadsheet view - NO TRUNCATION
+function renderSpreadsheetView(costCentersData) {
+  const spreadsheetContainer = document.getElementById("spreadsheetView");
+  spreadsheetContainer.innerHTML = "";
 
   costCentersData.forEach(([costCenterId, data]) => {
     const totals = calculateCostCenterTotals(data.entries);
 
     const card = document.createElement("div");
-    card.className = "cost-center-card";
+    card.className = "spreadsheet-card";
     card.innerHTML = `
-      <div class="cost-center-header">
-        <h4>${data.name}</h4>
+      <div class="spreadsheet-header">
+        ${data.name}
       </div>
-      <div class="cost-center-summary">
-        <div class="summary-row">
-          <span class="summary-label">Tổng giao dịch:</span>
+      <div class="spreadsheet-summary">
+        <div class="summary-cell">
+          <span class="summary-label">Giao dịch:</span>
           <span class="summary-value">${data.entries.length}</span>
         </div>
-        <div class="summary-row">
+        <div class="summary-cell">
           <span class="summary-label">Tổng thu:</span>
-          <span class="summary-value">${totals.totalIncome.toLocaleString("vi-VN")} VND</span>
+          <span class="summary-value">${totals.totalIncome.toLocaleString("vi-VN")}</span>
         </div>
-        <div class="summary-row">
+        <div class="summary-cell">
           <span class="summary-label">Tổng chi:</span>
-          <span class="summary-value">${totals.totalExpense.toLocaleString("vi-VN")} VND</span>
+          <span class="summary-value">${totals.totalExpense.toLocaleString("vi-VN")}</span>
         </div>
-        <div class="summary-row">
+        <div class="summary-cell">
           <span class="summary-label">Lợi nhuận:</span>
           <span class="summary-value ${totals.profit >= 0 ? "positive" : "negative"}">
-            ${totals.profit.toLocaleString("vi-VN")} VND
+            ${totals.profit.toLocaleString("vi-VN")}
           </span>
         </div>
       </div>
-      <div class="cost-center-entries">
-        ${renderEntriesList(data.entries.slice(0, 5))}
+      <div class="spreadsheet-table">
+        ${
+          data.entries.length > 0
+            ? `<table>
+            <thead>
+              <tr>
+                <th>Ngày</th>
+                <th>Tên</th>
+                <th>Thu</th>
+                <th>Chi</th>
+                <th>Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.entries
+                .slice(0, 8)
+                .map(
+                  (entry) => `
+                <tr onclick="switchToCostCenter('${costCenterId}')" style="cursor: pointer;">
+                  <td class="date-cell">${entry.date}</td>
+                  <td>${entry.name}</td>
+                  <td class="income-cell">${entry.income.toLocaleString(
+                    "vi-VN",
+                  )}</td>
+                  <td class="expense-cell">${entry.expense.toLocaleString(
+                    "vi-VN",
+                  )}</td>
+                  <td>${entry.note || ""}</td>
+                </tr>
+              `,
+                )
+                .join("")}
+            </tbody>
+          </table>`
+            : '<div class="no-entries">Không có dữ liệu</div>'
+        }
       </div>
     `;
 
-    // Add click event to switch to this cost center
-    card.addEventListener("click", () => {
-      // Switch back to single view
-      document.getElementById("viewToggle").checked = false;
-      toggleView();
-
-      // Select this cost center
-      document.getElementById("costCenterSelect").value = costCenterId;
-      loadCostCenterData();
-    });
-
-    gridContainer.appendChild(card);
+    spreadsheetContainer.appendChild(card);
   });
 }
 
-// Render column view
+// Render column view - NO TRUNCATION
 function renderColumnView(costCentersData) {
   const columnContainer = document.getElementById("columnViewGrid");
   columnContainer.innerHTML = "";
@@ -300,33 +323,70 @@ function renderColumnView(costCentersData) {
     const totals = calculateCostCenterTotals(data.entries);
 
     const column = document.createElement("div");
-    column.className = "cost-center-column";
+    column.className = "spreadsheet-column";
     column.innerHTML = `
       <div class="column-header">
-        <h4>${data.name}</h4>
+        ${data.name}
       </div>
-      <div class="cost-center-summary">
-        <div class="summary-row">
+      <div class="column-summary">
+        <div class="summary-cell">
           <span class="summary-label">Giao dịch:</span>
           <span class="summary-value">${data.entries.length}</span>
         </div>
-        <div class="summary-row">
-          <span class="summary-label">Thu:</span>
-          <span class="summary-value">${totals.totalIncome.toLocaleString("vi-VN")}</span>
+        <div class="summary-cell">
+          <span class="summary-label">Tổng thu:</span>
+          <span class="summary-value">${totals.totalIncome.toLocaleString(
+            "vi-VN",
+          )}</span>
         </div>
-        <div class="summary-row">
-          <span class="summary-label">Chi:</span>
-          <span class="summary-value">${totals.totalExpense.toLocaleString("vi-VN")}</span>
+        <div class="summary-cell">
+          <span class="summary-label">Tổng chi:</span>
+          <span class="summary-value">${totals.totalExpense.toLocaleString(
+            "vi-VN",
+          )}</span>
         </div>
-        <div class="summary-row">
+        <div class="summary-cell">
           <span class="summary-label">Lợi nhuận:</span>
-          <span class="summary-value ${totals.profit >= 0 ? "positive" : "negative"}">
+          <span class="summary-value ${
+            totals.profit >= 0 ? "positive" : "negative"
+          }">
             ${totals.profit.toLocaleString("vi-VN")}
           </span>
         </div>
       </div>
-      <div class="column-entries">
-        ${renderEntriesList(data.entries)}
+      <div class="column-table">
+        ${
+          data.entries.length > 0
+            ? `<table>
+            <thead>
+              <tr>
+                <th>Ngày</th>
+                <th>Tên</th>
+                <th>Thu</th>
+                <th>Chi</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.entries
+                .map(
+                  (entry) => `
+                <tr onclick="switchToCostCenter('${costCenterId}')" style="cursor: pointer;">
+                  <td class="date-cell">${entry.date}</td>
+                  <td>${entry.name}</td>
+                  <td class="income-cell">${entry.income.toLocaleString(
+                    "vi-VN",
+                  )}</td>
+                  <td class="expense-cell">${entry.expense.toLocaleString(
+                    "vi-VN",
+                  )}</td>
+                </tr>
+              `,
+                )
+                .join("")}
+            </tbody>
+          </table>`
+            : '<div class="no-entries">Không có dữ liệu</div>'
+        }
       </div>
     `;
 
@@ -358,31 +418,6 @@ function calculateCostCenterTotals(entries) {
 
   totals.profit = totals.totalIncome - totals.totalExpense;
   return totals;
-}
-
-// Helper function to render entries list
-function renderEntriesList(entries) {
-  if (entries.length === 0) {
-    return '<div class="no-entries">Không có dữ liệu</div>';
-  }
-
-  return entries
-    .map(
-      (entry) => `
-    <div class="entry-item">
-      <div class="entry-name" title="${entry.name}">
-        ${entry.name.length > 30 ? entry.name.substring(0, 30) + "..." : entry.name}
-      </div>
-      <div class="entry-details">
-        <span class="entry-income">${entry.income.toLocaleString("vi-VN")}</span>
-        <span class="entry-expense">${entry.expense.toLocaleString("vi-VN")}</span>
-        <span class="entry-date">${entry.date}</span>
-      </div>
-      ${entry.note ? `<div class="entry-note" style="font-size: 12px; color: #999; margin-top: 3px;" title="${entry.note}">${entry.note.length > 20 ? entry.note.substring(0, 20) + "..." : entry.note}</div>` : ""}
-    </div>
-  `,
-    )
-    .join("");
 }
 
 // Refresh all data for alternative view
@@ -642,7 +677,7 @@ function calculateSummary() {
   document.getElementById("summarySection").classList.remove("hidden");
 }
 
-// Hiển thị các mục trong bảng với dự báo
+// Hiển thị các mục trong bảng với dự báo - NO TRUNCATION
 function renderEntries() {
   const tbody = document.getElementById("entriesBody");
   tbody.innerHTML = "";
@@ -655,7 +690,7 @@ function renderEntries() {
   if (filteredEntries.length === 0 && !isAdding) {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td colspan="8" style="text-align: center; color: #666;">
+      <td colspan="8" style="text-align: center; color: #888;">
         ${
           entries.length === 0
             ? "Chưa có dữ liệu nào. Hãy thêm mục mới."
@@ -685,8 +720,8 @@ function renderEntries() {
         <td><input type="number" id="editIncomePrediction_${entry._id}" value="${entry.incomePrediction || 0}" step="0.1"></td>
         <td><input type="number" id="editExpensePrediction_${entry._id}" value="${entry.expensePrediction || 0}" step="0.1"></td>
         
-        <!-- Note field -->
-        <td><input type="text" id="editNote_${entry._id}" value="${entry.note || ""}" placeholder="Ghi chú"></td>
+        <!-- Note field as textarea -->
+        <td><textarea id="editNote_${entry._id}" placeholder="Ghi chú">${entry.note || ""}</textarea></td>
         
         <td class="actions">
           <button class="save-btn" onclick="saveEdit('${entry._id}')">Lưu</button>
@@ -694,29 +729,27 @@ function renderEntries() {
         </td>
       `;
     } else {
-      // Normal display row
+      // Normal display row - NO TRUNCATION
       const note = entry.note || "";
-      const truncatedNote =
-        note.length > 50 ? note.substring(0, 50) + "..." : note;
 
       row.innerHTML = `
         <td>${entry.name}</td>
         <td>${entry.date}</td>
         
         <!-- Actual Values -->
-        <td style="background-color: #d4edda;">${entry.income.toLocaleString("vi-VN")}</td>
-        <td style="background-color: #d4edda;">${entry.expense.toLocaleString("vi-VN")}</td>
+        <td style="background-color: #e8f5e9;">${entry.income.toLocaleString("vi-VN")}</td>
+        <td style="background-color: #e8f5e9;">${entry.expense.toLocaleString("vi-VN")}</td>
         
         <!-- Prediction Values -->
-        <td style="background-color: #fff3cd;">
+        <td style="background-color: #fff9e6;">
           ${(entry.incomePrediction || 0).toLocaleString("vi-VN")}
         </td>
-        <td style="background-color: #fff3cd;">
+        <td style="background-color: #fff9e6;">
           ${(entry.expensePrediction || 0).toLocaleString("vi-VN")}
         </td>
         
-        <!-- Note field -->
-        <td title="${note}">${truncatedNote}</td>
+        <!-- Note field - FULL CONTENT -->
+        <td>${note.replace(/\n/g, "<br>")}</td>
         
         <td class="actions">
           <button class="edit-btn" onclick="startEdit('${entry._id}')">Sửa</button>
@@ -759,8 +792,8 @@ function createAddRow() {
     <td><input type="number" id="newIncomePrediction" placeholder="Dự báo thu" step="0.1" value="0"></td>
     <td><input type="number" id="newExpensePrediction" placeholder="Dự báo chi" step="0.1" value="0"></td>
     
-    <!-- Note field -->
-    <td><input type="text" id="newNote" placeholder="Ghi chú"></td>
+    <!-- Note field as textarea -->
+    <td><textarea id="newNote" placeholder="Ghi chú"></textarea></td>
     
     <td class="actions">
       <button class="save-btn" onclick="saveNewEntry()">Lưu</button>
@@ -1135,7 +1168,7 @@ function addEntryRow() {
     <input type="number" id="${entryId}_expense" placeholder="Chi phí (VND)" step="0.1" value="0" required>
     <input type="number" id="${entryId}_incomePrediction" placeholder="Dự báo thu" step="0.1" value="0">
     <input type="number" id="${entryId}_expensePrediction" placeholder="Dự báo chi" step="0.1" value="0">
-    <input type="text" id="${entryId}_note" placeholder="Ghi chú">
+    <textarea id="${entryId}_note" placeholder="Ghi chú"></textarea>
     <button type="button" class="remove-entry-btn" onclick="removeEntryRow('${entryId}')">×</button>
   `;
 
