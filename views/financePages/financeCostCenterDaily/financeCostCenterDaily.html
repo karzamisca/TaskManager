@@ -11,7 +11,7 @@
     />
     <link
       rel="stylesheet"
-      href="financePages/financeCostCenterDaily/financeCostCenterDaily.css?v=1.3"
+      href="financePages/financeCostCenterDaily/financeCostCenterDaily.css?v=1.4"
     />
   </head>
   <body>
@@ -45,244 +45,307 @@
           </button>
         </div>
 
-        <!-- Lựa chọn trạm -->
-        <div class="form-group">
-          <label for="costCenterSelect">Chọn Trạm:</label>
-          <select id="costCenterSelect" onchange="loadCostCenterData()">
-            <option value="">-- Chọn Trạm --</option>
-          </select>
-        </div>
-
-        <div id="costCenterInfo" class="cost-center-info hidden">
-          <h2>Trạm: <span id="costCenterName"></span></h2>
-        </div>
-
-        <!-- Tóm tắt cho trạm được chọn -->
-        <div id="summarySection" class="summary hidden">
-          <h3>Tổng Kết Trạm</h3>
-          <div class="summary-item">
-            <strong>Tổng Thu Nhập:</strong> <span id="totalIncome">0</span> VND
-          </div>
-          <div class="summary-item">
-            <strong>Tổng Chi Phí:</strong> <span id="totalExpense">0</span> VND
-          </div>
-          <div class="summary-item">
-            <strong>Lợi Nhuận:</strong> <span id="totalProfit">0</span> VND
-          </div>
-          <div class="prediction-summary">
-            <div class="prediction-item">
-              <strong>Tổng dự báo thu:</strong>
-              <span id="totalIncomePrediction">0</span> VND
-            </div>
-            <div class="prediction-item">
-              <strong>Tổng dự báo chi:</strong>
-              <span id="totalExpensePrediction">0</span> VND
-            </div>
-          </div>
-        </div>
-
-        <!-- Filters Section -->
-        <div id="filtersSection" class="filters-section hidden">
-          <h3>Bộ Lọc</h3>
-          <div class="filter-controls">
-            <div class="filter-group">
-              <label for="dateFrom">Từ ngày:</label>
-              <input
-                type="text"
-                id="dateFrom"
-                placeholder="DD/MM/YYYY"
-                pattern="\d{2}/\d{2}/\d{4}"
-              />
-            </div>
-            <div class="filter-group">
-              <label for="dateTo">Đến ngày:</label>
-              <input
-                type="text"
-                id="dateTo"
-                placeholder="DD/MM/YYYY"
-                pattern="\d{2}/\d{2}/\d{4}"
-              />
-            </div>
-            <div class="filter-group">
-              <label for="searchName">Tìm theo tên:</label>
-              <input type="text" id="searchName" placeholder="Tên giao dịch" />
-            </div>
-            <div class="filter-group">
-              <label for="searchNote">Tìm theo ghi chú:</label>
-              <input type="text" id="searchNote" placeholder="Ghi chú" />
-            </div>
-            <div class="filter-group">
-              <label for="predictionFilter">Bộ lọc dự báo:</label>
-              <select id="predictionFilter">
-                <option value="all">Tất cả</option>
-                <option value="withPrediction">Có dự báo</option>
-                <option value="withoutPrediction">Không có dự báo</option>
-              </select>
-            </div>
-          </div>
-          <div class="filter-actions">
-            <button
-              class="btn-finance apply-filters-btn"
-              onclick="applyFilters()"
+        <!-- View Toggle -->
+        <div class="view-toggle-container">
+          <div class="view-toggle">
+            <span class="toggle-label active" id="singleViewLabel"
+              >Xem một trạm</span
             >
-              Áp dụng bộ lọc
+            <label class="toggle-switch">
+              <input type="checkbox" id="viewToggle" onchange="toggleView()" />
+              <span class="toggle-slider"></span>
+            </label>
+            <span class="toggle-label" id="alternativeViewLabel"
+              >Xem tất cả trạm</span
+            >
+          </div>
+        </div>
+
+        <!-- Single Cost Center View (default) -->
+        <div id="singleCostCenterView" class="single-cost-center-view">
+          <!-- Lựa chọn trạm -->
+          <div class="form-group">
+            <label for="costCenterSelect">Chọn Trạm:</label>
+            <select id="costCenterSelect" onchange="loadCostCenterData()">
+              <option value="">-- Chọn Trạm --</option>
+            </select>
+          </div>
+
+          <div id="costCenterInfo" class="cost-center-info hidden">
+            <h2>Trạm: <span id="costCenterName"></span></h2>
+          </div>
+
+          <!-- Tóm tắt cho trạm được chọn -->
+          <div id="summarySection" class="summary hidden">
+            <h3>Tổng Kết Trạm</h3>
+            <div class="summary-item">
+              <strong>Tổng Thu Nhập:</strong>
+              <span id="totalIncome">0</span> VND
+            </div>
+            <div class="summary-item">
+              <strong>Tổng Chi Phí:</strong>
+              <span id="totalExpense">0</span> VND
+            </div>
+            <div class="summary-item">
+              <strong>Lợi Nhuận:</strong> <span id="totalProfit">0</span> VND
+            </div>
+            <div class="prediction-summary">
+              <div class="prediction-item">
+                <strong>Tổng dự báo thu:</strong>
+                <span id="totalIncomePrediction">0</span> VND
+              </div>
+              <div class="prediction-item">
+                <strong>Tổng dự báo chi:</strong>
+                <span id="totalExpensePrediction">0</span> VND
+              </div>
+            </div>
+          </div>
+
+          <!-- Filters Section -->
+          <div id="filtersSection" class="filters-section hidden">
+            <h3>Bộ Lọc</h3>
+            <div class="filter-controls">
+              <div class="filter-group">
+                <label for="dateFrom">Từ ngày:</label>
+                <input
+                  type="text"
+                  id="dateFrom"
+                  placeholder="DD/MM/YYYY"
+                  pattern="\d{2}/\d{2}/\d{4}"
+                />
+              </div>
+              <div class="filter-group">
+                <label for="dateTo">Đến ngày:</label>
+                <input
+                  type="text"
+                  id="dateTo"
+                  placeholder="DD/MM/YYYY"
+                  pattern="\d{2}/\d{2}/\d{4}"
+                />
+              </div>
+              <div class="filter-group">
+                <label for="searchName">Tìm theo tên:</label>
+                <input
+                  type="text"
+                  id="searchName"
+                  placeholder="Tên giao dịch"
+                />
+              </div>
+              <div class="filter-group">
+                <label for="searchNote">Tìm theo ghi chú:</label>
+                <input type="text" id="searchNote" placeholder="Ghi chú" />
+              </div>
+              <div class="filter-group">
+                <label for="predictionFilter">Bộ lọc dự báo:</label>
+                <select id="predictionFilter">
+                  <option value="all">Tất cả</option>
+                  <option value="withPrediction">Có dự báo</option>
+                  <option value="withoutPrediction">Không có dự báo</option>
+                </select>
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button
+                class="btn-finance apply-filters-btn"
+                onclick="applyFilters()"
+              >
+                Áp dụng bộ lọc
+              </button>
+              <button
+                class="btn-finance reset-filters-btn"
+                onclick="resetFilters()"
+              >
+                Đặt lại bộ lọc
+              </button>
+            </div>
+          </div>
+
+          <!-- Bulk Actions -->
+          <div id="bulkActions" class="bulk-actions hidden">
+            <button
+              class="btn-finance add-btn"
+              onclick="showMultipleEntryForm()"
+            >
+              + Thêm Nhiều Mục Cùng Lúc
+            </button>
+            <button class="btn-finance export-btn" onclick="exportData()">
+              📁 Xuất Dữ Liệu
+            </button>
+          </div>
+
+          <!-- Multiple Entry Form -->
+          <div id="multipleEntryForm" class="multiple-entry-form hidden">
+            <h3>Thêm Nhiều Mục Cùng Lúc</h3>
+            <div id="multipleEntriesContainer">
+              <!-- Entry rows will be added here dynamically -->
+            </div>
+            <div class="form-actions">
+              <button class="btn-finance add-entry-btn" onclick="addEntryRow()">
+                + Thêm Dòng
+              </button>
+              <button
+                class="btn-finance save-btn"
+                onclick="saveMultipleEntries()"
+              >
+                Lưu Tất Cả
+              </button>
+              <button
+                class="btn-finance cancel-btn"
+                onclick="cancelMultipleEntries()"
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+
+          <!-- Bảng dữ liệu -->
+          <div id="addFormContainer" class="hidden">
+            <h2>Danh Sách Mục Hàng Ngày</h2>
+            <div class="table-info">
+              Hiển thị <span id="currentEntriesCount">0</span> trong tổng số
+              <span id="totalEntriesCount">0</span> mục
+              <span id="predictionStats" class="hidden">
+                | <span id="withPredictionCount">0</span> có dự báo
+              </span>
+            </div>
+            <div class="table-responsive">
+              <table id="entriesTable">
+                <thead>
+                  <tr>
+                    <th
+                      class="sortable"
+                      data-field="name"
+                      onclick="sortTable('name')"
+                    >
+                      Tên giao dịch
+                    </th>
+                    <th
+                      class="sortable"
+                      data-field="date"
+                      onclick="sortTable('date')"
+                    >
+                      Ngày
+                    </th>
+                    <!-- Actual Values -->
+                    <th
+                      colspan="2"
+                      style="
+                        text-align: center;
+                        background-color: #d4edda;
+                        color: #155724;
+                      "
+                    >
+                      Giá trị thực tế
+                    </th>
+                    <!-- Predicted Values -->
+                    <th
+                      colspan="2"
+                      style="
+                        text-align: center;
+                        background-color: #fff3cd;
+                        color: #856404;
+                      "
+                    >
+                      Dự báo
+                    </th>
+                    <th
+                      class="sortable"
+                      data-field="note"
+                      onclick="sortTable('note')"
+                    >
+                      Ghi chú
+                    </th>
+                    <th>Thao tác</th>
+                  </tr>
+                  <tr>
+                    <th></th>
+                    <th></th>
+                    <!-- Actual Values Sub-headers -->
+                    <th
+                      class="sortable"
+                      data-field="income"
+                      onclick="sortTable('income')"
+                      style="background-color: #d4edda"
+                    >
+                      Thu nhập (VND)
+                    </th>
+                    <th
+                      class="sortable"
+                      data-field="expense"
+                      onclick="sortTable('expense')"
+                      style="background-color: #d4edda"
+                    >
+                      Chi phí (VND)
+                    </th>
+                    <!-- Predicted Values Sub-headers -->
+                    <th
+                      class="sortable"
+                      data-field="incomePrediction"
+                      onclick="sortTable('incomePrediction')"
+                      style="background-color: #fff3cd"
+                    >
+                      Dự báo thu (VND)
+                    </th>
+                    <th
+                      class="sortable"
+                      data-field="expensePrediction"
+                      onclick="sortTable('expensePrediction')"
+                      style="background-color: #fff3cd"
+                    >
+                      Dự báo chi (VND)
+                    </th>
+                    <th></th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="entriesBody">
+                  <!-- Rows will be populated by JavaScript -->
+                </tbody>
+              </table>
+            </div>
+            <div class="add-row-container">
+              <button
+                id="addNewEntryBtn"
+                class="btn-finance"
+                onclick="showAddRow()"
+              >
+                + Thêm Mục Mới
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alternative View - All Cost Centers -->
+        <div id="alternativeView" class="alternative-view-container">
+          <div class="view-mode-selector">
+            <button
+              class="view-mode-btn active"
+              onclick="switchViewMode('grid')"
+            >
+              Dạng lưới
+            </button>
+            <button class="view-mode-btn" onclick="switchViewMode('column')">
+              Dạng cột
+            </button>
+          </div>
+
+          <!-- Grid View -->
+          <div id="gridView" class="cost-center-grid"></div>
+
+          <!-- Column View -->
+          <div id="columnView" class="column-view-container">
+            <div id="columnViewGrid" class="column-view-grid"></div>
+          </div>
+
+          <div class="alternative-view-actions">
+            <button class="btn-finance" onclick="refreshAllData()">
+              🔄 Làm mới dữ liệu
             </button>
             <button
-              class="btn-finance reset-filters-btn"
-              onclick="resetFilters()"
+              class="btn-finance export-btn"
+              onclick="exportAlternativeView()"
             >
-              Đặt lại bộ lọc
-            </button>
-          </div>
-        </div>
-
-        <!-- Bulk Actions -->
-        <div id="bulkActions" class="bulk-actions hidden">
-          <button class="btn-finance add-btn" onclick="showMultipleEntryForm()">
-            + Thêm Nhiều Mục Cùng Lúc
-          </button>
-          <button class="btn-finance export-btn" onclick="exportData()">
-            📁 Xuất Dữ Liệu
-          </button>
-        </div>
-
-        <!-- Multiple Entry Form -->
-        <div id="multipleEntryForm" class="multiple-entry-form hidden">
-          <h3>Thêm Nhiều Mục Cùng Lúc</h3>
-          <div id="multipleEntriesContainer">
-            <!-- Entry rows will be added here dynamically -->
-          </div>
-          <div class="form-actions">
-            <button class="btn-finance add-entry-btn" onclick="addEntryRow()">
-              + Thêm Dòng
-            </button>
-            <button
-              class="btn-finance save-btn"
-              onclick="saveMultipleEntries()"
-            >
-              Lưu Tất Cả
-            </button>
-            <button
-              class="btn-finance cancel-btn"
-              onclick="cancelMultipleEntries()"
-            >
-              Hủy
-            </button>
-          </div>
-        </div>
-
-        <!-- Bảng dữ liệu -->
-        <div id="addFormContainer" class="hidden">
-          <h2>Danh Sách Mục Hàng Ngày</h2>
-          <div class="table-info">
-            Hiển thị <span id="currentEntriesCount">0</span> trong tổng số
-            <span id="totalEntriesCount">0</span> mục
-            <span id="predictionStats" class="hidden">
-              | <span id="withPredictionCount">0</span> có dự báo
-            </span>
-          </div>
-          <div class="table-responsive">
-            <table id="entriesTable">
-              <thead>
-                <tr>
-                  <th
-                    class="sortable"
-                    data-field="name"
-                    onclick="sortTable('name')"
-                  >
-                    Tên giao dịch
-                  </th>
-                  <th
-                    class="sortable"
-                    data-field="date"
-                    onclick="sortTable('date')"
-                  >
-                    Ngày
-                  </th>
-                  <!-- Actual Values -->
-                  <th
-                    colspan="2"
-                    style="
-                      text-align: center;
-                      background-color: #d4edda;
-                      color: #155724;
-                    "
-                  >
-                    Giá trị thực tế
-                  </th>
-                  <!-- Predicted Values -->
-                  <th
-                    colspan="2"
-                    style="
-                      text-align: center;
-                      background-color: #fff3cd;
-                      color: #856404;
-                    "
-                  >
-                    Dự báo
-                  </th>
-                  <th
-                    class="sortable"
-                    data-field="note"
-                    onclick="sortTable('note')"
-                  >
-                    Ghi chú
-                  </th>
-                  <th>Thao tác</th>
-                </tr>
-                <tr>
-                  <th></th>
-                  <th></th>
-                  <!-- Actual Values Sub-headers -->
-                  <th
-                    class="sortable"
-                    data-field="income"
-                    onclick="sortTable('income')"
-                    style="background-color: #d4edda"
-                  >
-                    Thu nhập (VND)
-                  </th>
-                  <th
-                    class="sortable"
-                    data-field="expense"
-                    onclick="sortTable('expense')"
-                    style="background-color: #d4edda"
-                  >
-                    Chi phí (VND)
-                  </th>
-                  <!-- Predicted Values Sub-headers -->
-                  <th
-                    class="sortable"
-                    data-field="incomePrediction"
-                    onclick="sortTable('incomePrediction')"
-                    style="background-color: #fff3cd"
-                  >
-                    Dự báo thu (VND)
-                  </th>
-                  <th
-                    class="sortable"
-                    data-field="expensePrediction"
-                    onclick="sortTable('expensePrediction')"
-                    style="background-color: #fff3cd"
-                  >
-                    Dự báo chi (VND)
-                  </th>
-                  <th></th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="entriesBody">
-                <!-- Rows will be populated by JavaScript -->
-              </tbody>
-            </table>
-          </div>
-          <div class="add-row-container">
-            <button
-              id="addNewEntryBtn"
-              class="btn-finance"
-              onclick="showAddRow()"
-            >
-              + Thêm Mục Mới
+              📁 Xuất dữ liệu
             </button>
           </div>
         </div>
@@ -291,6 +354,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="financePages/financeCostCenterDaily/financeCostCenterDaily.js?v=1.4"></script>
+    <script src="financePages/financeCostCenterDaily/financeCostCenterDaily.js?v=1.5"></script>
   </body>
 </html>
