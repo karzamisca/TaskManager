@@ -1024,6 +1024,26 @@ async function exportData() {
 
 // Global Summary Functions
 function showGlobalDetails() {
+  // Filter cost centers that have actual daily entries
+  const costCentersWithEntries = Object.entries(allEntries).filter(
+    ([costCenterId, data]) => {
+      if (!data.entries || data.entries.length === 0) return false;
+
+      // Check if there are any actual entries (income or expense > 0)
+      return data.entries.some(
+        (entry) =>
+          (entry.income && entry.income > 0) ||
+          (entry.expense && entry.expense > 0),
+      );
+    },
+  );
+
+  // If no cost centers have actual entries, show message
+  if (costCentersWithEntries.length === 0) {
+    alert("Không có trạm nào có dữ liệu thực tế hàng ngày.");
+    return;
+  }
+
   const modalContent = `
     <div class="modal fade" id="globalDetailsModal" tabindex="-1">
       <div class="modal-dialog modal-xl">
@@ -1048,23 +1068,8 @@ function showGlobalDetails() {
                   </tr>
                 </thead>
                 <tbody>
-                  ${Object.entries(allEntries)
+                  ${costCentersWithEntries
                     .map(([costCenterId, data]) => {
-                      if (!data.entries || data.entries.length === 0) {
-                        return `
-                          <tr>
-                            <td>${data.name}</td>
-                            <td>0</td>
-                            <td>0</td>
-                            <td>0</td>
-                            <td>0</td>
-                            <td>0</td>
-                            <td>0</td>
-                            <td>0</td>
-                          </tr>
-                        `;
-                      }
-
                       const totals = data.entries.reduce(
                         (acc, entry) => {
                           acc.totalIncome += entry.income || 0;
@@ -1114,50 +1119,42 @@ function showGlobalDetails() {
                 <tfoot class="table-secondary">
                   <tr>
                     <td><strong>TỔNG CỘNG</strong></td>
-                    <td><strong>${Object.values(allEntries).reduce(
-                      (sum, data) =>
-                        sum + (data.entries ? data.entries.length : 0),
+                    <td><strong>${costCentersWithEntries.reduce(
+                      (sum, [_, data]) => sum + data.entries.length,
                       0,
                     )}</strong></td>
-                    <td><strong>${Object.values(allEntries).reduce(
-                      (sum, data) =>
+                    <td><strong>${costCentersWithEntries.reduce(
+                      (sum, [_, data]) =>
                         sum +
-                        (data.entries
-                          ? data.entries.filter(
-                              (e) => e.incomePrediction || e.expensePrediction,
-                            ).length
-                          : 0),
+                        data.entries.filter(
+                          (e) => e.incomePrediction || e.expensePrediction,
+                        ).length,
                       0,
                     )}</strong></td>
-                    <td><strong>${Object.values(allEntries)
+                    <td><strong>${costCentersWithEntries
                       .reduce(
-                        (sum, data) =>
+                        (sum, [_, data]) =>
                           sum +
-                          (data.entries
-                            ? data.entries.reduce(
-                                (acc, entry) => acc + (entry.income || 0),
-                                0,
-                              )
-                            : 0),
+                          data.entries.reduce(
+                            (acc, entry) => acc + (entry.income || 0),
+                            0,
+                          ),
                         0,
                       )
                       .toLocaleString("vi-VN")}</strong></td>
-                    <td><strong>${Object.values(allEntries)
+                    <td><strong>${costCentersWithEntries
                       .reduce(
-                        (sum, data) =>
+                        (sum, [_, data]) =>
                           sum +
-                          (data.entries
-                            ? data.entries.reduce(
-                                (acc, entry) => acc + (entry.expense || 0),
-                                0,
-                              )
-                            : 0),
+                          data.entries.reduce(
+                            (acc, entry) => acc + (entry.expense || 0),
+                            0,
+                          ),
                         0,
                       )
                       .toLocaleString("vi-VN")}</strong></td>
                     <td><strong class="${
-                      Object.values(allEntries).reduce((sum, data) => {
-                        if (!data.entries) return sum;
+                      costCentersWithEntries.reduce((sum, [_, data]) => {
                         const costCenterTotal = data.entries.reduce(
                           (acc, entry) => {
                             acc.income += entry.income || 0;
@@ -1174,9 +1171,8 @@ function showGlobalDetails() {
                         ? "text-success"
                         : "text-danger"
                     }">
-                      ${Object.values(allEntries)
-                        .reduce((sum, data) => {
-                          if (!data.entries) return sum;
+                      ${costCentersWithEntries
+                        .reduce((sum, [_, data]) => {
                           const costCenterTotal = data.entries.reduce(
                             (acc, entry) => {
                               acc.income += entry.income || 0;
@@ -1192,31 +1188,26 @@ function showGlobalDetails() {
                         }, 0)
                         .toLocaleString("vi-VN")}
                     </strong></td>
-                    <td><strong>${Object.values(allEntries)
+                    <td><strong>${costCentersWithEntries
                       .reduce(
-                        (sum, data) =>
+                        (sum, [_, data]) =>
                           sum +
-                          (data.entries
-                            ? data.entries.reduce(
-                                (acc, entry) =>
-                                  acc + (entry.incomePrediction || 0),
-                                0,
-                              )
-                            : 0),
+                          data.entries.reduce(
+                            (acc, entry) => acc + (entry.incomePrediction || 0),
+                            0,
+                          ),
                         0,
                       )
                       .toLocaleString("vi-VN")}</strong></td>
-                    <td><strong>${Object.values(allEntries)
+                    <td><strong>${costCentersWithEntries
                       .reduce(
-                        (sum, data) =>
+                        (sum, [_, data]) =>
                           sum +
-                          (data.entries
-                            ? data.entries.reduce(
-                                (acc, entry) =>
-                                  acc + (entry.expensePrediction || 0),
-                                0,
-                              )
-                            : 0),
+                          data.entries.reduce(
+                            (acc, entry) =>
+                              acc + (entry.expensePrediction || 0),
+                            0,
+                          ),
                         0,
                       )
                       .toLocaleString("vi-VN")}</strong></td>
@@ -1225,6 +1216,8 @@ function showGlobalDetails() {
               </table>
             </div>
             <div class="mt-3">
+              <small class="text-muted">* Chỉ hiển thị các trạm có dữ liệu thực tế hàng ngày</small>
+              <br>
               <small class="text-muted">* Nhấp vào tên trạm để chuyển sang xem chi tiết</small>
             </div>
           </div>
@@ -1281,10 +1274,28 @@ async function refreshGlobalData() {
 // Hàm xuất toàn bộ dữ liệu
 async function exportAllData() {
   try {
+    // Filter cost centers with actual data
+    const costCentersWithEntries = Object.entries(allEntries).filter(
+      ([costCenterId, data]) => {
+        if (!data.entries || data.entries.length === 0) return false;
+
+        return data.entries.some(
+          (entry) =>
+            (entry.income && entry.income > 0) ||
+            (entry.expense && entry.expense > 0),
+        );
+      },
+    );
+
+    if (costCentersWithEntries.length === 0) {
+      alert("Không có dữ liệu thực tế để xuất");
+      return;
+    }
+
     let csvContent =
       "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Ghi chú\n";
 
-    Object.entries(allEntries).forEach(([costCenterId, data]) => {
+    costCentersWithEntries.forEach(([costCenterId, data]) => {
       if (data.entries && data.entries.length > 0) {
         data.entries.forEach((entry) => {
           const row = [
