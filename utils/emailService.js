@@ -2,8 +2,8 @@
 const nodemailer = require("nodemailer");
 const User = require("../models/User");
 
-// Configure the transporter with Gmail SMTP
-const transporter = nodemailer.createTransport({
+// Configure the Gmail transporter for non-salary emails
+const gmailTransporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
     user: process.env.GMAIL_USER,
@@ -11,7 +11,21 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Function to send an email
+// Configure the Mailcow transporter specifically for salary emails
+const mailcowTransporter = nodemailer.createTransport({
+  host: process.env.MAILCOW_HOST || "mail.yourdomain.com",
+  port: process.env.MAILCOW_PORT || 587,
+  secure: process.env.MAILCOW_SECURE === "true", // true for 465, false for other ports
+  auth: {
+    user: process.env.MAILCOW_USER,
+    pass: process.env.MAILCOW_PASS,
+  },
+  tls: {
+    rejectUnauthorized: process.env.MAILCOW_REJECT_UNAUTHORIZED !== "false",
+  },
+});
+
+// Function to send a general email using Gmail
 const sendEmail = async (to, subject, text) => {
   try {
     const mailOptions = {
@@ -20,10 +34,60 @@ const sendEmail = async (to, subject, text) => {
       subject,
       text,
     };
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent:", info.response);
+    const info = await gmailTransporter.sendMail(mailOptions);
+    console.log("Email sent via Gmail:", info.response);
+    return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error("Error sending email via Gmail:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Function to send salary calculation email using Mailcow
+const sendSalaryEmail = async (to, subject, htmlContent) => {
+  try {
+    const mailOptions = {
+      from: process.env.MAILCOW_FROM || process.env.MAILCOW_USER,
+      to,
+      subject,
+      html: htmlContent,
+    };
+    const info = await mailcowTransporter.sendMail(mailOptions);
+    console.log("Salary email sent via Mailcow:", info.response);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error("Error sending salary email via Mailcow:", error);
+
+    // Fallback to Gmail if Mailcow fails
+    console.log("Attempting to send salary email via Gmail as fallback...");
+    try {
+      const fallbackMailOptions = {
+        from: process.env.GMAIL_USER,
+        to,
+        subject,
+        html: htmlContent,
+      };
+      const fallbackInfo = await gmailTransporter.sendMail(fallbackMailOptions);
+      console.log(
+        "Salary email sent via Gmail (fallback):",
+        fallbackInfo.response,
+      );
+      return {
+        success: true,
+        messageId: fallbackInfo.messageId,
+        fallback: true,
+      };
+    } catch (fallbackError) {
+      console.error(
+        "Error sending salary email via Gmail fallback:",
+        fallbackError,
+      );
+      return {
+        success: false,
+        error: error.message,
+        fallbackError: fallbackError.message,
+      };
+    }
   }
 };
 
@@ -162,7 +226,7 @@ const groupDocumentsByApprover = (documents, username) => {
   return approverMap;
 };
 
-// Main function to send pending approval emails
+// Main function to send pending approval emails (uses Gmail)
 const sendPendingApprovalEmails = async (allDocuments) => {
   try {
     // Get all unique approver IDs from all documents
@@ -220,7 +284,7 @@ const sendPendingApprovalEmails = async (allDocuments) => {
       text += `\nVui lòng truy cập hệ thống để thực hiện phê duyệt.\n`;
       text += `\nTrân trọng,\nHệ thống quản lý tài liệu Kỳ Long`;
 
-      // Send email if the user has an email address
+      // Send email using Gmail
       if (user.email) {
         await sendEmail(user.email, subject, text);
       }
@@ -228,24 +292,6 @@ const sendPendingApprovalEmails = async (allDocuments) => {
   } catch (error) {
     console.error("Error sending pending approval emails:", error);
     throw error; // Re-throw to handle in calling function
-  }
-};
-
-// Function to send salary calculation email
-const sendSalaryEmail = async (to, subject, htmlContent) => {
-  try {
-    const mailOptions = {
-      from: process.env.GMAIL_USER,
-      to,
-      subject,
-      html: htmlContent,
-    };
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Salary email sent:", info.response);
-    return { success: true, messageId: info.messageId };
-  } catch (error) {
-    console.error("Error sending salary email:", error);
-    return { success: false, error: error.message };
   }
 };
 
