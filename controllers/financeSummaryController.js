@@ -10,6 +10,7 @@ exports.getAvailableYears = async (req, res) => {
       "superAdmin",
       "director",
       "deputyDirector",
+      "headOfAccounting",
       "captainOfFinance",
       "submitterOfFinance",
     ].includes(req.user.role) &&
@@ -63,7 +64,7 @@ exports.getAvailableYears = async (req, res) => {
     // Filter out invalid years and sort in descending order
     const validYears = allYears
       .filter(
-        (year) => year && year >= 2000 && year <= new Date().getFullYear() + 2
+        (year) => year && year >= 2000 && year <= new Date().getFullYear() + 2,
       )
       .sort((a, b) => b - a);
 
@@ -80,6 +81,7 @@ exports.getAllCostCenters = async (req, res) => {
       "superAdmin",
       "director",
       "deputyDirector",
+      "headOfAccounting",
       "captainOfFinance",
       "submitterOfFinance",
     ].includes(req.user.role) &&
@@ -165,6 +167,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
       "superAdmin",
       "director",
       "deputyDirector",
+      "headOfAccounting",
       "captainOfFinance",
       "submitterOfFinance",
     ].includes(req.user.role) &&
@@ -218,7 +221,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
               selected.toLowerCase() === name.toLowerCase();
 
             return exactMatch || caseInsensitiveMatch;
-          })
+          }),
         );
 
         // If no exact matches found, try partial matching
@@ -230,8 +233,8 @@ exports.getRevenueByCostCenter = async (req, res) => {
                   cc.name.includes(selected) ||
                   selected.includes(cc.name) ||
                   cc.name.toLowerCase().includes(selected.toLowerCase()) ||
-                  selected.toLowerCase().includes(cc.name.toLowerCase())
-              )
+                  selected.toLowerCase().includes(cc.name.toLowerCase()),
+              ),
             )
             .map((cc) => cc.name);
         }
@@ -554,7 +557,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
             const yearData = center.years.find((y) => y.year === actualYear);
             if (yearData) {
               const monthData = yearData.months.find(
-                (m) => m.name === vietnameseMonth
+                (m) => m.name === vietnameseMonth,
               );
               if (monthData) {
                 // Calculate total values across all entries
@@ -657,9 +660,13 @@ exports.getRevenueByCostCenter = async (req, res) => {
 
 exports.createCostCenterGroup = async (req, res) => {
   if (
-    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
-      req.user.role
-    ) &&
+    ![
+      "superAdmin",
+      "director",
+      "deputyDirector",
+      "headOfAccounting",
+      "captainOfFinance",
+    ].includes(req.user.role) &&
     !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
   ) {
     return res
@@ -690,6 +697,7 @@ exports.getCostCenterGroups = async (req, res) => {
       "superAdmin",
       "director",
       "deputyDirector",
+      "headOfAccounting",
       "captainOfFinance",
       "submitterOfFinance",
     ].includes(req.user.role) &&
@@ -710,9 +718,13 @@ exports.getCostCenterGroups = async (req, res) => {
 
 exports.deleteCostCenterGroup = async (req, res) => {
   if (
-    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
-      req.user.role
-    ) &&
+    ![
+      "superAdmin",
+      "director",
+      "deputyDirector",
+      "headOfAccounting",
+      "captainOfFinance",
+    ].includes(req.user.role) &&
     !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
   ) {
     return res
@@ -739,9 +751,13 @@ exports.deleteCostCenterGroup = async (req, res) => {
 // Edit cost center group - add or remove cost centers
 exports.updateCostCenterGroup = async (req, res) => {
   if (
-    !["superAdmin", "director", "deputyDirector", "captainOfFinance"].includes(
-      req.user.role
-    ) &&
+    ![
+      "superAdmin",
+      "director",
+      "deputyDirector",
+      "headOfAccounting",
+      "captainOfFinance",
+    ].includes(req.user.role) &&
     !req.user.permissions?.includes("Xem bảng tài chính tổng hợp")
   ) {
     return res
