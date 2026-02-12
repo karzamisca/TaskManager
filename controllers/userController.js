@@ -2155,6 +2155,16 @@ exports.sendSalaryCalculationEmails = async (req, res) => {
     let successfulCount = 0;
     let failedCount = 0;
 
+    // Calculate previous month and year for display
+    let displayMonth, displayYear;
+    if (parseInt(month) === 1) {
+      displayMonth = 12;
+      displayYear = parseInt(year) - 1;
+    } else {
+      displayMonth = parseInt(month) - 1;
+      displayYear = parseInt(year);
+    }
+
     // Send emails to each user
     for (const user of users) {
       const userRecord = records.find(
@@ -2174,7 +2184,7 @@ exports.sendSalaryCalculationEmails = async (req, res) => {
       }
 
       try {
-        const subject = `Bảng lương tháng ${month}/${year} - ${user.realName}`;
+        const subject = `Bảng lương tháng ${displayMonth}/${displayYear} - ${user.realName}`;
         const htmlContent = emailService.generateSalaryEmailContent(user, {
           month,
           year,
@@ -2205,6 +2215,12 @@ exports.sendSalaryCalculationEmails = async (req, res) => {
             email: user.email,
             status: "success",
             messageId: result.messageId,
+            salaryPeriod: {
+              displayMonth,
+              displayYear,
+              recordedMonth: parseInt(month),
+              recordedYear: parseInt(year),
+            },
           });
           successfulCount++;
         } else {
@@ -2232,10 +2248,14 @@ exports.sendSalaryCalculationEmails = async (req, res) => {
     }
 
     res.json({
-      message: `Đã gửi email thành công cho ${successfulCount}/${users.length} nhân viên`,
+      message: `Đã gửi email bảng lương tháng ${displayMonth}/${displayYear} thành công cho ${successfulCount}/${users.length} nhân viên`,
       total: users.length,
       successful: successfulCount,
       failed: failedCount,
+      salaryPeriod: {
+        display: `Tháng ${displayMonth}/${displayYear}`,
+        recorded: `Tháng ${month}/${year}`,
+      },
       details: results,
     });
   } catch (error) {

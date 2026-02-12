@@ -301,6 +301,16 @@ const generateSalaryEmailContent = (user, salaryData) => {
     return num ? num.toLocaleString("vi-VN") : "0";
   };
 
+  // Calculate previous month and year correctly
+  let previousMonth, year;
+  if (salaryData.month === 1) {
+    previousMonth = 12;
+    year = salaryData.year - 1;
+  } else {
+    previousMonth = salaryData.month - 1;
+    year = salaryData.year;
+  }
+
   return `
     <!DOCTYPE html>
     <html>
@@ -315,17 +325,19 @@ const generateSalaryEmailContent = (user, salaryData) => {
         .salary-table th, .salary-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
         .salary-table th { background-color: #f2f2f2; font-weight: bold; }
         .highlight { background-color: #e8f5e8; font-weight: bold; }
+        .note { background-color: #fff3cd; border: 1px solid #ffeeba; padding: 15px; margin: 20px 0; border-radius: 5px; }
         .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }
       </style>
     </head>
     <body>
       <div class="container">
         <div class="header">
-          <h2>BẢNG LƯƠNG THÁNG ${salaryData.month}/${salaryData.year}</h2>
+          <h2>BẢNG LƯƠNG THÁNG ${previousMonth}/${year}</h2>
         </div>
         <div class="content">
+          
           <p>Kính gửi <strong>${user.realName}</strong>,</p>
-          <p>Dưới đây là bảng lương chi tiết của bạn tháng ${salaryData.month}/${salaryData.year}:</p>
+          <p>Dưới đây là bảng lương chi tiết của bạn tháng ${previousMonth}/${year}:</p>
           
           <table class="salary-table">
             <tr>
@@ -393,6 +405,7 @@ const generateSalaryEmailContent = (user, salaryData) => {
             <li>Ngân hàng: ${user.beneficiaryBank || "N/A"}</li>
             <li>Số tài khoản: ${user.bankAccountNumber || "N/A"}</li>
             <li>Số tiền: ${formatNumber(salaryData.currentSalary)} VND</li>
+            <li>Kỳ thanh toán: Lương tháng ${previousMonth}/${year}</li>
           </ul>
           
           <p>Mọi thắc mắc vui lòng liên hệ bộ phận kế toán.</p>
