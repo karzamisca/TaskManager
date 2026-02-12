@@ -394,16 +394,24 @@ function resetEditStates() {
 }
 
 function showAddButton() {
-  document.getElementById("addNewEntryBtn").style.display = "inline-block";
+  const addButton = document.getElementById("addNewEntryBtn");
+  if (addButton) {
+    addButton.style.display = "inline-block";
+  }
 }
 
 function hideAddButton() {
-  document.getElementById("addNewEntryBtn").style.display = "none";
+  const addButton = document.getElementById("addNewEntryBtn");
+  if (addButton) {
+    addButton.style.display = "none";
+  }
 }
 
 function hideMultipleEntryForm() {
   document.getElementById("multipleEntryForm").classList.add("hidden");
   document.getElementById("bulkActions").classList.remove("hidden");
+  showAddButton();
+  clearMultipleEntries();
 }
 
 function sortEntries(field, direction) {
@@ -898,15 +906,24 @@ function isDateOnOrBefore(dateString, compareDateString) {
   return date <= compareDate;
 }
 
+function clearMultipleEntries() {
+  const container = document.getElementById("multipleEntriesContainer");
+  container.innerHTML = "";
+  multipleEntryCounter = 0;
+}
+
 function showMultipleEntryForm() {
   if (isAdding || editingEntryId) {
     alert("Vui lòng hoàn thành thao tác hiện tại trước khi thêm nhiều mục");
     return;
   }
 
+  clearMultipleEntries();
+
   document.getElementById("multipleEntryForm").classList.remove("hidden");
   document.getElementById("bulkActions").classList.add("hidden");
   hideAddButton();
+
   addEntryRow();
 }
 
@@ -946,14 +963,8 @@ function removeEntryRow(entryId) {
 
   const container = document.getElementById("multipleEntriesContainer");
   if (container.children.length === 0) {
-    hideMultipleEntryForm();
+    addEntryRow();
   }
-}
-
-function clearMultipleEntries() {
-  const container = document.getElementById("multipleEntriesContainer");
-  container.innerHTML = "";
-  multipleEntryCounter = 0;
 }
 
 async function saveMultipleEntries() {
@@ -989,19 +1000,19 @@ async function saveMultipleEntries() {
     const note = document.getElementById(`${entryId}_note`).value.trim();
 
     if (!name) {
-      alert(`Vui lòng nhập tên cho mục ${entryId}`);
+      alert(`Vui lòng nhập tên cho mục này`);
       hasError = true;
       break;
     }
 
     if (isNaN(income) || isNaN(expense)) {
-      alert(`Vui lòng nhập số tiền hợp lệ cho mục ${entryId}`);
+      alert(`Vui lòng nhập số tiền hợp lệ cho mục này`);
       hasError = true;
       break;
     }
 
     if (!isValidDate(date)) {
-      alert(`Vui lòng nhập ngày hợp lệ (DD/MM/YYYY) cho mục ${entryId}`);
+      alert(`Vui lòng nhập ngày hợp lệ (DD/MM/YYYY) cho mục này`);
       hasError = true;
       break;
     }
@@ -1056,14 +1067,19 @@ async function saveMultipleEntries() {
 
     if (errorCount === 0) {
       alert(`Đã thêm thành công ${successCount} mục!`);
+
+      clearMultipleEntries();
       hideMultipleEntryForm();
+
       await loadEntries();
       await updateGlobalSummary();
     } else {
       alert(
         `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`,
       );
-      if (successCount > 0) {
+
+      if (successCount > 0 && errorCount === 0) {
+        clearMultipleEntries();
         hideMultipleEntryForm();
         await loadEntries();
         await updateGlobalSummary();
