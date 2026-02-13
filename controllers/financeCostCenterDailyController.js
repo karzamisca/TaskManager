@@ -54,6 +54,7 @@ exports.getDailyEntries = async (req, res) => {
         "deputyDirector",
         "captainOfFinance",
         "submitterOfFinance",
+        "submitterOfAccounting",
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính hàng ngày")
     ) {
@@ -114,6 +115,8 @@ exports.addDailyEntry = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
+        "submitterOfFinance",
+        "submitterOfAccounting",
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính hàng ngày")
     ) {
@@ -222,6 +225,8 @@ exports.updateDailyEntry = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
+        "submitterOfFinance",
+        "submitterOfAccounting",
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính hàng ngày")
     ) {
@@ -344,6 +349,8 @@ exports.deleteDailyEntry = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
+        "submitterOfFinance",
+        "submitterOfAccounting",
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính hàng ngày")
     ) {
@@ -419,6 +426,7 @@ exports.getCostCenters = async (req, res) => {
         "deputyDirector",
         "captainOfFinance",
         "submitterOfFinance",
+        "submitterOfAccounting",
       ].includes(req.user.role) &&
       !req.user.permissions?.includes("Nhập liệu tài chính hàng ngày")
     ) {
