@@ -11,6 +11,10 @@ let multipleEntryCounter = 0;
 
 let allCostCenters = [];
 let allEntries = {};
+let allEntriesFlat = []; // Flattened array of all entries with cost center info
+let filteredAllEntries = [];
+let currentAllSortField = "date";
+let currentAllSortDirection = "desc";
 
 let alternativeViewActive = false;
 let alternativeViewMode = "column";
@@ -70,14 +74,36 @@ async function loadAllCostCentersData() {
     });
 
     await Promise.all(loadingPromises);
+
+    // Flatten all entries with cost center info
+    flattenAllEntries();
     calculateGlobalSummary();
 
     if (alternativeViewActive) {
-      renderAlternativeView();
+      renderAllCostCentersView();
     }
   } catch (error) {
     console.error("Lỗi khi tải dữ liệu toàn hệ thống:", error);
   }
+}
+
+function flattenAllEntries() {
+  allEntriesFlat = [];
+
+  Object.entries(allEntries).forEach(([costCenterId, data]) => {
+    if (data.entries && data.entries.length > 0) {
+      data.entries.forEach((entry) => {
+        allEntriesFlat.push({
+          ...entry,
+          costCenterId: costCenterId,
+          costCenterName: data.name,
+        });
+      });
+    }
+  });
+
+  filteredAllEntries = [...allEntriesFlat];
+  sortAllEntries(currentAllSortField, currentAllSortDirection);
 }
 
 function calculateGlobalSummary() {
@@ -123,10 +149,11 @@ async function updateGlobalSummary() {
     }
   }
 
+  flattenAllEntries();
   calculateGlobalSummary();
 
   if (alternativeViewActive) {
-    renderAlternativeView();
+    renderAllCostCentersView();
   }
 }
 
@@ -148,197 +175,150 @@ function toggleView() {
     .classList.toggle("active", alternativeViewActive);
 
   if (alternativeViewActive) {
-    renderAlternativeView();
+    renderAllCostCentersView();
   }
 }
 
-async function renderAlternativeView() {
+function renderAllCostCentersView() {
   if (!alternativeViewActive) return;
 
-  const costCentersWithEntries = Object.entries(allEntries).filter(
-    ([costCenterId, data]) => {
-      if (!data.entries || data.entries.length === 0) return false;
-      return data.entries.some(
-        (entry) =>
-          (entry.income && entry.income > 0) ||
-          (entry.expense && entry.expense > 0),
-      );
-    },
-  );
+  document.getElementById("totalCostCentersCount").textContent = Object.keys(
+    allEntries,
+  ).filter(
+    (id) => allEntries[id].entries && allEntries[id].entries.length > 0,
+  ).length;
 
-  if (costCentersWithEntries.length === 0) {
-    document.getElementById("columnViewGrid").innerHTML = `
-      <div style="text-align: center; padding: 40px; color: #888;">
-        <h4>Không có dữ liệu thực tế hàng ngày</h4>
-        <p>Chưa có trạm nào có dữ liệu thực tế hàng ngày.</p>
-      </div>
+  renderAllEntriesTable();
+}
+
+function renderAllEntriesTable() {
+  const tbody = document.getElementById("allEntriesBody");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  if (filteredAllEntries.length === 0) {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td colspan="9" style="text-align: center; color: #888;">
+        Không có dữ liệu nào từ các trạm.
+      </td>
     `;
+    tbody.appendChild(row);
     return;
   }
 
-  renderColumnView(costCentersWithEntries);
-}
+  filteredAllEntries.forEach((entry) => {
+    const row = document.createElement("tr");
+    row.setAttribute("data-cost-center-id", entry.costCenterId);
+    row.setAttribute("data-entry-id", entry._id);
 
-function renderColumnView(costCentersData) {
-  const columnContainer = document.getElementById("columnViewGrid");
-  columnContainer.innerHTML = "";
+    const note = entry.note || "";
 
-  costCentersData.forEach(([costCenterId, data]) => {
-    const totals = calculateCostCenterTotals(data.entries);
-
-    const column = document.createElement("div");
-    column.className = "spreadsheet-column";
-    column.innerHTML = `
-      <div class="column-header">
-        ${data.name}
-      </div>
-      <div class="column-summary">
-        <div class="summary-cell">
-          <span class="summary-label">Giao dịch:</span>
-          <span class="summary-value">${data.entries.length}</span>
-        </div>
-        <div class="summary-cell">
-          <span class="summary-label">Tổng thu:</span>
-          <span class="summary-value">${totals.totalIncome.toLocaleString("vi-VN")}</span>
-        </div>
-        <div class="summary-cell">
-          <span class="summary-label">Tổng chi:</span>
-          <span class="summary-value">${totals.totalExpense.toLocaleString("vi-VN")}</span>
-        </div>
-        <div class="summary-cell">
-          <span class="summary-label">Lợi nhuận:</span>
-          <span class="summary-value ${
-            totals.profit >= 0 ? "positive" : "negative"
-          }">
-            ${totals.profit.toLocaleString("vi-VN")}
-          </span>
-        </div>
-      </div>
-      <div class="column-table">
-        ${
-          data.entries.length > 0
-            ? `<table>
-            <thead>
-              <tr>
-                <th>Ngày</th>
-                <th>Tên</th>
-                <th>Thu</th>
-                <th>Chi</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${data.entries
-                .map(
-                  (entry) => `
-                <tr onclick="switchToCostCenter('${costCenterId}')" style="cursor: pointer;">
-                  <td class="date-cell">${entry.date}</td>
-                  <td>${entry.name}</td>
-                  <td class="income-cell">${entry.income.toLocaleString(
-                    "vi-VN",
-                  )}</td>
-                  <td class="expense-cell">${entry.expense.toLocaleString(
-                    "vi-VN",
-                  )}</td>
-                </tr>
-              `,
-                )
-                .join("")}
-            </tbody>
-          </table>`
-            : '<div class="no-entries">Không có dữ liệu</div>'
-        }
-      </div>
+    row.innerHTML = `
+      <td><strong>${entry.costCenterName}</strong></td>
+      <td>${entry.name}</td>
+      <td>${entry.date}</td>
+      <td style="background-color: #e8f5e9;">${(entry.income || 0).toLocaleString("vi-VN")}</td>
+      <td style="background-color: #e8f5e9;">${(entry.expense || 0).toLocaleString("vi-VN")}</td>
+      <td style="background-color: #fff9e6;">${(entry.incomePrediction || 0).toLocaleString("vi-VN")}</td>
+      <td style="background-color: #fff9e6;">${(entry.expensePrediction || 0).toLocaleString("vi-VN")}</td>
+      <td>${note.replace(/\n/g, "<br>")}</td>
+      <td class="actions">
+        <button class="edit-btn" onclick="switchToCostCenterAndEdit('${entry.costCenterId}', '${entry._id}')">Sửa</button>
+        <button class="delete-btn" onclick="switchToCostCenterAndDelete('${entry.costCenterId}', '${entry._id}')">Xóa</button>
+      </td>
     `;
 
-    columnContainer.appendChild(column);
+    tbody.appendChild(row);
   });
 }
 
-function calculateCostCenterTotals(entries) {
-  const totals = entries.reduce(
-    (acc, entry) => {
-      acc.totalIncome += entry.income || 0;
-      acc.totalExpense += entry.expense || 0;
-      acc.totalIncomePrediction += entry.incomePrediction || 0;
-      acc.totalExpensePrediction += entry.expensePrediction || 0;
-      if (entry.incomePrediction || entry.expensePrediction) {
-        acc.withPrediction++;
-      }
-      return acc;
-    },
-    {
-      totalIncome: 0,
-      totalExpense: 0,
-      totalIncomePrediction: 0,
-      totalExpensePrediction: 0,
-      withPrediction: 0,
-    },
-  );
+function sortAllEntries(field, direction) {
+  filteredAllEntries.sort((a, b) => {
+    let aValue = a[field];
+    let bValue = b[field];
 
-  totals.profit = totals.totalIncome - totals.totalExpense;
-  return totals;
-}
-
-async function refreshAllData() {
-  await loadAllCostCentersData();
-  renderAlternativeView();
-  alert("Đã làm mới dữ liệu toàn hệ thống!");
-}
-
-async function exportAlternativeView() {
-  try {
-    const costCentersWithEntries = Object.entries(allEntries).filter(
-      ([costCenterId, data]) => {
-        if (!data.entries || data.entries.length === 0) return false;
-        return data.entries.some(
-          (entry) =>
-            (entry.income && entry.income > 0) ||
-            (entry.expense && entry.expense > 0),
-        );
-      },
-    );
-
-    if (costCentersWithEntries.length === 0) {
-      alert("Không có dữ liệu thực tế để xuất");
-      return;
+    if (field === "date") {
+      aValue = parseDate(aValue);
+      bValue = parseDate(bValue);
+    } else if (field === "costCenter") {
+      aValue = a.costCenterName;
+      bValue = b.costCenterName;
     }
 
-    let csvContent =
-      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Ghi chú\n";
+    if (aValue === undefined || aValue === null)
+      aValue = direction === "asc" ? Infinity : -Infinity;
+    if (bValue === undefined || bValue === null)
+      bValue = direction === "asc" ? Infinity : -Infinity;
 
-    costCentersWithEntries.forEach(([costCenterId, data]) => {
-      if (data.entries && data.entries.length > 0) {
-        data.entries.forEach((entry) => {
-          const row = [
-            `"${data.name}"`,
-            `"${entry.name}"`,
-            entry.date,
-            entry.income,
-            entry.expense,
-            entry.incomePrediction || 0,
-            entry.expensePrediction || 0,
-            `"${entry.note || ""}"`,
-          ];
-          csvContent += row.join(",") + "\n";
-        });
-      }
-    });
+    if (aValue < bValue) return direction === "asc" ? -1 : 1;
+    if (aValue > bValue) return direction === "asc" ? 1 : -1;
+    return 0;
+  });
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `all_cost_centers_daily_${new Date().toISOString().split("T")[0]}.csv`,
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } catch (error) {
-    alert("Lỗi khi xuất dữ liệu: " + error.message);
+  updateAllSortIndicators(field, direction);
+}
+
+function updateAllSortIndicators(field, direction) {
+  const headers = document.querySelectorAll("#allCostCentersTable th.sortable");
+  headers.forEach((header) => {
+    header.classList.remove("sorted-asc", "sorted-desc");
+    if (header.getAttribute("data-field") === field) {
+      header.classList.add(direction === "asc" ? "sorted-asc" : "sorted-desc");
+    }
+  });
+}
+
+function sortAllTable(field) {
+  if (currentAllSortField === field) {
+    currentAllSortDirection =
+      currentAllSortDirection === "asc" ? "desc" : "asc";
+  } else {
+    currentAllSortField = field;
+    currentAllSortDirection = "asc";
   }
+
+  sortAllEntries(currentAllSortField, currentAllSortDirection);
+  renderAllEntriesTable();
+}
+
+function switchToCostCenterAndEdit(costCenterId, entryId) {
+  // Switch to single view
+  const toggle = document.getElementById("viewToggle");
+  if (toggle.checked) {
+    toggle.checked = false;
+    toggleView();
+  }
+
+  // Select the cost center
+  document.getElementById("costCenterSelect").value = costCenterId;
+
+  // Load data and start editing
+  loadCostCenterData().then(() => {
+    setTimeout(() => {
+      startEdit(entryId);
+    }, 500);
+  });
+}
+
+function switchToCostCenterAndDelete(costCenterId, entryId) {
+  // Switch to single view
+  const toggle = document.getElementById("viewToggle");
+  if (toggle.checked) {
+    toggle.checked = false;
+    toggleView();
+  }
+
+  // Select the cost center
+  document.getElementById("costCenterSelect").value = costCenterId;
+
+  // Load data and delete
+  loadCostCenterData().then(() => {
+    setTimeout(() => {
+      deleteEntry(entryId);
+    }, 500);
+  });
 }
 
 async function loadCostCenterData() {
@@ -370,6 +350,7 @@ async function loadCostCenterData() {
     entries: entries,
   };
 
+  flattenAllEntries();
   calculateGlobalSummary();
 }
 
@@ -447,7 +428,7 @@ function parseDate(dateString) {
 }
 
 function updateSortIndicators(field, direction) {
-  const headers = document.querySelectorAll("th.sortable");
+  const headers = document.querySelectorAll("#entriesTable th.sortable");
   headers.forEach((header) => {
     header.classList.remove("sorted-asc", "sorted-desc");
     if (header.getAttribute("data-field") === field) {
@@ -1367,6 +1348,13 @@ function switchToCostCenter(costCenterId) {
   );
   if (modal) modal.hide();
 
+  // Switch to single view
+  const toggle = document.getElementById("viewToggle");
+  if (toggle.checked) {
+    toggle.checked = false;
+    toggleView();
+  }
+
   document.getElementById("costCenterSelect").value = costCenterId;
   loadCostCenterData();
 }
@@ -1422,6 +1410,53 @@ async function exportAllData() {
     link.setAttribute(
       "download",
       `all_daily_finance_${new Date().toISOString().split("T")[0]}.csv`,
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    alert("Lỗi khi xuất dữ liệu: " + error.message);
+  }
+}
+
+async function refreshAllData() {
+  await loadAllCostCentersData();
+  renderAllCostCentersView();
+  alert("Đã làm mới dữ liệu toàn hệ thống!");
+}
+
+async function exportAlternativeView() {
+  try {
+    if (filteredAllEntries.length === 0) {
+      alert("Không có dữ liệu thực tế để xuất");
+      return;
+    }
+
+    let csvContent =
+      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Ghi chú\n";
+
+    filteredAllEntries.forEach((entry) => {
+      const row = [
+        `"${entry.costCenterName}"`,
+        `"${entry.name}"`,
+        entry.date,
+        entry.income,
+        entry.expense,
+        entry.incomePrediction || 0,
+        entry.expensePrediction || 0,
+        `"${entry.note || ""}"`,
+      ];
+      csvContent += row.join(",") + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `all_cost_centers_daily_${new Date().toISOString().split("T")[0]}.csv`,
     );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
