@@ -801,6 +801,25 @@
   padding: 6px 12px;
 }
 
+/* Today button - minimalist black and white */
+.finance-daily-page .today-btn {
+  background: #ffffff;
+  border: 1px solid #333333;
+  color: #333333;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 22px;
+  white-space: nowrap;
+  border-radius: 3px;
+  transition: none;
+}
+
+.finance-daily-page .today-btn:hover {
+  background: #f0f0f0;
+}
+
 @media (prefers-color-scheme: dark) {
   .finance-daily-page {
     background-color: #1a1a1a;
@@ -871,6 +890,17 @@
 
   .finance-daily-page .summary-value {
     color: #e0e0e0;
+  }
+
+  /* Today button dark mode */
+  .finance-daily-page .today-btn {
+    background: #2d2d2d;
+    border-color: #888;
+    color: #e0e0e0;
+  }
+
+  .finance-daily-page .today-btn:hover {
+    background: #3a3a3a;
   }
 }
 

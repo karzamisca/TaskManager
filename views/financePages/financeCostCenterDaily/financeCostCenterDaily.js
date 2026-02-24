@@ -39,6 +39,31 @@ let allFilterState = {
 
 document.addEventListener("DOMContentLoaded", loadCostCenters);
 
+// Helper function to get today's date in DD/MM/YYYY format
+function getTodayFormatted() {
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, "0");
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const year = today.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+// Apply "Today Only" filter for single view
+function applyTodayOnlyFilter() {
+  const today = getTodayFormatted();
+  document.getElementById("dateFrom").value = today;
+  document.getElementById("dateTo").value = today;
+  applyFilters();
+}
+
+// Apply "Today Only" filter for all stations view
+function applyAllTodayOnlyFilter() {
+  const today = getTodayFormatted();
+  document.getElementById("allDateFrom").value = today;
+  document.getElementById("allDateTo").value = today;
+  applyAllFilters();
+}
+
 async function loadCostCenters() {
   try {
     const response = await fetch(`${API_BASE}/cost-centers`);
