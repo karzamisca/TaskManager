@@ -27,6 +27,16 @@ let filterState = {
   predictionFilter: "all",
 };
 
+// Filter state for all cost centers view
+let allFilterState = {
+  dateFrom: "",
+  dateTo: "",
+  searchName: "",
+  searchNote: "",
+  costCenterFilter: "all",
+  predictionFilter: "all",
+};
+
 document.addEventListener("DOMContentLoaded", loadCostCenters);
 
 async function loadCostCenters() {
@@ -49,6 +59,25 @@ async function loadCostCenters() {
     console.error("Lỗi khi tải trạm:", error);
     alert("Lỗi khi tải danh sách trạm: " + error.message);
   }
+}
+
+// Populate cost center filter dropdown
+function populateCostCenterFilter() {
+  const select = document.getElementById("allCostCenterFilter");
+  if (!select) return;
+
+  // Clear existing options except "Tất cả trạm"
+  while (select.options.length > 1) {
+    select.remove(1);
+  }
+
+  // Add all cost centers
+  allCostCenters.forEach((cc) => {
+    const option = document.createElement("option");
+    option.value = cc._id;
+    option.textContent = cc.name;
+    select.appendChild(option);
+  });
 }
 
 async function loadAllCostCentersData() {
@@ -79,6 +108,9 @@ async function loadAllCostCentersData() {
     flattenAllEntries();
     calculateGlobalSummary();
 
+    // Populate cost center filter dropdown
+    populateCostCenterFilter();
+
     if (alternativeViewActive) {
       renderAllCostCentersView();
     }
@@ -102,8 +134,8 @@ function flattenAllEntries() {
     }
   });
 
-  filteredAllEntries = [...allEntriesFlat];
-  sortAllEntries(currentAllSortField, currentAllSortDirection);
+  // Apply filters after flattening
+  applyAllFilters();
 }
 
 function calculateGlobalSummary() {
@@ -175,6 +207,8 @@ function toggleView() {
     .classList.toggle("active", alternativeViewActive);
 
   if (alternativeViewActive) {
+    // Populate cost center filter if not already populated
+    populateCostCenterFilter();
     renderAllCostCentersView();
   }
 }
@@ -182,11 +216,28 @@ function toggleView() {
 function renderAllCostCentersView() {
   if (!alternativeViewActive) return;
 
-  document.getElementById("totalCostCentersCount").textContent = Object.keys(
-    allEntries,
-  ).filter(
-    (id) => allEntries[id].entries && allEntries[id].entries.length > 0,
+  // Update counts
+  const uniqueCostCenters = new Set(
+    filteredAllEntries.map((e) => e.costCenterId),
+  ).size;
+  document.getElementById("totalCostCentersCount").textContent =
+    uniqueCostCenters;
+  document.getElementById("totalTransactionsCount").textContent =
+    filteredAllEntries.length;
+
+  // Calculate prediction stats
+  const withPrediction = filteredAllEntries.filter(
+    (e) => e.incomePrediction || e.expensePrediction,
   ).length;
+
+  const predictionStats = document.getElementById("allPredictionStats");
+  if (withPrediction > 0) {
+    predictionStats.classList.remove("hidden");
+    document.getElementById("allWithPredictionCount").textContent =
+      withPrediction;
+  } else {
+    predictionStats.classList.add("hidden");
+  }
 
   renderAllEntriesTable();
 }
@@ -201,7 +252,11 @@ function renderAllEntriesTable() {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td colspan="9" style="text-align: center; color: #888;">
-        Không có dữ liệu nào từ các trạm.
+        ${
+          allEntriesFlat.length === 0
+            ? "Không có dữ liệu nào từ các trạm."
+            : "Không có kết quả phù hợp với bộ lọc."
+        }
       </td>
     `;
     tbody.appendChild(row);
@@ -234,6 +289,110 @@ function renderAllEntriesTable() {
   });
 }
 
+// Filter functions for all cost centers view
+function applyAllFilters() {
+  allFilterState.dateFrom = document.getElementById("allDateFrom")?.value || "";
+  allFilterState.dateTo = document.getElementById("allDateTo")?.value || "";
+  allFilterState.searchName = (
+    document.getElementById("allSearchName")?.value || ""
+  ).toLowerCase();
+  allFilterState.searchNote = (
+    document.getElementById("allSearchNote")?.value || ""
+  ).toLowerCase();
+  allFilterState.costCenterFilter =
+    document.getElementById("allCostCenterFilter")?.value || "all";
+  allFilterState.predictionFilter =
+    document.getElementById("allPredictionFilter")?.value || "all";
+
+  filteredAllEntries = allEntriesFlat.filter((entry) => {
+    // Date from filter
+    if (
+      allFilterState.dateFrom &&
+      !isDateOnOrAfter(entry.date, allFilterState.dateFrom)
+    ) {
+      return false;
+    }
+
+    // Date to filter
+    if (
+      allFilterState.dateTo &&
+      !isDateOnOrBefore(entry.date, allFilterState.dateTo)
+    ) {
+      return false;
+    }
+
+    // Name search filter
+    if (
+      allFilterState.searchName &&
+      !entry.name.toLowerCase().includes(allFilterState.searchName)
+    ) {
+      return false;
+    }
+
+    // Note search filter
+    if (
+      allFilterState.searchNote &&
+      !(entry.note || "").toLowerCase().includes(allFilterState.searchNote)
+    ) {
+      return false;
+    }
+
+    // Cost center filter
+    if (
+      allFilterState.costCenterFilter !== "all" &&
+      entry.costCenterId !== allFilterState.costCenterFilter
+    ) {
+      return false;
+    }
+
+    // Prediction filter
+    if (allFilterState.predictionFilter === "withPrediction") {
+      if (!entry.incomePrediction && !entry.expensePrediction) {
+        return false;
+      }
+    } else if (allFilterState.predictionFilter === "withoutPrediction") {
+      if (entry.incomePrediction || entry.expensePrediction) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  if (alternativeViewActive) {
+    renderAllCostCentersView();
+  }
+
+  sortAllEntries(currentAllSortField, currentAllSortDirection);
+}
+
+function resetAllFilters() {
+  const dateFrom = document.getElementById("allDateFrom");
+  const dateTo = document.getElementById("allDateTo");
+  const searchName = document.getElementById("allSearchName");
+  const searchNote = document.getElementById("allSearchNote");
+  const costCenterFilter = document.getElementById("allCostCenterFilter");
+  const predictionFilter = document.getElementById("allPredictionFilter");
+
+  if (dateFrom) dateFrom.value = "";
+  if (dateTo) dateTo.value = "";
+  if (searchName) searchName.value = "";
+  if (searchNote) searchNote.value = "";
+  if (costCenterFilter) costCenterFilter.value = "all";
+  if (predictionFilter) predictionFilter.value = "all";
+
+  allFilterState = {
+    dateFrom: "",
+    dateTo: "",
+    searchName: "",
+    searchNote: "",
+    costCenterFilter: "all",
+    predictionFilter: "all",
+  };
+
+  applyAllFilters();
+}
+
 function sortAllEntries(field, direction) {
   filteredAllEntries.sort((a, b) => {
     let aValue = a[field];
@@ -245,6 +404,9 @@ function sortAllEntries(field, direction) {
     } else if (field === "costCenter") {
       aValue = a.costCenterName;
       bValue = b.costCenterName;
+    } else if (field === "note") {
+      aValue = a.note || "";
+      bValue = b.note || "";
     }
 
     if (aValue === undefined || aValue === null)
@@ -258,6 +420,10 @@ function sortAllEntries(field, direction) {
   });
 
   updateAllSortIndicators(field, direction);
+
+  if (alternativeViewActive) {
+    renderAllEntriesTable();
+  }
 }
 
 function updateAllSortIndicators(field, direction) {
@@ -280,7 +446,6 @@ function sortAllTable(field) {
   }
 
   sortAllEntries(currentAllSortField, currentAllSortDirection);
-  renderAllEntriesTable();
 }
 
 function switchToCostCenterAndEdit(costCenterId, entryId) {
@@ -1422,7 +1587,8 @@ async function exportAllData() {
 
 async function refreshAllData() {
   await loadAllCostCentersData();
-  renderAllCostCentersView();
+  // Re-apply filters after data refresh
+  applyAllFilters();
   alert("Đã làm mới dữ liệu toàn hệ thống!");
 }
 

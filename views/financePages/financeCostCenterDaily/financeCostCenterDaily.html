@@ -312,9 +312,79 @@
         <div id="alternativeView" class="alternative-view-container">
           <div id="allCostCentersTableView" class="all-cost-centers-view">
             <h2>Danh Sách Tất Cả Các Trạm</h2>
+
+            <!-- Filters for all cost centers view -->
+            <div id="allCostCentersFiltersSection" class="filters-section">
+              <h3>Bộ Lọc Tất Cả Trạm</h3>
+              <div class="filter-controls">
+                <div class="filter-group">
+                  <label for="allDateFrom">Từ ngày:</label>
+                  <input
+                    type="text"
+                    id="allDateFrom"
+                    placeholder="DD/MM/YYYY"
+                    pattern="\d{2}/\d{2}/\d{4}"
+                  />
+                </div>
+                <div class="filter-group">
+                  <label for="allDateTo">Đến ngày:</label>
+                  <input
+                    type="text"
+                    id="allDateTo"
+                    placeholder="DD/MM/YYYY"
+                    pattern="\d{2}/\d{2}/\d{4}"
+                  />
+                </div>
+                <div class="filter-group">
+                  <label for="allSearchName">Tìm theo tên:</label>
+                  <input
+                    type="text"
+                    id="allSearchName"
+                    placeholder="Tên giao dịch"
+                  />
+                </div>
+                <div class="filter-group">
+                  <label for="allSearchNote">Tìm theo ghi chú:</label>
+                  <input type="text" id="allSearchNote" placeholder="Ghi chú" />
+                </div>
+                <div class="filter-group">
+                  <label for="allCostCenterFilter">Lọc theo trạm:</label>
+                  <select id="allCostCenterFilter">
+                    <option value="all">Tất cả trạm</option>
+                  </select>
+                </div>
+                <div class="filter-group">
+                  <label for="allPredictionFilter">Bộ lọc dự báo:</label>
+                  <select id="allPredictionFilter">
+                    <option value="all">Tất cả</option>
+                    <option value="withPrediction">Có dự báo</option>
+                    <option value="withoutPrediction">Không có dự báo</option>
+                  </select>
+                </div>
+              </div>
+              <div class="filter-actions">
+                <button
+                  class="btn-finance apply-filters-btn"
+                  onclick="applyAllFilters()"
+                >
+                  Áp dụng bộ lọc
+                </button>
+                <button
+                  class="btn-finance reset-filters-btn"
+                  onclick="resetAllFilters()"
+                >
+                  Đặt lại bộ lọc
+                </button>
+              </div>
+            </div>
+
             <div class="table-info">
-              Hiển thị tất cả giao dịch từ
-              <span id="totalCostCentersCount">0</span> trạm
+              Hiển thị dữ liệu từ
+              <span id="totalCostCentersCount">0</span> trạm | Tổng số giao
+              dịch: <span id="totalTransactionsCount">0</span>
+              <span id="allPredictionStats" class="hidden">
+                | <span id="allWithPredictionCount">0</span> có dự báo
+              </span>
             </div>
             <div class="table-responsive">
               <table id="allCostCentersTable" class="table table-striped">
@@ -444,6 +514,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="financePages/financeCostCenterDaily/financeCostCenterDaily.js?v=1.9"></script>
+    <script src="financePages/financeCostCenterDaily/financeCostCenterDaily.js?v=1.10"></script>
   </body>
 </html>
