@@ -11,7 +11,7 @@
     />
     <link
       rel="stylesheet"
-      href="financePages/financeCostCenterDaily/financeCostCenterDaily.css?v=1.8"
+      href="financePages/financeCostCenterDaily/financeCostCenterDaily.css?v=1.9"
     />
   </head>
   <body>
@@ -56,6 +56,7 @@
           </div>
         </div>
 
+        <!-- Single Cost Center View -->
         <div id="singleCostCenterView" class="single-cost-center-view">
           <div class="form-group">
             <label for="costCenterSelect">Chọn Trạm:</label>
@@ -134,7 +135,6 @@
                   <option value="withoutPrediction">Không có dự báo</option>
                 </select>
               </div>
-              <!-- TODAY ONLY BUTTON FOR SINGLE VIEW -->
               <div
                 class="filter-group"
                 style="justify-content: flex-end; align-items: flex-end"
@@ -323,6 +323,7 @@
           </div>
         </div>
 
+        <!-- All Cost Centers View -->
         <div id="alternativeView" class="alternative-view-container">
           <div id="allCostCentersTableView" class="all-cost-centers-view">
             <h2>Danh Sách Tất Cả Các Trạm</h2>
@@ -375,7 +376,6 @@
                     <option value="withoutPrediction">Không có dự báo</option>
                   </select>
                 </div>
-                <!-- TODAY ONLY BUTTON FOR ALL VIEW -->
                 <div
                   class="filter-group"
                   style="justify-content: flex-end; align-items: flex-end"
@@ -390,18 +390,37 @@
                   </button>
                 </div>
               </div>
-              <div class="filter-actions">
+              <div
+                class="filter-actions"
+                style="
+                  display: flex;
+                  gap: 8px;
+                  flex-wrap: wrap;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-top: 15px;
+                "
+              >
+                <div style="display: flex; gap: 8px">
+                  <button
+                    class="btn-finance apply-filters-btn"
+                    onclick="applyAllFilters()"
+                  >
+                    Áp dụng bộ lọc
+                  </button>
+                  <button
+                    class="btn-finance reset-filters-btn"
+                    onclick="resetAllFilters()"
+                  >
+                    Đặt lại bộ lọc
+                  </button>
+                </div>
                 <button
-                  class="btn-finance apply-filters-btn"
-                  onclick="applyAllFilters()"
+                  class="btn-finance add-btn"
+                  onclick="showAllViewAddRow()"
+                  style="background: #28a745"
                 >
-                  Áp dụng bộ lọc
-                </button>
-                <button
-                  class="btn-finance reset-filters-btn"
-                  onclick="resetAllFilters()"
-                >
-                  Đặt lại bộ lọc
+                  + Thêm Mục Mới
                 </button>
               </div>
             </div>
@@ -542,6 +561,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="financePages/financeCostCenterDaily/financeCostCenterDaily.js?v=1.12"></script>
+    <script src="financePages/financeCostCenterDaily/financeCostCenterDaily.js?v=1.13"></script>
   </body>
 </html>

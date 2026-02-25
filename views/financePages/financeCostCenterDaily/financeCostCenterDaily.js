@@ -11,13 +11,17 @@ let multipleEntryCounter = 0;
 
 let allCostCenters = [];
 let allEntries = {};
-let allEntriesFlat = []; // Flattened array of all entries with cost center info
+let allEntriesFlat = [];
 let filteredAllEntries = [];
 let currentAllSortField = "date";
 let currentAllSortDirection = "desc";
 
 let alternativeViewActive = false;
 let alternativeViewMode = "column";
+
+// All view adding state
+let isAddingInAllView = false;
+let addingCostCenterId = null;
 
 let filterState = {
   dateFrom: "",
@@ -91,12 +95,10 @@ function populateCostCenterFilter() {
   const select = document.getElementById("allCostCenterFilter");
   if (!select) return;
 
-  // Clear existing options except "Tất cả trạm"
   while (select.options.length > 1) {
     select.remove(1);
   }
 
-  // Add all cost centers
   allCostCenters.forEach((cc) => {
     const option = document.createElement("option");
     option.value = cc._id;
@@ -129,11 +131,8 @@ async function loadAllCostCentersData() {
 
     await Promise.all(loadingPromises);
 
-    // Flatten all entries with cost center info
     flattenAllEntries();
     calculateGlobalSummary();
-
-    // Populate cost center filter dropdown
     populateCostCenterFilter();
 
     if (alternativeViewActive) {
@@ -159,7 +158,6 @@ function flattenAllEntries() {
     }
   });
 
-  // Apply filters after flattening
   applyAllFilters();
 }
 
@@ -231,17 +229,152 @@ function toggleView() {
     .getElementById("alternativeView")
     .classList.toggle("active", alternativeViewActive);
 
+  // Reset adding states when switching views
   if (alternativeViewActive) {
-    // Populate cost center filter if not already populated
+    isAdding = false;
+    editingEntryId = null;
+
     populateCostCenterFilter();
     renderAllCostCentersView();
+  } else {
+    isAddingInAllView = false;
+    addingCostCenterId = null;
+  }
+}
+
+// All view functions
+function createAllViewAddRow(costCenterId) {
+  const row = document.createElement("tr");
+  row.id = "allViewAddRow";
+  row.className = "editing-row";
+
+  const today = getTodayFormatted();
+  const costCenterName =
+    allCostCenters.find((cc) => cc._id === costCenterId)?.name || "";
+
+  row.innerHTML = `
+    <td>
+      <select id="allViewNewCostCenter" class="form-select" style="width: 100%;">
+        ${allCostCenters
+          .map(
+            (cc) => `
+          <option value="${cc._id}" ${cc._id === costCenterId ? "selected" : ""}>
+            ${cc.name}
+          </option>
+        `,
+          )
+          .join("")}
+      </select>
+    </td>
+    <td><input type="text" id="allViewNewName" placeholder="Tên giao dịch" class="form-control" required></td>
+    <td><input type="text" id="allViewNewDate" value="${today}" placeholder="DD/MM/YYYY" class="form-control" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
+    <td><input type="number" id="allViewNewIncome" placeholder="Thu nhập" class="form-control" step="0.1" value="0" required></td>
+    <td><input type="number" id="allViewNewExpense" placeholder="Chi phí" class="form-control" step="0.1" value="0" required></td>
+    <td><input type="number" id="allViewNewIncomePrediction" placeholder="Dự báo thu" class="form-control" step="0.1" value="0"></td>
+    <td><input type="number" id="allViewNewExpensePrediction" placeholder="Dự báo chi" class="form-control" step="0.1" value="0"></td>
+    <td><textarea id="allViewNewNote" placeholder="Ghi chú" class="form-control" rows="2"></textarea></td>
+    <td class="actions">
+      <button class="save-btn btn btn-sm btn-success" onclick="saveAllViewNewEntry()">Lưu</button>
+      <button class="cancel-btn btn btn-sm btn-secondary" onclick="cancelAllViewAdd()">Hủy</button>
+    </td>
+  `;
+
+  return row;
+}
+
+function showAllViewAddRow() {
+  if (isAddingInAllView) return;
+
+  addingCostCenterId =
+    allFilterState.costCenterFilter !== "all"
+      ? allFilterState.costCenterFilter
+      : allCostCenters[0]?._id || null;
+
+  isAddingInAllView = true;
+  renderAllEntriesTable();
+}
+
+function cancelAllViewAdd() {
+  isAddingInAllView = false;
+  addingCostCenterId = null;
+  renderAllEntriesTable();
+}
+
+async function saveAllViewNewEntry() {
+  const costCenterId = document.getElementById("allViewNewCostCenter").value;
+  const name = document.getElementById("allViewNewName").value;
+  const income = parseFloat(document.getElementById("allViewNewIncome").value);
+  const expense = parseFloat(
+    document.getElementById("allViewNewExpense").value,
+  );
+  const date = document.getElementById("allViewNewDate").value;
+  const incomePrediction =
+    parseFloat(document.getElementById("allViewNewIncomePrediction").value) ||
+    0;
+  const expensePrediction =
+    parseFloat(document.getElementById("allViewNewExpensePrediction").value) ||
+    0;
+  const note = document.getElementById("allViewNewNote").value.trim();
+
+  if (!costCenterId) {
+    alert("Vui lòng chọn trạm");
+    return;
+  }
+
+  if (!name.trim()) {
+    alert("Vui lòng nhập tên");
+    return;
+  }
+
+  if (isNaN(income) || isNaN(expense)) {
+    alert("Vui lòng nhập số tiền hợp lệ");
+    return;
+  }
+
+  if (!isValidDate(date)) {
+    alert("Vui lòng nhập ngày theo định dạng DD/MM/YYYY");
+    return;
+  }
+
+  const entry = {
+    name: name.trim(),
+    income,
+    expense,
+    date,
+    incomePrediction,
+    expensePrediction,
+    note,
+  };
+
+  try {
+    const response = await fetch(`${API_BASE}/${costCenterId}/entries`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(entry),
+    });
+
+    if (response.ok) {
+      isAddingInAllView = false;
+      addingCostCenterId = null;
+
+      await loadAllCostCentersData();
+      applyAllFilters();
+
+      alert("Thêm mục thành công!");
+    } else {
+      const errorData = await response.json();
+      alert("Lỗi khi thêm mục: " + (errorData.message || "Unknown error"));
+    }
+  } catch (error) {
+    alert("Lỗi khi thêm mục: " + error.message);
   }
 }
 
 function renderAllCostCentersView() {
   if (!alternativeViewActive) return;
 
-  // Update counts
   const uniqueCostCenters = new Set(
     filteredAllEntries.map((e) => e.costCenterId),
   ).size;
@@ -250,7 +383,6 @@ function renderAllCostCentersView() {
   document.getElementById("totalTransactionsCount").textContent =
     filteredAllEntries.length;
 
-  // Calculate prediction stats
   const withPrediction = filteredAllEntries.filter(
     (e) => e.incomePrediction || e.expensePrediction,
   ).length;
@@ -274,7 +406,14 @@ function renderAllEntriesTable() {
   tbody.innerHTML = "";
   const today = getTodayFormatted();
 
-  if (filteredAllEntries.length === 0) {
+  if (isAddingInAllView) {
+    const addRow = createAllViewAddRow(
+      addingCostCenterId || allCostCenters[0]?._id,
+    );
+    tbody.appendChild(addRow);
+  }
+
+  if (filteredAllEntries.length === 0 && !isAddingInAllView) {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td colspan="9" style="text-align: center; color: #888;">
@@ -286,37 +425,46 @@ function renderAllEntriesTable() {
       </td>
     `;
     tbody.appendChild(row);
-    return;
+  } else {
+    filteredAllEntries.forEach((entry) => {
+      const row = document.createElement("tr");
+      row.setAttribute("data-cost-center-id", entry.costCenterId);
+      row.setAttribute("data-entry-id", entry._id);
+
+      const note = entry.note || "";
+      const dateClass = entry.date === today ? "current-date" : "";
+
+      row.innerHTML = `
+        <td><strong>${entry.costCenterName}</strong></td>
+        <td>${entry.name}</td>
+        <td class="${dateClass}">${entry.date}</td>
+        <td style="background-color: #e8f5e9;">${(entry.income || 0).toLocaleString("vi-VN")}</td>
+        <td style="background-color: #e8f5e9;">${(entry.expense || 0).toLocaleString("vi-VN")}</td>
+        <td style="background-color: #fff9e6;">${(entry.incomePrediction || 0).toLocaleString("vi-VN")}</td>
+        <td style="background-color: #fff9e6;">${(entry.expensePrediction || 0).toLocaleString("vi-VN")}</td>
+        <td>${note.replace(/\n/g, "<br>")}</td>
+        <td class="actions">
+          <button class="edit-btn" onclick="switchToCostCenterAndEdit('${entry.costCenterId}', '${entry._id}')">Sửa</button>
+          <button class="delete-btn" onclick="switchToCostCenterAndDelete('${entry.costCenterId}', '${entry._id}')">Xóa</button>
+        </td>
+      `;
+
+      tbody.appendChild(row);
+    });
   }
 
-  filteredAllEntries.forEach((entry) => {
-    const row = document.createElement("tr");
-    row.setAttribute("data-cost-center-id", entry.costCenterId);
-    row.setAttribute("data-entry-id", entry._id);
-
-    const note = entry.note || "";
-    const dateClass = entry.date === today ? "current-date" : "";
-
-    row.innerHTML = `
-      <td><strong>${entry.costCenterName}</strong></td>
-      <td>${entry.name}</td>
-      <td class="${dateClass}">${entry.date}</td>
-      <td style="background-color: #e8f5e9;">${(entry.income || 0).toLocaleString("vi-VN")}</td>
-      <td style="background-color: #e8f5e9;">${(entry.expense || 0).toLocaleString("vi-VN")}</td>
-      <td style="background-color: #fff9e6;">${(entry.incomePrediction || 0).toLocaleString("vi-VN")}</td>
-      <td style="background-color: #fff9e6;">${(entry.expensePrediction || 0).toLocaleString("vi-VN")}</td>
-      <td>${note.replace(/\n/g, "<br>")}</td>
-      <td class="actions">
-        <button class="edit-btn" onclick="switchToCostCenterAndEdit('${entry.costCenterId}', '${entry._id}')">Sửa</button>
-        <button class="delete-btn" onclick="switchToCostCenterAndDelete('${entry.costCenterId}', '${entry._id}')">Xóa</button>
-      </td>
-    `;
-
-    tbody.appendChild(row);
-  });
+  const addNewRow = document.createElement("tr");
+  addNewRow.className = "add-row";
+  addNewRow.innerHTML = `
+    <td colspan="9" style="text-align: center; padding: 12px;">
+      <button class="btn-finance add-btn" onclick="showAllViewAddRow()">
+        + Thêm Mục Mới Cho Trạm
+      </button>
+    </td>
+  `;
+  tbody.appendChild(addNewRow);
 }
 
-// Filter functions for all cost centers view
 function applyAllFilters() {
   allFilterState.dateFrom = document.getElementById("allDateFrom")?.value || "";
   allFilterState.dateTo = document.getElementById("allDateTo")?.value || "";
@@ -332,7 +480,6 @@ function applyAllFilters() {
     document.getElementById("allPredictionFilter")?.value || "all";
 
   filteredAllEntries = allEntriesFlat.filter((entry) => {
-    // Date from filter
     if (
       allFilterState.dateFrom &&
       !isDateOnOrAfter(entry.date, allFilterState.dateFrom)
@@ -340,7 +487,6 @@ function applyAllFilters() {
       return false;
     }
 
-    // Date to filter
     if (
       allFilterState.dateTo &&
       !isDateOnOrBefore(entry.date, allFilterState.dateTo)
@@ -348,7 +494,6 @@ function applyAllFilters() {
       return false;
     }
 
-    // Name search filter
     if (
       allFilterState.searchName &&
       !entry.name.toLowerCase().includes(allFilterState.searchName)
@@ -356,7 +501,6 @@ function applyAllFilters() {
       return false;
     }
 
-    // Note search filter
     if (
       allFilterState.searchNote &&
       !(entry.note || "").toLowerCase().includes(allFilterState.searchNote)
@@ -364,7 +508,6 @@ function applyAllFilters() {
       return false;
     }
 
-    // Cost center filter
     if (
       allFilterState.costCenterFilter !== "all" &&
       entry.costCenterId !== allFilterState.costCenterFilter
@@ -372,7 +515,6 @@ function applyAllFilters() {
       return false;
     }
 
-    // Prediction filter
     if (allFilterState.predictionFilter === "withPrediction") {
       if (!entry.incomePrediction && !entry.expensePrediction) {
         return false;
@@ -416,6 +558,9 @@ function resetAllFilters() {
     costCenterFilter: "all",
     predictionFilter: "all",
   };
+
+  isAddingInAllView = false;
+  addingCostCenterId = null;
 
   applyAllFilters();
 }
@@ -476,17 +621,14 @@ function sortAllTable(field) {
 }
 
 function switchToCostCenterAndEdit(costCenterId, entryId) {
-  // Switch to single view
   const toggle = document.getElementById("viewToggle");
   if (toggle.checked) {
     toggle.checked = false;
     toggleView();
   }
 
-  // Select the cost center
   document.getElementById("costCenterSelect").value = costCenterId;
 
-  // Load data and start editing
   loadCostCenterData().then(() => {
     setTimeout(() => {
       startEdit(entryId);
@@ -495,17 +637,14 @@ function switchToCostCenterAndEdit(costCenterId, entryId) {
 }
 
 function switchToCostCenterAndDelete(costCenterId, entryId) {
-  // Switch to single view
   const toggle = document.getElementById("viewToggle");
   if (toggle.checked) {
     toggle.checked = false;
     toggleView();
   }
 
-  // Select the cost center
   document.getElementById("costCenterSelect").value = costCenterId;
 
-  // Load data and delete
   loadCostCenterData().then(() => {
     setTimeout(() => {
       deleteEntry(entryId);
@@ -513,6 +652,7 @@ function switchToCostCenterAndDelete(costCenterId, entryId) {
   });
 }
 
+// Single view functions
 async function loadCostCenterData() {
   currentCostCenterId = document.getElementById("costCenterSelect").value;
 
@@ -1077,6 +1217,7 @@ function isDateOnOrBefore(dateString, compareDateString) {
   return date <= compareDate;
 }
 
+// Multiple entries functions
 function clearMultipleEntries() {
   const container = document.getElementById("multipleEntriesContainer");
   container.innerHTML = "";
@@ -1090,7 +1231,6 @@ function showMultipleEntryForm() {
   }
 
   clearMultipleEntries();
-
   document.getElementById("multipleEntryForm").classList.remove("hidden");
   document.getElementById("bulkActions").classList.add("hidden");
   hideAddButton();
@@ -1233,10 +1373,8 @@ async function saveMultipleEntries() {
 
     if (errorCount === 0) {
       alert(`Đã thêm thành công ${successCount} mục!`);
-
       clearMultipleEntries();
       hideMultipleEntryForm();
-
       await loadEntries();
       await updateGlobalSummary();
     } else {
@@ -1244,7 +1382,7 @@ async function saveMultipleEntries() {
         `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`,
       );
 
-      if (successCount > 0 && errorCount === 0) {
+      if (successCount > 0) {
         clearMultipleEntries();
         hideMultipleEntryForm();
         await loadEntries();
@@ -1533,7 +1671,6 @@ function switchToCostCenter(costCenterId) {
   );
   if (modal) modal.hide();
 
-  // Switch to single view
   const toggle = document.getElementById("viewToggle");
   if (toggle.checked) {
     toggle.checked = false;
@@ -1607,7 +1744,6 @@ async function exportAllData() {
 
 async function refreshAllData() {
   await loadAllCostCentersData();
-  // Re-apply filters after data refresh
   applyAllFilters();
   alert("Đã làm mới dữ liệu toàn hệ thống!");
 }

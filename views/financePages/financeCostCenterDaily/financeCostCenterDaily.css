@@ -409,7 +409,8 @@
 }
 
 .finance-daily-page .editing-row input,
-.finance-daily-page .editing-row textarea {
+.finance-daily-page .editing-row textarea,
+.finance-daily-page .editing-row select {
   width: 100%;
   padding: 5px 8px;
   border: 1px solid #ddd;
@@ -826,6 +827,40 @@
   padding: 6px 12px;
 }
 
+/* Style cho form thêm mới trong all view */
+.finance-daily-page #allViewAddRow input,
+.finance-daily-page #allViewAddRow select,
+.finance-daily-page #allViewAddRow textarea {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #dee2e6;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+.finance-daily-page #allViewAddRow select {
+  background-color: white;
+  cursor: pointer;
+}
+
+.finance-daily-page #allViewAddRow textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.finance-daily-page #allViewAddRow .actions {
+  display: flex;
+  gap: 5px;
+  flex-direction: column;
+}
+
+.finance-daily-page #allViewAddRow .actions button {
+  margin: 0;
+  padding: 5px 10px;
+  font-size: 12px;
+  width: 100%;
+}
+
 /* Today button - minimalist black and white */
 .finance-daily-page .today-btn {
   background: #ffffff;
@@ -936,6 +971,20 @@
     border-right: 3px solid #ffd966 !important;
   }
 
+  /* Dark mode cho form thêm mới */
+  .finance-daily-page #allViewAddRow input,
+  .finance-daily-page #allViewAddRow select,
+  .finance-daily-page #allViewAddRow textarea {
+    background: #3a3a3a;
+    border-color: #555;
+    color: #e0e0e0;
+  }
+
+  .finance-daily-page #allViewAddRow select option {
+    background: #2d2d2d;
+    color: #e0e0e0;
+  }
+
   /* Today button dark mode */
   .finance-daily-page .today-btn {
     background: #2d2d2d;
@@ -1004,5 +1053,20 @@
   .finance-daily-page .entry-row textarea {
     width: 100%;
     min-width: 100%;
+  }
+
+  /* Responsive cho form thêm mới trong all view */
+  .finance-daily-page #allViewAddRow td {
+    display: block;
+    width: 100%;
+  }
+
+  .finance-daily-page #allViewAddRow .actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .finance-daily-page #allViewAddRow .actions button {
+    width: auto;
   }
 }
