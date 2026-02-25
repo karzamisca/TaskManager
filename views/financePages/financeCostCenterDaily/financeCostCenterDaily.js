@@ -272,6 +272,7 @@ function renderAllEntriesTable() {
   if (!tbody) return;
 
   tbody.innerHTML = "";
+  const today = getTodayFormatted();
 
   if (filteredAllEntries.length === 0) {
     const row = document.createElement("tr");
@@ -294,11 +295,12 @@ function renderAllEntriesTable() {
     row.setAttribute("data-entry-id", entry._id);
 
     const note = entry.note || "";
+    const dateClass = entry.date === today ? "current-date" : "";
 
     row.innerHTML = `
       <td><strong>${entry.costCenterName}</strong></td>
       <td>${entry.name}</td>
-      <td>${entry.date}</td>
+      <td class="${dateClass}">${entry.date}</td>
       <td style="background-color: #e8f5e9;">${(entry.income || 0).toLocaleString("vi-VN")}</td>
       <td style="background-color: #e8f5e9;">${(entry.expense || 0).toLocaleString("vi-VN")}</td>
       <td style="background-color: #fff9e6;">${(entry.incomePrediction || 0).toLocaleString("vi-VN")}</td>
@@ -704,6 +706,8 @@ function renderEntries() {
     return;
   }
 
+  const today = getTodayFormatted();
+
   filteredEntries.forEach((entry) => {
     const row = document.createElement("tr");
 
@@ -724,10 +728,11 @@ function renderEntries() {
       `;
     } else {
       const note = entry.note || "";
+      const dateClass = entry.date === today ? "current-date" : "";
 
       row.innerHTML = `
         <td>${entry.name}</td>
-        <td>${entry.date}</td>
+        <td class="${dateClass}">${entry.date}</td>
         <td style="background-color: #e8f5e9;">${entry.income.toLocaleString("vi-VN")}</td>
         <td style="background-color: #e8f5e9;">${entry.expense.toLocaleString("vi-VN")}</td>
         <td style="background-color: #fff9e6;">${(entry.incomePrediction || 0).toLocaleString("vi-VN")}</td>
@@ -753,16 +758,11 @@ function createAddRow() {
   row.id = "addEntryRow";
   row.className = "editing-row";
 
-  const today = new Date();
-  const formattedDate = `${today.getDate().toString().padStart(2, "0")}/${(
-    today.getMonth() + 1
-  )
-    .toString()
-    .padStart(2, "0")}/${today.getFullYear()}`;
+  const today = getTodayFormatted();
 
   row.innerHTML = `
     <td><input type="text" id="newName" placeholder="Tên giao dịch" required></td>
-    <td><input type="text" id="newDate" value="${formattedDate}" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
+    <td><input type="text" id="newDate" value="${today}" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
     <td><input type="number" id="newIncome" placeholder="Thu nhập" step="0.1" value="0" required></td>
     <td><input type="number" id="newExpense" placeholder="Chi phí" step="0.1" value="0" required></td>
     <td><input type="number" id="newIncomePrediction" placeholder="Dự báo thu" step="0.1" value="0"></td>
@@ -1102,19 +1102,14 @@ function addEntryRow() {
   const container = document.getElementById("multipleEntriesContainer");
   const entryId = `entry_${multipleEntryCounter++}`;
 
-  const today = new Date();
-  const formattedDate = `${today.getDate().toString().padStart(2, "0")}/${(
-    today.getMonth() + 1
-  )
-    .toString()
-    .padStart(2, "0")}/${today.getFullYear()}`;
+  const today = getTodayFormatted();
 
   const entryRow = document.createElement("div");
   entryRow.className = "entry-row";
   entryRow.id = entryId;
   entryRow.innerHTML = `
     <input type="text" id="${entryId}_name" placeholder="Tên giao dịch" required>
-    <input type="text" id="${entryId}_date" value="${formattedDate}" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required>
+    <input type="text" id="${entryId}_date" value="${today}" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required>
     <input type="number" id="${entryId}_income" placeholder="Thu nhập (VND)" step="0.1" value="0" required>
     <input type="number" id="${entryId}_expense" placeholder="Chi phí (VND)" step="0.1" value="0" required>
     <input type="number" id="${entryId}_incomePrediction" placeholder="Dự báo thu" step="0.1" value="0">

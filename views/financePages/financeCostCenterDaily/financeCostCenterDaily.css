@@ -171,6 +171,31 @@
   background-color: #f8f9fa;
 }
 
+/* Highlight cho ngày hiện tại */
+.finance-daily-page td.current-date {
+  background-color: #fff3cd !important;
+  border-left: 3px solid #ffc107 !important;
+  border-right: 3px solid #ffc107 !important;
+  font-weight: 500;
+  position: relative;
+}
+
+.finance-daily-page td.current-date::before {
+  content: "★";
+  color: #ffc107;
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+}
+
+.finance-daily-page .editing-row td.current-date {
+  background-color: #fff3cd !important;
+  border-left: 3px solid #ffc107 !important;
+  border-right: 3px solid #ffc107 !important;
+}
+
 .finance-daily-page .actions {
   display: flex;
   gap: 5px;
@@ -820,6 +845,7 @@
   background: #f0f0f0;
 }
 
+/* Dark mode */
 @media (prefers-color-scheme: dark) {
   .finance-daily-page {
     background-color: #1a1a1a;
@@ -890,6 +916,24 @@
 
   .finance-daily-page .summary-value {
     color: #e0e0e0;
+  }
+
+  /* Dark mode cho current date */
+  .finance-daily-page td.current-date {
+    background-color: #5a4e2b !important;
+    border-left: 3px solid #ffd966 !important;
+    border-right: 3px solid #ffd966 !important;
+    color: #fff !important;
+  }
+
+  .finance-daily-page td.current-date::before {
+    color: #ffd966;
+  }
+
+  .finance-daily-page .editing-row td.current-date {
+    background-color: #5a4e2b !important;
+    border-left: 3px solid #ffd966 !important;
+    border-right: 3px solid #ffd966 !important;
   }
 
   /* Today button dark mode */
