@@ -880,6 +880,25 @@
   background: #f0f0f0;
 }
 
+.finance-daily-page tr.today-first-row > td {
+  border-top: 2px solid #e53e3e !important;
+}
+.finance-daily-page tr.today-last-row > td {
+  border-bottom: 2px solid #e53e3e !important;
+}
+.finance-daily-page tr.today-sentinel-row {
+  height: 0;
+  padding: 0;
+  pointer-events: none;
+}
+.finance-daily-page tr.today-sentinel-row > td {
+  padding: 0 !important;
+  height: 2px !important;
+  background-color: #e53e3e !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
   .finance-daily-page {
@@ -994,6 +1013,16 @@
 
   .finance-daily-page .today-btn:hover {
     background: #3a3a3a;
+  }
+
+  .finance-daily-page tr.today-first-row > td {
+    border-top-color: #fc8181 !important;
+  }
+  .finance-daily-page tr.today-last-row > td {
+    border-bottom-color: #fc8181 !important;
+  }
+  .finance-daily-page tr.today-sentinel-row > td {
+    background-color: #fc8181 !important;
   }
 }
 

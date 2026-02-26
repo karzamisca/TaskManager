@@ -52,6 +52,77 @@ function getTodayFormatted() {
   return `${day}/${month}/${year}`;
 }
 
+function applyTodayRedLines(tbody, today, colSpan) {
+  if (!tbody) return;
+  const allRows = Array.from(tbody.querySelectorAll("tr[data-date]"));
+  const todayRows = allRows.filter(
+    (r) => r.getAttribute("data-date") === today,
+  );
+
+  tbody
+    .querySelectorAll(".today-first-row, .today-last-row")
+    .forEach((r) => r.classList.remove("today-first-row", "today-last-row"));
+  tbody.querySelectorAll(".today-sentinel-row").forEach((r) => r.remove());
+
+  if (todayRows.length > 0) {
+    todayRows[0].classList.add("today-first-row");
+    todayRows[todayRows.length - 1].classList.add("today-last-row");
+  } else {
+    _insertTodaySentinel(tbody, today, colSpan, allRows);
+  }
+}
+
+function _insertTodaySentinel(tbody, today, colSpan, allRows) {
+  const todayMs = _parseDateMs(today);
+  if (!todayMs) return;
+  const dated = allRows
+    .map((r) => ({ row: r, ms: _parseDateMs(r.getAttribute("data-date")) }))
+    .filter((x) => x.ms != null);
+
+  let insertBefore = null;
+  if (dated.length >= 2 && dated[0].ms >= dated[1].ms) {
+    // descending
+    for (const { row, ms } of dated) {
+      if (ms < todayMs) {
+        insertBefore = row;
+        break;
+      }
+    }
+  } else {
+    // ascending
+    for (const { row, ms } of dated) {
+      if (ms > todayMs) {
+        insertBefore = row;
+        break;
+      }
+    }
+  }
+
+  const sentinel = _makeSentinelRow(colSpan);
+  if (insertBefore) {
+    tbody.insertBefore(sentinel, insertBefore);
+  } else {
+    const addRow = tbody.querySelector(".add-row");
+    addRow ? tbody.insertBefore(sentinel, addRow) : tbody.appendChild(sentinel);
+  }
+}
+
+function _makeSentinelRow(colSpan) {
+  const tr = document.createElement("tr");
+  tr.className = "today-sentinel-row";
+  const td = document.createElement("td");
+  td.colSpan = colSpan;
+  tr.appendChild(td);
+  return tr;
+}
+
+function _parseDateMs(str) {
+  if (!str) return null;
+  const p = str.split("/");
+  if (p.length !== 3) return null;
+  return new Date(+p[2], +p[1] - 1, +p[0]).getTime();
+}
+
 // Apply "Today Only" filter for single view
 function applyTodayOnlyFilter() {
   const today = getTodayFormatted();
@@ -402,8 +473,8 @@ function renderAllCostCentersView() {
 function renderAllEntriesTable() {
   const tbody = document.getElementById("allEntriesBody");
   if (!tbody) return;
-
   tbody.innerHTML = "";
+
   const today = getTodayFormatted();
 
   if (isAddingInAllView) {
@@ -416,53 +487,61 @@ function renderAllEntriesTable() {
   if (filteredAllEntries.length === 0 && !isAddingInAllView) {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td colspan="9" style="text-align: center; color: #888;">
+      <td colspan="10" style="text-align:center; color:#666; padding:20px;">
         ${
           allEntriesFlat.length === 0
             ? "Không có dữ liệu nào từ các trạm."
             : "Không có kết quả phù hợp với bộ lọc."
         }
-      </td>
-    `;
+      </td>`;
     tbody.appendChild(row);
-  } else {
-    filteredAllEntries.forEach((entry) => {
-      const row = document.createElement("tr");
-      row.setAttribute("data-cost-center-id", entry.costCenterId);
-      row.setAttribute("data-entry-id", entry._id);
 
-      const note = entry.note || "";
-      const dateClass = entry.date === today ? "current-date" : "";
+    const addNewRow = document.createElement("tr");
+    addNewRow.className = "add-row";
+    addNewRow.innerHTML = `
+      <td colspan="10">
+        <button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button>
+      </td>`;
+    tbody.appendChild(addNewRow);
 
-      row.innerHTML = `
-        <td><strong>${entry.costCenterName}</strong></td>
-        <td>${entry.name}</td>
-        <td class="${dateClass}">${entry.date}</td>
-        <td style="background-color: #e8f5e9;">${(entry.income || 0).toLocaleString("vi-VN")}</td>
-        <td style="background-color: #e8f5e9;">${(entry.expense || 0).toLocaleString("vi-VN")}</td>
-        <td style="background-color: #fff9e6;">${(entry.incomePrediction || 0).toLocaleString("vi-VN")}</td>
-        <td style="background-color: #fff9e6;">${(entry.expensePrediction || 0).toLocaleString("vi-VN")}</td>
-        <td>${note.replace(/\n/g, "<br>")}</td>
-        <td class="actions">
-          <button class="edit-btn" onclick="switchToCostCenterAndEdit('${entry.costCenterId}', '${entry._id}')">Sửa</button>
-          <button class="delete-btn" onclick="switchToCostCenterAndDelete('${entry.costCenterId}', '${entry._id}')">Xóa</button>
-        </td>
-      `;
-
-      tbody.appendChild(row);
-    });
+    applyTodayRedLines(tbody, today, 10);
+    return;
   }
+
+  filteredAllEntries.forEach((entry) => {
+    const row = document.createElement("tr");
+    row.setAttribute("data-cost-center-id", entry.costCenterId);
+    row.setAttribute("data-entry-id", entry._id);
+    row.setAttribute("data-date", entry.date);
+
+    const note = entry.note || "";
+    const dateClass = entry.date === today ? "current-date" : "";
+    row.innerHTML = `
+      <td>${entry.costCenterName}</td>
+      <td>${entry.name}</td>
+      <td class="${dateClass}">${entry.date}</td>
+      <td>${(entry.income || 0).toLocaleString("vi-VN")}</td>
+      <td>${(entry.expense || 0).toLocaleString("vi-VN")}</td>
+      <td>${(entry.incomePrediction || 0).toLocaleString("vi-VN")}</td>
+      <td>${(entry.expensePrediction || 0).toLocaleString("vi-VN")}</td>
+      <td>${note.replace(/\n/g, " ")}</td>
+      <td class="actions">
+        <button class="edit-btn" onclick="switchToCostCenterAndEdit('${entry.costCenterId}', '${entry._id}')">Sửa</button>
+        <button class="delete-btn" onclick="switchToCostCenterAndDelete('${entry.costCenterId}', '${entry._id}')">Xóa</button>
+      </td>`;
+
+    tbody.appendChild(row);
+  });
 
   const addNewRow = document.createElement("tr");
   addNewRow.className = "add-row";
   addNewRow.innerHTML = `
-    <td colspan="9" style="text-align: center; padding: 12px;">
-      <button class="btn-finance add-btn" onclick="showAllViewAddRow()">
-        + Thêm Mục Mới Cho Trạm
-      </button>
-    </td>
-  `;
+    <td colspan="10">
+      <button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button>
+    </td>`;
   tbody.appendChild(addNewRow);
+
+  applyTodayRedLines(tbody, today, 10);
 }
 
 function applyAllFilters() {
@@ -834,15 +913,15 @@ function renderEntries() {
   if (filteredEntries.length === 0 && !isAdding) {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td colspan="8" style="text-align: center; color: #888;">
+      <td colspan="9" style="text-align:center; color:#666; padding:20px;">
         ${
           entries.length === 0
             ? "Chưa có dữ liệu nào. Hãy thêm mục mới."
             : "Không có kết quả phù hợp với bộ lọc."
         }
-      </td>
-    `;
+      </td>`;
     tbody.appendChild(row);
+    applyTodayRedLines(tbody, getTodayFormatted(), 9);
     return;
   }
 
@@ -850,40 +929,39 @@ function renderEntries() {
 
   filteredEntries.forEach((entry) => {
     const row = document.createElement("tr");
+    row.setAttribute("data-date", entry.date);
 
     if (entry._id === editingEntryId) {
       row.className = "editing-row";
       row.innerHTML = `
-        <td><input type="text" id="editName_${entry._id}" value="${entry.name}" required></td>
-        <td><input type="text" id="editDate_${entry._id}" value="${entry.date}" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
-        <td><input type="number" id="editIncome_${entry._id}" value="${entry.income}" step="0.1" required></td>
-        <td><input type="number" id="editExpense_${entry._id}" value="${entry.expense}" step="0.1" required></td>
-        <td><input type="number" id="editIncomePrediction_${entry._id}" value="${entry.incomePrediction || 0}" step="0.1"></td>
-        <td><input type="number" id="editExpensePrediction_${entry._id}" value="${entry.expensePrediction || 0}" step="0.1"></td>
-        <td><textarea id="editNote_${entry._id}" placeholder="Ghi chú">${entry.note || ""}</textarea></td>
+        <td><input type="text" id="editName_${entry._id}" value="${entry.name}"></td>
+        <td><input type="text" id="editDate_${entry._id}" value="${entry.date}" placeholder="DD/MM/YYYY"></td>
+        <td><input type="number" id="editIncome_${entry._id}" value="${entry.income}" min="0"></td>
+        <td><input type="number" id="editExpense_${entry._id}" value="${entry.expense}" min="0"></td>
+        <td><input type="number" id="editIncomePrediction_${entry._id}" value="${entry.incomePrediction || 0}" min="0"></td>
+        <td><input type="number" id="editExpensePrediction_${entry._id}" value="${entry.expensePrediction || 0}" min="0"></td>
+        <td><textarea id="editNote_${entry._id}">${entry.note || ""}</textarea></td>
         <td class="actions">
           <button class="save-btn" onclick="saveEdit('${entry._id}')">Lưu</button>
           <button class="cancel-btn" onclick="cancelEdit('${entry._id}')">Hủy</button>
-        </td>
-      `;
+        </td>`;
     } else {
       const note = entry.note || "";
       const dateClass = entry.date === today ? "current-date" : "";
-
       row.innerHTML = `
         <td>${entry.name}</td>
         <td class="${dateClass}">${entry.date}</td>
-        <td style="background-color: #e8f5e9;">${entry.income.toLocaleString("vi-VN")}</td>
-        <td style="background-color: #e8f5e9;">${entry.expense.toLocaleString("vi-VN")}</td>
-        <td style="background-color: #fff9e6;">${(entry.incomePrediction || 0).toLocaleString("vi-VN")}</td>
-        <td style="background-color: #fff9e6;">${(entry.expensePrediction || 0).toLocaleString("vi-VN")}</td>
-        <td>${note.replace(/\n/g, "<br>")}</td>
+        <td>${entry.income.toLocaleString("vi-VN")}</td>
+        <td>${entry.expense.toLocaleString("vi-VN")}</td>
+        <td>${(entry.incomePrediction || 0).toLocaleString("vi-VN")}</td>
+        <td>${(entry.expensePrediction || 0).toLocaleString("vi-VN")}</td>
+        <td>${note.replace(/\n/g, " ")}</td>
         <td class="actions">
           <button class="edit-btn" onclick="startEdit('${entry._id}')">Sửa</button>
           <button class="delete-btn" onclick="deleteEntry('${entry._id}')">Xóa</button>
-        </td>
-      `;
+        </td>`;
     }
+
     tbody.appendChild(row);
   });
 
@@ -891,6 +969,8 @@ function renderEntries() {
     const addRow = createAddRow();
     tbody.insertBefore(addRow, tbody.firstChild);
   }
+
+  applyTodayRedLines(tbody, today, 9);
 }
 
 function createAddRow() {
