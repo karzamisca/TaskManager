@@ -539,7 +539,7 @@ const initializeGroupMultiSelect = () => {
 // Populate multi-select dropdown with cost centers
 const populateCostCenterMultiSelect = async () => {
   try {
-    const response = await fetch("/userControlCostCenters");
+    const response = await fetch("/documentCostCenters");
     const costCenters = await response.json();
     state.costCenters = costCenters;
 

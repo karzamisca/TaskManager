@@ -108,6 +108,11 @@ router.get("/documentProduct", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch products" });
   }
 });
+router.get(
+  "/documentCostCenters",
+  authMiddleware,
+  documentController.getAllCostCenters
+);
 //// END OF GENERAL ROUTE
 
 //// PROPOSAL DOCUMENT ROUTE

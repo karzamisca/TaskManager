@@ -413,6 +413,22 @@ exports.getCostCenters = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+exports.getAllCostCenters = async (req, res) => {
+  try {
+    // Fetch all cost centers
+    const costCenters = await CostCenter.find();
+
+    // Sort the cost centers alphabetically by name
+    // Assuming each cost center has a 'name' field - adjust if your field is named differently
+    const sortedCostCenters = costCenters.sort((a, b) => {
+      return a.name.localeCompare(b.name);
+    });
+
+    res.json(sortedCostCenters);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 exports.exportDocumentToDocx = async (req, res) => {
   const { id } = req.params;
   try {
