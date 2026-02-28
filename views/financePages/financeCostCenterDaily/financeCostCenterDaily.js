@@ -23,6 +23,10 @@ let alternativeViewMode = "column";
 let isAddingInAllView = false;
 let addingCostCenterId = null;
 
+// Multiple entries variables for all view
+let allViewMultipleEntryCounter = 0;
+let isAddingMultipleInAllView = false;
+
 let filterState = {
   dateFrom: "",
   dateTo: "",
@@ -304,12 +308,15 @@ function toggleView() {
   if (alternativeViewActive) {
     isAdding = false;
     editingEntryId = null;
+    isAddingMultipleInAllView = false;
 
     populateCostCenterFilter();
     renderAllCostCentersView();
   } else {
     isAddingInAllView = false;
     addingCostCenterId = null;
+    isAddingMultipleInAllView = false;
+    hideAllViewMultipleEntryForm();
   }
 }
 
@@ -354,7 +361,7 @@ function createAllViewAddRow(costCenterId) {
 }
 
 function showAllViewAddRow() {
-  if (isAddingInAllView) return;
+  if (isAddingInAllView || isAddingMultipleInAllView) return;
 
   addingCostCenterId =
     allFilterState.costCenterFilter !== "all"
@@ -443,6 +450,216 @@ async function saveAllViewNewEntry() {
   }
 }
 
+// Multiple entries functions for all view
+function showAllViewMultipleEntryForm() {
+  if (isAddingInAllView || isAddingMultipleInAllView) {
+    alert("Vui lòng hoàn thành thao tác hiện tại trước khi thêm nhiều mục");
+    return;
+  }
+
+  clearAllViewMultipleEntries();
+  document
+    .getElementById("allViewMultipleEntryForm")
+    .classList.remove("hidden");
+  isAddingMultipleInAllView = true;
+
+  // Removed the blur effect - no opacity change
+  addAllViewEntryRow();
+}
+
+function clearAllViewMultipleEntries() {
+  const container = document.getElementById("allViewMultipleEntriesContainer");
+  container.innerHTML = "";
+  allViewMultipleEntryCounter = 0;
+}
+
+function addAllViewEntryRow() {
+  const container = document.getElementById("allViewMultipleEntriesContainer");
+  const entryId = `allViewEntry_${allViewMultipleEntryCounter++}`;
+
+  const today = getTodayFormatted();
+
+  // Create cost center select options
+  const costCenterOptions = allCostCenters
+    .map((cc) => `<option value="${cc._id}">${cc.name}</option>`)
+    .join("");
+
+  const entryRow = document.createElement("div");
+  entryRow.className = "entry-row";
+  entryRow.id = entryId;
+  entryRow.innerHTML = `
+    <select id="${entryId}_costCenter" class="form-select" style="min-width: 150px;" required>
+      <option value="">-- Chọn Trạm --</option>
+      ${costCenterOptions}
+    </select>
+    <input type="text" id="${entryId}_name" placeholder="Tên giao dịch" required>
+    <input type="text" id="${entryId}_date" value="${today}" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required>
+    <input type="number" id="${entryId}_income" placeholder="Thu nhập" step="0.1" value="0" required>
+    <input type="number" id="${entryId}_expense" placeholder="Chi phí" step="0.1" value="0" required>
+    <input type="number" id="${entryId}_incomePrediction" placeholder="Dự báo thu" step="0.1" value="0">
+    <input type="number" id="${entryId}_expensePrediction" placeholder="Dự báo chi" step="0.1" value="0">
+    <textarea id="${entryId}_note" placeholder="Ghi chú" rows="2"></textarea>
+    <button type="button" class="remove-entry-btn" onclick="removeAllViewEntryRow('${entryId}')">×</button>
+  `;
+
+  container.appendChild(entryRow);
+}
+
+function removeAllViewEntryRow(entryId) {
+  const entryRow = document.getElementById(entryId);
+  if (entryRow) {
+    entryRow.remove();
+  }
+
+  const container = document.getElementById("allViewMultipleEntriesContainer");
+  if (container.children.length === 0) {
+    addAllViewEntryRow();
+  }
+}
+
+function cancelAllViewMultipleEntries() {
+  if (
+    confirm("Bạn có chắc chắn muốn hủy? Tất cả dữ liệu chưa lưu sẽ bị mất.")
+  ) {
+    hideAllViewMultipleEntryForm();
+  }
+}
+
+function hideAllViewMultipleEntryForm() {
+  document.getElementById("allViewMultipleEntryForm").classList.add("hidden");
+  isAddingMultipleInAllView = false;
+  clearAllViewMultipleEntries();
+}
+
+async function saveAllViewMultipleEntries() {
+  const container = document.getElementById("allViewMultipleEntriesContainer");
+  const entryRows = container.getElementsByClassName("entry-row");
+
+  if (entryRows.length === 0) {
+    alert("Vui lòng thêm ít nhất một mục");
+    return;
+  }
+
+  const entriesToSave = [];
+  let hasError = false;
+
+  for (let row of entryRows) {
+    const entryId = row.id;
+    const costCenterId = document.getElementById(`${entryId}_costCenter`).value;
+    const name = document.getElementById(`${entryId}_name`).value.trim();
+    const date = document.getElementById(`${entryId}_date`).value;
+    const income = parseFloat(
+      document.getElementById(`${entryId}_income`).value,
+    );
+    const expense = parseFloat(
+      document.getElementById(`${entryId}_expense`).value,
+    );
+    const incomePrediction = parseFloat(
+      document.getElementById(`${entryId}_incomePrediction`).value || 0,
+    );
+    const expensePrediction = parseFloat(
+      document.getElementById(`${entryId}_expensePrediction`).value || 0,
+    );
+    const note = document.getElementById(`${entryId}_note`).value.trim();
+
+    if (!costCenterId) {
+      alert(`Vui lòng chọn trạm cho mục này`);
+      hasError = true;
+      break;
+    }
+
+    if (!name) {
+      alert(`Vui lòng nhập tên cho mục này`);
+      hasError = true;
+      break;
+    }
+
+    if (isNaN(income) || isNaN(expense)) {
+      alert(`Vui lòng nhập số tiền hợp lệ cho mục này`);
+      hasError = true;
+      break;
+    }
+
+    if (!isValidDate(date)) {
+      alert(`Vui lòng nhập ngày hợp lệ (DD/MM/YYYY) cho mục này`);
+      hasError = true;
+      break;
+    }
+
+    entriesToSave.push({
+      costCenterId,
+      entry: {
+        name,
+        date,
+        income,
+        expense,
+        incomePrediction,
+        expensePrediction,
+        note,
+      },
+    });
+  }
+
+  if (hasError) return;
+
+  const saveBtn = document.querySelector("#allViewMultipleEntryForm .save-btn");
+  const originalText = saveBtn.textContent;
+  saveBtn.textContent = "Đang lưu...";
+  saveBtn.disabled = true;
+
+  try {
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const item of entriesToSave) {
+      try {
+        const response = await fetch(
+          `${API_BASE}/${item.costCenterId}/entries`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(item.entry),
+          },
+        );
+
+        if (response.ok) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      } catch (error) {
+        errorCount++;
+      }
+    }
+
+    saveBtn.textContent = originalText;
+    saveBtn.disabled = false;
+
+    if (errorCount === 0) {
+      alert(`Đã thêm thành công ${successCount} mục!`);
+      hideAllViewMultipleEntryForm();
+      await loadAllCostCentersData();
+      applyAllFilters();
+    } else {
+      alert(
+        `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`,
+      );
+
+      if (successCount > 0) {
+        hideAllViewMultipleEntryForm();
+        await loadAllCostCentersData();
+        applyAllFilters();
+      }
+    }
+  } catch (error) {
+    saveBtn.textContent = originalText;
+    saveBtn.disabled = false;
+    alert("Lỗi khi lưu các mục: " + error.message);
+  }
+}
+
 function renderAllCostCentersView() {
   if (!alternativeViewActive) return;
 
@@ -484,7 +701,11 @@ function renderAllEntriesTable() {
     tbody.appendChild(addRow);
   }
 
-  if (filteredAllEntries.length === 0 && !isAddingInAllView) {
+  if (
+    filteredAllEntries.length === 0 &&
+    !isAddingInAllView &&
+    !isAddingMultipleInAllView
+  ) {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td colspan="10" style="text-align:center; color:#666; padding:20px;">
@@ -640,6 +861,8 @@ function resetAllFilters() {
 
   isAddingInAllView = false;
   addingCostCenterId = null;
+  isAddingMultipleInAllView = false;
+  hideAllViewMultipleEntryForm();
 
   applyAllFilters();
 }

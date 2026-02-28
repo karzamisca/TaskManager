@@ -415,12 +415,50 @@
                     Đặt lại bộ lọc
                   </button>
                 </div>
+                <div style="display: flex; gap: 8px">
+                  <button
+                    class="btn-finance add-btn"
+                    onclick="showAllViewMultipleEntryForm()"
+                    style="background: #28a745"
+                  >
+                    + Thêm Nhiều Mục
+                  </button>
+                  <button
+                    class="btn-finance add-btn"
+                    onclick="showAllViewAddRow()"
+                    style="background: #28a745"
+                  >
+                    + Thêm Mục Mới
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Multiple Entry Form for All Cost Centers View -->
+            <div
+              id="allViewMultipleEntryForm"
+              class="multiple-entry-form hidden"
+            >
+              <h3>Thêm Nhiều Mục Cùng Lúc Cho Tất Cả Trạm</h3>
+              <div id="allViewMultipleEntriesContainer"></div>
+              <div class="form-actions">
                 <button
-                  class="btn-finance add-btn"
-                  onclick="showAllViewAddRow()"
-                  style="background: #28a745"
+                  class="btn-finance add-entry-btn"
+                  onclick="addAllViewEntryRow()"
                 >
-                  + Thêm Mục Mới
+                  + Thêm Dòng
+                </button>
+                <button
+                  class="btn-finance save-btn"
+                  onclick="saveAllViewMultipleEntries()"
+                >
+                  Lưu Tất Cả
+                </button>
+                <button
+                  class="btn-finance cancel-btn"
+                  onclick="cancelAllViewMultipleEntries()"
+                >
+                  Hủy
                 </button>
               </div>
             </div>
@@ -561,6 +599,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="financePages/financeCostCenterDaily/financeCostCenterDaily.js?v=1.14"></script>
+    <script src="financePages/financeCostCenterDaily/financeCostCenterDaily.js?v=1.15"></script>
   </body>
 </html>
