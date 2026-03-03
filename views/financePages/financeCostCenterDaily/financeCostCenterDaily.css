@@ -150,19 +150,20 @@
   background-color: #e9ecef;
 }
 
-.finance-daily-page th.sortable::after {
+/* Chỉ giữ lại sort indicator cho cột ngày */
+.finance-daily-page th[data-field="date"]::after {
   content: "↕";
   margin-left: 5px;
   font-size: 11px;
   opacity: 0.5;
 }
 
-.finance-daily-page th.sorted-asc::after {
+.finance-daily-page th[data-field="date"].sorted-asc::after {
   content: "↑";
   opacity: 1;
 }
 
-.finance-daily-page th.sorted-desc::after {
+.finance-daily-page th[data-field="date"].sorted-desc::after {
   content: "↓";
   opacity: 1;
 }
@@ -427,13 +428,13 @@
   min-width: 200px;
 }
 
-.finance-daily-page td:nth-child(7) {
+.finance-daily-page td:nth-child(8) {
   max-width: none;
   min-width: 200px;
   word-wrap: break-word;
 }
 
-.finance-daily-page td:nth-child(7):hover {
+.finance-daily-page td:nth-child(8):hover {
   background-color: #f8f9fa;
   cursor: default;
 }
@@ -586,17 +587,17 @@
   font-weight: 600;
 }
 
-.finance-daily-page .variance-positive {
+.finance-daily-page .profit-positive {
   color: #28a745;
   font-weight: 600;
 }
 
-.finance-daily-page .variance-negative {
+.finance-daily-page .profit-negative {
   color: #dc3545;
   font-weight: 600;
 }
 
-.finance-daily-page .variance-neutral {
+.finance-daily-page .profit-neutral {
   color: #666;
 }
 
@@ -1023,6 +1024,14 @@
   }
   .finance-daily-page tr.today-sentinel-row > td {
     background-color: #fc8181 !important;
+  }
+
+  .finance-daily-page .profit-positive {
+    color: #6fcf97 !important;
+  }
+
+  .finance-daily-page .profit-negative {
+    color: #f28b82 !important;
   }
 }
 

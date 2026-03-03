@@ -11,7 +11,7 @@
     />
     <link
       rel="stylesheet"
-      href="financePages/financeCostCenterDaily/financeCostCenterDaily.css?v=1.10"
+      href="financePages/financeCostCenterDaily/financeCostCenterDaily.css?v=1.11"
     />
   </head>
   <body>
@@ -32,6 +32,10 @@
           <div class="summary-item">
             <strong>Tổng Lợi Nhuận Toàn Hệ Thống:</strong>
             <span id="globalTotalProfit">0</span> VND
+          </div>
+          <div class="summary-item">
+            <strong>Tổng Dự Báo Lợi Nhuận:</strong>
+            <span id="globalTotalProfitPrediction">0</span> VND
           </div>
           <button
             class="btn-finance view-global-btn"
@@ -90,6 +94,10 @@
               <div class="prediction-item">
                 <strong>Tổng dự báo chi:</strong>
                 <span id="totalExpensePrediction">0</span> VND
+              </div>
+              <div class="prediction-item">
+                <strong>Lợi nhuận dự báo:</strong>
+                <span id="totalProfitPrediction">0</span> VND
               </div>
             </div>
           </div>
@@ -212,22 +220,16 @@
               <table id="entriesTable">
                 <thead>
                   <tr>
+                    <th data-field="name">Tên giao dịch</th>
                     <th
-                      class="sortable"
-                      data-field="name"
-                      onclick="sortTable('name')"
-                    >
-                      Tên giao dịch
-                    </th>
-                    <th
-                      class="sortable"
                       data-field="date"
+                      class="sortable"
                       onclick="sortTable('date')"
                     >
                       Ngày
                     </th>
                     <th
-                      colspan="2"
+                      colspan="3"
                       style="
                         text-align: center;
                         background-color: #e8f5e9;
@@ -238,7 +240,7 @@
                       Giá trị thực tế
                     </th>
                     <th
-                      colspan="2"
+                      colspan="3"
                       style="
                         text-align: center;
                         background-color: #fff9e6;
@@ -248,22 +250,13 @@
                     >
                       Dự báo
                     </th>
-                    <th
-                      class="sortable"
-                      data-field="note"
-                      onclick="sortTable('note')"
-                    >
-                      Ghi chú
-                    </th>
+                    <th data-field="note">Ghi chú</th>
                     <th>Thao tác</th>
                   </tr>
                   <tr>
                     <th></th>
                     <th></th>
                     <th
-                      class="sortable"
-                      data-field="income"
-                      onclick="sortTable('income')"
                       style="
                         background-color: #e8f5e9;
                         border-bottom: 2px solid #c8e6c9;
@@ -272,9 +265,6 @@
                       Thu nhập (VND)
                     </th>
                     <th
-                      class="sortable"
-                      data-field="expense"
-                      onclick="sortTable('expense')"
                       style="
                         background-color: #e8f5e9;
                         border-bottom: 2px solid #c8e6c9;
@@ -283,9 +273,14 @@
                       Chi phí (VND)
                     </th>
                     <th
-                      class="sortable"
-                      data-field="incomePrediction"
-                      onclick="sortTable('incomePrediction')"
+                      style="
+                        background-color: #e8f5e9;
+                        border-bottom: 2px solid #c8e6c9;
+                      "
+                    >
+                      Lợi nhuận (VND)
+                    </th>
+                    <th
                       style="
                         background-color: #fff9e6;
                         border-bottom: 2px solid #ffeaa7;
@@ -294,15 +289,20 @@
                       Dự báo thu (VND)
                     </th>
                     <th
-                      class="sortable"
-                      data-field="expensePrediction"
-                      onclick="sortTable('expensePrediction')"
                       style="
                         background-color: #fff9e6;
                         border-bottom: 2px solid #ffeaa7;
                       "
                     >
                       Dự báo chi (VND)
+                    </th>
+                    <th
+                      style="
+                        background-color: #fff9e6;
+                        border-bottom: 2px solid #ffeaa7;
+                      "
+                    >
+                      Lợi nhuận dự báo (VND)
                     </th>
                     <th></th>
                     <th></th>
@@ -437,29 +437,17 @@
               <table id="allCostCentersTable" class="table table-striped">
                 <thead>
                   <tr>
+                    <th data-field="costCenter">Trạm</th>
+                    <th data-field="name">Tên giao dịch</th>
                     <th
-                      class="sortable"
-                      data-field="costCenter"
-                      onclick="sortAllTable('costCenter')"
-                    >
-                      Trạm
-                    </th>
-                    <th
-                      class="sortable"
-                      data-field="name"
-                      onclick="sortAllTable('name')"
-                    >
-                      Tên giao dịch
-                    </th>
-                    <th
-                      class="sortable"
                       data-field="date"
+                      class="sortable"
                       onclick="sortAllTable('date')"
                     >
                       Ngày
                     </th>
                     <th
-                      colspan="2"
+                      colspan="3"
                       style="
                         text-align: center;
                         background-color: #e8f5e9;
@@ -469,7 +457,7 @@
                       Giá trị thực tế
                     </th>
                     <th
-                      colspan="2"
+                      colspan="3"
                       style="
                         text-align: center;
                         background-color: #fff9e6;
@@ -478,13 +466,7 @@
                     >
                       Dự báo
                     </th>
-                    <th
-                      class="sortable"
-                      data-field="note"
-                      onclick="sortAllTable('note')"
-                    >
-                      Ghi chú
-                    </th>
+                    <th data-field="note">Ghi chú</th>
                     <th>Thao tác</th>
                   </tr>
                   <tr>
@@ -492,9 +474,6 @@
                     <th></th>
                     <th></th>
                     <th
-                      class="sortable"
-                      data-field="income"
-                      onclick="sortAllTable('income')"
                       style="
                         background-color: #e8f5e9;
                         border-bottom: 2px solid #c8e6c9;
@@ -503,9 +482,6 @@
                       Thu nhập (VND)
                     </th>
                     <th
-                      class="sortable"
-                      data-field="expense"
-                      onclick="sortAllTable('expense')"
                       style="
                         background-color: #e8f5e9;
                         border-bottom: 2px solid #c8e6c9;
@@ -514,9 +490,14 @@
                       Chi phí (VND)
                     </th>
                     <th
-                      class="sortable"
-                      data-field="incomePrediction"
-                      onclick="sortAllTable('incomePrediction')"
+                      style="
+                        background-color: #e8f5e9;
+                        border-bottom: 2px solid #c8e6c9;
+                      "
+                    >
+                      Lợi nhuận (VND)
+                    </th>
+                    <th
                       style="
                         background-color: #fff9e6;
                         border-bottom: 2px solid #ffeaa7;
@@ -525,15 +506,20 @@
                       Dự báo thu (VND)
                     </th>
                     <th
-                      class="sortable"
-                      data-field="expensePrediction"
-                      onclick="sortAllTable('expensePrediction')"
                       style="
                         background-color: #fff9e6;
                         border-bottom: 2px solid #ffeaa7;
                       "
                     >
                       Dự báo chi (VND)
+                    </th>
+                    <th
+                      style="
+                        background-color: #fff9e6;
+                        border-bottom: 2px solid #ffeaa7;
+                      "
+                    >
+                      Lợi nhuận dự báo (VND)
                     </th>
                     <th></th>
                     <th></th>
@@ -561,6 +547,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="financePages/financeCostCenterDaily/financeCostCenterDaily.js?v=1.14"></script>
+    <script src="financePages/financeCostCenterDaily/financeCostCenterDaily.js?v=1.15"></script>
   </body>
 </html>
