@@ -19,11 +19,9 @@ let currentAllSortDirection = "desc";
 let alternativeViewActive = false;
 let alternativeViewMode = "column";
 
-// All view adding state
 let isAddingInAllView = false;
 let addingCostCenterId = null;
 
-// Multiple entries variables for all view
 let allViewMultipleEntryCounter = 0;
 let isAddingMultipleInAllView = false;
 
@@ -35,7 +33,6 @@ let filterState = {
   predictionFilter: "all",
 };
 
-// Filter state for all cost centers view
 let allFilterState = {
   dateFrom: "",
   dateTo: "",
@@ -47,7 +44,6 @@ let allFilterState = {
 
 document.addEventListener("DOMContentLoaded", loadCostCenters);
 
-// Helper function to get today's date in DD/MM/YYYY format
 function getTodayFormatted() {
   const today = new Date();
   const day = String(today.getDate()).padStart(2, "0");
@@ -56,17 +52,96 @@ function getTodayFormatted() {
   return `${day}/${month}/${year}`;
 }
 
-// Helper function to calculate profit
 function calculateProfit(income, expense) {
   return (income || 0) - (expense || 0);
 }
 
-// Helper function to get profit class
 function getProfitClass(profit) {
   if (profit > 0) return "profit-positive";
   if (profit < 0) return "profit-negative";
   return "profit-neutral";
 }
+
+// ── Progressive (running) totals ─────────────────────────────────────────────
+// Accumulates chronologically regardless of display sort direction.
+// Returns Map<date, {actual: number, predicted: number}>
+function buildProgressiveTotals(sortedEntries, direction) {
+  // Always accumulate oldest→newest
+  const chronological =
+    direction === "asc" ? [...sortedEntries] : [...sortedEntries].reverse();
+
+  const dateOrder = [];
+  const byDate = {};
+  chronological.forEach((e) => {
+    if (!byDate[e.date]) {
+      byDate[e.date] = { income: 0, expense: 0, incomeP: 0, expenseP: 0 };
+      dateOrder.push(e.date);
+    }
+    byDate[e.date].income += e.income || 0;
+    byDate[e.date].expense += e.expense || 0;
+    byDate[e.date].incomeP += e.incomePrediction || 0;
+    byDate[e.date].expenseP += e.expensePrediction || 0;
+  });
+
+  let runActual = 0;
+  let runPredicted = 0;
+  const totalsMap = {};
+  dateOrder.forEach((date) => {
+    const d = byDate[date];
+    runActual += d.income - d.expense;
+    runPredicted += d.incomeP - d.expenseP;
+    totalsMap[date] = { actual: runActual, predicted: runPredicted };
+  });
+
+  return totalsMap;
+}
+
+// Creates the separator row displayed after each day's entries
+function createDailyTotalRow(date, actual, predicted, colCount, isAllView) {
+  const tr = document.createElement("tr");
+  tr.className = "daily-progressive-row";
+  tr.setAttribute("data-progressive-date", date);
+
+  const actualClass = getProfitClass(actual);
+  const predictedClass = getProfitClass(predicted);
+  const actualFmt = actual.toLocaleString("vi-VN");
+  const predictedFmt = predicted.toLocaleString("vi-VN");
+
+  if (isAllView) {
+    // 11 data cols + 1 actions = 12 total
+    tr.innerHTML = `
+      <td colspan="3" class="daily-progressive-label">
+        <span class="daily-progressive-date">${date}</span>
+        <span class="daily-progressive-title">Lũy kế đến cuối ngày</span>
+      </td>
+      <td colspan="3" class="daily-progressive-actual ${actualClass}">
+        <span class="daily-progressive-value-label">Thực tế:</span> ${actualFmt} VND
+      </td>
+      <td colspan="3" class="daily-progressive-predicted ${predictedClass}">
+        <span class="daily-progressive-value-label">Dự báo:</span> ${predictedFmt} VND
+      </td>
+      <td colspan="2" class="daily-progressive-spacer"></td>
+    `;
+  } else {
+    // Single view: 9 data cols + 1 actions = 10 total (colspan matches header)
+    tr.innerHTML = `
+      <td colspan="2" class="daily-progressive-label">
+        <span class="daily-progressive-date">${date}</span>
+        <span class="daily-progressive-title">Lũy kế đến cuối ngày</span>
+      </td>
+      <td colspan="3" class="daily-progressive-actual ${actualClass}">
+        <span class="daily-progressive-value-label">Thực tế:</span> ${actualFmt} VND
+      </td>
+      <td colspan="3" class="daily-progressive-predicted ${predictedClass}">
+        <span class="daily-progressive-value-label">Dự báo:</span> ${predictedFmt} VND
+      </td>
+      <td colspan="2" class="daily-progressive-spacer"></td>
+    `;
+  }
+
+  return tr;
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function applyTodayRedLines(tbody, today, colSpan) {
   if (!tbody) return;
@@ -97,7 +172,6 @@ function _insertTodaySentinel(tbody, today, colSpan, allRows) {
 
   let insertBefore = null;
   if (dated.length >= 2 && dated[0].ms >= dated[1].ms) {
-    // descending
     for (const { row, ms } of dated) {
       if (ms < todayMs) {
         insertBefore = row;
@@ -105,7 +179,6 @@ function _insertTodaySentinel(tbody, today, colSpan, allRows) {
       }
     }
   } else {
-    // ascending
     for (const { row, ms } of dated) {
       if (ms > todayMs) {
         insertBefore = row;
@@ -139,7 +212,6 @@ function _parseDateMs(str) {
   return new Date(+p[2], +p[1] - 1, +p[0]).getTime();
 }
 
-// Apply "Today Only" filter for single view
 function applyTodayOnlyFilter() {
   const today = getTodayFormatted();
   document.getElementById("dateFrom").value = today;
@@ -147,7 +219,6 @@ function applyTodayOnlyFilter() {
   applyFilters();
 }
 
-// Apply "Today Only" filter for all stations view
 function applyAllTodayOnlyFilter() {
   const today = getTodayFormatted();
   document.getElementById("allDateFrom").value = today;
@@ -177,15 +248,10 @@ async function loadCostCenters() {
   }
 }
 
-// Populate cost center filter dropdown
 function populateCostCenterFilter() {
   const select = document.getElementById("allCostCenterFilter");
   if (!select) return;
-
-  while (select.options.length > 1) {
-    select.remove(1);
-  }
-
+  while (select.options.length > 1) select.remove(1);
   allCostCenters.forEach((cc) => {
     const option = document.createElement("option");
     option.value = cc._id;
@@ -209,22 +275,14 @@ async function loadAllCostCentersData() {
           `Lỗi khi tải dữ liệu cho trạm ${costCenter.name}:`,
           error,
         );
-        allEntries[costCenter._id] = {
-          name: costCenter.name,
-          entries: [],
-        };
+        allEntries[costCenter._id] = { name: costCenter.name, entries: [] };
       }
     });
-
     await Promise.all(loadingPromises);
-
     flattenAllEntries();
     calculateGlobalSummary();
     populateCostCenterFilter();
-
-    if (alternativeViewActive) {
-      renderAllCostCentersView();
-    }
+    if (alternativeViewActive) renderAllCostCentersView();
   } catch (error) {
     console.error("Lỗi khi tải dữ liệu toàn hệ thống:", error);
   }
@@ -232,27 +290,25 @@ async function loadAllCostCentersData() {
 
 function flattenAllEntries() {
   allEntriesFlat = [];
-
   Object.entries(allEntries).forEach(([costCenterId, data]) => {
     if (data.entries && data.entries.length > 0) {
       data.entries.forEach((entry) => {
         allEntriesFlat.push({
           ...entry,
-          costCenterId: costCenterId,
+          costCenterId,
           costCenterName: data.name,
         });
       });
     }
   });
-
   applyAllFilters();
 }
 
 function calculateGlobalSummary() {
-  let globalTotalIncome = 0;
-  let globalTotalExpense = 0;
-  let globalTotalIncomePrediction = 0;
-  let globalTotalExpensePrediction = 0;
+  let globalTotalIncome = 0,
+    globalTotalExpense = 0;
+  let globalTotalIncomePrediction = 0,
+    globalTotalExpensePrediction = 0;
 
   Object.values(allEntries).forEach((costCenterData) => {
     if (costCenterData.entries) {
@@ -265,18 +321,16 @@ function calculateGlobalSummary() {
     }
   });
 
-  const globalTotalProfit = globalTotalIncome - globalTotalExpense;
-  const globalTotalProfitPrediction =
-    globalTotalIncomePrediction - globalTotalExpensePrediction;
-
   document.getElementById("globalTotalIncome").textContent =
     globalTotalIncome.toLocaleString("vi-VN");
   document.getElementById("globalTotalExpense").textContent =
     globalTotalExpense.toLocaleString("vi-VN");
-  document.getElementById("globalTotalProfit").textContent =
-    globalTotalProfit.toLocaleString("vi-VN");
-  document.getElementById("globalTotalProfitPrediction").textContent =
-    globalTotalProfitPrediction.toLocaleString("vi-VN");
+  document.getElementById("globalTotalProfit").textContent = (
+    globalTotalIncome - globalTotalExpense
+  ).toLocaleString("vi-VN");
+  document.getElementById("globalTotalProfitPrediction").textContent = (
+    globalTotalIncomePrediction - globalTotalExpensePrediction
+  ).toLocaleString("vi-VN");
 }
 
 async function updateGlobalSummary() {
@@ -294,13 +348,9 @@ async function updateGlobalSummary() {
       console.error("Lỗi khi cập nhật dữ liệu:", error);
     }
   }
-
   flattenAllEntries();
   calculateGlobalSummary();
-
-  if (alternativeViewActive) {
-    renderAllCostCentersView();
-  }
+  if (alternativeViewActive) renderAllCostCentersView();
 }
 
 function toggleView() {
@@ -313,19 +363,16 @@ function toggleView() {
   document
     .getElementById("alternativeViewLabel")
     .classList.toggle("active", alternativeViewActive);
-
   document.getElementById("singleCostCenterView").style.display =
     alternativeViewActive ? "none" : "block";
   document
     .getElementById("alternativeView")
     .classList.toggle("active", alternativeViewActive);
 
-  // Reset adding states when switching views
   if (alternativeViewActive) {
     isAdding = false;
     editingEntryId = null;
     isAddingMultipleInAllView = false;
-
     populateCostCenterFilter();
     renderAllCostCentersView();
   } else {
@@ -336,28 +383,15 @@ function toggleView() {
   }
 }
 
-// All view functions
 function createAllViewAddRow(costCenterId) {
   const row = document.createElement("tr");
   row.id = "allViewAddRow";
   row.className = "editing-row";
-
   const today = getTodayFormatted();
-  const costCenterName =
-    allCostCenters.find((cc) => cc._id === costCenterId)?.name || "";
-
   row.innerHTML = `
     <td>
-      <select id="allViewNewCostCenter" class="form-select" style="width: 100%;">
-        ${allCostCenters
-          .map(
-            (cc) => `
-          <option value="${cc._id}" ${cc._id === costCenterId ? "selected" : ""}>
-            ${cc.name}
-          </option>
-        `,
-          )
-          .join("")}
+      <select id="allViewNewCostCenter" class="form-select" style="width:100%;">
+        ${allCostCenters.map((cc) => `<option value="${cc._id}" ${cc._id === costCenterId ? "selected" : ""}>${cc.name}</option>`).join("")}
       </select>
     </td>
     <td><input type="text" id="allViewNewName" placeholder="Tên giao dịch" class="form-control" required></td>
@@ -374,18 +408,15 @@ function createAllViewAddRow(costCenterId) {
       <button class="cancel-btn btn btn-sm btn-secondary" onclick="cancelAllViewAdd()">Hủy</button>
     </td>
   `;
-
   return row;
 }
 
 function showAllViewAddRow() {
   if (isAddingInAllView || isAddingMultipleInAllView) return;
-
   addingCostCenterId =
     allFilterState.costCenterFilter !== "all"
       ? allFilterState.costCenterFilter
       : allCostCenters[0]?._id || null;
-
   isAddingInAllView = true;
   renderAllEntriesTable();
 }
@@ -416,48 +447,38 @@ async function saveAllViewNewEntry() {
     alert("Vui lòng chọn trạm");
     return;
   }
-
   if (!name.trim()) {
     alert("Vui lòng nhập tên");
     return;
   }
-
   if (isNaN(income) || isNaN(expense)) {
     alert("Vui lòng nhập số tiền hợp lệ");
     return;
   }
-
   if (!isValidDate(date)) {
     alert("Vui lòng nhập ngày theo định dạng DD/MM/YYYY");
     return;
   }
 
-  const entry = {
-    name: name.trim(),
-    income,
-    expense,
-    date,
-    incomePrediction,
-    expensePrediction,
-    note,
-  };
-
   try {
     const response = await fetch(`${API_BASE}/${costCenterId}/entries`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(entry),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: name.trim(),
+        income,
+        expense,
+        date,
+        incomePrediction,
+        expensePrediction,
+        note,
+      }),
     });
-
     if (response.ok) {
       isAddingInAllView = false;
       addingCostCenterId = null;
-
       await loadAllCostCentersData();
       applyAllFilters();
-
       alert("Thêm mục thành công!");
     } else {
       const errorData = await response.json();
@@ -468,20 +489,16 @@ async function saveAllViewNewEntry() {
   }
 }
 
-// Multiple entries functions for all view
 function showAllViewMultipleEntryForm() {
   if (isAddingInAllView || isAddingMultipleInAllView) {
     alert("Vui lòng hoàn thành thao tác hiện tại trước khi thêm nhiều mục");
     return;
   }
-
   clearAllViewMultipleEntries();
   document
     .getElementById("allViewMultipleEntryForm")
     .classList.remove("hidden");
   isAddingMultipleInAllView = true;
-
-  // Removed the blur effect - no opacity change
   addAllViewEntryRow();
 }
 
@@ -494,19 +511,15 @@ function clearAllViewMultipleEntries() {
 function addAllViewEntryRow() {
   const container = document.getElementById("allViewMultipleEntriesContainer");
   const entryId = `allViewEntry_${allViewMultipleEntryCounter++}`;
-
   const today = getTodayFormatted();
-
-  // Create cost center select options
   const costCenterOptions = allCostCenters
     .map((cc) => `<option value="${cc._id}">${cc.name}</option>`)
     .join("");
-
   const entryRow = document.createElement("div");
   entryRow.className = "entry-row";
   entryRow.id = entryId;
   entryRow.innerHTML = `
-    <select id="${entryId}_costCenter" class="form-select" style="min-width: 150px;" required>
+    <select id="${entryId}_costCenter" class="form-select" style="min-width:150px;" required>
       <option value="">-- Chọn Trạm --</option>
       ${costCenterOptions}
     </select>
@@ -519,20 +532,14 @@ function addAllViewEntryRow() {
     <textarea id="${entryId}_note" placeholder="Ghi chú" rows="2"></textarea>
     <button type="button" class="remove-entry-btn" onclick="removeAllViewEntryRow('${entryId}')">×</button>
   `;
-
   container.appendChild(entryRow);
 }
 
 function removeAllViewEntryRow(entryId) {
   const entryRow = document.getElementById(entryId);
-  if (entryRow) {
-    entryRow.remove();
-  }
-
+  if (entryRow) entryRow.remove();
   const container = document.getElementById("allViewMultipleEntriesContainer");
-  if (container.children.length === 0) {
-    addAllViewEntryRow();
-  }
+  if (container.children.length === 0) addAllViewEntryRow();
 }
 
 function cancelAllViewMultipleEntries() {
@@ -552,7 +559,6 @@ function hideAllViewMultipleEntryForm() {
 async function saveAllViewMultipleEntries() {
   const container = document.getElementById("allViewMultipleEntriesContainer");
   const entryRows = container.getElementsByClassName("entry-row");
-
   if (entryRows.length === 0) {
     alert("Vui lòng thêm ít nhất một mục");
     return;
@@ -581,25 +587,22 @@ async function saveAllViewMultipleEntries() {
     const note = document.getElementById(`${entryId}_note`).value.trim();
 
     if (!costCenterId) {
-      alert(`Vui lòng chọn trạm cho mục này`);
+      alert("Vui lòng chọn trạm cho mục này");
       hasError = true;
       break;
     }
-
     if (!name) {
-      alert(`Vui lòng nhập tên cho mục này`);
+      alert("Vui lòng nhập tên cho mục này");
       hasError = true;
       break;
     }
-
     if (isNaN(income) || isNaN(expense)) {
-      alert(`Vui lòng nhập số tiền hợp lệ cho mục này`);
+      alert("Vui lòng nhập số tiền hợp lệ cho mục này");
       hasError = true;
       break;
     }
-
     if (!isValidDate(date)) {
-      alert(`Vui lòng nhập ngày hợp lệ (DD/MM/YYYY) cho mục này`);
+      alert("Vui lòng nhập ngày hợp lệ (DD/MM/YYYY) cho mục này");
       hasError = true;
       break;
     }
@@ -626,35 +629,26 @@ async function saveAllViewMultipleEntries() {
   saveBtn.disabled = true;
 
   try {
-    let successCount = 0;
-    let errorCount = 0;
-
+    let successCount = 0,
+      errorCount = 0;
     for (const item of entriesToSave) {
       try {
         const response = await fetch(
           `${API_BASE}/${item.costCenterId}/entries`,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(item.entry),
           },
         );
-
-        if (response.ok) {
-          successCount++;
-        } else {
-          errorCount++;
-        }
+        if (response.ok) successCount++;
+        else errorCount++;
       } catch (error) {
         errorCount++;
       }
     }
-
     saveBtn.textContent = originalText;
     saveBtn.disabled = false;
-
     if (errorCount === 0) {
       alert(`Đã thêm thành công ${successCount} mục!`);
       hideAllViewMultipleEntryForm();
@@ -664,7 +658,6 @@ async function saveAllViewMultipleEntries() {
       alert(
         `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`,
       );
-
       if (successCount > 0) {
         hideAllViewMultipleEntryForm();
         await loadAllCostCentersData();
@@ -692,7 +685,6 @@ function renderAllCostCentersView() {
   const withPrediction = filteredAllEntries.filter(
     (e) => e.incomePrediction || e.expensePrediction,
   ).length;
-
   const predictionStats = document.getElementById("allPredictionStats");
   if (withPrediction > 0) {
     predictionStats.classList.remove("hidden");
@@ -713,10 +705,9 @@ function renderAllEntriesTable() {
   const today = getTodayFormatted();
 
   if (isAddingInAllView) {
-    const addRow = createAllViewAddRow(
-      addingCostCenterId || allCostCenters[0]?._id,
+    tbody.appendChild(
+      createAllViewAddRow(addingCostCenterId || allCostCenters[0]?._id),
     );
-    tbody.appendChild(addRow);
   }
 
   if (
@@ -725,29 +716,28 @@ function renderAllEntriesTable() {
     !isAddingMultipleInAllView
   ) {
     const row = document.createElement("tr");
-    row.innerHTML = `
-      <td colspan="12" style="text-align:center; color:#666; padding:20px;">
-        ${
-          allEntriesFlat.length === 0
-            ? "Không có dữ liệu nào từ các trạm."
-            : "Không có kết quả phù hợp với bộ lọc."
-        }
-      </td>`;
+    row.innerHTML = `<td colspan="12" style="text-align:center;color:#666;padding:20px;">${
+      allEntriesFlat.length === 0
+        ? "Không có dữ liệu nào từ các trạm."
+        : "Không có kết quả phù hợp với bộ lọc."
+    }</td>`;
     tbody.appendChild(row);
-
     const addNewRow = document.createElement("tr");
     addNewRow.className = "add-row";
-    addNewRow.innerHTML = `
-      <td colspan="12">
-        <button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button>
-      </td>`;
+    addNewRow.innerHTML = `<td colspan="12"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
     tbody.appendChild(addNewRow);
-
     applyTodayRedLines(tbody, today, 12);
     return;
   }
 
-  filteredAllEntries.forEach((entry) => {
+  // Build progressive totals for the visible filtered set
+  const progressiveTotals = buildProgressiveTotals(
+    filteredAllEntries,
+    currentAllSortDirection,
+  );
+  const renderedProgressiveDates = new Set();
+
+  filteredAllEntries.forEach((entry, idx) => {
     const row = document.createElement("tr");
     row.setAttribute("data-cost-center-id", entry.costCenterId);
     row.setAttribute("data-entry-id", entry._id);
@@ -755,7 +745,6 @@ function renderAllEntriesTable() {
 
     const note = entry.note || "";
     const dateClass = entry.date === today ? "current-date" : "";
-
     const profit = calculateProfit(entry.income, entry.expense);
     const profitPrediction = calculateProfit(
       entry.incomePrediction,
@@ -779,16 +768,31 @@ function renderAllEntriesTable() {
         <button class="edit-btn" onclick="switchToCostCenterAndEdit('${entry.costCenterId}', '${entry._id}')">Sửa</button>
         <button class="delete-btn" onclick="switchToCostCenterAndDelete('${entry.costCenterId}', '${entry._id}')">Xóa</button>
       </td>`;
-
     tbody.appendChild(row);
+
+    // Insert progressive total row at each date boundary
+    const nextEntry = filteredAllEntries[idx + 1];
+    const isDateBoundary = !nextEntry || nextEntry.date !== entry.date;
+    if (isDateBoundary && !renderedProgressiveDates.has(entry.date)) {
+      renderedProgressiveDates.add(entry.date);
+      const totals = progressiveTotals[entry.date];
+      if (totals) {
+        tbody.appendChild(
+          createDailyTotalRow(
+            entry.date,
+            totals.actual,
+            totals.predicted,
+            12,
+            true,
+          ),
+        );
+      }
+    }
   });
 
   const addNewRow = document.createElement("tr");
   addNewRow.className = "add-row";
-  addNewRow.innerHTML = `
-    <td colspan="12">
-      <button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button>
-    </td>`;
+  addNewRow.innerHTML = `<td colspan="12"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
   tbody.appendChild(addNewRow);
 
   applyTodayRedLines(tbody, today, 12);
@@ -812,72 +816,51 @@ function applyAllFilters() {
     if (
       allFilterState.dateFrom &&
       !isDateOnOrAfter(entry.date, allFilterState.dateFrom)
-    ) {
+    )
       return false;
-    }
-
     if (
       allFilterState.dateTo &&
       !isDateOnOrBefore(entry.date, allFilterState.dateTo)
-    ) {
+    )
       return false;
-    }
-
     if (
       allFilterState.searchName &&
       !entry.name.toLowerCase().includes(allFilterState.searchName)
-    ) {
+    )
       return false;
-    }
-
     if (
       allFilterState.searchNote &&
       !(entry.note || "").toLowerCase().includes(allFilterState.searchNote)
-    ) {
+    )
       return false;
-    }
-
     if (
       allFilterState.costCenterFilter !== "all" &&
       entry.costCenterId !== allFilterState.costCenterFilter
-    ) {
+    )
       return false;
-    }
-
     if (allFilterState.predictionFilter === "withPrediction") {
-      if (!entry.incomePrediction && !entry.expensePrediction) {
-        return false;
-      }
+      if (!entry.incomePrediction && !entry.expensePrediction) return false;
     } else if (allFilterState.predictionFilter === "withoutPrediction") {
-      if (entry.incomePrediction || entry.expensePrediction) {
-        return false;
-      }
+      if (entry.incomePrediction || entry.expensePrediction) return false;
     }
-
     return true;
   });
 
-  if (alternativeViewActive) {
-    renderAllCostCentersView();
-  }
-
+  if (alternativeViewActive) renderAllCostCentersView();
   sortAllEntries(currentAllSortField, currentAllSortDirection);
 }
 
 function resetAllFilters() {
-  const dateFrom = document.getElementById("allDateFrom");
-  const dateTo = document.getElementById("allDateTo");
-  const searchName = document.getElementById("allSearchName");
-  const searchNote = document.getElementById("allSearchNote");
-  const costCenterFilter = document.getElementById("allCostCenterFilter");
-  const predictionFilter = document.getElementById("allPredictionFilter");
-
-  if (dateFrom) dateFrom.value = "";
-  if (dateTo) dateTo.value = "";
-  if (searchName) searchName.value = "";
-  if (searchNote) searchNote.value = "";
-  if (costCenterFilter) costCenterFilter.value = "all";
-  if (predictionFilter) predictionFilter.value = "all";
+  ["allDateFrom", "allDateTo", "allSearchName", "allSearchNote"].forEach(
+    (id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = "";
+    },
+  );
+  const ccf = document.getElementById("allCostCenterFilter");
+  if (ccf) ccf.value = "all";
+  const pf = document.getElementById("allPredictionFilter");
+  if (pf) pf.value = "all";
 
   allFilterState = {
     dateFrom: "",
@@ -887,36 +870,26 @@ function resetAllFilters() {
     costCenterFilter: "all",
     predictionFilter: "all",
   };
-
   isAddingInAllView = false;
   addingCostCenterId = null;
   isAddingMultipleInAllView = false;
   hideAllViewMultipleEntryForm();
-
   applyAllFilters();
 }
 
 function sortAllEntries(field, direction) {
-  // Chỉ sắp xếp nếu field là 'date'
   if (field !== "date") return;
-
   filteredAllEntries.sort((a, b) => {
     const aValue = parseDate(a[field]);
     const bValue = parseDate(b[field]);
-
     if (aValue === null) return 1;
     if (bValue === null) return -1;
-
     if (aValue < bValue) return direction === "asc" ? -1 : 1;
     if (aValue > bValue) return direction === "asc" ? 1 : -1;
     return 0;
   });
-
   updateAllSortIndicators(field, direction);
-
-  if (alternativeViewActive) {
-    renderAllEntriesTable();
-  }
+  if (alternativeViewActive) renderAllEntriesTable();
 }
 
 function updateAllSortIndicators(field, direction) {
@@ -930,9 +903,7 @@ function updateAllSortIndicators(field, direction) {
 }
 
 function sortAllTable(field) {
-  // Chỉ cho phép sắp xếp theo ngày
   if (field !== "date") return;
-
   if (currentAllSortField === field) {
     currentAllSortDirection =
       currentAllSortDirection === "asc" ? "desc" : "asc";
@@ -940,7 +911,6 @@ function sortAllTable(field) {
     currentAllSortField = field;
     currentAllSortDirection = "asc";
   }
-
   sortAllEntries(currentAllSortField, currentAllSortDirection);
 }
 
@@ -950,9 +920,7 @@ function switchToCostCenterAndEdit(costCenterId, entryId) {
     toggle.checked = false;
     toggleView();
   }
-
   document.getElementById("costCenterSelect").value = costCenterId;
-
   loadCostCenterData().then(() => {
     setTimeout(() => {
       startEdit(entryId);
@@ -966,9 +934,7 @@ function switchToCostCenterAndDelete(costCenterId, entryId) {
     toggle.checked = false;
     toggleView();
   }
-
   document.getElementById("costCenterSelect").value = costCenterId;
-
   loadCostCenterData().then(() => {
     setTimeout(() => {
       deleteEntry(entryId);
@@ -976,17 +942,20 @@ function switchToCostCenterAndDelete(costCenterId, entryId) {
   });
 }
 
-// Single view functions
 async function loadCostCenterData() {
   currentCostCenterId = document.getElementById("costCenterSelect").value;
 
   if (!currentCostCenterId) {
-    document.getElementById("costCenterInfo").classList.add("hidden");
-    document.getElementById("addFormContainer").classList.add("hidden");
-    document.getElementById("summarySection").classList.add("hidden");
-    document.getElementById("bulkActions").classList.add("hidden");
-    document.getElementById("multipleEntryForm").classList.add("hidden");
-    document.getElementById("filtersSection").classList.add("hidden");
+    [
+      "costCenterInfo",
+      "addFormContainer",
+      "summarySection",
+      "bulkActions",
+      "multipleEntryForm",
+      "filtersSection",
+    ].forEach((id) => {
+      document.getElementById(id).classList.add("hidden");
+    });
     return;
   }
 
@@ -994,10 +963,14 @@ async function loadCostCenterData() {
     document.getElementById("costCenterSelect").selectedOptions[0];
   document.getElementById("costCenterName").textContent =
     selectedOption.textContent;
-  document.getElementById("costCenterInfo").classList.remove("hidden");
-  document.getElementById("addFormContainer").classList.remove("hidden");
-  document.getElementById("bulkActions").classList.remove("hidden");
-  document.getElementById("filtersSection").classList.remove("hidden");
+  [
+    "costCenterInfo",
+    "addFormContainer",
+    "bulkActions",
+    "filtersSection",
+  ].forEach((id) => {
+    document.getElementById(id).classList.remove("hidden");
+  });
 
   await loadEntries();
 
@@ -1005,14 +978,12 @@ async function loadCostCenterData() {
     name: selectedOption.textContent,
     entries: entries,
   };
-
   flattenAllEntries();
   calculateGlobalSummary();
 }
 
 async function loadEntries() {
   if (!currentCostCenterId) return;
-
   try {
     const response = await fetch(`${API_BASE}/${currentCostCenterId}/entries`);
     entries = await response.json();
@@ -1032,16 +1003,12 @@ function resetEditStates() {
 
 function showAddButton() {
   const addButton = document.getElementById("addNewEntryBtn");
-  if (addButton) {
-    addButton.style.display = "inline-block";
-  }
+  if (addButton) addButton.style.display = "inline-block";
 }
 
 function hideAddButton() {
   const addButton = document.getElementById("addNewEntryBtn");
-  if (addButton) {
-    addButton.style.display = "none";
-  }
+  if (addButton) addButton.style.display = "none";
 }
 
 function hideMultipleEntryForm() {
@@ -1052,30 +1019,23 @@ function hideMultipleEntryForm() {
 }
 
 function sortEntries(field, direction) {
-  // Chỉ sắp xếp nếu field là 'date'
   if (field !== "date") return;
-
   filteredEntries.sort((a, b) => {
     const aValue = parseDate(a[field]);
     const bValue = parseDate(b[field]);
-
     if (aValue === null) return 1;
     if (bValue === null) return -1;
-
     if (aValue < bValue) return direction === "asc" ? -1 : 1;
     if (aValue > bValue) return direction === "asc" ? 1 : -1;
     return 0;
   });
-
   updateSortIndicators(field, direction);
 }
 
 function parseDate(dateString) {
   if (!dateString) return null;
   const parts = dateString.split("/");
-  if (parts.length === 3) {
-    return new Date(parts[2], parts[1] - 1, parts[0]);
-  }
+  if (parts.length === 3) return new Date(parts[2], parts[1] - 1, parts[0]);
   return null;
 }
 
@@ -1090,25 +1050,22 @@ function updateSortIndicators(field, direction) {
 }
 
 function sortTable(field) {
-  // Chỉ cho phép sắp xếp theo ngày
   if (field !== "date") return;
-
   if (currentSortField === field) {
     currentSortDirection = currentSortDirection === "asc" ? "desc" : "asc";
   } else {
     currentSortField = field;
     currentSortDirection = "asc";
   }
-
   sortEntries(currentSortField, currentSortDirection);
   renderEntries();
 }
 
 function calculateSummary() {
-  let totalIncome = 0;
-  let totalExpense = 0;
-  let totalIncomePrediction = 0;
-  let totalExpensePrediction = 0;
+  let totalIncome = 0,
+    totalExpense = 0,
+    totalIncomePrediction = 0,
+    totalExpensePrediction = 0;
   let entriesWithPrediction = 0;
 
   filteredEntries.forEach((entry) => {
@@ -1116,26 +1073,24 @@ function calculateSummary() {
     totalExpense += entry.expense || 0;
     totalIncomePrediction += entry.incomePrediction || 0;
     totalExpensePrediction += entry.expensePrediction || 0;
-    if (entry.incomePrediction || entry.expensePrediction) {
+    if (entry.incomePrediction || entry.expensePrediction)
       entriesWithPrediction++;
-    }
   });
-
-  const totalProfit = totalIncome - totalExpense;
-  const totalProfitPrediction = totalIncomePrediction - totalExpensePrediction;
 
   document.getElementById("totalIncome").textContent =
     totalIncome.toLocaleString("vi-VN");
   document.getElementById("totalExpense").textContent =
     totalExpense.toLocaleString("vi-VN");
-  document.getElementById("totalProfit").textContent =
-    totalProfit.toLocaleString("vi-VN");
+  document.getElementById("totalProfit").textContent = (
+    totalIncome - totalExpense
+  ).toLocaleString("vi-VN");
   document.getElementById("totalIncomePrediction").textContent =
     totalIncomePrediction.toLocaleString("vi-VN");
   document.getElementById("totalExpensePrediction").textContent =
     totalExpensePrediction.toLocaleString("vi-VN");
-  document.getElementById("totalProfitPrediction").textContent =
-    totalProfitPrediction.toLocaleString("vi-VN");
+  document.getElementById("totalProfitPrediction").textContent = (
+    totalIncomePrediction - totalExpensePrediction
+  ).toLocaleString("vi-VN");
 
   const predictionStats = document.getElementById("predictionStats");
   if (entriesWithPrediction > 0) {
@@ -1145,7 +1100,6 @@ function calculateSummary() {
   } else {
     predictionStats.classList.add("hidden");
   }
-
   document.getElementById("summarySection").classList.remove("hidden");
 }
 
@@ -1159,14 +1113,11 @@ function renderEntries() {
 
   if (filteredEntries.length === 0 && !isAdding) {
     const row = document.createElement("tr");
-    row.innerHTML = `
-      <td colspan="11" style="text-align:center; color:#666; padding:20px;">
-        ${
-          entries.length === 0
-            ? "Chưa có dữ liệu nào. Hãy thêm mục mới."
-            : "Không có kết quả phù hợp với bộ lọc."
-        }
-      </td>`;
+    row.innerHTML = `<td colspan="11" style="text-align:center;color:#666;padding:20px;">${
+      entries.length === 0
+        ? "Chưa có dữ liệu nào. Hãy thêm mục mới."
+        : "Không có kết quả phù hợp với bộ lọc."
+    }</td>`;
     tbody.appendChild(row);
     applyTodayRedLines(tbody, getTodayFormatted(), 11);
     return;
@@ -1174,7 +1125,18 @@ function renderEntries() {
 
   const today = getTodayFormatted();
 
-  filteredEntries.forEach((entry) => {
+  // Build progressive totals for the current filtered+sorted set
+  const progressiveTotals = buildProgressiveTotals(
+    filteredEntries,
+    currentSortDirection,
+  );
+  const renderedProgressiveDates = new Set();
+
+  if (isAdding) {
+    tbody.appendChild(createAddRow());
+  }
+
+  filteredEntries.forEach((entry, idx) => {
     const row = document.createElement("tr");
     row.setAttribute("data-date", entry.date);
 
@@ -1222,12 +1184,26 @@ function renderEntries() {
     }
 
     tbody.appendChild(row);
-  });
 
-  if (isAdding) {
-    const addRow = createAddRow();
-    tbody.insertBefore(addRow, tbody.firstChild);
-  }
+    // Insert progressive total row at each date boundary
+    const nextEntry = filteredEntries[idx + 1];
+    const isDateBoundary = !nextEntry || nextEntry.date !== entry.date;
+    if (isDateBoundary && !renderedProgressiveDates.has(entry.date)) {
+      renderedProgressiveDates.add(entry.date);
+      const totals = progressiveTotals[entry.date];
+      if (totals) {
+        tbody.appendChild(
+          createDailyTotalRow(
+            entry.date,
+            totals.actual,
+            totals.predicted,
+            11,
+            false,
+          ),
+        );
+      }
+    }
+  });
 
   applyTodayRedLines(tbody, today, 11);
 }
@@ -1236,9 +1212,7 @@ function createAddRow() {
   const row = document.createElement("tr");
   row.id = "addEntryRow";
   row.className = "editing-row";
-
   const today = getTodayFormatted();
-
   row.innerHTML = `
     <td><input type="text" id="newName" placeholder="Tên giao dịch" required></td>
     <td><input type="text" id="newDate" value="${today}" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
@@ -1254,15 +1228,11 @@ function createAddRow() {
       <button class="cancel-btn" onclick="cancelAdd()">Hủy</button>
     </td>
   `;
-
   return row;
 }
 
 function showAddRow() {
-  if (isAdding || editingEntryId) {
-    return;
-  }
-
+  if (isAdding || editingEntryId) return;
   isAdding = true;
   hideAddButton();
   renderEntries();
@@ -1291,36 +1261,29 @@ async function saveNewEntry() {
     alert("Vui lòng nhập tên");
     return;
   }
-
   if (isNaN(income) || isNaN(expense)) {
     alert("Vui lòng nhập số tiền hợp lệ");
     return;
   }
-
   if (!isValidDate(date)) {
     alert("Vui lòng nhập ngày theo định dạng DD/MM/YYYY");
     return;
   }
 
-  const entry = {
-    name: name.trim(),
-    income,
-    expense,
-    date,
-    incomePrediction,
-    expensePrediction,
-    note,
-  };
-
   try {
     const response = await fetch(`${API_BASE}/${currentCostCenterId}/entries`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(entry),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: name.trim(),
+        income,
+        expense,
+        date,
+        incomePrediction,
+        expensePrediction,
+        note,
+      }),
     });
-
     if (response.ok) {
       cancelAdd();
       await loadEntries();
@@ -1336,10 +1299,7 @@ async function saveNewEntry() {
 }
 
 function startEdit(entryId) {
-  if (isAdding) {
-    cancelAdd();
-  }
-
+  if (isAdding) cancelAdd();
   editingEntryId = entryId;
   hideAddButton();
   renderEntries();
@@ -1374,39 +1334,32 @@ async function saveEdit(entryId) {
     alert("Vui lòng nhập tên");
     return;
   }
-
   if (isNaN(income) || isNaN(expense)) {
     alert("Vui lòng nhập số tiền hợp lệ");
     return;
   }
-
   if (!isValidDate(date)) {
     alert("Vui lòng nhập ngày theo định dạng DD/MM/YYYY");
     return;
   }
-
-  const entry = {
-    name: name.trim(),
-    income,
-    expense,
-    date,
-    incomePrediction,
-    expensePrediction,
-    note,
-  };
 
   try {
     const response = await fetch(
       `${API_BASE}/${currentCostCenterId}/entries/${entryId}`,
       {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(entry),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          income,
+          expense,
+          date,
+          incomePrediction,
+          expensePrediction,
+          note,
+        }),
       },
     );
-
     if (response.ok) {
       editingEntryId = null;
       await loadEntries();
@@ -1423,16 +1376,12 @@ async function saveEdit(entryId) {
 
 async function deleteEntry(entryId) {
   if (!currentCostCenterId) return;
-
   if (confirm("Bạn có chắc chắn muốn xóa mục này không?")) {
     try {
       const response = await fetch(
         `${API_BASE}/${currentCostCenterId}/entries/${entryId}`,
-        {
-          method: "DELETE",
-        },
+        { method: "DELETE" },
       );
-
       if (response.ok) {
         await loadEntries();
         await updateGlobalSummary();
@@ -1450,20 +1399,14 @@ function isValidDate(dateString) {
   if (!dateString) return false;
   const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
   if (!regex.test(dateString)) return false;
-
   const parts = dateString.split("/");
   const day = parseInt(parts[0], 10);
   const month = parseInt(parts[1], 10);
   const year = parseInt(parts[2], 10);
-
   if (year < 1000 || year > 3000 || month === 0 || month > 12) return false;
-
   const monthLength = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
-  if (year % 400 === 0 || (year % 100 !== 0 && year % 4 === 0)) {
+  if (year % 400 === 0 || (year % 100 !== 0 && year % 4 === 0))
     monthLength[1] = 29;
-  }
-
   return day > 0 && day <= monthLength[month - 1];
 }
 
@@ -1483,41 +1426,25 @@ function applyFilters() {
     if (
       filterState.dateFrom &&
       !isDateOnOrAfter(entry.date, filterState.dateFrom)
-    ) {
+    )
       return false;
-    }
-
-    if (
-      filterState.dateTo &&
-      !isDateOnOrBefore(entry.date, filterState.dateTo)
-    ) {
+    if (filterState.dateTo && !isDateOnOrBefore(entry.date, filterState.dateTo))
       return false;
-    }
-
     if (
       filterState.searchName &&
       !entry.name.toLowerCase().includes(filterState.searchName)
-    ) {
+    )
       return false;
-    }
-
     if (
       filterState.searchNote &&
       !(entry.note || "").toLowerCase().includes(filterState.searchNote)
-    ) {
+    )
       return false;
-    }
-
     if (filterState.predictionFilter === "withPrediction") {
-      if (!entry.incomePrediction && !entry.expensePrediction) {
-        return false;
-      }
+      if (!entry.incomePrediction && !entry.expensePrediction) return false;
     } else if (filterState.predictionFilter === "withoutPrediction") {
-      if (entry.incomePrediction || entry.expensePrediction) {
-        return false;
-      }
+      if (entry.incomePrediction || entry.expensePrediction) return false;
     }
-
     return true;
   });
 
@@ -1532,7 +1459,6 @@ function resetFilters() {
   document.getElementById("searchName").value = "";
   document.getElementById("searchNote").value = "";
   document.getElementById("predictionFilter").value = "all";
-
   filterState = {
     dateFrom: "",
     dateTo: "",
@@ -1540,7 +1466,6 @@ function resetFilters() {
     searchNote: "",
     predictionFilter: "all",
   };
-
   applyFilters();
 }
 
@@ -1558,7 +1483,6 @@ function isDateOnOrBefore(dateString, compareDateString) {
   return date <= compareDate;
 }
 
-// Multiple entries functions
 function clearMultipleEntries() {
   const container = document.getElementById("multipleEntriesContainer");
   container.innerHTML = "";
@@ -1570,21 +1494,17 @@ function showMultipleEntryForm() {
     alert("Vui lòng hoàn thành thao tác hiện tại trước khi thêm nhiều mục");
     return;
   }
-
   clearMultipleEntries();
   document.getElementById("multipleEntryForm").classList.remove("hidden");
   document.getElementById("bulkActions").classList.add("hidden");
   hideAddButton();
-
   addEntryRow();
 }
 
 function addEntryRow() {
   const container = document.getElementById("multipleEntriesContainer");
   const entryId = `entry_${multipleEntryCounter++}`;
-
   const today = getTodayFormatted();
-
   const entryRow = document.createElement("div");
   entryRow.className = "entry-row";
   entryRow.id = entryId;
@@ -1598,28 +1518,20 @@ function addEntryRow() {
     <textarea id="${entryId}_note" placeholder="Ghi chú"></textarea>
     <button type="button" class="remove-entry-btn" onclick="removeEntryRow('${entryId}')">×</button>
   `;
-
   container.appendChild(entryRow);
 }
 
 function removeEntryRow(entryId) {
   const entryRow = document.getElementById(entryId);
-  if (entryRow) {
-    entryRow.remove();
-  }
-
+  if (entryRow) entryRow.remove();
   const container = document.getElementById("multipleEntriesContainer");
-  if (container.children.length === 0) {
-    addEntryRow();
-  }
+  if (container.children.length === 0) addEntryRow();
 }
 
 async function saveMultipleEntries() {
   if (!currentCostCenterId) return;
-
   const container = document.getElementById("multipleEntriesContainer");
   const entryRows = container.getElementsByClassName("entry-row");
-
   if (entryRows.length === 0) {
     alert("Vui lòng thêm ít nhất một mục");
     return;
@@ -1647,23 +1559,20 @@ async function saveMultipleEntries() {
     const note = document.getElementById(`${entryId}_note`).value.trim();
 
     if (!name) {
-      alert(`Vui lòng nhập tên cho mục này`);
+      alert("Vui lòng nhập tên cho mục này");
       hasError = true;
       break;
     }
-
     if (isNaN(income) || isNaN(expense)) {
-      alert(`Vui lòng nhập số tiền hợp lệ cho mục này`);
+      alert("Vui lòng nhập số tiền hợp lệ cho mục này");
       hasError = true;
       break;
     }
-
     if (!isValidDate(date)) {
-      alert(`Vui lòng nhập ngày hợp lệ (DD/MM/YYYY) cho mục này`);
+      alert("Vui lòng nhập ngày hợp lệ (DD/MM/YYYY) cho mục này");
       hasError = true;
       break;
     }
-
     entriesToSave.push({
       name,
       date,
@@ -1683,35 +1592,26 @@ async function saveMultipleEntries() {
   saveBtn.disabled = true;
 
   try {
-    let successCount = 0;
-    let errorCount = 0;
-
+    let successCount = 0,
+      errorCount = 0;
     for (const entry of entriesToSave) {
       try {
         const response = await fetch(
           `${API_BASE}/${currentCostCenterId}/entries`,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(entry),
           },
         );
-
-        if (response.ok) {
-          successCount++;
-        } else {
-          errorCount++;
-        }
+        if (response.ok) successCount++;
+        else errorCount++;
       } catch (error) {
         errorCount++;
       }
     }
-
     saveBtn.textContent = originalText;
     saveBtn.disabled = false;
-
     if (errorCount === 0) {
       alert(`Đã thêm thành công ${successCount} mục!`);
       clearMultipleEntries();
@@ -1722,7 +1622,6 @@ async function saveMultipleEntries() {
       alert(
         `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`,
       );
-
       if (successCount > 0) {
         clearMultipleEntries();
         hideMultipleEntryForm();
@@ -1750,36 +1649,31 @@ async function exportData() {
     alert("Không có dữ liệu để xuất");
     return;
   }
-
   try {
     let csvContent =
       "Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Lợi nhuận (VND),Dự báo thu (VND),Dự báo chi (VND),Lợi nhuận dự báo (VND),Ghi chú\n";
-
     filteredEntries.forEach((entry) => {
       const profit = calculateProfit(entry.income, entry.expense);
       const profitPrediction = calculateProfit(
         entry.incomePrediction,
         entry.expensePrediction,
       );
-
-      const row = [
-        `"${entry.name}"`,
-        entry.date,
-        entry.income,
-        entry.expense,
-        profit,
-        entry.incomePrediction || 0,
-        entry.expensePrediction || 0,
-        profitPrediction,
-        `"${entry.note || ""}"`,
-      ];
-      csvContent += row.join(",") + "\n";
+      csvContent +=
+        [
+          `"${entry.name}"`,
+          entry.date,
+          entry.income,
+          entry.expense,
+          profit,
+          entry.incomePrediction || 0,
+          entry.expensePrediction || 0,
+          profitPrediction,
+          `"${entry.note || ""}"`,
+        ].join(",") + "\n";
     });
-
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
+    link.setAttribute("href", URL.createObjectURL(blob));
     link.setAttribute(
       "download",
       `daily_finance_${currentCostCenterId}_${new Date().toISOString().split("T")[0]}.csv`,
@@ -1795,12 +1689,10 @@ async function exportData() {
 
 function showGlobalDetails() {
   const costCentersWithEntries = Object.entries(allEntries).filter(
-    ([costCenterId, data]) => {
+    ([_, data]) => {
       if (!data.entries || data.entries.length === 0) return false;
       return data.entries.some(
-        (entry) =>
-          (entry.income && entry.income > 0) ||
-          (entry.expense && entry.expense > 0),
+        (e) => (e.income && e.income > 0) || (e.expense && e.expense > 0),
       );
     },
   );
@@ -1823,34 +1715,23 @@ function showGlobalDetails() {
               <table class="table table-hover table-striped">
                 <thead class="table-dark">
                   <tr>
-                    <th>Trạm</th>
-                    <th>Số Giao Dịch</th>
-                    <th>Có Dự Báo</th>
-                    <th>Tổng Thu (VND)</th>
-                    <th>Tổng Chi (VND)</th>
-                    <th>Lợi Nhuận (VND)</th>
-                    <th>Tổng Dự Báo Thu</th>
-                    <th>Tổng Dự Báo Chi</th>
-                    <th>Lợi Nhuận Dự Báo</th>
+                    <th>Trạm</th><th>Số Giao Dịch</th><th>Có Dự Báo</th>
+                    <th>Tổng Thu (VND)</th><th>Tổng Chi (VND)</th><th>Lợi Nhuận (VND)</th>
+                    <th>Tổng Dự Báo Thu</th><th>Tổng Dự Báo Chi</th><th>Lợi Nhuận Dự Báo</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${costCentersWithEntries
                     .map(([costCenterId, data]) => {
-                      const totals = data.entries.reduce(
-                        (acc, entry) => {
-                          acc.totalIncome += entry.income || 0;
-                          acc.totalExpense += entry.expense || 0;
-                          acc.totalIncomePrediction +=
-                            entry.incomePrediction || 0;
+                      const t = data.entries.reduce(
+                        (acc, e) => {
+                          acc.totalIncome += e.income || 0;
+                          acc.totalExpense += e.expense || 0;
+                          acc.totalIncomePrediction += e.incomePrediction || 0;
                           acc.totalExpensePrediction +=
-                            entry.expensePrediction || 0;
-                          if (
-                            entry.incomePrediction ||
-                            entry.expensePrediction
-                          ) {
+                            e.expensePrediction || 0;
+                          if (e.incomePrediction || e.expensePrediction)
                             acc.withPrediction++;
-                          }
                           return acc;
                         },
                         {
@@ -1861,204 +1742,42 @@ function showGlobalDetails() {
                           withPrediction: 0,
                         },
                       );
-
-                      const profit = totals.totalIncome - totals.totalExpense;
+                      const profit = t.totalIncome - t.totalExpense;
                       const profitPrediction =
-                        totals.totalIncomePrediction -
-                        totals.totalExpensePrediction;
-                      const profitClass =
-                        profit >= 0
-                          ? "text-success fw-bold"
-                          : "text-danger fw-bold";
-                      const profitPredictionClass =
-                        profitPrediction >= 0 ? "text-success" : "text-danger";
-
-                      return `
-                        <tr onclick="switchToCostCenter('${costCenterId}')" style="cursor: pointer;" title="Nhấp để xem chi tiết trạm ${data.name}">
-                          <td><strong>${data.name}</strong></td>
-                          <td>${data.entries.length}</td>
-                          <td>${totals.withPrediction}</td>
-                          <td>${totals.totalIncome.toLocaleString("vi-VN")}</td>
-                          <td>${totals.totalExpense.toLocaleString("vi-VN")}</td>
-                          <td class="${profitClass}">${profit.toLocaleString("vi-VN")}</td>
-                          <td>${totals.totalIncomePrediction.toLocaleString("vi-VN")}</td>
-                          <td>${totals.totalExpensePrediction.toLocaleString("vi-VN")}</td>
-                          <td class="${profitPredictionClass}">${profitPrediction.toLocaleString("vi-VN")}</td>
-                        </tr>
-                      `;
+                        t.totalIncomePrediction - t.totalExpensePrediction;
+                      return `<tr onclick="switchToCostCenter('${costCenterId}')" style="cursor:pointer;">
+                      <td><strong>${data.name}</strong></td>
+                      <td>${data.entries.length}</td><td>${t.withPrediction}</td>
+                      <td>${t.totalIncome.toLocaleString("vi-VN")}</td>
+                      <td>${t.totalExpense.toLocaleString("vi-VN")}</td>
+                      <td class="${profit >= 0 ? "text-success fw-bold" : "text-danger fw-bold"}">${profit.toLocaleString("vi-VN")}</td>
+                      <td>${t.totalIncomePrediction.toLocaleString("vi-VN")}</td>
+                      <td>${t.totalExpensePrediction.toLocaleString("vi-VN")}</td>
+                      <td class="${profitPrediction >= 0 ? "text-success" : "text-danger"}">${profitPrediction.toLocaleString("vi-VN")}</td>
+                    </tr>`;
                     })
                     .join("")}
                 </tbody>
-                <tfoot class="table-secondary">
-                  <tr>
-                    <td><strong>TỔNG CỘNG</strong></td>
-                    <td><strong>${costCentersWithEntries.reduce(
-                      (sum, [_, data]) => sum + data.entries.length,
-                      0,
-                    )}</strong></td>
-                    <td><strong>${costCentersWithEntries.reduce(
-                      (sum, [_, data]) =>
-                        sum +
-                        data.entries.filter(
-                          (e) => e.incomePrediction || e.expensePrediction,
-                        ).length,
-                      0,
-                    )}</strong></td>
-                    <td><strong>${costCentersWithEntries
-                      .reduce(
-                        (sum, [_, data]) =>
-                          sum +
-                          data.entries.reduce(
-                            (acc, entry) => acc + (entry.income || 0),
-                            0,
-                          ),
-                        0,
-                      )
-                      .toLocaleString("vi-VN")}</strong></td>
-                    <td><strong>${costCentersWithEntries
-                      .reduce(
-                        (sum, [_, data]) =>
-                          sum +
-                          data.entries.reduce(
-                            (acc, entry) => acc + (entry.expense || 0),
-                            0,
-                          ),
-                        0,
-                      )
-                      .toLocaleString("vi-VN")}</strong></td>
-                    <td><strong class="${
-                      costCentersWithEntries.reduce((sum, [_, data]) => {
-                        const costCenterTotal = data.entries.reduce(
-                          (acc, entry) => {
-                            acc.income += entry.income || 0;
-                            acc.expense += entry.expense || 0;
-                            return acc;
-                          },
-                          { income: 0, expense: 0 },
-                        );
-                        return (
-                          sum +
-                          (costCenterTotal.income - costCenterTotal.expense)
-                        );
-                      }, 0) >= 0
-                        ? "text-success"
-                        : "text-danger"
-                    }">
-                      ${costCentersWithEntries
-                        .reduce((sum, [_, data]) => {
-                          const costCenterTotal = data.entries.reduce(
-                            (acc, entry) => {
-                              acc.income += entry.income || 0;
-                              acc.expense += entry.expense || 0;
-                              return acc;
-                            },
-                            { income: 0, expense: 0 },
-                          );
-                          return (
-                            sum +
-                            (costCenterTotal.income - costCenterTotal.expense)
-                          );
-                        }, 0)
-                        .toLocaleString("vi-VN")}
-                    </strong></td>
-                    <td><strong>${costCentersWithEntries
-                      .reduce(
-                        (sum, [_, data]) =>
-                          sum +
-                          data.entries.reduce(
-                            (acc, entry) => acc + (entry.incomePrediction || 0),
-                            0,
-                          ),
-                        0,
-                      )
-                      .toLocaleString("vi-VN")}</strong></td>
-                    <td><strong>${costCentersWithEntries
-                      .reduce(
-                        (sum, [_, data]) =>
-                          sum +
-                          data.entries.reduce(
-                            (acc, entry) =>
-                              acc + (entry.expensePrediction || 0),
-                            0,
-                          ),
-                        0,
-                      )
-                      .toLocaleString("vi-VN")}</strong></td>
-                    <td><strong class="${
-                      costCentersWithEntries.reduce((sum, [_, data]) => {
-                        const costCenterTotal = data.entries.reduce(
-                          (acc, entry) => {
-                            acc.incomePrediction += entry.incomePrediction || 0;
-                            acc.expensePrediction +=
-                              entry.expensePrediction || 0;
-                            return acc;
-                          },
-                          { incomePrediction: 0, expensePrediction: 0 },
-                        );
-                        return (
-                          sum +
-                          (costCenterTotal.incomePrediction -
-                            costCenterTotal.expensePrediction)
-                        );
-                      }, 0) >= 0
-                        ? "text-success"
-                        : "text-danger"
-                    }">
-                      ${costCentersWithEntries
-                        .reduce((sum, [_, data]) => {
-                          const costCenterTotal = data.entries.reduce(
-                            (acc, entry) => {
-                              acc.incomePrediction +=
-                                entry.incomePrediction || 0;
-                              acc.expensePrediction +=
-                                entry.expensePrediction || 0;
-                              return acc;
-                            },
-                            { incomePrediction: 0, expensePrediction: 0 },
-                          );
-                          return (
-                            sum +
-                            (costCenterTotal.incomePrediction -
-                              costCenterTotal.expensePrediction)
-                          );
-                        }, 0)
-                        .toLocaleString("vi-VN")}
-                    </strong></td>
-                  </tr>
-                </tfoot>
               </table>
             </div>
             <div class="mt-3">
-              <small class="text-muted">* Chỉ hiển thị các trạm có dữ liệu thực tế hàng ngày</small>
-              <br>
+              <small class="text-muted">* Chỉ hiển thị các trạm có dữ liệu thực tế hàng ngày</small><br>
               <small class="text-muted">* Nhấp vào tên trạm để chuyển sang xem chi tiết</small>
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-            <button type="button" class="btn btn-primary" onclick="refreshGlobalData()">
-              🔄 Làm Mới Dữ Liệu
-            </button>
-            <button type="button" class="btn btn-success" onclick="exportAllData()">
-              📁 Xuất Toàn Bộ
-            </button>
+            <button type="button" class="btn btn-primary" onclick="refreshGlobalData()">🔄 Làm Mới Dữ Liệu</button>
+            <button type="button" class="btn btn-success" onclick="exportAllData()">📁 Xuất Toàn Bộ</button>
           </div>
         </div>
       </div>
-    </div>
-  `;
+    </div>`;
 
   const existingModal = document.getElementById("globalDetailsModal");
-  if (existingModal) {
-    existingModal.remove();
-  }
-
+  if (existingModal) existingModal.remove();
   document.body.insertAdjacentHTML("beforeend", modalContent);
-
-  const modal = new bootstrap.Modal(
-    document.getElementById("globalDetailsModal"),
-  );
-  modal.show();
+  new bootstrap.Modal(document.getElementById("globalDetailsModal")).show();
 }
 
 function switchToCostCenter(costCenterId) {
@@ -2066,13 +1785,11 @@ function switchToCostCenter(costCenterId) {
     document.getElementById("globalDetailsModal"),
   );
   if (modal) modal.hide();
-
   const toggle = document.getElementById("viewToggle");
   if (toggle.checked) {
     toggle.checked = false;
     toggleView();
   }
-
   document.getElementById("costCenterSelect").value = costCenterId;
   loadCostCenterData();
 }
@@ -2085,16 +1802,13 @@ async function refreshGlobalData() {
 async function exportAllData() {
   try {
     const costCentersWithEntries = Object.entries(allEntries).filter(
-      ([costCenterId, data]) => {
+      ([_, data]) => {
         if (!data.entries || data.entries.length === 0) return false;
         return data.entries.some(
-          (entry) =>
-            (entry.income && entry.income > 0) ||
-            (entry.expense && entry.expense > 0),
+          (e) => (e.income && e.income > 0) || (e.expense && e.expense > 0),
         );
       },
     );
-
     if (costCentersWithEntries.length === 0) {
       alert("Không có dữ liệu thực tế để xuất");
       return;
@@ -2102,17 +1816,15 @@ async function exportAllData() {
 
     let csvContent =
       "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Lợi nhuận (VND),Dự báo thu (VND),Dự báo chi (VND),Lợi nhuận dự báo (VND),Ghi chú\n";
-
-    costCentersWithEntries.forEach(([costCenterId, data]) => {
-      if (data.entries && data.entries.length > 0) {
-        data.entries.forEach((entry) => {
-          const profit = calculateProfit(entry.income, entry.expense);
-          const profitPrediction = calculateProfit(
-            entry.incomePrediction,
-            entry.expensePrediction,
-          );
-
-          const row = [
+    costCentersWithEntries.forEach(([_, data]) => {
+      (data.entries || []).forEach((entry) => {
+        const profit = calculateProfit(entry.income, entry.expense);
+        const profitPrediction = calculateProfit(
+          entry.incomePrediction,
+          entry.expensePrediction,
+        );
+        csvContent +=
+          [
             `"${data.name}"`,
             `"${entry.name}"`,
             entry.date,
@@ -2123,16 +1835,13 @@ async function exportAllData() {
             entry.expensePrediction || 0,
             profitPrediction,
             `"${entry.note || ""}"`,
-          ];
-          csvContent += row.join(",") + "\n";
-        });
-      }
+          ].join(",") + "\n";
+      });
     });
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
+    link.setAttribute("href", URL.createObjectURL(blob));
     link.setAttribute(
       "download",
       `all_daily_finance_${new Date().toISOString().split("T")[0]}.csv`,
@@ -2158,36 +1867,31 @@ async function exportAlternativeView() {
       alert("Không có dữ liệu thực tế để xuất");
       return;
     }
-
     let csvContent =
       "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Lợi nhuận (VND),Dự báo thu (VND),Dự báo chi (VND),Lợi nhuận dự báo (VND),Ghi chú\n";
-
     filteredAllEntries.forEach((entry) => {
       const profit = calculateProfit(entry.income, entry.expense);
       const profitPrediction = calculateProfit(
         entry.incomePrediction,
         entry.expensePrediction,
       );
-
-      const row = [
-        `"${entry.costCenterName}"`,
-        `"${entry.name}"`,
-        entry.date,
-        entry.income,
-        entry.expense,
-        profit,
-        entry.incomePrediction || 0,
-        entry.expensePrediction || 0,
-        profitPrediction,
-        `"${entry.note || ""}"`,
-      ];
-      csvContent += row.join(",") + "\n";
+      csvContent +=
+        [
+          `"${entry.costCenterName}"`,
+          `"${entry.name}"`,
+          entry.date,
+          entry.income,
+          entry.expense,
+          profit,
+          entry.incomePrediction || 0,
+          entry.expensePrediction || 0,
+          profitPrediction,
+          `"${entry.note || ""}"`,
+        ].join(",") + "\n";
     });
-
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
+    link.setAttribute("href", URL.createObjectURL(blob));
     link.setAttribute(
       "download",
       `all_cost_centers_daily_${new Date().toISOString().split("T")[0]}.csv`,
