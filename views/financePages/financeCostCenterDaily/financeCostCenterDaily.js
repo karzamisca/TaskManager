@@ -108,34 +108,34 @@ function createDailyTotalRow(date, actual, predicted, colCount, isAllView) {
   const predictedFmt = predicted.toLocaleString("vi-VN");
 
   if (isAllView) {
-    // 11 data cols + 1 actions = 12 total
+    // 9 data cols + 1 actions = 10 total (Trạm, Tên, Ngày, Thu, Chi, Dự thu, Dự chi, Ghi chú, Thao tác)
     tr.innerHTML = `
       <td colspan="3" class="daily-progressive-label">
         <span class="daily-progressive-date">${date}</span>
         <span class="daily-progressive-title">Lũy kế đến cuối ngày</span>
       </td>
-      <td colspan="3" class="daily-progressive-actual ${actualClass}">
+      <td colspan="2" class="daily-progressive-actual ${actualClass}">
         <span class="daily-progressive-value-label">Thực tế:</span> ${actualFmt} VND
       </td>
-      <td colspan="3" class="daily-progressive-predicted ${predictedClass}">
+      <td colspan="2" class="daily-progressive-predicted ${predictedClass}">
         <span class="daily-progressive-value-label">Dự báo:</span> ${predictedFmt} VND
       </td>
       <td colspan="2" class="daily-progressive-spacer"></td>
     `;
   } else {
-    // Single view: 9 data cols + 1 actions = 10 total (colspan matches header)
+    // Single view: 6 data cols + 1 actions = 7 total (Tên, Ngày, Thu, Chi, Dự thu, Dự chi, Ghi chú, Thao tác)
     tr.innerHTML = `
       <td colspan="2" class="daily-progressive-label">
         <span class="daily-progressive-date">${date}</span>
         <span class="daily-progressive-title">Lũy kế đến cuối ngày</span>
       </td>
-      <td colspan="3" class="daily-progressive-actual ${actualClass}">
+      <td colspan="2" class="daily-progressive-actual ${actualClass}">
         <span class="daily-progressive-value-label">Thực tế:</span> ${actualFmt} VND
       </td>
-      <td colspan="3" class="daily-progressive-predicted ${predictedClass}">
+      <td colspan="2" class="daily-progressive-predicted ${predictedClass}">
         <span class="daily-progressive-value-label">Dự báo:</span> ${predictedFmt} VND
       </td>
-      <td colspan="2" class="daily-progressive-spacer"></td>
+      <td colspan="1" class="daily-progressive-spacer"></td>
     `;
   }
 
@@ -398,10 +398,8 @@ function createAllViewAddRow(costCenterId) {
     <td><input type="text" id="allViewNewDate" value="${today}" placeholder="DD/MM/YYYY" class="form-control" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
     <td><input type="number" id="allViewNewIncome" placeholder="Thu nhập" class="form-control" step="0.1" value="0" required></td>
     <td><input type="number" id="allViewNewExpense" placeholder="Chi phí" class="form-control" step="0.1" value="0" required></td>
-    <td class="profit-neutral">(Tự động)</td>
     <td><input type="number" id="allViewNewIncomePrediction" placeholder="Dự báo thu" class="form-control" step="0.1" value="0"></td>
     <td><input type="number" id="allViewNewExpensePrediction" placeholder="Dự báo chi" class="form-control" step="0.1" value="0"></td>
-    <td class="profit-neutral">(Tự động)</td>
     <td><textarea id="allViewNewNote" placeholder="Ghi chú" class="form-control" rows="2"></textarea></td>
     <td class="actions">
       <button class="save-btn btn btn-sm btn-success" onclick="saveAllViewNewEntry()">Lưu</button>
@@ -716,7 +714,7 @@ function renderAllEntriesTable() {
     !isAddingMultipleInAllView
   ) {
     const row = document.createElement("tr");
-    row.innerHTML = `<td colspan="12" style="text-align:center;color:#666;padding:20px;">${
+    row.innerHTML = `<td colspan="10" style="text-align:center;color:#666;padding:20px;">${
       allEntriesFlat.length === 0
         ? "Không có dữ liệu nào từ các trạm."
         : "Không có kết quả phù hợp với bộ lọc."
@@ -724,9 +722,9 @@ function renderAllEntriesTable() {
     tbody.appendChild(row);
     const addNewRow = document.createElement("tr");
     addNewRow.className = "add-row";
-    addNewRow.innerHTML = `<td colspan="12"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
+    addNewRow.innerHTML = `<td colspan="10"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
     tbody.appendChild(addNewRow);
-    applyTodayRedLines(tbody, today, 12);
+    applyTodayRedLines(tbody, today, 10);
     return;
   }
 
@@ -750,8 +748,6 @@ function renderAllEntriesTable() {
       entry.incomePrediction,
       entry.expensePrediction,
     );
-    const profitClass = getProfitClass(profit);
-    const profitPredictionClass = getProfitClass(profitPrediction);
 
     row.innerHTML = `
       <td>${entry.costCenterName}</td>
@@ -759,10 +755,8 @@ function renderAllEntriesTable() {
       <td class="${dateClass}">${entry.date}</td>
       <td>${(entry.income || 0).toLocaleString("vi-VN")}</td>
       <td>${(entry.expense || 0).toLocaleString("vi-VN")}</td>
-      <td class="${profitClass}">${profit.toLocaleString("vi-VN")}</td>
       <td>${(entry.incomePrediction || 0).toLocaleString("vi-VN")}</td>
       <td>${(entry.expensePrediction || 0).toLocaleString("vi-VN")}</td>
-      <td class="${profitPredictionClass}">${profitPrediction.toLocaleString("vi-VN")}</td>
       <td>${note.replace(/\n/g, " ")}</td>
       <td class="actions">
         <button class="edit-btn" onclick="switchToCostCenterAndEdit('${entry.costCenterId}', '${entry._id}')">Sửa</button>
@@ -782,7 +776,7 @@ function renderAllEntriesTable() {
             entry.date,
             totals.actual,
             totals.predicted,
-            12,
+            10,
             true,
           ),
         );
@@ -792,10 +786,10 @@ function renderAllEntriesTable() {
 
   const addNewRow = document.createElement("tr");
   addNewRow.className = "add-row";
-  addNewRow.innerHTML = `<td colspan="12"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
+  addNewRow.innerHTML = `<td colspan="10"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
   tbody.appendChild(addNewRow);
 
-  applyTodayRedLines(tbody, today, 12);
+  applyTodayRedLines(tbody, today, 10);
 }
 
 function applyAllFilters() {
@@ -1113,13 +1107,13 @@ function renderEntries() {
 
   if (filteredEntries.length === 0 && !isAdding) {
     const row = document.createElement("tr");
-    row.innerHTML = `<td colspan="11" style="text-align:center;color:#666;padding:20px;">${
+    row.innerHTML = `<td colspan="8" style="text-align:center;color:#666;padding:20px;">${
       entries.length === 0
         ? "Chưa có dữ liệu nào. Hãy thêm mục mới."
         : "Không có kết quả phù hợp với bộ lọc."
     }</td>`;
     tbody.appendChild(row);
-    applyTodayRedLines(tbody, getTodayFormatted(), 11);
+    applyTodayRedLines(tbody, getTodayFormatted(), 8);
     return;
   }
 
@@ -1145,8 +1139,6 @@ function renderEntries() {
       entry.incomePrediction,
       entry.expensePrediction,
     );
-    const profitClass = getProfitClass(profit);
-    const profitPredictionClass = getProfitClass(profitPrediction);
 
     if (entry._id === editingEntryId) {
       row.className = "editing-row";
@@ -1155,10 +1147,8 @@ function renderEntries() {
         <td><input type="text" id="editDate_${entry._id}" value="${entry.date}" placeholder="DD/MM/YYYY"></td>
         <td><input type="number" id="editIncome_${entry._id}" value="${entry.income}" min="0"></td>
         <td><input type="number" id="editExpense_${entry._id}" value="${entry.expense}" min="0"></td>
-        <td class="${profitClass}">${profit.toLocaleString("vi-VN")}</td>
         <td><input type="number" id="editIncomePrediction_${entry._id}" value="${entry.incomePrediction || 0}" min="0"></td>
         <td><input type="number" id="editExpensePrediction_${entry._id}" value="${entry.expensePrediction || 0}" min="0"></td>
-        <td class="${profitPredictionClass}">${profitPrediction.toLocaleString("vi-VN")}</td>
         <td><textarea id="editNote_${entry._id}">${entry.note || ""}</textarea></td>
         <td class="actions">
           <button class="save-btn" onclick="saveEdit('${entry._id}')">Lưu</button>
@@ -1172,10 +1162,8 @@ function renderEntries() {
         <td class="${dateClass}">${entry.date}</td>
         <td>${(entry.income || 0).toLocaleString("vi-VN")}</td>
         <td>${(entry.expense || 0).toLocaleString("vi-VN")}</td>
-        <td class="${profitClass}">${profit.toLocaleString("vi-VN")}</td>
         <td>${(entry.incomePrediction || 0).toLocaleString("vi-VN")}</td>
         <td>${(entry.expensePrediction || 0).toLocaleString("vi-VN")}</td>
-        <td class="${profitPredictionClass}">${profitPrediction.toLocaleString("vi-VN")}</td>
         <td>${note.replace(/\n/g, " ")}</td>
         <td class="actions">
           <button class="edit-btn" onclick="startEdit('${entry._id}')">Sửa</button>
@@ -1197,7 +1185,7 @@ function renderEntries() {
             entry.date,
             totals.actual,
             totals.predicted,
-            11,
+            8,
             false,
           ),
         );
@@ -1205,7 +1193,7 @@ function renderEntries() {
     }
   });
 
-  applyTodayRedLines(tbody, today, 11);
+  applyTodayRedLines(tbody, today, 8);
 }
 
 function createAddRow() {
@@ -1218,10 +1206,8 @@ function createAddRow() {
     <td><input type="text" id="newDate" value="${today}" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
     <td><input type="number" id="newIncome" placeholder="Thu nhập" step="0.1" value="0" required></td>
     <td><input type="number" id="newExpense" placeholder="Chi phí" step="0.1" value="0" required></td>
-    <td class="profit-neutral">(Tự động)</td>
     <td><input type="number" id="newIncomePrediction" placeholder="Dự báo thu" step="0.1" value="0"></td>
     <td><input type="number" id="newExpensePrediction" placeholder="Dự báo chi" step="0.1" value="0"></td>
-    <td class="profit-neutral">(Tự động)</td>
     <td><textarea id="newNote" placeholder="Ghi chú"></textarea></td>
     <td class="actions">
       <button class="save-btn" onclick="saveNewEntry()">Lưu</button>
@@ -1651,23 +1637,16 @@ async function exportData() {
   }
   try {
     let csvContent =
-      "Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Lợi nhuận (VND),Dự báo thu (VND),Dự báo chi (VND),Lợi nhuận dự báo (VND),Ghi chú\n";
+      "Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Ghi chú\n";
     filteredEntries.forEach((entry) => {
-      const profit = calculateProfit(entry.income, entry.expense);
-      const profitPrediction = calculateProfit(
-        entry.incomePrediction,
-        entry.expensePrediction,
-      );
       csvContent +=
         [
           `"${entry.name}"`,
           entry.date,
           entry.income,
           entry.expense,
-          profit,
           entry.incomePrediction || 0,
           entry.expensePrediction || 0,
-          profitPrediction,
           `"${entry.note || ""}"`,
         ].join(",") + "\n";
     });
@@ -1815,14 +1794,9 @@ async function exportAllData() {
     }
 
     let csvContent =
-      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Lợi nhuận (VND),Dự báo thu (VND),Dự báo chi (VND),Lợi nhuận dự báo (VND),Ghi chú\n";
+      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Ghi chú\n";
     costCentersWithEntries.forEach(([_, data]) => {
       (data.entries || []).forEach((entry) => {
-        const profit = calculateProfit(entry.income, entry.expense);
-        const profitPrediction = calculateProfit(
-          entry.incomePrediction,
-          entry.expensePrediction,
-        );
         csvContent +=
           [
             `"${data.name}"`,
@@ -1830,10 +1804,8 @@ async function exportAllData() {
             entry.date,
             entry.income,
             entry.expense,
-            profit,
             entry.incomePrediction || 0,
             entry.expensePrediction || 0,
-            profitPrediction,
             `"${entry.note || ""}"`,
           ].join(",") + "\n";
       });
@@ -1868,13 +1840,8 @@ async function exportAlternativeView() {
       return;
     }
     let csvContent =
-      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Lợi nhuận (VND),Dự báo thu (VND),Dự báo chi (VND),Lợi nhuận dự báo (VND),Ghi chú\n";
+      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Ghi chú\n";
     filteredAllEntries.forEach((entry) => {
-      const profit = calculateProfit(entry.income, entry.expense);
-      const profitPrediction = calculateProfit(
-        entry.incomePrediction,
-        entry.expensePrediction,
-      );
       csvContent +=
         [
           `"${entry.costCenterName}"`,
@@ -1882,10 +1849,8 @@ async function exportAlternativeView() {
           entry.date,
           entry.income,
           entry.expense,
-          profit,
           entry.incomePrediction || 0,
           entry.expensePrediction || 0,
-          profitPrediction,
           `"${entry.note || ""}"`,
         ].join(",") + "\n";
     });
