@@ -147,7 +147,7 @@ const populateCostCenterMultiSelect = async () => {
     const selectAllCheckbox = document.getElementById("selectAllCostCenters");
     selectAllCheckbox.addEventListener("change", (e) => {
       const checkboxes = dropdown.querySelectorAll(
-        'input[type="checkbox"]:not(#selectAllCostCenters)'
+        'input[type="checkbox"]:not(#selectAllCostCenters)',
       );
       checkboxes.forEach((checkbox) => {
         checkbox.checked = e.target.checked;
@@ -156,7 +156,7 @@ const populateCostCenterMultiSelect = async () => {
     });
 
     const checkboxes = dropdown.querySelectorAll(
-      'input[type="checkbox"]:not(#selectAllCostCenters)'
+      'input[type="checkbox"]:not(#selectAllCostCenters)',
     );
     checkboxes.forEach((checkbox) => {
       checkbox.addEventListener("change", () => {
@@ -186,7 +186,7 @@ const populateCostCenterMultiSelect = async () => {
     });
 
     const buttonContainer = document.getElementById(
-      "costCenterMultiSelectButton"
+      "costCenterMultiSelectButton",
     );
     buttonContainer.appendChild(clearButton);
   } catch (error) {
@@ -228,7 +228,7 @@ const populateGroupMultiSelect = async () => {
     const selectAllCheckbox = document.getElementById("selectAllGroups");
     selectAllCheckbox.addEventListener("change", (e) => {
       const checkboxes = dropdown.querySelectorAll(
-        'input[type="checkbox"]:not(#selectAllGroups)'
+        'input[type="checkbox"]:not(#selectAllGroups)',
       );
       checkboxes.forEach((checkbox) => {
         checkbox.checked = e.target.checked;
@@ -237,7 +237,7 @@ const populateGroupMultiSelect = async () => {
     });
 
     const checkboxes = dropdown.querySelectorAll(
-      'input[type="checkbox"]:not(#selectAllGroups)'
+      'input[type="checkbox"]:not(#selectAllGroups)',
     );
     checkboxes.forEach((checkbox) => {
       checkbox.addEventListener("change", () => {
@@ -276,7 +276,7 @@ const populateGroupMultiSelect = async () => {
 // Update cost center filter based on selected options
 const updateCostCenterFilter = () => {
   const checkboxes = document.querySelectorAll(
-    '#costCenterMultiSelectDropdown input[type="checkbox"]:not(#selectAllCostCenters)'
+    '#costCenterMultiSelectDropdown input[type="checkbox"]:not(#selectAllCostCenters)',
   );
   const selectedCostCenters = Array.from(checkboxes)
     .filter((cb) => cb.checked)
@@ -287,10 +287,10 @@ const updateCostCenterFilter = () => {
   // Update button text
   const textElement = document.getElementById("costCenterMultiSelectText");
   const buttonContainer = document.getElementById(
-    "costCenterMultiSelectButton"
+    "costCenterMultiSelectButton",
   );
   const countElement = buttonContainer.querySelector(
-    ".multi-select-selected-count"
+    ".multi-select-selected-count",
   );
 
   if (selectedCostCenters.length === 0) {
@@ -318,7 +318,7 @@ const updateCostCenterFilter = () => {
 // Update group filter based on selected options
 const updateGroupFilter = () => {
   const checkboxes = document.querySelectorAll(
-    '#groupMultiSelectDropdown input[type="checkbox"]:not(#selectAllGroups)'
+    '#groupMultiSelectDropdown input[type="checkbox"]:not(#selectAllGroups)',
   );
   const selectedGroups = Array.from(checkboxes)
     .filter((cb) => cb.checked)
@@ -330,7 +330,7 @@ const updateGroupFilter = () => {
   const textElement = document.getElementById("groupMultiSelectText");
   const buttonContainer = document.getElementById("groupMultiSelectButton");
   const countElement = buttonContainer.querySelector(
-    ".multi-select-selected-count"
+    ".multi-select-selected-count",
   );
 
   if (selectedGroups.length === 0) {
@@ -374,7 +374,7 @@ const fetchProposalDocuments = async () => {
     state.proposalDocuments = data.proposalDocuments;
 
     const filteredDocuments = filterDocumentsForCurrentUser(
-      state.proposalDocuments
+      state.proposalDocuments,
     );
 
     // Calculate total pages
@@ -420,10 +420,10 @@ const filterDocumentsForCurrentUser = (documents) => {
   if (state.showOnlyPendingApprovals && state.currentUser) {
     filteredDocs = filteredDocs.filter((doc) => {
       const isRequiredApprover = doc.approvers.some(
-        (approver) => approver.username === state.currentUser.username
+        (approver) => approver.username === state.currentUser.username,
       );
       const hasNotApprovedYet = !doc.approvedBy.some(
-        (approved) => approved.username === state.currentUser.username
+        (approved) => approved.username === state.currentUser.username,
       );
       return isRequiredApprover && hasNotApprovedYet;
     });
@@ -432,21 +432,21 @@ const filterDocumentsForCurrentUser = (documents) => {
   // Apply task filter if there's a search term
   if (state.taskFilter) {
     filteredDocs = filteredDocs.filter((doc) =>
-      doc.task?.toLowerCase().includes(state.taskFilter)
+      doc.task?.toLowerCase().includes(state.taskFilter),
     );
   }
 
   // Apply cost center filter (multiple selection)
   if (state.currentCostCenterFilter.length > 0) {
     filteredDocs = filteredDocs.filter((doc) =>
-      state.currentCostCenterFilter.includes(doc.costCenter)
+      state.currentCostCenterFilter.includes(doc.costCenter),
     );
   }
 
   // Apply group filter (multiple selection)
   if (state.currentGroupFilter.length > 0) {
     filteredDocs = filteredDocs.filter((doc) =>
-      state.currentGroupFilter.includes(doc.groupName)
+      state.currentGroupFilter.includes(doc.groupName),
     );
   }
 
@@ -466,13 +466,13 @@ const renderFilesList = (fileMetadata) => {
           (file) => `
           <div class="file-item">
             <a href="${file.link}" class="file-link" target="_blank" title="${
-            file.name
-          }">
+              file.name
+            }">
               ${file.name}
             </a>
             ${file.size ? `<span class="file-size">${file.size}</span>` : ""}
           </div>
-        `
+        `,
         )
         .join("")}
     </div>
@@ -490,7 +490,7 @@ const renderDocumentsTable = (documents) => {
     const approvalStatus = doc.approvers
       .map((approver) => {
         const hasApproved = doc.approvedBy.find(
-          (a) => a.username === approver.username
+          (a) => a.username === approver.username,
         );
         return `
           <div class="approver-item">
@@ -568,30 +568,39 @@ const renderDocumentsTable = (documents) => {
           ${
             doc.status === "Pending"
               ? `
-            <button class="btn btn-primary btn-sm" onclick="approveDocument('${doc._id}')">
-              <i class="fas fa-check"></i> Phê duyệt
-            </button>
-          `
+                <button class="btn btn-primary btn-sm" onclick="approveDocument('${doc._id}')">
+                  <i class="fas fa-check"></i> Phê duyệt
+                </button>
+              `
               : ""
           }
           ${
             doc.status === "Approved"
               ? `
-                <button class="btn btn-primary btn-sm" onclick="editDeclaration('${doc._id}')">
-                  <i class="fas fa-edit"></i> Kê khai
-                </button>
-              `
-              : doc.status === "Suspended"
+                  <button class="btn btn-primary btn-sm" onclick="editDeclaration('${doc._id}')">
+                    <i class="fas fa-edit"></i> Kê khai
+                  </button>
+                `
+              : ""
+          }
+          ${
+            doc.status === "Suspended"
               ? `
-                <button class="btn btn-primary btn-sm" onclick="openDocument('${doc._id}')">
-                  <i class="fas fa-lock-open"></i> Mở
-                </button>
-              `
-              : `
+                  <button class="btn btn-primary btn-sm" onclick="openDocument('${doc._id}')">
+                    <i class="fas fa-lock-open"></i> Mở
+                  </button>
+                `
+              : ""
+          }
+          <!-- Always show suspend button for all documents except Suspended -->
+          ${
+            doc.status !== "Suspended"
+              ? `
                 <button class="btn btn-danger btn-sm" onclick="suspendDocument('${doc._id}')">
                   <i class="fas fa-ban"></i> Từ chối
                 </button>
               `
+              : ""
           }
           <button class="btn btn-secondary btn-sm" onclick="showDocumentsContainingProposal('${
             doc._id
@@ -607,10 +616,10 @@ const renderDocumentsTable = (documents) => {
 
 const updateSummary = (filteredDocuments) => {
   const approvedDocs = filteredDocuments.filter(
-    (doc) => doc.status === "Approved"
+    (doc) => doc.status === "Approved",
   );
   const unapprovedDocs = filteredDocuments.filter(
-    (doc) => doc.status === "Pending"
+    (doc) => doc.status === "Pending",
   );
 
   document.getElementById("approvedDocument").textContent =
@@ -638,8 +647,8 @@ const renderPagination = () => {
           <i class="fas fa-angle-double-left"></i> Trang đầu
         </button>
         <button onclick="changePage(${state.currentPage - 1})" ${
-      state.currentPage === 1 ? "disabled" : ""
-    }>
+          state.currentPage === 1 ? "disabled" : ""
+        }>
           <i class="fas fa-angle-left"></i> Trang trước
         </button>
         <span class="page-info">
@@ -652,13 +661,13 @@ const renderPagination = () => {
           <button onclick="goToPage()">Đi</button>
         </div>
         <button onclick="changePage(${state.currentPage + 1})" ${
-      state.currentPage === state.totalPages ? "disabled" : ""
-    }>
+          state.currentPage === state.totalPages ? "disabled" : ""
+        }>
           Trang tiếp <i class="fas fa-angle-right"></i>
         </button>
         <button onclick="changePage(${state.totalPages})" ${
-      state.currentPage === state.totalPages ? "disabled" : ""
-    }>
+          state.currentPage === state.totalPages ? "disabled" : ""
+        }>
           Trang cuối <i class="fas fa-angle-double-right"></i>
         </button>
       </div>
@@ -877,7 +886,7 @@ const saveDeclaration = async (docId) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ declaration }),
-      }
+      },
     );
 
     const message = await response.text();
@@ -887,7 +896,7 @@ const saveDeclaration = async (docId) => {
       closeDeclarationModal();
       // Update the local state to reflect changes
       const docIndex = state.proposalDocuments.findIndex(
-        (d) => d._id === docId
+        (d) => d._id === docId,
       );
       if (docIndex !== -1) {
         state.proposalDocuments[docIndex].declaration = declaration;
@@ -992,7 +1001,7 @@ const showFullView = (docId) => {
             ${doc.approvers
               .map((approver) => {
                 const hasApproved = doc.approvedBy.find(
-                  (a) => a.username === approver.username
+                  (a) => a.username === approver.username,
                 );
                 return `
                 <div class="approver-item">
@@ -1047,7 +1056,7 @@ const renderFullViewFiles = (fileMetadata) => {
             </a>
           </div>
         </div>
-      `
+      `,
         )
         .join("")}
     </div>
@@ -1088,7 +1097,7 @@ const showAllFiles = (event, filesJson) => {
                     </a>
                   </div>
                 </div>
-              `
+              `,
                 )
                 .join("")}
             </div>
@@ -1257,7 +1266,7 @@ const removeCurrentFile = async (fileId) => {
         headers: {
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     const result = await response.json();
@@ -1273,7 +1282,7 @@ const removeCurrentFile = async (fileId) => {
       if (state.currentEditDoc && state.currentEditDoc.fileMetadata) {
         state.currentEditDoc.fileMetadata =
           state.currentEditDoc.fileMetadata.filter(
-            (file) => (file._id || file.driveFileId) !== fileId
+            (file) => (file._id || file.driveFileId) !== fileId,
           );
       }
 
@@ -1281,7 +1290,7 @@ const removeCurrentFile = async (fileId) => {
 
       // Update file count display if needed
       const remainingFiles = document.querySelectorAll(
-        "#currentFilesList .file-item"
+        "#currentFilesList .file-item",
       ).length;
       if (remainingFiles === 0) {
         document.getElementById("currentFilesList").innerHTML =
@@ -1363,14 +1372,14 @@ const renderCurrentApprovers = () => {
             <i class="fas fa-trash"></i> Xóa
           </button>
         </div>
-      `
+      `,
     )
     .join("");
 };
 
 const updateApproverSubRole = (approverId, newSubRole) => {
   const approver = state.currentApprovers.find(
-    (a) => a.approver === approverId
+    (a) => a.approver === approverId,
   );
   if (approver) {
     approver.subRole = newSubRole;
@@ -1379,7 +1388,7 @@ const updateApproverSubRole = (approverId, newSubRole) => {
 
 const removeApprover = (approverId) => {
   state.currentApprovers = state.currentApprovers.filter(
-    (a) => a._id !== approverId
+    (a) => a._id !== approverId,
   );
 
   renderCurrentApprovers();
@@ -1390,7 +1399,7 @@ const populateNewApproversDropdown = async () => {
   const allApprovers = await fetchApprovers();
   const availableApprovers = allApprovers.filter(
     (approver) =>
-      !state.currentApprovers.some((a) => a.approver === approver._id)
+      !state.currentApprovers.some((a) => a.approver === approver._id),
   );
 
   const dropdown = document.getElementById("newApproversDropdown");
@@ -1400,7 +1409,7 @@ const populateNewApproversDropdown = async () => {
       .map(
         (approver) => `
       <option value="${approver._id}">${approver.username}</option>
-    `
+    `,
       )
       .join("")}
   `;
@@ -1496,16 +1505,16 @@ const handleEditSubmit = async (event) => {
   formData.append("task", document.getElementById("editTask").value);
   formData.append(
     "costCenter",
-    document.getElementById("editCostCenter").value
+    document.getElementById("editCostCenter").value,
   );
   formData.append("groupName", document.getElementById("editGroupName").value);
   formData.append(
     "dateOfError",
-    document.getElementById("editDateOfError").value
+    document.getElementById("editDateOfError").value,
   );
   formData.append(
     "detailsDescription",
-    document.getElementById("editDetailsDescription").value
+    document.getElementById("editDetailsDescription").value,
   );
   formData.append("direction", document.getElementById("editDirection").value);
 
@@ -1622,7 +1631,7 @@ const renderPurchasingDocuments = (purchasingDocs) => {
                   : "-"
               }</div>
               <div><strong>Tình trạng:</strong> ${renderStatus(
-                doc.status
+                doc.status,
               )}</div>
             </div>
             <button class="btn btn-primary btn-sm" onclick="window.open('/documentView/${
@@ -1631,7 +1640,7 @@ const renderPurchasingDocuments = (purchasingDocs) => {
               Xem chi tiết
             </button>
           </div>
-        `
+        `,
         )
         .join("")}
     </div>
@@ -1656,7 +1665,7 @@ const renderDeliveryDocuments = (deliveryDocs) => {
                   : "-"
               }</div>
               <div><strong>Tình trạng:</strong> ${renderStatus(
-                doc.status
+                doc.status,
               )}</div>
             </div>
             <button class="btn btn-primary btn-sm" onclick="window.open('/documentView/${
@@ -1665,7 +1674,7 @@ const renderDeliveryDocuments = (deliveryDocs) => {
               Xem chi tiết
             </button>
           </div>
-        `
+        `,
         )
         .join("")}
     </div>
@@ -1697,7 +1706,7 @@ const exportSelectedToExcel = async () => {
 
     // Filter selected documents
     const docsToExport = state.proposalDocuments.filter((doc) =>
-      selectedDocs.includes(doc._id)
+      selectedDocs.includes(doc._id),
     );
 
     // Prepare data for Excel
@@ -1781,7 +1790,7 @@ const updateSelectAllCheckbox = () => {
 
   selectAllCheckbox.disabled = false;
   const allChecked = Array.from(checkboxes).every(
-    (checkbox) => checkbox.checked
+    (checkbox) => checkbox.checked,
   );
   selectAllCheckbox.checked = allChecked;
 };
