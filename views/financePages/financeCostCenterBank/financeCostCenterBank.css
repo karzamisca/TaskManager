@@ -12,7 +12,7 @@
 }
 
 .finance-bank-page .container {
-  max-width: 1200px;
+  max-width: 1800px;
   margin: 0 auto;
   background: white;
   padding: 20px;
@@ -24,6 +24,14 @@
 .finance-bank-page h2 {
   color: #333;
   margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.finance-bank-page h3 {
+  color: #333;
+  margin-bottom: 15px;
+  font-weight: 600;
+  font-size: 1.1rem;
 }
 
 .finance-bank-page .form-group {
@@ -33,8 +41,9 @@
 .finance-bank-page label {
   display: block;
   margin-bottom: 5px;
-  font-weight: bold;
+  font-weight: 600;
   color: #333;
+  font-size: 0.9rem;
 }
 
 .finance-bank-page input,
@@ -45,6 +54,7 @@
   border-radius: 4px;
   width: 100%;
   font-size: 14px;
+  background: white;
 }
 
 .finance-bank-page input:focus,
@@ -55,17 +65,18 @@
   box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
-/* Button styles specific to finance bank page */
+/* Button styles */
 .finance-bank-page button,
 .finance-bank-page .btn-finance {
-  padding: 10px 15px;
+  padding: 8px 16px;
   border: 1px solid #007bff;
   border-radius: 4px;
   background: #007bff;
   color: white;
   cursor: pointer;
   margin-top: 10px;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 500;
   transition: background-color 0.2s;
 }
 
@@ -89,27 +100,52 @@
   border-color: #545b62;
 }
 
+/* Table styles */
+.finance-bank-page .table-responsive {
+  overflow-x: auto;
+  margin-top: 20px;
+  border: 1px solid #dee2e6;
+  border-radius: 3px;
+  min-height: 100px;
+}
+
 .finance-bank-page table {
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
+  border-collapse: separate;
+  border-spacing: 0;
   background: white;
+  table-layout: auto;
+  font-size: 13px;
 }
 
 .finance-bank-page th,
 .finance-bank-page td {
-  padding: 12px;
+  padding: 10px 12px;
   text-align: left;
-  border-bottom: 1px solid #ddd;
-  vertical-align: middle;
+  border-bottom: 1px solid #e0e0e0;
+  vertical-align: top;
+  border-right: 1px solid #f0f0f0;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.finance-bank-page th:last-child,
+.finance-bank-page td:last-child {
+  border-right: none;
 }
 
 .finance-bank-page th {
   background-color: #f8f9fa;
-  font-weight: bold;
+  font-weight: 600;
   color: #495057;
   cursor: pointer;
   user-select: none;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  border-bottom: 2px solid #dee2e6;
+  white-space: nowrap;
 }
 
 .finance-bank-page th:hover {
@@ -119,7 +155,7 @@
 .finance-bank-page th.sortable::after {
   content: "↕";
   margin-left: 5px;
-  font-size: 12px;
+  font-size: 11px;
   opacity: 0.5;
 }
 
@@ -137,6 +173,32 @@
   background-color: #f5f5f5;
 }
 
+/* Highlight cho ngày hiện tại */
+.finance-bank-page td.current-date {
+  background-color: #fff3cd !important;
+  border-left: 3px solid #ffc107 !important;
+  border-right: 3px solid #ffc107 !important;
+  font-weight: 500;
+  position: relative;
+}
+
+.finance-bank-page td.current-date::before {
+  content: "★";
+  color: #ffc107;
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+}
+
+.finance-bank-page .editing-row td.current-date {
+  background-color: #fff3cd !important;
+  border-left: 3px solid #ffc107 !important;
+  border-right: 3px solid #ffc107 !important;
+}
+
+/* Actions buttons */
 .finance-bank-page .actions {
   display: flex;
   gap: 5px;
@@ -145,7 +207,7 @@
 
 .finance-bank-page .actions button {
   margin: 0;
-  padding: 6px 12px;
+  padding: 5px 10px;
   font-size: 12px;
   min-width: auto;
 }
@@ -210,29 +272,149 @@
   border-color: #bd2130;
 }
 
-.finance-bank-page .edit-form {
+.finance-bank-page .export-btn {
+  background: #20c997;
+  border-color: #20c997;
+}
+
+.finance-bank-page .export-btn:hover {
+  background: #1ba87e;
+  border-color: #1ba87e;
+}
+
+.finance-bank-page .view-global-btn {
+  background: #6f42c1;
+  border-color: #6f42c1;
+  margin-top: 15px;
+  padding: 8px 20px;
+}
+
+.finance-bank-page .view-global-btn:hover {
+  background: #5a3791;
+  border-color: #5a3791;
+}
+
+/* Today button */
+.finance-bank-page .today-btn {
+  background: #ffffff;
+  border: 1px solid #333333;
+  color: #333333;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 22px;
+  white-space: nowrap;
+  border-radius: 3px;
+  transition: none;
+}
+
+.finance-bank-page .today-btn:hover {
+  background: #f0f0f0;
+}
+
+/* View Toggle */
+.finance-bank-page .view-toggle-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+  padding: 10px;
   background: #f8f9fa;
-  padding: 20px;
-  border-radius: 4px;
-  margin-top: 20px;
+  border-radius: 3px;
   border: 1px solid #dee2e6;
 }
 
-.finance-bank-page .hidden {
+.finance-bank-page .view-toggle {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.finance-bank-page .toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.finance-bank-page .toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.finance-bank-page .toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 24px;
+}
+
+.finance-bank-page .toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+.finance-bank-page .toggle-switch input:checked + .toggle-slider {
+  background-color: #007bff;
+}
+
+.finance-bank-page .toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+.finance-bank-page .toggle-label {
+  font-weight: 600;
+  color: #666;
+  font-size: 13px;
+}
+
+.finance-bank-page .toggle-label.active {
+  color: #007bff;
+}
+
+.finance-bank-page .alternative-view-container {
   display: none;
+  margin-top: 15px;
 }
 
-.finance-bank-page .cost-center-info {
-  background: #e9ecef;
-  padding: 15px;
-  border-radius: 4px;
-  margin-bottom: 20px;
-  border-left: 4px solid #007bff;
+.finance-bank-page .alternative-view-container.active {
+  display: block;
 }
 
-.finance-bank-page .cost-center-info h2 {
-  margin-bottom: 0;
-  color: #495057;
+/* Red line indicators for today */
+.finance-bank-page tr.today-first-row > td {
+  border-top: 2px solid #e53e3e !important;
+}
+
+.finance-bank-page tr.today-last-row > td {
+  border-bottom: 2px solid #e53e3e !important;
+}
+
+.finance-bank-page tr.today-sentinel-row {
+  height: 0;
+  padding: 0;
+  pointer-events: none;
+}
+
+.finance-bank-page tr.today-sentinel-row > td {
+  padding: 0 !important;
+  height: 2px !important;
+  background-color: #e53e3e !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* Fund Limit in Summary */
@@ -274,7 +456,6 @@
   padding: 15px;
   border-radius: 4px;
   margin: 20px 0;
-  text-align: center;
   border-left: 4px solid #28a745;
 }
 
@@ -293,23 +474,18 @@
 }
 
 .finance-bank-page .summary-item {
-  position: relative;
   display: inline-block;
   min-width: 200px;
-  padding: 12px 15px;
-  margin: 8px 12px;
+  padding: 10px 15px;
+  margin: 5px 10px;
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
+  border-radius: 4px;
   vertical-align: top;
-}
-
-.finance-bank-page .global-summary .summary-item {
-  color: #004085;
 }
 
 .finance-bank-page .summary-item strong {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: normal;
   margin-bottom: 5px;
   color: #155724;
@@ -320,7 +496,7 @@
 }
 
 .finance-bank-page .summary-item span {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   color: #155724;
 }
@@ -329,21 +505,10 @@
   color: #004085;
 }
 
-.finance-bank-page .view-global-btn {
-  background: #6f42c1;
-  border-color: #6f42c1;
-  margin-top: 15px;
-  padding: 8px 20px;
-}
-
-.finance-bank-page .view-global-btn:hover {
-  background: #5a3791;
-  border-color: #5a3791;
-}
-
+/* Add row styles */
 .finance-bank-page .add-row {
   background-color: #f8f9fa;
-  border: 2px dashed #dee2e6;
+  border: 1px solid #dee2e6;
 }
 
 .finance-bank-page .add-row:hover {
@@ -352,7 +517,7 @@
 
 .finance-bank-page .add-row td {
   text-align: center;
-  padding: 15px;
+  padding: 12px;
 }
 
 .finance-bank-page .add-row button {
@@ -361,44 +526,69 @@
 
 .finance-bank-page .editing-row {
   background-color: #fff3cd !important;
+  border-left: 3px solid #ffc107;
 }
 
-.finance-bank-page .editing-row input {
+.finance-bank-page .editing-row input,
+.finance-bank-page .editing-row textarea,
+.finance-bank-page .editing-row select {
   width: 100%;
-  padding: 6px;
-  border: 1px solid #ffc107;
-  border-radius: 4px;
+  padding: 5px 8px;
+  border: 1px solid #ddd;
+  border-radius: 2px;
+  font-size: 13px;
 }
 
+.finance-bank-page .editing-row textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+/* Multiple entry form */
 .finance-bank-page .multiple-entry-form {
   background: #f8f9fa;
-  padding: 20px;
+  padding: 15px;
   border-radius: 8px;
   margin: 20px 0;
   border: 1px solid #dee2e6;
 }
 
 .finance-bank-page .multiple-entry-form h3 {
-  margin-bottom: 15px;
-  color: #495057;
+  margin-bottom: 12px;
+  color: #333;
 }
 
 .finance-bank-page .entry-row {
   display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
-.finance-bank-page .entry-row input {
+.finance-bank-page .entry-row input,
+.finance-bank-page .entry-row textarea,
+.finance-bank-page .entry-row select {
   flex: 1;
+  min-width: 120px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.finance-bank-page .entry-row textarea {
+  min-width: 200px;
+  min-height: 60px;
+  resize: vertical;
 }
 
 .finance-bank-page .entry-row .remove-entry-btn {
   background: #dc3545;
   border-color: #dc3545;
-  padding: 8px 12px;
+  padding: 6px 10px;
   margin-top: 0;
+  min-width: 35px;
+  font-size: 14px;
+  align-self: flex-start;
 }
 
 .finance-bank-page .entry-row .remove-entry-btn:hover {
@@ -408,14 +598,14 @@
 
 .finance-bank-page .form-actions {
   display: flex;
-  gap: 10px;
-  margin-top: 15px;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .finance-bank-page .add-entry-btn {
   background: #28a745;
   border-color: #28a745;
-  padding: 8px 15px;
+  padding: 6px 12px;
 }
 
 .finance-bank-page .add-entry-btn:hover {
@@ -436,22 +626,22 @@
 /* Filters Section */
 .finance-bank-page .filters-section {
   background: #f8f9fa;
-  padding: 20px;
+  padding: 15px;
   border-radius: 8px;
   margin: 20px 0;
   border: 1px solid #dee2e6;
 }
 
 .finance-bank-page .filters-section h3 {
-  margin-bottom: 15px;
-  color: #495057;
+  margin-bottom: 12px;
+  color: #333;
 }
 
 .finance-bank-page .filter-controls {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 15px;
-  margin-bottom: 15px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .finance-bank-page .filter-group {
@@ -460,14 +650,18 @@
 }
 
 .finance-bank-page .filter-group label {
-  font-size: 14px;
-  margin-bottom: 5px;
-  font-weight: bold;
+  font-size: 13px;
+  margin-bottom: 4px;
+  font-weight: 600;
 }
 
 .finance-bank-page .filter-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 15px;
 }
 
 .finance-bank-page .apply-filters-btn {
@@ -491,10 +685,15 @@
 }
 
 .finance-bank-page .table-info {
-  margin: 10px 0;
-  font-size: 14px;
-  color: #6c757d;
-  font-style: italic;
+  margin: 8px 0;
+  font-size: 13px;
+  color: #666;
+  font-style: normal;
+}
+
+/* Hidden class */
+.finance-bank-page .hidden {
+  display: none;
 }
 
 /* Modal Styles */
@@ -507,16 +706,19 @@
   background: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
   border-radius: 8px 8px 0 0;
+  padding: 12px 15px;
 }
 
 .finance-bank-page .modal-title {
   color: #333;
-  font-weight: bold;
+  font-weight: 600;
+  font-size: 1rem;
 }
 
 .finance-bank-page .modal-body {
   max-height: 70vh;
   overflow-y: auto;
+  padding: 15px;
 }
 
 .finance-bank-page .table-hover tbody tr:hover {
@@ -561,71 +763,76 @@
   border-color: #545b62;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .finance-bank-page {
-    padding: 10px;
-  }
+/* Profit classes */
+.finance-bank-page .profit-positive {
+  color: #28a745;
+  font-weight: 600;
+}
 
-  .finance-bank-page .container {
-    padding: 15px;
-  }
+.finance-bank-page .profit-negative {
+  color: #dc3545;
+  font-weight: 600;
+}
 
-  .finance-bank-page .summary-item {
-    display: block;
-    min-width: 100%;
-    margin: 10px 0;
-  }
+.finance-bank-page .profit-neutral {
+  color: #666;
+}
 
-  .finance-bank-page .fund-limit-item {
-    padding-right: 15px;
-  }
+/* Alternative view actions */
+.finance-bank-page .alternative-view-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #dee2e6;
+}
 
-  .finance-bank-page .fund-limit-item .edit-fund-btn {
-    position: static;
-    display: block;
-    margin-top: 8px;
-    width: 100%;
-  }
+.finance-bank-page .alternative-view-actions button {
+  font-size: 13px;
+  padding: 6px 12px;
+}
 
-  .finance-bank-page .actions {
-    flex-direction: column;
-  }
+/* Daily progressive row */
+.finance-bank-page .daily-progressive-row {
+  background-color: #f0f7ff;
+  border-top: 1px solid #b8daff;
+  border-bottom: 1px solid #b8daff;
+  font-size: 12px;
+}
 
-  .finance-bank-page .actions button {
-    width: 100%;
-    margin-bottom: 5px;
-  }
+.finance-bank-page .daily-progressive-label {
+  font-weight: 600;
+  color: #004085;
+  background-color: #e6f2ff;
+}
 
-  .finance-bank-page table {
-    font-size: 14px;
-  }
+.finance-bank-page .daily-progressive-date {
+  font-weight: 700;
+  margin-right: 8px;
+}
 
-  .finance-bank-page th,
-  .finance-bank-page td {
-    padding: 8px 4px;
-  }
+.finance-bank-page .daily-progressive-title {
+  font-weight: 400;
+  font-size: 11px;
+  color: #666;
+}
 
-  .finance-bank-page .entry-row {
-    flex-direction: column;
-    gap: 5px;
-  }
+.finance-bank-page .daily-progressive-actual,
+.finance-bank-page .daily-progressive-predicted {
+  font-weight: 500;
+  background-color: #f8f9fa;
+}
 
-  .finance-bank-page .entry-row input {
-    width: 100%;
-  }
+.finance-bank-page .daily-progressive-value-label {
+  font-size: 10px;
+  font-weight: 400;
+  color: #666;
+  margin-right: 4px;
+}
 
-  .finance-bank-page .form-actions {
-    flex-direction: column;
-  }
-
-  .finance-bank-page .filter-controls {
-    grid-template-columns: 1fr;
-  }
-
-  .finance-bank-page .filter-actions {
-    flex-direction: column;
-  }
+.finance-bank-page .daily-progressive-spacer {
+  background-color: transparent;
 }
 
 /* Dark mode support */
@@ -641,10 +848,8 @@
   }
 
   .finance-bank-page h1,
-  .finance-bank-page h2 {
-    color: #f8f9fa;
-  }
-
+  .finance-bank-page h2,
+  .finance-bank-page h3,
   .finance-bank-page label {
     color: #e9ecef;
   }
@@ -702,14 +907,17 @@
   }
 
   .finance-bank-page .fund-limit-item span {
-    color: #28a745;
+    color: #6fcf97;
   }
 
   .finance-bank-page .summary-item {
     background: rgba(255, 255, 255, 0.1);
   }
 
-  .finance-bank-page .edit-form {
+  .finance-bank-page .edit-form,
+  .finance-bank-page .multiple-entry-form,
+  .finance-bank-page .filters-section,
+  .finance-bank-page .view-toggle-container {
     background: #3a3a3a;
     border-color: #555;
   }
@@ -723,14 +931,21 @@
     background-color: #5d4c1d !important;
   }
 
-  .finance-bank-page .multiple-entry-form {
-    background: #3a3a3a;
-    border-color: #555;
+  .finance-bank-page td.current-date {
+    background-color: #5a4e2b !important;
+    border-left: 3px solid #ffd966 !important;
+    border-right: 3px solid #ffd966 !important;
+    color: #fff !important;
   }
 
-  .finance-bank-page .filters-section {
-    background: #3a3a3a;
-    border-color: #555;
+  .finance-bank-page td.current-date::before {
+    color: #ffd966;
+  }
+
+  .finance-bank-page .editing-row td.current-date {
+    background-color: #5a4e2b !important;
+    border-left: 3px solid #ffd966 !important;
+    border-right: 3px solid #ffd966 !important;
   }
 
   .finance-bank-page .modal-content {
@@ -753,5 +968,136 @@
 
   .finance-bank-page .table-secondary {
     background-color: #3a3a3a;
+  }
+
+  .finance-bank-page .daily-progressive-row {
+    background-color: #253544;
+    border-top-color: #0d6efd;
+    border-bottom-color: #0d6efd;
+  }
+
+  .finance-bank-page .daily-progressive-label {
+    color: #9ec5fe;
+    background-color: #1a2b3c;
+  }
+
+  .finance-bank-page .profit-positive {
+    color: #6fcf97 !important;
+  }
+
+  .finance-bank-page .profit-negative {
+    color: #f28b82 !important;
+  }
+
+  .finance-bank-page tr.today-first-row > td {
+    border-top-color: #fc8181 !important;
+  }
+
+  .finance-bank-page tr.today-last-row > td {
+    border-bottom-color: #fc8181 !important;
+  }
+
+  .finance-bank-page tr.today-sentinel-row > td {
+    background-color: #fc8181 !important;
+  }
+
+  .finance-bank-page .today-btn {
+    background: #2d2d2d;
+    border-color: #888;
+    color: #e9ecef;
+  }
+
+  .finance-bank-page .today-btn:hover {
+    background: #3a3a3a;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .finance-bank-page {
+    padding: 10px;
+  }
+
+  .finance-bank-page .container {
+    padding: 15px;
+  }
+
+  .finance-bank-page .summary-item {
+    display: block;
+    min-width: 100%;
+    margin: 10px 0;
+  }
+
+  .finance-bank-page .fund-limit-item {
+    padding-right: 15px;
+  }
+
+  .finance-bank-page .fund-limit-item .edit-fund-btn {
+    position: static;
+    display: block;
+    margin-top: 8px;
+    width: 100%;
+  }
+
+  .finance-bank-page .actions {
+    flex-direction: column;
+  }
+
+  .finance-bank-page .actions button {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+
+  .finance-bank-page table {
+    font-size: 13px;
+  }
+
+  .finance-bank-page th,
+  .finance-bank-page td {
+    padding: 8px 6px;
+  }
+
+  .finance-bank-page .entry-row {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .finance-bank-page .entry-row input,
+  .finance-bank-page .entry-row textarea,
+  .finance-bank-page .entry-row select {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .finance-bank-page .form-actions {
+    flex-direction: column;
+  }
+
+  .finance-bank-page .filter-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .finance-bank-page .filter-actions {
+    flex-direction: column;
+  }
+
+  .finance-bank-page .view-toggle-container {
+    justify-content: center;
+  }
+
+  .finance-bank-page .view-toggle {
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .finance-bank-page .alternative-view-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .finance-bank-page .alternative-view-actions button {
+    width: 100%;
+    max-width: 250px;
   }
 }
