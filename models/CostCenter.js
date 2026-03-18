@@ -56,10 +56,6 @@ const bankSchema = new mongoose.Schema({
     required: true,
     match: [/^\d{2}\/\d{2}\/\d{4}$/, "Date must be in DD/MM/YYYY format"],
   },
-  // Prediction fields (same as daily)
-  incomePrediction: { type: Number, default: 0 },
-  expensePrediction: { type: Number, default: 0 },
-  note: { type: String, default: "" },
 });
 
 // Define the schema for daily entries (same structure as bank)
@@ -119,9 +115,6 @@ constructionSchema.pre("save", function (next) {
 bankSchema.pre("save", function (next) {
   // Calculate net for bank entries
   this.net = this.income - this.expense;
-  // Calculate predicted net
-  this.predictedNet =
-    (this.incomePrediction || 0) - (this.expensePrediction || 0);
   next();
 });
 

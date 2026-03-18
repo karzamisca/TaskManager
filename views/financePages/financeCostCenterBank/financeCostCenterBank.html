@@ -38,20 +38,12 @@
             <span id="globalTotalProfit">0</span> VND
           </div>
           <div class="summary-item">
-            <strong>Tổng Dự Báo Lợi Nhuận:</strong>
-            <span id="globalTotalProfitPrediction">0</span> VND
-          </div>
-          <div class="summary-item">
             <strong>Tổng Hạn Mức Ngân Hàng:</strong>
             <span id="globalTotalFundLimit">0</span> VND
           </div>
           <div class="summary-item">
-            <strong>Tổng Quỹ Khả Dụng Thực Tế:</strong>
+            <strong>Tổng Quỹ Khả Dụng:</strong>
             <span id="globalTotalFundAvailable">0</span> VND
-          </div>
-          <div class="summary-item">
-            <strong>Tổng Quỹ Khả Dụng Dự Báo:</strong>
-            <span id="globalTotalPredictedFundAvailable">0</span> VND
           </div>
           <button
             class="btn-finance view-global-btn"
@@ -105,20 +97,6 @@
             <div class="summary-item">
               <strong>Lợi Nhuận:</strong> <span id="totalProfit">0</span> VND
             </div>
-            <div class="prediction-summary">
-              <div class="prediction-item">
-                <strong>Tổng dự báo thu:</strong>
-                <span id="totalIncomePrediction">0</span> VND
-              </div>
-              <div class="prediction-item">
-                <strong>Tổng dự báo chi:</strong>
-                <span id="totalExpensePrediction">0</span> VND
-              </div>
-              <div class="prediction-item">
-                <strong>Lợi nhuận dự báo:</strong>
-                <span id="totalProfitPrediction">0</span> VND
-              </div>
-            </div>
             <div class="summary-item fund-limit-item">
               <strong>Hạn mức ngân hàng:</strong>
               <span id="fundLimitBankSummary">0</span> VND
@@ -130,12 +108,8 @@
               </button>
             </div>
             <div class="summary-item">
-              <strong>Quỹ khả dụng thực tế:</strong>
+              <strong>Quỹ khả dụng:</strong>
               <span id="fundAvailableBank">0</span> VND
-            </div>
-            <div class="summary-item">
-              <strong>Quỹ khả dụng dự báo:</strong>
-              <span id="predictedFundAvailableBank">0</span> VND
             </div>
           </div>
 
@@ -168,18 +142,6 @@
                   id="searchName"
                   placeholder="Tên giao dịch"
                 />
-              </div>
-              <div class="filter-group">
-                <label for="searchNote">Tìm theo ghi chú:</label>
-                <input type="text" id="searchNote" placeholder="Ghi chú" />
-              </div>
-              <div class="filter-group">
-                <label for="predictionFilter">Bộ lọc dự báo:</label>
-                <select id="predictionFilter">
-                  <option value="all">Tất cả</option>
-                  <option value="withPrediction">Có dự báo</option>
-                  <option value="withoutPrediction">Không có dự báo</option>
-                </select>
               </div>
               <div
                 class="filter-group"
@@ -253,9 +215,6 @@
             <div class="table-info">
               Hiển thị <span id="currentEntriesCount">0</span> trong tổng số
               <span id="totalEntriesCount">0</span> mục
-              <span id="predictionStats" class="hidden">
-                | <span id="withPredictionCount">0</span> có dự báo
-              </span>
             </div>
             <div class="table-responsive">
               <table id="entriesTable">
@@ -278,20 +237,8 @@
                         border-bottom: 2px solid #c8e6c9;
                       "
                     >
-                      Giá trị thực tế
+                      Giá trị
                     </th>
-                    <th
-                      colspan="2"
-                      style="
-                        text-align: center;
-                        background-color: #fff9e6;
-                        color: #333;
-                        border-bottom: 2px solid #ffeaa7;
-                      "
-                    >
-                      Dự báo
-                    </th>
-                    <th data-field="note">Ghi chú</th>
                     <th>Thao tác</th>
                   </tr>
                   <tr>
@@ -313,23 +260,6 @@
                     >
                       Chi phí (VND)
                     </th>
-                    <th
-                      style="
-                        background-color: #fff9e6;
-                        border-bottom: 2px solid #ffeaa7;
-                      "
-                    >
-                      Dự báo thu (VND)
-                    </th>
-                    <th
-                      style="
-                        background-color: #fff9e6;
-                        border-bottom: 2px solid #ffeaa7;
-                      "
-                    >
-                      Dự báo chi (VND)
-                    </th>
-                    <th></th>
                     <th></th>
                   </tr>
                 </thead>
@@ -384,21 +314,9 @@
                   />
                 </div>
                 <div class="filter-group">
-                  <label for="allSearchNote">Tìm theo ghi chú:</label>
-                  <input type="text" id="allSearchNote" placeholder="Ghi chú" />
-                </div>
-                <div class="filter-group">
                   <label for="allCostCenterFilter">Lọc theo trạm:</label>
                   <select id="allCostCenterFilter">
                     <option value="all">Tất cả trạm</option>
-                  </select>
-                </div>
-                <div class="filter-group">
-                  <label for="allPredictionFilter">Bộ lọc dự báo:</label>
-                  <select id="allPredictionFilter">
-                    <option value="all">Tất cả</option>
-                    <option value="withPrediction">Có dự báo</option>
-                    <option value="withoutPrediction">Không có dự báo</option>
                   </select>
                 </div>
                 <div
@@ -482,9 +400,6 @@
               Hiển thị dữ liệu từ
               <span id="totalCostCentersCount">0</span> trạm | Tổng số giao
               dịch: <span id="totalTransactionsCount">0</span>
-              <span id="allPredictionStats" class="hidden">
-                | <span id="allWithPredictionCount">0</span> có dự báo
-              </span>
             </div>
             <div class="table-responsive">
               <table id="allCostCentersTable" class="table table-striped">
@@ -507,19 +422,8 @@
                         border-bottom: 2px solid #c8e6c9;
                       "
                     >
-                      Giá trị thực tế
+                      Giá trị
                     </th>
-                    <th
-                      colspan="2"
-                      style="
-                        text-align: center;
-                        background-color: #fff9e6;
-                        border-bottom: 2px solid #ffeaa7;
-                      "
-                    >
-                      Dự báo
-                    </th>
-                    <th data-field="note">Ghi chú</th>
                     <th>Thao tác</th>
                   </tr>
                   <tr>
@@ -542,23 +446,6 @@
                     >
                       Chi phí (VND)
                     </th>
-                    <th
-                      style="
-                        background-color: #fff9e6;
-                        border-bottom: 2px solid #ffeaa7;
-                      "
-                    >
-                      Dự báo thu (VND)
-                    </th>
-                    <th
-                      style="
-                        background-color: #fff9e6;
-                        border-bottom: 2px solid #ffeaa7;
-                      "
-                    >
-                      Dự báo chi (VND)
-                    </th>
-                    <th></th>
                     <th></th>
                   </tr>
                 </thead>
@@ -584,6 +471,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="financePages/financeCostCenterBank/financeCostCenterBank.js?v=1.11"></script>
+    <script src="financePages/financeCostCenterBank/financeCostCenterBank.js?v=1.12"></script>
   </body>
 </html>

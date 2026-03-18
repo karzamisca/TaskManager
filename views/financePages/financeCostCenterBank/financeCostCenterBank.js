@@ -21,8 +21,6 @@ let filterState = {
   dateFrom: "",
   dateTo: "",
   searchName: "",
-  searchNote: "",
-  predictionFilter: "all",
 };
 
 // All view state
@@ -37,9 +35,7 @@ let allFilterState = {
   dateFrom: "",
   dateTo: "",
   searchName: "",
-  searchNote: "",
   costCenterFilter: "all",
-  predictionFilter: "all",
 };
 
 let filteredAllEntries = [];
@@ -122,8 +118,6 @@ function createDailyTotalRow(date, actual, colCount, isAllView) {
       <td colspan="2" class="daily-progressive-actual ${actualClass}">
         <span class="daily-progressive-value-label">Thực tế:</span> ${actualFmt} VND
       </td>
-      <td colspan="2" class="daily-progressive-spacer"></td>
-      <td colspan="1" class="daily-progressive-spacer"></td>
       <td colspan="1" class="daily-progressive-spacer"></td>
     `;
   } else {
@@ -135,8 +129,6 @@ function createDailyTotalRow(date, actual, colCount, isAllView) {
       <td colspan="2" class="daily-progressive-actual ${actualClass}">
         <span class="daily-progressive-value-label">Thực tế:</span> ${actualFmt} VND
       </td>
-      <td colspan="2" class="daily-progressive-spacer"></td>
-      <td colspan="1" class="daily-progressive-spacer"></td>
       <td colspan="1" class="daily-progressive-spacer"></td>
     `;
   }
@@ -310,9 +302,6 @@ async function loadAllCostCentersData() {
           totalIncome: 0,
           totalExpense: 0,
           fundAvailableBank: 0,
-          totalIncomePrediction: 0,
-          totalExpensePrediction: 0,
-          predictedFundAvailableBank: 0,
         };
         try {
           const fundResponse = await fetch(
@@ -346,9 +335,6 @@ async function loadAllCostCentersData() {
           totalIncome: 0,
           totalExpense: 0,
           fundAvailableBank: 0,
-          totalIncomePrediction: 0,
-          totalExpensePrediction: 0,
-          predictedFundAvailableBank: 0,
         };
       }
     });
@@ -385,27 +371,18 @@ function flattenAllEntries() {
 function calculateGlobalSummary() {
   let globalTotalIncome = 0;
   let globalTotalExpense = 0;
-  let globalTotalIncomePrediction = 0;
-  let globalTotalExpensePrediction = 0;
   let globalTotalFundLimit = 0;
   let globalTotalFundAvailable = 0;
-  let globalTotalPredictedFundAvailable = 0;
 
   // Duyệt qua tất cả cost centers
   Object.values(allFundInfo).forEach((fundInfo) => {
     globalTotalIncome += fundInfo.totalIncome || 0;
     globalTotalExpense += fundInfo.totalExpense || 0;
-    globalTotalIncomePrediction += fundInfo.totalIncomePrediction || 0;
-    globalTotalExpensePrediction += fundInfo.totalExpensePrediction || 0;
     globalTotalFundLimit += fundInfo.fundLimitBank || 0;
     globalTotalFundAvailable += fundInfo.fundAvailableBank || 0;
-    globalTotalPredictedFundAvailable +=
-      fundInfo.predictedFundAvailableBank || 0;
   });
 
   const globalTotalProfit = globalTotalIncome - globalTotalExpense;
-  const globalTotalProfitPrediction =
-    globalTotalIncomePrediction - globalTotalExpensePrediction;
 
   // Cập nhật UI
   document.getElementById("globalTotalIncome").textContent =
@@ -414,14 +391,10 @@ function calculateGlobalSummary() {
     globalTotalExpense.toLocaleString("vi-VN");
   document.getElementById("globalTotalProfit").textContent =
     globalTotalProfit.toLocaleString("vi-VN");
-  document.getElementById("globalTotalProfitPrediction").textContent =
-    globalTotalProfitPrediction.toLocaleString("vi-VN");
   document.getElementById("globalTotalFundLimit").textContent =
     globalTotalFundLimit.toLocaleString("vi-VN");
   document.getElementById("globalTotalFundAvailable").textContent =
     globalTotalFundAvailable.toLocaleString("vi-VN");
-  document.getElementById("globalTotalPredictedFundAvailable").textContent =
-    globalTotalPredictedFundAvailable.toLocaleString("vi-VN");
 }
 
 // Cập nhật dữ liệu toàn hệ thống khi có thay đổi
@@ -519,7 +492,6 @@ async function loadFundInfo() {
     currentFundLimitBank = 0;
     document.getElementById("fundLimitBankSummary").textContent = "0";
     document.getElementById("fundAvailableBank").textContent = "0";
-    document.getElementById("predictedFundAvailableBank").textContent = "0";
   }
 }
 
@@ -618,24 +590,14 @@ function sortTable(field) {
 function calculateSummary() {
   let totalIncome = 0;
   let totalExpense = 0;
-  let totalIncomePrediction = 0;
-  let totalExpensePrediction = 0;
-  let entriesWithPrediction = 0;
 
   filteredEntries.forEach((entry) => {
     totalIncome += entry.income || 0;
     totalExpense += entry.expense || 0;
-    totalIncomePrediction += entry.incomePrediction || 0;
-    totalExpensePrediction += entry.expensePrediction || 0;
-    if (entry.incomePrediction || entry.expensePrediction)
-      entriesWithPrediction++;
   });
 
   const totalProfit = totalIncome - totalExpense;
-  const totalProfitPrediction = totalIncomePrediction - totalExpensePrediction;
   const fundAvailableBank = currentFundLimitBank - totalExpense + totalIncome;
-  const predictedFundAvailableBank =
-    currentFundLimitBank - totalExpensePrediction + totalIncomePrediction;
 
   document.getElementById("totalIncome").textContent =
     totalIncome.toLocaleString("vi-VN");
@@ -643,27 +605,10 @@ function calculateSummary() {
     totalExpense.toLocaleString("vi-VN");
   document.getElementById("totalProfit").textContent =
     totalProfit.toLocaleString("vi-VN");
-  document.getElementById("totalIncomePrediction").textContent =
-    totalIncomePrediction.toLocaleString("vi-VN");
-  document.getElementById("totalExpensePrediction").textContent =
-    totalExpensePrediction.toLocaleString("vi-VN");
-  document.getElementById("totalProfitPrediction").textContent =
-    totalProfitPrediction.toLocaleString("vi-VN");
   document.getElementById("fundLimitBankSummary").textContent =
     currentFundLimitBank.toLocaleString("vi-VN");
   document.getElementById("fundAvailableBank").textContent =
     fundAvailableBank.toLocaleString("vi-VN");
-  document.getElementById("predictedFundAvailableBank").textContent =
-    predictedFundAvailableBank.toLocaleString("vi-VN");
-
-  const predictionStats = document.getElementById("predictionStats");
-  if (entriesWithPrediction > 0) {
-    predictionStats.classList.remove("hidden");
-    document.getElementById("withPredictionCount").textContent =
-      entriesWithPrediction;
-  } else {
-    predictionStats.classList.add("hidden");
-  }
 
   document.getElementById("summarySection").classList.remove("hidden");
 }
@@ -671,15 +616,12 @@ function calculateSummary() {
 // Cập nhật thông tin quỹ
 function updateFundSummary(fundData) {
   const fundAvailableBank = fundData.fundAvailableBank || 0;
-  const predictedFundAvailableBank = fundData.predictedFundAvailableBank || 0;
 
   document.getElementById("fundLimitBankSummary").textContent = (
     fundData.fundLimitBank || 0
   ).toLocaleString("vi-VN");
   document.getElementById("fundAvailableBank").textContent =
     fundAvailableBank.toLocaleString("vi-VN");
-  document.getElementById("predictedFundAvailableBank").textContent =
-    predictedFundAvailableBank.toLocaleString("vi-VN");
   document.getElementById("totalIncome").textContent = (
     fundData.totalIncome || 0
   ).toLocaleString("vi-VN");
@@ -688,16 +630,6 @@ function updateFundSummary(fundData) {
   ).toLocaleString("vi-VN");
   document.getElementById("totalProfit").textContent = (
     (fundData.totalIncome || 0) - (fundData.totalExpense || 0)
-  ).toLocaleString("vi-VN");
-  document.getElementById("totalIncomePrediction").textContent = (
-    fundData.totalIncomePrediction || 0
-  ).toLocaleString("vi-VN");
-  document.getElementById("totalExpensePrediction").textContent = (
-    fundData.totalExpensePrediction || 0
-  ).toLocaleString("vi-VN");
-  document.getElementById("totalProfitPrediction").textContent = (
-    (fundData.totalIncomePrediction || 0) -
-    (fundData.totalExpensePrediction || 0)
   ).toLocaleString("vi-VN");
 }
 
@@ -715,7 +647,7 @@ function renderEntries() {
   if (filteredEntries.length === 0 && !isAdding) {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td colspan="8" style="text-align: center; color: #666; padding: 20px;">
+      <td colspan="5" style="text-align: center; color: #666; padding: 20px;">
         ${
           entries.length === 0
             ? "Chưa có dữ liệu nào. Hãy thêm mục mới."
@@ -724,9 +656,16 @@ function renderEntries() {
       </td>
     `;
     tbody.appendChild(row);
-    applyTodayRedLines(tbody, today, 8);
+    applyTodayRedLines(tbody, today, 5);
     return;
   }
+
+  // Build progressive totals
+  const progressiveTotals = buildProgressiveTotals(
+    filteredEntries,
+    currentSortDirection,
+  );
+  const renderedProgressiveDates = new Set();
 
   if (isAdding) {
     tbody.appendChild(createAddRow());
@@ -736,22 +675,13 @@ function renderEntries() {
     const row = document.createElement("tr");
     row.setAttribute("data-date", entry.date);
 
-    const profit = calculateProfit(entry.income, entry.expense);
-    const profitPrediction = calculateProfit(
-      entry.incomePrediction,
-      entry.expensePrediction,
-    );
-
     if (entry._id === editingEntryId) {
       row.className = "editing-row";
       row.innerHTML = `
         <td><input type="text" id="editName_${entry._id}" value="${entry.name}" required></td>
         <td><input type="text" id="editDate_${entry._id}" value="${entry.date}" placeholder="DD/MM/YYYY" required></td>
-        <td><input type="number" id="editIncome_${entry._id}" value="${entry.income || 0}" step="0.1" required></td>
-        <td><input type="number" id="editExpense_${entry._id}" value="${entry.expense || 0}" step="0.1" required></td>
-        <td><input type="number" id="editIncomePrediction_${entry._id}" value="${entry.incomePrediction || 0}" step="0.1"></td>
-        <td><input type="number" id="editExpensePrediction_${entry._id}" value="${entry.expensePrediction || 0}" step="0.1"></td>
-        <td><textarea id="editNote_${entry._id}">${entry.note || ""}</textarea></td>
+        <td><input type="number" id="editIncome_${entry._id}" value="${entry.income}" step="0.1" required></td>
+        <td><input type="number" id="editExpense_${entry._id}" value="${entry.expense}" step="0.1" required></td>
         <td class="actions">
           <button class="save-btn" onclick="saveEdit('${entry._id}')">Lưu</button>
           <button class="cancel-btn" onclick="cancelEdit('${entry._id}')">Hủy</button>
@@ -759,15 +689,11 @@ function renderEntries() {
       `;
     } else {
       const dateClass = entry.date === today ? "current-date" : "";
-      const note = entry.note || "";
       row.innerHTML = `
         <td>${entry.name}</td>
         <td class="${dateClass}">${entry.date}</td>
         <td>${(entry.income || 0).toLocaleString("vi-VN")}</td>
         <td>${(entry.expense || 0).toLocaleString("vi-VN")}</td>
-        <td>${(entry.incomePrediction || 0).toLocaleString("vi-VN")}</td>
-        <td>${(entry.expensePrediction || 0).toLocaleString("vi-VN")}</td>
-        <td>${note.replace(/\n/g, " ")}</td>
         <td class="actions">
           <button class="edit-btn" onclick="startEdit('${entry._id}')">Sửa</button>
           <button class="delete-btn" onclick="deleteEntry('${entry._id}')">Xóa</button>
@@ -775,9 +701,22 @@ function renderEntries() {
       `;
     }
     tbody.appendChild(row);
+
+    // Insert progressive total row at each date boundary
+    const nextEntry = filteredEntries[idx + 1];
+    const isDateBoundary = !nextEntry || nextEntry.date !== entry.date;
+    if (isDateBoundary && !renderedProgressiveDates.has(entry.date)) {
+      renderedProgressiveDates.add(entry.date);
+      const totals = progressiveTotals[entry.date];
+      if (totals) {
+        tbody.appendChild(
+          createDailyTotalRow(entry.date, totals.actual, 5, false),
+        );
+      }
+    }
   });
 
-  applyTodayRedLines(tbody, today, 8);
+  applyTodayRedLines(tbody, today, 5);
 }
 
 // Create add row for single view
@@ -791,9 +730,6 @@ function createAddRow() {
     <td><input type="text" id="newDate" value="${today}" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
     <td><input type="number" id="newIncome" placeholder="Thu nhập" step="0.1" value="0" required></td>
     <td><input type="number" id="newExpense" placeholder="Chi phí" step="0.1" value="0" required></td>
-    <td><input type="number" id="newIncomePrediction" placeholder="Dự báo thu" step="0.1" value="0"></td>
-    <td><input type="number" id="newExpensePrediction" placeholder="Dự báo chi" step="0.1" value="0"></td>
-    <td><textarea id="newNote" placeholder="Ghi chú"></textarea></td>
     <td class="actions">
       <button class="save-btn" onclick="saveNewEntry()">Lưu</button>
       <button class="cancel-btn" onclick="cancelAdd()">Hủy</button>
@@ -825,11 +761,6 @@ async function saveNewEntry() {
   const income = parseFloat(document.getElementById("newIncome").value);
   const expense = parseFloat(document.getElementById("newExpense").value);
   const date = document.getElementById("newDate").value;
-  const incomePrediction =
-    parseFloat(document.getElementById("newIncomePrediction").value) || 0;
-  const expensePrediction =
-    parseFloat(document.getElementById("newExpensePrediction").value) || 0;
-  const note = document.getElementById("newNote").value.trim();
 
   if (!name.trim()) {
     alert("Vui lòng nhập tên");
@@ -857,9 +788,6 @@ async function saveNewEntry() {
         income,
         expense,
         date,
-        incomePrediction,
-        expensePrediction,
-        note,
       }),
     });
 
@@ -907,15 +835,6 @@ async function saveEdit(entryId) {
     document.getElementById(`editExpense_${entryId}`).value,
   );
   const date = document.getElementById(`editDate_${entryId}`).value;
-  const incomePrediction =
-    parseFloat(
-      document.getElementById(`editIncomePrediction_${entryId}`).value,
-    ) || 0;
-  const expensePrediction =
-    parseFloat(
-      document.getElementById(`editExpensePrediction_${entryId}`).value,
-    ) || 0;
-  const note = document.getElementById(`editNote_${entryId}`).value.trim();
 
   if (!name.trim()) {
     alert("Vui lòng nhập tên");
@@ -945,9 +864,6 @@ async function saveEdit(entryId) {
           income,
           expense,
           date,
-          incomePrediction,
-          expensePrediction,
-          note,
         }),
       },
     );
@@ -1021,11 +937,6 @@ function applyFilters() {
   filterState.searchName = document
     .getElementById("searchName")
     .value.toLowerCase();
-  filterState.searchNote = document
-    .getElementById("searchNote")
-    .value.toLowerCase();
-  filterState.predictionFilter =
-    document.getElementById("predictionFilter").value;
 
   filteredEntries = entries.filter((entry) => {
     if (
@@ -1049,19 +960,6 @@ function applyFilters() {
       return false;
     }
 
-    if (
-      filterState.searchNote &&
-      !(entry.note || "").toLowerCase().includes(filterState.searchNote)
-    ) {
-      return false;
-    }
-
-    if (filterState.predictionFilter === "withPrediction") {
-      if (!entry.incomePrediction && !entry.expensePrediction) return false;
-    } else if (filterState.predictionFilter === "withoutPrediction") {
-      if (entry.incomePrediction || entry.expensePrediction) return false;
-    }
-
     return true;
   });
 
@@ -1074,15 +972,11 @@ function resetFilters() {
   document.getElementById("dateFrom").value = "";
   document.getElementById("dateTo").value = "";
   document.getElementById("searchName").value = "";
-  document.getElementById("searchNote").value = "";
-  document.getElementById("predictionFilter").value = "all";
 
   filterState = {
     dateFrom: "",
     dateTo: "",
     searchName: "",
-    searchNote: "",
-    predictionFilter: "all",
   };
 
   applyFilters();
@@ -1130,9 +1024,6 @@ function addEntryRow() {
     <input type="text" id="${entryId}_date" value="${today}" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required>
     <input type="number" id="${entryId}_income" placeholder="Thu nhập (VND)" step="0.1" value="0" required>
     <input type="number" id="${entryId}_expense" placeholder="Chi phí (VND)" step="0.1" value="0" required>
-    <input type="number" id="${entryId}_incomePrediction" placeholder="Dự báo thu" step="0.1" value="0">
-    <input type="number" id="${entryId}_expensePrediction" placeholder="Dự báo chi" step="0.1" value="0">
-    <textarea id="${entryId}_note" placeholder="Ghi chú"></textarea>
     <button type="button" class="remove-entry-btn" onclick="removeEntryRow('${entryId}')">×</button>
   `;
 
@@ -1175,15 +1066,6 @@ async function saveMultipleEntries() {
     const expense = parseFloat(
       document.getElementById(`${entryId}_expense`).value,
     );
-    const incomePrediction =
-      parseFloat(
-        document.getElementById(`${entryId}_incomePrediction`).value,
-      ) || 0;
-    const expensePrediction =
-      parseFloat(
-        document.getElementById(`${entryId}_expensePrediction`).value,
-      ) || 0;
-    const note = document.getElementById(`${entryId}_note`).value.trim();
 
     if (!name) {
       alert("Vui lòng nhập tên cho mục này");
@@ -1208,9 +1090,6 @@ async function saveMultipleEntries() {
       date,
       income,
       expense,
-      incomePrediction,
-      expensePrediction,
-      note,
     });
   }
 
@@ -1289,8 +1168,7 @@ async function exportData() {
   }
 
   try {
-    let csvContent =
-      "Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Ghi chú\n";
+    let csvContent = "Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND)\n";
     filteredEntries.forEach((entry) => {
       csvContent +=
         [
@@ -1298,9 +1176,6 @@ async function exportData() {
           entry.date,
           entry.income || 0,
           entry.expense || 0,
-          entry.incomePrediction || 0,
-          entry.expensePrediction || 0,
-          `"${entry.note || ""}"`,
         ].join(",") + "\n";
     });
 
@@ -1405,18 +1280,6 @@ function renderAllCostCentersView() {
   document.getElementById("totalTransactionsCount").textContent =
     filteredAllEntries.length;
 
-  const withPrediction = filteredAllEntries.filter(
-    (e) => e.incomePrediction || e.expensePrediction,
-  ).length;
-  const predictionStats = document.getElementById("allPredictionStats");
-  if (withPrediction > 0) {
-    predictionStats.classList.remove("hidden");
-    document.getElementById("allWithPredictionCount").textContent =
-      withPrediction;
-  } else {
-    predictionStats.classList.add("hidden");
-  }
-
   renderAllEntriesTable();
 }
 
@@ -1440,7 +1303,7 @@ function renderAllEntriesTable() {
     !isAddingMultipleInAllView
   ) {
     const row = document.createElement("tr");
-    row.innerHTML = `<td colspan="9" style="text-align:center;color:#666;padding:20px;">${
+    row.innerHTML = `<td colspan="6" style="text-align:center;color:#666;padding:20px;">${
       allEntriesFlat.length === 0
         ? "Không có dữ liệu nào từ các trạm."
         : "Không có kết quả phù hợp với bộ lọc."
@@ -1448,9 +1311,9 @@ function renderAllEntriesTable() {
     tbody.appendChild(row);
     const addNewRow = document.createElement("tr");
     addNewRow.className = "add-row";
-    addNewRow.innerHTML = `<td colspan="9"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
+    addNewRow.innerHTML = `<td colspan="6"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
     tbody.appendChild(addNewRow);
-    applyTodayRedLines(tbody, today, 9);
+    applyTodayRedLines(tbody, today, 6);
     return;
   }
 
@@ -1467,7 +1330,6 @@ function renderAllEntriesTable() {
     row.setAttribute("data-entry-id", entry._id);
     row.setAttribute("data-date", entry.date);
 
-    const note = entry.note || "";
     const dateClass = entry.date === today ? "current-date" : "";
 
     row.innerHTML = `
@@ -1476,9 +1338,6 @@ function renderAllEntriesTable() {
       <td class="${dateClass}">${entry.date}</td>
       <td>${(entry.income || 0).toLocaleString("vi-VN")}</td>
       <td>${(entry.expense || 0).toLocaleString("vi-VN")}</td>
-      <td>${(entry.incomePrediction || 0).toLocaleString("vi-VN")}</td>
-      <td>${(entry.expensePrediction || 0).toLocaleString("vi-VN")}</td>
-      <td>${note.replace(/\n/g, " ")}</td>
       <td class="actions">
         <button class="edit-btn" onclick="switchToCostCenterAndEdit('${entry.costCenterId}', '${entry._id}')">Sửa</button>
         <button class="delete-btn" onclick="switchToCostCenterAndDelete('${entry.costCenterId}', '${entry._id}')">Xóa</button>
@@ -1493,7 +1352,7 @@ function renderAllEntriesTable() {
       const totals = progressiveTotals[entry.date];
       if (totals) {
         tbody.appendChild(
-          createDailyTotalRow(entry.date, totals.actual, 9, true),
+          createDailyTotalRow(entry.date, totals.actual, 6, true),
         );
       }
     }
@@ -1501,10 +1360,10 @@ function renderAllEntriesTable() {
 
   const addNewRow = document.createElement("tr");
   addNewRow.className = "add-row";
-  addNewRow.innerHTML = `<td colspan="9"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
+  addNewRow.innerHTML = `<td colspan="6"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
   tbody.appendChild(addNewRow);
 
-  applyTodayRedLines(tbody, today, 9);
+  applyTodayRedLines(tbody, today, 6);
 }
 
 // Create add row for all view
@@ -1523,9 +1382,6 @@ function createAllViewAddRow(costCenterId) {
     <td><input type="text" id="allViewNewDate" value="${today}" placeholder="DD/MM/YYYY" class="form-control" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
     <td><input type="number" id="allViewNewIncome" placeholder="Thu nhập" class="form-control" step="0.1" value="0" required></td>
     <td><input type="number" id="allViewNewExpense" placeholder="Chi phí" class="form-control" step="0.1" value="0" required></td>
-    <td><input type="number" id="allViewNewIncomePrediction" placeholder="Dự báo thu" class="form-control" step="0.1" value="0"></td>
-    <td><input type="number" id="allViewNewExpensePrediction" placeholder="Dự báo chi" class="form-control" step="0.1" value="0"></td>
-    <td><textarea id="allViewNewNote" placeholder="Ghi chú" class="form-control" rows="2"></textarea></td>
     <td class="actions">
       <button class="save-btn btn btn-sm btn-success" onclick="saveAllViewNewEntry()">Lưu</button>
       <button class="cancel-btn btn btn-sm btn-secondary" onclick="cancelAllViewAdd()">Hủy</button>
@@ -1561,13 +1417,6 @@ async function saveAllViewNewEntry() {
     document.getElementById("allViewNewExpense").value,
   );
   const date = document.getElementById("allViewNewDate").value;
-  const incomePrediction =
-    parseFloat(document.getElementById("allViewNewIncomePrediction").value) ||
-    0;
-  const expensePrediction =
-    parseFloat(document.getElementById("allViewNewExpensePrediction").value) ||
-    0;
-  const note = document.getElementById("allViewNewNote").value.trim();
 
   if (!costCenterId) {
     alert("Vui lòng chọn trạm");
@@ -1595,9 +1444,6 @@ async function saveAllViewNewEntry() {
         income,
         expense,
         date,
-        incomePrediction,
-        expensePrediction,
-        note,
       }),
     });
     if (response.ok) {
@@ -1656,9 +1502,6 @@ function addAllViewEntryRow() {
     <input type="text" id="${entryId}_date" value="${today}" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required>
     <input type="number" id="${entryId}_income" placeholder="Thu nhập" step="0.1" value="0" required>
     <input type="number" id="${entryId}_expense" placeholder="Chi phí" step="0.1" value="0" required>
-    <input type="number" id="${entryId}_incomePrediction" placeholder="Dự báo thu" step="0.1" value="0">
-    <input type="number" id="${entryId}_expensePrediction" placeholder="Dự báo chi" step="0.1" value="0">
-    <textarea id="${entryId}_note" placeholder="Ghi chú" rows="2"></textarea>
     <button type="button" class="remove-entry-btn" onclick="removeAllViewEntryRow('${entryId}')">×</button>
   `;
   container.appendChild(entryRow);
@@ -1711,13 +1554,6 @@ async function saveAllViewMultipleEntries() {
     const expense = parseFloat(
       document.getElementById(`${entryId}_expense`).value,
     );
-    const incomePrediction = parseFloat(
-      document.getElementById(`${entryId}_incomePrediction`).value || 0,
-    );
-    const expensePrediction = parseFloat(
-      document.getElementById(`${entryId}_expensePrediction`).value || 0,
-    );
-    const note = document.getElementById(`${entryId}_note`).value.trim();
 
     if (!costCenterId) {
       alert("Vui lòng chọn trạm cho mục này");
@@ -1747,9 +1583,6 @@ async function saveAllViewMultipleEntries() {
         date,
         income,
         expense,
-        incomePrediction,
-        expensePrediction,
-        note,
       },
     });
   }
@@ -1811,13 +1644,8 @@ function applyAllFilters() {
   allFilterState.searchName = (
     document.getElementById("allSearchName")?.value || ""
   ).toLowerCase();
-  allFilterState.searchNote = (
-    document.getElementById("allSearchNote")?.value || ""
-  ).toLowerCase();
   allFilterState.costCenterFilter =
     document.getElementById("allCostCenterFilter")?.value || "all";
-  allFilterState.predictionFilter =
-    document.getElementById("allPredictionFilter")?.value || "all";
 
   filteredAllEntries = allEntriesFlat.filter((entry) => {
     if (
@@ -1836,20 +1664,10 @@ function applyAllFilters() {
     )
       return false;
     if (
-      allFilterState.searchNote &&
-      !(entry.note || "").toLowerCase().includes(allFilterState.searchNote)
-    )
-      return false;
-    if (
       allFilterState.costCenterFilter !== "all" &&
       entry.costCenterId !== allFilterState.costCenterFilter
     )
       return false;
-    if (allFilterState.predictionFilter === "withPrediction") {
-      if (!entry.incomePrediction && !entry.expensePrediction) return false;
-    } else if (allFilterState.predictionFilter === "withoutPrediction") {
-      if (entry.incomePrediction || entry.expensePrediction) return false;
-    }
     return true;
   });
 
@@ -1859,24 +1677,18 @@ function applyAllFilters() {
 
 // Reset all filters
 function resetAllFilters() {
-  ["allDateFrom", "allDateTo", "allSearchName", "allSearchNote"].forEach(
-    (id) => {
-      const el = document.getElementById(id);
-      if (el) el.value = "";
-    },
-  );
+  ["allDateFrom", "allDateTo", "allSearchName"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
   const ccf = document.getElementById("allCostCenterFilter");
   if (ccf) ccf.value = "all";
-  const pf = document.getElementById("allPredictionFilter");
-  if (pf) pf.value = "all";
 
   allFilterState = {
     dateFrom: "",
     dateTo: "",
     searchName: "",
-    searchNote: "",
     costCenterFilter: "all",
-    predictionFilter: "all",
   };
   isAddingInAllView = false;
   addingCostCenterId = null;
@@ -1969,8 +1781,7 @@ async function exportAlternativeView() {
       alert("Không có dữ liệu để xuất");
       return;
     }
-    let csvContent =
-      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Ghi chú\n";
+    let csvContent = "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND)\n";
     filteredAllEntries.forEach((entry) => {
       csvContent +=
         [
@@ -1979,9 +1790,6 @@ async function exportAlternativeView() {
           entry.date,
           entry.income || 0,
           entry.expense || 0,
-          entry.incomePrediction || 0,
-          entry.expensePrediction || 0,
-          `"${entry.note || ""}"`,
         ].join(",") + "\n";
     });
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -2030,10 +1838,9 @@ function showGlobalDetails() {
               <table class="table table-hover table-striped">
                 <thead class="table-dark">
                   <tr>
-                    <th>Trạm</th><th>Số Giao Dịch</th><th>Có Dự Báo</th>
+                    <th>Trạm</th><th>Số Giao Dịch</th>
                     <th>Tổng Thu (VND)</th><th>Tổng Chi (VND)</th><th>Lợi Nhuận (VND)</th>
-                    <th>Tổng Dự Báo Thu</th><th>Tổng Dự Báo Chi</th><th>Lợi Nhuận Dự Báo</th>
-                    <th>Hạn Mức (VND)</th><th>Quỹ Khả Dụng</th><th>Quỹ Khả Dụng Dự Báo</th>
+                    <th>Hạn Mức (VND)</th><th>Quỹ Khả Dụng (VND)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2044,57 +1851,100 @@ function showGlobalDetails() {
                         (acc, e) => {
                           acc.totalIncome += e.income || 0;
                           acc.totalExpense += e.expense || 0;
-                          acc.totalIncomePrediction += e.incomePrediction || 0;
-                          acc.totalExpensePrediction +=
-                            e.expensePrediction || 0;
-                          if (e.incomePrediction || e.expensePrediction)
-                            acc.withPrediction++;
                           return acc;
                         },
                         {
                           totalIncome: 0,
                           totalExpense: 0,
-                          totalIncomePrediction: 0,
-                          totalExpensePrediction: 0,
-                          withPrediction: 0,
                         },
                       );
                       const profit = t.totalIncome - t.totalExpense;
-                      const profitPrediction =
-                        t.totalIncomePrediction - t.totalExpensePrediction;
                       const fundLimit = fundInfo.fundLimitBank || 0;
                       const fundAvailable = fundInfo.fundAvailableBank || 0;
-                      const predictedFundAvailable =
-                        fundInfo.predictedFundAvailableBank || 0;
                       const profitClass =
                         profit >= 0
                           ? "text-success fw-bold"
                           : "text-danger fw-bold";
-                      const profitPredictionClass =
-                        profitPrediction >= 0 ? "text-success" : "text-danger";
                       const fundAvailableClass =
                         fundAvailable >= 0 ? "text-success" : "text-danger";
-                      const predictedFundAvailableClass =
-                        predictedFundAvailable >= 0
-                          ? "text-success"
-                          : "text-danger";
                       return `<tr onclick="switchToCostCenter('${costCenterId}')" style="cursor:pointer;">
                       <td><strong>${data.name}</strong></td>
                       <td>${data.entries.length}</td>
-                      <td>${t.withPrediction}</td>
                       <td>${t.totalIncome.toLocaleString("vi-VN")}</td>
                       <td>${t.totalExpense.toLocaleString("vi-VN")}</td>
                       <td class="${profitClass}">${profit.toLocaleString("vi-VN")}</td>
-                      <td>${t.totalIncomePrediction.toLocaleString("vi-VN")}</td>
-                      <td>${t.totalExpensePrediction.toLocaleString("vi-VN")}</td>
-                      <td class="${profitPredictionClass}">${profitPrediction.toLocaleString("vi-VN")}</td>
                       <td>${fundLimit.toLocaleString("vi-VN")}</td>
                       <td class="${fundAvailableClass}">${fundAvailable.toLocaleString("vi-VN")}</td>
-                      <td class="${predictedFundAvailableClass}">${predictedFundAvailable.toLocaleString("vi-VN")}</td>
                     </tr>`;
                     })
                     .join("")}
                 </tbody>
+                <tfoot class="table-secondary">
+                  <tr>
+                    <td><strong>TỔNG CỘNG</strong></td>
+                    <td><strong>${Object.values(allEntries).reduce(
+                      (sum, data) =>
+                        sum + (data.entries ? data.entries.length : 0),
+                      0,
+                    )}</strong></td>
+                    <td><strong>${Object.values(allFundInfo)
+                      .reduce(
+                        (sum, fundInfo) => sum + (fundInfo.totalIncome || 0),
+                        0,
+                      )
+                      .toLocaleString("vi-VN")}</strong></td>
+                    <td><strong>${Object.values(allFundInfo)
+                      .reduce(
+                        (sum, fundInfo) => sum + (fundInfo.totalExpense || 0),
+                        0,
+                      )
+                      .toLocaleString("vi-VN")}</strong></td>
+                    <td><strong class="${
+                      Object.values(allFundInfo).reduce(
+                        (sum, fundInfo) =>
+                          sum +
+                          ((fundInfo.totalIncome || 0) -
+                            (fundInfo.totalExpense || 0)),
+                        0,
+                      ) >= 0
+                        ? "text-success"
+                        : "text-danger"
+                    }">
+                      ${Object.values(allFundInfo)
+                        .reduce(
+                          (sum, fundInfo) =>
+                            sum +
+                            ((fundInfo.totalIncome || 0) -
+                              (fundInfo.totalExpense || 0)),
+                          0,
+                        )
+                        .toLocaleString("vi-VN")}
+                    </strong></td>
+                    <td><strong>${Object.values(allFundInfo)
+                      .reduce(
+                        (sum, fundInfo) => sum + (fundInfo.fundLimitBank || 0),
+                        0,
+                      )
+                      .toLocaleString("vi-VN")}</strong></td>
+                    <td><strong class="${
+                      Object.values(allFundInfo).reduce(
+                        (sum, fundInfo) =>
+                          sum + (fundInfo.fundAvailableBank || 0),
+                        0,
+                      ) >= 0
+                        ? "text-success"
+                        : "text-danger"
+                    }">
+                      ${Object.values(allFundInfo)
+                        .reduce(
+                          (sum, fundInfo) =>
+                            sum + (fundInfo.fundAvailableBank || 0),
+                          0,
+                        )
+                        .toLocaleString("vi-VN")}
+                    </strong></td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
             <div class="mt-3">
@@ -2151,8 +2001,7 @@ async function exportAllData() {
       return;
     }
 
-    let csvContent =
-      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Ghi chú\n";
+    let csvContent = "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND)\n";
     costCentersWithEntries.forEach(([_, data]) => {
       (data.entries || []).forEach((entry) => {
         csvContent +=
@@ -2162,9 +2011,6 @@ async function exportAllData() {
             entry.date,
             entry.income || 0,
             entry.expense || 0,
-            entry.incomePrediction || 0,
-            entry.expensePrediction || 0,
-            `"${entry.note || ""}"`,
           ].join(",") + "\n";
       });
     });

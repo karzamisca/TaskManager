@@ -116,16 +116,7 @@ exports.addBankEntry = async (req, res) => {
     }
 
     const { costCenterId } = req.params;
-    const {
-      name,
-      income,
-      expense,
-      date,
-      // Add prediction fields
-      incomePrediction,
-      expensePrediction,
-      note,
-    } = req.body;
+    const { name, income, expense, date } = req.body;
 
     const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
     if (!dateRegex.test(date)) {
@@ -151,10 +142,6 @@ exports.addBankEntry = async (req, res) => {
       income: parseFloat(income) || 0,
       expense: parseFloat(expense) || 0,
       date,
-      // Add prediction fields
-      incomePrediction: parseFloat(incomePrediction) || 0,
-      expensePrediction: parseFloat(expensePrediction) || 0,
-      note: note ? note.trim() : "",
     };
 
     if (!costCenter.bank) {
@@ -172,9 +159,6 @@ exports.addBankEntry = async (req, res) => {
         income: newEntry.income,
         expense: newEntry.expense,
         date: newEntry.date,
-        incomePrediction: newEntry.incomePrediction,
-        expensePrediction: newEntry.expensePrediction,
-        note: newEntry.note,
       },
     });
 
@@ -208,16 +192,7 @@ exports.updateBankEntry = async (req, res) => {
     }
 
     const { costCenterId, entryId } = req.params;
-    const {
-      name,
-      income,
-      expense,
-      date,
-      // Add prediction fields
-      incomePrediction,
-      expensePrediction,
-      note,
-    } = req.body;
+    const { name, income, expense, date } = req.body;
 
     const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
     if (date && !dateRegex.test(date)) {
@@ -253,20 +228,12 @@ exports.updateBankEntry = async (req, res) => {
       income: entry.income,
       expense: entry.expense,
       date: entry.date,
-      incomePrediction: entry.incomePrediction,
-      expensePrediction: entry.expensePrediction,
-      note: entry.note,
     };
 
     if (name) entry.name = name;
     if (income !== undefined) entry.income = parseFloat(income) || 0;
     if (expense !== undefined) entry.expense = parseFloat(expense) || 0;
     if (date) entry.date = date;
-    if (incomePrediction !== undefined)
-      entry.incomePrediction = parseFloat(incomePrediction) || 0;
-    if (expensePrediction !== undefined)
-      entry.expensePrediction = parseFloat(expensePrediction) || 0;
-    if (note !== undefined) entry.note = note.trim();
 
     await costCenter.save();
 
@@ -277,9 +244,6 @@ exports.updateBankEntry = async (req, res) => {
         income: entry.income,
         expense: entry.expense,
         date: entry.date,
-        incomePrediction: entry.incomePrediction,
-        expensePrediction: entry.expensePrediction,
-        note: entry.note,
       },
     });
 
@@ -344,9 +308,6 @@ exports.deleteBankEntry = async (req, res) => {
       income: entryToDelete.income,
       expense: entryToDelete.expense,
       date: entryToDelete.date,
-      incomePrediction: entryToDelete.incomePrediction,
-      expensePrediction: entryToDelete.expensePrediction,
-      note: entryToDelete.note,
     };
 
     costCenter.bank.pull(entryId);
@@ -371,6 +332,7 @@ exports.deleteBankEntry = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
 // Get all cost centers (for dropdown selection)
 exports.getCostCenters = async (req, res) => {
   try {
@@ -450,24 +412,16 @@ exports.getCostCenterWithFundLimit = async (req, res) => {
 
     let totalIncome = 0;
     let totalExpense = 0;
-    let totalIncomePrediction = 0;
-    let totalExpensePrediction = 0;
 
     if (costCenter.bank && costCenter.bank.length > 0) {
       costCenter.bank.forEach((entry) => {
         totalIncome += entry.income || 0;
         totalExpense += entry.expense || 0;
-        totalIncomePrediction += entry.incomePrediction || 0;
-        totalExpensePrediction += entry.expensePrediction || 0;
       });
     }
 
     const fundAvailableBank =
       (costCenter.fundLimitBank || 0) - totalExpense + totalIncome;
-    const predictedFundAvailableBank =
-      (costCenter.fundLimitBank || 0) -
-      totalExpensePrediction +
-      totalIncomePrediction;
 
     await logAction(req, res, "GET_COST_CENTER_WITH_FUND", costCenterId, null, {
       fundLimitBank: costCenter.fundLimitBank,
@@ -478,11 +432,8 @@ exports.getCostCenterWithFundLimit = async (req, res) => {
       name: costCenter.name,
       fundLimitBank: costCenter.fundLimitBank || 0,
       fundAvailableBank,
-      predictedFundAvailableBank,
       totalIncome,
       totalExpense,
-      totalIncomePrediction,
-      totalExpensePrediction,
     });
   } catch (error) {
     await logAction(
