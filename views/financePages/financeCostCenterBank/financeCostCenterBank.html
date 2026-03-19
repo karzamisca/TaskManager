@@ -229,22 +229,6 @@
                       Ngày
                     </th>
                     <th
-                      colspan="2"
-                      style="
-                        text-align: center;
-                        background-color: #e8f5e9;
-                        color: #333;
-                        border-bottom: 2px solid #c8e6c9;
-                      "
-                    >
-                      Giá trị
-                    </th>
-                    <th>Thao tác</th>
-                  </tr>
-                  <tr>
-                    <th></th>
-                    <th></th>
-                    <th
                       style="
                         background-color: #e8f5e9;
                         border-bottom: 2px solid #c8e6c9;
@@ -260,7 +244,14 @@
                     >
                       Chi phí (VND)
                     </th>
-                    <th></th>
+                    <!-- Thông tin vay - mỗi trường một cột -->
+                    <th>Ngày nhận nợ</th>
+                    <th>Lãi suất (%)</th>
+                    <th>Kỳ vay (tháng)</th>
+                    <th>Ngày trích nợ</th>
+                    <th>Tháng không gốc</th>
+                    <th>Ghi chú</th>
+                    <th>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody id="entriesBody"></tbody>
@@ -415,22 +406,6 @@
                       Ngày
                     </th>
                     <th
-                      colspan="2"
-                      style="
-                        text-align: center;
-                        background-color: #e8f5e9;
-                        border-bottom: 2px solid #c8e6c9;
-                      "
-                    >
-                      Giá trị
-                    </th>
-                    <th>Thao tác</th>
-                  </tr>
-                  <tr>
-                    <th></th>
-                    <th></th>
-                    <th></th>
-                    <th
                       style="
                         background-color: #e8f5e9;
                         border-bottom: 2px solid #c8e6c9;
@@ -446,7 +421,13 @@
                     >
                       Chi phí (VND)
                     </th>
-                    <th></th>
+                    <!-- Thông tin vay - mỗi trường một cột -->
+                    <th>Ngày nhận nợ</th>
+                    <th>Lãi suất (%)</th>
+                    <th>Kỳ vay (tháng)</th>
+                    <th>Ngày trích nợ</th>
+                    <th>Tháng không gốc</th>
+                    <th>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody id="allEntriesBody"></tbody>
@@ -471,6 +452,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="financePages/financeCostCenterBank/financeCostCenterBank.js?v=1.12"></script>
+    <script src="financePages/financeCostCenterBank/financeCostCenterBank.js?v=1.13"></script>
   </body>
 </html>

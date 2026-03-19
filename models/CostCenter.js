@@ -46,7 +46,7 @@ const constructionSchema = new mongoose.Schema({
   },
 });
 
-// Define the schema for bank entries
+// Define the schema for bank entries with loan fields
 const bankSchema = new mongoose.Schema({
   name: { type: String, required: true },
   income: { type: Number, default: 0 },
@@ -56,9 +56,27 @@ const bankSchema = new mongoose.Schema({
     required: true,
     match: [/^\d{2}\/\d{2}\/\d{4}$/, "Date must be in DD/MM/YYYY format"],
   },
+  // Các trường mới cho tính toán lãi vay
+  disbursementDate: {
+    // Ngày nhận nợ
+    type: String,
+    match: [/^\d{2}\/\d{2}\/\d{4}$/, "Date must be in DD/MM/YYYY format"],
+    default: null,
+  },
+  interestRate: { type: Number, default: 0 }, // Lãi suất (%/năm)
+  loanTerm: { type: Number, default: 0 }, // Kỳ vay (tháng)
+  deductionDate: {
+    // Ngày trích nợ hàng tháng
+    type: String,
+    match: [/^\d{2}\/\d{2}\/\d{4}$/, "Date must be in DD/MM/YYYY format"],
+    default: null,
+  },
+  monthsWithoutPrincipal: { type: Number, default: 0 }, // Tháng không trả gốc
+  generatedDailyEntryIds: [{ type: mongoose.Schema.Types.ObjectId }], // IDs của daily entries đã sinh
+  note: { type: String, default: "" },
 });
 
-// Define the schema for daily entries (same structure as bank)
+// Define the schema for daily entries
 const dailySchema = new mongoose.Schema({
   name: { type: String, required: true },
   income: { type: Number, default: 0 },
@@ -72,6 +90,13 @@ const dailySchema = new mongoose.Schema({
   incomePrediction: { type: Number, default: 0 },
   expensePrediction: { type: Number, default: 0 },
   note: { type: String, default: "" },
+  // Liên kết với bank entry nếu được sinh ra từ khoản vay
+  sourceBankEntryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "CostCenter.bank",
+  },
+  isLoanInterest: { type: Boolean, default: false },
+  loanMonth: { type: Number, default: null }, // Tháng thứ mấy của kỳ vay
 });
 
 // Define the merged cost center schema
@@ -100,34 +125,29 @@ const costCenterSchema = new mongoose.Schema({
   },
 });
 
-// Pre-save hooks to calculate totals
+// Pre-save hooks
 purchaseSaleSchema.pre("save", function (next) {
   this.totalCost = this.amount * this.unitCost;
   next();
 });
 
 constructionSchema.pre("save", function (next) {
-  // Calculate net for construction entries
   this.net = this.income - this.expense;
   next();
 });
 
 bankSchema.pre("save", function (next) {
-  // Calculate net for bank entries
   this.net = this.income - this.expense;
   next();
 });
 
 dailySchema.pre("save", function (next) {
-  // Calculate net for daily entries
   this.net = this.income - this.expense;
-  // Calculate predicted net
   this.predictedNet = this.incomePrediction - this.expensePrediction;
   next();
 });
 
 monthEntrySchema.pre("save", function (next) {
-  // Calculate commission bonuses
   if (
     this.purchaseContract &&
     this.commissionRatePurchase &&
