@@ -53,6 +53,7 @@ exports.getDailyEntries = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
+        "captainOfAccounting",
         "submitterOfFinance",
         "submitterOfAccounting",
       ].includes(req.user.role) &&
@@ -115,6 +116,7 @@ exports.addDailyEntry = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
+        "captainOfAccounting",
         "submitterOfFinance",
         "submitterOfAccounting",
       ].includes(req.user.role) &&
@@ -225,6 +227,7 @@ exports.updateDailyEntry = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
+        "captainOfAccounting",
         "submitterOfFinance",
         "submitterOfAccounting",
       ].includes(req.user.role) &&
@@ -349,6 +352,7 @@ exports.deleteDailyEntry = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
+        "captainOfAccounting",
         "submitterOfFinance",
         "submitterOfAccounting",
       ].includes(req.user.role) &&
@@ -425,6 +429,7 @@ exports.getCostCenters = async (req, res) => {
         "director",
         "deputyDirector",
         "captainOfFinance",
+        "captainOfAccounting",
         "submitterOfFinance",
         "submitterOfAccounting",
       ].includes(req.user.role) &&
