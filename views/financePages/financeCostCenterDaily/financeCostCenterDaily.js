@@ -90,7 +90,12 @@ function buildProgressiveTotals(sortedEntries, direction) {
     const d = byDate[date];
     runActual += d.income - d.expense;
     runPredicted += d.incomeP - d.expenseP;
-    totalsMap[date] = { actual: runActual, predicted: runPredicted };
+
+    // Round up to remove decimals (ceiling to nearest integer)
+    totalsMap[date] = {
+      actual: Math.ceil(runActual),
+      predicted: Math.ceil(runPredicted),
+    };
   });
 
   return totalsMap;
