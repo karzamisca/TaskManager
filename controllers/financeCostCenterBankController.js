@@ -1,7 +1,6 @@
 // controllers/financeCostCenterBankController.js
 const CostCenter = require("../models/CostCenter");
 const FinanceCostCenterBankLog = require("../models/FinanceCostCenterBankLog");
-const mongoose = require("mongoose");
 
 // Helper function to get client IP
 const getClientIp = (req) => {
@@ -43,228 +42,6 @@ const logAction = async (
 // Helper to extract response message
 const getResponseMessage = (res) => {
   return "Operation completed";
-};
-
-// Helper function to parse date from DD/MM/YYYY
-const parseDate = (dateString) => {
-  if (!dateString) return null;
-  const parts = dateString.split("/");
-  if (parts.length === 3) {
-    return new Date(parts[2], parts[1] - 1, parts[0]);
-  }
-  return null;
-};
-
-// Helper function to format date to DD/MM/YYYY
-const formatDate = (date) => {
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-};
-
-// Helper function to add months to a date
-const addMonths = (dateString, months) => {
-  const date = parseDate(dateString);
-  if (!date) return null;
-  date.setMonth(date.getMonth() + months);
-  return formatDate(date);
-};
-
-// Helper function to get first day of month
-const getFirstDayOfMonth = (dateString) => {
-  const date = parseDate(dateString);
-  if (!date) return null;
-  date.setDate(1);
-  return formatDate(date);
-};
-
-// Helper function to calculate days between two dates
-const daysBetween = (startDateString, endDateString) => {
-  const start = parseDate(startDateString);
-  const end = parseDate(endDateString);
-  if (!start || !end) return 0;
-  const diffTime = Math.abs(end - start);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
-};
-
-// Helper function to calculate monthly payment (gốc + lãi)
-const calculateMonthlyPayment = (
-  loanAmount,
-  annualInterestRate,
-  loanTermMonths,
-) => {
-  const monthlyRate = annualInterestRate / 12;
-  // Công thức tính PMT: P * r * (1+r)^n / ((1+r)^n - 1)
-  const payment =
-    (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, loanTermMonths)) /
-    (Math.pow(1 + monthlyRate, loanTermMonths) - 1);
-  return payment;
-};
-
-// Helper function to generate daily entries from loan
-const generateDailyEntriesFromLoan = async (
-  costCenter,
-  bankEntry,
-  isNew = true,
-) => {
-  if (
-    !bankEntry.disbursementDate ||
-    !bankEntry.interestRate ||
-    !bankEntry.loanTerm ||
-    !bankEntry.deductionDate
-  ) {
-    return []; // Không phải khoản vay, không cần sinh daily entries
-  }
-
-  const loanAmount = bankEntry.income || 0;
-  if (loanAmount <= 0) return [];
-
-  const annualInterestRate = bankEntry.interestRate / 100;
-  const monthlyInterestRate = annualInterestRate / 12;
-  const dailyInterestRate = annualInterestRate / 365;
-
-  const monthsWithoutPrincipal = bankEntry.monthsWithoutPrincipal || 0;
-  const disbursementDate = bankEntry.disbursementDate;
-  const deductionDate = bankEntry.deductionDate;
-  const loanTerm = bankEntry.loanTerm;
-
-  // Xóa các daily entries cũ nếu có (khi update)
-  if (
-    !isNew &&
-    bankEntry.generatedDailyEntryIds &&
-    bankEntry.generatedDailyEntryIds.length > 0
-  ) {
-    await CostCenter.updateOne(
-      { _id: costCenter._id },
-      {
-        $pull: {
-          daily: {
-            _id: { $in: bankEntry.generatedDailyEntryIds },
-          },
-        },
-      },
-    );
-  }
-
-  const generatedIds = [];
-  let remainingBalance = loanAmount;
-  const monthlyPayment = calculateMonthlyPayment(
-    loanAmount,
-    annualInterestRate,
-    loanTerm,
-  );
-
-  // Tạo daily entries cho từng tháng
-  for (let month = 0; month < loanTerm; month++) {
-    let expenseAmount = 0;
-    let incomeAmount = 0;
-    let principalPaid = 0;
-    let interestPaid = 0;
-    let entryName = "";
-    let description = "";
-
-    // Tính ngày của tháng này
-    let currentMonthDate;
-    if (month === 0) {
-      currentMonthDate = deductionDate; // Tháng đầu tiên là ngày trích nợ
-    } else {
-      currentMonthDate = addMonths(deductionDate, month);
-    }
-    if (!currentMonthDate) continue;
-
-    // KIỂM TRA: Có đang trong thời gian không trả gốc không?
-    const isGracePeriod = month < monthsWithoutPrincipal;
-
-    // Tháng đầu tiên (tính từ ngày nhận nợ đến ngày trích nợ đầu tiên)
-    if (month === 0) {
-      const days = daysBetween(disbursementDate, deductionDate);
-      interestPaid = days * dailyInterestRate * loanAmount;
-      expenseAmount = interestPaid;
-      principalPaid = 0;
-
-      if (isGracePeriod) {
-        entryName = `Dự kiến lãi vay tháng ${month + 1} (Tháng không gốc) - ${bankEntry.name}`;
-        description = `Dự kiến chỉ trả lãi ${days} ngày từ ${disbursementDate} đến ${deductionDate}`;
-      } else {
-        entryName = `Dự kiến lãi vay tháng ${month + 1} - ${bankEntry.name}`;
-        description = `Dự kiến trả lãi ${days} ngày đầu kỳ`;
-      }
-    }
-    // Tháng cuối cùng của kỳ vay
-    else if (month === loanTerm - 1) {
-      const lastPaymentDate = addMonths(disbursementDate, loanTerm);
-      const firstDayOfLastMonth = getFirstDayOfMonth(currentMonthDate);
-      if (lastPaymentDate && firstDayOfLastMonth) {
-        const days = daysBetween(firstDayOfLastMonth, lastPaymentDate);
-
-        if (isGracePeriod) {
-          // Nếu tháng cuối vẫn còn trong thời gian không gốc (hiếm gặp)
-          interestPaid = days * dailyInterestRate * remainingBalance;
-          expenseAmount = interestPaid;
-          principalPaid = 0;
-          entryName = `Dự kiến lãi vay tháng cuối (Tháng không gốc) - ${bankEntry.name}`;
-          description = `Dự kiến chỉ trả lãi ${days} ngày cuối kỳ`;
-        } else {
-          // Tính lãi cho số ngày trong tháng cuối
-          interestPaid = days * dailyInterestRate * remainingBalance;
-          principalPaid = remainingBalance; // Trả hết gốc còn lại
-          expenseAmount = interestPaid + principalPaid;
-          entryName = `Dự kiến trả nợ tháng cuối - ${bankEntry.name}`;
-          description = `Dự kiến trả gốc: ${Math.round(principalPaid).toLocaleString("vi-VN")}đ, lãi: ${Math.round(interestPaid).toLocaleString("vi-VN")}đ (${days} ngày)`;
-        }
-      }
-    }
-    // Các tháng giữa
-    else {
-      if (isGracePeriod) {
-        // Chỉ trả lãi, không trả gốc
-        interestPaid = monthlyInterestRate * remainingBalance;
-        expenseAmount = interestPaid;
-        principalPaid = 0;
-        entryName = `Dự kiến lãi vay tháng ${month + 1} (Tháng không gốc) - ${bankEntry.name}`;
-        description = `Dự kiến chỉ trả lãi, số dư nợ: ${Math.round(remainingBalance).toLocaleString("vi-VN")}đ`;
-      } else {
-        // Trả cả gốc và lãi theo phương thức đều hàng tháng
-        interestPaid = monthlyInterestRate * remainingBalance;
-        principalPaid = monthlyPayment - interestPaid;
-        expenseAmount = monthlyPayment;
-
-        // Cập nhật số dư còn lại cho tháng sau
-        if (principalPaid > 0) {
-          remainingBalance -= principalPaid;
-        }
-
-        entryName = `Dự kiến trả nợ tháng ${month + 1} - ${bankEntry.name}`;
-        description = `Dự kiến trả gốc: ${Math.round(principalPaid).toLocaleString("vi-VN")}đ, lãi: ${Math.round(interestPaid).toLocaleString("vi-VN")}đ`;
-      }
-    }
-
-    // Tạo daily entry - SỬ DỤNG PREDICTION FIELDS
-    const newDailyEntry = {
-      name: entryName,
-      income: 0, // Thực tế = 0 vì chưa phát sinh
-      expense: 0, // Thực tế = 0 vì chưa phát sinh
-      date: currentMonthDate, // Ngày dự kiến phát sinh
-
-      // PREDICTION FIELDS - dự đoán cho tương lai
-      incomePrediction: incomeAmount, // Dự đoán thu nhập (nếu có)
-      expensePrediction: Math.round(expenseAmount), // Dự đoán chi phí
-
-      note: `[DỰ KIẾN] ${description}`,
-      isLoanInterest: true,
-      loanMonth: month + 1,
-      sourceBankEntryId: bankEntry._id,
-    };
-
-    costCenter.daily.push(newDailyEntry);
-    const savedEntry = costCenter.daily[costCenter.daily.length - 1];
-    generatedIds.push(savedEntry._id);
-  }
-
-  bankEntry.generatedDailyEntryIds = generatedIds;
-  return generatedIds;
 };
 
 // Get bank entries for a specific cost center
@@ -344,12 +121,11 @@ exports.addBankEntry = async (req, res) => {
       income,
       expense,
       date,
-      disbursementDate,
+      loanDisbursementDate,
       interestRate,
-      loanTerm,
       deductionDate,
-      monthsWithoutPrincipal,
-      note,
+      monthsWithNoPrincipalRepayment,
+      maturityDate,
     } = req.body;
 
     const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
@@ -363,27 +139,42 @@ exports.addBankEntry = async (req, res) => {
         .json({ message: "Date must be in DD/MM/YYYY format" });
     }
 
-    // Validate các trường mới nếu có
-    if (disbursementDate && !dateRegex.test(disbursementDate)) {
-      return res
-        .status(400)
-        .json({ message: "Disbursement date must be in DD/MM/YYYY format" });
-    }
-    if (deductionDate && !dateRegex.test(deductionDate)) {
-      return res
-        .status(400)
-        .json({ message: "Deduction date must be in DD/MM/YYYY format" });
+    // Validate loan fields
+    if (!loanDisbursementDate || !dateRegex.test(loanDisbursementDate)) {
+      return res.status(400).json({
+        message: "Valid loan disbursement date is required (DD/MM/YYYY)",
+      });
     }
 
-    // Validate monthsWithoutPrincipal không vượt quá loanTerm
     if (
-      monthsWithoutPrincipal &&
-      loanTerm &&
-      parseInt(monthsWithoutPrincipal) > parseInt(loanTerm)
+      interestRate === undefined ||
+      interestRate === null ||
+      interestRate < 0
     ) {
-      return res.status(400).json({
-        message: "Số tháng không trả gốc không thể lớn hơn kỳ vay",
-      });
+      return res
+        .status(400)
+        .json({ message: "Valid interest rate is required" });
+    }
+
+    if (!deductionDate || !dateRegex.test(deductionDate)) {
+      return res
+        .status(400)
+        .json({ message: "Valid deduction date is required (DD/MM/YYYY)" });
+    }
+
+    if (
+      monthsWithNoPrincipalRepayment === undefined ||
+      monthsWithNoPrincipalRepayment < 0
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Months with no principal repayment is required" });
+    }
+
+    if (!maturityDate || !dateRegex.test(maturityDate)) {
+      return res
+        .status(400)
+        .json({ message: "Valid maturity date is required (DD/MM/YYYY)" });
     }
 
     const costCenter = await CostCenter.findById(costCenterId);
@@ -399,13 +190,11 @@ exports.addBankEntry = async (req, res) => {
       income: parseFloat(income) || 0,
       expense: parseFloat(expense) || 0,
       date,
-      disbursementDate: disbursementDate || null,
-      interestRate: parseFloat(interestRate) || 0,
-      loanTerm: parseInt(loanTerm) || 0,
-      deductionDate: deductionDate || null,
-      monthsWithoutPrincipal: parseInt(monthsWithoutPrincipal) || 0,
-      note: note || "",
-      generatedDailyEntryIds: [],
+      loanDisbursementDate,
+      interestRate: parseFloat(interestRate),
+      deductionDate,
+      monthsWithNoPrincipalRepayment: parseInt(monthsWithNoPrincipalRepayment),
+      maturityDate,
     };
 
     if (!costCenter.bank) {
@@ -413,35 +202,18 @@ exports.addBankEntry = async (req, res) => {
     }
 
     costCenter.bank.push(newEntry);
-
-    // Sinh daily entries nếu là khoản vay
-    const savedEntry = costCenter.bank[costCenter.bank.length - 1];
-    if (
-      savedEntry.disbursementDate &&
-      savedEntry.interestRate > 0 &&
-      savedEntry.loanTerm > 0 &&
-      savedEntry.deductionDate
-    ) {
-      await generateDailyEntriesFromLoan(costCenter, savedEntry, true);
-    }
-
     await costCenter.save();
 
+    const savedEntry = costCenter.bank[costCenter.bank.length - 1];
+
+    // Auto-generate daily entries for this loan
+    await savedEntry.generateDailyEntries(costCenterId, CostCenter);
+
     await logAction(req, res, "ADD_BANK_ENTRY", costCenterId, savedEntry._id, {
-      entryData: {
-        name: newEntry.name,
-        income: newEntry.income,
-        expense: newEntry.expense,
-        date: newEntry.date,
-        disbursementDate: newEntry.disbursementDate,
-        interestRate: newEntry.interestRate,
-        loanTerm: newEntry.loanTerm,
-        deductionDate: newEntry.deductionDate,
-        monthsWithoutPrincipal: newEntry.monthsWithoutPrincipal,
-      },
+      entryData: newEntry,
     });
 
-    res.status(201).json(savedEntry);
+    res.status(201).json(newEntry);
   } catch (error) {
     await logAction(req, res, "ADD_BANK_ENTRY", req.params.costCenterId, null, {
       error: error.message,
@@ -476,12 +248,11 @@ exports.updateBankEntry = async (req, res) => {
       income,
       expense,
       date,
-      disbursementDate,
+      loanDisbursementDate,
       interestRate,
-      loanTerm,
       deductionDate,
-      monthsWithoutPrincipal,
-      note,
+      monthsWithNoPrincipalRepayment,
+      maturityDate,
     } = req.body;
 
     const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
@@ -495,27 +266,38 @@ exports.updateBankEntry = async (req, res) => {
         .json({ message: "Date must be in DD/MM/YYYY format" });
     }
 
-    // Validate các trường mới nếu có
-    if (disbursementDate && !dateRegex.test(disbursementDate)) {
+    // Validate loan fields if provided
+    if (loanDisbursementDate && !dateRegex.test(loanDisbursementDate)) {
+      return res.status(400).json({
+        message: "Valid loan disbursement date is required (DD/MM/YYYY)",
+      });
+    }
+
+    if (interestRate !== undefined && interestRate < 0) {
       return res
         .status(400)
-        .json({ message: "Disbursement date must be in DD/MM/YYYY format" });
+        .json({ message: "Valid interest rate is required" });
     }
+
     if (deductionDate && !dateRegex.test(deductionDate)) {
       return res
         .status(400)
-        .json({ message: "Deduction date must be in DD/MM/YYYY format" });
+        .json({ message: "Valid deduction date is required (DD/MM/YYYY)" });
     }
 
-    // Validate monthsWithoutPrincipal không vượt quá loanTerm
     if (
-      monthsWithoutPrincipal &&
-      loanTerm &&
-      parseInt(monthsWithoutPrincipal) > parseInt(loanTerm)
+      monthsWithNoPrincipalRepayment !== undefined &&
+      monthsWithNoPrincipalRepayment < 0
     ) {
-      return res.status(400).json({
-        message: "Số tháng không trả gốc không thể lớn hơn kỳ vay",
-      });
+      return res
+        .status(400)
+        .json({ message: "Months with no principal repayment is required" });
+    }
+
+    if (maturityDate && !dateRegex.test(maturityDate)) {
+      return res
+        .status(400)
+        .json({ message: "Valid maturity date is required (DD/MM/YYYY)" });
     }
 
     const costCenter = await CostCenter.findById(costCenterId);
@@ -541,40 +323,31 @@ exports.updateBankEntry = async (req, res) => {
       income: entry.income,
       expense: entry.expense,
       date: entry.date,
-      disbursementDate: entry.disbursementDate,
+      loanDisbursementDate: entry.loanDisbursementDate,
       interestRate: entry.interestRate,
-      loanTerm: entry.loanTerm,
       deductionDate: entry.deductionDate,
-      monthsWithoutPrincipal: entry.monthsWithoutPrincipal,
-      note: entry.note,
+      monthsWithNoPrincipalRepayment: entry.monthsWithNoPrincipalRepayment,
+      maturityDate: entry.maturityDate,
     };
 
     if (name) entry.name = name;
     if (income !== undefined) entry.income = parseFloat(income) || 0;
     if (expense !== undefined) entry.expense = parseFloat(expense) || 0;
     if (date) entry.date = date;
-    if (disbursementDate !== undefined)
-      entry.disbursementDate = disbursementDate || null;
+    if (loanDisbursementDate) entry.loanDisbursementDate = loanDisbursementDate;
     if (interestRate !== undefined)
-      entry.interestRate = parseFloat(interestRate) || 0;
-    if (loanTerm !== undefined) entry.loanTerm = parseInt(loanTerm) || 0;
-    if (deductionDate !== undefined)
-      entry.deductionDate = deductionDate || null;
-    if (monthsWithoutPrincipal !== undefined)
-      entry.monthsWithoutPrincipal = parseInt(monthsWithoutPrincipal) || 0;
-    if (note !== undefined) entry.note = note || "";
-
-    // Sinh lại daily entries nếu có thay đổi
-    if (
-      entry.disbursementDate &&
-      entry.interestRate > 0 &&
-      entry.loanTerm > 0 &&
-      entry.deductionDate
-    ) {
-      await generateDailyEntriesFromLoan(costCenter, entry, false);
-    }
+      entry.interestRate = parseFloat(interestRate);
+    if (deductionDate) entry.deductionDate = deductionDate;
+    if (monthsWithNoPrincipalRepayment !== undefined)
+      entry.monthsWithNoPrincipalRepayment = parseInt(
+        monthsWithNoPrincipalRepayment,
+      );
+    if (maturityDate) entry.maturityDate = maturityDate;
 
     await costCenter.save();
+
+    // Update daily entries for this loan
+    await entry.updateDailyEntries(costCenterId, CostCenter);
 
     await logAction(req, res, "UPDATE_BANK_ENTRY", costCenterId, entryId, {
       oldValues: oldValues,
@@ -583,12 +356,11 @@ exports.updateBankEntry = async (req, res) => {
         income: entry.income,
         expense: entry.expense,
         date: entry.date,
-        disbursementDate: entry.disbursementDate,
+        loanDisbursementDate: entry.loanDisbursementDate,
         interestRate: entry.interestRate,
-        loanTerm: entry.loanTerm,
         deductionDate: entry.deductionDate,
-        monthsWithoutPrincipal: entry.monthsWithoutPrincipal,
-        note: entry.note,
+        monthsWithNoPrincipalRepayment: entry.monthsWithNoPrincipalRepayment,
+        maturityDate: entry.maturityDate,
       },
     });
 
@@ -648,35 +420,23 @@ exports.deleteBankEntry = async (req, res) => {
       return res.status(404).json({ message: "Entry not found" });
     }
 
-    // Xóa các daily entries liên quan
-    if (
-      entryToDelete.generatedDailyEntryIds &&
-      entryToDelete.generatedDailyEntryIds.length > 0
-    ) {
-      await CostCenter.updateOne(
-        { _id: costCenterId },
-        {
-          $pull: {
-            daily: {
-              _id: { $in: entryToDelete.generatedDailyEntryIds },
-            },
-          },
-        },
-      );
-    }
-
     const deletedEntryData = {
       name: entryToDelete.name,
       income: entryToDelete.income,
       expense: entryToDelete.expense,
       date: entryToDelete.date,
-      disbursementDate: entryToDelete.disbursementDate,
+      loanDisbursementDate: entryToDelete.loanDisbursementDate,
       interestRate: entryToDelete.interestRate,
-      loanTerm: entryToDelete.loanTerm,
       deductionDate: entryToDelete.deductionDate,
-      monthsWithoutPrincipal: entryToDelete.monthsWithoutPrincipal,
-      note: entryToDelete.note,
+      monthsWithNoPrincipalRepayment:
+        entryToDelete.monthsWithNoPrincipalRepayment,
+      maturityDate: entryToDelete.maturityDate,
     };
+
+    // Remove associated daily entries
+    costCenter.daily = costCenter.daily.filter(
+      (entry) => entry.loanId !== entryId,
+    );
 
     costCenter.bank.pull(entryId);
     await costCenter.save();
@@ -761,7 +521,7 @@ exports.getCostCenterWithFundLimit = async (req, res) => {
     const { costCenterId } = req.params;
     const costCenter = await CostCenter.findById(
       costCenterId,
-      "name fundLimitBank bank daily",
+      "name fundLimitBank bank",
     );
 
     if (!costCenter) {
@@ -781,7 +541,6 @@ exports.getCostCenterWithFundLimit = async (req, res) => {
     let totalIncome = 0;
     let totalExpense = 0;
 
-    // Tính tổng từ bank entries (chỉ tính income/expense gốc, không bao gồm daily entries sinh ra từ vay)
     if (costCenter.bank && costCenter.bank.length > 0) {
       costCenter.bank.forEach((entry) => {
         totalIncome += entry.income || 0;
@@ -887,144 +646,329 @@ exports.updateFundLimitBank = async (req, res) => {
   }
 };
 
-// API để lấy daily entries đã sinh từ bank entries
-exports.getGeneratedDailyEntries = async (req, res) => {
+// Regenerate loan entries for a cost center
+exports.regenerateLoanEntries = async (req, res) => {
   try {
-    const { costCenterId, bankEntryId } = req.params;
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "captainOfFinance",
+      ].includes(req.user.role) &&
+      !req.user.permissions?.includes("Nhập liệu tài chính ngân hàng")
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
 
+    const { costCenterId } = req.params;
     const costCenter = await CostCenter.findById(costCenterId);
+
     if (!costCenter) {
       return res.status(404).json({ message: "Cost center not found" });
     }
 
-    const bankEntry = costCenter.bank.id(bankEntryId);
-    if (!bankEntry) {
-      return res.status(404).json({ message: "Bank entry not found" });
+    let regeneratedCount = 0;
+    // Regenerate entries for all bank entries (loans)
+    for (const bankEntry of costCenter.bank) {
+      await bankEntry.updateDailyEntries(costCenterId, CostCenter);
+      regeneratedCount++;
     }
 
-    const generatedEntries = costCenter.daily.filter(
-      (entry) =>
-        bankEntry.generatedDailyEntryIds &&
-        bankEntry.generatedDailyEntryIds.includes(entry._id),
-    );
-
-    res.json(generatedEntries);
+    res.json({
+      success: true,
+      message: `Đã tạo lại các khoản lãi vay cho ${regeneratedCount} khoản vay thành công`,
+      count: regeneratedCount,
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(400).json({ message: error.message });
   }
 };
 
-// API để tính toán trước lịch trả nợ
-exports.calculateLoanSchedule = async (req, res) => {
+// Preview loan schedule with proper first and last month handling
+exports.previewLoanSchedule = async (req, res) => {
   try {
     const {
       loanAmount,
       interestRate,
-      loanTerm,
-      disbursementDate,
+      loanDisbursementDate,
       deductionDate,
-      monthsWithoutPrincipal = 0,
+      monthsWithNoPrincipalRepayment,
+      maturityDate,
     } = req.body;
 
-    const annualInterestRate = interestRate / 100;
-    const monthlyInterestRate = annualInterestRate / 12;
-    const dailyInterestRate = annualInterestRate / 365;
+    const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
 
-    const results = [];
-    let remainingBalance = loanAmount;
-    const monthlyPayment = calculateMonthlyPayment(
-      loanAmount,
-      annualInterestRate,
-      loanTerm,
-    );
-    let totalInterest = 0;
-    let totalPrincipal = 0;
+    // Validate inputs
+    if (!loanDisbursementDate || !dateRegex.test(loanDisbursementDate)) {
+      return res
+        .status(400)
+        .json({ message: "Valid loan disbursement date is required" });
+    }
 
-    for (let month = 0; month < loanTerm; month++) {
-      let expenseAmount = 0;
-      let principalPaid = 0;
-      let interestPaid = 0;
-      let description = "";
-      let status = "";
+    if (interestRate === undefined || interestRate < 0) {
+      return res
+        .status(400)
+        .json({ message: "Valid interest rate is required" });
+    }
 
-      const currentMonthDate =
-        month === 0 ? deductionDate : addMonths(deductionDate, month);
-      const isGracePeriod = month < monthsWithoutPrincipal;
+    if (!deductionDate || !dateRegex.test(deductionDate)) {
+      return res
+        .status(400)
+        .json({ message: "Valid deduction date is required" });
+    }
 
-      // Tháng đầu tiên
-      if (month === 0) {
-        const days = daysBetween(disbursementDate, deductionDate);
-        interestPaid = days * dailyInterestRate * loanAmount;
-        expenseAmount = interestPaid;
-        principalPaid = 0;
-        description = `Lãi ${days} ngày từ ${disbursementDate} đến ${deductionDate}`;
-        status = isGracePeriod ? "Chỉ lãi (Tháng không gốc)" : "Lãi đầu kỳ";
-      }
-      // Tháng cuối cùng
-      else if (month === loanTerm - 1) {
-        const lastPaymentDate = addMonths(disbursementDate, loanTerm);
-        const firstDayOfLastMonth = getFirstDayOfMonth(currentMonthDate);
-        if (lastPaymentDate && firstDayOfLastMonth) {
-          const days = daysBetween(firstDayOfLastMonth, lastPaymentDate);
-
-          if (isGracePeriod) {
-            interestPaid = days * dailyInterestRate * remainingBalance;
-            expenseAmount = interestPaid;
-            principalPaid = 0;
-            description = `Lãi ${days} ngày cuối kỳ`;
-            status = "Chỉ lãi (Tháng không gốc)";
-          } else {
-            interestPaid = days * dailyInterestRate * remainingBalance;
-            principalPaid = remainingBalance;
-            expenseAmount = interestPaid + principalPaid;
-            description = `Lãi ${days} ngày, trả hết gốc còn lại`;
-            status = "Trả hết gốc + lãi";
-          }
-        }
-      }
-      // Các tháng giữa
-      else {
-        if (isGracePeriod) {
-          interestPaid = monthlyInterestRate * remainingBalance;
-          expenseAmount = interestPaid;
-          principalPaid = 0;
-          description = `Lãi tháng ${month + 1} trên dư nợ ${Math.round(remainingBalance).toLocaleString("vi-VN")}đ`;
-          status = "Chỉ lãi (Tháng không gốc)";
-        } else {
-          interestPaid = monthlyInterestRate * remainingBalance;
-          principalPaid = monthlyPayment - interestPaid;
-          expenseAmount = monthlyPayment;
-          remainingBalance -= principalPaid;
-          description = `Trả gốc ${Math.round(principalPaid).toLocaleString("vi-VN")}đ, lãi ${Math.round(interestPaid).toLocaleString("vi-VN")}đ`;
-          status = "Trả gốc + lãi";
-        }
-      }
-
-      totalInterest += interestPaid;
-      totalPrincipal += principalPaid;
-
-      results.push({
-        month: month + 1,
-        date: currentMonthDate,
-        payment: Math.round(expenseAmount),
-        principal: Math.round(principalPaid),
-        interest: Math.round(interestPaid),
-        remainingBalance: Math.max(0, Math.round(remainingBalance)),
-        description,
-        status,
+    if (
+      monthsWithNoPrincipalRepayment === undefined ||
+      monthsWithNoPrincipalRepayment < 0
+    ) {
+      return res.status(400).json({
+        message: "Valid months with no principal repayment is required",
       });
     }
 
+    if (!maturityDate || !dateRegex.test(maturityDate)) {
+      return res
+        .status(400)
+        .json({ message: "Valid maturity date is required" });
+    }
+
+    // Create a temporary loan object to generate schedule
+    const tempLoan = {
+      income: parseFloat(loanAmount) || 0,
+      loanDisbursementDate,
+      interestRate: parseFloat(interestRate),
+      deductionDate,
+      monthsWithNoPrincipalRepayment: parseInt(monthsWithNoPrincipalRepayment),
+      maturityDate,
+    };
+
+    // Use the same schedule generation logic as in the model
+    const parseDateToTimestamp = (dateString) => {
+      const parts = dateString.split("/");
+      return new Date(parts[2], parts[1] - 1, parts[0]);
+    };
+
+    const formatDate = (date) => {
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+
+    const getActualDaysBetween = (startDateStr, endDateStr) => {
+      const startDate = parseDateToTimestamp(startDateStr);
+      const endDate = parseDateToTimestamp(endDateStr);
+      if (!startDate || !endDate) return 0;
+
+      let days = 0;
+      let current = new Date(startDate);
+      const end = new Date(endDate);
+
+      while (current < end) {
+        days++;
+        current.setDate(current.getDate() + 1);
+      }
+
+      return days;
+    };
+
+    const getDeductionDateForMonth = (baseDate, targetMonth, deductionDay) => {
+      const date = new Date(baseDate);
+      date.setMonth(targetMonth);
+
+      const lastDayOfMonth = new Date(
+        date.getFullYear(),
+        date.getMonth() + 1,
+        0,
+      ).getDate();
+      const actualDay = Math.min(deductionDay, lastDayOfMonth);
+      date.setDate(actualDay);
+
+      return date;
+    };
+
+    const generateDeductionSchedule = (entry) => {
+      const schedule = [];
+      const disbursementDate = parseDateToTimestamp(entry.loanDisbursementDate);
+      const maturityDate = parseDateToTimestamp(entry.maturityDate);
+      const deductionDay = parseInt(entry.deductionDate.split("/")[0]);
+
+      if (!disbursementDate || !maturityDate || !deductionDay) return schedule;
+
+      const totalLoan = entry.income || 0;
+      const gracePeriodMonths = entry.monthsWithNoPrincipalRepayment || 0;
+
+      // Determine the first deduction date
+      let firstDeductionDate = new Date(disbursementDate);
+      firstDeductionDate.setMonth(firstDeductionDate.getMonth() + 1);
+      firstDeductionDate = getDeductionDateForMonth(
+        firstDeductionDate,
+        firstDeductionDate.getMonth(),
+        deductionDay,
+      );
+
+      if (firstDeductionDate <= disbursementDate) {
+        firstDeductionDate.setMonth(firstDeductionDate.getMonth() + 1);
+        firstDeductionDate = getDeductionDateForMonth(
+          firstDeductionDate,
+          firstDeductionDate.getMonth(),
+          deductionDay,
+        );
+      }
+
+      // Calculate months with principal repayment (after grace period)
+      let monthsWithPrincipal = 0;
+      let currentDate = new Date(firstDeductionDate);
+      let monthCounter = 0;
+
+      while (currentDate <= maturityDate) {
+        if (monthCounter >= gracePeriodMonths) {
+          monthsWithPrincipal++;
+        }
+        monthCounter++;
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        currentDate = getDeductionDateForMonth(
+          currentDate,
+          currentDate.getMonth(),
+          deductionDay,
+        );
+      }
+
+      const principalPerMonth =
+        monthsWithPrincipal > 0 ? totalLoan / monthsWithPrincipal : 0;
+
+      let currentStartDate = new Date(disbursementDate);
+      let currentDeductionDate = new Date(firstDeductionDate);
+      let monthIndex = 0;
+      let principalPaid = 0;
+
+      while (currentDeductionDate <= maturityDate) {
+        const isGracePeriod = monthIndex < gracePeriodMonths;
+
+        const daysInPeriod = getActualDaysBetween(
+          formatDate(currentStartDate),
+          formatDate(currentDeductionDate),
+        );
+
+        const outstandingBalance = totalLoan - principalPaid;
+        const interestExpense =
+          (entry.interestRate / 365) * daysInPeriod * outstandingBalance;
+
+        let principalThisMonth = 0;
+        if (!isGracePeriod && monthIndex >= gracePeriodMonths) {
+          const remainingPrincipal = totalLoan - principalPaid;
+          if (monthIndex === gracePeriodMonths + monthsWithPrincipal - 1) {
+            principalThisMonth = remainingPrincipal;
+          } else {
+            principalThisMonth = principalPerMonth;
+          }
+        }
+
+        const newOutstandingBalance = outstandingBalance - principalThisMonth;
+
+        schedule.push({
+          period: monthIndex + 1,
+          deductionDate: formatDate(currentDeductionDate),
+          startDate: formatDate(currentStartDate),
+          endDate: formatDate(currentDeductionDate),
+          daysInPeriod,
+          interestExpense: Math.round(interestExpense),
+          principalRepayment: Math.round(principalThisMonth),
+          totalPayment: Math.round(interestExpense + principalThisMonth),
+          outstandingBalance: Math.round(newOutstandingBalance),
+          isGracePeriod,
+          isFirstPayment: monthIndex === 0,
+          isLastPayment: currentDeductionDate >= maturityDate,
+        });
+
+        principalPaid += principalThisMonth;
+        currentStartDate = new Date(currentDeductionDate);
+        monthIndex++;
+
+        const nextDate = new Date(currentDeductionDate);
+        nextDate.setMonth(nextDate.getMonth() + 1);
+        currentDeductionDate = getDeductionDateForMonth(
+          nextDate,
+          nextDate.getMonth(),
+          deductionDay,
+        );
+      }
+
+      // Handle final period from last deduction to maturity date if needed
+      const lastPayment = schedule[schedule.length - 1];
+      if (
+        lastPayment &&
+        lastPayment.deductionDate !== formatDate(maturityDate)
+      ) {
+        const lastDeductionDate = parseDateToTimestamp(
+          lastPayment.deductionDate,
+        );
+        if (lastDeductionDate < maturityDate) {
+          const daysToMaturity = getActualDaysBetween(
+            formatDate(lastDeductionDate),
+            formatDate(maturityDate),
+          );
+
+          const finalOutstandingBalance = lastPayment.outstandingBalance;
+          if (finalOutstandingBalance > 0 && daysToMaturity > 0) {
+            const finalInterest =
+              (entry.interestRate / 365) *
+              daysToMaturity *
+              finalOutstandingBalance;
+
+            schedule.push({
+              period: schedule.length + 1,
+              deductionDate: formatDate(maturityDate),
+              startDate: lastPayment.deductionDate,
+              endDate: formatDate(maturityDate),
+              daysInPeriod: daysToMaturity,
+              interestExpense: Math.round(finalInterest),
+              principalRepayment: Math.round(finalOutstandingBalance),
+              totalPayment: Math.round(finalInterest + finalOutstandingBalance),
+              outstandingBalance: 0,
+              isGracePeriod: false,
+              isFirstPayment: false,
+              isLastPayment: true,
+              isFinalSettlement: true,
+            });
+          }
+        }
+      }
+
+      return schedule;
+    };
+
+    const schedule = generateDeductionSchedule(tempLoan);
+
+    // Calculate summary statistics
+    const summary = {
+      totalInterest: schedule.reduce((sum, p) => sum + p.interestExpense, 0),
+      totalPrincipal: schedule.reduce(
+        (sum, p) => sum + p.principalRepayment,
+        0,
+      ),
+      totalPayments: schedule.reduce((sum, p) => sum + p.totalPayment, 0),
+      numberOfPayments: schedule.length,
+      firstPaymentDate: schedule[0]?.deductionDate || null,
+      lastPaymentDate: schedule[schedule.length - 1]?.deductionDate || null,
+      hasFinalSettlement: schedule.some((p) => p.isFinalSettlement),
+    };
+
     res.json({
-      loanAmount: Math.round(loanAmount),
-      interestRate,
-      loanTerm,
-      monthsWithoutPrincipal,
-      monthlyPayment: Math.round(monthlyPayment),
-      totalPayment: Math.round(totalInterest + loanAmount),
-      totalInterest: Math.round(totalInterest),
-      totalPrincipal: Math.round(totalPrincipal),
-      schedule: results,
+      success: true,
+      schedule,
+      summary,
+      loanDetails: {
+        loanAmount: tempLoan.income,
+        interestRate: tempLoan.interestRate,
+        disbursementDate: tempLoan.loanDisbursementDate,
+        maturityDate: tempLoan.maturityDate,
+        deductionDate: tempLoan.deductionDate,
+        gracePeriodMonths: tempLoan.monthsWithNoPrincipalRepayment,
+      },
     });
   } catch (error) {
     res.status(400).json({ message: error.message });

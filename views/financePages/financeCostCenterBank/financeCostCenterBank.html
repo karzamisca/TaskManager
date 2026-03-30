@@ -170,6 +170,13 @@
               >
                 Đặt lại bộ lọc
               </button>
+              <button
+                class="btn-finance"
+                onclick="regenerateLoanEntries()"
+                style="background: #6c757d"
+              >
+                🔄 Tạo lại lãi vay
+              </button>
             </div>
           </div>
 
@@ -211,46 +218,29 @@
 
           <!-- Bảng dữ liệu -->
           <div id="addFormContainer" class="hidden">
-            <h2>Danh Sách Mục Ngân Hàng</h2>
+            <h2>Danh Sách Khoản Vay</h2>
             <div class="table-info">
               Hiển thị <span id="currentEntriesCount">0</span> trong tổng số
-              <span id="totalEntriesCount">0</span> mục
+              <span id="totalEntriesCount">0</span> khoản vay
             </div>
             <div class="table-responsive">
               <table id="entriesTable">
                 <thead>
                   <tr>
-                    <th data-field="name">Tên giao dịch</th>
+                    <th data-field="name">Tên khoản vay</th>
                     <th
                       data-field="date"
                       class="sortable"
                       onclick="sortTable('date')"
                     >
-                      Ngày
+                      Ngày giải ngân
                     </th>
-                    <th
-                      style="
-                        background-color: #e8f5e9;
-                        border-bottom: 2px solid #c8e6c9;
-                      "
-                    >
-                      Thu nhập (VND)
-                    </th>
-                    <th
-                      style="
-                        background-color: #e8f5e9;
-                        border-bottom: 2px solid #c8e6c9;
-                      "
-                    >
-                      Chi phí (VND)
-                    </th>
-                    <!-- Thông tin vay - mỗi trường một cột -->
-                    <th>Ngày nhận nợ</th>
+                    <th>Số tiền vay</th>
+                    <th>Đã trả gốc</th>
                     <th>Lãi suất (%)</th>
-                    <th>Kỳ vay (tháng)</th>
-                    <th>Ngày trích nợ</th>
-                    <th>Tháng không gốc</th>
-                    <th>Ghi chú</th>
+                    <th>Ngày trừ nợ</th>
+                    <th>Tháng ân hạn</th>
+                    <th>Ngày đáo hạn</th>
                     <th>Thao tác</th>
                   </tr>
                 </thead>
@@ -263,7 +253,7 @@
                 class="btn-finance"
                 onclick="showAddRow()"
               >
-                + Thêm Mục Mới
+                + Thêm Khoản Vay Mới
               </button>
             </div>
           </div>
@@ -397,36 +387,20 @@
                 <thead>
                   <tr>
                     <th data-field="costCenter">Trạm</th>
-                    <th data-field="name">Tên giao dịch</th>
+                    <th data-field="name">Tên khoản vay</th>
                     <th
                       data-field="date"
                       class="sortable"
                       onclick="sortAllTable('date')"
                     >
-                      Ngày
+                      Ngày giải ngân
                     </th>
-                    <th
-                      style="
-                        background-color: #e8f5e9;
-                        border-bottom: 2px solid #c8e6c9;
-                      "
-                    >
-                      Thu nhập (VND)
-                    </th>
-                    <th
-                      style="
-                        background-color: #e8f5e9;
-                        border-bottom: 2px solid #c8e6c9;
-                      "
-                    >
-                      Chi phí (VND)
-                    </th>
-                    <!-- Thông tin vay - mỗi trường một cột -->
-                    <th>Ngày nhận nợ</th>
+                    <th>Số tiền vay</th>
+                    <th>Đã trả gốc</th>
                     <th>Lãi suất (%)</th>
-                    <th>Kỳ vay (tháng)</th>
-                    <th>Ngày trích nợ</th>
-                    <th>Tháng không gốc</th>
+                    <th>Ngày trừ nợ</th>
+                    <th>Tháng ân hạn</th>
+                    <th>Ngày đáo hạn</th>
                     <th>Thao tác</th>
                   </tr>
                 </thead>
@@ -450,8 +424,36 @@
       </div>
     </div>
 
+    <!-- Modal for loan preview -->
+    <div class="modal fade" id="loanPreviewModal" tabindex="-1">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">📋 Dự kiến lịch trả nợ</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div id="loanPreviewContent"></div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="financePages/financeCostCenterBank/financeCostCenterBank.js?v=1.13"></script>
+    <script src="financePages/financeCostCenterBank/financeCostCenterBank.js?v=1.14"></script>
   </body>
 </html>

@@ -73,314 +73,159 @@ function parseDate(dateString) {
   return null;
 }
 
-// Format date to DD/MM/YYYY
-function formatDate(date) {
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
+// Validate date format
+function isValidDate(dateString) {
+  if (!dateString) return false;
+  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+  if (!regex.test(dateString)) return false;
+
+  const parts = dateString.split("/");
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const year = parseInt(parts[2], 10);
+
+  if (year < 1000 || year > 3000 || month === 0 || month > 12) return false;
+
+  const monthLength = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+  if (year % 400 === 0 || (year % 100 !== 0 && year % 4 === 0)) {
+    monthLength[1] = 29;
+  }
+
+  return day > 0 && day <= monthLength[month - 1];
 }
 
-// Add months to a date
-function addMonths(dateString, months) {
+// Helper function to compare dates
+function isDateOnOrAfter(dateString, compareDateString) {
   const date = parseDate(dateString);
-  if (!date) return null;
-  date.setMonth(date.getMonth() + months);
-  return formatDate(date);
+  const compareDate = parseDate(compareDateString);
+  if (!date || !compareDate) return true;
+  return date >= compareDate;
 }
 
-// Get first day of month
-function getFirstDayOfMonth(dateString) {
+function isDateOnOrBefore(dateString, compareDateString) {
   const date = parseDate(dateString);
-  if (!date) return null;
-  date.setDate(1);
-  return formatDate(date);
+  const compareDate = parseDate(compareDateString);
+  if (!date || !compareDate) return true;
+  return date <= compareDate;
 }
 
-// Calculate days between two dates
-function daysBetween(startDateString, endDateString) {
-  const start = parseDate(startDateString);
-  const end = parseDate(endDateString);
-  if (!start || !end) return 0;
-  const diffTime = Math.abs(end - start);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
+// Preview loan schedule
+async function previewLoanSchedule(loanData) {
+  try {
+    const response = await fetch(`${API_BASE}/preview-loan-schedule`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(loanData),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      displayLoanPreview(result);
+    } else {
+      const error = await response.json();
+      alert("Lỗi khi xem trước: " + (error.message || "Không xác định"));
+    }
+  } catch (error) {
+    alert("Lỗi khi xem trước: " + error.message);
+  }
 }
 
-// Calculate monthly payment (PMT formula)
-function calculateMonthlyPayment(loanAmount, annualRate, termMonths) {
-  const monthlyRate = annualRate / 100 / 12;
-  if (monthlyRate === 0) return loanAmount / termMonths;
-  const payment =
-    (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, termMonths)) /
-    (Math.pow(1 + monthlyRate, termMonths) - 1);
-  return payment;
+function displayLoanPreview(data) {
+  const modalContent = document.getElementById("loanPreviewContent");
+
+  let scheduleHtml = `
+    <div class="table-responsive">
+      <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+          <tr>
+            <th>Kỳ</th>
+            <th>Ngày trả</th>
+            <th>Tiền lãi (VND)</th>
+            <th>Tiền gốc (VND)</th>
+            <th>Tổng trả (VND)</th>
+            <th>Dư nợ còn lại (VND)</th>
+            <th>Ghi chú</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  for (const payment of data.schedule) {
+    const graceNote = payment.isGracePeriod ? "Ân hạn" : "";
+    scheduleHtml += `
+      <tr>
+        <td>${payment.period}</td>
+        <td>${payment.deductionDate}</td>
+        <td class="${payment.interestExpense > 0 ? "text-danger" : ""}">${payment.interestExpense.toLocaleString("vi-VN")}</td>
+        <td class="${payment.principalRepayment > 0 ? "text-success" : ""}">${payment.principalRepayment.toLocaleString("vi-VN")}</td>
+        <td><strong>${payment.totalPayment.toLocaleString("vi-VN")}</strong></td>
+        <td>${payment.outstandingBalance.toLocaleString("vi-VN")}</td>
+        <td>${graceNote}</td>
+      </tr>
+    `;
+  }
+
+  scheduleHtml += `
+        </tbody>
+        <tfoot class="table-secondary">
+          <tr>
+            <th colspan="2">Tổng cộng</th>
+            <th>${data.summary.totalInterest.toLocaleString("vi-VN")}</th>
+            <th>${data.summary.totalPrincipal.toLocaleString("vi-VN")}</th>
+            <th>${data.summary.totalPayments.toLocaleString("vi-VN")}</th>
+            <th colspan="2"></th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="mt-3">
+      <strong>Số kỳ trả:</strong> ${data.summary.numberOfPayments} kỳ<br>
+      <strong>Tổng lãi phải trả:</strong> ${data.summary.totalInterest.toLocaleString("vi-VN")} VND<br>
+      <strong>Tổng gốc phải trả:</strong> ${data.summary.totalPrincipal.toLocaleString("vi-VN")} VND<br>
+      <strong>Tổng số tiền phải trả:</strong> ${data.summary.totalPayments.toLocaleString("vi-VN")} VND
+    </div>
+  `;
+
+  modalContent.innerHTML = scheduleHtml;
+  new bootstrap.Modal(document.getElementById("loanPreviewModal")).show();
 }
 
-// Preview loan schedule without saving
-function previewLoanSchedule(bankEntry) {
-  const {
-    income: loanAmount,
-    interestRate,
-    loanTerm,
-    disbursementDate,
-    deductionDate,
-    monthsWithoutPrincipal = 0,
-  } = bankEntry;
+// Regenerate loan entries
+async function regenerateLoanEntries() {
+  if (!currentCostCenterId) {
+    alert("Vui lòng chọn trạm trước");
+    return;
+  }
 
   if (
-    !loanAmount ||
-    !interestRate ||
-    !loanTerm ||
-    !disbursementDate ||
-    !deductionDate
+    confirm(
+      "Bạn có chắc chắn muốn tạo lại tất cả các khoản lãi vay? Các bản ghi cũ sẽ bị xóa và tạo mới.",
+    )
   ) {
-    alert("Vui lòng nhập đầy đủ thông tin khoản vay");
-    return null;
-  }
+    try {
+      const response = await fetch(
+        `${API_BASE}/${currentCostCenterId}/regenerate-loans`,
+        {
+          method: "POST",
+        },
+      );
 
-  const annualRate = interestRate / 100;
-  const monthlyRate = annualRate / 12;
-  const dailyRate = annualRate / 365;
-
-  const results = [];
-  let remainingBalance = loanAmount;
-  const monthlyPayment = calculateMonthlyPayment(
-    loanAmount,
-    annualRate,
-    loanTerm,
-  );
-  let totalInterest = 0;
-
-  for (let month = 0; month < loanTerm; month++) {
-    let expenseAmount = 0;
-    let principalPaid = 0;
-    let interestPaid = 0;
-    let description = "";
-    let status = "";
-
-    const currentMonthDate =
-      month === 0 ? deductionDate : addMonths(deductionDate, month);
-    const isGracePeriod = month < monthsWithoutPrincipal;
-
-    // First month
-    if (month === 0) {
-      const days = daysBetween(disbursementDate, deductionDate);
-      interestPaid = days * dailyRate * loanAmount;
-      expenseAmount = interestPaid;
-      principalPaid = 0;
-      description = `Lãi ${days} ngày từ ${disbursementDate} đến ${deductionDate}`;
-      status = isGracePeriod ? "Chỉ lãi (Tháng không gốc)" : "Lãi đầu kỳ";
-    }
-    // Last month
-    else if (month === loanTerm - 1) {
-      const lastPaymentDate = addMonths(disbursementDate, loanTerm);
-      const firstDayOfLastMonth = getFirstDayOfMonth(currentMonthDate);
-      if (lastPaymentDate && firstDayOfLastMonth) {
-        const days = daysBetween(firstDayOfLastMonth, lastPaymentDate);
-
-        if (isGracePeriod) {
-          interestPaid = days * dailyRate * remainingBalance;
-          expenseAmount = interestPaid;
-          principalPaid = 0;
-          description = `Lãi ${days} ngày cuối kỳ`;
-          status = "Chỉ lãi (Tháng không gốc)";
-        } else {
-          interestPaid = days * dailyRate * remainingBalance;
-          principalPaid = remainingBalance;
-          expenseAmount = interestPaid + principalPaid;
-          description = `Lãi ${days} ngày, trả hết gốc còn lại`;
-          status = "Trả hết gốc + lãi";
-        }
-      }
-    }
-    // Middle months
-    else {
-      if (isGracePeriod) {
-        interestPaid = monthlyRate * remainingBalance;
-        expenseAmount = interestPaid;
-        principalPaid = 0;
-        description = `Lãi tháng ${month + 1} trên dư nợ ${Math.round(remainingBalance).toLocaleString("vi-VN")}đ`;
-        status = "Chỉ lãi (Tháng không gốc)";
+      if (response.ok) {
+        const result = await response.json();
+        alert(result.message);
+        await loadEntries();
+        await updateGlobalSummary();
       } else {
-        interestPaid = monthlyRate * remainingBalance;
-        principalPaid = monthlyPayment - interestPaid;
-        expenseAmount = monthlyPayment;
-        remainingBalance -= principalPaid;
-        description = `Trả gốc ${Math.round(principalPaid).toLocaleString("vi-VN")}đ, lãi ${Math.round(interestPaid).toLocaleString("vi-VN")}đ`;
-        status = "Trả gốc + lãi";
+        const error = await response.json();
+        alert("Lỗi: " + (error.message || "Không xác định"));
       }
-    }
-
-    totalInterest += interestPaid;
-
-    results.push({
-      month: month + 1,
-      date: currentMonthDate,
-      amount: Math.round(expenseAmount),
-      principal: Math.round(principalPaid),
-      interest: Math.round(interestPaid),
-      remainingBalance: Math.max(0, Math.round(remainingBalance)),
-      description,
-      status,
-      isGracePeriod,
-    });
-  }
-
-  return {
-    loanAmount: Math.round(loanAmount),
-    interestRate,
-    loanTerm,
-    monthsWithoutPrincipal,
-    monthlyPayment: Math.round(monthlyPayment),
-    totalPayment: Math.round(totalInterest + loanAmount),
-    totalInterest: Math.round(totalInterest),
-    schedule: results,
-  };
-}
-
-// Progressive totals for all view
-function buildProgressiveTotals(sortedEntries, direction) {
-  const chronological =
-    direction === "asc" ? [...sortedEntries] : [...sortedEntries].reverse();
-
-  const dateOrder = [];
-  const byDate = {};
-  chronological.forEach((e) => {
-    if (!byDate[e.date]) {
-      byDate[e.date] = { income: 0, expense: 0 };
-      dateOrder.push(e.date);
-    }
-    byDate[e.date].income += e.income || 0;
-    byDate[e.date].expense += e.expense || 0;
-  });
-
-  let runActual = 0;
-  const totalsMap = {};
-  dateOrder.forEach((date) => {
-    const d = byDate[date];
-    runActual += d.income - d.expense;
-    totalsMap[date] = { actual: runActual };
-  });
-
-  return totalsMap;
-}
-
-// Creates the separator row after each day's entries
-function createDailyTotalRow(date, actual, colCount, isAllView) {
-  const tr = document.createElement("tr");
-  tr.className = "daily-progressive-row";
-  tr.setAttribute("data-progressive-date", date);
-
-  const actualClass = getProfitClass(actual);
-  const actualFmt = actual.toLocaleString("vi-VN");
-
-  if (isAllView) {
-    tr.innerHTML = `
-      <td colspan="3" class="daily-progressive-label">
-        <span class="daily-progressive-date">${date}</span>
-        <span class="daily-progressive-title">Lũy kế đến cuối ngày</span>
-      </td>
-      <td colspan="2" class="daily-progressive-actual ${actualClass}">
-        <span class="daily-progressive-value-label">Thực tế:</span> ${actualFmt} VND
-      </td>
-      <td colspan="${colCount - 5}" class="daily-progressive-spacer"></td>
-    `;
-  } else {
-    tr.innerHTML = `
-      <td colspan="2" class="daily-progressive-label">
-        <span class="daily-progressive-date">${date}</span>
-        <span class="daily-progressive-title">Lũy kế đến cuối ngày</span>
-      </td>
-      <td colspan="2" class="daily-progressive-actual ${actualClass}">
-        <span class="daily-progressive-value-label">Thực tế:</span> ${actualFmt} VND
-      </td>
-      <td colspan="${colCount - 4}" class="daily-progressive-spacer"></td>
-    `;
-  }
-
-  return tr;
-}
-
-// Apply today red lines
-function applyTodayRedLines(tbody, today, colSpan) {
-  if (!tbody) return;
-  const allRows = Array.from(tbody.querySelectorAll("tr[data-date]"));
-  const todayRows = allRows.filter(
-    (r) => r.getAttribute("data-date") === today,
-  );
-
-  tbody
-    .querySelectorAll(".today-first-row, .today-last-row")
-    .forEach((r) => r.classList.remove("today-first-row", "today-last-row"));
-  tbody.querySelectorAll(".today-sentinel-row").forEach((r) => r.remove());
-
-  if (todayRows.length > 0) {
-    todayRows[0].classList.add("today-first-row");
-    todayRows[todayRows.length - 1].classList.add("today-last-row");
-  } else {
-    insertTodaySentinel(tbody, today, colSpan, allRows);
-  }
-}
-
-function insertTodaySentinel(tbody, today, colSpan, allRows) {
-  const todayMs = parseDate(today)?.getTime();
-  if (!todayMs) return;
-  const dated = allRows
-    .map((r) => ({
-      row: r,
-      ms: parseDate(r.getAttribute("data-date"))?.getTime(),
-    }))
-    .filter((x) => x.ms != null);
-
-  let insertBefore = null;
-  if (dated.length >= 2 && dated[0].ms >= dated[1].ms) {
-    for (const { row, ms } of dated) {
-      if (ms < todayMs) {
-        insertBefore = row;
-        break;
-      }
-    }
-  } else {
-    for (const { row, ms } of dated) {
-      if (ms > todayMs) {
-        insertBefore = row;
-        break;
-      }
+    } catch (error) {
+      alert("Lỗi: " + error.message);
     }
   }
-
-  const sentinel = makeSentinelRow(colSpan);
-  if (insertBefore) {
-    tbody.insertBefore(sentinel, insertBefore);
-  } else {
-    const addRow = tbody.querySelector(".add-row");
-    addRow ? tbody.insertBefore(sentinel, addRow) : tbody.appendChild(sentinel);
-  }
-}
-
-function makeSentinelRow(colSpan) {
-  const tr = document.createElement("tr");
-  tr.className = "today-sentinel-row";
-  const td = document.createElement("td");
-  td.colSpan = colSpan;
-  tr.appendChild(td);
-  return tr;
-}
-
-// Today filter functions
-function applyTodayOnlyFilter() {
-  const today = getTodayFormatted();
-  document.getElementById("dateFrom").value = today;
-  document.getElementById("dateTo").value = today;
-  applyFilters();
-}
-
-function applyAllTodayOnlyFilter() {
-  const today = getTodayFormatted();
-  document.getElementById("allDateFrom").value = today;
-  document.getElementById("allDateTo").value = today;
-  applyAllFilters();
 }
 
 // Toggle view
@@ -430,7 +275,6 @@ async function loadCostCenters() {
       select.appendChild(option);
     });
 
-    // Tải dữ liệu cho tất cả cost centers
     await loadAllCostCentersData();
   } catch (error) {
     console.error("Lỗi khi tải trạm:", error);
@@ -456,13 +300,11 @@ async function loadAllCostCentersData() {
   try {
     const loadingPromises = allCostCenters.map(async (costCenter) => {
       try {
-        // Tải entries
         const entriesResponse = await fetch(
           `${API_BASE}/${costCenter._id}/entries`,
         );
         const costCenterEntries = await entriesResponse.json();
 
-        // Tải fund info
         let fundInfo = {
           fundLimitBank: 0,
           totalIncome: 0,
@@ -506,7 +348,6 @@ async function loadAllCostCentersData() {
     });
 
     await Promise.all(loadingPromises);
-
     flattenAllEntries();
     calculateGlobalSummary();
     populateCostCenterFilter();
@@ -559,41 +400,6 @@ function calculateGlobalSummary() {
     globalTotalFundLimit.toLocaleString("vi-VN");
   document.getElementById("globalTotalFundAvailable").textContent =
     globalTotalFundAvailable.toLocaleString("vi-VN");
-}
-
-// Cập nhật dữ liệu toàn hệ thống khi có thay đổi
-async function updateGlobalSummary() {
-  if (currentCostCenterId) {
-    try {
-      const entriesResponse = await fetch(
-        `${API_BASE}/${currentCostCenterId}/entries`,
-      );
-      const updatedEntries = await entriesResponse.json();
-
-      let updatedFundInfo = {};
-      try {
-        const fundResponse = await fetch(
-          `${API_BASE}/${currentCostCenterId}/fund-info`,
-        );
-        updatedFundInfo = await fundResponse.json();
-      } catch (fundError) {
-        console.error("Lỗi khi tải fund info:", fundError);
-      }
-
-      allEntries[currentCostCenterId] = {
-        name: document.getElementById("costCenterName").textContent,
-        entries: updatedEntries,
-      };
-
-      allFundInfo[currentCostCenterId] = updatedFundInfo;
-    } catch (error) {
-      console.error("Lỗi khi cập nhật dữ liệu:", error);
-    }
-  }
-
-  flattenAllEntries();
-  calculateGlobalSummary();
-  if (alternativeViewActive) renderAllCostCentersView();
 }
 
 // Tải dữ liệu cho trạm được chọn
@@ -664,7 +470,6 @@ async function loadEntries() {
     applyFilters();
 
     resetEditStates();
-
     await loadFundInfo();
   } catch (error) {
     alert("Lỗi khi tải dữ liệu: " + error.message);
@@ -679,28 +484,28 @@ function resetEditStates() {
   hideMultipleEntryForm();
 }
 
-// Show add button
 function showAddButton() {
-  document.getElementById("addNewEntryBtn").style.display = "inline-block";
+  const btn = document.getElementById("addNewEntryBtn");
+  if (btn) btn.style.display = "inline-block";
 }
 
-// Hide add button
 function hideAddButton() {
-  document.getElementById("addNewEntryBtn").style.display = "none";
+  const btn = document.getElementById("addNewEntryBtn");
+  if (btn) btn.style.display = "none";
 }
 
-// Hide multiple entry form
 function hideMultipleEntryForm() {
-  document.getElementById("multipleEntryForm").classList.add("hidden");
-  document.getElementById("bulkActions").classList.remove("hidden");
+  const form = document.getElementById("multipleEntryForm");
+  if (form) form.classList.add("hidden");
+  const bulk = document.getElementById("bulkActions");
+  if (bulk) bulk.classList.remove("hidden");
   showAddButton();
   clearMultipleEntries();
 }
 
-// Clear multiple entries
 function clearMultipleEntries() {
   const container = document.getElementById("multipleEntriesContainer");
-  container.innerHTML = "";
+  if (container) container.innerHTML = "";
   multipleEntryCounter = 0;
 }
 
@@ -719,7 +524,6 @@ function sortEntries(field, direction) {
   updateSortIndicators(field, direction);
 }
 
-// Update sort indicators in table headers
 function updateSortIndicators(field, direction) {
   const headers = document.querySelectorAll("#entriesTable th.sortable");
   headers.forEach((header) => {
@@ -730,7 +534,6 @@ function updateSortIndicators(field, direction) {
   });
 }
 
-// Sort table when header is clicked
 function sortTable(field) {
   if (field !== "date") return;
   if (currentSortField === field) {
@@ -771,7 +574,6 @@ function calculateSummary() {
   document.getElementById("summarySection").classList.remove("hidden");
 }
 
-// Cập nhật thông tin quỹ
 function updateFundSummary(fundData) {
   const fundAvailableBank = fundData.fundAvailableBank || 0;
 
@@ -794,6 +596,7 @@ function updateFundSummary(fundData) {
 // Hiển thị các mục trong bảng cho single view
 function renderEntries() {
   const tbody = document.getElementById("entriesBody");
+  if (!tbody) return;
   tbody.innerHTML = "";
 
   document.getElementById("currentEntriesCount").textContent =
@@ -805,25 +608,17 @@ function renderEntries() {
   if (filteredEntries.length === 0 && !isAdding) {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td colspan="11" style="text-align: center; color: #666; padding: 20px;">
+      <td colspan="9" style="text-align: center; color: #666; padding: 20px;">
         ${
           entries.length === 0
-            ? "Chưa có dữ liệu nào. Hãy thêm mục mới."
+            ? "Chưa có dữ liệu nào. Hãy thêm khoản vay mới."
             : "Không có kết quả phù hợp với bộ lọc."
         }
-      </td>
+       </td>
     `;
     tbody.appendChild(row);
-    applyTodayRedLines(tbody, today, 11);
     return;
   }
-
-  // Build progressive totals
-  const progressiveTotals = buildProgressiveTotals(
-    filteredEntries,
-    currentSortDirection,
-  );
-  const renderedProgressiveDates = new Set();
 
   if (isAdding) {
     tbody.appendChild(createAddRow());
@@ -834,104 +629,66 @@ function renderEntries() {
     row.setAttribute("data-date", entry.date);
 
     if (entry._id === editingEntryId) {
-      // Edit mode
       row.className = "editing-row";
       row.innerHTML = `
-        <td><input type="text" id="editName_${entry._id}" value="${entry.name}" placeholder="Tên" required style="width:120px;"></td>
-        <td><input type="text" id="editDate_${entry._id}" value="${entry.date}" placeholder="DD/MM/YYYY" required style="width:100px;"></td>
-        <td><input type="number" id="editIncome_${entry._id}" value="${entry.income}" step="0.1" placeholder="Thu" required style="width:100px;"></td>
-        <td><input type="number" id="editExpense_${entry._id}" value="${entry.expense}" step="0.1" placeholder="Chi" required style="width:100px;"></td>
-        <td><input type="text" id="editDisbursementDate_${entry._id}" value="${entry.disbursementDate || ""}" placeholder="DD/MM/YYYY" style="width:100px;"></td>
-        <td><input type="number" id="editInterestRate_${entry._id}" value="${entry.interestRate || 0}" placeholder="%" step="0.1" style="width:70px;"></td>
-        <td><input type="number" id="editLoanTerm_${entry._id}" value="${entry.loanTerm || 0}" placeholder="tháng" style="width:70px;"></td>
-        <td><input type="text" id="editDeductionDate_${entry._id}" value="${entry.deductionDate || ""}" placeholder="DD/MM/YYYY" style="width:100px;"></td>
-        <td><input type="number" id="editMonthsWithoutPrincipal_${entry._id}" value="${entry.monthsWithoutPrincipal || 0}" placeholder="tháng" style="width:80px;"></td>
-        <td><input type="text" id="editNote_${entry._id}" value="${entry.note || ""}" placeholder="Ghi chú" style="width:100px;"></td>
-        <td class="actions" style="min-width:160px;">
-          <button class="save-btn" onclick="saveEdit('${entry._id}')" style="padding:3px 8px;">Lưu</button>
-          <button class="cancel-btn" onclick="cancelEdit('${entry._id}')" style="padding:3px 8px;">Hủy</button>
-          <button class="preview-btn" onclick="previewLoanFromEdit('${entry._id}')" style="padding:3px 8px; background:#17a2b8;">Xem trước</button>
+        <td><input type="text" id="editName_${entry._id}" value="${escapeHtml(entry.name)}" required></td>
+        <td><input type="text" id="editDate_${entry._id}" value="${entry.date}" placeholder="DD/MM/YYYY" required></td>
+        <td><input type="number" id="editIncome_${entry._id}" value="${entry.income}" step="0.1" required></td>
+        <td><input type="number" id="editExpense_${entry._id}" value="${entry.expense}" step="0.1" required></td>
+        <td><input type="number" id="editInterestRate_${entry._id}" value="${entry.interestRate}" step="0.01" required></td>
+        <td><input type="text" id="editDeductionDate_${entry._id}" value="${entry.deductionDate || ""}" placeholder="DD/MM/YYYY"></td>
+        <td><input type="number" id="editMonthsWithNoPrincipalRepayment_${entry._id}" value="${entry.monthsWithNoPrincipalRepayment || 0}" step="1"></td>
+        <td><input type="text" id="editMaturityDate_${entry._id}" value="${entry.maturityDate || ""}" placeholder="DD/MM/YYYY"></td>
+        <td class="actions">
+          <button class="save-btn" onclick="saveEdit('${entry._id}')">Lưu</button>
+          <button class="cancel-btn" onclick="cancelEdit('${entry._id}')">Hủy</button>
         </td>
       `;
     } else {
-      // View mode
       const dateClass = entry.date === today ? "current-date" : "";
-      const hasLoanInfo =
-        entry.disbursementDate && entry.interestRate > 0 && entry.loanTerm > 0;
-
+      const outstandingBalance = (entry.income || 0) - (entry.expense || 0);
       row.innerHTML = `
-        <td>${entry.name}</td>
+        <td>${escapeHtml(entry.name)}</td>
         <td class="${dateClass}">${entry.date}</td>
-        <td class="text-success">${(entry.income || 0).toLocaleString("vi-VN")}</td>
-        <td class="text-danger">${(entry.expense || 0).toLocaleString("vi-VN")}</td>
-        <td>${entry.disbursementDate || "-"}</td>
-        <td>${entry.interestRate ? entry.interestRate + "%" : "-"}</td>
-        <td>${entry.loanTerm ? entry.loanTerm + " tháng" : "-"}</td>
+        <td>${(entry.income || 0).toLocaleString("vi-VN")}</td>
+        <td>${(entry.expense || 0).toLocaleString("vi-VN")}</td>
+        <td>${entry.interestRate || 0}%</td>
         <td>${entry.deductionDate || "-"}</td>
-        <td>${entry.monthsWithoutPrincipal ? entry.monthsWithoutPrincipal + " tháng" : "-"}</td>
-        <td>${entry.note || "-"}</td>
-        <td class="actions" style="min-width:160px; display:flex; gap:3px; flex-wrap:wrap;">
-          <button class="edit-btn" onclick="startEdit('${entry._id}')" style="padding:3px 6px; font-size:11px;">Sửa</button>
-          <button class="delete-btn" onclick="deleteEntry('${entry._id}')" style="padding:3px 6px; font-size:11px;">Xóa</button>
-          ${
-            hasLoanInfo
-              ? `<button class="view-btn" onclick="viewLoanPredictions('${entry._id}')" style="padding:3px 6px; font-size:11px; background:#17a2b8;">📊 Dự đoán</button>`
-              : ""
-          }
-          ${
-            hasLoanInfo
-              ? `<button class="info-btn" onclick="viewGeneratedEntries('${entry._id}')" style="padding:3px 6px; font-size:11px; background:#6c757d;">📋 Lịch</button>`
-              : ""
-          }
+        <td>${entry.monthsWithNoPrincipalRepayment || 0}</td>
+        <td>${entry.maturityDate || "-"}</td>
+        <td class="actions">
+          <button class="edit-btn" onclick="startEdit('${entry._id}')">Sửa</button>
+          <button class="delete-btn" onclick="deleteEntry('${entry._id}')">Xóa</button>
+          <button class="preview-btn" onclick="previewLoanFromEntry('${entry._id}')" style="background:#17a2b8;">Xem lịch</button>
         </td>
       `;
     }
     tbody.appendChild(row);
-
-    // Insert progressive total row at each date boundary
-    const nextEntry = filteredEntries[idx + 1];
-    const isDateBoundary = !nextEntry || nextEntry.date !== entry.date;
-    if (isDateBoundary && !renderedProgressiveDates.has(entry.date)) {
-      renderedProgressiveDates.add(entry.date);
-      const totals = progressiveTotals[entry.date];
-      if (totals) {
-        tbody.appendChild(
-          createDailyTotalRow(entry.date, totals.actual, 11, false),
-        );
-      }
-    }
   });
-
-  applyTodayRedLines(tbody, today, 11);
 }
 
-// Preview loan from edit mode
-function previewLoanFromEdit(entryId) {
+function escapeHtml(str) {
+  if (!str) return "";
+  return str.replace(/[&<>]/g, function (m) {
+    if (m === "&") return "&amp;";
+    if (m === "<") return "&lt;";
+    if (m === ">") return "&gt;";
+    return m;
+  });
+}
+
+function previewLoanFromEntry(entryId) {
   const entry = entries.find((e) => e._id === entryId);
-  if (!entry) return;
-
-  // Get current values from edit fields
-  const updatedEntry = {
-    income:
-      parseFloat(document.getElementById(`editIncome_${entryId}`).value) || 0,
-    interestRate:
-      parseFloat(
-        document.getElementById(`editInterestRate_${entryId}`).value,
-      ) || 0,
-    loanTerm:
-      parseInt(document.getElementById(`editLoanTerm_${entryId}`).value) || 0,
-    disbursementDate: document.getElementById(`editDisbursementDate_${entryId}`)
-      .value,
-    deductionDate: document.getElementById(`editDeductionDate_${entryId}`)
-      .value,
-    monthsWithoutPrincipal:
-      parseInt(
-        document.getElementById(`editMonthsWithoutPrincipal_${entryId}`).value,
-      ) || 0,
-    name: document.getElementById(`editName_${entryId}`).value,
-  };
-
-  viewLoanPredictions(null, updatedEntry);
+  if (entry) {
+    previewLoanSchedule({
+      loanAmount: entry.income,
+      interestRate: entry.interestRate,
+      loanDisbursementDate: entry.date,
+      deductionDate: entry.deductionDate,
+      monthsWithNoPrincipalRepayment: entry.monthsWithNoPrincipalRepayment,
+      maturityDate: entry.maturityDate,
+    });
+  }
 }
 
 // Create add row for single view
@@ -941,43 +698,49 @@ function createAddRow() {
   row.className = "editing-row";
   const today = getTodayFormatted();
   row.innerHTML = `
-    <td><input type="text" id="newName" placeholder="Tên" required style="width:120px;"></td>
-    <td><input type="text" id="newDate" value="${today}" placeholder="DD/MM/YYYY" required style="width:100px;"></td>
-    <td><input type="number" id="newIncome" placeholder="Thu" step="0.1" value="0" required style="width:100px;"></td>
-    <td><input type="number" id="newExpense" placeholder="Chi" step="0.1" value="0" required style="width:100px;"></td>
-    <td><input type="text" id="newDisbursementDate" placeholder="DD/MM/YYYY" style="width:100px;"></td>
-    <td><input type="number" id="newInterestRate" placeholder="%" step="0.1" value="0" style="width:70px;"></td>
-    <td><input type="number" id="newLoanTerm" placeholder="tháng" value="0" style="width:70px;"></td>
-    <td><input type="text" id="newDeductionDate" placeholder="DD/MM/YYYY" style="width:100px;"></td>
-    <td><input type="number" id="newMonthsWithoutPrincipal" placeholder="tháng" value="0" style="width:80px;"></td>
-    <td><input type="text" id="newNote" placeholder="Ghi chú" style="width:100px;"></td>
-    <td class="actions" style="min-width:160px;">
-      <button class="save-btn" onclick="saveNewEntry()" style="padding:3px 8px;">Lưu</button>
-      <button class="cancel-btn" onclick="cancelAdd()" style="padding:3px 8px;">Hủy</button>
-      <button class="preview-btn" onclick="previewNewLoan()" style="padding:3px 8px; background:#17a2b8;">Xem trước</button>
+    <td><input type="text" id="newName" placeholder="Tên khoản vay" required></td>
+    <td><input type="text" id="newDate" value="${today}" placeholder="DD/MM/YYYY" required></td>
+    <td><input type="number" id="newIncome" placeholder="Số tiền vay" step="0.1" value="0" required></td>
+    <td><input type="number" id="newExpense" placeholder="Đã trả gốc" step="0.1" value="0" required></td>
+    <td><input type="number" id="newInterestRate" placeholder="Lãi suất %" step="0.01" value="0" required></td>
+    <td><input type="text" id="newDeductionDate" placeholder="Ngày trừ nợ (DD/MM/YYYY)" required></td>
+    <td><input type="number" id="newMonthsWithNoPrincipalRepayment" placeholder="Tháng ân hạn" step="1" value="0"></td>
+    <td><input type="text" id="newMaturityDate" placeholder="Ngày đáo hạn (DD/MM/YYYY)" required></td>
+    <td class="actions">
+      <button class="preview-btn" onclick="previewNewLoan()" style="background:#17a2b8;">Xem trước</button>
+      <button class="save-btn" onclick="saveNewEntry()">Lưu</button>
+      <button class="cancel-btn" onclick="cancelAdd()">Hủy</button>
     </td>
   `;
   return row;
 }
 
-// Preview new loan before saving
 function previewNewLoan() {
-  const newEntry = {
-    income: parseFloat(document.getElementById("newIncome").value) || 0,
+  const loanData = {
+    loanAmount: parseFloat(document.getElementById("newIncome").value) || 0,
     interestRate:
       parseFloat(document.getElementById("newInterestRate").value) || 0,
-    loanTerm: parseInt(document.getElementById("newLoanTerm").value) || 0,
-    disbursementDate: document.getElementById("newDisbursementDate").value,
+    loanDisbursementDate: document.getElementById("newDate").value,
     deductionDate: document.getElementById("newDeductionDate").value,
-    monthsWithoutPrincipal:
-      parseInt(document.getElementById("newMonthsWithoutPrincipal").value) || 0,
-    name: document.getElementById("newName").value || "Khoản vay mới",
+    monthsWithNoPrincipalRepayment:
+      parseInt(
+        document.getElementById("newMonthsWithNoPrincipalRepayment").value,
+      ) || 0,
+    maturityDate: document.getElementById("newMaturityDate").value,
   };
 
-  viewLoanPredictions(null, newEntry);
+  if (
+    !loanData.loanDisbursementDate ||
+    !loanData.deductionDate ||
+    !loanData.maturityDate
+  ) {
+    alert("Vui lòng nhập đầy đủ ngày giải ngân, ngày trừ nợ và ngày đáo hạn");
+    return;
+  }
+
+  previewLoanSchedule(loanData);
 }
 
-// Show add row
 function showAddRow() {
   if (isAdding || editingEntryId) return;
   isAdding = true;
@@ -985,33 +748,10 @@ function showAddRow() {
   renderEntries();
 }
 
-// Cancel add
 function cancelAdd() {
   isAdding = false;
   showAddButton();
   renderEntries();
-}
-
-// Validate date format
-function isValidDate(dateString) {
-  if (!dateString || dateString.trim() === "") return true;
-  const regex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
-  if (!regex.test(dateString)) return false;
-
-  const parts = dateString.split("/");
-  const day = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10);
-  const year = parseInt(parts[2], 10);
-
-  if (year < 1000 || year > 3000 || month === 0 || month > 12) return false;
-
-  const monthLength = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
-  if (year % 400 === 0 || (year % 100 !== 0 && year % 4 === 0)) {
-    monthLength[1] = 29;
-  }
-
-  return day > 0 && day <= monthLength[month - 1];
 }
 
 // Save new entry
@@ -1022,46 +762,48 @@ async function saveNewEntry() {
   const income = parseFloat(document.getElementById("newIncome").value);
   const expense = parseFloat(document.getElementById("newExpense").value);
   const date = document.getElementById("newDate").value;
-
-  const disbursementDate = document.getElementById("newDisbursementDate").value;
   const interestRate = parseFloat(
     document.getElementById("newInterestRate").value,
   );
-  const loanTerm = parseInt(document.getElementById("newLoanTerm").value);
   const deductionDate = document.getElementById("newDeductionDate").value;
-  const monthsWithoutPrincipal = parseInt(
-    document.getElementById("newMonthsWithoutPrincipal").value,
-  );
-  const note = document.getElementById("newNote").value;
+  const monthsWithNoPrincipalRepayment =
+    parseInt(
+      document.getElementById("newMonthsWithNoPrincipalRepayment").value,
+    ) || 0;
+  const maturityDate = document.getElementById("newMaturityDate").value;
 
   if (!name.trim()) {
-    alert("Vui lòng nhập tên");
+    alert("Vui lòng nhập tên khoản vay");
     return;
   }
 
-  if (isNaN(income) || isNaN(expense)) {
-    alert("Vui lòng nhập số tiền hợp lệ");
+  if (isNaN(income) || income < 0) {
+    alert("Vui lòng nhập số tiền vay hợp lệ");
+    return;
+  }
+
+  if (isNaN(expense) || expense < 0) {
+    alert("Vui lòng nhập số tiền đã trả gốc hợp lệ");
     return;
   }
 
   if (!isValidDate(date)) {
-    alert("Vui lòng nhập ngày theo định dạng DD/MM/YYYY");
+    alert("Vui lòng nhập ngày giải ngân theo định dạng DD/MM/YYYY");
     return;
   }
 
-  if (disbursementDate && !isValidDate(disbursementDate)) {
-    alert("Ngày nhận nợ không hợp lệ");
+  if (isNaN(interestRate) || interestRate < 0) {
+    alert("Vui lòng nhập lãi suất hợp lệ");
     return;
   }
 
-  if (deductionDate && !isValidDate(deductionDate)) {
-    alert("Ngày trích nợ không hợp lệ");
+  if (!deductionDate || !isValidDate(deductionDate)) {
+    alert("Vui lòng nhập ngày trừ nợ theo định dạng DD/MM/YYYY");
     return;
   }
 
-  // Validate monthsWithoutPrincipal không vượt quá loanTerm
-  if (loanTerm > 0 && monthsWithoutPrincipal > loanTerm) {
-    alert("Số tháng không trả gốc không thể lớn hơn kỳ vay");
+  if (!maturityDate || !isValidDate(maturityDate)) {
+    alert("Vui lòng nhập ngày đáo hạn theo định dạng DD/MM/YYYY");
     return;
   }
 
@@ -1076,12 +818,11 @@ async function saveNewEntry() {
         income,
         expense,
         date,
-        disbursementDate: disbursementDate || null,
-        interestRate: interestRate || 0,
-        loanTerm: loanTerm || 0,
-        deductionDate: deductionDate || null,
-        monthsWithoutPrincipal: monthsWithoutPrincipal || 0,
-        note: note || "",
+        interestRate,
+        deductionDate,
+        monthsWithNoPrincipalRepayment,
+        maturityDate,
+        loanDisbursementDate: date,
       }),
     });
 
@@ -1089,13 +830,13 @@ async function saveNewEntry() {
       cancelAdd();
       await loadEntries();
       await updateGlobalSummary();
-      alert("Thêm mục thành công!");
+      alert("Thêm khoản vay thành công!");
     } else {
       const errorData = await response.json();
-      alert("Lỗi khi thêm mục: " + (errorData.message || "Unknown error"));
+      alert("Lỗi khi thêm: " + (errorData.message || "Unknown error"));
     }
   } catch (error) {
-    alert("Lỗi khi thêm mục: " + error.message);
+    alert("Lỗi khi thêm: " + error.message);
   }
 }
 
@@ -1110,7 +851,6 @@ function startEdit(entryId) {
   renderEntries();
 }
 
-// Cancel edit
 function cancelEdit(entryId) {
   editingEntryId = null;
   showAddButton();
@@ -1129,31 +869,33 @@ async function saveEdit(entryId) {
     document.getElementById(`editExpense_${entryId}`).value,
   );
   const date = document.getElementById(`editDate_${entryId}`).value;
-
-  const disbursementDate = document.getElementById(
-    `editDisbursementDate_${entryId}`,
-  ).value;
   const interestRate = parseFloat(
     document.getElementById(`editInterestRate_${entryId}`).value,
-  );
-  const loanTerm = parseInt(
-    document.getElementById(`editLoanTerm_${entryId}`).value,
   );
   const deductionDate = document.getElementById(
     `editDeductionDate_${entryId}`,
   ).value;
-  const monthsWithoutPrincipal = parseInt(
-    document.getElementById(`editMonthsWithoutPrincipal_${entryId}`).value,
-  );
-  const note = document.getElementById(`editNote_${entryId}`).value;
+  const monthsWithNoPrincipalRepayment =
+    parseInt(
+      document.getElementById(`editMonthsWithNoPrincipalRepayment_${entryId}`)
+        .value,
+    ) || 0;
+  const maturityDate = document.getElementById(
+    `editMaturityDate_${entryId}`,
+  ).value;
 
   if (!name.trim()) {
     alert("Vui lòng nhập tên");
     return;
   }
 
-  if (isNaN(income) || isNaN(expense)) {
-    alert("Vui lòng nhập số tiền hợp lệ");
+  if (isNaN(income) || income < 0) {
+    alert("Vui lòng nhập số tiền vay hợp lệ");
+    return;
+  }
+
+  if (isNaN(expense) || expense < 0) {
+    alert("Vui lòng nhập số tiền đã trả gốc hợp lệ");
     return;
   }
 
@@ -1162,19 +904,18 @@ async function saveEdit(entryId) {
     return;
   }
 
-  if (disbursementDate && !isValidDate(disbursementDate)) {
-    alert("Ngày nhận nợ không hợp lệ");
+  if (isNaN(interestRate) || interestRate < 0) {
+    alert("Vui lòng nhập lãi suất hợp lệ");
     return;
   }
 
   if (deductionDate && !isValidDate(deductionDate)) {
-    alert("Ngày trích nợ không hợp lệ");
+    alert("Vui lòng nhập ngày trừ nợ theo định dạng DD/MM/YYYY");
     return;
   }
 
-  // Validate monthsWithoutPrincipal không vượt quá loanTerm
-  if (loanTerm > 0 && monthsWithoutPrincipal > loanTerm) {
-    alert("Số tháng không trả gốc không thể lớn hơn kỳ vay");
+  if (maturityDate && !isValidDate(maturityDate)) {
+    alert("Vui lòng nhập ngày đáo hạn theo định dạng DD/MM/YYYY");
     return;
   }
 
@@ -1191,12 +932,11 @@ async function saveEdit(entryId) {
           income,
           expense,
           date,
-          disbursementDate: disbursementDate || null,
-          interestRate: interestRate || 0,
-          loanTerm: loanTerm || 0,
-          deductionDate: deductionDate || null,
-          monthsWithoutPrincipal: monthsWithoutPrincipal || 0,
-          note: note || "",
+          interestRate,
+          deductionDate,
+          monthsWithNoPrincipalRepayment,
+          maturityDate,
+          loanDisbursementDate: date,
         }),
       },
     );
@@ -1208,10 +948,10 @@ async function saveEdit(entryId) {
       alert("Cập nhật thành công!");
     } else {
       const errorData = await response.json();
-      alert("Lỗi khi cập nhật mục: " + (errorData.message || "Unknown error"));
+      alert("Lỗi khi cập nhật: " + (errorData.message || "Unknown error"));
     }
   } catch (error) {
-    alert("Lỗi khi cập nhật mục: " + error.message);
+    alert("Lỗi khi cập nhật: " + error.message);
   }
 }
 
@@ -1219,7 +959,11 @@ async function saveEdit(entryId) {
 async function deleteEntry(entryId) {
   if (!currentCostCenterId) return;
 
-  if (confirm("Bạn có chắc chắn muốn xóa mục này không?")) {
+  if (
+    confirm(
+      "Bạn có chắc chắn muốn xóa khoản vay này không? Các khoản lãi liên quan cũng sẽ bị xóa.",
+    )
+  ) {
     try {
       const response = await fetch(
         `${API_BASE}/${currentCostCenterId}/entries/${entryId}`,
@@ -1231,342 +975,17 @@ async function deleteEntry(entryId) {
       if (response.ok) {
         await loadEntries();
         await updateGlobalSummary();
-        alert("Xóa mục thành công!");
+        alert("Xóa thành công!");
       } else {
-        alert("Lỗi khi xóa mục");
+        alert("Lỗi khi xóa");
       }
     } catch (error) {
-      alert("Lỗi khi xóa mục: " + error.message);
+      alert("Lỗi khi xóa: " + error.message);
     }
   }
 }
 
-// View loan predictions (dự đoán)
-function viewLoanPredictions(bankEntryId, customEntry = null) {
-  let bankEntry = customEntry;
-
-  if (bankEntryId) {
-    bankEntry = entries.find((e) => e._id === bankEntryId);
-  }
-
-  if (!bankEntry) {
-    alert("Không tìm thấy thông tin khoản vay");
-    return;
-  }
-
-  // Kiểm tra đủ thông tin để tính toán
-  if (
-    !bankEntry.income ||
-    !bankEntry.interestRate ||
-    !bankEntry.loanTerm ||
-    !bankEntry.disbursementDate ||
-    !bankEntry.deductionDate
-  ) {
-    alert(
-      "Vui lòng nhập đầy đủ: Số tiền vay, Lãi suất, Kỳ vay, Ngày nhận nợ, Ngày trích nợ",
-    );
-    return;
-  }
-
-  // Tính toán lịch trả nợ
-  const schedule = previewLoanSchedule(bankEntry);
-  if (!schedule) return;
-
-  showPredictionsModal(bankEntry, schedule);
-}
-
-// Hiển thị modal dự đoán
-function showPredictionsModal(bankEntry, schedule) {
-  const {
-    loanAmount,
-    interestRate,
-    loanTerm,
-    monthsWithoutPrincipal,
-    monthlyPayment,
-    totalPayment,
-    totalInterest,
-    schedule: payments,
-  } = schedule;
-
-  let tableRows = "";
-  payments.forEach((p) => {
-    const graceClass = p.isGracePeriod ? "table-info" : "";
-    const amountClass = p.amount > 0 ? "text-danger" : "";
-
-    tableRows += `
-      <tr class="${graceClass}">
-        <td>Tháng ${p.month}</td>
-        <td>${p.date}</td>
-        <td class="${amountClass} fw-bold">${p.amount.toLocaleString("vi-VN")}</td>
-        <td>${p.principal.toLocaleString("vi-VN")}</td>
-        <td>${p.interest.toLocaleString("vi-VN")}</td>
-        <td>${p.remainingBalance.toLocaleString("vi-VN")}</td>
-        <td><small>${p.status}</small></td>
-      </tr>
-    `;
-  });
-
-  const modalContent = `
-    <div class="modal fade" id="loanPredictionsModal" tabindex="-1">
-      <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-          <div class="modal-header bg-primary text-white">
-            <h5 class="modal-title">
-              <i class="fas fa-chart-line"></i> 
-              Dự Đoán Lịch Trả Nợ - ${bankEntry.name}
-            </h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <!-- Thông tin khoản vay -->
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <div class="card">
-                  <div class="card-header bg-info text-white">
-                    <strong>📋 Thông tin khoản vay</strong>
-                  </div>
-                  <div class="card-body">
-                    <table class="table table-sm table-bordered">
-                      <tr>
-                        <th style="width:40%">Tên khoản vay:</th>
-                        <td class="fw-bold">${bankEntry.name}</td>
-                      </tr>
-                      <tr>
-                        <th>Số tiền vay:</th>
-                        <td class="text-success fw-bold">${loanAmount.toLocaleString("vi-VN")} VND</td>
-                      </tr>
-                      <tr>
-                        <th>Ngày nhận nợ:</th>
-                        <td>${bankEntry.disbursementDate}</td>
-                      </tr>
-                      <tr>
-                        <th>Lãi suất:</th>
-                        <td class="text-danger">${interestRate}% / năm</td>
-                      </tr>
-                      <tr>
-                        <th>Kỳ vay:</th>
-                        <td>${loanTerm} tháng</td>
-                      </tr>
-                      <tr>
-                        <th>Ngày trích nợ:</th>
-                        <td>${bankEntry.deductionDate}</td>
-                      </tr>
-                      <tr>
-                        <th>Tháng không gốc:</th>
-                        <td class="text-info">${monthsWithoutPrincipal} tháng đầu</td>
-                      </tr>
-                    </table>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="card">
-                  <div class="card-header bg-success text-white">
-                    <strong>💰 Tổng kết dự đoán</strong>
-                  </div>
-                  <div class="card-body">
-                    <table class="table table-sm table-bordered">
-                      <tr>
-                        <th style="width:50%">Số tiền trả hàng tháng:</th>
-                        <td class="text-primary fw-bold">${monthlyPayment.toLocaleString("vi-VN")} VND</td>
-                      </tr>
-                      <tr>
-                        <th>Tổng lãi dự kiến:</th>
-                        <td class="text-danger fw-bold">${totalInterest.toLocaleString("vi-VN")} VND</td>
-                      </tr>
-                      <tr>
-                        <th>Tổng trả (gốc + lãi):</th>
-                        <td class="text-warning fw-bold">${totalPayment.toLocaleString("vi-VN")} VND</td>
-                      </tr>
-                      <tr>
-                        <th>Tháng không gốc:</th>
-                        <td class="text-info">${monthsWithoutPrincipal} tháng đầu (chỉ trả lãi)</td>
-                      </tr>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Bảng chi tiết -->
-            <div class="table-responsive">
-              <table class="table table-striped table-hover table-bordered">
-                <thead class="table-dark">
-                  <tr>
-                    <th>Tháng</th>
-                    <th>Ngày</th>
-                    <th>Số tiền (VND)</th>
-                    <th>Gốc</th>
-                    <th>Lãi</th>
-                    <th>Dư nợ</th>
-                    <th>Ghi chú</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${tableRows}
-                </tbody>
-                <tfoot class="table-secondary">
-                  <tr>
-                    <td colspan="2"><strong>Tổng cộng:</strong></td>
-                    <td><strong class="text-danger">${totalPayment.toLocaleString("vi-VN")}</strong></td>
-                    <td><strong>${loanAmount.toLocaleString("vi-VN")}</strong></td>
-                    <td><strong class="text-danger">${totalInterest.toLocaleString("vi-VN")}</strong></td>
-                    <td colspan="2"></td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-            <button type="button" class="btn btn-success" onclick="exportPredictionsToCSV(${JSON.stringify(schedule).replace(/"/g, "&quot;")}, '${bankEntry.name}')">
-              📁 Xuất CSV
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  const existingModal = document.getElementById("loanPredictionsModal");
-  if (existingModal) existingModal.remove();
-  document.body.insertAdjacentHTML("beforeend", modalContent);
-
-  const modal = new bootstrap.Modal(
-    document.getElementById("loanPredictionsModal"),
-  );
-  modal.show();
-
-  document
-    .getElementById("loanPredictionsModal")
-    .addEventListener("hidden.bs.modal", function () {
-      this.remove();
-    });
-}
-
-// Export predictions to CSV
-function exportPredictionsToCSV(schedule, loanName) {
-  const {
-    schedule: payments,
-    loanAmount,
-    totalInterest,
-    totalPayment,
-  } = schedule;
-
-  let csvContent =
-    "Tháng,Ngày dự kiến,Số tiền (VND),Gốc (VND),Lãi (VND),Dư nợ (VND),Ghi chú\n";
-
-  payments.forEach((p) => {
-    csvContent += `${p.month},${p.date},${p.amount},${p.principal},${p.interest},${p.remainingBalance},"${p.status}"\n`;
-  });
-
-  csvContent += "\n";
-  csvContent += `Tổng kết,,,,,,\n`;
-  csvContent += `Số tiền vay,${loanAmount.toLocaleString("vi-VN")},,,,,\n`;
-  csvContent += `Tổng lãi,${totalInterest.toLocaleString("vi-VN")},,,,,\n`;
-  csvContent += `Tổng trả,${totalPayment.toLocaleString("vi-VN")},,,,,\n`;
-
-  const blob = new Blob(["\uFEFF" + csvContent], {
-    type: "text/csv;charset=utf-8;",
-  });
-  const link = document.createElement("a");
-  link.setAttribute("href", URL.createObjectURL(blob));
-  link.setAttribute(
-    "download",
-    `loan_predictions_${loanName}_${new Date().toISOString().split("T")[0]}.csv`,
-  );
-  link.style.visibility = "hidden";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-// View generated daily entries (lịch đã lưu)
-async function viewGeneratedEntries(bankEntryId) {
-  try {
-    const response = await fetch(
-      `${API_BASE}/${currentCostCenterId}/bank-entries/${bankEntryId}/generated-daily`,
-    );
-
-    if (!response.ok) {
-      alert("Không thể tải daily entries");
-      return;
-    }
-
-    const dailyEntries = await response.json();
-
-    if (dailyEntries.length === 0) {
-      alert("Chưa có daily entries nào được sinh từ khoản vay này");
-      return;
-    }
-
-    // Hiển thị trong modal
-    let tableRows = "";
-    dailyEntries.forEach((entry) => {
-      tableRows += `
-        <tr>
-          <td>Tháng ${entry.loanMonth || "?"}</td>
-          <td>${entry.date}</td>
-          <td>${entry.name}</td>
-          <td class="text-danger">${(entry.expensePrediction || 0).toLocaleString("vi-VN")}</td>
-          <td><small>${entry.note || ""}</small></td>
-        </tr>
-      `;
-    });
-
-    const totalPredicted = dailyEntries.reduce(
-      (sum, e) => sum + (e.expensePrediction || 0),
-      0,
-    );
-
-    const modalContent = `
-      <div class="modal fade" id="generatedDailyModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-          <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-              <h5 class="modal-title">📋 Daily Entries đã sinh từ khoản vay</h5>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-              <div class="alert alert-success">
-                <strong>Tổng dự đoán:</strong> ${totalPredicted.toLocaleString("vi-VN")} VND
-              </div>
-              <div class="table-responsive">
-                <table class="table table-striped">
-                  <thead class="table-dark">
-                    <tr>
-                      <th>Tháng</th>
-                      <th>Ngày</th>
-                      <th>Tên</th>
-                      <th>Chi phí (VND)</th>
-                      <th>Ghi chú</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${tableRows}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const existingModal = document.getElementById("generatedDailyModal");
-    if (existingModal) existingModal.remove();
-    document.body.insertAdjacentHTML("beforeend", modalContent);
-    new bootstrap.Modal(document.getElementById("generatedDailyModal")).show();
-  } catch (error) {
-    console.error("Lỗi khi tải daily entries:", error);
-    alert("Lỗi khi tải daily entries: " + error.message);
-  }
-}
-
-// Filter Functions for single view
+// Apply filters
 function applyFilters() {
   filterState.dateFrom = document.getElementById("dateFrom").value;
   filterState.dateTo = document.getElementById("dateTo").value;
@@ -1618,19 +1037,11 @@ function resetFilters() {
   applyFilters();
 }
 
-// Helper function to compare dates in DD/MM/YYYY format
-function isDateOnOrAfter(dateString, compareDateString) {
-  const date = parseDate(dateString);
-  const compareDate = parseDate(compareDateString);
-  if (!date || !compareDate) return true;
-  return date >= compareDate;
-}
-
-function isDateOnOrBefore(dateString, compareDateString) {
-  const date = parseDate(dateString);
-  const compareDate = parseDate(compareDateString);
-  if (!date || !compareDate) return true;
-  return date <= compareDate;
+function applyTodayOnlyFilter() {
+  const today = getTodayFormatted();
+  document.getElementById("dateFrom").value = today;
+  document.getElementById("dateTo").value = today;
+  applyFilters();
 }
 
 // Multiple Entry Functions for single view
@@ -1656,51 +1067,15 @@ function addEntryRow() {
   entryRow.className = "entry-row";
   entryRow.id = entryId;
   entryRow.innerHTML = `
-    <div style="display:flex; flex-wrap:wrap; gap:5px; align-items:center; width:100%;">
-      <div style="min-width:120px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Tên</label>
-        <input type="text" id="${entryId}_name" placeholder="Tên" required style="width:120px;">
-      </div>
-      <div style="min-width:100px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Ngày</label>
-        <input type="text" id="${entryId}_date" value="${today}" placeholder="DD/MM/YYYY" required style="width:100px;">
-      </div>
-      <div style="min-width:100px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Thu</label>
-        <input type="number" id="${entryId}_income" placeholder="Thu" step="0.1" value="0" required style="width:100px;">
-      </div>
-      <div style="min-width:100px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Chi</label>
-        <input type="number" id="${entryId}_expense" placeholder="Chi" step="0.1" value="0" required style="width:100px;">
-      </div>
-      <div style="min-width:100px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Ngày nhận nợ</label>
-        <input type="text" id="${entryId}_disbursementDate" placeholder="DD/MM/YYYY" style="width:100px;">
-      </div>
-      <div style="min-width:70px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">LS %</label>
-        <input type="number" id="${entryId}_interestRate" placeholder="%" step="0.1" value="0" style="width:70px;">
-      </div>
-      <div style="min-width:70px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Kỳ vay</label>
-        <input type="number" id="${entryId}_loanTerm" placeholder="tháng" value="0" style="width:70px;">
-      </div>
-      <div style="min-width:100px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Ngày trích</label>
-        <input type="text" id="${entryId}_deductionDate" placeholder="DD/MM/YYYY" style="width:100px;">
-      </div>
-      <div style="min-width:80px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">K gốc</label>
-        <input type="number" id="${entryId}_monthsWithoutPrincipal" placeholder="tháng" value="0" style="width:80px;">
-      </div>
-      <div style="min-width:100px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Ghi chú</label>
-        <input type="text" id="${entryId}_note" placeholder="Ghi chú" style="width:100px;">
-      </div>
-      <div style="min-width:30px;">
-        <button type="button" class="remove-entry-btn" onclick="removeEntryRow('${entryId}')" style="margin-top:15px;">×</button>
-      </div>
-    </div>
+    <input type="text" id="${entryId}_name" placeholder="Tên khoản vay" required>
+    <input type="text" id="${entryId}_date" value="${today}" placeholder="Ngày giải ngân" required>
+    <input type="number" id="${entryId}_income" placeholder="Số tiền vay" step="0.1" value="0" required>
+    <input type="number" id="${entryId}_expense" placeholder="Đã trả gốc" step="0.1" value="0" required>
+    <input type="number" id="${entryId}_interestRate" placeholder="Lãi suất %" step="0.01" value="0" required>
+    <input type="text" id="${entryId}_deductionDate" placeholder="Ngày trừ nợ" required>
+    <input type="number" id="${entryId}_monthsWithNoPrincipalRepayment" placeholder="Tháng ân hạn" step="1" value="0">
+    <input type="text" id="${entryId}_maturityDate" placeholder="Ngày đáo hạn" required>
+    <button type="button" class="remove-entry-btn" onclick="removeEntryRow('${entryId}')">×</button>
   `;
 
   container.appendChild(entryRow);
@@ -1742,22 +1117,20 @@ async function saveMultipleEntries() {
     const expense = parseFloat(
       document.getElementById(`${entryId}_expense`).value,
     );
-    const disbursementDate = document.getElementById(
-      `${entryId}_disbursementDate`,
-    ).value;
     const interestRate = parseFloat(
       document.getElementById(`${entryId}_interestRate`).value,
-    );
-    const loanTerm = parseInt(
-      document.getElementById(`${entryId}_loanTerm`).value,
     );
     const deductionDate = document.getElementById(
       `${entryId}_deductionDate`,
     ).value;
-    const monthsWithoutPrincipal = parseInt(
-      document.getElementById(`${entryId}_monthsWithoutPrincipal`).value,
-    );
-    const note = document.getElementById(`${entryId}_note`).value;
+    const monthsWithNoPrincipalRepayment =
+      parseInt(
+        document.getElementById(`${entryId}_monthsWithNoPrincipalRepayment`)
+          .value,
+      ) || 0;
+    const maturityDate = document.getElementById(
+      `${entryId}_maturityDate`,
+    ).value;
 
     if (!name) {
       alert("Vui lòng nhập tên cho mục này");
@@ -1765,47 +1138,52 @@ async function saveMultipleEntries() {
       break;
     }
 
-    if (isNaN(income) || isNaN(expense)) {
-      alert("Vui lòng nhập số tiền hợp lệ cho mục này");
+    if (isNaN(income) || income < 0) {
+      alert("Vui lòng nhập số tiền vay hợp lệ");
+      hasError = true;
+      break;
+    }
+
+    if (isNaN(expense) || expense < 0) {
+      alert("Vui lòng nhập số tiền đã trả gốc hợp lệ");
       hasError = true;
       break;
     }
 
     if (!isValidDate(date)) {
-      alert("Vui lòng nhập ngày hợp lệ (DD/MM/YYYY) cho mục này");
+      alert("Vui lòng nhập ngày giải ngân hợp lệ (DD/MM/YYYY)");
       hasError = true;
       break;
     }
 
-    if (disbursementDate && !isValidDate(disbursementDate)) {
-      alert("Ngày nhận nợ không hợp lệ cho mục này");
+    if (isNaN(interestRate) || interestRate < 0) {
+      alert("Vui lòng nhập lãi suất hợp lệ");
       hasError = true;
       break;
     }
 
-    if (deductionDate && !isValidDate(deductionDate)) {
-      alert("Ngày trích nợ không hợp lệ cho mục này");
+    if (!deductionDate || !isValidDate(deductionDate)) {
+      alert("Vui lòng nhập ngày trừ nợ hợp lệ (DD/MM/YYYY)");
       hasError = true;
       break;
     }
 
-    if (loanTerm > 0 && monthsWithoutPrincipal > loanTerm) {
-      alert("Số tháng không trả gốc không thể lớn hơn kỳ vay cho mục này");
+    if (!maturityDate || !isValidDate(maturityDate)) {
+      alert("Vui lòng nhập ngày đáo hạn hợp lệ (DD/MM/YYYY)");
       hasError = true;
       break;
     }
 
     entriesToSave.push({
       name,
-      date,
       income,
       expense,
-      disbursementDate: disbursementDate || null,
-      interestRate: interestRate || 0,
-      loanTerm: loanTerm || 0,
-      deductionDate: deductionDate || null,
-      monthsWithoutPrincipal: monthsWithoutPrincipal || 0,
-      note: note || "",
+      date,
+      interestRate,
+      deductionDate,
+      monthsWithNoPrincipalRepayment,
+      maturityDate,
+      loanDisbursementDate: date,
     });
   }
 
@@ -1847,13 +1225,13 @@ async function saveMultipleEntries() {
     saveBtn.disabled = false;
 
     if (errorCount === 0) {
-      alert(`Đã thêm thành công ${successCount} mục!`);
+      alert(`Đã thêm thành công ${successCount} khoản vay!`);
       hideMultipleEntryForm();
       await loadEntries();
       await updateGlobalSummary();
     } else {
       alert(
-        `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`,
+        `Đã thêm ${successCount} khoản thành công, ${errorCount} khoản thất bại.`,
       );
       if (successCount > 0) {
         hideMultipleEntryForm();
@@ -1885,7 +1263,7 @@ async function exportData() {
 
   try {
     let csvContent =
-      "Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Ngày nhận nợ,Lãi suất (%),Kỳ vay (tháng),Ngày trích nợ,Tháng không gốc,Ghi chú\n";
+      "Tên khoản vay,Ngày giải ngân,Số tiền vay,Đã trả gốc,Lãi suất %,Ngày trừ nợ,Tháng ân hạn,Ngày đáo hạn\n";
     filteredEntries.forEach((entry) => {
       csvContent +=
         [
@@ -1893,18 +1271,14 @@ async function exportData() {
           entry.date,
           entry.income || 0,
           entry.expense || 0,
-          entry.disbursementDate || "",
           entry.interestRate || 0,
-          entry.loanTerm || 0,
           entry.deductionDate || "",
-          entry.monthsWithoutPrincipal || 0,
-          `"${entry.note || ""}"`,
+          entry.monthsWithNoPrincipalRepayment || 0,
+          entry.maturityDate || "",
         ].join(",") + "\n";
     });
 
-    const blob = new Blob(["\uFEFF" + csvContent], {
-      type: "text/csv;charset=utf-8;",
-    });
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.setAttribute("href", URL.createObjectURL(blob));
     link.setAttribute(
@@ -1991,9 +1365,43 @@ async function saveFundLimit(newFundLimit) {
   }
 }
 
+// Update global summary
+async function updateGlobalSummary() {
+  if (currentCostCenterId) {
+    try {
+      const entriesResponse = await fetch(
+        `${API_BASE}/${currentCostCenterId}/entries`,
+      );
+      const updatedEntries = await entriesResponse.json();
+
+      let updatedFundInfo = {};
+      try {
+        const fundResponse = await fetch(
+          `${API_BASE}/${currentCostCenterId}/fund-info`,
+        );
+        updatedFundInfo = await fundResponse.json();
+      } catch (fundError) {
+        console.error("Lỗi khi tải fund info:", fundError);
+      }
+
+      allEntries[currentCostCenterId] = {
+        name: document.getElementById("costCenterName").textContent,
+        entries: updatedEntries,
+      };
+
+      allFundInfo[currentCostCenterId] = updatedFundInfo;
+    } catch (error) {
+      console.error("Lỗi khi cập nhật dữ liệu:", error);
+    }
+  }
+
+  flattenAllEntries();
+  calculateGlobalSummary();
+  if (alternativeViewActive) renderAllCostCentersView();
+}
+
 // ==================== ALL VIEW FUNCTIONS ====================
 
-// Render all cost centers view
 function renderAllCostCentersView() {
   if (!alternativeViewActive) return;
 
@@ -2008,7 +1416,6 @@ function renderAllCostCentersView() {
   renderAllEntriesTable();
 }
 
-// Render all entries table
 function renderAllEntriesTable() {
   const tbody = document.getElementById("allEntriesBody");
   if (!tbody) return;
@@ -2028,7 +1435,7 @@ function renderAllEntriesTable() {
     !isAddingMultipleInAllView
   ) {
     const row = document.createElement("tr");
-    row.innerHTML = `<td colspan="11" style="text-align:center;color:#666;padding:20px;">${
+    row.innerHTML = `<td colspan="10" style="text-align:center;color:#666;padding:20px;">${
       allEntriesFlat.length === 0
         ? "Không có dữ liệu nào từ các trạm."
         : "Không có kết quả phù hợp với bộ lọc."
@@ -2036,20 +1443,12 @@ function renderAllEntriesTable() {
     tbody.appendChild(row);
     const addNewRow = document.createElement("tr");
     addNewRow.className = "add-row";
-    addNewRow.innerHTML = `<td colspan="11"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
+    addNewRow.innerHTML = `<td colspan="10"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Khoản Vay Mới</button></td>`;
     tbody.appendChild(addNewRow);
-    applyTodayRedLines(tbody, today, 11);
     return;
   }
 
-  // Build progressive totals for the visible filtered set
-  const progressiveTotals = buildProgressiveTotals(
-    filteredAllEntries,
-    currentAllSortDirection,
-  );
-  const renderedProgressiveDates = new Set();
-
-  filteredAllEntries.forEach((entry, idx) => {
+  filteredAllEntries.forEach((entry) => {
     const row = document.createElement("tr");
     row.setAttribute("data-cost-center-id", entry.costCenterId);
     row.setAttribute("data-entry-id", entry._id);
@@ -2058,82 +1457,105 @@ function renderAllEntriesTable() {
     const dateClass = entry.date === today ? "current-date" : "";
 
     row.innerHTML = `
-      <td>${entry.costCenterName}</td>
-      <td>${entry.name}</td>
+      <td>${escapeHtml(entry.costCenterName)}</td>
+      <td>${escapeHtml(entry.name)}</td>
       <td class="${dateClass}">${entry.date}</td>
-      <td class="text-success">${(entry.income || 0).toLocaleString("vi-VN")}</td>
-      <td class="text-danger">${(entry.expense || 0).toLocaleString("vi-VN")}</td>
-      <td>${entry.disbursementDate || "-"}</td>
-      <td>${entry.interestRate ? entry.interestRate + "%" : "-"}</td>
-      <td>${entry.loanTerm ? entry.loanTerm + " tháng" : "-"}</td>
+      <td>${(entry.income || 0).toLocaleString("vi-VN")}</td>
+      <td>${(entry.expense || 0).toLocaleString("vi-VN")}</td>
+      <td>${entry.interestRate || 0}%</td>
       <td>${entry.deductionDate || "-"}</td>
-      <td>${entry.monthsWithoutPrincipal ? entry.monthsWithoutPrincipal + " tháng" : "-"}</td>
-      <td class="actions" style="min-width:120px;">
-        <button class="edit-btn" onclick="switchToCostCenterAndEdit('${entry.costCenterId}', '${entry._id}')" style="padding:3px 6px; font-size:11px;">Sửa</button>
-        <button class="delete-btn" onclick="switchToCostCenterAndDelete('${entry.costCenterId}', '${entry._id}')" style="padding:3px 6px; font-size:11px;">Xóa</button>
+      <td>${entry.monthsWithNoPrincipalRepayment || 0}</td>
+      <td>${entry.maturityDate || "-"}</td>
+      <td class="actions">
+        <button class="edit-btn" onclick="switchToCostCenterAndEdit('${entry.costCenterId}', '${entry._id}')">Sửa</button>
+        <button class="delete-btn" onclick="switchToCostCenterAndDelete('${entry.costCenterId}', '${entry._id}')">Xóa</button>
+        <button class="preview-btn" onclick="previewLoanFromAllView('${entry.costCenterId}', '${entry._id}')" style="background:#17a2b8;">Xem lịch</button>
       </td>`;
     tbody.appendChild(row);
-
-    // Insert progressive total row at each date boundary
-    const nextEntry = filteredAllEntries[idx + 1];
-    const isDateBoundary = !nextEntry || nextEntry.date !== entry.date;
-    if (isDateBoundary && !renderedProgressiveDates.has(entry.date)) {
-      renderedProgressiveDates.add(entry.date);
-      const totals = progressiveTotals[entry.date];
-      if (totals) {
-        tbody.appendChild(
-          createDailyTotalRow(entry.date, totals.actual, 11, true),
-        );
-      }
-    }
   });
 
   const addNewRow = document.createElement("tr");
   addNewRow.className = "add-row";
-  addNewRow.innerHTML = `<td colspan="11"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
+  addNewRow.innerHTML = `<td colspan="10"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Khoản Vay Mới</button></td>`;
   tbody.appendChild(addNewRow);
-
-  applyTodayRedLines(tbody, today, 11);
 }
 
-// Create add row for all view
+async function previewLoanFromAllView(costCenterId, entryId) {
+  try {
+    const response = await fetch(`${API_BASE}/${costCenterId}/entries`);
+    const entries = await response.json();
+    const entry = entries.find((e) => e._id === entryId);
+    if (entry) {
+      previewLoanSchedule({
+        loanAmount: entry.income,
+        interestRate: entry.interestRate,
+        loanDisbursementDate: entry.date,
+        deductionDate: entry.deductionDate,
+        monthsWithNoPrincipalRepayment: entry.monthsWithNoPrincipalRepayment,
+        maturityDate: entry.maturityDate,
+      });
+    }
+  } catch (error) {
+    alert("Lỗi khi xem trước: " + error.message);
+  }
+}
+
 function createAllViewAddRow(costCenterId) {
   const row = document.createElement("tr");
   row.id = "allViewAddRow";
   row.className = "editing-row";
   const today = getTodayFormatted();
-
-  const costCenterOptions = allCostCenters
-    .map(
-      (cc) =>
-        `<option value="${cc._id}" ${cc._id === costCenterId ? "selected" : ""}>${cc.name}</option>`,
-    )
-    .join("");
-
   row.innerHTML = `
     <td>
-      <select id="allViewNewCostCenter" style="width:120px; padding:3px;">
-        ${costCenterOptions}
+      <select id="allViewNewCostCenter" class="form-select" style="width:100%;">
+        ${allCostCenters.map((cc) => `<option value="${cc._id}" ${cc._id === costCenterId ? "selected" : ""}>${cc.name}</option>`).join("")}
       </select>
     </td>
-    <td><input type="text" id="allViewNewName" placeholder="Tên" required style="width:120px;"></td>
-    <td><input type="text" id="allViewNewDate" value="${today}" placeholder="DD/MM/YYYY" required style="width:100px;"></td>
-    <td><input type="number" id="allViewNewIncome" placeholder="Thu" step="0.1" value="0" required style="width:100px;"></td>
-    <td><input type="number" id="allViewNewExpense" placeholder="Chi" step="0.1" value="0" required style="width:100px;"></td>
-    <td><input type="text" id="allViewNewDisbursementDate" placeholder="DD/MM/YYYY" style="width:100px;"></td>
-    <td><input type="number" id="allViewNewInterestRate" placeholder="%" step="0.1" value="0" style="width:70px;"></td>
-    <td><input type="number" id="allViewNewLoanTerm" placeholder="tháng" value="0" style="width:70px;"></td>
-    <td><input type="text" id="allViewNewDeductionDate" placeholder="DD/MM/YYYY" style="width:100px;"></td>
-    <td><input type="number" id="allViewNewMonthsWithoutPrincipal" placeholder="tháng" value="0" style="width:80px;"></td>
-    <td class="actions" style="min-width:100px;">
-      <button class="save-btn" onclick="saveAllViewNewEntry()" style="padding:3px 8px;">Lưu</button>
-      <button class="cancel-btn" onclick="cancelAllViewAdd()" style="padding:3px 8px;">Hủy</button>
+    <td><input type="text" id="allViewNewName" placeholder="Tên khoản vay" required></td>
+    <td><input type="text" id="allViewNewDate" value="${today}" placeholder="Ngày giải ngân" required></td>
+    <td><input type="number" id="allViewNewIncome" placeholder="Số tiền vay" step="0.1" value="0" required></td>
+    <td><input type="number" id="allViewNewExpense" placeholder="Đã trả gốc" step="0.1" value="0" required></td>
+    <td><input type="number" id="allViewNewInterestRate" placeholder="Lãi suất %" step="0.01" value="0" required></td>
+    <td><input type="text" id="allViewNewDeductionDate" placeholder="Ngày trừ nợ" required></td>
+    <td><input type="number" id="allViewNewMonthsWithNoPrincipalRepayment" placeholder="Tháng ân hạn" step="1" value="0"></td>
+    <td><input type="text" id="allViewNewMaturityDate" placeholder="Ngày đáo hạn" required></td>
+    <td class="actions">
+      <button class="preview-btn" onclick="previewAllViewNewLoan()" style="background:#17a2b8;">Xem trước</button>
+      <button class="save-btn" onclick="saveAllViewNewEntry()">Lưu</button>
+      <button class="cancel-btn" onclick="cancelAllViewAdd()">Hủy</button>
     </td>
   `;
   return row;
 }
 
-// Show add row in all view
+function previewAllViewNewLoan() {
+  const loanData = {
+    loanAmount:
+      parseFloat(document.getElementById("allViewNewIncome").value) || 0,
+    interestRate:
+      parseFloat(document.getElementById("allViewNewInterestRate").value) || 0,
+    loanDisbursementDate: document.getElementById("allViewNewDate").value,
+    deductionDate: document.getElementById("allViewNewDeductionDate").value,
+    monthsWithNoPrincipalRepayment:
+      parseInt(
+        document.getElementById("allViewNewMonthsWithNoPrincipalRepayment")
+          .value,
+      ) || 0,
+    maturityDate: document.getElementById("allViewNewMaturityDate").value,
+  };
+
+  if (
+    !loanData.loanDisbursementDate ||
+    !loanData.deductionDate ||
+    !loanData.maturityDate
+  ) {
+    alert("Vui lòng nhập đầy đủ ngày giải ngân, ngày trừ nợ và ngày đáo hạn");
+    return;
+  }
+
+  previewLoanSchedule(loanData);
+}
+
 function showAllViewAddRow() {
   if (isAddingInAllView || isAddingMultipleInAllView) return;
   addingCostCenterId =
@@ -2144,14 +1566,12 @@ function showAllViewAddRow() {
   renderAllEntriesTable();
 }
 
-// Cancel add in all view
 function cancelAllViewAdd() {
   isAddingInAllView = false;
   addingCostCenterId = null;
   renderAllEntriesTable();
 }
 
-// Save new entry in all view
 async function saveAllViewNewEntry() {
   const costCenterId = document.getElementById("allViewNewCostCenter").value;
   const name = document.getElementById("allViewNewName").value;
@@ -2160,48 +1580,48 @@ async function saveAllViewNewEntry() {
     document.getElementById("allViewNewExpense").value,
   );
   const date = document.getElementById("allViewNewDate").value;
-  const disbursementDate = document.getElementById(
-    "allViewNewDisbursementDate",
-  ).value;
   const interestRate = parseFloat(
     document.getElementById("allViewNewInterestRate").value,
-  );
-  const loanTerm = parseInt(
-    document.getElementById("allViewNewLoanTerm").value,
   );
   const deductionDate = document.getElementById(
     "allViewNewDeductionDate",
   ).value;
-  const monthsWithoutPrincipal = parseInt(
-    document.getElementById("allViewNewMonthsWithoutPrincipal").value,
-  );
+  const monthsWithNoPrincipalRepayment =
+    parseInt(
+      document.getElementById("allViewNewMonthsWithNoPrincipalRepayment").value,
+    ) || 0;
+  const maturityDate = document.getElementById("allViewNewMaturityDate").value;
 
   if (!costCenterId) {
     alert("Vui lòng chọn trạm");
     return;
   }
   if (!name.trim()) {
-    alert("Vui lòng nhập tên");
+    alert("Vui lòng nhập tên khoản vay");
     return;
   }
-  if (isNaN(income) || isNaN(expense)) {
-    alert("Vui lòng nhập số tiền hợp lệ");
+  if (isNaN(income) || income < 0) {
+    alert("Vui lòng nhập số tiền vay hợp lệ");
+    return;
+  }
+  if (isNaN(expense) || expense < 0) {
+    alert("Vui lòng nhập số tiền đã trả gốc hợp lệ");
     return;
   }
   if (!isValidDate(date)) {
-    alert("Vui lòng nhập ngày theo định dạng DD/MM/YYYY");
+    alert("Vui lòng nhập ngày giải ngân theo định dạng DD/MM/YYYY");
     return;
   }
-  if (disbursementDate && !isValidDate(disbursementDate)) {
-    alert("Ngày nhận nợ không hợp lệ");
+  if (isNaN(interestRate) || interestRate < 0) {
+    alert("Vui lòng nhập lãi suất hợp lệ");
     return;
   }
-  if (deductionDate && !isValidDate(deductionDate)) {
-    alert("Ngày trích nợ không hợp lệ");
+  if (!deductionDate || !isValidDate(deductionDate)) {
+    alert("Vui lòng nhập ngày trừ nợ theo định dạng DD/MM/YYYY");
     return;
   }
-  if (loanTerm > 0 && monthsWithoutPrincipal > loanTerm) {
-    alert("Số tháng không trả gốc không thể lớn hơn kỳ vay");
+  if (!maturityDate || !isValidDate(maturityDate)) {
+    alert("Vui lòng nhập ngày đáo hạn theo định dạng DD/MM/YYYY");
     return;
   }
 
@@ -2214,11 +1634,11 @@ async function saveAllViewNewEntry() {
         income,
         expense,
         date,
-        disbursementDate: disbursementDate || null,
-        interestRate: interestRate || 0,
-        loanTerm: loanTerm || 0,
-        deductionDate: deductionDate || null,
-        monthsWithoutPrincipal: monthsWithoutPrincipal || 0,
+        interestRate,
+        deductionDate,
+        monthsWithNoPrincipalRepayment,
+        maturityDate,
+        loanDisbursementDate: date,
       }),
     });
     if (response.ok) {
@@ -2226,17 +1646,17 @@ async function saveAllViewNewEntry() {
       addingCostCenterId = null;
       await loadAllCostCentersData();
       applyAllFilters();
-      alert("Thêm mục thành công!");
+      alert("Thêm khoản vay thành công!");
     } else {
       const errorData = await response.json();
-      alert("Lỗi khi thêm mục: " + (errorData.message || "Unknown error"));
+      alert("Lỗi khi thêm: " + (errorData.message || "Unknown error"));
     }
   } catch (error) {
-    alert("Lỗi khi thêm mục: " + error.message);
+    alert("Lỗi khi thêm: " + error.message);
   }
 }
 
-// Show multiple entry form in all view
+// Multiple entry functions for all view
 function showAllViewMultipleEntryForm() {
   if (isAddingInAllView || isAddingMultipleInAllView) {
     alert("Vui lòng hoàn thành thao tác hiện tại trước khi thêm nhiều mục");
@@ -2250,14 +1670,12 @@ function showAllViewMultipleEntryForm() {
   addAllViewEntryRow();
 }
 
-// Clear all view multiple entries
 function clearAllViewMultipleEntries() {
   const container = document.getElementById("allViewMultipleEntriesContainer");
-  container.innerHTML = "";
+  if (container) container.innerHTML = "";
   allViewMultipleEntryCounter = 0;
 }
 
-// Add entry row in all view multiple form
 function addAllViewEntryRow() {
   const container = document.getElementById("allViewMultipleEntriesContainer");
   const entryId = `allViewEntry_${allViewMultipleEntryCounter++}`;
@@ -2265,64 +1683,27 @@ function addAllViewEntryRow() {
   const costCenterOptions = allCostCenters
     .map((cc) => `<option value="${cc._id}">${cc.name}</option>`)
     .join("");
-
   const entryRow = document.createElement("div");
   entryRow.className = "entry-row";
   entryRow.id = entryId;
   entryRow.innerHTML = `
-    <div style="display:flex; flex-wrap:wrap; gap:5px; align-items:center; width:100%;">
-      <div style="min-width:120px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Trạm</label>
-        <select id="${entryId}_costCenter" style="width:120px;">
-          <option value="">-- Chọn --</option>
-          ${costCenterOptions}
-        </select>
-      </div>
-      <div style="min-width:120px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Tên</label>
-        <input type="text" id="${entryId}_name" placeholder="Tên" required style="width:120px;">
-      </div>
-      <div style="min-width:100px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Ngày</label>
-        <input type="text" id="${entryId}_date" value="${today}" placeholder="DD/MM/YYYY" required style="width:100px;">
-      </div>
-      <div style="min-width:100px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Thu</label>
-        <input type="number" id="${entryId}_income" placeholder="Thu" step="0.1" value="0" required style="width:100px;">
-      </div>
-      <div style="min-width:100px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Chi</label>
-        <input type="number" id="${entryId}_expense" placeholder="Chi" step="0.1" value="0" required style="width:100px;">
-      </div>
-      <div style="min-width:100px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Ngày nhận nợ</label>
-        <input type="text" id="${entryId}_disbursementDate" placeholder="DD/MM/YYYY" style="width:100px;">
-      </div>
-      <div style="min-width:70px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">LS %</label>
-        <input type="number" id="${entryId}_interestRate" placeholder="%" step="0.1" value="0" style="width:70px;">
-      </div>
-      <div style="min-width:70px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Kỳ vay</label>
-        <input type="number" id="${entryId}_loanTerm" placeholder="tháng" value="0" style="width:70px;">
-      </div>
-      <div style="min-width:100px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">Ngày trích</label>
-        <input type="text" id="${entryId}_deductionDate" placeholder="DD/MM/YYYY" style="width:100px;">
-      </div>
-      <div style="min-width:80px;">
-        <label style="font-size:11px; display:block; font-weight:bold;">K gốc</label>
-        <input type="number" id="${entryId}_monthsWithoutPrincipal" placeholder="tháng" value="0" style="width:80px;">
-      </div>
-      <div style="min-width:30px;">
-        <button type="button" class="remove-entry-btn" onclick="removeAllViewEntryRow('${entryId}')" style="margin-top:15px;">×</button>
-      </div>
-    </div>
+    <select id="${entryId}_costCenter" style="min-width:150px;" required>
+      <option value="">-- Chọn Trạm --</option>
+      ${costCenterOptions}
+    </select>
+    <input type="text" id="${entryId}_name" placeholder="Tên khoản vay" required>
+    <input type="text" id="${entryId}_date" value="${today}" placeholder="Ngày giải ngân" required>
+    <input type="number" id="${entryId}_income" placeholder="Số tiền vay" step="0.1" value="0" required>
+    <input type="number" id="${entryId}_expense" placeholder="Đã trả gốc" step="0.1" value="0" required>
+    <input type="number" id="${entryId}_interestRate" placeholder="Lãi suất %" step="0.01" value="0" required>
+    <input type="text" id="${entryId}_deductionDate" placeholder="Ngày trừ nợ" required>
+    <input type="number" id="${entryId}_monthsWithNoPrincipalRepayment" placeholder="Tháng ân hạn" step="1" value="0">
+    <input type="text" id="${entryId}_maturityDate" placeholder="Ngày đáo hạn" required>
+    <button type="button" class="remove-entry-btn" onclick="removeAllViewEntryRow('${entryId}')">×</button>
   `;
   container.appendChild(entryRow);
 }
 
-// Remove entry row in all view multiple form
 function removeAllViewEntryRow(entryId) {
   const entryRow = document.getElementById(entryId);
   if (entryRow) entryRow.remove();
@@ -2330,7 +1711,6 @@ function removeAllViewEntryRow(entryId) {
   if (container.children.length === 0) addAllViewEntryRow();
 }
 
-// Cancel all view multiple entries
 function cancelAllViewMultipleEntries() {
   if (
     confirm("Bạn có chắc chắn muốn hủy? Tất cả dữ liệu chưa lưu sẽ bị mất.")
@@ -2339,14 +1719,13 @@ function cancelAllViewMultipleEntries() {
   }
 }
 
-// Hide all view multiple entry form
 function hideAllViewMultipleEntryForm() {
-  document.getElementById("allViewMultipleEntryForm").classList.add("hidden");
+  const form = document.getElementById("allViewMultipleEntryForm");
+  if (form) form.classList.add("hidden");
   isAddingMultipleInAllView = false;
   clearAllViewMultipleEntries();
 }
 
-// Save all view multiple entries
 async function saveAllViewMultipleEntries() {
   const container = document.getElementById("allViewMultipleEntriesContainer");
   const entryRows = container.getElementsByClassName("entry-row");
@@ -2369,21 +1748,20 @@ async function saveAllViewMultipleEntries() {
     const expense = parseFloat(
       document.getElementById(`${entryId}_expense`).value,
     );
-    const disbursementDate = document.getElementById(
-      `${entryId}_disbursementDate`,
-    ).value;
     const interestRate = parseFloat(
       document.getElementById(`${entryId}_interestRate`).value,
-    );
-    const loanTerm = parseInt(
-      document.getElementById(`${entryId}_loanTerm`).value,
     );
     const deductionDate = document.getElementById(
       `${entryId}_deductionDate`,
     ).value;
-    const monthsWithoutPrincipal = parseInt(
-      document.getElementById(`${entryId}_monthsWithoutPrincipal`).value,
-    );
+    const monthsWithNoPrincipalRepayment =
+      parseInt(
+        document.getElementById(`${entryId}_monthsWithNoPrincipalRepayment`)
+          .value,
+      ) || 0;
+    const maturityDate = document.getElementById(
+      `${entryId}_maturityDate`,
+    ).value;
 
     if (!costCenterId) {
       alert("Vui lòng chọn trạm cho mục này");
@@ -2395,28 +1773,33 @@ async function saveAllViewMultipleEntries() {
       hasError = true;
       break;
     }
-    if (isNaN(income) || isNaN(expense)) {
-      alert("Vui lòng nhập số tiền hợp lệ cho mục này");
+    if (isNaN(income) || income < 0) {
+      alert("Vui lòng nhập số tiền vay hợp lệ");
+      hasError = true;
+      break;
+    }
+    if (isNaN(expense) || expense < 0) {
+      alert("Vui lòng nhập số tiền đã trả gốc hợp lệ");
       hasError = true;
       break;
     }
     if (!isValidDate(date)) {
-      alert("Vui lòng nhập ngày hợp lệ (DD/MM/YYYY) cho mục này");
+      alert("Vui lòng nhập ngày giải ngân hợp lệ (DD/MM/YYYY)");
       hasError = true;
       break;
     }
-    if (disbursementDate && !isValidDate(disbursementDate)) {
-      alert("Ngày nhận nợ không hợp lệ cho mục này");
+    if (isNaN(interestRate) || interestRate < 0) {
+      alert("Vui lòng nhập lãi suất hợp lệ");
       hasError = true;
       break;
     }
-    if (deductionDate && !isValidDate(deductionDate)) {
-      alert("Ngày trích nợ không hợp lệ cho mục này");
+    if (!deductionDate || !isValidDate(deductionDate)) {
+      alert("Vui lòng nhập ngày trừ nợ hợp lệ (DD/MM/YYYY)");
       hasError = true;
       break;
     }
-    if (loanTerm > 0 && monthsWithoutPrincipal > loanTerm) {
-      alert("Số tháng không trả gốc không thể lớn hơn kỳ vay cho mục này");
+    if (!maturityDate || !isValidDate(maturityDate)) {
+      alert("Vui lòng nhập ngày đáo hạn hợp lệ (DD/MM/YYYY)");
       hasError = true;
       break;
     }
@@ -2425,14 +1808,14 @@ async function saveAllViewMultipleEntries() {
       costCenterId,
       entry: {
         name,
-        date,
         income,
         expense,
-        disbursementDate: disbursementDate || null,
-        interestRate: interestRate || 0,
-        loanTerm: loanTerm || 0,
-        deductionDate: deductionDate || null,
-        monthsWithoutPrincipal: monthsWithoutPrincipal || 0,
+        date,
+        interestRate,
+        deductionDate,
+        monthsWithNoPrincipalRepayment,
+        maturityDate,
+        loanDisbursementDate: date,
       },
     });
   }
@@ -2466,13 +1849,13 @@ async function saveAllViewMultipleEntries() {
     saveBtn.textContent = originalText;
     saveBtn.disabled = false;
     if (errorCount === 0) {
-      alert(`Đã thêm thành công ${successCount} mục!`);
+      alert(`Đã thêm thành công ${successCount} khoản vay!`);
       hideAllViewMultipleEntryForm();
       await loadAllCostCentersData();
       applyAllFilters();
     } else {
       alert(
-        `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`,
+        `Đã thêm ${successCount} khoản thành công, ${errorCount} khoản thất bại.`,
       );
       if (successCount > 0) {
         hideAllViewMultipleEntryForm();
@@ -2525,7 +1908,6 @@ function applyAllFilters() {
   sortAllEntries(currentAllSortField, currentAllSortDirection);
 }
 
-// Reset all filters
 function resetAllFilters() {
   ["allDateFrom", "allDateTo", "allSearchName"].forEach((id) => {
     const el = document.getElementById(id);
@@ -2547,7 +1929,13 @@ function resetAllFilters() {
   applyAllFilters();
 }
 
-// Sort all entries
+function applyAllTodayOnlyFilter() {
+  const today = getTodayFormatted();
+  document.getElementById("allDateFrom").value = today;
+  document.getElementById("allDateTo").value = today;
+  applyAllFilters();
+}
+
 function sortAllEntries(field, direction) {
   if (field !== "date") return;
   filteredAllEntries.sort((a, b) => {
@@ -2563,7 +1951,6 @@ function sortAllEntries(field, direction) {
   if (alternativeViewActive) renderAllEntriesTable();
 }
 
-// Update all sort indicators
 function updateAllSortIndicators(field, direction) {
   const headers = document.querySelectorAll("#allCostCentersTable th.sortable");
   headers.forEach((header) => {
@@ -2574,7 +1961,6 @@ function updateAllSortIndicators(field, direction) {
   });
 }
 
-// Sort all table
 function sortAllTable(field) {
   if (field !== "date") return;
   if (currentAllSortField === field) {
@@ -2587,7 +1973,6 @@ function sortAllTable(field) {
   sortAllEntries(currentAllSortField, currentAllSortDirection);
 }
 
-// Switch to cost center and edit
 function switchToCostCenterAndEdit(costCenterId, entryId) {
   const toggle = document.getElementById("viewToggle");
   if (toggle.checked) {
@@ -2602,7 +1987,6 @@ function switchToCostCenterAndEdit(costCenterId, entryId) {
   });
 }
 
-// Switch to cost center and delete
 function switchToCostCenterAndDelete(costCenterId, entryId) {
   const toggle = document.getElementById("viewToggle");
   if (toggle.checked) {
@@ -2617,14 +2001,12 @@ function switchToCostCenterAndDelete(costCenterId, entryId) {
   });
 }
 
-// Refresh all data
 async function refreshAllData() {
   await loadAllCostCentersData();
   applyAllFilters();
   alert("Đã làm mới dữ liệu toàn hệ thống!");
 }
 
-// Export alternative view
 async function exportAlternativeView() {
   try {
     if (filteredAllEntries.length === 0) {
@@ -2632,7 +2014,7 @@ async function exportAlternativeView() {
       return;
     }
     let csvContent =
-      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Ngày nhận nợ,Lãi suất (%),Kỳ vay (tháng),Ngày trích nợ,Tháng không gốc\n";
+      "Trạm,Tên khoản vay,Ngày giải ngân,Số tiền vay,Đã trả gốc,Lãi suất %,Ngày trừ nợ,Tháng ân hạn,Ngày đáo hạn\n";
     filteredAllEntries.forEach((entry) => {
       csvContent +=
         [
@@ -2641,16 +2023,13 @@ async function exportAlternativeView() {
           entry.date,
           entry.income || 0,
           entry.expense || 0,
-          entry.disbursementDate || "",
           entry.interestRate || 0,
-          entry.loanTerm || 0,
           entry.deductionDate || "",
-          entry.monthsWithoutPrincipal || 0,
+          entry.monthsWithNoPrincipalRepayment || 0,
+          entry.maturityDate || "",
         ].join(",") + "\n";
     });
-    const blob = new Blob(["\uFEFF" + csvContent], {
-      type: "text/csv;charset=utf-8;",
-    });
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.setAttribute("href", URL.createObjectURL(blob));
     link.setAttribute(
@@ -2666,8 +2045,7 @@ async function exportAlternativeView() {
   }
 }
 
-// ==================== GLOBAL SUMMARY FUNCTIONS ====================
-
+// Global summary functions
 function showGlobalDetails() {
   const costCentersWithEntries = Object.entries(allEntries).filter(
     ([_, data]) => {
@@ -2696,9 +2074,9 @@ function showGlobalDetails() {
               <table class="table table-hover table-striped">
                 <thead class="table-dark">
                   <tr>
-                    <th>Trạm</th><th>Số GD</th>
-                    <th>Tổng Thu</th><th>Tổng Chi</th><th>Lợi Nhuận</th>
-                    <th>Hạn Mức</th><th>Quỹ KD</th>
+                    <th>Trạm</th><th>Số Khoản Vay</th>
+                    <th>Tổng Tiền Vay (VND)</th><th>Tổng Đã Trả Gốc (VND)</th><th>Tổng Dư Nợ (VND)</th>
+                    <th>Hạn Mức (VND)</th><th>Quỹ Khả Dụng (VND)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2716,13 +2094,13 @@ function showGlobalDetails() {
                           totalExpense: 0,
                         },
                       );
-                      const profit = t.totalIncome - t.totalExpense;
+                      const outstanding = t.totalIncome - t.totalExpense;
                       const fundLimit = fundInfo.fundLimitBank || 0;
                       const fundAvailable = fundInfo.fundAvailableBank || 0;
-                      const profitClass =
-                        profit >= 0
-                          ? "text-success fw-bold"
-                          : "text-danger fw-bold";
+                      const outstandingClass =
+                        outstanding >= 0
+                          ? "text-danger fw-bold"
+                          : "text-success fw-bold";
                       const fundAvailableClass =
                         fundAvailable >= 0 ? "text-success" : "text-danger";
                       return `<tr onclick="switchToCostCenter('${costCenterId}')" style="cursor:pointer;">
@@ -2730,16 +2108,16 @@ function showGlobalDetails() {
                       <td>${data.entries.length}</td>
                       <td>${t.totalIncome.toLocaleString("vi-VN")}</td>
                       <td>${t.totalExpense.toLocaleString("vi-VN")}</td>
-                      <td class="${profitClass}">${profit.toLocaleString("vi-VN")}</td>
+                      <td class="${outstandingClass}">${outstanding.toLocaleString("vi-VN")}</td>
                       <td>${fundLimit.toLocaleString("vi-VN")}</td>
                       <td class="${fundAvailableClass}">${fundAvailable.toLocaleString("vi-VN")}</td>
-                    </tr>`;
+                     </tr>`;
                     })
                     .join("")}
                 </tbody>
                 <tfoot class="table-secondary">
                   <tr>
-                    <td><strong>TỔNG</strong></td>
+                    <td><strong>TỔNG CỘNG</strong></td>
                     <td><strong>${Object.values(allEntries).reduce(
                       (sum, data) =>
                         sum + (data.entries ? data.entries.length : 0),
@@ -2765,8 +2143,8 @@ function showGlobalDetails() {
                             (fundInfo.totalExpense || 0)),
                         0,
                       ) >= 0
-                        ? "text-success"
-                        : "text-danger"
+                        ? "text-danger"
+                        : "text-success"
                     }">
                       ${Object.values(allFundInfo)
                         .reduce(
@@ -2801,18 +2179,18 @@ function showGlobalDetails() {
                         )
                         .toLocaleString("vi-VN")}
                     </strong></td>
-                  </tr>
+                   </tr>
                 </tfoot>
               </table>
             </div>
             <div class="mt-3">
-              <small class="text-muted">* Nhấp vào tên trạm để xem chi tiết</small>
+              <small class="text-muted">* Nhấp vào tên trạm để chuyển sang xem chi tiết</small>
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-            <button type="button" class="btn btn-primary" onclick="refreshGlobalData()">🔄 Làm Mới</button>
-            <button type="button" class="btn btn-success" onclick="exportAllData()">📁 Xuất CSV</button>
+            <button type="button" class="btn btn-primary" onclick="refreshGlobalData()">🔄 Làm Mới Dữ Liệu</button>
+            <button type="button" class="btn btn-success" onclick="exportAllData()">📁 Xuất Toàn Bộ</button>
           </div>
         </div>
       </div>
@@ -2859,7 +2237,7 @@ async function exportAllData() {
     }
 
     let csvContent =
-      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Ngày nhận nợ,Lãi suất (%),Kỳ vay (tháng),Ngày trích nợ,Tháng không gốc\n";
+      "Trạm,Tên khoản vay,Ngày giải ngân,Số tiền vay,Đã trả gốc,Lãi suất %,Ngày trừ nợ,Tháng ân hạn,Ngày đáo hạn\n";
     costCentersWithEntries.forEach(([_, data]) => {
       (data.entries || []).forEach((entry) => {
         csvContent +=
@@ -2869,18 +2247,15 @@ async function exportAllData() {
             entry.date,
             entry.income || 0,
             entry.expense || 0,
-            entry.disbursementDate || "",
             entry.interestRate || 0,
-            entry.loanTerm || 0,
             entry.deductionDate || "",
-            entry.monthsWithoutPrincipal || 0,
+            entry.monthsWithNoPrincipalRepayment || 0,
+            entry.maturityDate || "",
           ].join(",") + "\n";
       });
     });
 
-    const blob = new Blob(["\uFEFF" + csvContent], {
-      type: "text/csv;charset=utf-8;",
-    });
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.setAttribute("href", URL.createObjectURL(blob));
     link.setAttribute(
