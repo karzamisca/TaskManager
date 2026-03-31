@@ -2,7 +2,6 @@
 const CostCenter = require("../models/CostCenter");
 const FinanceCostCenterBankLog = require("../models/FinanceCostCenterBankLog");
 
-// Helper function to get client IP
 const getClientIp = (req) => {
   return (
     req.ip ||
@@ -12,7 +11,6 @@ const getClientIp = (req) => {
   );
 };
 
-// Helper function to log actions
 const logAction = async (
   req,
   res,
@@ -39,7 +37,6 @@ const logAction = async (
   await FinanceCostCenterBankLog.logAction(logData);
 };
 
-// Helper to extract response message
 const getResponseMessage = (res) => {
   return "Operation completed";
 };
@@ -139,44 +136,6 @@ exports.addBankEntry = async (req, res) => {
         .json({ message: "Date must be in DD/MM/YYYY format" });
     }
 
-    // Validate loan fields
-    if (!loanDisbursementDate || !dateRegex.test(loanDisbursementDate)) {
-      return res.status(400).json({
-        message: "Valid loan disbursement date is required (DD/MM/YYYY)",
-      });
-    }
-
-    if (
-      interestRate === undefined ||
-      interestRate === null ||
-      interestRate < 0
-    ) {
-      return res
-        .status(400)
-        .json({ message: "Valid interest rate is required" });
-    }
-
-    if (!deductionDate || !dateRegex.test(deductionDate)) {
-      return res
-        .status(400)
-        .json({ message: "Valid deduction date is required (DD/MM/YYYY)" });
-    }
-
-    if (
-      monthsWithNoPrincipalRepayment === undefined ||
-      monthsWithNoPrincipalRepayment < 0
-    ) {
-      return res
-        .status(400)
-        .json({ message: "Months with no principal repayment is required" });
-    }
-
-    if (!maturityDate || !dateRegex.test(maturityDate)) {
-      return res
-        .status(400)
-        .json({ message: "Valid maturity date is required (DD/MM/YYYY)" });
-    }
-
     const costCenter = await CostCenter.findById(costCenterId);
     if (!costCenter) {
       await logAction(req, res, "ADD_BANK_ENTRY", costCenterId, null, {
@@ -185,16 +144,63 @@ exports.addBankEntry = async (req, res) => {
       return res.status(404).json({ message: "Cost center not found" });
     }
 
+    // Check if this is a complete loan entry
+    const isCompleteLoan =
+      loanDisbursementDate &&
+      deductionDate &&
+      maturityDate &&
+      interestRate !== undefined;
+
+    if (isCompleteLoan) {
+      if (!dateRegex.test(loanDisbursementDate)) {
+        return res.status(400).json({
+          message: "Valid loan disbursement date is required (DD/MM/YYYY)",
+        });
+      }
+      if (
+        interestRate === undefined ||
+        interestRate === null ||
+        interestRate < 0
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Valid interest rate is required" });
+      }
+      if (!dateRegex.test(deductionDate)) {
+        return res
+          .status(400)
+          .json({ message: "Valid deduction date is required (DD/MM/YYYY)" });
+      }
+      if (
+        monthsWithNoPrincipalRepayment === undefined ||
+        monthsWithNoPrincipalRepayment < 0
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Months with no principal repayment is required" });
+      }
+      if (!dateRegex.test(maturityDate)) {
+        return res
+          .status(400)
+          .json({ message: "Valid maturity date is required (DD/MM/YYYY)" });
+      }
+    }
+
     const newEntry = {
       name,
       income: parseFloat(income) || 0,
       expense: parseFloat(expense) || 0,
       date,
-      loanDisbursementDate,
-      interestRate: parseFloat(interestRate),
-      deductionDate,
-      monthsWithNoPrincipalRepayment: parseInt(monthsWithNoPrincipalRepayment),
-      maturityDate,
+      ...(isCompleteLoan && {
+        loanDisbursementDate,
+        interestRate: parseFloat(interestRate),
+        deductionDate,
+        monthsWithNoPrincipalRepayment: parseInt(
+          monthsWithNoPrincipalRepayment,
+        ),
+        maturityDate,
+        isCompleteLoan: true,
+      }),
     };
 
     if (!costCenter.bank) {
@@ -206,8 +212,9 @@ exports.addBankEntry = async (req, res) => {
 
     const savedEntry = costCenter.bank[costCenter.bank.length - 1];
 
-    // Auto-generate daily entries for this loan
-    await savedEntry.generateDailyEntries(costCenterId, CostCenter);
+    if (isCompleteLoan && savedEntry.isCompleteLoan) {
+      await savedEntry.generateDailyEntries(costCenterId, CostCenter);
+    }
 
     await logAction(req, res, "ADD_BANK_ENTRY", costCenterId, savedEntry._id, {
       entryData: newEntry,
@@ -215,6 +222,7 @@ exports.addBankEntry = async (req, res) => {
 
     res.status(201).json(newEntry);
   } catch (error) {
+    console.error("Error adding bank entry:", error);
     await logAction(req, res, "ADD_BANK_ENTRY", req.params.costCenterId, null, {
       error: error.message,
     });
@@ -222,7 +230,7 @@ exports.addBankEntry = async (req, res) => {
   }
 };
 
-// Update bank entry in a cost center
+// Update bank entry
 exports.updateBankEntry = async (req, res) => {
   try {
     if (
@@ -266,40 +274,6 @@ exports.updateBankEntry = async (req, res) => {
         .json({ message: "Date must be in DD/MM/YYYY format" });
     }
 
-    // Validate loan fields if provided
-    if (loanDisbursementDate && !dateRegex.test(loanDisbursementDate)) {
-      return res.status(400).json({
-        message: "Valid loan disbursement date is required (DD/MM/YYYY)",
-      });
-    }
-
-    if (interestRate !== undefined && interestRate < 0) {
-      return res
-        .status(400)
-        .json({ message: "Valid interest rate is required" });
-    }
-
-    if (deductionDate && !dateRegex.test(deductionDate)) {
-      return res
-        .status(400)
-        .json({ message: "Valid deduction date is required (DD/MM/YYYY)" });
-    }
-
-    if (
-      monthsWithNoPrincipalRepayment !== undefined &&
-      monthsWithNoPrincipalRepayment < 0
-    ) {
-      return res
-        .status(400)
-        .json({ message: "Months with no principal repayment is required" });
-    }
-
-    if (maturityDate && !dateRegex.test(maturityDate)) {
-      return res
-        .status(400)
-        .json({ message: "Valid maturity date is required (DD/MM/YYYY)" });
-    }
-
     const costCenter = await CostCenter.findById(costCenterId);
     if (!costCenter || !costCenter.bank) {
       await logAction(req, res, "UPDATE_BANK_ENTRY", costCenterId, entryId, {
@@ -328,26 +302,84 @@ exports.updateBankEntry = async (req, res) => {
       deductionDate: entry.deductionDate,
       monthsWithNoPrincipalRepayment: entry.monthsWithNoPrincipalRepayment,
       maturityDate: entry.maturityDate,
+      isCompleteLoan: entry.isCompleteLoan,
     };
 
     if (name) entry.name = name;
     if (income !== undefined) entry.income = parseFloat(income) || 0;
     if (expense !== undefined) entry.expense = parseFloat(expense) || 0;
     if (date) entry.date = date;
-    if (loanDisbursementDate) entry.loanDisbursementDate = loanDisbursementDate;
-    if (interestRate !== undefined)
+
+    const willBeCompleteLoan =
+      (loanDisbursementDate || entry.loanDisbursementDate) &&
+      (deductionDate || entry.deductionDate) &&
+      (maturityDate || entry.maturityDate) &&
+      (interestRate !== undefined || entry.interestRate !== undefined);
+
+    if (loanDisbursementDate) {
+      if (!dateRegex.test(loanDisbursementDate)) {
+        return res.status(400).json({
+          message: "Valid loan disbursement date is required (DD/MM/YYYY)",
+        });
+      }
+      entry.loanDisbursementDate = loanDisbursementDate;
+    }
+
+    if (interestRate !== undefined) {
+      if (interestRate < 0) {
+        return res
+          .status(400)
+          .json({ message: "Valid interest rate is required" });
+      }
       entry.interestRate = parseFloat(interestRate);
-    if (deductionDate) entry.deductionDate = deductionDate;
-    if (monthsWithNoPrincipalRepayment !== undefined)
+    }
+
+    if (deductionDate) {
+      if (!dateRegex.test(deductionDate)) {
+        return res
+          .status(400)
+          .json({ message: "Valid deduction date is required (DD/MM/YYYY)" });
+      }
+      entry.deductionDate = deductionDate;
+    }
+
+    if (monthsWithNoPrincipalRepayment !== undefined) {
+      if (monthsWithNoPrincipalRepayment < 0) {
+        return res
+          .status(400)
+          .json({ message: "Months with no principal repayment is required" });
+      }
       entry.monthsWithNoPrincipalRepayment = parseInt(
         monthsWithNoPrincipalRepayment,
       );
-    if (maturityDate) entry.maturityDate = maturityDate;
+    }
+
+    if (maturityDate) {
+      if (!dateRegex.test(maturityDate)) {
+        return res
+          .status(400)
+          .json({ message: "Valid maturity date is required (DD/MM/YYYY)" });
+      }
+      entry.maturityDate = maturityDate;
+    }
+
+    entry.isCompleteLoan =
+      willBeCompleteLoan &&
+      entry.loanDisbursementDate &&
+      entry.deductionDate &&
+      entry.maturityDate &&
+      entry.interestRate !== undefined;
 
     await costCenter.save();
 
-    // Update daily entries for this loan
-    await entry.updateDailyEntries(costCenterId, CostCenter);
+    if (entry.isCompleteLoan) {
+      await entry.updateDailyEntries(costCenterId, CostCenter);
+    } else if (oldValues.isCompleteLoan) {
+      costCenter.daily = costCenter.daily.filter(
+        (dailyEntry) => dailyEntry.loanId !== entry._id.toString(),
+      );
+      await costCenter.save();
+    }
 
     await logAction(req, res, "UPDATE_BANK_ENTRY", costCenterId, entryId, {
       oldValues: oldValues,
@@ -361,6 +393,7 @@ exports.updateBankEntry = async (req, res) => {
         deductionDate: entry.deductionDate,
         monthsWithNoPrincipalRepayment: entry.monthsWithNoPrincipalRepayment,
         maturityDate: entry.maturityDate,
+        isCompleteLoan: entry.isCompleteLoan,
       },
     });
 
@@ -380,7 +413,7 @@ exports.updateBankEntry = async (req, res) => {
   }
 };
 
-// Delete bank entry from a cost center
+// Delete bank entry
 exports.deleteBankEntry = async (req, res) => {
   try {
     if (
@@ -420,19 +453,6 @@ exports.deleteBankEntry = async (req, res) => {
       return res.status(404).json({ message: "Entry not found" });
     }
 
-    const deletedEntryData = {
-      name: entryToDelete.name,
-      income: entryToDelete.income,
-      expense: entryToDelete.expense,
-      date: entryToDelete.date,
-      loanDisbursementDate: entryToDelete.loanDisbursementDate,
-      interestRate: entryToDelete.interestRate,
-      deductionDate: entryToDelete.deductionDate,
-      monthsWithNoPrincipalRepayment:
-        entryToDelete.monthsWithNoPrincipalRepayment,
-      maturityDate: entryToDelete.maturityDate,
-    };
-
     // Remove associated daily entries
     costCenter.daily = costCenter.daily.filter(
       (entry) => entry.loanId !== entryId,
@@ -442,7 +462,7 @@ exports.deleteBankEntry = async (req, res) => {
     await costCenter.save();
 
     await logAction(req, res, "DELETE_BANK_ENTRY", costCenterId, entryId, {
-      deletedEntry: deletedEntryData,
+      deletedEntry: { name: entryToDelete.name },
     });
 
     res.json({ message: "Entry deleted successfully" });
@@ -461,7 +481,7 @@ exports.deleteBankEntry = async (req, res) => {
   }
 };
 
-// Get all cost centers (for dropdown selection)
+// Get all cost centers
 exports.getCostCenters = async (req, res) => {
   try {
     if (
@@ -646,7 +666,7 @@ exports.updateFundLimitBank = async (req, res) => {
   }
 };
 
-// Regenerate loan entries for a cost center
+// Regenerate loan entries
 exports.regenerateLoanEntries = async (req, res) => {
   try {
     if (
@@ -671,23 +691,34 @@ exports.regenerateLoanEntries = async (req, res) => {
     }
 
     let regeneratedCount = 0;
-    // Regenerate entries for all bank entries (loans)
+    let skippedCount = 0;
+
     for (const bankEntry of costCenter.bank) {
-      await bankEntry.updateDailyEntries(costCenterId, CostCenter);
-      regeneratedCount++;
+      if (
+        bankEntry.isCompleteLoan &&
+        bankEntry.loanDisbursementDate &&
+        bankEntry.deductionDate &&
+        bankEntry.maturityDate
+      ) {
+        await bankEntry.updateDailyEntries(costCenterId, CostCenter);
+        regeneratedCount++;
+      } else {
+        skippedCount++;
+      }
     }
 
     res.json({
       success: true,
-      message: `Đã tạo lại các khoản lãi vay cho ${regeneratedCount} khoản vay thành công`,
+      message: `Đã tạo lại các khoản lãi vay cho ${regeneratedCount} khoản vay, bỏ qua ${skippedCount} khoản vay không đầy đủ thông tin`,
       count: regeneratedCount,
+      skipped: skippedCount,
     });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
 
-// Preview loan schedule with proper first and last month handling
+// Preview loan schedule with proper rounding
 exports.previewLoanSchedule = async (req, res) => {
   try {
     const {
@@ -701,7 +732,6 @@ exports.previewLoanSchedule = async (req, res) => {
 
     const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
 
-    // Validate inputs
     if (!loanDisbursementDate || !dateRegex.test(loanDisbursementDate)) {
       return res
         .status(400)
@@ -724,9 +754,11 @@ exports.previewLoanSchedule = async (req, res) => {
       monthsWithNoPrincipalRepayment === undefined ||
       monthsWithNoPrincipalRepayment < 0
     ) {
-      return res.status(400).json({
-        message: "Valid months with no principal repayment is required",
-      });
+      return res
+        .status(400)
+        .json({
+          message: "Valid months with no principal repayment is required",
+        });
     }
 
     if (!maturityDate || !dateRegex.test(maturityDate)) {
@@ -735,17 +767,6 @@ exports.previewLoanSchedule = async (req, res) => {
         .json({ message: "Valid maturity date is required" });
     }
 
-    // Create a temporary loan object to generate schedule
-    const tempLoan = {
-      income: parseFloat(loanAmount) || 0,
-      loanDisbursementDate,
-      interestRate: parseFloat(interestRate),
-      deductionDate,
-      monthsWithNoPrincipalRepayment: parseInt(monthsWithNoPrincipalRepayment),
-      maturityDate,
-    };
-
-    // Use the same schedule generation logic as in the model
     const parseDateToTimestamp = (dateString) => {
       const parts = dateString.split("/");
       return new Date(parts[2], parts[1] - 1, parts[0]);
@@ -775,10 +796,8 @@ exports.previewLoanSchedule = async (req, res) => {
       return days;
     };
 
-    const getDeductionDateForMonth = (baseDate, targetMonth, deductionDay) => {
+    const getDeductionDateForMonth = (baseDate, deductionDay) => {
       const date = new Date(baseDate);
-      date.setMonth(targetMonth);
-
       const lastDayOfMonth = new Date(
         date.getFullYear(),
         date.getMonth() + 1,
@@ -786,27 +805,34 @@ exports.previewLoanSchedule = async (req, res) => {
       ).getDate();
       const actualDay = Math.min(deductionDay, lastDayOfMonth);
       date.setDate(actualDay);
-
       return date;
     };
 
-    const generateDeductionSchedule = (entry) => {
+    const generateDeductionSchedule = () => {
       const schedule = [];
-      const disbursementDate = parseDateToTimestamp(entry.loanDisbursementDate);
-      const maturityDate = parseDateToTimestamp(entry.maturityDate);
-      const deductionDay = parseInt(entry.deductionDate.split("/")[0]);
+      const disbursementDate = parseDateToTimestamp(loanDisbursementDate);
+      const maturityDateObj = parseDateToTimestamp(maturityDate);
+      const deductionDay = parseInt(deductionDate.split("/")[0]);
 
-      if (!disbursementDate || !maturityDate || !deductionDay) return schedule;
+      if (!disbursementDate || !maturityDateObj || !deductionDay)
+        return schedule;
 
-      const totalLoan = entry.income || 0;
-      const gracePeriodMonths = entry.monthsWithNoPrincipalRepayment || 0;
+      const totalLoan = parseFloat(loanAmount) || 0;
+      const gracePeriodMonths = parseInt(monthsWithNoPrincipalRepayment);
+      const annualRatePercent = parseFloat(interestRate);
 
-      // Determine the first deduction date
+      // Get first deduction date
       let firstDeductionDate = new Date(disbursementDate);
-      firstDeductionDate.setMonth(firstDeductionDate.getMonth() + 1);
+
+      if (firstDeductionDate.getDate() <= deductionDay) {
+        firstDeductionDate.setDate(deductionDay);
+      } else {
+        firstDeductionDate.setMonth(firstDeductionDate.getMonth() + 1);
+        firstDeductionDate.setDate(deductionDay);
+      }
+
       firstDeductionDate = getDeductionDateForMonth(
         firstDeductionDate,
-        firstDeductionDate.getMonth(),
         deductionDay,
       );
 
@@ -814,38 +840,31 @@ exports.previewLoanSchedule = async (req, res) => {
         firstDeductionDate.setMonth(firstDeductionDate.getMonth() + 1);
         firstDeductionDate = getDeductionDateForMonth(
           firstDeductionDate,
-          firstDeductionDate.getMonth(),
           deductionDay,
         );
       }
 
-      // Calculate months with principal repayment (after grace period)
+      // Calculate months with principal repayment
       let monthsWithPrincipal = 0;
       let currentDate = new Date(firstDeductionDate);
       let monthCounter = 0;
 
-      while (currentDate <= maturityDate) {
+      while (currentDate <= maturityDateObj) {
         if (monthCounter >= gracePeriodMonths) {
           monthsWithPrincipal++;
         }
         monthCounter++;
         currentDate.setMonth(currentDate.getMonth() + 1);
-        currentDate = getDeductionDateForMonth(
-          currentDate,
-          currentDate.getMonth(),
-          deductionDay,
-        );
+        currentDate = getDeductionDateForMonth(currentDate, deductionDay);
       }
 
-      const principalPerMonth =
-        monthsWithPrincipal > 0 ? totalLoan / monthsWithPrincipal : 0;
-
+      // Generate schedule
       let currentStartDate = new Date(disbursementDate);
       let currentDeductionDate = new Date(firstDeductionDate);
       let monthIndex = 0;
       let principalPaid = 0;
 
-      while (currentDeductionDate <= maturityDate) {
+      while (currentDeductionDate <= maturityDateObj) {
         const isGracePeriod = monthIndex < gracePeriodMonths;
 
         const daysInPeriod = getActualDaysBetween(
@@ -855,15 +874,21 @@ exports.previewLoanSchedule = async (req, res) => {
 
         const outstandingBalance = totalLoan - principalPaid;
         const interestExpense =
-          (entry.interestRate / 365) * daysInPeriod * outstandingBalance;
+          (annualRatePercent / 100) * (daysInPeriod / 365) * outstandingBalance;
 
         let principalThisMonth = 0;
         if (!isGracePeriod && monthIndex >= gracePeriodMonths) {
+          const remainingMonths =
+            monthsWithPrincipal - (monthIndex - gracePeriodMonths);
           const remainingPrincipal = totalLoan - principalPaid;
-          if (monthIndex === gracePeriodMonths + monthsWithPrincipal - 1) {
+
+          if (remainingMonths === 1) {
+            // Last payment - pay remaining principal exactly
             principalThisMonth = remainingPrincipal;
           } else {
-            principalThisMonth = principalPerMonth;
+            // Regular payment - floor to avoid overpayment
+            const rawPrincipal = remainingPrincipal / remainingMonths;
+            principalThisMonth = Math.floor(rawPrincipal);
           }
         }
 
@@ -881,7 +906,7 @@ exports.previewLoanSchedule = async (req, res) => {
           outstandingBalance: Math.round(newOutstandingBalance),
           isGracePeriod,
           isFirstPayment: monthIndex === 0,
-          isLastPayment: currentDeductionDate >= maturityDate,
+          isLastPayment: currentDeductionDate >= maturityDateObj,
         });
 
         principalPaid += principalThisMonth;
@@ -890,60 +915,25 @@ exports.previewLoanSchedule = async (req, res) => {
 
         const nextDate = new Date(currentDeductionDate);
         nextDate.setMonth(nextDate.getMonth() + 1);
-        currentDeductionDate = getDeductionDateForMonth(
-          nextDate,
-          nextDate.getMonth(),
-          deductionDay,
-        );
+        currentDeductionDate = getDeductionDateForMonth(nextDate, deductionDay);
       }
 
-      // Handle final period from last deduction to maturity date if needed
-      const lastPayment = schedule[schedule.length - 1];
-      if (
-        lastPayment &&
-        lastPayment.deductionDate !== formatDate(maturityDate)
-      ) {
-        const lastDeductionDate = parseDateToTimestamp(
-          lastPayment.deductionDate,
-        );
-        if (lastDeductionDate < maturityDate) {
-          const daysToMaturity = getActualDaysBetween(
-            formatDate(lastDeductionDate),
-            formatDate(maturityDate),
-          );
-
-          const finalOutstandingBalance = lastPayment.outstandingBalance;
-          if (finalOutstandingBalance > 0 && daysToMaturity > 0) {
-            const finalInterest =
-              (entry.interestRate / 365) *
-              daysToMaturity *
-              finalOutstandingBalance;
-
-            schedule.push({
-              period: schedule.length + 1,
-              deductionDate: formatDate(maturityDate),
-              startDate: lastPayment.deductionDate,
-              endDate: formatDate(maturityDate),
-              daysInPeriod: daysToMaturity,
-              interestExpense: Math.round(finalInterest),
-              principalRepayment: Math.round(finalOutstandingBalance),
-              totalPayment: Math.round(finalInterest + finalOutstandingBalance),
-              outstandingBalance: 0,
-              isGracePeriod: false,
-              isFirstPayment: false,
-              isLastPayment: true,
-              isFinalSettlement: true,
-            });
-          }
+      // Final adjustment to ensure outstanding balance is exactly 0
+      if (schedule.length > 0) {
+        const lastPayment = schedule[schedule.length - 1];
+        if (lastPayment.outstandingBalance !== 0) {
+          const adjustment = lastPayment.outstandingBalance;
+          lastPayment.principalRepayment += adjustment;
+          lastPayment.totalPayment += adjustment;
+          lastPayment.outstandingBalance = 0;
         }
       }
 
       return schedule;
     };
 
-    const schedule = generateDeductionSchedule(tempLoan);
+    const schedule = generateDeductionSchedule();
 
-    // Calculate summary statistics
     const summary = {
       totalInterest: schedule.reduce((sum, p) => sum + p.interestExpense, 0),
       totalPrincipal: schedule.reduce(
@@ -954,7 +944,6 @@ exports.previewLoanSchedule = async (req, res) => {
       numberOfPayments: schedule.length,
       firstPaymentDate: schedule[0]?.deductionDate || null,
       lastPaymentDate: schedule[schedule.length - 1]?.deductionDate || null,
-      hasFinalSettlement: schedule.some((p) => p.isFinalSettlement),
     };
 
     res.json({
@@ -962,12 +951,12 @@ exports.previewLoanSchedule = async (req, res) => {
       schedule,
       summary,
       loanDetails: {
-        loanAmount: tempLoan.income,
-        interestRate: tempLoan.interestRate,
-        disbursementDate: tempLoan.loanDisbursementDate,
-        maturityDate: tempLoan.maturityDate,
-        deductionDate: tempLoan.deductionDate,
-        gracePeriodMonths: tempLoan.monthsWithNoPrincipalRepayment,
+        loanAmount: parseFloat(loanAmount),
+        interestRate: parseFloat(interestRate),
+        disbursementDate: loanDisbursementDate,
+        maturityDate: maturityDate,
+        deductionDate: deductionDate,
+        gracePeriodMonths: parseInt(monthsWithNoPrincipalRepayment),
       },
     });
   } catch (error) {

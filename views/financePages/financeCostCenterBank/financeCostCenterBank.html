@@ -15,14 +15,10 @@
     />
   </head>
   <body>
-    <!-- Header will be loaded here by headerLoader.js -->
-
-    <!-- Finance page content wrapped in its own container -->
     <div class="finance-bank-page">
       <div class="container">
         <h1>Quản Lý Tài Chính Ngân Hàng</h1>
 
-        <!-- Tổng kết toàn hệ thống -->
         <div id="globalSummarySection" class="summary global-summary">
           <h3>📊 Tổng Kết Toàn Hệ Thống</h3>
           <div class="summary-item">
@@ -53,7 +49,6 @@
           </button>
         </div>
 
-        <!-- View Toggle -->
         <div class="view-toggle-container">
           <div class="view-toggle">
             <span class="toggle-label active" id="singleViewLabel"
@@ -69,9 +64,7 @@
           </div>
         </div>
 
-        <!-- Single Cost Center View -->
         <div id="singleCostCenterView" class="single-cost-center-view">
-          <!-- Lựa chọn trạm -->
           <div class="form-group">
             <label for="costCenterSelect">Chọn Trạm:</label>
             <select id="costCenterSelect" onchange="loadCostCenterData()">
@@ -83,7 +76,6 @@
             <h2>Trạm: <span id="costCenterName"></span></h2>
           </div>
 
-          <!-- Tóm tắt cho trạm được chọn -->
           <div id="summarySection" class="summary hidden">
             <h3>Tổng Kết Trạm</h3>
             <div class="summary-item">
@@ -113,27 +105,16 @@
             </div>
           </div>
 
-          <!-- Filters Section -->
           <div id="filtersSection" class="filters-section hidden">
             <h3>Bộ Lọc</h3>
             <div class="filter-controls">
               <div class="filter-group">
                 <label for="dateFrom">Từ ngày:</label>
-                <input
-                  type="text"
-                  id="dateFrom"
-                  placeholder="DD/MM/YYYY"
-                  pattern="\d{2}/\d{2}/\d{4}"
-                />
+                <input type="text" id="dateFrom" placeholder="DD/MM/YYYY" />
               </div>
               <div class="filter-group">
                 <label for="dateTo">Đến ngày:</label>
-                <input
-                  type="text"
-                  id="dateTo"
-                  placeholder="DD/MM/YYYY"
-                  pattern="\d{2}/\d{2}/\d{4}"
-                />
+                <input type="text" id="dateTo" placeholder="DD/MM/YYYY" />
               </div>
               <div class="filter-group">
                 <label for="searchName">Tìm theo tên:</label>
@@ -143,15 +124,10 @@
                   placeholder="Tên giao dịch"
                 />
               </div>
-              <div
-                class="filter-group"
-                style="justify-content: flex-end; align-items: flex-end"
-              >
+              <div class="filter-group">
                 <button
                   class="btn-finance today-btn"
-                  id="todayOnlyBtn"
                   onclick="applyTodayOnlyFilter()"
-                  style="margin-top: 22px; white-space: nowrap"
                 >
                   Hôm nay
                 </button>
@@ -180,7 +156,6 @@
             </div>
           </div>
 
-          <!-- Bulk Actions -->
           <div id="bulkActions" class="bulk-actions hidden">
             <button
               class="btn-finance add-btn"
@@ -193,7 +168,6 @@
             </button>
           </div>
 
-          <!-- Multiple Entry Form -->
           <div id="multipleEntryForm" class="multiple-entry-form hidden">
             <h3>Thêm Nhiều Mục Cùng Lúc</h3>
             <div id="multipleEntriesContainer"></div>
@@ -216,7 +190,6 @@
             </div>
           </div>
 
-          <!-- Bảng dữ liệu -->
           <div id="addFormContainer" class="hidden">
             <h2>Danh Sách Khoản Vay</h2>
             <div class="table-info">
@@ -227,12 +200,8 @@
               <table id="entriesTable">
                 <thead>
                   <tr>
-                    <th data-field="name">Tên khoản vay</th>
-                    <th
-                      data-field="date"
-                      class="sortable"
-                      onclick="sortTable('date')"
-                    >
+                    <th>Tên khoản vay</th>
+                    <th class="sortable" onclick="sortTable('date')">
                       Ngày giải ngân
                     </th>
                     <th>Số tiền vay</th>
@@ -259,12 +228,9 @@
           </div>
         </div>
 
-        <!-- All Cost Centers View -->
         <div id="alternativeView" class="alternative-view-container">
           <div id="allCostCentersTableView" class="all-cost-centers-view">
             <h2>Danh Sách Tất Cả Các Trạm</h2>
-
-            <!-- Filters for all cost centers view -->
             <div id="allCostCentersFiltersSection" class="filters-section">
               <h3>Bộ Lọc Tất Cả Trạm</h3>
               <div class="filter-controls">
@@ -274,17 +240,11 @@
                     type="text"
                     id="allDateFrom"
                     placeholder="DD/MM/YYYY"
-                    pattern="\d{2}/\d{2}/\d{4}"
                   />
                 </div>
                 <div class="filter-group">
                   <label for="allDateTo">Đến ngày:</label>
-                  <input
-                    type="text"
-                    id="allDateTo"
-                    placeholder="DD/MM/YYYY"
-                    pattern="\d{2}/\d{2}/\d{4}"
-                  />
+                  <input type="text" id="allDateTo" placeholder="DD/MM/YYYY" />
                 </div>
                 <div class="filter-group">
                   <label for="allSearchName">Tìm theo tên:</label>
@@ -300,55 +260,43 @@
                     <option value="all">Tất cả trạm</option>
                   </select>
                 </div>
-                <div
-                  class="filter-group"
-                  style="justify-content: flex-end; align-items: flex-end"
-                >
+                <div class="filter-group">
                   <button
                     class="btn-finance today-btn"
-                    id="allTodayOnlyBtn"
                     onclick="applyAllTodayOnlyFilter()"
-                    style="margin-top: 22px; white-space: nowrap"
                   >
                     Hôm nay
                   </button>
                 </div>
               </div>
               <div class="filter-actions">
-                <div style="display: flex; gap: 8px">
-                  <button
-                    class="btn-finance apply-filters-btn"
-                    onclick="applyAllFilters()"
-                  >
-                    Áp dụng bộ lọc
-                  </button>
-                  <button
-                    class="btn-finance reset-filters-btn"
-                    onclick="resetAllFilters()"
-                  >
-                    Đặt lại bộ lọc
-                  </button>
-                </div>
-                <div style="display: flex; gap: 8px">
-                  <button
-                    class="btn-finance add-btn"
-                    onclick="showAllViewMultipleEntryForm()"
-                    style="background: #28a745"
-                  >
-                    + Thêm Nhiều Mục
-                  </button>
-                  <button
-                    class="btn-finance add-btn"
-                    onclick="showAllViewAddRow()"
-                    style="background: #28a745"
-                  >
-                    + Thêm Mục Mới
-                  </button>
-                </div>
+                <button
+                  class="btn-finance apply-filters-btn"
+                  onclick="applyAllFilters()"
+                >
+                  Áp dụng bộ lọc
+                </button>
+                <button
+                  class="btn-finance reset-filters-btn"
+                  onclick="resetAllFilters()"
+                >
+                  Đặt lại bộ lọc
+                </button>
+                <button
+                  class="btn-finance add-btn"
+                  onclick="showAllViewMultipleEntryForm()"
+                >
+                  + Thêm Nhiều Mục
+                </button>
+                <button
+                  class="btn-finance add-btn"
+                  onclick="showAllViewAddRow()"
+                >
+                  + Thêm Mục Mới
+                </button>
               </div>
             </div>
 
-            <!-- Multiple Entry Form for All Cost Centers View -->
             <div
               id="allViewMultipleEntryForm"
               class="multiple-entry-form hidden"
@@ -378,21 +326,16 @@
             </div>
 
             <div class="table-info">
-              Hiển thị dữ liệu từ
-              <span id="totalCostCentersCount">0</span> trạm | Tổng số giao
-              dịch: <span id="totalTransactionsCount">0</span>
+              Hiển thị dữ liệu từ <span id="totalCostCentersCount">0</span> trạm
+              | Tổng số giao dịch: <span id="totalTransactionsCount">0</span>
             </div>
             <div class="table-responsive">
-              <table id="allCostCentersTable" class="table table-striped">
+              <table id="allCostCentersTable">
                 <thead>
                   <tr>
-                    <th data-field="costCenter">Trạm</th>
-                    <th data-field="name">Tên khoản vay</th>
-                    <th
-                      data-field="date"
-                      class="sortable"
-                      onclick="sortAllTable('date')"
-                    >
+                    <th>Trạm</th>
+                    <th>Tên khoản vay</th>
+                    <th class="sortable" onclick="sortAllTable('date')">
                       Ngày giải ngân
                     </th>
                     <th>Số tiền vay</th>
@@ -424,7 +367,6 @@
       </div>
     </div>
 
-    <!-- Modal for loan preview -->
     <div class="modal fade" id="loanPreviewModal" tabindex="-1">
       <div class="modal-dialog modal-xl">
         <div class="modal-content">
@@ -454,6 +396,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="financePages/financeCostCenterBank/financeCostCenterBank.js?v=1.14"></script>
+    <script src="financePages/financeCostCenterBank/financeCostCenterBank.js?v=1.15"></script>
   </body>
 </html>

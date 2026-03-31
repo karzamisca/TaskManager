@@ -78,25 +78,19 @@ const getActualDaysBetween = (startDateStr, endDateStr) => {
 };
 
 // Get the actual deduction date for a given month
-const getDeductionDateForMonth = (baseDate, targetMonth, deductionDay) => {
+const getDeductionDateForMonth = (baseDate, deductionDay) => {
   const date = new Date(baseDate);
-  date.setMonth(targetMonth);
-
-  // Get last day of the month
   const lastDayOfMonth = new Date(
     date.getFullYear(),
     date.getMonth() + 1,
     0,
   ).getDate();
-
-  // If deduction day is beyond month end, use month end
   const actualDay = Math.min(deductionDay, lastDayOfMonth);
   date.setDate(actualDay);
-
   return date;
 };
 
-// Generate monthly deduction schedule with proper first and last month handling
+// Generate monthly deduction schedule with proper rounding for principal payments
 const generateDeductionSchedule = (entry) => {
   const schedule = [];
   const disbursementDate = parseDateToTimestamp(entry.loanDisbursementDate);
@@ -107,35 +101,32 @@ const generateDeductionSchedule = (entry) => {
 
   const totalLoan = entry.income || 0;
   const gracePeriodMonths = entry.monthsWithNoPrincipalRepayment || 0;
+  const annualRatePercent = entry.interestRate;
 
-  // Calculate total months from disbursement to maturity
-  let totalMonths = 0;
-  let tempDate = new Date(disbursementDate);
-  while (tempDate < maturityDate) {
-    totalMonths++;
-    tempDate.setMonth(tempDate.getMonth() + 1);
+  // Get the first deduction date
+  let firstDeductionDate = new Date(disbursementDate);
+
+  if (firstDeductionDate.getDate() <= deductionDay) {
+    firstDeductionDate.setDate(deductionDay);
+  } else {
+    firstDeductionDate.setMonth(firstDeductionDate.getMonth() + 1);
+    firstDeductionDate.setDate(deductionDay);
   }
 
-  // Determine the first deduction date
-  let firstDeductionDate = new Date(disbursementDate);
-  firstDeductionDate.setMonth(firstDeductionDate.getMonth() + 1);
   firstDeductionDate = getDeductionDateForMonth(
     firstDeductionDate,
-    firstDeductionDate.getMonth(),
     deductionDay,
   );
 
-  // If first deduction date is before or on disbursement date, move to next month
   if (firstDeductionDate <= disbursementDate) {
     firstDeductionDate.setMonth(firstDeductionDate.getMonth() + 1);
     firstDeductionDate = getDeductionDateForMonth(
       firstDeductionDate,
-      firstDeductionDate.getMonth(),
       deductionDay,
     );
   }
 
-  // Calculate months with principal repayment (after grace period)
+  // Calculate months with principal repayment
   let monthsWithPrincipal = 0;
   let currentDate = new Date(firstDeductionDate);
   let monthCounter = 0;
@@ -146,16 +137,8 @@ const generateDeductionSchedule = (entry) => {
     }
     monthCounter++;
     currentDate.setMonth(currentDate.getMonth() + 1);
-    currentDate = getDeductionDateForMonth(
-      currentDate,
-      currentDate.getMonth(),
-      deductionDay,
-    );
+    currentDate = getDeductionDateForMonth(currentDate, deductionDay);
   }
-
-  // Calculate principal per month (equal payments after grace period)
-  const principalPerMonth =
-    monthsWithPrincipal > 0 ? totalLoan / monthsWithPrincipal : 0;
 
   // Generate schedule
   let currentStartDate = new Date(disbursementDate);
@@ -166,33 +149,32 @@ const generateDeductionSchedule = (entry) => {
   while (currentDeductionDate <= maturityDate) {
     const isGracePeriod = monthIndex < gracePeriodMonths;
 
-    // Calculate days in this period
     const daysInPeriod = getActualDaysBetween(
       formatDate(currentStartDate),
       formatDate(currentDeductionDate),
     );
 
-    // Calculate outstanding balance at start of period
     const outstandingBalance = totalLoan - principalPaid;
-
-    // Calculate interest for this period
     const interestExpense =
-      (entry.interestRate / 365) * daysInPeriod * outstandingBalance;
+      (annualRatePercent / 100) * (daysInPeriod / 365) * outstandingBalance;
 
-    // Calculate principal for this period
     let principalThisMonth = 0;
     if (!isGracePeriod && monthIndex >= gracePeriodMonths) {
-      // For the last payment, adjust principal to ensure full repayment
+      // Calculate remaining months including current
+      const remainingMonths =
+        monthsWithPrincipal - (monthIndex - gracePeriodMonths);
       const remainingPrincipal = totalLoan - principalPaid;
-      if (monthIndex === gracePeriodMonths + monthsWithPrincipal - 1) {
-        // Last payment - pay remaining principal
+
+      if (remainingMonths === 1) {
+        // Last payment - pay remaining principal exactly
         principalThisMonth = remainingPrincipal;
       } else {
-        principalThisMonth = principalPerMonth;
+        // Regular payment - round to nearest integer, but ensure we don't overpay
+        const rawPrincipal = remainingPrincipal / remainingMonths;
+        principalThisMonth = Math.floor(rawPrincipal);
       }
     }
 
-    // Calculate new outstanding balance
     const newOutstandingBalance = outstandingBalance - principalThisMonth;
 
     schedule.push({
@@ -210,52 +192,24 @@ const generateDeductionSchedule = (entry) => {
       isLastPayment: currentDeductionDate >= maturityDate,
     });
 
-    // Update for next iteration
     principalPaid += principalThisMonth;
     currentStartDate = new Date(currentDeductionDate);
     monthIndex++;
 
-    // Calculate next deduction date
     const nextDate = new Date(currentDeductionDate);
     nextDate.setMonth(nextDate.getMonth() + 1);
-    currentDeductionDate = getDeductionDateForMonth(
-      nextDate,
-      nextDate.getMonth(),
-      deductionDay,
-    );
+    currentDeductionDate = getDeductionDateForMonth(nextDate, deductionDay);
   }
 
-  // Handle final period from last deduction to maturity date if needed
-  const lastPayment = schedule[schedule.length - 1];
-  if (lastPayment && lastPayment.deductionDate !== formatDate(maturityDate)) {
-    const lastDeductionDate = parseDateToTimestamp(lastPayment.deductionDate);
-    if (lastDeductionDate < maturityDate) {
-      const daysToMaturity = getActualDaysBetween(
-        formatDate(lastDeductionDate),
-        formatDate(maturityDate),
-      );
-
-      const finalOutstandingBalance = lastPayment.outstandingBalance;
-      if (finalOutstandingBalance > 0 && daysToMaturity > 0) {
-        const finalInterest =
-          (entry.interestRate / 365) * daysToMaturity * finalOutstandingBalance;
-
-        schedule.push({
-          period: schedule.length + 1,
-          deductionDate: formatDate(maturityDate),
-          startDate: lastPayment.deductionDate,
-          endDate: formatDate(maturityDate),
-          daysInPeriod: daysToMaturity,
-          interestExpense: Math.round(finalInterest),
-          principalRepayment: Math.round(finalOutstandingBalance),
-          totalPayment: Math.round(finalInterest + finalOutstandingBalance),
-          outstandingBalance: 0,
-          isGracePeriod: false,
-          isFirstPayment: false,
-          isLastPayment: true,
-          isFinalSettlement: true,
-        });
-      }
+  // Final adjustment to ensure outstanding balance is exactly 0
+  if (schedule.length > 0) {
+    const lastPayment = schedule[schedule.length - 1];
+    if (lastPayment.outstandingBalance !== 0) {
+      // Adjust the last payment to clear the balance
+      const adjustment = lastPayment.outstandingBalance;
+      lastPayment.principalRepayment += adjustment;
+      lastPayment.totalPayment += adjustment;
+      lastPayment.outstandingBalance = 0;
     }
   }
 
@@ -272,22 +226,21 @@ const bankSchema = new mongoose.Schema({
     required: true,
     match: [/^\d{2}\/\d{2}\/\d{4}$/, "Date must be in DD/MM/YYYY format"],
   },
-  // New loan fields
+  // Loan fields - made optional for backward compatibility
   loanDisbursementDate: {
     type: String,
     match: [/^\d{2}\/\d{2}\/\d{4}$/, "Date must be in DD/MM/YYYY format"],
-    required: true,
+    default: null,
   },
   interestRate: {
     type: Number,
-    required: true,
     default: 0,
     min: 0,
   },
   deductionDate: {
     type: String,
     match: [/^\d{2}\/\d{2}\/\d{4}$/, "Date must be in DD/MM/YYYY format"],
-    required: true,
+    default: null,
   },
   monthsWithNoPrincipalRepayment: {
     type: Number,
@@ -297,7 +250,11 @@ const bankSchema = new mongoose.Schema({
   maturityDate: {
     type: String,
     match: [/^\d{2}\/\d{2}\/\d{4}$/, "Date must be in DD/MM/YYYY format"],
-    required: true,
+    default: null,
+  },
+  isCompleteLoan: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -306,15 +263,21 @@ bankSchema.methods.generateDailyEntries = async function (
   costCenterId,
   CostCenterModel,
 ) {
+  if (
+    !this.isCompleteLoan ||
+    !this.loanDisbursementDate ||
+    !this.deductionDate ||
+    !this.maturityDate
+  ) {
+    return;
+  }
+
   const costCenter = await CostCenterModel.findById(costCenterId);
   if (!costCenter) return;
 
-  // Generate the deduction schedule
   const schedule = generateDeductionSchedule(this);
 
-  // For each deduction in the schedule, create a daily entry if not exists
   for (const payment of schedule) {
-    // Check if daily entry already exists for this deduction date
     const existingEntry = costCenter.daily.find(
       (entry) =>
         entry.name === `Lãi vay - ${this.name}` &&
@@ -324,16 +287,14 @@ bankSchema.methods.generateDailyEntries = async function (
 
     if (!existingEntry) {
       let note = "";
-      if (payment.isFinalSettlement) {
-        note = `THANH LÝ KHOẢN VAY - Ngày ${payment.deductionDate}. Lãi suất: ${this.interestRate}%, Số ngày: ${payment.daysInPeriod}, Thanh toán toàn bộ dư nợ còn lại: ${payment.principalRepayment.toLocaleString("vi-VN")} VND`;
-      } else if (payment.isGracePeriod) {
-        note = `Ân hạn - Chỉ trả lãi. Kỳ ${payment.period}: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Dư nợ: ${(payment.outstandingBalance + payment.principalRepayment).toLocaleString("vi-VN")} VND`;
+      if (payment.isGracePeriod) {
+        note = `Ân hạn - Chỉ trả lãi. Kỳ ${payment.period}: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Dư nợ: ${(payment.outstandingBalance + payment.principalRepayment).toLocaleString("vi-VN")} VND, Tiền lãi: ${payment.interestExpense.toLocaleString("vi-VN")} VND`;
       } else if (payment.isFirstPayment) {
-        note = `Kỳ trả đầu tiên: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Dư nợ còn lại: ${payment.outstandingBalance.toLocaleString("vi-VN")} VND`;
+        note = `Kỳ trả đầu tiên: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Trả lãi: ${payment.interestExpense.toLocaleString("vi-VN")} VND, Dư nợ còn lại: ${payment.outstandingBalance.toLocaleString("vi-VN")} VND`;
       } else if (payment.isLastPayment) {
-        note = `Kỳ trả cuối cùng: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Dư nợ còn lại: ${payment.outstandingBalance.toLocaleString("vi-VN")} VND`;
+        note = `Kỳ trả cuối cùng: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Trả lãi: ${payment.interestExpense.toLocaleString("vi-VN")} VND, Dư nợ còn lại: ${payment.outstandingBalance.toLocaleString("vi-VN")} VND`;
       } else {
-        note = `Kỳ ${payment.period}: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Dư nợ còn lại: ${payment.outstandingBalance.toLocaleString("vi-VN")} VND`;
+        note = `Kỳ ${payment.period}: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Trả lãi: ${payment.interestExpense.toLocaleString("vi-VN")} VND, Dư nợ còn lại: ${payment.outstandingBalance.toLocaleString("vi-VN")} VND`;
       }
 
       const newDailyEntry = {
@@ -353,7 +314,6 @@ bankSchema.methods.generateDailyEntries = async function (
         daysInPeriod: payment.daysInPeriod,
         periodNumber: payment.period,
         isGracePeriod: payment.isGracePeriod,
-        isFinalSettlement: payment.isFinalSettlement || false,
       };
 
       costCenter.daily.push(newDailyEntry);
@@ -371,12 +331,10 @@ bankSchema.methods.updateDailyEntries = async function (
   const costCenter = await CostCenterModel.findById(costCenterId);
   if (!costCenter) return;
 
-  // Remove existing daily entries for this loan
   costCenter.daily = costCenter.daily.filter(
     (entry) => entry.loanId !== this._id.toString(),
   );
 
-  // Regenerate entries
   await this.generateDailyEntries(costCenterId, CostCenterModel);
 };
 
@@ -390,11 +348,9 @@ const dailySchema = new mongoose.Schema({
     required: true,
     match: [/^\d{2}\/\d{2}\/\d{4}$/, "Date must be in DD/MM/YYYY format"],
   },
-  // Prediction fields
   incomePrediction: { type: Number, default: 0 },
   expensePrediction: { type: Number, default: 0 },
   note: { type: String, default: "" },
-  // Loan tracking fields
   isLoanInterest: { type: Boolean, default: false },
   loanId: { type: String, default: null },
   deductionDateUsed: { type: String, default: null },
@@ -403,7 +359,6 @@ const dailySchema = new mongoose.Schema({
   daysInPeriod: { type: Number, default: 0 },
   periodNumber: { type: Number, default: 0 },
   isGracePeriod: { type: Boolean, default: false },
-  isFinalSettlement: { type: Boolean, default: false },
 });
 
 // Define the merged cost center schema
@@ -432,7 +387,7 @@ const costCenterSchema = new mongoose.Schema({
   },
 });
 
-// Pre-save hooks to calculate totals
+// Pre-save hooks
 purchaseSaleSchema.pre("save", function (next) {
   this.totalCost = this.amount * this.unitCost;
   next();
