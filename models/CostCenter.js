@@ -258,7 +258,7 @@ const bankSchema = new mongoose.Schema({
   },
 });
 
-// Method to generate daily entries from loan interest
+// Method to generate daily entries from loan interest - push to expensePrediction
 bankSchema.methods.generateDailyEntries = async function (
   costCenterId,
   CostCenterModel,
@@ -278,6 +278,7 @@ bankSchema.methods.generateDailyEntries = async function (
   const schedule = generateDeductionSchedule(this);
 
   for (const payment of schedule) {
+    // Check if daily entry already exists for this deduction date
     const existingEntry = costCenter.daily.find(
       (entry) =>
         entry.name === `Lãi vay - ${this.name}` &&
@@ -288,22 +289,22 @@ bankSchema.methods.generateDailyEntries = async function (
     if (!existingEntry) {
       let note = "";
       if (payment.isGracePeriod) {
-        note = `Ân hạn - Chỉ trả lãi. Kỳ ${payment.period}: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Dư nợ: ${(payment.outstandingBalance + payment.principalRepayment).toLocaleString("vi-VN")} VND, Tiền lãi: ${payment.interestExpense.toLocaleString("vi-VN")} VND`;
+        note = `Ân hạn - Chỉ trả lãi. Kỳ ${payment.period}: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Dư nợ: ${(payment.outstandingBalance + payment.principalRepayment).toLocaleString("vi-VN")} VND, Tiền lãi dự kiến: ${payment.interestExpense.toLocaleString("vi-VN")} VND`;
       } else if (payment.isFirstPayment) {
-        note = `Kỳ trả đầu tiên: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Trả lãi: ${payment.interestExpense.toLocaleString("vi-VN")} VND, Dư nợ còn lại: ${payment.outstandingBalance.toLocaleString("vi-VN")} VND`;
+        note = `Kỳ trả đầu tiên: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc dự kiến: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Trả lãi dự kiến: ${payment.interestExpense.toLocaleString("vi-VN")} VND, Dư nợ còn lại: ${payment.outstandingBalance.toLocaleString("vi-VN")} VND`;
       } else if (payment.isLastPayment) {
-        note = `Kỳ trả cuối cùng: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Trả lãi: ${payment.interestExpense.toLocaleString("vi-VN")} VND, Dư nợ còn lại: ${payment.outstandingBalance.toLocaleString("vi-VN")} VND`;
+        note = `Kỳ trả cuối cùng: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc dự kiến: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Trả lãi dự kiến: ${payment.interestExpense.toLocaleString("vi-VN")} VND, Dư nợ còn lại: ${payment.outstandingBalance.toLocaleString("vi-VN")} VND`;
       } else {
-        note = `Kỳ ${payment.period}: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Trả lãi: ${payment.interestExpense.toLocaleString("vi-VN")} VND, Dư nợ còn lại: ${payment.outstandingBalance.toLocaleString("vi-VN")} VND`;
+        note = `Kỳ ${payment.period}: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc dự kiến: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Trả lãi dự kiến: ${payment.interestExpense.toLocaleString("vi-VN")} VND, Dư nợ còn lại: ${payment.outstandingBalance.toLocaleString("vi-VN")} VND`;
       }
 
       const newDailyEntry = {
         name: `Lãi vay - ${this.name}`,
         income: 0,
-        expense: payment.interestExpense,
+        expense: 0, // Actual expense (will be 0 until paid)
+        expensePrediction: payment.interestExpense, // Push to expensePrediction for planned interest
         date: payment.deductionDate,
         incomePrediction: 0,
-        expensePrediction: 0,
         note: note,
         loanId: this._id.toString(),
         isLoanInterest: true,
