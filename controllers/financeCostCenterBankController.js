@@ -184,6 +184,23 @@ exports.addBankEntry = async (req, res) => {
           .status(400)
           .json({ message: "Valid maturity date is required (DD/MM/YYYY)" });
       }
+
+      // Validate that maturity date is after disbursement date
+      const disbursementDateObj = parseDateToTimestamp(loanDisbursementDate);
+      const maturityDateObj = parseDateToTimestamp(maturityDate);
+      if (maturityDateObj <= disbursementDateObj) {
+        return res.status(400).json({
+          message: "Maturity date must be after loan disbursement date",
+        });
+      }
+
+      // Validate that deduction date is valid
+      const deductionDay = parseInt(deductionDate.split("/")[0]);
+      if (deductionDay < 1 || deductionDay > 31) {
+        return res.status(400).json({
+          message: "Deduction day must be between 1 and 31",
+        });
+      }
     }
 
     const newEntry = {
@@ -340,6 +357,12 @@ exports.updateBankEntry = async (req, res) => {
           .status(400)
           .json({ message: "Valid deduction date is required (DD/MM/YYYY)" });
       }
+      const deductionDay = parseInt(deductionDate.split("/")[0]);
+      if (deductionDay < 1 || deductionDay > 31) {
+        return res.status(400).json({
+          message: "Deduction day must be between 1 and 31",
+        });
+      }
       entry.deductionDate = deductionDate;
     }
 
@@ -361,6 +384,19 @@ exports.updateBankEntry = async (req, res) => {
           .json({ message: "Valid maturity date is required (DD/MM/YYYY)" });
       }
       entry.maturityDate = maturityDate;
+    }
+
+    // Validate date relationships if all dates are present
+    if (entry.loanDisbursementDate && entry.maturityDate) {
+      const disbursementDateObj = parseDateToTimestamp(
+        entry.loanDisbursementDate,
+      );
+      const maturityDateObj = parseDateToTimestamp(entry.maturityDate);
+      if (maturityDateObj <= disbursementDateObj) {
+        return res.status(400).json({
+          message: "Maturity date must be after loan disbursement date",
+        });
+      }
     }
 
     entry.isCompleteLoan =
@@ -515,6 +551,13 @@ exports.getCostCenters = async (req, res) => {
     });
     res.status(500).json({ message: error.message });
   }
+};
+
+// Helper function for date parsing
+const parseDateToTimestamp = (dateString) => {
+  if (!dateString) return null;
+  const parts = dateString.split("/");
+  return new Date(parts[2], parts[1] - 1, parts[0]);
 };
 
 // Get cost center with fund limit info
@@ -718,7 +761,7 @@ exports.regenerateLoanEntries = async (req, res) => {
   }
 };
 
-// Preview loan schedule with proper rounding
+// Preview loan schedule with final payment at maturity
 exports.previewLoanSchedule = async (req, res) => {
   try {
     const {
@@ -754,11 +797,9 @@ exports.previewLoanSchedule = async (req, res) => {
       monthsWithNoPrincipalRepayment === undefined ||
       monthsWithNoPrincipalRepayment < 0
     ) {
-      return res
-        .status(400)
-        .json({
-          message: "Valid months with no principal repayment is required",
-        });
+      return res.status(400).json({
+        message: "Valid months with no principal repayment is required",
+      });
     }
 
     if (!maturityDate || !dateRegex.test(maturityDate)) {
@@ -849,7 +890,7 @@ exports.previewLoanSchedule = async (req, res) => {
       let currentDate = new Date(firstDeductionDate);
       let monthCounter = 0;
 
-      while (currentDate <= maturityDateObj) {
+      while (currentDate < maturityDateObj) {
         if (monthCounter >= gracePeriodMonths) {
           monthsWithPrincipal++;
         }
@@ -864,7 +905,7 @@ exports.previewLoanSchedule = async (req, res) => {
       let monthIndex = 0;
       let principalPaid = 0;
 
-      while (currentDeductionDate <= maturityDateObj) {
+      while (currentDeductionDate < maturityDateObj) {
         const isGracePeriod = monthIndex < gracePeriodMonths;
 
         const daysInPeriod = getActualDaysBetween(
@@ -883,10 +924,8 @@ exports.previewLoanSchedule = async (req, res) => {
           const remainingPrincipal = totalLoan - principalPaid;
 
           if (remainingMonths === 1) {
-            // Last payment - pay remaining principal exactly
-            principalThisMonth = remainingPrincipal;
+            principalThisMonth = 0;
           } else {
-            // Regular payment - floor to avoid overpayment
             const rawPrincipal = remainingPrincipal / remainingMonths;
             principalThisMonth = Math.floor(rawPrincipal);
           }
@@ -906,7 +945,8 @@ exports.previewLoanSchedule = async (req, res) => {
           outstandingBalance: Math.round(newOutstandingBalance),
           isGracePeriod,
           isFirstPayment: monthIndex === 0,
-          isLastPayment: currentDeductionDate >= maturityDateObj,
+          isLastPayment: false,
+          isFinalPeriod: false,
         });
 
         principalPaid += principalThisMonth;
@@ -918,16 +958,41 @@ exports.previewLoanSchedule = async (req, res) => {
         currentDeductionDate = getDeductionDateForMonth(nextDate, deductionDay);
       }
 
-      // Final adjustment to ensure outstanding balance is exactly 0
-      if (schedule.length > 0) {
-        const lastPayment = schedule[schedule.length - 1];
-        if (lastPayment.outstandingBalance !== 0) {
-          const adjustment = lastPayment.outstandingBalance;
-          lastPayment.principalRepayment += adjustment;
-          lastPayment.totalPayment += adjustment;
-          lastPayment.outstandingBalance = 0;
-        }
-      }
+      // Final period from last deduction date to maturity date
+      const lastStartDate = currentStartDate;
+      const finalEndDate = maturityDateObj;
+
+      const finalDaysInPeriod = getActualDaysBetween(
+        formatDate(lastStartDate),
+        formatDate(finalEndDate),
+      );
+
+      const finalOutstandingBalance = totalLoan - principalPaid;
+
+      const finalInterestExpense =
+        (annualRatePercent / 100) *
+        (finalDaysInPeriod / 365) *
+        finalOutstandingBalance;
+
+      const finalPrincipalRepayment = finalOutstandingBalance;
+
+      schedule.push({
+        period: schedule.length + 1,
+        deductionDate: formatDate(finalEndDate),
+        startDate: formatDate(lastStartDate),
+        endDate: formatDate(finalEndDate),
+        daysInPeriod: finalDaysInPeriod,
+        interestExpense: Math.round(finalInterestExpense),
+        principalRepayment: Math.round(finalPrincipalRepayment),
+        totalPayment: Math.round(
+          finalInterestExpense + finalPrincipalRepayment,
+        ),
+        outstandingBalance: 0,
+        isGracePeriod: false,
+        isFirstPayment: false,
+        isLastPayment: true,
+        isFinalPeriod: true,
+      });
 
       return schedule;
     };
