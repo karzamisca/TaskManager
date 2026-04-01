@@ -41,6 +41,13 @@ const getResponseMessage = (res) => {
   return "Operation completed";
 };
 
+// Helper function for date parsing
+const parseDateToTimestamp = (dateString) => {
+  if (!dateString) return null;
+  const parts = dateString.split("/");
+  return new Date(parts[2], parts[1] - 1, parts[0]);
+};
+
 // Get bank entries for a specific cost center
 exports.getBankEntries = async (req, res) => {
   try {
@@ -123,6 +130,11 @@ exports.addBankEntry = async (req, res) => {
       deductionDate,
       monthsWithNoPrincipalRepayment,
       maturityDate,
+      periodicPrincipalEnabled,
+      periodicPrincipalFrequencyMonths,
+      periodicPrincipalPaymentRate,
+      periodicPrincipalUsePercentageRate,
+      periodicPrincipalFixedAmount,
     } = req.body;
 
     const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
@@ -185,7 +197,6 @@ exports.addBankEntry = async (req, res) => {
           .json({ message: "Valid maturity date is required (DD/MM/YYYY)" });
       }
 
-      // Validate that maturity date is after disbursement date
       const disbursementDateObj = parseDateToTimestamp(loanDisbursementDate);
       const maturityDateObj = parseDateToTimestamp(maturityDate);
       if (maturityDateObj <= disbursementDateObj) {
@@ -194,12 +205,49 @@ exports.addBankEntry = async (req, res) => {
         });
       }
 
-      // Validate that deduction date is valid
       const deductionDay = parseInt(deductionDate.split("/")[0]);
       if (deductionDay < 1 || deductionDay > 31) {
         return res.status(400).json({
           message: "Deduction day must be between 1 and 31",
         });
+      }
+    }
+
+    // Build periodic principal settings
+    const periodicPrincipal = {
+      enabled:
+        periodicPrincipalEnabled === true ||
+        periodicPrincipalEnabled === "true",
+      paymentFrequencyMonths: parseInt(periodicPrincipalFrequencyMonths) || 3,
+      principalPaymentRate: parseFloat(periodicPrincipalPaymentRate) || 0,
+      usePercentageRate:
+        periodicPrincipalUsePercentageRate === true ||
+        periodicPrincipalUsePercentageRate === "true",
+      fixedPrincipalAmount: parseFloat(periodicPrincipalFixedAmount) || 0,
+    };
+
+    // Validate periodic principal settings if enabled
+    if (periodicPrincipal.enabled) {
+      if (periodicPrincipal.paymentFrequencyMonths < 1) {
+        return res
+          .status(400)
+          .json({ message: "Tần suất trả gốc phải lớn hơn 0 tháng" });
+      }
+      if (periodicPrincipal.usePercentageRate) {
+        if (
+          periodicPrincipal.principalPaymentRate < 0 ||
+          periodicPrincipal.principalPaymentRate > 100
+        ) {
+          return res
+            .status(400)
+            .json({ message: "Tỷ lệ trả gốc phải từ 0% đến 100%" });
+        }
+      } else {
+        if (periodicPrincipal.fixedPrincipalAmount < 0) {
+          return res
+            .status(400)
+            .json({ message: "Số tiền gốc cố định phải lớn hơn hoặc bằng 0" });
+        }
       }
     }
 
@@ -217,6 +265,7 @@ exports.addBankEntry = async (req, res) => {
         ),
         maturityDate,
         isCompleteLoan: true,
+        periodicPrincipal,
       }),
     };
 
@@ -278,6 +327,11 @@ exports.updateBankEntry = async (req, res) => {
       deductionDate,
       monthsWithNoPrincipalRepayment,
       maturityDate,
+      periodicPrincipalEnabled,
+      periodicPrincipalFrequencyMonths,
+      periodicPrincipalPaymentRate,
+      periodicPrincipalUsePercentageRate,
+      periodicPrincipalFixedAmount,
     } = req.body;
 
     const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
@@ -320,6 +374,7 @@ exports.updateBankEntry = async (req, res) => {
       monthsWithNoPrincipalRepayment: entry.monthsWithNoPrincipalRepayment,
       maturityDate: entry.maturityDate,
       isCompleteLoan: entry.isCompleteLoan,
+      periodicPrincipal: entry.periodicPrincipal,
     };
 
     if (name) entry.name = name;
@@ -386,6 +441,48 @@ exports.updateBankEntry = async (req, res) => {
       entry.maturityDate = maturityDate;
     }
 
+    // Update periodic principal if provided
+    if (periodicPrincipalEnabled !== undefined) {
+      const periodicPrincipal = {
+        enabled:
+          periodicPrincipalEnabled === true ||
+          periodicPrincipalEnabled === "true",
+        paymentFrequencyMonths: parseInt(periodicPrincipalFrequencyMonths) || 3,
+        principalPaymentRate: parseFloat(periodicPrincipalPaymentRate) || 0,
+        usePercentageRate:
+          periodicPrincipalUsePercentageRate === true ||
+          periodicPrincipalUsePercentageRate === "true",
+        fixedPrincipalAmount: parseFloat(periodicPrincipalFixedAmount) || 0,
+      };
+
+      // Validate periodic principal settings if enabled
+      if (periodicPrincipal.enabled) {
+        if (periodicPrincipal.paymentFrequencyMonths < 1) {
+          return res
+            .status(400)
+            .json({ message: "Tần suất trả gốc phải lớn hơn 0 tháng" });
+        }
+        if (periodicPrincipal.usePercentageRate) {
+          if (
+            periodicPrincipal.principalPaymentRate < 0 ||
+            periodicPrincipal.principalPaymentRate > 100
+          ) {
+            return res
+              .status(400)
+              .json({ message: "Tỷ lệ trả gốc phải từ 0% đến 100%" });
+          }
+        } else {
+          if (periodicPrincipal.fixedPrincipalAmount < 0) {
+            return res.status(400).json({
+              message: "Số tiền gốc cố định phải lớn hơn hoặc bằng 0",
+            });
+          }
+        }
+      }
+
+      entry.periodicPrincipal = periodicPrincipal;
+    }
+
     // Validate date relationships if all dates are present
     if (entry.loanDisbursementDate && entry.maturityDate) {
       const disbursementDateObj = parseDateToTimestamp(
@@ -430,6 +527,7 @@ exports.updateBankEntry = async (req, res) => {
         monthsWithNoPrincipalRepayment: entry.monthsWithNoPrincipalRepayment,
         maturityDate: entry.maturityDate,
         isCompleteLoan: entry.isCompleteLoan,
+        periodicPrincipal: entry.periodicPrincipal,
       },
     });
 
@@ -489,7 +587,6 @@ exports.deleteBankEntry = async (req, res) => {
       return res.status(404).json({ message: "Entry not found" });
     }
 
-    // Remove associated daily entries
     costCenter.daily = costCenter.daily.filter(
       (entry) => entry.loanId !== entryId,
     );
@@ -551,13 +648,6 @@ exports.getCostCenters = async (req, res) => {
     });
     res.status(500).json({ message: error.message });
   }
-};
-
-// Helper function for date parsing
-const parseDateToTimestamp = (dateString) => {
-  if (!dateString) return null;
-  const parts = dateString.split("/");
-  return new Date(parts[2], parts[1] - 1, parts[0]);
 };
 
 // Get cost center with fund limit info
@@ -761,7 +851,7 @@ exports.regenerateLoanEntries = async (req, res) => {
   }
 };
 
-// Preview loan schedule with final payment at maturity
+// Preview loan schedule with periodic principal payment support
 exports.previewLoanSchedule = async (req, res) => {
   try {
     const {
@@ -771,6 +861,11 @@ exports.previewLoanSchedule = async (req, res) => {
       deductionDate,
       monthsWithNoPrincipalRepayment,
       maturityDate,
+      periodicPrincipalEnabled,
+      periodicPrincipalFrequencyMonths,
+      periodicPrincipalPaymentRate,
+      periodicPrincipalUsePercentageRate,
+      periodicPrincipalFixedAmount,
     } = req.body;
 
     const dateRegex = /^\d{2}\/\d{2}\/\d{4}$/;
@@ -808,16 +903,53 @@ exports.previewLoanSchedule = async (req, res) => {
         .json({ message: "Valid maturity date is required" });
     }
 
-    const parseDateToTimestamp = (dateString) => {
-      const parts = dateString.split("/");
-      return new Date(parts[2], parts[1] - 1, parts[0]);
+    const periodicPrincipal = {
+      enabled:
+        periodicPrincipalEnabled === true ||
+        periodicPrincipalEnabled === "true",
+      paymentFrequencyMonths: parseInt(periodicPrincipalFrequencyMonths) || 3,
+      principalPaymentRate: parseFloat(periodicPrincipalPaymentRate) || 0,
+      usePercentageRate:
+        periodicPrincipalUsePercentageRate === true ||
+        periodicPrincipalUsePercentageRate === "true",
+      fixedPrincipalAmount: parseFloat(periodicPrincipalFixedAmount) || 0,
     };
+
+    // Validate periodic principal settings if enabled
+    if (periodicPrincipal.enabled) {
+      if (periodicPrincipal.paymentFrequencyMonths < 1) {
+        return res
+          .status(400)
+          .json({ message: "Tần suất trả gốc phải lớn hơn 0 tháng" });
+      }
+      if (periodicPrincipal.usePercentageRate) {
+        if (
+          periodicPrincipal.principalPaymentRate < 0 ||
+          periodicPrincipal.principalPaymentRate > 100
+        ) {
+          return res
+            .status(400)
+            .json({ message: "Tỷ lệ trả gốc phải từ 0% đến 100%" });
+        }
+      } else {
+        if (periodicPrincipal.fixedPrincipalAmount < 0) {
+          return res
+            .status(400)
+            .json({ message: "Số tiền gốc cố định phải lớn hơn hoặc bằng 0" });
+        }
+      }
+    }
 
     const formatDate = (date) => {
       const day = String(date.getDate()).padStart(2, "0");
       const month = String(date.getMonth() + 1).padStart(2, "0");
       const year = date.getFullYear();
       return `${day}/${month}/${year}`;
+    };
+
+    const parseDateToTimestamp = (dateString) => {
+      const parts = dateString.split("/");
+      return new Date(parts[2], parts[1] - 1, parts[0]);
     };
 
     const getActualDaysBetween = (startDateStr, endDateStr) => {
@@ -885,18 +1017,13 @@ exports.previewLoanSchedule = async (req, res) => {
         );
       }
 
-      // Calculate months with principal repayment
-      let monthsWithPrincipal = 0;
-      let currentDate = new Date(firstDeductionDate);
-      let monthCounter = 0;
-
-      while (currentDate < maturityDateObj) {
-        if (monthCounter >= gracePeriodMonths) {
-          monthsWithPrincipal++;
-        }
-        monthCounter++;
-        currentDate.setMonth(currentDate.getMonth() + 1);
-        currentDate = getDeductionDateForMonth(currentDate, deductionDay);
+      // Count total payments before maturity
+      let paymentCount = 0;
+      let tempDate = new Date(firstDeductionDate);
+      while (tempDate < maturityDateObj) {
+        paymentCount++;
+        tempDate.setMonth(tempDate.getMonth() + 1);
+        tempDate = getDeductionDateForMonth(tempDate, deductionDay);
       }
 
       // Generate schedule
@@ -904,6 +1031,7 @@ exports.previewLoanSchedule = async (req, res) => {
       let currentDeductionDate = new Date(firstDeductionDate);
       let monthIndex = 0;
       let principalPaid = 0;
+      let lastPrincipalPaymentMonth = -1;
 
       while (currentDeductionDate < maturityDateObj) {
         const isGracePeriod = monthIndex < gracePeriodMonths;
@@ -918,16 +1046,52 @@ exports.previewLoanSchedule = async (req, res) => {
           (annualRatePercent / 100) * (daysInPeriod / 365) * outstandingBalance;
 
         let principalThisMonth = 0;
-        if (!isGracePeriod && monthIndex >= gracePeriodMonths) {
-          const remainingMonths =
-            monthsWithPrincipal - (monthIndex - gracePeriodMonths);
-          const remainingPrincipal = totalLoan - principalPaid;
+        let paymentNote = "";
 
-          if (remainingMonths === 1) {
-            principalThisMonth = 0;
-          } else {
-            const rawPrincipal = remainingPrincipal / remainingMonths;
-            principalThisMonth = Math.floor(rawPrincipal);
+        if (!isGracePeriod) {
+          const monthsSinceLastPrincipal =
+            monthIndex - lastPrincipalPaymentMonth;
+          const shouldPayPrincipal = periodicPrincipal.enabled
+            ? monthsSinceLastPrincipal >=
+              periodicPrincipal.paymentFrequencyMonths
+            : true;
+
+          if (shouldPayPrincipal) {
+            if (periodicPrincipal.enabled) {
+              const remainingPrincipal = totalLoan - principalPaid;
+
+              if (periodicPrincipal.usePercentageRate) {
+                const rate = periodicPrincipal.principalPaymentRate / 100;
+                let rawPrincipal = remainingPrincipal * rate;
+                rawPrincipal = Math.min(rawPrincipal, remainingPrincipal - 1);
+                principalThisMonth = Math.floor(rawPrincipal);
+                if (principalThisMonth > 0) {
+                  paymentNote = `Trả gốc định kỳ ${periodicPrincipal.paymentFrequencyMonths} tháng (${periodicPrincipal.principalPaymentRate}% số dư)`;
+                }
+              } else {
+                const fixedAmount = periodicPrincipal.fixedPrincipalAmount;
+                principalThisMonth = Math.min(
+                  fixedAmount,
+                  remainingPrincipal - 1,
+                );
+                if (principalThisMonth > 0) {
+                  paymentNote = `Trả gốc định kỳ ${periodicPrincipal.paymentFrequencyMonths} tháng (${fixedAmount.toLocaleString("vi-VN")} VND cố định)`;
+                }
+              }
+              lastPrincipalPaymentMonth = monthIndex;
+            } else {
+              const remainingPayments = paymentCount - monthIndex;
+              const remainingPrincipal = totalLoan - principalPaid;
+
+              if (remainingPayments === 1) {
+                principalThisMonth = 0;
+              } else {
+                const rawPrincipal = remainingPrincipal / remainingPayments;
+                principalThisMonth = Math.floor(rawPrincipal);
+              }
+            }
+          } else if (periodicPrincipal.enabled) {
+            paymentNote = `Kỳ chỉ trả lãi (không đến kỳ trả gốc định kỳ)`;
           }
         }
 
@@ -947,6 +1111,7 @@ exports.previewLoanSchedule = async (req, res) => {
           isFirstPayment: monthIndex === 0,
           isLastPayment: false,
           isFinalPeriod: false,
+          paymentNote,
         });
 
         principalPaid += principalThisMonth;
@@ -958,7 +1123,7 @@ exports.previewLoanSchedule = async (req, res) => {
         currentDeductionDate = getDeductionDateForMonth(nextDate, deductionDay);
       }
 
-      // Final period from last deduction date to maturity date
+      // Final period
       const lastStartDate = currentStartDate;
       const finalEndDate = maturityDateObj;
 
@@ -976,6 +1141,11 @@ exports.previewLoanSchedule = async (req, res) => {
 
       const finalPrincipalRepayment = finalOutstandingBalance;
 
+      let finalNote = "Kỳ trả nợ cuối cùng (tất toán tại ngày đáo hạn)";
+      if (periodicPrincipal.enabled && principalPaid > 0) {
+        finalNote += ` - Đã trả gốc ${principalPaid.toLocaleString("vi-VN")} VND trước đó`;
+      }
+
       schedule.push({
         period: schedule.length + 1,
         deductionDate: formatDate(finalEndDate),
@@ -992,6 +1162,7 @@ exports.previewLoanSchedule = async (req, res) => {
         isFirstPayment: false,
         isLastPayment: true,
         isFinalPeriod: true,
+        paymentNote: finalNote,
       });
 
       return schedule;
@@ -1022,6 +1193,7 @@ exports.previewLoanSchedule = async (req, res) => {
         maturityDate: maturityDate,
         deductionDate: deductionDate,
         gracePeriodMonths: parseInt(monthsWithNoPrincipalRepayment),
+        periodicPrincipal: periodicPrincipal,
       },
     });
   } catch (error) {

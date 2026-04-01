@@ -80,6 +80,119 @@ function isDateOnOrBefore(dateString, compareDateString) {
   return date <= compareDate;
 }
 
+// Periodic Principal UI Functions
+function createPeriodicPrincipalSection(idPrefix, existingSettings = null) {
+  const settings = existingSettings || {
+    enabled: false,
+    paymentFrequencyMonths: 3,
+    principalPaymentRate: 0,
+    usePercentageRate: true,
+    fixedPrincipalAmount: 0,
+  };
+  const enabledChecked = settings.enabled ? "checked" : "";
+  const percentageSelected = settings.usePercentageRate ? "selected" : "";
+  const fixedSelected = !settings.usePercentageRate ? "selected" : "";
+  const percentageStyle = settings.usePercentageRate ? "block" : "none";
+  const fixedStyle = !settings.usePercentageRate ? "block" : "none";
+
+  return `
+    <div class="periodic-principal-section" style="margin-top: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="${idPrefix}_enablePeriodicPrincipal" onchange="togglePeriodicPrincipalFields('${idPrefix}')" ${enabledChecked}>
+          Kích hoạt trả gốc định kỳ (ví dụ: 3 tháng/lần)
+        </label>
+      </div>
+      
+      <div id="${idPrefix}_periodicPrincipalFields" style="display: ${settings.enabled ? "block" : "none"}; margin-left: 20px;">
+        <div class="form-group">
+          <label>Tần suất trả gốc (tháng):</label>
+          <input type="number" id="${idPrefix}_periodicPrincipalFrequency" min="1" value="${settings.paymentFrequencyMonths}" step="1">
+          <small>Ví dụ: 3 = mỗi 3 tháng trả gốc 1 lần</small>
+        </div>
+        
+        <div class="form-group">
+          <label>Phương thức tính gốc:</label>
+          <select id="${idPrefix}_periodicPrincipalMethod" onchange="togglePrincipalPaymentMethod('${idPrefix}')">
+            <option value="percentage" ${percentageSelected}>Tỷ lệ phần trăm số dư còn lại</option>
+            <option value="fixed" ${fixedSelected}>Số tiền cố định</option>
+          </select>
+        </div>
+        
+        <div id="${idPrefix}_percentageMethodFields" style="display: ${percentageStyle};">
+          <div class="form-group">
+            <label>Tỷ lệ trả gốc (%):</label>
+            <input type="number" id="${idPrefix}_periodicPrincipalRate" min="0" max="100" value="${settings.principalPaymentRate}" step="1">
+            <small>Ví dụ: 30 = trả 30% số dư còn lại mỗi kỳ</small>
+          </div>
+        </div>
+        
+        <div id="${idPrefix}_fixedMethodFields" style="display: ${fixedStyle};">
+          <div class="form-group">
+            <label>Số tiền gốc cố định (VND):</label>
+            <input type="number" id="${idPrefix}_periodicPrincipalFixedAmount" min="0" value="${settings.fixedPrincipalAmount}" step="1000000">
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function togglePeriodicPrincipalFields(prefix) {
+  const enabled = document.getElementById(
+    `${prefix}_enablePeriodicPrincipal`,
+  ).checked;
+  const fields = document.getElementById(`${prefix}_periodicPrincipalFields`);
+  fields.style.display = enabled ? "block" : "none";
+}
+
+function togglePrincipalPaymentMethod(prefix) {
+  const method = document.getElementById(
+    `${prefix}_periodicPrincipalMethod`,
+  ).value;
+  const percentageFields = document.getElementById(
+    `${prefix}_percentageMethodFields`,
+  );
+  const fixedFields = document.getElementById(`${prefix}_fixedMethodFields`);
+
+  if (method === "percentage") {
+    percentageFields.style.display = "block";
+    fixedFields.style.display = "none";
+  } else {
+    percentageFields.style.display = "none";
+    fixedFields.style.display = "block";
+  }
+}
+
+function getPeriodicPrincipalData(prefix) {
+  const enabled =
+    document.getElementById(`${prefix}_enablePeriodicPrincipal`)?.checked ||
+    false;
+  const paymentFrequencyMonths =
+    parseInt(
+      document.getElementById(`${prefix}_periodicPrincipalFrequency`)?.value,
+    ) || 3;
+  const usePercentageRate =
+    document.getElementById(`${prefix}_periodicPrincipalMethod`)?.value ===
+    "percentage";
+  const principalPaymentRate =
+    parseFloat(
+      document.getElementById(`${prefix}_periodicPrincipalRate`)?.value,
+    ) || 0;
+  const fixedPrincipalAmount =
+    parseFloat(
+      document.getElementById(`${prefix}_periodicPrincipalFixedAmount`)?.value,
+    ) || 0;
+
+  return {
+    enabled,
+    paymentFrequencyMonths,
+    principalPaymentRate,
+    usePercentageRate,
+    fixedPrincipalAmount,
+  };
+}
+
 async function previewLoanSchedule(loanData) {
   try {
     const response = await fetch(`${API_BASE}/preview-loan-schedule`, {
@@ -111,7 +224,6 @@ function displayLoanPreview(data) {
         </thead>
         <tbody>`;
   for (const p of data.schedule) {
-    const graceNote = p.isGracePeriod ? "Ân hạn" : "";
     scheduleHtml += `
       <tr>
         <td>${p.period}</td>
@@ -120,7 +232,7 @@ function displayLoanPreview(data) {
         <td class="${p.principalRepayment > 0 ? "text-success" : ""}">${p.principalRepayment.toLocaleString("vi-VN")}</td>
         <td><strong>${p.totalPayment.toLocaleString("vi-VN")}</strong></td>
         <td>${p.outstandingBalance.toLocaleString("vi-VN")}</td>
-        <td>${graceNote}</td>
+        <td>${p.paymentNote || ""}</td>
       </tr>`;
   }
   scheduleHtml += `
@@ -463,6 +575,14 @@ function updateFundSummary(fundData) {
   ).toLocaleString("vi-VN");
 }
 
+function escapeHtml(str) {
+  if (!str) return "";
+  return str.replace(
+    /[&<>]/g,
+    (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[m] || m,
+  );
+}
+
 function renderEntries() {
   const tbody = document.getElementById("entriesBody");
   if (!tbody) return;
@@ -479,6 +599,13 @@ function renderEntries() {
   filteredEntries.forEach((entry) => {
     const row = document.createElement("tr");
     if (entry._id === editingEntryId) {
+      const periodicPrincipal = entry.periodicPrincipal || {
+        enabled: false,
+        paymentFrequencyMonths: 3,
+        principalPaymentRate: 0,
+        usePercentageRate: true,
+        fixedPrincipalAmount: 0,
+      };
       row.className = "editing-row";
       row.innerHTML = `
         <td><input type="text" id="editName_${entry._id}" value="${escapeHtml(entry.name)}" required></td>
@@ -489,7 +616,10 @@ function renderEntries() {
         <td><input type="text" id="editDeductionDate_${entry._id}" value="${entry.deductionDate || ""}" placeholder="DD/MM/YYYY"></td>
         <td><input type="number" id="editMonthsWithNoPrincipalRepayment_${entry._id}" value="${entry.monthsWithNoPrincipalRepayment || 0}" step="1"></td>
         <td><input type="text" id="editMaturityDate_${entry._id}" value="${entry.maturityDate || ""}" placeholder="DD/MM/YYYY"></td>
-        <td class="actions"><button class="save-btn" onclick="saveEdit('${entry._id}')">Lưu</button><button class="cancel-btn" onclick="cancelEdit('${entry._id}')">Hủy</button></td>
+        <td class="actions">
+          <button class="save-btn" onclick="saveEdit('${entry._id}')">Lưu</button>
+          <button class="cancel-btn" onclick="cancelEdit('${entry._id}')">Hủy</button>
+        </td>
       `;
     } else {
       const isComplete =
@@ -497,8 +627,13 @@ function renderEntries() {
         entry.loanDisbursementDate &&
         entry.deductionDate &&
         entry.maturityDate;
+      const periodicPrincipal = entry.periodicPrincipal;
+      const periodicIndicator = periodicPrincipal?.enabled
+        ? ` (Định kỳ ${periodicPrincipal.paymentFrequencyMonths} tháng)`
+        : "";
+
       row.innerHTML = `
-        <td>${escapeHtml(entry.name)}</td>
+        <td>${escapeHtml(entry.name)}${periodicIndicator}</td>
         <td class="${entry.date === today ? "current-date" : ""}">${entry.date}</td>
         <td>${(entry.income || 0).toLocaleString("vi-VN")}</td>
         <td>${(entry.expense || 0).toLocaleString("vi-VN")}</td>
@@ -517,17 +652,16 @@ function renderEntries() {
   });
 }
 
-function escapeHtml(str) {
-  if (!str) return "";
-  return str.replace(
-    /[&<>]/g,
-    (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[m] || m,
-  );
-}
-
 function previewLoanFromEntry(entryId) {
   const entry = entries.find((e) => e._id === entryId);
   if (entry) {
+    const periodicPrincipal = entry.periodicPrincipal || {
+      enabled: false,
+      paymentFrequencyMonths: 3,
+      principalPaymentRate: 0,
+      usePercentageRate: true,
+      fixedPrincipalAmount: 0,
+    };
     previewLoanSchedule({
       loanAmount: entry.income,
       interestRate: entry.interestRate,
@@ -535,6 +669,12 @@ function previewLoanFromEntry(entryId) {
       deductionDate: entry.deductionDate,
       monthsWithNoPrincipalRepayment: entry.monthsWithNoPrincipalRepayment,
       maturityDate: entry.maturityDate,
+      periodicPrincipalEnabled: periodicPrincipal.enabled,
+      periodicPrincipalFrequencyMonths:
+        periodicPrincipal.paymentFrequencyMonths,
+      periodicPrincipalPaymentRate: periodicPrincipal.principalPaymentRate,
+      periodicPrincipalUsePercentageRate: periodicPrincipal.usePercentageRate,
+      periodicPrincipalFixedAmount: periodicPrincipal.fixedPrincipalAmount,
     });
   }
 }
@@ -545,7 +685,10 @@ function createAddRow() {
   row.className = "editing-row";
   const today = getTodayFormatted();
   row.innerHTML = `
-    <td><input type="text" id="newName" placeholder="Tên khoản vay" required></td>
+    <td>
+      <input type="text" id="newName" placeholder="Tên khoản vay" required>
+      ${createPeriodicPrincipalSection("new", { enabled: false, paymentFrequencyMonths: 3, principalPaymentRate: 0, usePercentageRate: true, fixedPrincipalAmount: 0 })}
+    </td>
     <td><input type="text" id="newDate" value="${today}" required></td>
     <td><input type="number" id="newIncome" placeholder="Số tiền vay" step="0.1" value="0" required></td>
     <td><input type="number" id="newExpense" placeholder="Đã trả gốc" step="0.1" value="0" required></td>
@@ -563,6 +706,7 @@ function createAddRow() {
 }
 
 function previewNewLoan() {
+  const periodicPrincipal = getPeriodicPrincipalData("new");
   const loanData = {
     loanAmount: parseFloat(document.getElementById("newIncome").value) || 0,
     interestRate:
@@ -574,6 +718,11 @@ function previewNewLoan() {
         document.getElementById("newMonthsWithNoPrincipalRepayment").value,
       ) || 0,
     maturityDate: document.getElementById("newMaturityDate").value,
+    periodicPrincipalEnabled: periodicPrincipal.enabled,
+    periodicPrincipalFrequencyMonths: periodicPrincipal.paymentFrequencyMonths,
+    periodicPrincipalPaymentRate: periodicPrincipal.principalPaymentRate,
+    periodicPrincipalUsePercentageRate: periodicPrincipal.usePercentageRate,
+    periodicPrincipalFixedAmount: periodicPrincipal.fixedPrincipalAmount,
   };
   if (
     !loanData.loanDisbursementDate ||
@@ -614,6 +763,8 @@ async function saveNewEntry() {
       document.getElementById("newMonthsWithNoPrincipalRepayment").value,
     ) || 0;
   const maturityDate = document.getElementById("newMaturityDate").value;
+  const periodicPrincipal = getPeriodicPrincipalData("new");
+
   if (!name.trim()) {
     alert("Vui lòng nhập tên");
     return;
@@ -638,6 +789,7 @@ async function saveNewEntry() {
     alert("Ngày đáo hạn không hợp lệ");
     return;
   }
+
   try {
     const response = await fetch(`${API_BASE}/${currentCostCenterId}/entries`, {
       method: "POST",
@@ -652,6 +804,12 @@ async function saveNewEntry() {
         monthsWithNoPrincipalRepayment,
         maturityDate,
         loanDisbursementDate: date,
+        periodicPrincipalEnabled: periodicPrincipal.enabled,
+        periodicPrincipalFrequencyMonths:
+          periodicPrincipal.paymentFrequencyMonths,
+        periodicPrincipalPaymentRate: periodicPrincipal.principalPaymentRate,
+        periodicPrincipalUsePercentageRate: periodicPrincipal.usePercentageRate,
+        periodicPrincipalFixedAmount: periodicPrincipal.fixedPrincipalAmount,
       }),
     });
     if (response.ok) {
@@ -705,6 +863,7 @@ async function saveEdit(entryId) {
   const maturityDate = document.getElementById(
     `editMaturityDate_${entryId}`,
   ).value;
+
   if (!name.trim()) {
     alert("Vui lòng nhập tên");
     return;
@@ -713,23 +872,47 @@ async function saveEdit(entryId) {
     alert("Ngày không hợp lệ");
     return;
   }
+
+  // Get periodic principal data from edit form (if exists)
+  let periodicPrincipal = null;
+  const periodicCheckbox = document.getElementById(
+    `edit_enablePeriodicPrincipal_${entryId}`,
+  );
+  if (periodicCheckbox) {
+    periodicPrincipal = getPeriodicPrincipalData(`edit_${entryId}`);
+  }
+
   try {
+    const requestBody = {
+      name: name.trim(),
+      income,
+      expense,
+      date,
+      interestRate,
+      deductionDate,
+      monthsWithNoPrincipalRepayment,
+      maturityDate,
+      loanDisbursementDate: date,
+    };
+
+    if (periodicPrincipal) {
+      requestBody.periodicPrincipalEnabled = periodicPrincipal.enabled;
+      requestBody.periodicPrincipalFrequencyMonths =
+        periodicPrincipal.paymentFrequencyMonths;
+      requestBody.periodicPrincipalPaymentRate =
+        periodicPrincipal.principalPaymentRate;
+      requestBody.periodicPrincipalUsePercentageRate =
+        periodicPrincipal.usePercentageRate;
+      requestBody.periodicPrincipalFixedAmount =
+        periodicPrincipal.fixedPrincipalAmount;
+    }
+
     const response = await fetch(
       `${API_BASE}/${currentCostCenterId}/entries/${entryId}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          income,
-          expense,
-          date,
-          interestRate,
-          deductionDate,
-          monthsWithNoPrincipalRepayment,
-          maturityDate,
-          loanDisbursementDate: date,
-        }),
+        body: JSON.stringify(requestBody),
       },
     );
     if (response.ok) {
@@ -827,6 +1010,7 @@ function addEntryRow() {
   row.id = entryId;
   row.innerHTML = `
     <input type="text" id="${entryId}_name" placeholder="Tên khoản vay" required>
+    ${createPeriodicPrincipalSection(entryId, { enabled: false, paymentFrequencyMonths: 3, principalPaymentRate: 0, usePercentageRate: true, fixedPrincipalAmount: 0 })}
     <input type="text" id="${entryId}_date" value="${today}" required>
     <input type="number" id="${entryId}_income" placeholder="Số tiền vay" step="0.1" value="0" required>
     <input type="number" id="${entryId}_expense" placeholder="Đã trả gốc" step="0.1" value="0" required>
@@ -871,6 +1055,8 @@ async function saveMultipleEntries() {
         document.getElementById(`${id}_monthsWithNoPrincipalRepayment`).value,
       ) || 0;
     const maturityDate = document.getElementById(`${id}_maturityDate`).value;
+    const periodicPrincipal = getPeriodicPrincipalData(id);
+
     if (!name || !date || !deductionDate || !maturityDate) {
       alert("Vui lòng điền đầy đủ thông tin");
       return;
@@ -885,6 +1071,12 @@ async function saveMultipleEntries() {
       monthsWithNoPrincipalRepayment,
       maturityDate,
       loanDisbursementDate: date,
+      periodicPrincipalEnabled: periodicPrincipal.enabled,
+      periodicPrincipalFrequencyMonths:
+        periodicPrincipal.paymentFrequencyMonths,
+      periodicPrincipalPaymentRate: periodicPrincipal.principalPaymentRate,
+      periodicPrincipalUsePercentageRate: periodicPrincipal.usePercentageRate,
+      periodicPrincipalFixedAmount: periodicPrincipal.fixedPrincipalAmount,
     });
   }
   let success = 0,
@@ -920,9 +1112,21 @@ async function exportData() {
     return;
   }
   let csv =
-    "Tên khoản vay,Ngày giải ngân,Số tiền vay,Đã trả gốc,Lãi suất %,Ngày trừ nợ,Tháng ân hạn,Ngày đáo hạn\n";
+    "Tên khoản vay,Ngày giải ngân,Số tiền vay,Đã trả gốc,Lãi suất %,Ngày trừ nợ,Tháng ân hạn,Ngày đáo hạn,Trả gốc định kỳ,Tần suất (tháng),Tỷ lệ/ST cố định\n";
   filteredEntries.forEach((e) => {
-    csv += `"${e.name}",${e.date},${e.income || 0},${e.expense || 0},${e.interestRate || 0},${e.deductionDate || ""},${e.monthsWithNoPrincipalRepayment || 0},${e.maturityDate || ""}\n`;
+    const periodic = e.periodicPrincipal || {
+      enabled: false,
+      paymentFrequencyMonths: 3,
+      principalPaymentRate: 0,
+      usePercentageRate: true,
+      fixedPrincipalAmount: 0,
+    };
+    const periodicInfo = periodic.enabled
+      ? periodic.usePercentageRate
+        ? `${periodic.principalPaymentRate}%`
+        : `${periodic.fixedPrincipalAmount.toLocaleString("vi-VN")} VND`
+      : "Không";
+    csv += `"${e.name}",${e.date},${e.income || 0},${e.expense || 0},${e.interestRate || 0},${e.deductionDate || ""},${e.monthsWithNoPrincipalRepayment || 0},${e.maturityDate || ""},${periodic.enabled ? "Có" : "Không"},${periodic.paymentFrequencyMonths},${periodicInfo}\n`;
   });
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
@@ -1014,10 +1218,14 @@ function renderAllEntriesTable() {
       entry.loanDisbursementDate &&
       entry.deductionDate &&
       entry.maturityDate;
+    const periodicPrincipal = entry.periodicPrincipal;
+    const periodicIndicator = periodicPrincipal?.enabled
+      ? ` (Định kỳ ${periodicPrincipal.paymentFrequencyMonths} tháng)`
+      : "";
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${escapeHtml(entry.costCenterName)}</td>
-      <td>${escapeHtml(entry.name)}</td>
+      <td>${escapeHtml(entry.name)}${periodicIndicator}</td>
       <td class="${entry.date === today ? "current-date" : ""}">${entry.date}</td>
       <td>${(entry.income || 0).toLocaleString("vi-VN")}</td>
       <td>${(entry.expense || 0).toLocaleString("vi-VN")}</td>
@@ -1039,33 +1247,16 @@ function renderAllEntriesTable() {
   tbody.appendChild(addRow);
 }
 
-async function previewLoanFromAllView(costCenterId, entryId) {
-  try {
-    const res = await fetch(`${API_BASE}/${costCenterId}/entries`);
-    const entriesList = await res.json();
-    const entry = entriesList.find((e) => e._id === entryId);
-    if (entry) {
-      previewLoanSchedule({
-        loanAmount: entry.income,
-        interestRate: entry.interestRate,
-        loanDisbursementDate: entry.date,
-        deductionDate: entry.deductionDate,
-        monthsWithNoPrincipalRepayment: entry.monthsWithNoPrincipalRepayment,
-        maturityDate: entry.maturityDate,
-      });
-    }
-  } catch (error) {
-    alert("Lỗi: " + error.message);
-  }
-}
-
 function createAllViewAddRow(costCenterId) {
   const row = document.createElement("tr");
   row.id = "allViewAddRow";
   row.className = "editing-row";
   const today = getTodayFormatted();
   row.innerHTML = `
-    <td><select id="allViewNewCostCenter">${allCostCenters.map((cc) => `<option value="${cc._id}" ${cc._id === costCenterId ? "selected" : ""}>${cc.name}</option>`).join("")}</select></td>
+    <td>
+      <select id="allViewNewCostCenter">${allCostCenters.map((cc) => `<option value="${cc._id}" ${cc._id === costCenterId ? "selected" : ""}>${cc.name}</option>`).join("")}</select>
+      ${createPeriodicPrincipalSection("allViewNew", { enabled: false, paymentFrequencyMonths: 3, principalPaymentRate: 0, usePercentageRate: true, fixedPrincipalAmount: 0 })}
+    </td>
     <td><input type="text" id="allViewNewName" placeholder="Tên khoản vay" required></td>
     <td><input type="text" id="allViewNewDate" value="${today}" required></td>
     <td><input type="number" id="allViewNewIncome" placeholder="Số tiền vay" step="0.1" value="0" required></td>
@@ -1078,12 +1269,13 @@ function createAllViewAddRow(costCenterId) {
       <button class="preview-btn" onclick="previewAllViewNewLoan()" style="background:#17a2b8;">Xem trước</button>
       <button class="save-btn" onclick="saveAllViewNewEntry()">Lưu</button>
       <button class="cancel-btn" onclick="cancelAllViewAdd()">Hủy</button>
-     </td>
+    </td>
   `;
   return row;
 }
 
 function previewAllViewNewLoan() {
+  const periodicPrincipal = getPeriodicPrincipalData("allViewNew");
   const loanData = {
     loanAmount:
       parseFloat(document.getElementById("allViewNewIncome").value) || 0,
@@ -1097,6 +1289,11 @@ function previewAllViewNewLoan() {
           .value,
       ) || 0,
     maturityDate: document.getElementById("allViewNewMaturityDate").value,
+    periodicPrincipalEnabled: periodicPrincipal.enabled,
+    periodicPrincipalFrequencyMonths: periodicPrincipal.paymentFrequencyMonths,
+    periodicPrincipalPaymentRate: periodicPrincipal.principalPaymentRate,
+    periodicPrincipalUsePercentageRate: periodicPrincipal.usePercentageRate,
+    periodicPrincipalFixedAmount: periodicPrincipal.fixedPrincipalAmount,
   };
   if (
     !loanData.loanDisbursementDate ||
@@ -1107,6 +1304,39 @@ function previewAllViewNewLoan() {
     return;
   }
   previewLoanSchedule(loanData);
+}
+
+async function previewLoanFromAllView(costCenterId, entryId) {
+  try {
+    const res = await fetch(`${API_BASE}/${costCenterId}/entries`);
+    const entriesList = await res.json();
+    const entry = entriesList.find((e) => e._id === entryId);
+    if (entry) {
+      const periodicPrincipal = entry.periodicPrincipal || {
+        enabled: false,
+        paymentFrequencyMonths: 3,
+        principalPaymentRate: 0,
+        usePercentageRate: true,
+        fixedPrincipalAmount: 0,
+      };
+      previewLoanSchedule({
+        loanAmount: entry.income,
+        interestRate: entry.interestRate,
+        loanDisbursementDate: entry.date,
+        deductionDate: entry.deductionDate,
+        monthsWithNoPrincipalRepayment: entry.monthsWithNoPrincipalRepayment,
+        maturityDate: entry.maturityDate,
+        periodicPrincipalEnabled: periodicPrincipal.enabled,
+        periodicPrincipalFrequencyMonths:
+          periodicPrincipal.paymentFrequencyMonths,
+        periodicPrincipalPaymentRate: periodicPrincipal.principalPaymentRate,
+        periodicPrincipalUsePercentageRate: periodicPrincipal.usePercentageRate,
+        periodicPrincipalFixedAmount: periodicPrincipal.fixedPrincipalAmount,
+      });
+    }
+  } catch (error) {
+    alert("Lỗi: " + error.message);
+  }
 }
 
 function showAllViewAddRow() {
@@ -1144,6 +1374,8 @@ async function saveAllViewNewEntry() {
       document.getElementById("allViewNewMonthsWithNoPrincipalRepayment").value,
     ) || 0;
   const maturity = document.getElementById("allViewNewMaturityDate").value;
+  const periodicPrincipal = getPeriodicPrincipalData("allViewNew");
+
   if (!name || !date || !deductionDate || !maturity) {
     alert("Vui lòng điền đầy đủ thông tin");
     return;
@@ -1162,6 +1394,12 @@ async function saveAllViewNewEntry() {
         monthsWithNoPrincipalRepayment: months,
         maturityDate: maturity,
         loanDisbursementDate: date,
+        periodicPrincipalEnabled: periodicPrincipal.enabled,
+        periodicPrincipalFrequencyMonths:
+          periodicPrincipal.paymentFrequencyMonths,
+        periodicPrincipalPaymentRate: periodicPrincipal.principalPaymentRate,
+        periodicPrincipalUsePercentageRate: periodicPrincipal.usePercentageRate,
+        periodicPrincipalFixedAmount: periodicPrincipal.fixedPrincipalAmount,
       }),
     });
     if (res.ok) {
@@ -1202,6 +1440,7 @@ function addAllViewEntryRow() {
   row.id = id;
   row.innerHTML = `
     <select id="${id}_costCenter"><option value="">-- Chọn Trạm --</option>${allCostCenters.map((cc) => `<option value="${cc._id}">${cc.name}</option>`).join("")}</select>
+    ${createPeriodicPrincipalSection(id, { enabled: false, paymentFrequencyMonths: 3, principalPaymentRate: 0, usePercentageRate: true, fixedPrincipalAmount: 0 })}
     <input type="text" id="${id}_name" placeholder="Tên khoản vay" required>
     <input type="text" id="${id}_date" value="${today}" required>
     <input type="number" id="${id}_income" placeholder="Số tiền vay" step="0.1" value="0" required>
@@ -1260,6 +1499,8 @@ async function saveAllViewMultipleEntries() {
         document.getElementById(`${id}_monthsWithNoPrincipalRepayment`).value,
       ) || 0;
     const matDate = document.getElementById(`${id}_maturityDate`).value;
+    const periodicPrincipal = getPeriodicPrincipalData(id);
+
     if (!costCenterId || !name || !date || !dedDate || !matDate) {
       alert("Vui lòng điền đầy đủ thông tin");
       return;
@@ -1276,6 +1517,12 @@ async function saveAllViewMultipleEntries() {
         monthsWithNoPrincipalRepayment: months,
         maturityDate: matDate,
         loanDisbursementDate: date,
+        periodicPrincipalEnabled: periodicPrincipal.enabled,
+        periodicPrincipalFrequencyMonths:
+          periodicPrincipal.paymentFrequencyMonths,
+        periodicPrincipalPaymentRate: periodicPrincipal.principalPaymentRate,
+        periodicPrincipalUsePercentageRate: periodicPrincipal.usePercentageRate,
+        periodicPrincipalFixedAmount: periodicPrincipal.fixedPrincipalAmount,
       },
     });
   }
@@ -1424,9 +1671,21 @@ async function exportAlternativeView() {
     return;
   }
   let csv =
-    "Trạm,Tên khoản vay,Ngày giải ngân,Số tiền vay,Đã trả gốc,Lãi suất %,Ngày trừ nợ,Tháng ân hạn,Ngày đáo hạn\n";
+    "Trạm,Tên khoản vay,Ngày giải ngân,Số tiền vay,Đã trả gốc,Lãi suất %,Ngày trừ nợ,Tháng ân hạn,Ngày đáo hạn,Trả gốc định kỳ,Tần suất (tháng),Tỷ lệ/ST cố định\n";
   filteredAllEntries.forEach((e) => {
-    csv += `"${e.costCenterName}","${e.name}",${e.date},${e.income || 0},${e.expense || 0},${e.interestRate || 0},${e.deductionDate || ""},${e.monthsWithNoPrincipalRepayment || 0},${e.maturityDate || ""}\n`;
+    const periodic = e.periodicPrincipal || {
+      enabled: false,
+      paymentFrequencyMonths: 3,
+      principalPaymentRate: 0,
+      usePercentageRate: true,
+      fixedPrincipalAmount: 0,
+    };
+    const periodicInfo = periodic.enabled
+      ? periodic.usePercentageRate
+        ? `${periodic.principalPaymentRate}%`
+        : `${periodic.fixedPrincipalAmount.toLocaleString("vi-VN")} VND`
+      : "Không";
+    csv += `"${e.costCenterName}","${e.name}",${e.date},${e.income || 0},${e.expense || 0},${e.interestRate || 0},${e.deductionDate || ""},${e.monthsWithNoPrincipalRepayment || 0},${e.maturityDate || ""},${periodic.enabled ? "Có" : "Không"},${periodic.paymentFrequencyMonths},${periodicInfo}\n`;
   });
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
@@ -1444,40 +1703,41 @@ function showGlobalDetails() {
     alert("Không có dữ liệu");
     return;
   }
-  const modalHtml = `
-    <div class="modal fade" id="globalDetailsModal" tabindex="-1">
-      <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-          <div class="modal-header"><h5 class="modal-title">📊 Tổng Kết Chi Tiết</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-          <div class="modal-body">
-            <div class="table-responsive">
-              <table class="table table-hover">
-                <thead class="table-dark"><tr><th>Trạm</th><th>Số Khoản</th><th>Tổng Vay</th><th>Tổng Trả Gốc</th><th>Tổng Dư Nợ</th><th>Hạn Mức</th><th>Quỹ Khả Dụng</th></tr></thead>
-                <tbody>${active
-                  .map(([id, d]) => {
-                    const fund = allFundInfo[id] || {};
-                    const totalVay = d.entries.reduce(
-                      (s, e) => s + (e.income || 0),
-                      0,
-                    );
-                    const totalTra = d.entries.reduce(
-                      (s, e) => s + (e.expense || 0),
-                      0,
-                    );
-                    const duNo = totalVay - totalTra;
-                    return `<tr onclick="switchToCostCenter('${id}')" style="cursor:pointer"><td><strong>${d.name}</strong></td><td>${d.entries.length}</td><td>${totalVay.toLocaleString("vi-VN")}</td><td>${totalTra.toLocaleString("vi-VN")}</td><td class="${duNo >= 0 ? "text-danger" : "text-success"}">${duNo.toLocaleString("vi-VN")}</td><td>${(fund.fundLimitBank || 0).toLocaleString("vi-VN")}</td><td class="${(fund.fundAvailableBank || 0) >= 0 ? "text-success" : "text-danger"}">${(fund.fundAvailableBank || 0).toLocaleString("vi-VN")}</td></tr>`;
-                  })
-                  .join("")}</tbody>
-              </table>
-            </div>
-          </div>
-          <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button><button class="btn btn-primary" onclick="refreshGlobalData()">🔄 Làm Mới</button><button class="btn btn-success" onclick="exportAllData()">📁 Xuất Toàn Bộ</button></div>
-        </div>
-      </div>
-    </div>`;
-  const existing = document.getElementById("globalDetailsModal");
-  if (existing) existing.remove();
-  document.body.insertAdjacentHTML("beforeend", modalHtml);
+  const modalBody = document.getElementById("globalDetailsContent");
+  modalBody.innerHTML = `
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead class="table-dark">
+          <tr><th>Trạm</th><th>Số Khoản</th><th>Tổng Vay</th><th>Tổng Trả Gốc</th><th>Tổng Dư Nợ</th><th>Hạn Mức</th><th>Quỹ Khả Dụng</th> </tr>
+        </thead>
+        <tbody>
+          ${active
+            .map(([id, d]) => {
+              const fund = allFundInfo[id] || {};
+              const totalVay = d.entries.reduce(
+                (s, e) => s + (e.income || 0),
+                0,
+              );
+              const totalTra = d.entries.reduce(
+                (s, e) => s + (e.expense || 0),
+                0,
+              );
+              const duNo = totalVay - totalTra;
+              return `<tr onclick="switchToCostCenter('${id}')" style="cursor:pointer">
+              <td><strong>${d.name}</strong></td>
+              <td>${d.entries.length}</td>
+              <td>${totalVay.toLocaleString("vi-VN")}</td>
+              <td>${totalTra.toLocaleString("vi-VN")}</td>
+              <td class="${duNo >= 0 ? "text-danger" : "text-success"}">${duNo.toLocaleString("vi-VN")}</td>
+              <td>${(fund.fundLimitBank || 0).toLocaleString("vi-VN")}</td>
+              <td class="${(fund.fundAvailableBank || 0) >= 0 ? "text-success" : "text-danger"}">${(fund.fundAvailableBank || 0).toLocaleString("vi-VN")}</td>
+            </tr>`;
+            })
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
   new bootstrap.Modal(document.getElementById("globalDetailsModal")).show();
 }
 
@@ -1493,32 +1753,4 @@ function switchToCostCenter(costCenterId) {
   }
   document.getElementById("costCenterSelect").value = costCenterId;
   loadCostCenterData();
-}
-
-async function refreshGlobalData() {
-  await loadAllCostCentersData();
-  alert("Đã cập nhật!");
-}
-
-async function exportAllData() {
-  const active = Object.entries(allEntries).filter(
-    ([_, d]) => d.entries?.length > 0,
-  );
-  if (active.length === 0) {
-    alert("Không có dữ liệu");
-    return;
-  }
-  let csv =
-    "Trạm,Tên khoản vay,Ngày giải ngân,Số tiền vay,Đã trả gốc,Lãi suất %,Ngày trừ nợ,Tháng ân hạn,Ngày đáo hạn\n";
-  active.forEach(([_, d]) => {
-    d.entries.forEach((e) => {
-      csv += `"${d.name}","${e.name}",${e.date},${e.income || 0},${e.expense || 0},${e.interestRate || 0},${e.deductionDate || ""},${e.monthsWithNoPrincipalRepayment || 0},${e.maturityDate || ""}\n`;
-    });
-  });
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `all_bank_finance_${new Date().toISOString().split("T")[0]}.csv`;
-  link.click();
-  URL.revokeObjectURL(link.href);
 }
