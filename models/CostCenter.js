@@ -358,49 +358,38 @@ bankSchema.methods.generateDailyEntries = async function (
   const schedule = generateDeductionSchedule(this);
 
   for (const payment of schedule) {
-    const existingEntry = costCenter.daily.find(
-      (entry) =>
-        entry.name === `Lãi vay - ${this.name}` &&
-        entry.date === payment.deductionDate &&
-        entry.loanId === this._id.toString(),
-    );
-
-    if (!existingEntry) {
-      let note = "";
-      if (payment.isFinalPeriod) {
-        note = `Kỳ trả nợ cuối cùng (tất toán tại ngày đáo hạn): ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc tất toán: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Trả lãi: ${payment.interestExpense.toLocaleString("vi-VN")} VND, Tổng thanh toán: ${payment.totalPayment.toLocaleString("vi-VN")} VND`;
-        if (this.periodicPrincipal?.enabled) {
-          note += ` (Hình thức trả gốc định kỳ)`;
-        }
-      } else if (payment.isGracePeriod) {
-        note = `Ân hạn - Chỉ trả lãi. Kỳ ${payment.period}: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Dư nợ: ${(payment.outstandingBalance + payment.principalRepayment).toLocaleString("vi-VN")} VND, Tiền lãi dự kiến: ${payment.interestExpense.toLocaleString("vi-VN")} VND`;
-      } else {
-        note = `Kỳ ${payment.period}: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc dự kiến: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Trả lãi dự kiến: ${payment.interestExpense.toLocaleString("vi-VN")} VND, Dư nợ còn lại: ${payment.outstandingBalance.toLocaleString("vi-VN")} VND`;
-        if (payment.paymentNote) note += ` (${payment.paymentNote})`;
+    let note = "";
+    if (payment.isFinalPeriod) {
+      note = `Kỳ trả nợ cuối cùng (tất toán tại ngày đáo hạn): ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc tất toán: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Trả lãi: ${payment.interestExpense.toLocaleString("vi-VN")} VND, Tổng thanh toán: ${payment.totalPayment.toLocaleString("vi-VN")} VND`;
+      if (this.periodicPrincipal?.enabled) {
+        note += ` (Hình thức trả gốc định kỳ)`;
       }
-
-      const newDailyEntry = {
-        name: `Lãi vay - ${this.name}`,
-        income: 0,
-        expense: 0,
-        expensePrediction: payment.interestExpense,
-        date: payment.deductionDate,
-        incomePrediction: 0,
-        note: note,
-        loanId: this._id.toString(),
-        isLoanInterest: true,
-        deductionDateUsed: payment.deductionDate,
-        interestRateUsed: this.interestRate,
-        outstandingBalanceUsed:
-          payment.outstandingBalance + payment.principalRepayment,
-        daysInPeriod: payment.daysInPeriod,
-        periodNumber: payment.period,
-        isGracePeriod: payment.isGracePeriod || false,
-        isFinalPeriod: payment.isFinalPeriod || false,
-      };
-
-      costCenter.daily.push(newDailyEntry);
+    } else if (payment.isGracePeriod) {
+      note = `Ân hạn - Chỉ trả lãi. Kỳ ${payment.period}: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Dư nợ: ${(payment.outstandingBalance + payment.principalRepayment).toLocaleString("vi-VN")} VND, Tiền lãi dự kiến: ${payment.interestExpense.toLocaleString("vi-VN")} VND`;
+    } else {
+      note = `Kỳ ${payment.period}: ${payment.startDate} → ${payment.endDate} (${payment.daysInPeriod} ngày). Lãi suất: ${this.interestRate}%, Trả gốc dự kiến: ${payment.principalRepayment.toLocaleString("vi-VN")} VND, Trả lãi dự kiến: ${payment.interestExpense.toLocaleString("vi-VN")} VND, Dư nợ còn lại: ${payment.outstandingBalance.toLocaleString("vi-VN")} VND`;
+      if (payment.paymentNote) note += ` (${payment.paymentNote})`;
     }
+
+    costCenter.daily.push({
+      name: `Lãi vay - ${this.name}`,
+      income: 0,
+      expense: 0,
+      expensePrediction: payment.interestExpense,
+      date: payment.deductionDate,
+      incomePrediction: 0,
+      note: note,
+      loanId: this._id.toString(),
+      isLoanInterest: true,
+      deductionDateUsed: payment.deductionDate,
+      interestRateUsed: this.interestRate,
+      outstandingBalanceUsed:
+        payment.outstandingBalance + payment.principalRepayment,
+      daysInPeriod: payment.daysInPeriod,
+      periodNumber: payment.period,
+      isGracePeriod: payment.isGracePeriod || false,
+      isFinalPeriod: payment.isFinalPeriod || false,
+    });
   }
 
   await costCenter.save();
@@ -414,10 +403,13 @@ bankSchema.methods.updateDailyEntries = async function (
   const costCenter = await CostCenterModel.findById(costCenterId);
   if (!costCenter) return;
 
+  // Delete all old daily entries for this loan
   costCenter.daily = costCenter.daily.filter(
     (entry) => entry.loanId !== this._id.toString(),
   );
+  await costCenter.save();
 
+  // Recreate them fresh
   await this.generateDailyEntries(costCenterId, CostCenterModel);
 };
 
