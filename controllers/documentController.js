@@ -43,7 +43,7 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     // Ensure the original filename is properly decoded
     const originalName = Buffer.from(file.originalname, "latin1").toString(
-      "utf8"
+      "utf8",
     );
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, uniqueSuffix + "-" + originalName);
@@ -56,7 +56,7 @@ const upload = multer({
   fileFilter: function (req, file, cb) {
     // Ensure proper encoding handling
     file.originalname = Buffer.from(file.originalname, "latin1").toString(
-      "utf8"
+      "utf8",
     );
     cb(null, true);
   },
@@ -117,11 +117,13 @@ const documentUtils = {
   // Filter documents based on username constraints with hierarchy
   filterDocumentsByUsername: (documents, username) => {
     // Who can see everything
-    if (["HoangLong", "QuangKimNgan"].includes(username)) return documents;
+    if (["HoangLong", "QuangKimNgan", "NguyenHongNhuThuy"].includes(username))
+      return documents;
 
     // If username is not one of the restricted users, return all documents
     const restrictedUsers = [
       "QuangKimNgan",
+      "NguyenHongNhuThuy",
       "HoangNam",
       "PhongTran",
       "HoangLong",
@@ -135,6 +137,7 @@ const documentUtils = {
     const prerequisiteApprovers = {
       PhongTran: ["HoangNam"],
       QuangKimNgan: ["HoangNam", "PhongTran"],
+      NguyenHongNhuThuy: ["HoangNam", "PhongTran"],
       HoangLong: ["HoangNam", "PhongTran", "QuangKimNgan"],
     };
 
@@ -190,10 +193,10 @@ const documentUtils = {
           const stageApprovedBy = stage.approvedBy || [];
 
           const isApprover = stageApprovers.some(
-            (a) => a.username === username
+            (a) => a.username === username,
           );
           const hasApproved = stageApprovedBy.some(
-            (a) => a.username === username
+            (a) => a.username === username,
           );
           return isApprover && !hasApproved;
         });
@@ -341,7 +344,7 @@ async function sendChatfuelMessage(userId) {
   } catch (error) {
     console.error(
       "Error sending Chatfuel message:",
-      error.response ? error.response.data : error.message
+      error.response ? error.response.data : error.message,
     );
   }
 }
@@ -514,63 +517,63 @@ exports.submitDocument = async (req, res) => {
           newDocument = await createProposalDocument(
             req,
             approverDetails,
-            uploadedFilesData
+            uploadedFilesData,
           );
           break;
         case "Purchasing Document":
           newDocument = await createPurchasingDocument(
             req,
             approverDetails,
-            uploadedFilesData
+            uploadedFilesData,
           );
           break;
         case "Delivery Document":
           newDocument = await createDeliveryDocument(
             req,
             approverDetails,
-            uploadedFilesData
+            uploadedFilesData,
           );
           break;
         case "Receipt Document":
           newDocument = await createReceiptDocument(
             req,
             approverDetails,
-            uploadedFilesData
+            uploadedFilesData,
           );
           break;
         case "Payment Document":
           newDocument = await createPaymentDocument(
             req,
             approverDetails,
-            uploadedFilesData
+            uploadedFilesData,
           );
           break;
         case "Advance Payment Document":
           newDocument = await createAdvancePaymentDocument(
             req,
             approverDetails,
-            uploadedFilesData
+            uploadedFilesData,
           );
           break;
         case "Advance Payment Reclaim Document":
           newDocument = await createAdvancePaymentReclaimDocument(
             req,
             approverDetails,
-            uploadedFilesData
+            uploadedFilesData,
           );
           break;
         case "Project Proposal Document":
           newDocument = await createProjectProposalDocument(
             req,
             approverDetails,
-            uploadedFilesData
+            uploadedFilesData,
           );
           break;
         default:
           newDocument = await createStandardDocument(
             req,
             approverDetails,
-            uploadedFilesData
+            uploadedFilesData,
           );
           break;
       }
@@ -614,7 +617,7 @@ async function handleMultipleFileUploads(req) {
       const uploadResult = await client.uploadFile(
         file.path,
         targetFolder,
-        uniqueFilename
+        uniqueFilename,
       );
 
       // Cleanup local file
@@ -666,7 +669,7 @@ async function processApprovers(req) {
         username: approver.username,
         subRole: req.body[`subRole_${approverId}`],
       };
-    })
+    }),
   );
 }
 
@@ -724,7 +727,7 @@ class NextcloudClient {
       }
       console.error(
         "Error creating directory:",
-        error.response?.data || error.message
+        error.response?.data || error.message,
       );
       throw error;
     }
@@ -755,7 +758,7 @@ class NextcloudClient {
               Cookie: this.getCookieHeader(),
             }),
           },
-        }
+        },
       );
 
       this.storeCookies(response);
@@ -774,7 +777,7 @@ class NextcloudClient {
     } catch (error) {
       console.error(
         "Failed to upload file to Nextcloud:",
-        error.response?.data || error.message
+        error.response?.data || error.message,
       );
       throw error;
     }
@@ -799,7 +802,7 @@ class NextcloudClient {
       const response = await axios.post(
         `${this.baseUrl.replace(
           "/remote.php/dav/files/" + this.username,
-          ""
+          "",
         )}/ocs/v2.php/apps/files_sharing/api/v1/shares`,
         shareParams.toString(),
         {
@@ -812,7 +815,7 @@ class NextcloudClient {
               Cookie: this.getCookieHeader(),
             }),
           },
-        }
+        },
       );
 
       this.storeCookies(response);
@@ -839,7 +842,7 @@ class NextcloudClient {
     } catch (error) {
       console.error(
         "Failed to create public share:",
-        error.response?.data || error.message
+        error.response?.data || error.message,
       );
 
       // Try alternative methods
@@ -853,7 +856,7 @@ class NextcloudClient {
       const response = await axios.get(
         `${this.baseUrl.replace(
           "/remote.php/dav/files/" + this.username,
-          ""
+          "",
         )}/login`,
         {
           headers: {
@@ -861,7 +864,7 @@ class NextcloudClient {
           },
           maxRedirects: 0,
           validateStatus: (status) => status < 400,
-        }
+        },
       );
       this.storeCookies(response);
     } catch (error) {
@@ -906,7 +909,7 @@ class NextcloudClient {
     const response = await axios.post(
       `${this.baseUrl.replace(
         "/remote.php/dav/files/" + this.username,
-        ""
+        "",
       )}/ocs/v1.php/apps/files_sharing/api/v1/shares`,
       shareParams,
       {
@@ -918,7 +921,7 @@ class NextcloudClient {
             Cookie: this.getCookieHeader(),
           }),
         },
-      }
+      },
     );
 
     this.storeCookies(response);
@@ -938,7 +941,7 @@ class NextcloudClient {
   async createShareDirect(filePath) {
     const baseNextcloudUrl = this.baseUrl.replace(
       "/remote.php/dav/files/" + this.username,
-      ""
+      "",
     );
 
     const shareParams = new URLSearchParams({
@@ -970,7 +973,7 @@ class NextcloudClient {
 
     if (response.data && response.data.data && response.data.data.url) {
       console.log(
-        `Created permanent share link (direct): ${response.data.data.url}`
+        `Created permanent share link (direct): ${response.data.data.url}`,
       );
       return response.data.data.url;
     }
@@ -990,7 +993,7 @@ class NextcloudClient {
           share.share_type === 3 && // Public link
           (!share.expiration ||
             share.expiration === null ||
-            share.expiration === "")
+            share.expiration === ""),
       );
 
       if (permanentShare) {
@@ -1003,7 +1006,7 @@ class NextcloudClient {
     } catch (error) {
       console.log(
         "Error checking existing shares, creating new one:",
-        error.message
+        error.message,
       );
       return await this.createPublicShare(filePath);
     }
@@ -1015,7 +1018,7 @@ class NextcloudClient {
       const response = await axios.get(
         `${this.baseUrl.replace(
           "/remote.php/dav/files/" + this.username,
-          ""
+          "",
         )}/ocs/v2.php/apps/files_sharing/api/v1/shares`,
         {
           params: {
@@ -1030,7 +1033,7 @@ class NextcloudClient {
               Cookie: this.getCookieHeader(),
             }),
           },
-        }
+        },
       );
 
       this.storeCookies(response);
@@ -1069,7 +1072,7 @@ class NextcloudClient {
     } catch (error) {
       console.error(
         "Failed to delete file from Nextcloud:",
-        error.response?.data || error.message
+        error.response?.data || error.message,
       );
       throw error;
     }
@@ -1102,7 +1105,7 @@ function getNextcloudClient() {
   return new NextcloudClient(
     NEXTCLOUD_WEBDAV_URL,
     NEXTCLOUD_USERNAME,
-    NEXTCLOUD_PASSWORD
+    NEXTCLOUD_PASSWORD,
   );
 }
 
@@ -1137,7 +1140,7 @@ async function handleFileUpload(req) {
     const uploadResult = await client.uploadFile(
       req.file.path,
       targetFolder,
-      uniqueFilename
+      uniqueFilename,
     );
 
     // Cleanup local file
@@ -1194,7 +1197,7 @@ async function createProposalDocument(req, approverDetails, uploadedFilesData) {
 async function createPurchasingDocument(
   req,
   approverDetails,
-  uploadedFilesData
+  uploadedFilesData,
 ) {
   try {
     const { products, approvedProposals, costCenter } = req.body;
@@ -1211,7 +1214,7 @@ async function createPurchasingDocument(
     // Validate document cost center
     if (!allowedCostCenters.some((center) => center.name === costCenter)) {
       throw new Error(
-        `You don't have permission to use cost center ${costCenter}`
+        `You don't have permission to use cost center ${costCenter}`,
       );
     }
 
@@ -1230,7 +1233,7 @@ async function createPurchasingDocument(
         throw new Error(
           `Invalid or unauthorized cost center '${
             product.costCenter
-          }' for product ${index + 1}`
+          }' for product ${index + 1}`,
         );
       }
 
@@ -1256,8 +1259,8 @@ async function createPurchasingDocument(
     const grandTotalCost = parseFloat(
       processedProducts.reduce(
         (acc, product) => acc + product.totalCostAfterVat,
-        0
-      )
+        0,
+      ),
     );
 
     // 4. Process appended proposals with multiple file support
@@ -1313,7 +1316,7 @@ async function createPurchasingDocument(
       console.log(
         `  Proposal ${index + 1}: ${proposal.task} with ${
           proposal.fileMetadata?.length || 0
-        } files`
+        } files`,
       );
     });
 
@@ -1333,7 +1336,7 @@ async function createDeliveryDocument(req, approverDetails, uploadedFilesData) {
 
   // Calculate grand total cost
   const grandTotalCost = parseFloat(
-    productEntries.reduce((acc, product) => acc + product.totalCostAfterVat, 0)
+    productEntries.reduce((acc, product) => acc + product.totalCostAfterVat, 0),
   );
 
   // Process appended proposals with multiple file support
@@ -1388,7 +1391,7 @@ async function createDeliveryDocument(req, approverDetails, uploadedFilesData) {
     console.log(
       `  Proposal ${index + 1}: ${proposal.task} with ${
         proposal.fileMetadata?.length || 0
-      } files`
+      } files`,
     );
   });
 
@@ -1404,7 +1407,7 @@ async function createReceiptDocument(req, approverDetails, uploadedFilesData) {
 
   // Calculate grand total cost
   const grandTotalCost = parseFloat(
-    productEntries.reduce((acc, product) => acc + product.totalCostAfterVat, 0)
+    productEntries.reduce((acc, product) => acc + product.totalCostAfterVat, 0),
   );
 
   // Process appended proposals with multiple file support
@@ -1470,10 +1473,10 @@ async function createPaymentDocument(req, approverDetails, uploadedFilesData) {
       req.body.approvedPurchasingDocuments.map(async (docId) => {
         const purchasingDoc = await PurchasingDocument.findById(docId);
         return purchasingDoc ? purchasingDoc.toObject() : null;
-      })
+      }),
     );
     appendedPurchasingDocuments = appendedPurchasingDocuments.filter(
-      (doc) => doc !== null
+      (doc) => doc !== null,
     );
   }
 
@@ -1509,7 +1512,7 @@ async function createPaymentDocument(req, approverDetails, uploadedFilesData) {
 async function createAdvancePaymentDocument(
   req,
   approverDetails,
-  uploadedFilesData
+  uploadedFilesData,
 ) {
   // Process appended purchasing documents
   let appendedPurchasingDocuments = [];
@@ -1521,10 +1524,10 @@ async function createAdvancePaymentDocument(
       req.body.approvedPurchasingDocuments.map(async (docId) => {
         const purchasingDoc = await PurchasingDocument.findById(docId);
         return purchasingDoc ? purchasingDoc.toObject() : null;
-      })
+      }),
     );
     appendedPurchasingDocuments = appendedPurchasingDocuments.filter(
-      (doc) => doc !== null
+      (doc) => doc !== null,
     );
   }
 
@@ -1557,7 +1560,7 @@ async function createAdvancePaymentDocument(
 async function createAdvancePaymentReclaimDocument(
   req,
   approverDetails,
-  uploadedFilesData
+  uploadedFilesData,
 ) {
   // Process appended purchasing documents
   let appendedPurchasingDocuments = [];
@@ -1569,10 +1572,10 @@ async function createAdvancePaymentReclaimDocument(
       req.body.approvedPurchasingDocuments.map(async (docId) => {
         const purchasingDoc = await PurchasingDocument.findById(docId);
         return purchasingDoc ? purchasingDoc.toObject() : null;
-      })
+      }),
     );
     appendedPurchasingDocuments = appendedPurchasingDocuments.filter(
-      (doc) => doc !== null
+      (doc) => doc !== null,
     );
   }
 
@@ -1605,7 +1608,7 @@ async function createAdvancePaymentReclaimDocument(
 async function createProjectProposalDocument(
   req,
   approverDetails,
-  uploadedFilesData
+  uploadedFilesData,
 ) {
   const { contentName, contentText, approvedDocuments } = req.body;
 
@@ -1684,7 +1687,7 @@ function processProducts(products) {
     totalCost: parseFloat(product.costPerUnit * product.amount),
     totalCostAfterVat: parseFloat(
       product.costPerUnit * product.amount +
-        product.costPerUnit * product.amount * (product.vat / 100)
+        product.costPerUnit * product.amount * (product.vat / 100),
     ),
   }));
 }
@@ -1710,7 +1713,7 @@ exports.getPendingDocument = async (req, res) => {
     res.sendFile(
       path.join(
         __dirname,
-        "../views/approvals/documents/unifiedViewDocuments/approveDocument.html"
+        "../views/approvals/documents/unifiedViewDocuments/approveDocument.html",
       ),
       {
         pendingGenericDocs: JSON.stringify(pendingGenericDocs),
@@ -1718,7 +1721,7 @@ exports.getPendingDocument = async (req, res) => {
         pendingPurchasingDocs: JSON.stringify(pendingPurchasingDocs),
         pendingPaymentDocs: JSON.stringify(pendingPaymentDocs),
         pendingAdvancePaymentDocs: JSON.stringify(pendingAdvancePaymentDocs),
-      }
+      },
     );
   } catch (err) {
     console.error("Error fetching pending documents:", err);
@@ -1774,16 +1777,16 @@ exports.approveDocument = async (req, res) => {
     }
 
     const isChosenApprover = document.approvers.some(
-      (approver) => approver.approver.toString() === req.user.id
+      (approver) => approver.approver.toString() === req.user.id,
     );
     if (!isChosenApprover) {
       return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền phê duyệt phiếu này."
+        "Truy cập bị từ chối. Bạn không có quyền phê duyệt phiếu này.",
       );
     }
 
     const hasApproved = document.approvedBy.some(
-      (approver) => approver.user.toString() === req.user.id
+      (approver) => approver.user.toString() === req.user.id,
     );
     if (hasApproved) {
       return res.send("Bạn đã phê duyệt phiếu rồi.");
@@ -1840,7 +1843,7 @@ exports.approveDocument = async (req, res) => {
   }
 };
 async function createAdvancePaymentReclaimAfterAdvancePaymentApproval(
-  advancePaymentDoc
+  advancePaymentDoc,
 ) {
   try {
     // Find deputy director user to set as approver
@@ -1958,7 +1961,7 @@ exports.deleteDocument = async (req, res) => {
       } catch (fileError) {
         console.error(
           "Warning: Could not delete associated files from Nextcloud:",
-          fileError
+          fileError,
         );
         // Continue with document deletion even if file deletion fails
       }
@@ -2129,7 +2132,7 @@ exports.getApprovedProposalsForPurchasing = async (req, res) => {
 
     // Filter out proposals that are already attached to purchasing documents
     const unattachedProposals = approvedProposals.filter(
-      (proposal) => !attachedProposalIds.has(proposal._id.toString())
+      (proposal) => !attachedProposalIds.has(proposal._id.toString()),
     );
 
     // Sort approved documents by latest approval date (newest first)
@@ -2203,7 +2206,7 @@ exports.getApprovedProposalsForDelivery = async (req, res) => {
 
     // Filter out proposals that are already attached to delivery documents
     const unattachedProposals = approvedProposals.filter(
-      (proposal) => !attachedProposalIds.has(proposal._id.toString())
+      (proposal) => !attachedProposalIds.has(proposal._id.toString()),
     );
 
     // Sort approved documents by latest approval date (newest first)
@@ -2277,7 +2280,7 @@ exports.getApprovedProposalsForReceipt = async (req, res) => {
 
     // Filter out proposals that are already attached to receipt documents
     const unattachedProposals = approvedProposals.filter(
-      (proposal) => !attachedProposalIds.has(proposal._id.toString())
+      (proposal) => !attachedProposalIds.has(proposal._id.toString()),
     );
 
     // Sort approved documents by latest approval date (newest first)
@@ -2394,7 +2397,7 @@ exports.updateProposalDocument = async (req, res) => {
 
     // Check if the new cost center is allowed for the user
     const isCostCenterAllowed = costCenters.some(
-      (center) => center.name === costCenter
+      (center) => center.name === costCenter,
     );
     if (!isCostCenterAllowed) {
       return res.status(403).json({
@@ -2462,7 +2465,7 @@ exports.deleteProposalDocumentFile = async (req, res) => {
 
     // Find the file to delete
     const fileToDelete = doc.fileMetadata.find(
-      (file) => file._id.toString() === fileId || file.driveFileId === fileId
+      (file) => file._id.toString() === fileId || file.driveFileId === fileId,
     );
 
     if (!fileToDelete) {
@@ -2482,7 +2485,7 @@ exports.deleteProposalDocumentFile = async (req, res) => {
 
     // Remove file from document's fileMetadata array
     doc.fileMetadata = doc.fileMetadata.filter(
-      (file) => file._id.toString() !== fileId && file.driveFileId !== fileId
+      (file) => file._id.toString() !== fileId && file.driveFileId !== fileId,
     );
 
     await doc.save();
@@ -2506,7 +2509,7 @@ exports.getProposalDocumentForSeparatedView = async (req, res) => {
 
     // Find documents that the user has access to
     const proposalDocuments = await ProposalDocument.find(
-      documentUtils.filterDocumentsByUserAccess(userId, userRole)
+      documentUtils.filterDocumentsByUserAccess(userId, userRole),
     )
       .populate("submittedBy", "username")
       .populate("approvers.approver", "username role")
@@ -2515,7 +2518,7 @@ exports.getProposalDocumentForSeparatedView = async (req, res) => {
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
       proposalDocuments,
-      username
+      username,
     );
 
     // Sort the documents by status priority and approval date
@@ -2559,7 +2562,7 @@ exports.updateProposalDocumentDeclaration = async (req, res) => {
   try {
     if (
       !["approver", "headOfAccounting", "headOfPurchasing"].includes(
-        req.user.role
+        req.user.role,
       )
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -2714,7 +2717,7 @@ exports.getApprovedPurchasingDocumentsForPayment = async (req, res) => {
 
     // Filter out purchasing documents that are already attached to payment documents
     const unattachedPurchasingDocs = approvedPurchasingDocs.filter(
-      (doc) => !attachedPurchasingDocIds.has(doc._id.toString())
+      (doc) => !attachedPurchasingDocIds.has(doc._id.toString()),
     );
 
     // Sort unattached documents by latest approval date (newest first)
@@ -2797,7 +2800,7 @@ exports.getApprovedPurchasingDocumentsForAdvancePayment = async (req, res) => {
 
     // Filter out purchasing documents that are already attached to payment documents
     const unattachedPurchasingDocs = approvedPurchasingDocs.filter(
-      (doc) => !attachedPurchasingDocIds.has(doc._id.toString())
+      (doc) => !attachedPurchasingDocIds.has(doc._id.toString()),
     );
 
     // Sort unattached documents by latest approval date (newest first)
@@ -2848,7 +2851,7 @@ exports.getApprovedPurchasingDocumentsForAdvancePayment = async (req, res) => {
 };
 exports.getApprovedPurchasingDocumentsForAdvancePaymentReclaim = async (
   req,
-  res
+  res,
 ) => {
   try {
     // First get all approved purchasing documents
@@ -2879,14 +2882,14 @@ exports.getApprovedPurchasingDocumentsForAdvancePaymentReclaim = async (
             } else if (purchDoc._id) {
               attachedPurchasingDocIds.add(purchDoc._id.toString());
             }
-          }
+          },
         );
       }
     });
 
     // Filter out purchasing documents that are already attached to payment documents
     const unattachedPurchasingDocs = approvedPurchasingDocs.filter(
-      (doc) => !attachedPurchasingDocIds.has(doc._id.toString())
+      (doc) => !attachedPurchasingDocIds.has(doc._id.toString()),
     );
 
     // Sort unattached documents by latest approval date (newest first)
@@ -3013,7 +3016,7 @@ exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
 
     // Find documents that the user has access to
     const purchasingDocuments = await PurchasingDocument.find(
-      documentUtils.filterDocumentsByUserAccess(userId, userRole)
+      documentUtils.filterDocumentsByUserAccess(userId, userRole),
     )
       .populate("submittedBy", "username")
       .populate("approvers.approver", "username role")
@@ -3023,7 +3026,7 @@ exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
       purchasingDocuments,
-      username
+      username,
     );
 
     // Sort the documents by status priority and approval date
@@ -3138,7 +3141,7 @@ exports.updatePurchasingDocument = async (req, res) => {
 
     // Check if the document cost center is allowed for the user
     const isDocCostCenterAllowed = costCenters.some(
-      (center) => center.name === costCenter
+      (center) => center.name === costCenter,
     );
 
     if (!isDocCostCenterAllowed) {
@@ -3178,7 +3181,7 @@ exports.updatePurchasingDocument = async (req, res) => {
     }));
     doc.grandTotalCost = doc.products.reduce(
       (sum, product) => sum + product.totalCostAfterVat,
-      0
+      0,
     );
     doc.name = name;
     doc.costCenter = costCenter;
@@ -3224,7 +3227,7 @@ exports.deletePurchasingDocumentFile = async (req, res) => {
 
     // Find the file to delete
     const fileToDelete = doc.fileMetadata.find(
-      (file) => file._id.toString() === fileId || file.driveFileId === fileId
+      (file) => file._id.toString() === fileId || file.driveFileId === fileId,
     );
 
     if (!fileToDelete) {
@@ -3244,7 +3247,7 @@ exports.deletePurchasingDocumentFile = async (req, res) => {
 
     // Remove file from document's fileMetadata array
     doc.fileMetadata = doc.fileMetadata.filter(
-      (file) => file._id.toString() !== fileId && file.driveFileId !== fileId
+      (file) => file._id.toString() !== fileId && file.driveFileId !== fileId,
     );
 
     await doc.save();
@@ -3266,7 +3269,7 @@ exports.updatePurchasingDocumentDeclaration = async (req, res) => {
   try {
     if (
       !["approver", "headOfAccounting", "headOfPurchasing"].includes(
-        req.user.role
+        req.user.role,
       )
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -3343,7 +3346,7 @@ exports.openPurchasingDocument = async (req, res) => {
     // Restrict access to only users with the role of "director"
     if (req.user.role !== "headOfPurchasing") {
       return res.send(
-        "Truy cập bị từ chối. Chỉ trưởng phòng mua hàng có quyền mở lại phiếu mua hàng."
+        "Truy cập bị từ chối. Chỉ trưởng phòng mua hàng có quyền mở lại phiếu mua hàng.",
       );
     }
 
@@ -3391,7 +3394,7 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
 
     // Find documents that the user has access to
     const paymentDocuments = await PaymentDocument.find(
-      documentUtils.filterDocumentsByUserAccess(userId, userRole)
+      documentUtils.filterDocumentsByUserAccess(userId, userRole),
     )
       .populate("submittedBy", "username")
       .populate("approvers.approver", "username role")
@@ -3402,7 +3405,7 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
       paymentDocuments,
-      username
+      username,
     );
 
     // Helper function to get effective priority for sorting
@@ -3418,8 +3421,8 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
         // Use the highest priority (lowest number) from unapproved stages
         const highestStagePriority = Math.min(
           ...unapprovedStages.map(
-            (stage) => priorityOrder[stage.priority] || 999
-          )
+            (stage) => priorityOrder[stage.priority] || 999,
+          ),
         );
         return highestStagePriority;
       } else {
@@ -3430,11 +3433,11 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
 
     // Separate approved and non-approved documents
     const approvedDocuments = filteredDocuments.filter(
-      (doc) => doc.status === "Approved"
+      (doc) => doc.status === "Approved",
     );
 
     const nonApprovedDocuments = filteredDocuments.filter(
-      (doc) => doc.status !== "Approved"
+      (doc) => doc.status !== "Approved",
     );
 
     // Sort non-approved documents by effective priority (stage priority if unapproved stages exist, otherwise document priority)
@@ -3499,7 +3502,7 @@ exports.getPaymentDocument = async (req, res) => {
             .populate("appendedProposals.submittedBy", "username");
 
           return populatedDoc ? populatedDoc.toObject() : purchasingDoc;
-        })
+        }),
       );
 
       document.appendedPurchasingDocuments = populatedPurchasingDocs;
@@ -3560,7 +3563,7 @@ exports.updatePaymentDocument = async (req, res) => {
 
     // Check if the new cost center is allowed for the user
     const isCostCenterAllowed = costCenters.some(
-      (center) => center.name === costCenter
+      (center) => center.name === costCenter,
     );
 
     if (!isCostCenterAllowed) {
@@ -3735,7 +3738,7 @@ exports.deletePaymentDocumentFile = async (req, res) => {
 
     // Find the file to delete
     const fileToDelete = document.fileMetadata.find(
-      (file) => file.driveFileId === fileId || file._id.toString() === fileId
+      (file) => file.driveFileId === fileId || file._id.toString() === fileId,
     );
 
     if (!fileToDelete) {
@@ -3755,7 +3758,7 @@ exports.deletePaymentDocumentFile = async (req, res) => {
 
     // Remove the file from the document's fileMetadata array
     document.fileMetadata = document.fileMetadata.filter(
-      (file) => file.driveFileId !== fileId && file._id.toString() !== fileId
+      (file) => file.driveFileId !== fileId && file._id.toString() !== fileId,
     );
 
     // Save the updated document
@@ -3875,7 +3878,7 @@ exports.updatePaymentDocumentDeclaration = async (req, res) => {
   try {
     if (
       !["superAdmin", "headOfAccounting", "headOfPurchasing"].includes(
-        req.user.role
+        req.user.role,
       )
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -3902,7 +3905,7 @@ exports.massUpdatePaymentDocumentDeclaration = async (req, res) => {
     // Check user role
     if (
       !["superAdmin", "headOfAccounting", "headOfPurchasing"].includes(
-        req.user.role
+        req.user.role,
       )
     ) {
       return res
@@ -3926,7 +3929,7 @@ exports.massUpdatePaymentDocumentDeclaration = async (req, res) => {
     // Update all documents
     const result = await PaymentDocument.updateMany(
       { _id: { $in: documentIds } }, // Filter by document IDs
-      { declaration } // Update declaration field
+      { declaration }, // Update declaration field
     );
 
     if (result.modifiedCount === 0) {
@@ -4044,7 +4047,7 @@ exports.approvePaymentStage = async (req, res) => {
 
     // Check if user is an approver for this stage
     const isStageApprover = stage.approvers.some(
-      (approver) => approver.approver.toString() === req.user.id
+      (approver) => approver.approver.toString() === req.user.id,
     );
 
     if (!isStageApprover) {
@@ -4056,7 +4059,7 @@ exports.approvePaymentStage = async (req, res) => {
 
     // Check if user has already approved this stage
     const hasApproved = stage.approvedBy.some(
-      (approver) => approver.user.toString() === req.user.id
+      (approver) => approver.user.toString() === req.user.id,
     );
 
     if (hasApproved) {
@@ -4069,7 +4072,7 @@ exports.approvePaymentStage = async (req, res) => {
     const getStageApprovalOrder = async (
       approvers,
       approvedBy,
-      stageAmount
+      stageAmount,
     ) => {
       // Get all approver details from the stage's approvers list
       const approverDetails = [];
@@ -4099,12 +4102,12 @@ exports.approvePaymentStage = async (req, res) => {
 
       // Get only the hierarchy roles that are actually assigned to this stage
       const assignedHierarchyRoles = hierarchyOrder.filter((role) =>
-        approverDetails.some((approver) => approver.role === role)
+        approverDetails.some((approver) => approver.role === role),
       );
 
       // Get other approvers (not in hierarchy)
       const otherApprovers = approverDetails.filter(
-        (approver) => !hierarchyOrder.includes(approver.role)
+        (approver) => !hierarchyOrder.includes(approver.role),
       );
 
       return {
@@ -4127,7 +4130,7 @@ exports.approvePaymentStage = async (req, res) => {
       } = await getStageApprovalOrder(
         stage.approvers,
         stage.approvedBy,
-        stageAmount
+        stageAmount,
       );
 
       // Special rule: Director and deputyDirector can approve anytime for amounts under 100M
@@ -4150,7 +4153,7 @@ exports.approvePaymentStage = async (req, res) => {
 
       // For hierarchy roles, check if all other approvers are done first
       const otherApproversCompleted = otherApprovers.every((approver) =>
-        approvedUserIds.includes(approver.id)
+        approvedUserIds.includes(approver.id),
       );
 
       if (!otherApproversCompleted) {
@@ -4172,12 +4175,12 @@ exports.approvePaymentStage = async (req, res) => {
 
         // Get all users from this role group
         const roleGroupMembers = approverDetails.filter(
-          (approver) => approver.role === requiredRole
+          (approver) => approver.role === requiredRole,
         );
 
         // Check if ALL members from this role group have approved
         const allRoleGroupMembersApproved = roleGroupMembers.every((member) =>
-          approvedUserIds.includes(member.id)
+          approvedUserIds.includes(member.id),
         );
 
         if (!allRoleGroupMembersApproved) {
@@ -4189,7 +4192,7 @@ exports.approvePaymentStage = async (req, res) => {
           return {
             canApprove: false,
             waitingFor: `tất cả ${requiredRole} (${pendingFromRole.join(
-              ", "
+              ", ",
             )})`,
           };
         }
@@ -4203,7 +4206,7 @@ exports.approvePaymentStage = async (req, res) => {
       user.role,
       user.id,
       stage,
-      stage.amount
+      stage.amount,
     );
     if (!stageApprovalCheck.canApprove) {
       return res.status(400).json({
@@ -4232,7 +4235,7 @@ exports.approvePaymentStage = async (req, res) => {
 
     // Check if all stages are approved
     const allStagesApproved = document.stages.every(
-      (s) => s.status === "Approved"
+      (s) => s.status === "Approved",
     );
 
     // If all stages are approved and document has approvers, allow document approval
@@ -4307,17 +4310,17 @@ exports.approvePaymentDocument = async (req, res) => {
     }
 
     const isChosenApprover = document.approvers.some(
-      (approver) => approver.approver.toString() === req.user.id
+      (approver) => approver.approver.toString() === req.user.id,
     );
 
     if (!isChosenApprover) {
       return res.send(
-        "Truy cập bị từ chối. Bạn không có quyền phê duyệt phiếu này."
+        "Truy cập bị từ chối. Bạn không có quyền phê duyệt phiếu này.",
       );
     }
 
     const hasApproved = document.approvedBy.some(
-      (approver) => approver.user.toString() === req.user.id
+      (approver) => approver.user.toString() === req.user.id,
     );
 
     if (hasApproved) {
@@ -4358,12 +4361,12 @@ exports.approvePaymentDocument = async (req, res) => {
 
       // Get only the hierarchy roles that are actually assigned to this document
       const assignedHierarchyRoles = hierarchyOrder.filter((role) =>
-        approverDetails.some((approver) => approver.role === role)
+        approverDetails.some((approver) => approver.role === role),
       );
 
       // Get other approvers (not in hierarchy)
       const otherApprovers = approverDetails.filter(
-        (approver) => !hierarchyOrder.includes(approver.role)
+        (approver) => !hierarchyOrder.includes(approver.role),
       );
 
       return {
@@ -4386,7 +4389,7 @@ exports.approvePaymentDocument = async (req, res) => {
       } = await getApprovalOrder(
         document.approvers,
         document.approvedBy,
-        document
+        document,
       );
 
       // Special rule: Director and deputyDirector can approve anytime for payment documents under 100M
@@ -4415,7 +4418,7 @@ exports.approvePaymentDocument = async (req, res) => {
 
       // For hierarchy roles, check if all other approvers are done first
       const otherApproversCompleted = otherApprovers.every((approver) =>
-        approvedUserIds.includes(approver.id)
+        approvedUserIds.includes(approver.id),
       );
 
       if (!otherApproversCompleted) {
@@ -4437,12 +4440,12 @@ exports.approvePaymentDocument = async (req, res) => {
 
         // Get all users from this role group
         const roleGroupMembers = approverDetails.filter(
-          (approver) => approver.role === requiredRole
+          (approver) => approver.role === requiredRole,
         );
 
         // Check if ALL members from this role group have approved
         const allRoleGroupMembersApproved = roleGroupMembers.every((member) =>
-          approvedUserIds.includes(member.id)
+          approvedUserIds.includes(member.id),
         );
 
         if (!allRoleGroupMembersApproved) {
@@ -4454,7 +4457,7 @@ exports.approvePaymentDocument = async (req, res) => {
           return {
             canApprove: false,
             waitingFor: `tất cả ${requiredRole} (${pendingFromRole.join(
-              ", "
+              ", ",
             )})`,
           };
         }
@@ -4637,7 +4640,7 @@ exports.getAdvancePaymentDocumentForSeparatedView = async (req, res) => {
 
     // Find documents that the user has access to
     const advancePaymentDocuments = await AdvancePaymentDocument.find(
-      documentUtils.filterDocumentsByUserAccess(userId, userRole)
+      documentUtils.filterDocumentsByUserAccess(userId, userRole),
     )
       .populate("submittedBy", "username")
       .populate("approvers.approver", "username role")
@@ -4646,7 +4649,7 @@ exports.getAdvancePaymentDocumentForSeparatedView = async (req, res) => {
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
       advancePaymentDocuments,
-      username
+      username,
     );
 
     // Sort the documents by status priority and approval date
@@ -4786,7 +4789,7 @@ exports.updateAdvancePaymentDocument = async (req, res) => {
 
     // Check if the new cost center is allowed for the user
     const isCostCenterAllowed = costCenters.some(
-      (center) => center.name === costCenter
+      (center) => center.name === costCenter,
     );
 
     if (!isCostCenterAllowed) {
@@ -4895,7 +4898,7 @@ exports.deleteAdvancePaymentDocumentFile = async (req, res) => {
 
     // Find the file to delete
     const fileToDelete = document.fileMetadata.find(
-      (file) => file.driveFileId === fileId || file._id.toString() === fileId
+      (file) => file.driveFileId === fileId || file._id.toString() === fileId,
     );
 
     if (!fileToDelete) {
@@ -4915,7 +4918,7 @@ exports.deleteAdvancePaymentDocumentFile = async (req, res) => {
 
     // Remove the file from the document's fileMetadata array
     document.fileMetadata = document.fileMetadata.filter(
-      (file) => file.driveFileId !== fileId && file._id.toString() !== fileId
+      (file) => file.driveFileId !== fileId && file._id.toString() !== fileId,
     );
 
     // Save the updated document
@@ -4941,7 +4944,7 @@ exports.updateAdvancePaymentDocumentDeclaration = async (req, res) => {
   try {
     if (
       !["approver", "headOfAccounting", "headOfPurchasing"].includes(
-        req.user.role
+        req.user.role,
       )
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -4968,7 +4971,7 @@ exports.massUpdateAdvancePaymentDocumentDeclaration = async (req, res) => {
     // Check user role
     if (
       !["approver", "headOfAccounting", "headOfPurchasing"].includes(
-        req.user.role
+        req.user.role,
       )
     ) {
       return res
@@ -4992,7 +4995,7 @@ exports.massUpdateAdvancePaymentDocumentDeclaration = async (req, res) => {
     // Update all documents
     const result = await AdvancePaymentDocument.updateMany(
       { _id: { $in: documentIds } }, // Filter by document IDs
-      { declaration } // Update declaration field
+      { declaration }, // Update declaration field
     );
 
     if (result.modifiedCount === 0) {
@@ -5018,7 +5021,7 @@ exports.getAdvancePaymentReclaimDocumentForSeparatedView = async (req, res) => {
     // Find documents that the user has access to
     const advancePaymentReclaimDocuments =
       await AdvancePaymentReclaimDocument.find(
-        documentUtils.filterDocumentsByUserAccess(userId, userRole)
+        documentUtils.filterDocumentsByUserAccess(userId, userRole),
       )
         .populate("submittedBy", "username")
         .populate("approvers.approver", "username role")
@@ -5027,7 +5030,7 @@ exports.getAdvancePaymentReclaimDocumentForSeparatedView = async (req, res) => {
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
       advancePaymentReclaimDocuments,
-      username
+      username,
     );
 
     // Sort the documents by status priority and approval date
@@ -5259,7 +5262,7 @@ exports.updateAdvancePaymentReclaimDocument = async (req, res) => {
 
     // Check if the new cost center is allowed for the user
     const isCostCenterAllowed = costCenters.some(
-      (center) => center.name === costCenter
+      (center) => center.name === costCenter,
     );
 
     if (!isCostCenterAllowed) {
@@ -5376,7 +5379,7 @@ exports.deleteAdvancePaymentReclaimDocumentFile = async (req, res) => {
 
     // Find the file to delete
     const fileToDelete = document.fileMetadata.find(
-      (file) => file.driveFileId === fileId || file._id.toString() === fileId
+      (file) => file.driveFileId === fileId || file._id.toString() === fileId,
     );
 
     if (!fileToDelete) {
@@ -5396,7 +5399,7 @@ exports.deleteAdvancePaymentReclaimDocumentFile = async (req, res) => {
 
     // Remove the file from the document's fileMetadata array
     document.fileMetadata = document.fileMetadata.filter(
-      (file) => file.driveFileId !== fileId && file._id.toString() !== fileId
+      (file) => file.driveFileId !== fileId && file._id.toString() !== fileId,
     );
 
     // Save the updated document
@@ -5410,7 +5413,7 @@ exports.deleteAdvancePaymentReclaimDocumentFile = async (req, res) => {
   } catch (error) {
     console.error(
       "Error deleting advance payment reclaim document file:",
-      error
+      error,
     );
     res.status(500).json({
       message: "Lỗi khi xóa tệp tin",
@@ -5445,7 +5448,7 @@ exports.updateAdvancePaymentReclaimDocumentDeclaration = async (req, res) => {
 };
 exports.massUpdateAdvancePaymentReclaimDocumentDeclaration = async (
   req,
-  res
+  res,
 ) => {
   const { documentIds, declaration } = req.body;
 
@@ -5473,7 +5476,7 @@ exports.massUpdateAdvancePaymentReclaimDocumentDeclaration = async (
     // Update all documents
     const result = await AdvancePaymentReclaimDocument.updateMany(
       { _id: { $in: documentIds } }, // Filter by document IDs
-      { declaration } // Update declaration field
+      { declaration }, // Update declaration field
     );
 
     if (result.modifiedCount === 0) {
@@ -5546,7 +5549,7 @@ exports.getDeliveryDocumentsForSeparatedView = async (req, res) => {
 
     // Find documents that the user has access to
     const deliveryDocuments = await DeliveryDocument.find(
-      documentUtils.filterDocumentsByUserAccess(userId, userRole)
+      documentUtils.filterDocumentsByUserAccess(userId, userRole),
     )
       .populate("submittedBy", "username")
       .populate("approvers.approver", "username role")
@@ -5555,7 +5558,7 @@ exports.getDeliveryDocumentsForSeparatedView = async (req, res) => {
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
       deliveryDocuments,
-      username
+      username,
     );
 
     // Sort the documents by status priority and approval date
@@ -5678,7 +5681,7 @@ exports.updateDeliveryDocument = async (req, res) => {
 
     // Check if the new cost center is allowed for the user
     const isCostCenterAllowed = costCenters.some(
-      (center) => center.name === costCenter
+      (center) => center.name === costCenter,
     );
 
     if (!isCostCenterAllowed) {
@@ -5765,7 +5768,7 @@ exports.deleteDeliveryDocumentFile = async (req, res) => {
 
     // Find the file to delete
     const fileToDelete = document.fileMetadata.find(
-      (file) => file.driveFileId === fileId || file._id.toString() === fileId
+      (file) => file.driveFileId === fileId || file._id.toString() === fileId,
     );
 
     if (!fileToDelete) {
@@ -5785,7 +5788,7 @@ exports.deleteDeliveryDocumentFile = async (req, res) => {
 
     // Remove the file from the document's fileMetadata array
     document.fileMetadata = document.fileMetadata.filter(
-      (file) => file.driveFileId !== fileId && file._id.toString() !== fileId
+      (file) => file.driveFileId !== fileId && file._id.toString() !== fileId,
     );
 
     // Save the updated document
@@ -5904,8 +5907,8 @@ exports.exportDeliveryDocumentsToExcel = async (req, res) => {
               p.status === "Approved"
                 ? "Đã duyệt"
                 : p.status === "Suspended"
-                ? "Từ chối"
-                : "Chờ duyệt";
+                  ? "Từ chối"
+                  : "Chờ duyệt";
             return `${p.task || "N/A"}: ${status}`;
           })
           .join("; ") || "";
@@ -5928,8 +5931,8 @@ exports.exportDeliveryDocumentsToExcel = async (req, res) => {
         doc.status === "Approved"
           ? "Đã phê duyệt"
           : doc.status === "Suspended"
-          ? "Từ chối"
-          : "Chờ phê duyệt";
+            ? "Từ chối"
+            : "Chờ phê duyệt";
 
       worksheet.addRow({
         tag: doc.tag || "",
@@ -6018,7 +6021,7 @@ exports.exportDeliveryDocumentsToExcel = async (req, res) => {
 
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
 
@@ -6043,7 +6046,7 @@ exports.getReceiptDocumentsForSeparatedView = async (req, res) => {
 
     // Find documents that the user has access to
     const receiptDocuments = await ReceiptDocument.find(
-      documentUtils.filterDocumentsByUserAccess(userId, userRole)
+      documentUtils.filterDocumentsByUserAccess(userId, userRole),
     )
       .populate("submittedBy", "username")
       .populate("approvers.approver", "username role")
@@ -6052,7 +6055,7 @@ exports.getReceiptDocumentsForSeparatedView = async (req, res) => {
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
       receiptDocuments,
-      username
+      username,
     );
 
     // Sort the documents by status priority and approval date
@@ -6166,7 +6169,7 @@ exports.updateReceiptDocument = async (req, res) => {
 
     // Check if the new cost center is allowed for the user
     const isCostCenterAllowed = costCenters.some(
-      (center) => center.name === costCenter
+      (center) => center.name === costCenter,
     );
 
     if (!isCostCenterAllowed) {
@@ -6251,7 +6254,7 @@ exports.deleteReceiptDocumentFile = async (req, res) => {
 
     // Find the file to delete
     const fileToDelete = document.fileMetadata.find(
-      (file) => file.driveFileId === fileId || file._id.toString() === fileId
+      (file) => file.driveFileId === fileId || file._id.toString() === fileId,
     );
 
     if (!fileToDelete) {
@@ -6270,7 +6273,7 @@ exports.deleteReceiptDocumentFile = async (req, res) => {
 
     // Remove the file from the document's fileMetadata array
     document.fileMetadata = document.fileMetadata.filter(
-      (file) => file.driveFileId !== fileId && file._id.toString() !== fileId
+      (file) => file.driveFileId !== fileId && file._id.toString() !== fileId,
     );
 
     await document.save();
@@ -6389,8 +6392,8 @@ exports.exportReceiptDocumentsToExcel = async (req, res) => {
               p.status === "Approved"
                 ? "Đã duyệt"
                 : p.status === "Suspended"
-                ? "Từ chối"
-                : "Chờ duyệt";
+                  ? "Từ chối"
+                  : "Chờ duyệt";
             return `${p.task || "N/A"}: ${status}`;
           })
           .join("; ") || "";
@@ -6413,8 +6416,8 @@ exports.exportReceiptDocumentsToExcel = async (req, res) => {
         doc.status === "Approved"
           ? "Đã phê duyệt"
           : doc.status === "Suspended"
-          ? "Từ chối"
-          : "Chờ phê duyệt";
+            ? "Từ chối"
+            : "Chờ phê duyệt";
 
       worksheet.addRow({
         tag: doc.tag || "",
@@ -6503,7 +6506,7 @@ exports.exportReceiptDocumentsToExcel = async (req, res) => {
 
     res.setHeader(
       "Content-Type",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
 
@@ -6552,7 +6555,7 @@ exports.getProjectProposalsForSeparatedView = async (req, res) => {
 
     // Find documents that the user has access to
     const projectProposals = await ProjectProposalDocument.find(
-      documentUtils.filterDocumentsByUserAccess(userId, userRole)
+      documentUtils.filterDocumentsByUserAccess(userId, userRole),
     )
       .populate("submittedBy", "username")
       .populate("approvers.approver", "username role")
@@ -6561,7 +6564,7 @@ exports.getProjectProposalsForSeparatedView = async (req, res) => {
     // Apply username-specific filtering for restricted users
     const filteredDocuments = documentUtils.filterDocumentsByUsername(
       projectProposals,
-      username
+      username,
     );
 
     // Sort the documents by status priority and approval date
@@ -6699,7 +6702,7 @@ exports.updateProjectProposalDeclaration = async (req, res) => {
   try {
     if (
       !["approver", "headOfAccounting", "headOfPurchasing"].includes(
-        req.user.role
+        req.user.role,
       )
     ) {
       return res.send("Access denied. You don't have permission to access.");
@@ -6755,7 +6758,7 @@ exports.openProjectProposal = async (req, res) => {
   try {
     if (req.user.role !== "director") {
       return res.send(
-        "Access denied. Only director can reopen project proposals."
+        "Access denied. Only director can reopen project proposals.",
       );
     }
 
@@ -6804,7 +6807,7 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
       if (unapprovedStages.length > 0) {
         // Use the highest priority (lowest number) from unapproved stages
         const highestStagePriority = Math.min(
-          ...unapprovedStages.map((stage) => getPriorityOrder(stage.priority))
+          ...unapprovedStages.map((stage) => getPriorityOrder(stage.priority)),
         );
         return highestStagePriority;
       } else {
@@ -6844,12 +6847,12 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
                 (a) =>
                   a.approver._id.equals(userId) ||
                   (typeof a.approver === "string" &&
-                    a.approver === userId.toString())
+                    a.approver === userId.toString()),
               );
               const hasApproved = stage.approvedBy.some(
                 (a) =>
                   a.user._id.equals(userId) ||
-                  (typeof a.user === "string" && a.user === userId.toString())
+                  (typeof a.user === "string" && a.user === userId.toString()),
               );
               return isStageApprover && !hasApproved;
             });
@@ -6860,7 +6863,7 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
                 (a) =>
                   a.approver._id.equals(userId) ||
                   (typeof a.approver === "string" &&
-                    a.approver === userId.toString())
+                    a.approver === userId.toString()),
               )
             );
           }
