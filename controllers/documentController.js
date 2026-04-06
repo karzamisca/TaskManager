@@ -137,8 +137,8 @@ const documentUtils = {
     const prerequisiteApprovers = {
       PhongTran: ["HoangNam"],
       QuangKimNgan: ["HoangNam", "PhongTran"],
-      NguyenHongNhuThuy: ["HoangNam", "PhongTran"],
-      HoangLong: ["HoangNam", "PhongTran", "QuangKimNgan"],
+      NguyenHongNhuThuy: ["HoangNam", "PhongTran", "QuangKimNgan"],
+      HoangLong: ["HoangNam", "PhongTran", "QuangKimNgan", "NguyenHongNhuThuy"],
     };
 
     return documents.filter((doc) => {
