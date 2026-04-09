@@ -117,9 +117,47 @@
   border-left: 3px solid #2196f3;
 }
 
+/* Updated table container to be unbounded */
 .table-container {
-  max-height: 600px;
-  overflow: auto;
+  max-height: none;
+  overflow: visible;
+  margin: 0;
+  padding: 0;
+}
+
+/* Remove card padding for full-width table */
+#tableViewContainer .card {
+  border: none;
+  box-shadow: none;
+}
+
+#tableViewContainer .card-body {
+  padding: 0;
+}
+
+/* Make table take full width */
+#revenueTable {
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+/* Ensure DataTables wrapper takes full width */
+.dataTables_wrapper {
+  width: 100%;
+  padding: 0;
+}
+
+/* Remove any margins from container */
+.container-fluid {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Keep header and filter card with some padding */
+.container-fluid > h1,
+.container-fluid > .card {
+  padding-left: 15px;
+  padding-right: 15px;
 }
 
 /* Improved Group Modal Styles */
@@ -230,6 +268,11 @@
 #revenueTable td {
   overflow: visible;
   white-space: nowrap;
+}
+
+/* Budget summary styling - keep contained */
+#budgetSummaryContainer {
+  margin: 20px 15px;
 }
 
 @media (max-width: 768px) {
