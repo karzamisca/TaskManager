@@ -3012,22 +3012,65 @@ exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
     // Get user info from authMiddleware
     const userId = req._id;
     const userRole = req.role;
-    const username = req.user.username; // Get username from request
+    const username = req.user.username;
 
-    // Find documents that the user has access to
-    const purchasingDocuments = await PurchasingDocument.find(
-      documentUtils.filterDocumentsByUserAccess(userId, userRole),
-    )
+    // Define which roles get full access to specific groups
+    const adminGroupRoles = ["adminOfGenie", "adminOfEJTech"];
+
+    // Build the base filter for regular access
+    const regularFilter = documentUtils.filterDocumentsByUserAccess(
+      userId,
+      userRole,
+    );
+
+    // Find documents based on regular access
+    let purchasingDocuments = await PurchasingDocument.find(regularFilter)
       .populate("submittedBy", "username")
       .populate("approvers.approver", "username role")
       .populate("approvedBy.user", "username")
       .populate("appendedProposals.submittedBy", "username");
 
     // Apply username-specific filtering for restricted users
-    const filteredDocuments = documentUtils.filterDocumentsByUsername(
+    let filteredDocuments = documentUtils.filterDocumentsByUsername(
       purchasingDocuments,
       username,
     );
+
+    // If user has admin access to specific groups, add ALL documents from those groups
+    if (adminGroupRoles.includes(userRole)) {
+      // Determine which group names to fetch based on user role
+      let groupNamesToFetch = [];
+      if (userRole === "adminOfGenie") {
+        groupNamesToFetch = ["Genie Energy"];
+      } else if (userRole === "adminOfEJTech") {
+        groupNamesToFetch = ["EJTech"];
+      }
+
+      // Fetch all documents from the specified groups (without any access restrictions)
+      const groupDocuments = await PurchasingDocument.find({
+        groupName: { $in: groupNamesToFetch },
+      })
+        .populate("submittedBy", "username")
+        .populate("approvers.approver", "username role")
+        .populate("approvedBy.user", "username")
+        .populate("appendedProposals.submittedBy", "username");
+
+      // Combine both arrays, removing duplicates using document ID
+      const allDocumentsMap = new Map();
+
+      // Add filteredDocuments first (from regular access)
+      filteredDocuments.forEach((doc) => {
+        allDocumentsMap.set(doc._id.toString(), doc);
+      });
+
+      // Add group documents (overwrite any existing entries with the same ID)
+      groupDocuments.forEach((doc) => {
+        allDocumentsMap.set(doc._id.toString(), doc);
+      });
+
+      // Convert map back to array
+      filteredDocuments = Array.from(allDocumentsMap.values());
+    }
 
     // Sort the documents by status priority and approval date
     const sortedDocuments =
@@ -3390,10 +3433,13 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
     // Get user info from authMiddleware
     const userId = req._id;
     const userRole = req.role;
-    const username = req.user.username; // Get username from request
+    const username = req.user.username;
 
-    // Find documents that the user has access to
-    const paymentDocuments = await PaymentDocument.find(
+    // Define which roles get full access to specific groups
+    const adminGroupRoles = ["adminOfGenie", "adminOfEJTech"];
+
+    // Find documents that the user has access to based on regular permissions
+    let paymentDocuments = await PaymentDocument.find(
       documentUtils.filterDocumentsByUserAccess(userId, userRole),
     )
       .populate("submittedBy", "username")
@@ -3403,10 +3449,47 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
       .populate("stages.approvedBy.user", "username role");
 
     // Apply username-specific filtering for restricted users
-    const filteredDocuments = documentUtils.filterDocumentsByUsername(
+    let filteredDocuments = documentUtils.filterDocumentsByUsername(
       paymentDocuments,
       username,
     );
+
+    // If user has admin access to specific groups, add ALL documents from those groups
+    if (adminGroupRoles.includes(userRole)) {
+      // Determine which group names to fetch based on user role
+      let groupNamesToFetch = [];
+      if (userRole === "adminOfGenie") {
+        groupNamesToFetch = ["Genie Energy"];
+      } else if (userRole === "adminOfEJTech") {
+        groupNamesToFetch = ["EJTech"];
+      }
+
+      // Fetch all documents from the specified groups (without any access restrictions)
+      const groupDocuments = await PaymentDocument.find({
+        groupName: { $in: groupNamesToFetch },
+      })
+        .populate("submittedBy", "username")
+        .populate("approvers.approver", "username role")
+        .populate("approvedBy.user", "username")
+        .populate("stages.approvers.approver", "username role")
+        .populate("stages.approvedBy.user", "username role");
+
+      // Combine both arrays, removing duplicates using document ID
+      const allDocumentsMap = new Map();
+
+      // Add filteredDocuments first (from regular access)
+      filteredDocuments.forEach((doc) => {
+        allDocumentsMap.set(doc._id.toString(), doc);
+      });
+
+      // Add group documents (overwrite any existing entries with the same ID)
+      groupDocuments.forEach((doc) => {
+        allDocumentsMap.set(doc._id.toString(), doc);
+      });
+
+      // Convert map back to array
+      filteredDocuments = Array.from(allDocumentsMap.values());
+    }
 
     // Helper function to get effective priority for sorting
     const getEffectivePriority = (doc) => {
@@ -3440,7 +3523,7 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
       (doc) => doc.status !== "Approved",
     );
 
-    // Sort non-approved documents by effective priority (stage priority if unapproved stages exist, otherwise document priority)
+    // Sort non-approved documents by effective priority
     const sortedNonApproved = nonApprovedDocuments.sort((a, b) => {
       const priorityA = getEffectivePriority(a);
       const priorityB = getEffectivePriority(b);
@@ -3453,7 +3536,7 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
     const finalApproved =
       documentUtils.sortDocumentsByStatusAndDate(approvedDocuments);
 
-    // Combine: non-approved first (with effective priority sorting), then approved
+    // Combine: non-approved first, then approved
     const sortedDocuments = [...finalNonApproved, ...finalApproved];
 
     res.json({
@@ -5016,10 +5099,13 @@ exports.getAdvancePaymentReclaimDocumentForSeparatedView = async (req, res) => {
     // Get user info from authMiddleware
     const userId = req._id;
     const userRole = req.role;
-    const username = req.user.username; // Get username from request
+    const username = req.user.username;
 
-    // Find documents that the user has access to
-    const advancePaymentReclaimDocuments =
+    // Define which roles get full access to specific groups
+    const adminGroupRoles = ["adminOfGenie", "adminOfEJTech"];
+
+    // Find documents that the user has access to based on regular permissions
+    let advancePaymentReclaimDocuments =
       await AdvancePaymentReclaimDocument.find(
         documentUtils.filterDocumentsByUserAccess(userId, userRole),
       )
@@ -5028,10 +5114,45 @@ exports.getAdvancePaymentReclaimDocumentForSeparatedView = async (req, res) => {
         .populate("approvedBy.user", "username");
 
     // Apply username-specific filtering for restricted users
-    const filteredDocuments = documentUtils.filterDocumentsByUsername(
+    let filteredDocuments = documentUtils.filterDocumentsByUsername(
       advancePaymentReclaimDocuments,
       username,
     );
+
+    // If user has admin access to specific groups, add ALL documents from those groups
+    if (adminGroupRoles.includes(userRole)) {
+      // Determine which group names to fetch based on user role
+      let groupNamesToFetch = [];
+      if (userRole === "adminOfGenie") {
+        groupNamesToFetch = ["Genie Energy"];
+      } else if (userRole === "adminOfEJTech") {
+        groupNamesToFetch = ["EJTech"];
+      }
+
+      // Fetch all documents from the specified groups (without any access restrictions)
+      const groupDocuments = await AdvancePaymentReclaimDocument.find({
+        groupName: { $in: groupNamesToFetch },
+      })
+        .populate("submittedBy", "username")
+        .populate("approvers.approver", "username role")
+        .populate("approvedBy.user", "username");
+
+      // Combine both arrays, removing duplicates using document ID
+      const allDocumentsMap = new Map();
+
+      // Add filteredDocuments first (from regular access)
+      filteredDocuments.forEach((doc) => {
+        allDocumentsMap.set(doc._id.toString(), doc);
+      });
+
+      // Add group documents (overwrite any existing entries with the same ID)
+      groupDocuments.forEach((doc) => {
+        allDocumentsMap.set(doc._id.toString(), doc);
+      });
+
+      // Convert map back to array
+      filteredDocuments = Array.from(allDocumentsMap.values());
+    }
 
     // Sort the documents by status priority and approval date
     const sortedDocuments =
