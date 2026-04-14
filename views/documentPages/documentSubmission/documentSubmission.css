@@ -221,10 +221,42 @@ button {
   border-radius: 6px;
   border: 1px solid var(--border-color);
   position: relative;
+  padding-top: 2.5rem;
 }
 
 .product-entry:last-child {
   margin-bottom: 0;
+}
+
+/* Product entry remove button */
+.remove-product-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: var(--danger-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  padding: 0;
+  margin: 0;
+}
+
+.remove-product-btn:hover {
+  background: #c53030;
+  transform: scale(1.05);
+}
+
+/* Hide remove button on first entry if only one exists */
+.product-entry:only-of-type .remove-product-btn {
+  display: none;
 }
 
 /* Cost summary styling */
@@ -516,6 +548,54 @@ button {
   text-decoration: underline;
 }
 
+/* Remove proposal entry button */
+.remove-proposal {
+  background: var(--danger-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  width: auto;
+  display: inline-flex;
+}
+
+.remove-proposal:hover {
+  background: #c53030;
+}
+
+/* File list styling */
+.file-list {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-top: 1rem;
+}
+
+.file-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.file-item:last-child {
+  border-bottom: none;
+}
+
+.file-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-size {
+  color: var(--secondary-color);
+  font-size: 0.875rem;
+}
+
 /* Footer styles */
 .main-footer {
   background-color: var(--dark-color);
@@ -592,6 +672,10 @@ button {
 
   .product-name-summary {
     max-width: 50%;
+  }
+
+  .product-entry {
+    padding-top: 2.5rem;
   }
 }
 
@@ -674,6 +758,23 @@ button {
   .product-entry {
     background: #2d3748;
     border-color: #4a5568;
+  }
+
+  /* Remove button dark mode */
+  .remove-product-btn {
+    background: #c53030;
+  }
+
+  .remove-product-btn:hover {
+    background: #e53e3e;
+  }
+
+  .remove-proposal {
+    background: #c53030;
+  }
+
+  .remove-proposal:hover {
+    background: #e53e3e;
   }
 
   /* Cost display dark mode */
@@ -767,5 +868,13 @@ button {
   .choices__list[aria-expanded] .choices__item--selectable.is-highlighted {
     background-color: #90cdf4;
     color: #1a202c;
+  }
+
+  .file-list {
+    background: #2d3748;
+  }
+
+  .file-item {
+    border-bottom-color: #4a5568;
   }
 }

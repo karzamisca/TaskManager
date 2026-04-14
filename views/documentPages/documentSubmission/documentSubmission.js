@@ -193,6 +193,7 @@ function calculateProductCost(index) {
     subtotal,
     vatAmount,
     totalCost,
+    productEntryId: `product-entry-${index}`,
   };
 
   // Update grand total
@@ -330,6 +331,91 @@ function attachProductCostListeners(index) {
   }
 }
 
+// Function to remove a product entry
+function removeProductEntry(index) {
+  const productEntry = document.getElementById(`product-entry-${index}`);
+  if (!productEntry) return;
+
+  // Clean up Choice.js instance if it exists
+  const dropdown = productEntry.querySelector(".product-dropdown");
+  if (dropdown) {
+    const choiceInstance = choiceInstances.find(
+      (instance) => instance.passedElement.element === dropdown,
+    );
+    if (choiceInstance) {
+      choiceInstance.destroy();
+      // Remove from choiceInstances array
+      const instanceIndex = choiceInstances.indexOf(choiceInstance);
+      if (instanceIndex > -1) {
+        choiceInstances.splice(instanceIndex, 1);
+      }
+    }
+  }
+
+  // Remove the product entry element
+  productEntry.remove();
+
+  // Re-index remaining product entries to maintain proper indexing
+  reindexProductEntries();
+
+  // Update grand total display
+  updateGrandTotal();
+}
+
+// Function to reindex product entries after removal
+function reindexProductEntries() {
+  const productEntriesContainer = document.getElementById("product-entries");
+  const entries = productEntriesContainer.querySelectorAll(".product-entry");
+
+  const newProductEntries = [];
+
+  entries.forEach((entry, newIndex) => {
+    // Get the old index from the entry ID
+    const oldId = entry.id;
+    const oldIndex = parseInt(oldId.split("-")[2]);
+
+    // Update the entry ID
+    entry.id = `product-entry-${newIndex}`;
+
+    // Update the remove button onclick
+    const removeBtn = entry.querySelector(".remove-product-btn");
+    if (removeBtn) {
+      removeBtn.setAttribute("onclick", `removeProductEntry(${newIndex})`);
+    }
+
+    // Update all input names to reflect new index
+    const inputs = entry.querySelectorAll('[name^="products["]');
+    inputs.forEach((input) => {
+      const oldName = input.getAttribute("name");
+      const newName = oldName.replace(
+        /products\[\d+\]/,
+        `products[${newIndex}]`,
+      );
+      input.setAttribute("name", newName);
+    });
+
+    // Update product cost display ID
+    const costDisplay = entry.querySelector(".product-entry-cost");
+    if (costDisplay) {
+      costDisplay.id = `product-cost-${newIndex}`;
+    }
+
+    // Get the product data from the old index
+    const oldData = productEntries[oldIndex];
+    if (oldData) {
+      newProductEntries[newIndex] = { ...oldData };
+    }
+  });
+
+  // Update productEntries array
+  productEntries = newProductEntries;
+
+  // Re-attach event listeners
+  entries.forEach((entry, index) => {
+    attachProductCostListeners(index);
+  });
+}
+
 // Enhanced addProductEntry function with cost calculation
 function addProductEntry() {
   const productEntriesContainer = document.getElementById("product-entries");
@@ -344,6 +430,9 @@ function addProductEntry() {
   if (selectedTitle === "Purchasing Document") {
     newEntry = `
       <div class="product-entry" id="product-entry-${productCount}">
+        <button type="button" class="remove-product-btn" onclick="removeProductEntry(${productCount})" title="Xóa sản phẩm">
+          <i class="fas fa-trash-alt"></i>
+        </button>
         <label><i class="fas fa-box"></i> Tên sản phẩm</label>
         <select name="products[${productCount}][productName]" class="product-dropdown" required>
           <option value="">Chọn sản phẩm</option>
@@ -368,6 +457,9 @@ function addProductEntry() {
   } else {
     newEntry = `
       <div class="product-entry" id="product-entry-${productCount}">
+        <button type="button" class="remove-product-btn" onclick="removeProductEntry(${productCount})" title="Xóa sản phẩm">
+          <i class="fas fa-trash-alt"></i>
+        </button>
         <label><i class="fas fa-box"></i> Tên sản phẩm</label>
         <select name="products[${productCount}][productName]" class="product-dropdown" required>
           <option value="">Chọn sản phẩm</option>
@@ -445,6 +537,12 @@ function initializeNewProductEntry(index) {
   const selectedTitle = document.getElementById("title-dropdown").value;
   if (selectedTitle === "Purchasing Document") {
     populateProductCostCenters();
+  }
+
+  // Store reference to product entry
+  const productEntry = document.getElementById(`product-entry-${index}`);
+  if (productEntry) {
+    productEntry.productEntryId = `product-entry-${index}`;
   }
 
   // Attach cost calculation listeners
@@ -573,6 +671,9 @@ function handlePurchasingDocument() {
       </select>
       <div id="product-entries">
         <div class="product-entry" id="product-entry-0">
+          <button type="button" class="remove-product-btn" onclick="removeProductEntry(0)" title="Xóa sản phẩm">
+            <i class="fas fa-trash-alt"></i>
+          </button>
           <label><i class="fas fa-box"></i> Tên sản phẩm</label>
           <select name="products[0][productName]" class="product-dropdown" required>
             <option value="">Chọn sản phẩm</option>
@@ -635,7 +736,7 @@ function handlePaymentDocument() {
   );
 
   appendPurchasingSection.style.display = "block";
-  fetchPurchasingDocumentsForPayment(); // Changed to specialized function
+  fetchPurchasingDocumentsForPayment();
 
   contentFields.innerHTML = `
       <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
@@ -693,7 +794,7 @@ function handleAdvancePaymentDocument() {
   );
 
   appendPurchasingSection.style.display = "block";
-  fetchPurchasingDocumentsForAdvancePayment(); // Changed to specialized function
+  fetchPurchasingDocumentsForAdvancePayment();
 
   contentFields.innerHTML = `
       <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
@@ -743,7 +844,7 @@ function handleAdvancePaymentReclaimDocument() {
   );
 
   appendPurchasingSection.style.display = "block";
-  fetchPurchasingDocumentsForAdvancePaymentReclaim(); // Changed to specialized function
+  fetchPurchasingDocumentsForAdvancePaymentReclaim();
 
   contentFields.innerHTML = `
       <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
@@ -805,6 +906,9 @@ function handleDeliveryDocument() {
       </select>
       <div id="product-entries">
         <div class="product-entry" id="product-entry-0">
+          <button type="button" class="remove-product-btn" onclick="removeProductEntry(0)" title="Xóa sản phẩm">
+            <i class="fas fa-trash-alt"></i>
+          </button>
           <label><i class="fas fa-box"></i> Tên sản phẩm</label>
           <select name="products[0][productName]" class="product-dropdown" required>
             <option value="">Chọn sản phẩm</option>
@@ -874,6 +978,9 @@ function handleReceiptDocument() {
       </select>
       <div id="product-entries">
         <div class="product-entry" id="product-entry-0">
+          <button type="button" class="remove-product-btn" onclick="removeProductEntry(0)" title="Xóa sản phẩm">
+            <i class="fas fa-trash-alt"></i>
+          </button>
           <label><i class="fas fa-box"></i> Tên sản phẩm</label>
           <select name="products[0][productName]" class="product-dropdown" required>
             <option value="">Chọn sản phẩm</option>
