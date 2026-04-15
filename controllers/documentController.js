@@ -3015,7 +3015,11 @@ exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
     const username = req.user.username;
 
     // Define which roles get full access to specific groups
-    const adminGroupRoles = ["adminOfGenie", "adminOfEJTech"];
+    const adminGroupRoles = [
+      "adminOfGenie",
+      "adminOfEJTech",
+      "adminOfNovaEnerzia",
+    ];
 
     // Build the base filter for regular access
     const regularFilter = documentUtils.filterDocumentsByUserAccess(
@@ -3044,6 +3048,8 @@ exports.getPurchasingDocumentsForSeparatedView = async (req, res) => {
         groupNamesToFetch = ["Genie Energy"];
       } else if (userRole === "adminOfEJTech") {
         groupNamesToFetch = ["EJTech"];
+      } else if (userRole === "adminOfNovaEnerzia") {
+        groupNamesToFetch = ["Nova Enerzia"];
       }
 
       // Fetch all documents from the specified groups (without any access restrictions)
@@ -3436,7 +3442,11 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
     const username = req.user.username;
 
     // Define which roles get full access to specific groups
-    const adminGroupRoles = ["adminOfGenie", "adminOfEJTech"];
+    const adminGroupRoles = [
+      "adminOfGenie",
+      "adminOfEJTech",
+      "adminOfNovaEnerzia",
+    ];
 
     // Find documents that the user has access to based on regular permissions
     let paymentDocuments = await PaymentDocument.find(
@@ -3462,6 +3472,8 @@ exports.getPaymentDocumentForSeparatedView = async (req, res) => {
         groupNamesToFetch = ["Genie Energy"];
       } else if (userRole === "adminOfEJTech") {
         groupNamesToFetch = ["EJTech"];
+      } else if (userRole === "adminOfNovaEnerzia") {
+        groupNamesToFetch = ["Nova Enerzia"];
       }
 
       // Fetch all documents from the specified groups (without any access restrictions)
@@ -5102,7 +5114,11 @@ exports.getAdvancePaymentReclaimDocumentForSeparatedView = async (req, res) => {
     const username = req.user.username;
 
     // Define which roles get full access to specific groups
-    const adminGroupRoles = ["adminOfGenie", "adminOfEJTech"];
+    const adminGroupRoles = [
+      "adminOfGenie",
+      "adminOfEJTech",
+      "adminOfNovaEnerzia",
+    ];
 
     // Find documents that the user has access to based on regular permissions
     let advancePaymentReclaimDocuments =
@@ -5127,6 +5143,8 @@ exports.getAdvancePaymentReclaimDocumentForSeparatedView = async (req, res) => {
         groupNamesToFetch = ["Genie Energy"];
       } else if (userRole === "adminOfEJTech") {
         groupNamesToFetch = ["EJTech"];
+      } else if (userRole === "adminOfNovaEnerzia") {
+        groupNamesToFetch = ["Nova Enerzia"];
       }
 
       // Fetch all documents from the specified groups (without any access restrictions)
