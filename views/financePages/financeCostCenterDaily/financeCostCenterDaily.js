@@ -1675,14 +1675,19 @@ function showGlobalDetails() {
   const costCentersWithEntries = Object.entries(allEntries).filter(
     ([_, data]) => {
       if (!data.entries || data.entries.length === 0) return false;
+      // Check if there's any actual data OR prediction data
       return data.entries.some(
-        (e) => (e.income && e.income > 0) || (e.expense && e.expense > 0),
+        (e) =>
+          (e.income && e.income > 0) ||
+          (e.expense && e.expense > 0) ||
+          (e.incomePrediction && e.incomePrediction > 0) ||
+          (e.expensePrediction && e.expensePrediction > 0),
       );
     },
   );
 
   if (costCentersWithEntries.length === 0) {
-    alert("Không có trạm nào có dữ liệu thực tế hàng ngày.");
+    alert("Không có trạm nào có dữ liệu thực tế hoặc dự báo.");
     return;
   }
 
@@ -1699,9 +1704,15 @@ function showGlobalDetails() {
               <table class="table table-hover table-striped">
                 <thead class="table-dark">
                   <tr>
-                    <th>Trạm</th><th>Số Giao Dịch</th><th>Có Dự Báo</th>
-                    <th>Tổng Thu (VND)</th><th>Tổng Chi (VND)</th><th>Lợi Nhuận (VND)</th>
-                    <th>Tổng Dự Báo Thu</th><th>Tổng Dự Báo Chi</th><th>Lợi Nhuận Dự Báo</th>
+                    <th>Trạm</th>
+                    <th>Số Giao Dịch</th>
+                    <th>Có Dự Báo</th>
+                    <th>Tổng Thu (VND)</th>
+                    <th>Tổng Chi (VND)</th>
+                    <th>Lợi Nhuận (VND)</th>
+                    <th>Tổng Dự Báo Thu</th>
+                    <th>Tổng Dự Báo Chi</th>
+                    <th>Lợi Nhuận Dự Báo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1714,7 +1725,10 @@ function showGlobalDetails() {
                           acc.totalIncomePrediction += e.incomePrediction || 0;
                           acc.totalExpensePrediction +=
                             e.expensePrediction || 0;
-                          if (e.incomePrediction || e.expensePrediction)
+                          if (
+                            (e.incomePrediction && e.incomePrediction > 0) ||
+                            (e.expensePrediction && e.expensePrediction > 0)
+                          )
                             acc.withPrediction++;
                           return acc;
                         },
@@ -1729,23 +1743,36 @@ function showGlobalDetails() {
                       const profit = t.totalIncome - t.totalExpense;
                       const profitPrediction =
                         t.totalIncomePrediction - t.totalExpensePrediction;
+
+                      // Only show prediction columns if there are predictions
+                      const hasPredictionData = t.withPrediction > 0;
+
                       return `<tr onclick="switchToCostCenter('${costCenterId}')" style="cursor:pointer;">
-                      <td><strong>${data.name}</strong></td>
-                      <td>${data.entries.length}</td><td>${t.withPrediction}</td>
-                      <td>${t.totalIncome.toLocaleString("vi-VN")}</td>
-                      <td>${t.totalExpense.toLocaleString("vi-VN")}</td>
-                      <td class="${profit >= 0 ? "text-success fw-bold" : "text-danger fw-bold"}">${profit.toLocaleString("vi-VN")}</td>
-                      <td>${t.totalIncomePrediction.toLocaleString("vi-VN")}</td>
-                      <td>${t.totalExpensePrediction.toLocaleString("vi-VN")}</td>
-                      <td class="${profitPrediction >= 0 ? "text-success" : "text-danger"}">${profitPrediction.toLocaleString("vi-VN")}</td>
-                    </tr>`;
+                        <td><strong>${data.name}</strong></td>
+                        <td>${data.entries.length}</td>
+                        <td>${t.withPrediction}</td>
+                        <td>${t.totalIncome.toLocaleString("vi-VN")}</td>
+                        <td>${t.totalExpense.toLocaleString("vi-VN")}</td>
+                        <td class="${profit >= 0 ? "text-success fw-bold" : "text-danger fw-bold"}">${profit.toLocaleString("vi-VN")}</td>
+                        ${
+                          hasPredictionData
+                            ? `
+                          <td>${t.totalIncomePrediction.toLocaleString("vi-VN")}</td>
+                          <td>${t.totalExpensePrediction.toLocaleString("vi-VN")}</td>
+                          <td class="${profitPrediction >= 0 ? "text-success" : "text-danger"}">${profitPrediction.toLocaleString("vi-VN")}</td>
+                        `
+                            : `
+                          <td colspan="3" class="text-muted text-center">Không có dữ liệu dự báo</td>
+                        `
+                        }
+                      </tr>`;
                     })
                     .join("")}
                 </tbody>
               </table>
             </div>
             <div class="mt-3">
-              <small class="text-muted">* Chỉ hiển thị các trạm có dữ liệu thực tế hàng ngày</small><br>
+              <small class="text-muted">* Hiển thị các trạm có dữ liệu thực tế hoặc dự báo</small><br>
               <small class="text-muted">* Nhấp vào tên trạm để chuyển sang xem chi tiết</small>
             </div>
           </div>
