@@ -24,7 +24,7 @@
     />
     <link
       rel="stylesheet"
-      href="documentPages/documentSubmission/documentSubmission.css?v=1.7"
+      href="documentPages/documentSubmission/documentSubmission.css?v=1.8"
     />
   </head>
   <body>
@@ -212,9 +212,144 @@
       </div>
     </footer>
 
+    <!-- Add Product Modal -->
+    <div id="addProductModal" class="modal-overlay modal-hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2><i class="fas fa-box"></i> Thêm sản phẩm mới</h2>
+          <button class="modal-close" onclick="closeAddProductModal()">
+            &times;
+          </button>
+        </div>
+        <form id="addProductForm">
+          <div class="product-form-group">
+            <label for="newProductName">Tên sản phẩm:</label>
+            <input type="text" id="newProductName" name="name" required />
+          </div>
+          <div class="product-form-group">
+            <label for="newProductCode">Mã sản phẩm:</label>
+            <input type="text" id="newProductCode" name="code" required />
+          </div>
+          <div class="modal-buttons">
+            <button
+              type="button"
+              class="secondary-button"
+              onclick="closeAddProductModal()"
+            >
+              Hủy
+            </button>
+            <button type="submit" class="primary-button">
+              <i class="fas fa-plus"></i> Thêm sản phẩm
+            </button>
+          </div>
+        </form>
+        <div id="addProductMessage" class="modal-message"></div>
+      </div>
+    </div>
+
+    <!-- Product Management Modal -->
+    <div id="productManagementModal" class="modal-overlay modal-hidden">
+      <div class="modal-content product-management-modal">
+        <div class="product-management-header">
+          <h2><i class="fas fa-boxes"></i> Quản lý sản phẩm</h2>
+          <button class="modal-close" onclick="closeProductManagementModal()">
+            &times;
+          </button>
+        </div>
+
+        <!-- Search and actions bar -->
+        <div class="product-search-bar">
+          <input
+            type="text"
+            id="productSearchInput"
+            placeholder="Tìm kiếm theo tên hoặc mã sản phẩm..."
+            oninput="filterProducts()"
+          />
+          <button
+            class="refresh-btn"
+            onclick="refreshProductList()"
+            title="Làm mới danh sách"
+          >
+            <i class="fas fa-sync-alt"></i> Làm mới
+          </button>
+          <button
+            class="add-product-btn"
+            onclick="openAddProductFromManagement()"
+            title="Thêm sản phẩm mới"
+          >
+            <i class="fas fa-plus"></i> Thêm mới
+          </button>
+        </div>
+
+        <!-- Stats -->
+        <div id="productStats" class="product-stats">
+          <i class="fas fa-info-circle"></i>
+          <span id="productCountDisplay">Đang tải danh sách sản phẩm...</span>
+        </div>
+
+        <!-- Products table -->
+        <div class="product-table-container">
+          <table class="product-table" id="productManagementTable">
+            <thead>
+              <tr>
+                <th>Tên sản phẩm</th>
+                <th>Mã sản phẩm</th>
+                <th>Trong kho</th>
+                <th>Sắp chuyển vào kho</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody id="productManagementTableBody">
+              <tr>
+                <td colspan="5" class="loading-spinner">
+                  <i class="fas fa-spinner"></i>
+                  <p>Đang tải danh sách sản phẩm...</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Edit product section (hidden by default) -->
+        <div
+          id="editProductSection"
+          class="edit-product-section"
+          style="display: none"
+        >
+          <h3><i class="fas fa-edit"></i> Chỉnh sửa sản phẩm</h3>
+          <form id="editProductForm" class="edit-product-form">
+            <input type="hidden" id="editProductId" />
+            <div class="form-row">
+              <div class="product-form-group">
+                <label for="editProductName">Tên sản phẩm:</label>
+                <input type="text" id="editProductName" name="name" required />
+              </div>
+              <div class="product-form-group">
+                <label for="editProductCode">Mã sản phẩm:</label>
+                <input type="text" id="editProductCode" name="code" required />
+              </div>
+            </div>
+            <div class="edit-product-actions">
+              <button
+                type="button"
+                class="secondary-button cancel-edit-btn"
+                onclick="cancelEditProduct()"
+              >
+                <i class="fas fa-times"></i> Hủy
+              </button>
+              <button type="submit" class="primary-button save-edit-btn">
+                <i class="fas fa-save"></i> Lưu thay đổi
+              </button>
+            </div>
+          </form>
+          <div id="editProductMessage" class="modal-message"></div>
+        </div>
+      </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
-    <script src="documentPages/documentSubmission/documentSubmission.js?v=1.21"></script>
+    <script src="documentPages/documentSubmission/documentSubmission.js?v=1.22"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>

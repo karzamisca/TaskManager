@@ -640,6 +640,396 @@ button {
   margin-top: 2rem;
 }
 
+/* Add Product Button */
+.add-product-btn {
+  background: var(--success-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+  white-space: nowrap;
+  width: auto;
+}
+
+.add-product-btn:hover {
+  background: #2f855a;
+  transform: translateY(-1px);
+}
+
+/* View All Products Button */
+.view-all-products-btn {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  width: auto;
+}
+
+.view-all-products-btn:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  border: 1px solid #ddd;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 10001;
+}
+
+.modal-header {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.modal-close:hover {
+  color: #333;
+  background-color: #f5f5f5;
+  border-radius: 50%;
+}
+
+.modal-buttons {
+  margin-top: 20px;
+  text-align: right;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.modal-hidden {
+  display: none !important;
+}
+
+.modal-message {
+  margin-top: 15px;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.modal-message.success {
+  background-color: #f0fff4;
+  color: var(--success-color);
+  border: 1px solid #c6f6d5;
+}
+
+.modal-message.error {
+  background-color: #fff5f5;
+  color: var(--danger-color);
+  border: 1px solid #fed7d7;
+}
+
+.product-form-group {
+  margin-bottom: 15px;
+}
+
+.product-form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+}
+
+.product-form-group input[type="text"] {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+/* Product Management Modal Styles */
+.product-management-modal {
+  max-width: 900px;
+  width: 95%;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.product-management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.product-management-header h2 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.product-table-container {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+.product-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.product-table th,
+.product-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.product-table th {
+  background-color: #f8fafc;
+  font-weight: 600;
+  color: var(--dark-color);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.product-table tbody tr:hover {
+  background-color: #f0f9ff;
+}
+
+.product-table .product-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.product-table .edit-btn,
+.product-table .delete-btn {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  width: auto;
+}
+
+.product-table .edit-btn {
+  background: var(--primary-color);
+}
+
+.product-table .edit-btn:hover {
+  background: var(--primary-hover);
+}
+
+.product-table .delete-btn {
+  background: var(--danger-color);
+}
+
+.product-table .delete-btn:hover {
+  background: #c53030;
+}
+
+.product-search-bar {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.product-search-bar input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  margin-bottom: 0;
+}
+
+.product-search-bar input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+}
+
+.refresh-btn {
+  background: var(--secondary-color);
+  padding: 10px 16px;
+  width: auto;
+  white-space: nowrap;
+}
+
+.refresh-btn:hover {
+  background: var(--secondary-hover);
+}
+
+.product-stats {
+  margin-bottom: 15px;
+  padding: 10px 15px;
+  background: #f0f9ff;
+  border-radius: 6px;
+  border-left: 4px solid var(--primary-color);
+  font-size: 0.9rem;
+  color: var(--dark-color);
+}
+
+.product-stats i {
+  color: var(--primary-color);
+  margin-right: 8px;
+}
+
+.no-products-message {
+  text-align: center;
+  padding: 40px;
+  color: var(--secondary-color);
+  font-size: 1rem;
+}
+
+.no-products-message i {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  opacity: 0.5;
+}
+
+/* Edit Product Form in Modal */
+.edit-product-section {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.edit-product-section h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: var(--primary-color);
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-product-form .form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.edit-product-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.cancel-edit-btn {
+  background: var(--secondary-color);
+}
+
+.cancel-edit-btn:hover {
+  background: var(--secondary-hover);
+}
+
+.save-edit-btn {
+  background: var(--success-color);
+}
+
+.save-edit-btn:hover {
+  background: #2f855a;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  text-align: center;
+  padding: 40px;
+  color: var(--secondary-color);
+}
+
+.loading-spinner i {
+  font-size: 2rem;
+  margin-bottom: 10px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Product code badge */
+.product-code-badge {
+  background: #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  color: var(--secondary-color);
+  margin-left: 8px;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .container {
@@ -676,6 +1066,10 @@ button {
 
   .product-entry {
     padding-top: 2.5rem;
+  }
+
+  .edit-product-form .form-row {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -876,5 +1270,97 @@ button {
 
   .file-item {
     border-bottom-color: #4a5568;
+  }
+
+  /* Dark mode for add product button */
+  .add-product-btn {
+    background: #2f855a;
+  }
+
+  .add-product-btn:hover {
+    background: #38a169;
+  }
+
+  .view-all-products-btn {
+    background: #2c5282;
+  }
+
+  .view-all-products-btn:hover {
+    background: #3182ce;
+  }
+
+  /* Dark mode for modal */
+  .modal-content {
+    background: #1e1e1e;
+    border-color: #444;
+  }
+
+  .modal-header {
+    border-bottom-color: #444;
+  }
+
+  .modal-header h2 {
+    color: #90cdf4;
+  }
+
+  .modal-close {
+    color: #999;
+  }
+
+  .modal-close:hover {
+    color: #f1f1f1;
+    background-color: #333;
+  }
+
+  .modal-message.success {
+    background-color: #1a365d;
+    border-color: #2d3748;
+  }
+
+  .modal-message.error {
+    background-color: #3b1d1d;
+    border-color: #5c2d2d;
+  }
+
+  .product-form-group label {
+    color: #cccccc;
+  }
+
+  /* Dark mode for product management modal */
+  .product-table {
+    background: #1e1e1e;
+  }
+
+  .product-table th {
+    background-color: #2d3748;
+    color: #f1f1f1;
+  }
+
+  .product-table td {
+    border-bottom-color: #444;
+  }
+
+  .product-table tbody tr:hover {
+    background-color: #2d3748;
+  }
+
+  .product-stats {
+    background: #1a365d;
+    border-left-color: #90cdf4;
+    color: #f1f1f1;
+  }
+
+  .edit-product-section {
+    background: #2d3748;
+    border-color: #4a5568;
+  }
+
+  .product-code-badge {
+    background: #4a5568;
+    color: #cbd5e0;
+  }
+
+  .no-products-message {
+    color: #999;
   }
 }

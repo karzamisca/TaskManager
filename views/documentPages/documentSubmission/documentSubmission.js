@@ -1,4 +1,4 @@
-// views\documentPages\documentSubmission\documentSubmission.js
+// views/documentPages/documentSubmission/documentSubmission.js
 
 // Global variable to store Choice.js instances
 let choiceInstances = [];
@@ -6,10 +6,20 @@ let isSubmitting = false;
 let productEntries = [];
 let grandTotalCost = 0;
 
+// Modal elements
+let addProductModal = null;
+let addProductForm = null;
+let addProductMessage = null;
+
+// Product Management Modal elements
+let productManagementModal = null;
+let allProducts = [];
+let filteredProducts = [];
+let currentEditingProduct = null;
+
 // Initialize Choice.js for product dropdowns
 function initializeProductDropdowns() {
   document.querySelectorAll(".product-dropdown").forEach((select) => {
-    // Only initialize if not already a Choice.js element and doesn't have data-initialized attribute
     if (!select.hasAttribute("data-choice-initialized")) {
       const choiceInstance = new Choices(select, {
         searchEnabled: true,
@@ -24,35 +34,8 @@ function initializeProductDropdowns() {
         loadingText: "Đang tải...",
         searchChoices: true,
         position: "auto",
-        classNames: {
-          containerInner: "choices__inner",
-          input: "choices__input",
-          list: "choices__list",
-          listItems: "choices__list--multiple",
-          listSingle: "choices__list--single",
-          listDropdown: "choices__list--dropdown",
-          item: "choices__item",
-          itemSelectable: "choices__item--selectable",
-          itemDisabled: "choices__item--disabled",
-          itemChoice: "choices__item--choice",
-          placeholder: "choices__placeholder",
-          group: "choices__group",
-          groupHeading: "choices__heading",
-          button: "choices__button",
-          activeState: "is-active",
-          focusState: "is-focused",
-          openState: "is-open",
-          disabledState: "is-disabled",
-          highlightedState: "is-highlighted",
-          selectedState: "is-selected",
-          flippedState: "is-flipped",
-          loadingState: "is-loading",
-          noResults: "has-no-results",
-          noChoices: "has-no-choices",
-        },
       });
 
-      // Add event listener for product name change
       choiceInstance.passedElement.element.addEventListener(
         "change",
         function () {
@@ -64,7 +47,6 @@ function initializeProductDropdowns() {
         },
       );
 
-      // Mark as initialized
       select.setAttribute("data-choice-initialized", "true");
       choiceInstances.push(choiceInstance);
     }
@@ -77,7 +59,6 @@ async function populateProductDropdowns() {
     const products = await fetchProducts();
 
     document.querySelectorAll(".product-dropdown").forEach((dropdown) => {
-      // Store current value before updating
       const choiceInstance = choiceInstances.find(
         (instance) => instance.passedElement.element === dropdown,
       );
@@ -85,7 +66,6 @@ async function populateProductDropdowns() {
         ? choiceInstance.getValue(true)
         : null;
 
-      // Clear and rebuild options
       const defaultOption = dropdown.querySelector('option[value=""]');
       dropdown.innerHTML = "";
       if (defaultOption) {
@@ -100,7 +80,6 @@ async function populateProductDropdowns() {
         dropdown.appendChild(option);
       });
 
-      // Update Choice instance if it exists
       if (choiceInstance) {
         choiceInstance.setChoices(
           products.map((product) => ({
@@ -113,7 +92,6 @@ async function populateProductDropdowns() {
           true,
         );
 
-        // Restore previous value
         if (currentValue) {
           choiceInstance.setChoiceByValue(currentValue);
         }
@@ -152,12 +130,10 @@ function calculateProductCost(index) {
   const vat = parseFloat(vatInput.value) || 0;
   const productName = productNameSelect.value || `Sản phẩm ${index + 1}`;
 
-  // Calculate costs (allow negative values for refunds/adjustments)
   const subtotal = costPerUnit * amount;
   const vatAmount = subtotal * (vat / 100);
   const totalCost = subtotal + vatAmount;
 
-  // Update product entry cost display
   const costDisplayId = `product-cost-${index}`;
   let costDisplay = document.getElementById(costDisplayId);
 
@@ -166,7 +142,6 @@ function calculateProductCost(index) {
     costDisplay.id = costDisplayId;
     costDisplay.className = "product-entry-cost";
 
-    // Find where to insert it - after the note field
     const noteInput = productEntry.querySelector(
       `input[name="products[${index}][note]"]`,
     );
@@ -175,16 +150,14 @@ function calculateProductCost(index) {
     }
   }
 
-  // Determine color based on total cost (red for negative, green for positive)
   if (totalCost < 0) {
-    costDisplay.style.color = "#e53e3e"; // Red for negative values
+    costDisplay.style.color = "#e53e3e";
   } else {
-    costDisplay.style.color = "#38a169"; // Green for positive values
+    costDisplay.style.color = "#38a169";
   }
 
   costDisplay.textContent = `Tổng chi phí: ${totalCost.toLocaleString("vi-VN")}₫ (${subtotal.toLocaleString("vi-VN")}₫ + ${vatAmount.toLocaleString("vi-VN")}₫ VAT)`;
 
-  // Update product entries array
   productEntries[index] = {
     productName,
     costPerUnit,
@@ -196,7 +169,6 @@ function calculateProductCost(index) {
     productEntryId: `product-entry-${index}`,
   };
 
-  // Update grand total
   updateGrandTotal();
 
   return totalCost;
@@ -214,38 +186,30 @@ function updateGrandTotal() {
     0,
   );
 
-  // Find the product-entries container
   const productEntriesContainer = document.getElementById("product-entries");
   if (!productEntriesContainer) return;
 
-  // Remove existing summary displays
   const existingTopSummary = document.getElementById("cost-summary-top");
   const existingBottomSummary = document.getElementById("cost-summary-bottom");
   if (existingTopSummary) existingTopSummary.remove();
   if (existingBottomSummary) existingBottomSummary.remove();
 
-  // Only create summaries if there are products
   if (productEntries.length > 0 && productEntries.some((p) => p)) {
-    // Create top summary
     const topSummaryDiv = document.createElement("div");
     topSummaryDiv.id = "cost-summary-top";
     topSummaryDiv.className = "cost-summary cost-summary-top";
 
-    // Create bottom summary
     const bottomSummaryDiv = document.createElement("div");
     bottomSummaryDiv.id = "cost-summary-bottom";
     bottomSummaryDiv.className = "cost-summary cost-summary-bottom";
 
-    // Build summary content
     const buildSummaryContent = () => {
       let summaryHTML =
         '<h4><i class="fas fa-calculator"></i> Tổng hợp chi phí</h4>';
 
-      // Add individual item costs
       productEntries.forEach((product, index) => {
         if (product) {
           const displayName = product.productName || `Sản phẩm ${index + 1}`;
-          // Highlight positive costs, show negative costs in red
           const costClass = product.totalCost > 0 ? "summary-highlight" : "";
           const costColor = product.totalCost < 0 ? "color: #e53e3e;" : "";
           summaryHTML += `
@@ -261,7 +225,6 @@ function updateGrandTotal() {
         }
       });
 
-      // Add grand total with color based on value
       const totalColor =
         grandTotalCost < 0 ? "color: #e53e3e;" : "color: var(--primary-color);";
       summaryHTML += `
@@ -277,13 +240,11 @@ function updateGrandTotal() {
     topSummaryDiv.innerHTML = buildSummaryContent();
     bottomSummaryDiv.innerHTML = buildSummaryContent();
 
-    // Insert top summary at the beginning of product entries
     productEntriesContainer.insertBefore(
       topSummaryDiv,
       productEntriesContainer.firstChild,
     );
 
-    // Insert bottom summary at the end of product entries
     productEntriesContainer.appendChild(bottomSummaryDiv);
   }
 }
@@ -301,17 +262,13 @@ function attachProductCostListeners(index) {
 
   costInputs.forEach((input) => {
     if (input) {
-      // Remove existing listener to avoid duplicates
       const newInput = input.cloneNode(true);
       input.parentNode.replaceChild(newInput, input);
 
-      // Add event listener
       newInput.addEventListener("input", () => calculateProductCost(index));
       newInput.addEventListener("change", () => calculateProductCost(index));
 
-      // Also listen for focusout/blur
       newInput.addEventListener("blur", () => {
-        // Format the number with 2 decimal places
         if (newInput.value && !isNaN(newInput.value)) {
           newInput.value = parseFloat(newInput.value).toFixed(2);
         }
@@ -320,7 +277,6 @@ function attachProductCostListeners(index) {
     }
   });
 
-  // Also attach listener to product name dropdown
   const productNameSelect = productEntry.querySelector(
     `select[name="products[${index}][productName]"]`,
   );
@@ -336,7 +292,6 @@ function removeProductEntry(index) {
   const productEntry = document.getElementById(`product-entry-${index}`);
   if (!productEntry) return;
 
-  // Clean up Choice.js instance if it exists
   const dropdown = productEntry.querySelector(".product-dropdown");
   if (dropdown) {
     const choiceInstance = choiceInstances.find(
@@ -344,7 +299,6 @@ function removeProductEntry(index) {
     );
     if (choiceInstance) {
       choiceInstance.destroy();
-      // Remove from choiceInstances array
       const instanceIndex = choiceInstances.indexOf(choiceInstance);
       if (instanceIndex > -1) {
         choiceInstances.splice(instanceIndex, 1);
@@ -352,13 +306,8 @@ function removeProductEntry(index) {
     }
   }
 
-  // Remove the product entry element
   productEntry.remove();
-
-  // Re-index remaining product entries to maintain proper indexing
   reindexProductEntries();
-
-  // Update grand total display
   updateGrandTotal();
 }
 
@@ -370,20 +319,16 @@ function reindexProductEntries() {
   const newProductEntries = [];
 
   entries.forEach((entry, newIndex) => {
-    // Get the old index from the entry ID
     const oldId = entry.id;
     const oldIndex = parseInt(oldId.split("-")[2]);
 
-    // Update the entry ID
     entry.id = `product-entry-${newIndex}`;
 
-    // Update the remove button onclick
     const removeBtn = entry.querySelector(".remove-product-btn");
     if (removeBtn) {
       removeBtn.setAttribute("onclick", `removeProductEntry(${newIndex})`);
     }
 
-    // Update all input names to reflect new index
     const inputs = entry.querySelectorAll('[name^="products["]');
     inputs.forEach((input) => {
       const oldName = input.getAttribute("name");
@@ -394,34 +339,29 @@ function reindexProductEntries() {
       input.setAttribute("name", newName);
     });
 
-    // Update product cost display ID
     const costDisplay = entry.querySelector(".product-entry-cost");
     if (costDisplay) {
       costDisplay.id = `product-cost-${newIndex}`;
     }
 
-    // Get the product data from the old index
     const oldData = productEntries[oldIndex];
     if (oldData) {
       newProductEntries[newIndex] = { ...oldData };
     }
   });
 
-  // Update productEntries array
   productEntries = newProductEntries;
 
-  // Re-attach event listeners
   entries.forEach((entry, index) => {
     attachProductCostListeners(index);
   });
 }
 
-// Enhanced addProductEntry function with cost calculation
+// Enhanced addProductEntry function with cost calculation and product management buttons
 function addProductEntry() {
   const productEntriesContainer = document.getElementById("product-entries");
   const selectedTitle = document.getElementById("title-dropdown").value;
 
-  // Count existing product entries
   const existingProductEntries =
     productEntriesContainer.querySelectorAll(".product-entry");
   const productCount = existingProductEntries.length;
@@ -434,9 +374,19 @@ function addProductEntry() {
           <i class="fas fa-trash-alt"></i>
         </button>
         <label><i class="fas fa-box"></i> Tên sản phẩm</label>
-        <select name="products[${productCount}][productName]" class="product-dropdown" required>
-          <option value="">Chọn sản phẩm</option>
-        </select>
+        <div style="display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap;">
+          <select name="products[${productCount}][productName]" class="product-dropdown" required style="flex: 1; min-width: 200px;">
+            <option value="">Chọn sản phẩm</option>
+          </select>
+          <div style="display: flex; gap: 5px;">
+            <button type="button" class="add-product-btn" onclick="openAddProductModal()" title="Thêm sản phẩm mới">
+              <i class="fas fa-plus"></i>
+            </button>
+            <button type="button" class="view-all-products-btn" onclick="openProductManagementModal()" title="Xem tất cả sản phẩm">
+              <i class="fas fa-list"></i>
+            </button>
+          </div>
+        </div>
         <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
         <input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required 
                placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
@@ -461,9 +411,19 @@ function addProductEntry() {
           <i class="fas fa-trash-alt"></i>
         </button>
         <label><i class="fas fa-box"></i> Tên sản phẩm</label>
-        <select name="products[${productCount}][productName]" class="product-dropdown" required>
-          <option value="">Chọn sản phẩm</option>
-        </select>
+        <div style="display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap;">
+          <select name="products[${productCount}][productName]" class="product-dropdown" required style="flex: 1; min-width: 200px;">
+            <option value="">Chọn sản phẩm</option>
+          </select>
+          <div style="display: flex; gap: 5px;">
+            <button type="button" class="add-product-btn" onclick="openAddProductModal()" title="Thêm sản phẩm mới">
+              <i class="fas fa-plus"></i>
+            </button>
+            <button type="button" class="view-all-products-btn" onclick="openProductManagementModal()" title="Xem tất cả sản phẩm">
+              <i class="fas fa-list"></i>
+            </button>
+          </div>
+        </div>
         <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
         <input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required 
                placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
@@ -479,7 +439,6 @@ function addProductEntry() {
     `;
   }
 
-  // Insert new entry before the bottom summary if it exists
   const bottomSummary = document.getElementById("cost-summary-bottom");
   if (bottomSummary) {
     productEntriesContainer.insertBefore(
@@ -490,18 +449,15 @@ function addProductEntry() {
     productEntriesContainer.insertAdjacentHTML("beforeend", newEntry);
   }
 
-  // Initialize the new product entry
   initializeNewProductEntry(productCount);
 }
 
 // Function to initialize a new product entry
 function initializeNewProductEntry(index) {
-  // Get the newly added dropdown
   const newDropdowns = document.querySelectorAll(
     `#product-entry-${index} .product-dropdown:not([data-choice-initialized])`,
   );
 
-  // Initialize only the new dropdown and populate it
   newDropdowns.forEach((newDropdown) => {
     const choiceInstance = new Choices(newDropdown, {
       searchEnabled: true,
@@ -518,7 +474,6 @@ function initializeNewProductEntry(index) {
       position: "auto",
     });
 
-    // Add event listener for product name change
     choiceInstance.passedElement.element.addEventListener(
       "change",
       function () {
@@ -529,23 +484,19 @@ function initializeNewProductEntry(index) {
     newDropdown.setAttribute("data-choice-initialized", "true");
     choiceInstances.push(choiceInstance);
 
-    // Populate the new dropdown with products
     populateSingleProductDropdown(newDropdown);
   });
 
-  // Only populate cost centers for purchasing documents
   const selectedTitle = document.getElementById("title-dropdown").value;
   if (selectedTitle === "Purchasing Document") {
     populateProductCostCenters();
   }
 
-  // Store reference to product entry
   const productEntry = document.getElementById(`product-entry-${index}`);
   if (productEntry) {
     productEntry.productEntryId = `product-entry-${index}`;
   }
 
-  // Attach cost calculation listeners
   setTimeout(() => {
     attachProductCostListeners(index);
     calculateProductCost(index);
@@ -557,14 +508,12 @@ async function populateSingleProductDropdown(dropdown) {
   try {
     const products = await fetchProducts();
 
-    // Clear existing options except the default one
     const defaultOption = dropdown.querySelector('option[value=""]');
     dropdown.innerHTML = "";
     if (defaultOption) {
       dropdown.appendChild(defaultOption);
     }
 
-    // Add product options
     products.forEach((product) => {
       const option = document.createElement("option");
       option.value = product.name;
@@ -573,16 +522,13 @@ async function populateSingleProductDropdown(dropdown) {
       dropdown.appendChild(option);
     });
 
-    // Find the corresponding Choice instance and update it
     const choiceInstance = choiceInstances.find(
       (instance) => instance.passedElement.element === dropdown,
     );
 
     if (choiceInstance) {
-      // Store the current value before updating
       const currentValue = choiceInstance.getValue(true);
 
-      // Update the choices
       choiceInstance.setChoices(
         products.map((product) => ({
           value: product.name,
@@ -594,7 +540,6 @@ async function populateSingleProductDropdown(dropdown) {
         true,
       );
 
-      // Restore the previous value if it exists
       if (currentValue) {
         choiceInstance.setChoiceByValue(currentValue);
       }
@@ -604,13 +549,504 @@ async function populateSingleProductDropdown(dropdown) {
   }
 }
 
+// ==================== ADD PRODUCT MODAL FUNCTIONS ====================
+
+function openAddProductModal() {
+  if (!addProductModal) {
+    addProductModal = document.getElementById("addProductModal");
+    addProductForm = document.getElementById("addProductForm");
+    addProductMessage = document.getElementById("addProductMessage");
+
+    if (addProductForm) {
+      addProductForm.addEventListener("submit", handleAddProductSubmit);
+    }
+
+    if (addProductModal) {
+      addProductModal.addEventListener("click", function (e) {
+        if (e.target === addProductModal) {
+          closeAddProductModal();
+        }
+      });
+    }
+  }
+
+  if (addProductMessage) {
+    addProductMessage.innerHTML = "";
+    addProductMessage.className = "modal-message";
+  }
+  if (addProductForm) {
+    addProductForm.reset();
+  }
+
+  if (addProductModal) {
+    addProductModal.classList.remove("modal-hidden");
+  }
+}
+
+function closeAddProductModal() {
+  if (addProductModal) {
+    addProductModal.classList.add("modal-hidden");
+  }
+  if (addProductForm) {
+    addProductForm.reset();
+  }
+  if (addProductMessage) {
+    addProductMessage.innerHTML = "";
+    addProductMessage.className = "modal-message";
+  }
+}
+
+async function handleAddProductSubmit(e) {
+  e.preventDefault();
+
+  const nameInput = document.getElementById("newProductName");
+  const codeInput = document.getElementById("newProductCode");
+
+  const product = {
+    name: nameInput.value.trim(),
+    code: codeInput.value.trim(),
+  };
+
+  if (!product.name || !product.code) {
+    showAddProductMessage("Vui lòng điền đầy đủ thông tin", "error");
+    return;
+  }
+
+  try {
+    const response = await fetch("/products", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(product),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.message || "Không thể thêm sản phẩm");
+    }
+
+    showAddProductMessage("Sản phẩm đã được thêm thành công!", "success");
+    addProductForm.reset();
+
+    await refreshAllProductDropdowns();
+
+    setTimeout(() => {
+      closeAddProductModal();
+    }, 1500);
+  } catch (error) {
+    console.error("Error adding product:", error);
+    showAddProductMessage(
+      error.message || "Lỗi khi thêm sản phẩm. Vui lòng thử lại.",
+      "error",
+    );
+  }
+}
+
+function showAddProductMessage(message, type) {
+  if (addProductMessage) {
+    addProductMessage.innerHTML = message;
+    addProductMessage.className = `modal-message ${type}`;
+
+    if (type === "success") {
+      setTimeout(() => {
+        if (addProductMessage) {
+          addProductMessage.innerHTML = "";
+          addProductMessage.className = "modal-message";
+        }
+      }, 5000);
+    }
+  }
+}
+
+async function refreshAllProductDropdowns() {
+  try {
+    const products = await fetchProducts();
+
+    document.querySelectorAll(".product-dropdown").forEach((dropdown) => {
+      const choiceInstance = choiceInstances.find(
+        (instance) => instance.passedElement.element === dropdown,
+      );
+
+      if (choiceInstance) {
+        const currentValue = choiceInstance.getValue(true);
+
+        choiceInstance.setChoices(
+          products.map((product) => ({
+            value: product.name,
+            label: `${product.name} (${product.code})`,
+            customProperties: { code: product.code },
+          })),
+          "value",
+          "label",
+          true,
+        );
+
+        if (currentValue) {
+          choiceInstance.setChoiceByValue(currentValue);
+        }
+      }
+    });
+
+    document
+      .querySelectorAll(".product-dropdown:not([data-choice-initialized])")
+      .forEach((dropdown) => {
+        populateSingleProductDropdown(dropdown);
+      });
+
+    console.log("All product dropdowns refreshed successfully");
+  } catch (error) {
+    console.error("Error refreshing product dropdowns:", error);
+  }
+}
+
+// ==================== PRODUCT MANAGEMENT MODAL FUNCTIONS ====================
+
+function initProductManagementModal() {
+  if (!productManagementModal) {
+    productManagementModal = document.getElementById("productManagementModal");
+
+    if (productManagementModal) {
+      productManagementModal.addEventListener("click", function (e) {
+        if (e.target === productManagementModal) {
+          closeProductManagementModal();
+        }
+      });
+    }
+
+    const editProductForm = document.getElementById("editProductForm");
+    if (editProductForm) {
+      editProductForm.addEventListener("submit", handleEditProductSubmit);
+    }
+  }
+}
+
+async function openProductManagementModal() {
+  initProductManagementModal();
+
+  if (productManagementModal) {
+    productManagementModal.classList.remove("modal-hidden");
+
+    const editSection = document.getElementById("editProductSection");
+    if (editSection) {
+      editSection.style.display = "none";
+    }
+
+    const searchInput = document.getElementById("productSearchInput");
+    if (searchInput) {
+      searchInput.value = "";
+    }
+
+    await loadProductsForManagement();
+  }
+}
+
+function closeProductManagementModal() {
+  if (productManagementModal) {
+    productManagementModal.classList.add("modal-hidden");
+  }
+
+  const editSection = document.getElementById("editProductSection");
+  if (editSection) {
+    editSection.style.display = "none";
+  }
+
+  const editMessage = document.getElementById("editProductMessage");
+  if (editMessage) {
+    editMessage.innerHTML = "";
+    editMessage.className = "modal-message";
+  }
+}
+
+async function loadProductsForManagement() {
+  const tableBody = document.getElementById("productManagementTableBody");
+
+  if (!tableBody) return;
+
+  tableBody.innerHTML = `
+    <tr>
+      <td colspan="5" class="loading-spinner">
+        <i class="fas fa-spinner"></i>
+        <p>Đang tải danh sách sản phẩm...</p>
+      </td>
+    </tr>
+  `;
+
+  try {
+    const response = await fetch("/products");
+    if (!response.ok) {
+      throw new Error("Failed to fetch products");
+    }
+
+    allProducts = await response.json();
+    filteredProducts = [...allProducts];
+
+    renderProductManagementTable();
+    updateProductStats();
+  } catch (error) {
+    console.error("Error loading products:", error);
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="5" class="no-products-message">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>Không thể tải danh sách sản phẩm. Vui lòng thử lại.</p>
+        </td>
+      </tr>
+    `;
+  }
+}
+
+function renderProductManagementTable() {
+  const tableBody = document.getElementById("productManagementTableBody");
+
+  if (!tableBody) return;
+
+  if (filteredProducts.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="5" class="no-products-message">
+          <i class="fas fa-box-open"></i>
+          <p>Không tìm thấy sản phẩm nào</p>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  let html = "";
+  filteredProducts.forEach((product) => {
+    html += `
+      <tr>
+        <td>
+          <strong>${product.name}</strong>
+          ${product.code ? `<span class="product-code-badge">${product.code}</span>` : ""}
+        </td>
+        <td>${product.code || "—"}</td>
+        <td>${product.inStorage || 0}</td>
+        <td>${product.aboutToTransfer || 0}</td>
+        <td class="product-actions">
+          <button class="edit-btn" onclick="startEditProduct('${product._id}')" title="Chỉnh sửa">
+            <i class="fas fa-edit"></i> Sửa
+          </button>
+          <button class="delete-btn" onclick="deleteProductFromManagement('${product._id}')" title="Xóa">
+            <i class="fas fa-trash"></i> Xóa
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+
+  tableBody.innerHTML = html;
+}
+
+function updateProductStats() {
+  const statsSpan = document.getElementById("productCountDisplay");
+  if (statsSpan) {
+    const total = allProducts.length;
+    const filtered = filteredProducts.length;
+
+    if (total === filtered) {
+      statsSpan.textContent = `Tổng số sản phẩm: ${total}`;
+    } else {
+      statsSpan.textContent = `Hiển thị ${filtered} / ${total} sản phẩm`;
+    }
+  }
+}
+
+function filterProducts() {
+  const searchInput = document.getElementById("productSearchInput");
+  if (!searchInput) return;
+
+  const searchTerm = searchInput.value.toLowerCase().trim();
+
+  if (!searchTerm) {
+    filteredProducts = [...allProducts];
+  } else {
+    filteredProducts = allProducts.filter(
+      (product) =>
+        (product.name && product.name.toLowerCase().includes(searchTerm)) ||
+        (product.code && product.code.toLowerCase().includes(searchTerm)),
+    );
+  }
+
+  renderProductManagementTable();
+  updateProductStats();
+}
+
+async function refreshProductList() {
+  await loadProductsForManagement();
+  await refreshAllProductDropdowns();
+
+  const statsSpan = document.getElementById("productCountDisplay");
+  if (statsSpan) {
+    statsSpan.innerHTML =
+      '<i class="fas fa-check-circle"></i> Danh sách đã được làm mới!';
+    setTimeout(() => {
+      updateProductStats();
+    }, 2000);
+  }
+}
+
+function startEditProduct(productId) {
+  const product = allProducts.find((p) => p._id === productId);
+  if (!product) return;
+
+  currentEditingProduct = product;
+
+  document.getElementById("editProductId").value = product._id;
+  document.getElementById("editProductName").value = product.name || "";
+  document.getElementById("editProductCode").value = product.code || "";
+
+  const editMessage = document.getElementById("editProductMessage");
+  if (editMessage) {
+    editMessage.innerHTML = "";
+    editMessage.className = "modal-message";
+  }
+
+  const editSection = document.getElementById("editProductSection");
+  if (editSection) {
+    editSection.style.display = "block";
+  }
+
+  editSection.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function cancelEditProduct() {
+  const editSection = document.getElementById("editProductSection");
+  if (editSection) {
+    editSection.style.display = "none";
+  }
+
+  document.getElementById("editProductForm").reset();
+  document.getElementById("editProductId").value = "";
+
+  const editMessage = document.getElementById("editProductMessage");
+  if (editMessage) {
+    editMessage.innerHTML = "";
+    editMessage.className = "modal-message";
+  }
+
+  currentEditingProduct = null;
+}
+
+async function handleEditProductSubmit(e) {
+  e.preventDefault();
+
+  const productId = document.getElementById("editProductId").value;
+  const productName = document.getElementById("editProductName").value.trim();
+  const productCode = document.getElementById("editProductCode").value.trim();
+
+  if (!productName || !productCode) {
+    showEditProductMessage("Vui lòng điền đầy đủ thông tin", "error");
+    return;
+  }
+
+  const updatedProduct = {
+    _id: productId,
+    name: productName,
+    code: productCode,
+  };
+
+  try {
+    const response = await fetch(`/products/${productId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedProduct),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.message || "Không thể cập nhật sản phẩm");
+    }
+
+    showEditProductMessage("Sản phẩm đã được cập nhật thành công!", "success");
+
+    await loadProductsForManagement();
+    await refreshAllProductDropdowns();
+
+    setTimeout(() => {
+      cancelEditProduct();
+    }, 1500);
+  } catch (error) {
+    console.error("Error updating product:", error);
+    showEditProductMessage(
+      error.message || "Lỗi khi cập nhật sản phẩm. Vui lòng thử lại.",
+      "error",
+    );
+  }
+}
+
+function showEditProductMessage(message, type) {
+  const editMessage = document.getElementById("editProductMessage");
+  if (editMessage) {
+    editMessage.innerHTML = message;
+    editMessage.className = `modal-message ${type}`;
+
+    if (type === "success") {
+      setTimeout(() => {
+        editMessage.innerHTML = "";
+        editMessage.className = "modal-message";
+      }, 5000);
+    }
+  }
+}
+
+async function deleteProductFromManagement(productId) {
+  const product = allProducts.find((p) => p._id === productId);
+  if (!product) return;
+
+  if (!confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${product.name}" không?`)) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/products/${productId}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.message || "Không thể xóa sản phẩm");
+    }
+
+    await loadProductsForManagement();
+    await refreshAllProductDropdowns();
+
+    if (currentEditingProduct && currentEditingProduct._id === productId) {
+      cancelEditProduct();
+    }
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    alert(error.message || "Lỗi khi xóa sản phẩm. Vui lòng thử lại.");
+  }
+}
+
+function openAddProductFromManagement() {
+  closeProductManagementModal();
+  openAddProductModal();
+
+  const originalCloseHandler = closeAddProductModal;
+  closeAddProductModal = function () {
+    originalCloseHandler();
+
+    setTimeout(async () => {
+      await loadProductsForManagement();
+      openProductManagementModal();
+      closeAddProductModal = originalCloseHandler;
+    }, 100);
+  };
+}
+
+// ==================== END PRODUCT MANAGEMENT MODAL FUNCTIONS ====================
+
 flatpickr("#dateOfError", {
   dateFormat: "d-m-Y",
   defaultDate: "today",
 });
 
 ////DOCUMENT SELECT HANDLERS
-// Function to handle Proposal Document selection
 function handleProposalDocument() {
   const contentFields = document.getElementById("content-fields");
   const addContentButton = document.getElementById("add-content-btn");
@@ -639,8 +1075,6 @@ function handleProposalDocument() {
     `;
   populateGroupDropdown();
   populateProjectDropdown();
-
-  // Fetch current user and populate cost centers
   fetchCostCenters();
 
   flatpickr("#dateOfError", {
@@ -651,14 +1085,12 @@ function handleProposalDocument() {
   addContentButton.style.display = "none";
 }
 
-// Function to handle Purchasing Document selection
 function handlePurchasingDocument() {
   const contentFields = document.getElementById("content-fields");
   const approvedProposalSection = document.getElementById(
     "approved-proposal-section",
   );
 
-  // Reset product entries
   productEntries = [];
   grandTotalCost = 0;
 
@@ -675,9 +1107,19 @@ function handlePurchasingDocument() {
             <i class="fas fa-trash-alt"></i>
           </button>
           <label><i class="fas fa-box"></i> Tên sản phẩm</label>
-          <select name="products[0][productName]" class="product-dropdown" required>
-            <option value="">Chọn sản phẩm</option>
-          </select>
+          <div style="display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap;">
+            <select name="products[0][productName]" class="product-dropdown" required style="flex: 1; min-width: 200px;">
+              <option value="">Chọn sản phẩm</option>
+            </select>
+            <div style="display: flex; gap: 5px;">
+              <button type="button" class="add-product-btn" onclick="openAddProductModal()" title="Thêm sản phẩm mới">
+                <i class="fas fa-plus"></i>
+              </button>
+              <button type="button" class="view-all-products-btn" onclick="openProductManagementModal()" title="Xem tất cả sản phẩm">
+                <i class="fas fa-list"></i>
+              </button>
+            </div>
+          </div>
           <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
           <input type="number" step="0.01" name="products[0][costPerUnit]" required 
                  placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
@@ -708,7 +1150,6 @@ function handlePurchasingDocument() {
       </select>     
     `;
 
-  // Initialize Choice.js for the initial product dropdown
   setTimeout(() => {
     initializeProductDropdowns();
     populateProductDropdowns();
@@ -720,15 +1161,10 @@ function handlePurchasingDocument() {
   populateGroupDropdown();
   populateProjectDropdown();
   approvedProposalSection.style.display = "block";
-
-  // Get proposal documents for Purchasing Document
   fetchApprovedProposalsForPurchasing();
-
-  // Fetch current user and populate cost centers
   fetchCostCenters();
 }
 
-// Function to handle Payment Document selection
 function handlePaymentDocument() {
   const contentFields = document.getElementById("content-fields");
   const appendPurchasingSection = document.getElementById(
@@ -782,11 +1218,9 @@ function handlePaymentDocument() {
     defaultDate: "today",
   });
 
-  // Fetch current user and populate cost centers
   fetchCostCenters();
 }
 
-// Function to handle Advance Payment Document selection
 function handleAdvancePaymentDocument() {
   const contentFields = document.getElementById("content-fields");
   const appendPurchasingSection = document.getElementById(
@@ -832,11 +1266,9 @@ function handleAdvancePaymentDocument() {
     defaultDate: "today",
   });
 
-  // Fetch current user and populate cost centers
   fetchCostCenters();
 }
 
-// Function to handle Advance Payment Document selection
 function handleAdvancePaymentReclaimDocument() {
   const contentFields = document.getElementById("content-fields");
   const appendPurchasingSection = document.getElementById(
@@ -882,18 +1314,15 @@ function handleAdvancePaymentReclaimDocument() {
     defaultDate: "today",
   });
 
-  // Fetch current user and populate cost centers
   fetchCostCenters();
 }
 
-// Function to handle Delivery Document selection
 function handleDeliveryDocument() {
   const contentFields = document.getElementById("content-fields");
   const approvedProposalSection = document.getElementById(
     "approved-proposal-section",
   );
 
-  // Reset product entries
   productEntries = [];
   grandTotalCost = 0;
 
@@ -910,9 +1339,19 @@ function handleDeliveryDocument() {
             <i class="fas fa-trash-alt"></i>
           </button>
           <label><i class="fas fa-box"></i> Tên sản phẩm</label>
-          <select name="products[0][productName]" class="product-dropdown" required>
-            <option value="">Chọn sản phẩm</option>
-          </select>
+          <div style="display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap;">
+            <select name="products[0][productName]" class="product-dropdown" required style="flex: 1; min-width: 200px;">
+              <option value="">Chọn sản phẩm</option>
+            </select>
+            <div style="display: flex; gap: 5px;">
+              <button type="button" class="add-product-btn" onclick="openAddProductModal()" title="Thêm sản phẩm mới">
+                <i class="fas fa-plus"></i>
+              </button>
+              <button type="button" class="view-all-products-btn" onclick="openProductManagementModal()" title="Xem tất cả sản phẩm">
+                <i class="fas fa-list"></i>
+              </button>
+            </div>
+          </div>
           <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
           <input type="number" step="0.01" name="products[0][costPerUnit]" required 
                  placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
@@ -939,7 +1378,6 @@ function handleDeliveryDocument() {
       </select>             
     `;
 
-  // Initialize Choice.js for the initial product dropdown
   setTimeout(() => {
     initializeProductDropdowns();
     populateProductDropdowns();
@@ -950,22 +1388,16 @@ function handleDeliveryDocument() {
   populateGroupDropdown();
   populateProjectDropdown();
   approvedProposalSection.style.display = "block";
-
-  // Get proposal documents for Delivery Document
   fetchApprovedProposalsForDelivery();
-
-  // Fetch current user and populate cost centers
   fetchCostCenters();
 }
 
-// Function to handle Receipt Document selection
 function handleReceiptDocument() {
   const contentFields = document.getElementById("content-fields");
   const approvedProposalSection = document.getElementById(
     "approved-proposal-section",
   );
 
-  // Reset product entries
   productEntries = [];
   grandTotalCost = 0;
 
@@ -982,9 +1414,19 @@ function handleReceiptDocument() {
             <i class="fas fa-trash-alt"></i>
           </button>
           <label><i class="fas fa-box"></i> Tên sản phẩm</label>
-          <select name="products[0][productName]" class="product-dropdown" required>
-            <option value="">Chọn sản phẩm</option>
-          </select>
+          <div style="display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap;">
+            <select name="products[0][productName]" class="product-dropdown" required style="flex: 1; min-width: 200px;">
+              <option value="">Chọn sản phẩm</option>
+            </select>
+            <div style="display: flex; gap: 5px;">
+              <button type="button" class="add-product-btn" onclick="openAddProductModal()" title="Thêm sản phẩm mới">
+                <i class="fas fa-plus"></i>
+              </button>
+              <button type="button" class="view-all-products-btn" onclick="openProductManagementModal()" title="Xem tất cả sản phẩm">
+                <i class="fas fa-list"></i>
+              </button>
+            </div>
+          </div>
           <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
           <input type="number" step="0.01" name="products[0][costPerUnit]" required 
                  placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
@@ -1011,7 +1453,6 @@ function handleReceiptDocument() {
       </select>             
     `;
 
-  // Initialize Choice.js for the initial product dropdown
   setTimeout(() => {
     initializeProductDropdowns();
     populateProductDropdowns();
@@ -1022,15 +1463,10 @@ function handleReceiptDocument() {
   populateGroupDropdown();
   populateProjectDropdown();
   approvedProposalSection.style.display = "block";
-
-  // Get proposal documents for Receipt Document
   fetchApprovedProposalsForReceipt();
-
-  // Fetch current user and populate cost centers
   fetchCostCenters();
 }
 
-// Function to handle Project Proposal Document selection
 function handleProjectProposalDocument() {
   const contentFields = document.getElementById("content-fields");
   const addContentButton = document.getElementById("add-content-btn");
@@ -1060,7 +1496,6 @@ function handleProjectProposalDocument() {
   appendApprovedDocumentsSection.style.display = "none";
 }
 
-// Function to handle Generic Document selection
 function handleGenericDocument() {
   const contentFields = document.getElementById("content-fields");
   const addContentButton = document.getElementById("add-content-btn");
@@ -1099,20 +1534,22 @@ function fetchCostCenters() {
         .then((response) => response.json())
         .then((costCenters) => {
           const costCenterSelect = document.getElementById("costCenter");
-          costCenterSelect.innerHTML =
-            '<option value="">Chọn một trạm</option>';
+          if (costCenterSelect) {
+            costCenterSelect.innerHTML =
+              '<option value="">Chọn một trạm</option>';
 
-          costCenters.forEach((center) => {
-            if (
-              center.allowedUsers.length === 0 ||
-              center.allowedUsers.includes(currentUser)
-            ) {
-              const option = document.createElement("option");
-              option.value = center.name;
-              option.textContent = center.name;
-              costCenterSelect.appendChild(option);
-            }
-          });
+            costCenters.forEach((center) => {
+              if (
+                center.allowedUsers.length === 0 ||
+                center.allowedUsers.includes(currentUser)
+              ) {
+                const option = document.createElement("option");
+                option.value = center.name;
+                option.textContent = center.name;
+                costCenterSelect.appendChild(option);
+              }
+            });
+          }
         })
         .catch((error) => {
           console.error("Error fetching cost centers:", error);
@@ -1156,7 +1593,6 @@ document
       "purchasingDocumentPreview",
     );
 
-    // Reset all sections and content fields
     contentFields.innerHTML = "";
     addContentButton.style.display = "none";
     approvedProposalSection.style.display = "none";
@@ -1164,11 +1600,9 @@ document
     appendPurchasingSection.style.display = "none";
     purchasingDocumentPreview.style.display = "none";
 
-    // Reset product entries and grand total
     productEntries = [];
     grandTotalCost = 0;
 
-    // Call respective handler based on selected document type
     switch (selectedTitle) {
       case "Proposal Document":
         handleProposalDocument();
@@ -1194,27 +1628,22 @@ document
       case "Project Proposal Document":
         handleProjectProposalDocument();
         break;
-      case "Generic Document":
+      default:
         handleGenericDocument();
         break;
     }
   });
-////END OF DOCUMENT SELECT HANDLERS
 
 async function populateProductCostCenters() {
   try {
-    // Get current user to check allowed cost centers
     const userResponse = await fetch("/getCurrentUser");
     const userData = await userResponse.json();
     const currentUser = userData.username;
 
-    // Get all cost centers
     const costCenterResponse = await fetch("/costCenters");
     const costCenters = await costCenterResponse.json();
 
-    // Populate each product cost center dropdown
     document.querySelectorAll(".product-cost-center").forEach((select) => {
-      // Only populate if empty (has only the default option)
       if (select.options.length <= 1) {
         costCenters.forEach((center) => {
           if (
@@ -1234,12 +1663,9 @@ async function populateProductCostCenters() {
   }
 }
 
-// Initialize Choice.js when the page loads
 document.addEventListener("DOMContentLoaded", function () {
-  // Check if we're on a page that needs product dropdowns
   const productDropdowns = document.querySelectorAll(".product-dropdown");
   if (productDropdowns.length > 0) {
-    // Initialize existing product dropdowns
     setTimeout(() => {
       initializeProductDropdowns();
       populateProductDropdowns();
@@ -1247,7 +1673,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
-// Clean up Choice.js instances when leaving the page
 window.addEventListener("beforeunload", function () {
   choiceInstances.forEach((instance) => {
     if (instance && typeof instance.destroy === "function") {
@@ -1301,16 +1726,12 @@ function addProposalEntry() {
     `;
   container.appendChild(newEntry);
 
-  // Check which document type is currently selected to determine which proposals to fetch
   const selectedTitle = document.getElementById("title-dropdown").value;
   if (selectedTitle === "Purchasing Document") {
-    // Populate the new dropdown for purchasing document
     fetchApprovedProposalsForPurchasing(newEntry.querySelector("select"));
   } else if (selectedTitle === "Delivery Document") {
-    // Populate the new dropdown for delivery document
     fetchApprovedProposalsForDelivery(newEntry.querySelector("select"));
   } else if (selectedTitle === "Receipt Document") {
-    // Populate the new dropdown for delivery document
     fetchApprovedProposalsForReceipt(newEntry.querySelector("select"));
   }
 }
@@ -1325,13 +1746,11 @@ function removeProposalEntry(button) {
   entry.remove();
 }
 
-// Function to fetch proposals for purchasing documents
 async function fetchApprovedProposalsForPurchasing(dropdown = null) {
   const response = await fetch("/approvedProposalsForPurchasing");
   const approvedProposals = await response.json();
 
   if (!dropdown) {
-    // If no specific dropdown provided, populate all dropdowns
     document
       .querySelectorAll(".approved-proposal-dropdown")
       .forEach((select) => {
@@ -1342,13 +1761,11 @@ async function fetchApprovedProposalsForPurchasing(dropdown = null) {
   }
 }
 
-// Function to fetch proposals for delivery documents
 async function fetchApprovedProposalsForDelivery(dropdown = null) {
   const response = await fetch("/approvedProposalsForDelivery");
   const approvedProposals = await response.json();
 
   if (!dropdown) {
-    // If no specific dropdown provided, populate all dropdowns
     document
       .querySelectorAll(".approved-proposal-dropdown")
       .forEach((select) => {
@@ -1359,13 +1776,11 @@ async function fetchApprovedProposalsForDelivery(dropdown = null) {
   }
 }
 
-// Function to fetch proposals for receipt documents
 async function fetchApprovedProposalsForReceipt(dropdown = null) {
   const response = await fetch("/approvedProposalsForReceipt");
   const approvedProposals = await response.json();
 
   if (!dropdown) {
-    // If no specific dropdown provided, populate all dropdowns
     document
       .querySelectorAll(".approved-proposal-dropdown")
       .forEach((select) => {
@@ -1405,7 +1820,6 @@ async function previewProposalContent(selectElement) {
   const previewDiv = document.createElement("div");
   previewDiv.className = "proposal-preview";
 
-  // Handle multiple files
   let filesHtml = "<p>Không có tệp đính kèm</p>";
   if (proposal.fileMetadata && proposal.fileMetadata.length > 0) {
     filesHtml = `
@@ -1441,7 +1855,7 @@ async function previewProposalContent(selectElement) {
       <p><strong>Người nộp:</strong> ${
         proposal.submittedBy?.username || "Không rõ"
       }</p>
-      <p><strong>Trạng thái:</strong> ${proposal.status}</p>
+            <p><strong>Trạng thái:</strong> ${proposal.status}</p>
       ${
         proposal.declaration
           ? `<p><strong>Kê khai:</strong> ${proposal.declaration}</p>`
@@ -1465,25 +1879,21 @@ async function previewProposalContent(selectElement) {
       </ul>
     `;
 
-  // Insert the preview right after the select container
   selectContainer.appendChild(previewDiv);
 }
 
-// Function to fetch purchasing documents for payment documents
 async function fetchPurchasingDocumentsForPayment() {
   const response = await fetch("/approvedPurchasingDocumentsForPayment");
   const purchasingDocs = await response.json();
   populatePurchasingDocumentsDropdown(purchasingDocs);
 }
 
-// Function to fetch purchasing documents for advance payment documents
 async function fetchPurchasingDocumentsForAdvancePayment() {
   const response = await fetch("/approvedPurchasingDocumentsForAdvancePayment");
   const purchasingDocs = await response.json();
   populatePurchasingDocumentsDropdown(purchasingDocs);
 }
 
-// Function to fetch purchasing documents for advance payment reclaim documents
 async function fetchPurchasingDocumentsForAdvancePaymentReclaim() {
   const response = await fetch(
     "/approvedPurchasingDocumentsForAdvancePaymentReclaim",
@@ -1492,11 +1902,10 @@ async function fetchPurchasingDocumentsForAdvancePaymentReclaim() {
   populatePurchasingDocumentsDropdown(purchasingDocs);
 }
 
-// Shared function to populate the dropdown with purchasing documents
 function populatePurchasingDocumentsDropdown(purchasingDocs) {
   const dropdown = document.getElementById("purchasingDocumentsDropdown");
+  if (!dropdown) return;
 
-  // Populate dropdown options
   dropdown.innerHTML = '<option value="">Hãy chọn một phiếu mua hàng</option>';
   purchasingDocs.forEach((doc) => {
     const option = document.createElement("option");
@@ -1508,10 +1917,9 @@ function populatePurchasingDocumentsDropdown(purchasingDocs) {
   });
 }
 
-// Add selected purchasing document to the list
 document
   .getElementById("add-purchasing-document-btn")
-  .addEventListener("click", async () => {
+  ?.addEventListener("click", async () => {
     const dropdown = document.getElementById("purchasingDocumentsDropdown");
     const selectedDocId = dropdown.value;
     const purchasingDocumentsList = document.getElementById(
@@ -1523,19 +1931,16 @@ document
       return;
     }
 
-    // Check if the document is already added
     if (document.querySelector(`#doc-${selectedDocId}`)) {
       alert("Bạn đã thêm phiếu này rồi.");
       return;
     }
 
-    // Fetch and display the purchasing document details
     try {
       const response = await fetch(`/purchasingDocument/${selectedDocId}`);
       if (!response.ok) throw new Error("Failed to fetch document details.");
       const doc = await response.json();
 
-      // Handle multiple files for purchasing document
       const purchasingFilesHtml =
         doc.fileMetadata && doc.fileMetadata.length > 0
           ? `
@@ -1557,7 +1962,6 @@ document
       `
           : "<p>Không có tệp đính kèm</p>";
 
-      // Handle multiple files for appended proposals
       const appendedProposalsHtml =
         doc.appendedProposals.length > 0
           ? doc.appendedProposals
@@ -1632,7 +2036,6 @@ document
 
       purchasingDocumentsList.appendChild(listItem);
 
-      // Add hidden input for form submission
       const hiddenInput = document.createElement("input");
       hiddenInput.type = "hidden";
       hiddenInput.name = "approvedPurchasingDocuments[]";
@@ -1641,11 +2044,10 @@ document
       document.getElementById("submit-form").appendChild(hiddenInput);
     } catch (error) {
       console.error("Error fetching document details:", error);
-      alert("Failed to add the purchasing document. Please try again.");
+      alert("Không thể thêm phiếu mua hàng. Vui lòng thử lại.");
     }
   });
 
-// Remove a purchasing document
 function removePurchasingDocument(docId) {
   document.getElementById(`doc-${docId}`).remove();
   document.getElementById(`input-${docId}`).remove();
@@ -1665,11 +2067,10 @@ async function fetchGroups() {
 async function populateGroupDropdown() {
   const groups = await fetchGroups();
   const groupSelect = document.getElementById("groupName");
+  if (!groupSelect) return;
 
-  // Clear existing options except the first one
   groupSelect.innerHTML = '<option value="">Chọn nhóm</option>';
 
-  // Add new options
   groups.forEach((group) => {
     const option = document.createElement("option");
     option.value = group.name;
@@ -1681,10 +2082,10 @@ async function populateGroupDropdown() {
 async function fetchProjects() {
   try {
     const response = await fetch("/getProjectDocument");
-    const groups = await response.json();
-    return groups;
+    const projects = await response.json();
+    return projects;
   } catch (error) {
-    console.error("Error fetching groups:", error);
+    console.error("Error fetching projects:", error);
     return [];
   }
 }
@@ -1693,10 +2094,8 @@ async function populateProjectDropdown() {
   const projects = await fetchProjects();
   const projectSelect = document.getElementById("projectName");
 
-  // Clear existing options except the first one
   projectSelect.innerHTML = '<option value="">Chọn dự án</option>';
 
-  // Add new options
   projects.forEach((project) => {
     const option = document.createElement("option");
     option.value = project.name;
@@ -1710,11 +2109,9 @@ fetchApprovers();
 document
   .getElementById("submit-form")
   .addEventListener("submit", async function (event) {
-    // ALWAYS prevent default first to stop the form from submitting immediately
     event.preventDefault();
     event.stopPropagation();
 
-    // Prevent double submission
     if (isSubmitting) {
       console.log("Submission already in progress, ignoring duplicate");
       return;
@@ -1728,13 +2125,11 @@ document
       return;
     }
 
-    // Validate product cost centers
     const productCostCenters = document.querySelectorAll(
       ".product-cost-center",
     );
     let allCostCentersValid = true;
 
-    // Get current user's allowed cost centers
     try {
       const userResponse = await fetch("/getCurrentUser");
       const userData = await userResponse.json();
@@ -1750,7 +2145,6 @@ document
         )
         .map((center) => center.name);
 
-      // Check each product's cost center
       productCostCenters.forEach((select) => {
         if (!allowedCostCenters.includes(select.value)) {
           allCostCentersValid = false;
@@ -1767,7 +2161,6 @@ document
         return;
       }
 
-      // Add grand total to form data if it's a document with products
       const selectedTitle = document.getElementById("title-dropdown").value;
       if (
         [
@@ -1776,13 +2169,11 @@ document
           "Receipt Document",
         ].includes(selectedTitle)
       ) {
-        // Remove any existing grand total hidden field
         const existingField = document.getElementById("grand-total-hidden");
         if (existingField) {
           existingField.remove();
         }
 
-        // Add new hidden field with current grand total
         const grandTotalField = document.createElement("input");
         grandTotalField.type = "hidden";
         grandTotalField.name = "grandTotalCost";
@@ -1790,7 +2181,6 @@ document
         grandTotalField.id = "grand-total-hidden";
         this.appendChild(grandTotalField);
 
-        // Also add individual product costs as hidden fields
         productEntries.forEach((product, index) => {
           if (product) {
             const productCostField = document.createElement("input");
@@ -1802,10 +2192,8 @@ document
         });
       }
 
-      // All validations passed, set flag
       isSubmitting = true;
 
-      // Disable the submit button to prevent manual double-clicks
       const submitButton = this.querySelector('button[type="submit"]');
       if (submitButton) {
         submitButton.disabled = true;
@@ -1813,13 +2201,11 @@ document
           '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
       }
 
-      // Now manually submit the form
       this.submit();
     } catch (error) {
       console.error("Error validating cost centers:", error);
-      isSubmitting = false; // Reset flag on error
+      isSubmitting = false;
 
-      // Re-enable submit button on error
       const submitButton = this.querySelector('button[type="submit"]');
       if (submitButton) {
         submitButton.disabled = false;
