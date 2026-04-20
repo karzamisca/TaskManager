@@ -156,7 +156,6 @@ const generateDeductionSchedule = (entry) => {
   let currentDeductionDate = new Date(firstDeductionDate);
   let monthIndex = 0;
   let principalPaid = 0;
-  let lastPrincipalPaymentMonth = -1;
 
   // Regular payments (all deductions before maturity date)
   while (currentDeductionDate < maturityDate) {
@@ -175,9 +174,17 @@ const generateDeductionSchedule = (entry) => {
     let paymentNote = "";
 
     if (!isGracePeriod) {
-      const monthsSinceLastPrincipal = monthIndex - lastPrincipalPaymentMonth;
+      const monthsSinceGraceEnd = monthIndex - gracePeriodMonths;
+
+      // Pay principal on month 0 (first month after grace),
+      // then skip periodicPrincipalFrequencyMonths months,
+      // then pay again — cycle is (frequencyMonths + 1).
+      // e.g. frequency=3: pay at 0, skip 1,2,3, pay at 4, skip 5,6,7, pay at 8...
       const shouldPayPrincipal = periodicPrincipal.enabled
-        ? monthsSinceLastPrincipal >= periodicPrincipal.paymentFrequencyMonths
+        ? monthsSinceGraceEnd === 0 ||
+          monthsSinceGraceEnd %
+            (periodicPrincipal.paymentFrequencyMonths + 1) ===
+            0
         : true;
 
       if (shouldPayPrincipal) {
@@ -199,7 +206,6 @@ const generateDeductionSchedule = (entry) => {
               paymentNote = `Trả gốc định kỳ ${periodicPrincipal.paymentFrequencyMonths} tháng (${fixedAmount.toLocaleString("vi-VN")} VND cố định)`;
             }
           }
-          lastPrincipalPaymentMonth = monthIndex;
         } else {
           const remainingPayments = paymentCount - monthIndex;
           const remainingPrincipal = totalLoan - principalPaid;
@@ -211,7 +217,7 @@ const generateDeductionSchedule = (entry) => {
             principalThisMonth = Math.floor(rawPrincipal);
           }
         }
-      } else if (periodicPrincipal.enabled) {
+      } else {
         paymentNote = `Kỳ chỉ trả lãi (không đến kỳ trả gốc định kỳ)`;
       }
     }

@@ -915,7 +915,6 @@ exports.previewLoanSchedule = async (req, res) => {
       fixedPrincipalAmount: parseFloat(periodicPrincipalFixedAmount) || 0,
     };
 
-    // Validate periodic principal settings if enabled
     if (periodicPrincipal.enabled) {
       if (periodicPrincipal.paymentFrequencyMonths < 1) {
         return res
@@ -1031,7 +1030,6 @@ exports.previewLoanSchedule = async (req, res) => {
       let currentDeductionDate = new Date(firstDeductionDate);
       let monthIndex = 0;
       let principalPaid = 0;
-      let lastPrincipalPaymentMonth = -1;
 
       while (currentDeductionDate < maturityDateObj) {
         const isGracePeriod = monthIndex < gracePeriodMonths;
@@ -1049,11 +1047,17 @@ exports.previewLoanSchedule = async (req, res) => {
         let paymentNote = "";
 
         if (!isGracePeriod) {
-          const monthsSinceLastPrincipal =
-            monthIndex - lastPrincipalPaymentMonth;
+          const monthsSinceGraceEnd = monthIndex - gracePeriodMonths;
+
+          // Pay principal on month 0 (first month after grace),
+          // then skip periodicPrincipalFrequencyMonths months,
+          // then pay again — cycle is (frequencyMonths + 1).
+          // e.g. frequency=3: pay at 0, skip 1,2,3, pay at 4, skip 5,6,7, pay at 8...
           const shouldPayPrincipal = periodicPrincipal.enabled
-            ? monthsSinceLastPrincipal >=
-              periodicPrincipal.paymentFrequencyMonths
+            ? monthsSinceGraceEnd === 0 ||
+              monthsSinceGraceEnd %
+                (periodicPrincipal.paymentFrequencyMonths + 1) ===
+                0
             : true;
 
           if (shouldPayPrincipal) {
@@ -1078,7 +1082,6 @@ exports.previewLoanSchedule = async (req, res) => {
                   paymentNote = `Trả gốc định kỳ ${periodicPrincipal.paymentFrequencyMonths} tháng (${fixedAmount.toLocaleString("vi-VN")} VND cố định)`;
                 }
               }
-              lastPrincipalPaymentMonth = monthIndex;
             } else {
               const remainingPayments = paymentCount - monthIndex;
               const remainingPrincipal = totalLoan - principalPaid;
@@ -1090,7 +1093,7 @@ exports.previewLoanSchedule = async (req, res) => {
                 principalThisMonth = Math.floor(rawPrincipal);
               }
             }
-          } else if (periodicPrincipal.enabled) {
+          } else {
             paymentNote = `Kỳ chỉ trả lãi (không đến kỳ trả gốc định kỳ)`;
           }
         }
