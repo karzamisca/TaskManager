@@ -375,7 +375,7 @@ bankSchema.methods.generateDailyEntries = async function (
       name: `Lãi vay - ${this.name}`,
       income: 0,
       expense: 0,
-      expensePrediction: payment.interestExpense,
+      expensePrediction: payment.totalPayment,
       date: payment.deductionDate,
       incomePrediction: 0,
       note: note,
