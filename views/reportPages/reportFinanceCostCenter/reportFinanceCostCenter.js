@@ -48,12 +48,18 @@ let currentState = {
     dateFrom: "",
     dateTo: "",
   },
+  pagination: {
+    currentPage: 1,
+    totalPages: 1,
+    totalCount: 0,
+    limit: 30,
+  },
 };
 
 document.addEventListener("DOMContentLoaded", function () {
   populateActionFilter();
   setupEventListeners();
-  loadLogs();
+  loadLogs(1); // Load first page
 });
 
 function populateActionFilter() {
@@ -79,7 +85,10 @@ function setupEventListeners() {
 
   document
     .getElementById("applyFilters")
-    .addEventListener("click", applyFilters);
+    .addEventListener("click", function () {
+      currentState.pagination.currentPage = 1; // Reset to first page on filter
+      applyFilters();
+    });
 }
 
 function applyFilters() {
@@ -91,10 +100,10 @@ function applyFilters() {
     dateTo: document.getElementById("dateTo").value,
   };
 
-  loadLogs();
+  loadLogs(1);
 }
 
-async function loadLogs() {
+async function loadLogs(page) {
   const logsList = document.getElementById("logsList");
   logsList.innerHTML = '<div class="loading">Đang tải nhật ký...</div>';
 
@@ -105,6 +114,8 @@ async function loadLogs() {
       action: currentState.filters.action,
       dateFrom: currentState.filters.dateFrom,
       dateTo: currentState.filters.dateTo,
+      page: page,
+      limit: currentState.pagination.limit,
     });
 
     const response = await fetch(`/reportFinanceCostCenterControl?${params}`);
@@ -114,12 +125,169 @@ async function loadLogs() {
     }
 
     const data = await response.json();
+
+    // Update pagination state
+    currentState.pagination = {
+      ...currentState.pagination,
+      ...data.pagination,
+    };
+
     renderLogs(data.logs);
+    renderPagination();
   } catch (error) {
     console.error("Error loading logs:", error);
     logsList.innerHTML =
       '<div class="no-logs">Lỗi khi tải nhật ký: ' + error.message + "</div>";
   }
+}
+
+function renderPagination() {
+  const logsContainer = document.querySelector(".logs-container");
+
+  // Remove existing pagination if any
+  const existingPagination = document.querySelector(".pagination-container");
+  if (existingPagination) {
+    existingPagination.remove();
+  }
+
+  const { currentPage, totalPages, totalCount, limit } =
+    currentState.pagination;
+
+  if (totalPages <= 1) return;
+
+  const paginationContainer = document.createElement("div");
+  paginationContainer.className = "pagination-container";
+  paginationContainer.style.cssText = `
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 30px;
+    gap: 10px;
+    flex-wrap: wrap;
+  `;
+
+  // Info text
+  const infoText = document.createElement("div");
+  infoText.className = "pagination-info";
+  infoText.style.cssText = `
+    margin-right: 20px;
+    color: #6c757d;
+    font-size: 14px;
+  `;
+
+  const startItem = (currentPage - 1) * limit + 1;
+  const endItem = Math.min(currentPage * limit, totalCount);
+  infoText.textContent = `Hiển thị ${startItem}-${endItem} trên tổng số ${totalCount} bản ghi`;
+
+  // Pagination controls
+  const paginationControls = document.createElement("div");
+  paginationControls.style.cssText = `
+    display: flex;
+    gap: 5px;
+  `;
+
+  // Previous button
+  const prevButton = createPaginationButton("«", currentPage > 1, () =>
+    loadLogs(currentPage - 1),
+  );
+  paginationControls.appendChild(prevButton);
+
+  // Page numbers
+  const maxVisiblePages = 5;
+  let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+  if (endPage - startPage < maxVisiblePages - 1) {
+    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+  }
+
+  if (startPage > 1) {
+    paginationControls.appendChild(
+      createPaginationButton("1", true, () => loadLogs(1)),
+    );
+    if (startPage > 2) {
+      const ellipsis = document.createElement("span");
+      ellipsis.textContent = "...";
+      ellipsis.style.cssText = `
+        padding: 8px 12px;
+        color: #6c757d;
+      `;
+      paginationControls.appendChild(ellipsis);
+    }
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    const pageButton = createPaginationButton(
+      i.toString(),
+      true,
+      () => loadLogs(i),
+      i === currentPage,
+    );
+    paginationControls.appendChild(pageButton);
+  }
+
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) {
+      const ellipsis = document.createElement("span");
+      ellipsis.textContent = "...";
+      ellipsis.style.cssText = `
+        padding: 8px 12px;
+        color: #6c757d;
+      `;
+      paginationControls.appendChild(ellipsis);
+    }
+    paginationControls.appendChild(
+      createPaginationButton(totalPages.toString(), true, () =>
+        loadLogs(totalPages),
+      ),
+    );
+  }
+
+  // Next button
+  const nextButton = createPaginationButton("»", currentPage < totalPages, () =>
+    loadLogs(currentPage + 1),
+  );
+  paginationControls.appendChild(nextButton);
+
+  paginationContainer.appendChild(infoText);
+  paginationContainer.appendChild(paginationControls);
+  logsContainer.appendChild(paginationContainer);
+}
+
+function createPaginationButton(text, enabled, onClick, isActive = false) {
+  const button = document.createElement("button");
+  button.textContent = text;
+  button.disabled = !enabled;
+  button.style.cssText = `
+    padding: 8px 14px;
+    border: 1px solid ${isActive ? "#007bff" : "#dee2e6"};
+    background: ${isActive ? "#007bff" : "white"};
+    color: ${isActive ? "white" : "#007bff"};
+    cursor: ${enabled ? "pointer" : "not-allowed"};
+    border-radius: 4px;
+    font-size: 14px;
+    transition: all 0.2s;
+    min-width: 40px;
+    opacity: ${enabled ? "1" : "0.5"};
+  `;
+
+  if (enabled) {
+    button.addEventListener("mouseenter", () => {
+      if (!isActive) {
+        button.style.background = "#e9ecef";
+      }
+    });
+
+    button.addEventListener("mouseleave", () => {
+      if (!isActive) {
+        button.style.background = "white";
+      }
+    });
+
+    button.addEventListener("click", onClick);
+  }
+
+  return button;
 }
 
 function renderLogs(logs) {
@@ -131,7 +299,8 @@ function renderLogs(logs) {
     return;
   }
 
-  logsList.innerHTML = "";
+  // Use DocumentFragment for better performance
+  const fragment = document.createDocumentFragment();
 
   logs.forEach((log) => {
     const logEntry = document.createElement("div");
@@ -233,7 +402,7 @@ function renderLogs(logs) {
                 typeof value === "number"
                   ? value.toLocaleString("vi-VN")
                   : value
-              }`
+              }`,
           )
           .join(", ");
         details.push({ label: "Tổng số tiền", value: amounts });
@@ -335,8 +504,11 @@ function renderLogs(logs) {
 
     logEntry.appendChild(logHeader);
     logEntry.appendChild(logDetails);
-    logsList.appendChild(logEntry);
+    fragment.appendChild(logEntry);
   });
+
+  logsList.innerHTML = "";
+  logsList.appendChild(fragment);
 }
 
 function getTypeDisplayName(type) {
