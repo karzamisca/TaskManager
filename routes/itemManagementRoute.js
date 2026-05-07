@@ -46,7 +46,7 @@ router.post(
   ctrl.importFromExcel,
 );
 
-// ── Items list ────────────────────────────────────────────────────────────────
+// ── Items list ─────────────────────────────────────────────────────────────────
 router.get("/itemManagementControl", authMiddleware, ctrl.getAllItems);
 router.get(
   "/itemManagementControl/all",
@@ -55,7 +55,7 @@ router.get(
 );
 router.post("/itemManagementControl", authMiddleware, ctrl.createItem);
 
-// ── Single item ───────────────────────────────────────────────────────────────
+// ── Single item ────────────────────────────────────────────────────────────────
 router.get("/itemManagementControl/:id", authMiddleware, ctrl.getItem);
 router.put("/itemManagementControl/:id", authMiddleware, ctrl.updateItem);
 router.delete("/itemManagementControl/:id", authMiddleware, ctrl.deleteItem);
@@ -71,6 +71,13 @@ router.get(
 );
 
 // ── Per-cost-center stock ──────────────────────────────────────────────────────
+// NOTE: /stock/history must come BEFORE /stock to avoid Express matching
+//       "history" as the :costCenterId param on a deeper route.
+router.get(
+  "/itemManagementControl/:id/stock/history",
+  authMiddleware,
+  ctrl.getItemStockHistory,
+);
 router.patch(
   "/itemManagementControl/:id/stock",
   authMiddleware,

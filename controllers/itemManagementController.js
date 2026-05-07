@@ -46,6 +46,48 @@ const mergeStockIntoItems = async (items, costCenterId) => {
   }));
 };
 
+/**
+ * Upsert stock for one item+costCenter and append a stockHistory entry.
+ */
+const upsertStock = async (
+  itemId,
+  costCenterId,
+  newInStorage,
+  userId,
+  note = "",
+) => {
+  const existing = await ItemStock.findOne({ itemId, costCenterId });
+  const oldInStorage = existing ? existing.inStorage : null;
+
+  const historyEntry = {
+    oldInStorage,
+    newInStorage,
+    updatedBy: userId,
+    updatedAt: new Date(),
+    note,
+  };
+
+  if (existing) {
+    existing.inStorage = newInStorage;
+    existing.updatedBy = userId;
+    existing.updatedAt = new Date();
+    existing.stockHistory.push(historyEntry);
+    await existing.save();
+    return existing;
+  } else {
+    const stock = new ItemStock({
+      itemId,
+      costCenterId,
+      inStorage: newInStorage,
+      updatedBy: userId,
+      updatedAt: new Date(),
+      stockHistory: [historyEntry],
+    });
+    await stock.save();
+    return stock;
+  }
+};
+
 // ─── Auth / View ─────────────────────────────────────────────────────────────
 
 exports.getItemManagementViews = (req, res) => {
@@ -77,7 +119,6 @@ exports.getCostCenters = async (req, res) => {
       "name category allowedUsers",
     ).lean();
 
-    // Filter by allowedUsers unless superAdmin/director
     const adminRoles = ["superAdmin", "director", "deputyDirector"];
     const filtered = adminRoles.includes(req.user.role)
       ? costCenters
@@ -166,18 +207,15 @@ exports.createItem = async (req, res) => {
       inStorage = 0,
     } = req.body;
 
-    // Validate cost center is provided
     if (!costCenterId) {
       return res.status(400).json({ error: "costCenterId is required" });
     }
 
-    // Check cost center exists
     const costCenter = await CostCenter.findById(costCenterId);
     if (!costCenter) {
       return res.status(404).json({ error: "Cost center not found" });
     }
 
-    // Check for duplicate code among active items
     const existing = await Item.findOne({ code, isDeleted: false });
     if (existing) {
       return res.status(400).json({ error: "Item code already exists" });
@@ -213,13 +251,13 @@ exports.createItem = async (req, res) => {
 
     await item.save();
 
-    // Create stock record for this cost center
-    await ItemStock.create({
-      itemId: item._id,
+    await upsertStock(
+      item._id,
       costCenterId,
-      inStorage: inStorageValue,
-      updatedBy: req.user.id,
-    });
+      inStorageValue,
+      req.user.id,
+      `Tạo mặt hàng tại ${costCenter.name}`,
+    );
 
     await item.populate("createdBy", "username");
 
@@ -250,7 +288,6 @@ exports.updateItem = async (req, res) => {
     if (item.isDeleted)
       return res.status(400).json({ error: "Cannot update deleted item" });
 
-    // Check code uniqueness
     if (code !== item.code) {
       const conflict = await Item.findOne({
         code,
@@ -261,17 +298,18 @@ exports.updateItem = async (req, res) => {
         return res.status(400).json({ error: "Item code already exists" });
     }
 
+    const costCenter = await CostCenter.findById(costCenterId).lean();
+    const costCenterName = costCenter ? costCenter.name : costCenterId;
+
     const vatPct = vat !== undefined ? parseFloat(vat) : item.vat;
     const price = parseFloat(unitPrice);
     const priceAfterVAT = price * (1 + vatPct / 100);
 
-    // Get current stock for this cost center
     const currentStock = await ItemStock.findOne({ itemId, costCenterId });
     const oldInStorage = currentStock ? currentStock.inStorage : 0;
     const newInStorage =
       inStorage !== undefined ? parseInt(inStorage) : oldInStorage;
 
-    // Audit entry
     const auditEntry = {
       oldName: item.name,
       newName: name,
@@ -287,10 +325,9 @@ exports.updateItem = async (req, res) => {
       newUnitPriceAfterVAT: priceAfterVAT,
       editedBy: req.user.id,
       action: "update",
-      note: `Cập nhật tại cost center: ${costCenterId}, tồn kho: ${oldInStorage} → ${newInStorage}`,
+      note: `Cập nhật tại cost center: ${costCenterName}, tồn kho: ${oldInStorage} → ${newInStorage}`,
     };
 
-    // Update item fields
     item.name = name;
     item.code = code;
     item.unit = unit || item.unit;
@@ -300,18 +337,14 @@ exports.updateItem = async (req, res) => {
     item.auditHistory.push(auditEntry);
     await item.save();
 
-    // Upsert stock for this cost center
-    await ItemStock.findOneAndUpdate(
-      { itemId, costCenterId },
-      {
-        inStorage: newInStorage,
-        updatedBy: req.user.id,
-        updatedAt: new Date(),
-      },
-      { upsert: true, new: true },
+    await upsertStock(
+      itemId,
+      costCenterId,
+      newInStorage,
+      req.user.id,
+      `Cập nhật mặt hàng tại ${costCenterName}`,
     );
 
-    // Update pending orders
     let ordersUpdated = 0;
     try {
       const pendingOrders = await Order.find({
@@ -389,14 +422,12 @@ exports.updateStock = async (req, res) => {
     if (!costCenter)
       return res.status(404).json({ error: "Cost center not found" });
 
-    const stock = await ItemStock.findOneAndUpdate(
-      { itemId, costCenterId },
-      {
-        inStorage: parseInt(inStorage),
-        updatedBy: req.user.id,
-        updatedAt: new Date(),
-      },
-      { upsert: true, new: true },
+    const stock = await upsertStock(
+      itemId,
+      costCenterId,
+      parseInt(inStorage),
+      req.user.id,
+      "Cập nhật tồn kho thủ công",
     );
 
     res.json({ itemId, costCenterId, inStorage: stock.inStorage });
@@ -418,6 +449,30 @@ exports.getItemStockByCostCenter = async (req, res) => {
   } catch (error) {
     console.error("Error fetching item stock:", error);
     res.status(500).json({ error: "Failed to fetch item stock" });
+  }
+};
+
+/** GET /itemManagementControl/:id/stock/history?costCenterId=xxx */
+exports.getItemStockHistory = async (req, res) => {
+  try {
+    const { costCenterId } = req.query;
+    if (!costCenterId)
+      return res.status(400).json({ error: "costCenterId is required" });
+
+    const stock = await ItemStock.findOne({
+      itemId: req.params.id,
+      costCenterId,
+    })
+      .populate("stockHistory.updatedBy", "username")
+      .lean();
+
+    if (!stock) return res.json([]);
+
+    // Return newest first
+    res.json(stock.stockHistory.slice().reverse());
+  } catch (error) {
+    console.error("Error fetching stock history:", error);
+    res.status(500).json({ error: "Failed to fetch stock history" });
   }
 };
 
@@ -543,9 +598,9 @@ exports.exportToExcel = async (req, res) => {
       .populate("deletedBy", "username")
       .lean();
 
-    // Build stock map for requested cost center
     let stockMap = {};
     let costCenterName = "";
+
     if (costCenterId) {
       const cc = await CostCenter.findById(costCenterId).lean();
       costCenterName = cc ? cc.name : costCenterId;
@@ -557,7 +612,6 @@ exports.exportToExcel = async (req, res) => {
       // Export ALL cost center stocks — one sheet per cost center
       const allCCs = await CostCenter.find({}, "name").lean();
       const allStocks = await ItemStock.find({}).lean();
-      // group by costCenterId
       const grouped = {};
       for (const s of allStocks) {
         const ccId = s.costCenterId.toString();
@@ -688,11 +742,6 @@ exports.exportToExcel = async (req, res) => {
 
 // ─── Excel Import ─────────────────────────────────────────────────────────────
 
-/**
- * POST /itemManagementControl/import/excel
- * Expects multipart file + body.costCenterId
- * Excel columns: Mã hàng | Tên hàng | Đơn vị | Đơn giá | VAT (%) | Tồn kho
- */
 exports.importFromExcel = async (req, res) => {
   try {
     if (!req.file)
@@ -772,7 +821,6 @@ exports.importFromExcel = async (req, res) => {
         const existingItem = await Item.findOne({ code, isDeleted: false });
 
         if (existingItem) {
-          // Update existing item
           const oldValues = {
             name: existingItem.name,
             unit: existingItem.unit,
@@ -806,17 +854,17 @@ exports.importFromExcel = async (req, res) => {
 
           await existingItem.save();
 
-          // Upsert stock for this cost center
-          await ItemStock.findOneAndUpdate(
-            { itemId: existingItem._id, costCenterId },
-            { inStorage, updatedBy: req.user.id, updatedAt: new Date() },
-            { upsert: true, new: true },
+          await upsertStock(
+            existingItem._id,
+            costCenterId,
+            inStorage,
+            req.user.id,
+            `Cập nhật từ Excel import tại ${costCenter.name}`,
           );
 
           results.updated++;
           results.success++;
 
-          // Update pending orders
           try {
             const pendingOrders = await Order.find({
               status: "pending",
@@ -859,7 +907,6 @@ exports.importFromExcel = async (req, res) => {
             results.orderUpdateErrors.push({ code, error: err.message });
           }
         } else {
-          // Create new item
           const deletedItem = await Item.findOne({ code, isDeleted: true });
           if (deletedItem) {
             results.errors.push({
@@ -895,12 +942,13 @@ exports.importFromExcel = async (req, res) => {
 
           await newItem.save();
 
-          await ItemStock.create({
-            itemId: newItem._id,
+          await upsertStock(
+            newItem._id,
             costCenterId,
             inStorage,
-            updatedBy: req.user.id,
-          });
+            req.user.id,
+            `Nhập từ Excel tại ${costCenter.name}`,
+          );
 
           results.created++;
           results.success++;
@@ -917,7 +965,6 @@ exports.importFromExcel = async (req, res) => {
       rowNumber++;
     }
 
-    // Generate result Excel if there were errors/warnings
     if (results.errors.length > 0 || results.updated > 0) {
       const rb = new ExcelJS.Workbook();
       const rws = rb.addWorksheet("Kết quả nhập file");

@@ -1,6 +1,29 @@
 // models/ItemStock.js
 const mongoose = require("mongoose");
 
+const stockHistorySchema = new mongoose.Schema({
+  oldInStorage: {
+    type: Number,
+    default: null,
+  },
+  newInStorage: {
+    type: Number,
+    required: true,
+  },
+  updatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+  note: {
+    type: String,
+    default: "",
+  },
+});
+
 const itemStockSchema = new mongoose.Schema({
   itemId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -24,6 +47,10 @@ const itemStockSchema = new mongoose.Schema({
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
+  },
+  stockHistory: {
+    type: [stockHistorySchema],
+    default: [],
   },
 });
 

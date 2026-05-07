@@ -71,7 +71,6 @@ async function loadCostCenters() {
       select.appendChild(opt);
     });
 
-    // If only one CC, auto-select it
     if (costCenters.length === 1) {
       select.value = costCenters[0]._id;
       onCostCenterChange();
@@ -185,9 +184,17 @@ function renderItems(items) {
     if (item.isDeleted) row.className = "deleted-item";
 
     const storageCell = hasCostCenter
-      ? `<td class="${item.inStorage > 0 ? "storage-ok" : "storage-zero"}">${item.inStorage ?? 0}
-           <button class="btn-storage-edit" onclick="showStockEditModal('${item._id}', '${escapeAttr(item.name)}', ${item.inStorage ?? 0})" title="Sửa tồn kho">
+      ? `<td class="${item.inStorage > 0 ? "storage-ok" : "storage-zero"}">
+           ${item.inStorage ?? 0}
+           <button class="btn-storage-edit"
+             onclick="showStockEditModal('${item._id}', '${escapeAttr(item.name)}', ${item.inStorage ?? 0})"
+             title="Sửa tồn kho">
              <i class="bi bi-pencil-square"></i>
+           </button>
+           <button class="btn-storage-edit"
+             onclick="showStockHistoryPanel('${item._id}', '${escapeAttr(item.name)}', '${selectedCostCenterId}', '${escapeAttr(selectedCostCenterName)}')"
+             title="Lịch sử tồn kho">
+             <i class="bi bi-clock-history"></i>
            </button>
          </td>`
       : `<td class="text-muted">—</td>`;
@@ -305,9 +312,7 @@ async function showEditModal(itemId) {
   try {
     const res = await fetch(
       `/itemManagementControl/${itemId}?costCenterId=${selectedCostCenterId}`,
-      {
-        credentials: "include",
-      },
+      { credentials: "include" },
     );
     if (!res.ok) throw new Error("Không thể tải thông tin mặt hàng");
     const item = await res.json();
@@ -470,19 +475,25 @@ async function showAllStock(itemId, itemName) {
       tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">Chưa có tồn kho tại cost center nào</td></tr>`;
     } else {
       stocks.forEach((s) => {
+        const ccId = s.costCenterId?._id || "";
+        const ccName = s.costCenterId?.name || "";
         const row = document.createElement("tr");
         row.innerHTML = `
-          <td><strong>${s.costCenterId?.name || "—"}</strong></td>
+          <td><strong>${ccName || "—"}</strong></td>
           <td><span class="badge bg-secondary">${s.costCenterId?.category || "—"}</span></td>
           <td class="${s.inStorage > 0 ? "text-success fw-bold" : "text-warning"}">${s.inStorage}</td>
           <td>${s.updatedAt ? formatDate(s.updatedAt) : "—"}</td>
           <td>${s.updatedBy?.username || "—"}</td>
-          <td>
+          <td class="d-flex gap-1">
             <button class="btn btn-sm btn-outline-primary"
-              onclick="showStockEditModal('${itemId}', '${escapeAttr(itemName)}', ${s.inStorage}); 
-                       document.getElementById('stock-edit-cc-id').value='${s.costCenterId?._id}';
-                       document.getElementById('stock-edit-cc-label').textContent='Cost Center: ${escapeAttr(s.costCenterId?.name || "")}';">
+              onclick="showStockEditModal('${itemId}', '${escapeAttr(itemName)}', ${s.inStorage});
+                       document.getElementById('stock-edit-cc-id').value='${ccId}';
+                       document.getElementById('stock-edit-cc-label').textContent='Cost Center: ${escapeAttr(ccName)}';">
               Sửa
+            </button>
+            <button class="btn btn-sm btn-outline-secondary"
+              onclick="showStockHistoryPanel('${itemId}', '${escapeAttr(itemName)}', '${ccId}', '${escapeAttr(ccName)}')">
+              <i class="bi bi-clock-history"></i> Lịch sử
             </button>
           </td>
         `;
@@ -501,6 +512,71 @@ async function showAllStock(itemId, itemName) {
 
 function hideStockPanel() {
   document.getElementById("stock-panel").style.display = "none";
+}
+
+// ─── Stock History Panel ──────────────────────────────────────────────────────
+async function showStockHistoryPanel(
+  itemId,
+  itemName,
+  costCenterId,
+  costCenterName,
+) {
+  try {
+    const res = await fetch(
+      `/itemManagementControl/${itemId}/stock/history?costCenterId=${costCenterId}`,
+      { credentials: "include" },
+    );
+    if (!res.ok) throw new Error("Không thể tải lịch sử tồn kho");
+    const history = await res.json();
+
+    document.getElementById("stock-history-title").textContent =
+      `Lịch sử tồn kho: ${itemName} — ${costCenterName}`;
+
+    const tbody = document.getElementById("stock-history-body");
+    tbody.innerHTML = "";
+
+    if (!history.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">Chưa có lịch sử tồn kho</td></tr>`;
+    } else {
+      history.forEach((h) => {
+        const isFirst = h.oldInStorage == null;
+        const delta = isFirst ? null : h.newInStorage - h.oldInStorage;
+
+        let deltaHtml;
+        if (isFirst) {
+          deltaHtml = `<span class="text-muted fst-italic">Khởi tạo</span>`;
+        } else if (delta > 0) {
+          deltaHtml = `<span class="text-success fw-bold">+${delta}</span>`;
+        } else if (delta < 0) {
+          deltaHtml = `<span class="text-danger fw-bold">${delta}</span>`;
+        } else {
+          deltaHtml = `<span class="text-muted">0</span>`;
+        }
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${formatDate(h.updatedAt)}</td>
+          <td>${isFirst ? '<span class="text-muted">—</span>' : h.oldInStorage}</td>
+          <td class="${h.newInStorage > 0 ? "text-success fw-bold" : "text-warning"}">${h.newInStorage}</td>
+          <td>${deltaHtml}</td>
+          <td>${h.updatedBy?.username || "—"}</td>
+          <td class="text-muted small">${h.note || "—"}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    document.getElementById("stock-history-panel").style.display = "block";
+    document
+      .getElementById("stock-history-panel")
+      .scrollIntoView({ behavior: "smooth" });
+  } catch (err) {
+    showAlert("Lỗi khi tải lịch sử tồn kho: " + err.message, "error");
+  }
+}
+
+function hideStockHistoryPanel() {
+  document.getElementById("stock-history-panel").style.display = "none";
 }
 
 // ─── Delete / Restore ─────────────────────────────────────────────────────────
