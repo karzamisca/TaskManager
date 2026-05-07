@@ -1,12 +1,17 @@
 // views/itemPages/itemManagement/itemManagement.js
+// All item operations are cost-center-aware.
+
+// ─── State ────────────────────────────────────────────────────────────────────
 let currentItemId = null;
 let showDeleted = false;
 let allItems = [];
-let currentSort = {
-  field: "name",
-  order: "asc",
-};
-let sortStates = {
+let costCenters = [];
+let selectedCostCenterId = null;
+let selectedCostCenterName = "";
+let errorFileData = null;
+
+let currentSort = { field: "name", order: "asc" };
+const sortStates = {
   code: "none",
   name: "asc",
   unit: "none",
@@ -15,119 +20,207 @@ let sortStates = {
   unitPriceAfterVAT: "none",
   inStorage: "none",
   createdAt: "none",
-  "createdBy.username": "none",
 };
-let errorFileData = null;
 
-// Lấy thông tin người dùng hiện tại từ cookie
-function getCurrentUser() {
-  const cookies = document.cookie.split(";");
-  for (let cookie of cookies) {
-    const [name, value] = cookie.trim().split("=");
-    if (name === "user") {
-      return JSON.parse(decodeURIComponent(value));
+// ─── Bootstrap ───────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadCostCenters();
+
+  document
+    .getElementById("cost-center-select")
+    .addEventListener("change", onCostCenterChange);
+  document
+    .getElementById("unitPrice")
+    .addEventListener("input", calculatePriceAfterVAT);
+  document
+    .getElementById("vat")
+    .addEventListener("input", calculatePriceAfterVAT);
+
+  window.onclick = (e) => {
+    if (e.target === document.getElementById("item-modal")) closeModal();
+    if (e.target === document.getElementById("import-modal"))
+      closeImportModal();
+    if (e.target === document.getElementById("stock-edit-modal"))
+      closeStockEditModal();
+  };
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeModal();
+      closeImportModal();
+      closeStockEditModal();
     }
+  });
+});
+
+// ─── Cost Centers ─────────────────────────────────────────────────────────────
+async function loadCostCenters() {
+  try {
+    const res = await fetch("/itemManagementControl/costCenters", {
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Không thể tải danh sách cost center");
+
+    costCenters = await res.json();
+    const select = document.getElementById("cost-center-select");
+
+    costCenters.forEach((cc) => {
+      const opt = document.createElement("option");
+      opt.value = cc._id;
+      opt.textContent = `${cc.name}${cc.category ? " (" + cc.category + ")" : ""}`;
+      select.appendChild(opt);
+    });
+
+    // If only one CC, auto-select it
+    if (costCenters.length === 1) {
+      select.value = costCenters[0]._id;
+      onCostCenterChange();
+    } else {
+      showNoCostCenterMessage();
+    }
+  } catch (err) {
+    showAlert("Lỗi tải cost center: " + err.message, "error");
   }
-  return null;
 }
 
-// Hiển thị thông báo
+function onCostCenterChange() {
+  const select = document.getElementById("cost-center-select");
+  selectedCostCenterId = select.value || null;
+  selectedCostCenterName = select.options[select.selectedIndex]?.text || "";
+
+  const badge = document.getElementById("cost-center-badge");
+  const hint = document.getElementById("stock-scope-hint");
+  const addBtn = document.getElementById("btn-add");
+  const importBtn = document.getElementById("btn-import");
+  const storageCC = document.getElementById("th-storage-cc");
+  const noCCMsg = document.getElementById("no-cost-center-msg");
+
+  if (selectedCostCenterId) {
+    badge.textContent = selectedCostCenterName;
+    badge.style.display = "inline-block";
+    hint.style.display = "inline";
+    addBtn.disabled = false;
+    importBtn.disabled = false;
+    storageCC.textContent = selectedCostCenterName;
+    storageCC.style.display = "inline-block";
+    noCCMsg.style.display = "none";
+    document.getElementById("import-cc-name").textContent =
+      selectedCostCenterName;
+    fetchItems();
+  } else {
+    badge.style.display = "none";
+    hint.style.display = "none";
+    addBtn.disabled = true;
+    importBtn.disabled = true;
+    storageCC.style.display = "none";
+    showNoCostCenterMessage();
+  }
+}
+
+function showNoCostCenterMessage() {
+  document.getElementById("loading").style.display = "none";
+  document.getElementById("items-table").style.display = "none";
+  document.getElementById("no-cost-center-msg").style.display = "block";
+}
+
+// ─── Alert ───────────────────────────────────────────────────────────────────
 function showAlert(message, type = "success") {
   const container = document.getElementById("alert-container");
   const alert = document.createElement("div");
-  alert.className = `alert alert-${type}`;
-  alert.textContent = message;
+  alert.className = `alert alert-${type === "error" ? "danger" : type}`;
+  alert.innerHTML = `<i class="bi bi-${type === "error" ? "x-circle" : "check-circle"}"></i> ${message}`;
   container.appendChild(alert);
-
-  setTimeout(() => {
-    alert.remove();
-  }, 5000);
+  setTimeout(() => alert.remove(), 5000);
 }
 
-// Calculate price after VAT
+// ─── Price Calculation ────────────────────────────────────────────────────────
 function calculatePriceAfterVAT() {
-  const unitPrice = parseFloat(document.getElementById("unitPrice").value) || 0;
+  const price = parseFloat(document.getElementById("unitPrice").value) || 0;
   const vat = parseFloat(document.getElementById("vat").value) || 0;
-  const priceAfterVAT = unitPrice * (1 + vat / 100);
-  document.getElementById("unitPriceAfterVAT").value = priceAfterVAT.toFixed(2);
+  document.getElementById("unitPriceAfterVAT").value = (
+    price *
+    (1 + vat / 100)
+  ).toFixed(2);
 }
 
-// Lấy danh sách mặt hàng
+// ─── Fetch Items ──────────────────────────────────────────────────────────────
 async function fetchItems() {
+  if (!selectedCostCenterId) return;
+
+  document.getElementById("loading").style.display = "block";
+  document.getElementById("items-table").style.display = "none";
+
   try {
-    const url = showDeleted
-      ? `/itemManagementControl/all?sortBy=${currentSort.field}&sortOrder=${currentSort.order}`
-      : `/itemManagementControl?sortBy=${currentSort.field}&sortOrder=${currentSort.order}`;
+    const base = showDeleted
+      ? "/itemManagementControl/all"
+      : "/itemManagementControl";
+    const url = `${base}?sortBy=${currentSort.field}&sortOrder=${currentSort.order}&costCenterId=${selectedCostCenterId}`;
+    const res = await fetch(url, { credentials: "include" });
+    if (!res.ok) throw new Error("Không thể tải danh sách mặt hàng");
 
-    const response = await fetch(url, {
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      throw new Error("Không thể tải danh sách mặt hàng");
-    }
-
-    allItems = await response.json();
+    allItems = await res.json();
     renderItems(allItems);
     document.getElementById("loading").style.display = "none";
     document.getElementById("items-table").style.display = "table";
-  } catch (error) {
-    showAlert("Lỗi khi tải mặt hàng: " + error.message, "error");
+  } catch (err) {
+    showAlert("Lỗi khi tải mặt hàng: " + err.message, "error");
+    document.getElementById("loading").style.display = "none";
   }
 }
 
-// Hiển thị danh sách mặt hàng
+// ─── Render Items ─────────────────────────────────────────────────────────────
 function renderItems(items) {
   const tbody = document.getElementById("items-body");
   tbody.innerHTML = "";
 
-  if (items.length === 0) {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td colspan="11" style="text-align: center; padding: 40px; color: #666;">
-        Không có mặt hàng nào để hiển thị
-      </td>
-    `;
-    tbody.appendChild(row);
+  if (!items.length) {
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#666;">Không có mặt hàng nào</td></tr>`;
     return;
   }
 
+  const hasCostCenter = !!selectedCostCenterId;
+
   items.forEach((item) => {
     const row = document.createElement("tr");
-    if (item.isDeleted) {
-      row.className = "deleted-item";
-    }
+    if (item.isDeleted) row.className = "deleted-item";
+
+    const storageCell = hasCostCenter
+      ? `<td class="${item.inStorage > 0 ? "storage-ok" : "storage-zero"}">${item.inStorage ?? 0}
+           <button class="btn-storage-edit" onclick="showStockEditModal('${item._id}', '${escapeAttr(item.name)}', ${item.inStorage ?? 0})" title="Sửa tồn kho">
+             <i class="bi bi-pencil-square"></i>
+           </button>
+         </td>`
+      : `<td class="text-muted">—</td>`;
 
     row.innerHTML = `
-      <td>${item.code}</td>
+      <td><code>${item.code}</code></td>
       <td>${item.name}</td>
       <td>${item.unit || "cái"}</td>
-      <td>${formatCurrency(item.unitPrice)}</td>
-      <td>${item.vat}%</td>
-      <td>${formatCurrency(item.unitPriceAfterVAT)}</td>
-      <td>${item.inStorage || 0}</td>
+      <td class="text-end">${formatCurrency(item.unitPrice)}</td>
+      <td class="text-center">${item.vat}%</td>
+      <td class="text-end">${formatCurrency(item.unitPriceAfterVAT)}</td>
+      ${storageCell}
       <td>${formatDate(item.createdAt)}</td>
       <td>
-        <span class="status-badge ${
-          item.isDeleted ? "status-deleted" : "status-active"
-        }">
+        <span class="status-badge ${item.isDeleted ? "status-deleted" : "status-active"}">
           ${item.isDeleted ? "Đã xóa" : "Đang hoạt động"}
         </span>
       </td>
-      <td>${item.createdBy?.username || "Không xác định"}</td>
+      <td>${item.createdBy?.username || "—"}</td>
       <td>
         <div class="action-buttons">
           ${
             !item.isDeleted
               ? `
-              <button onclick="showEditModal('${item._id}')" class="action-btn btn-primary">Sửa</button>
-              <button onclick="showAuditHistory('${item._id}')" class="action-btn btn-secondary">Lịch sử</button>
-              <button onclick="deleteItem('${item._id}')" class="action-btn btn-danger">Xóa</button>
-            `
+            <button onclick="showEditModal('${item._id}')" class="action-btn btn-primary">Sửa</button>
+            <button onclick="showAllStock('${item._id}', '${escapeAttr(item.name)}')" class="action-btn btn-info">Tồn kho</button>
+            <button onclick="showAuditHistory('${item._id}')" class="action-btn btn-secondary">Lịch sử</button>
+            <button onclick="deleteItem('${item._id}')" class="action-btn btn-danger">Xóa</button>
+          `
               : `
-              <button onclick="restoreItem('${item._id}')" class="action-btn btn-success">Khôi phục</button>
-              <button onclick="showAuditHistory('${item._id}')" class="action-btn btn-secondary">Lịch sử</button>
-            `
+            <button onclick="restoreItem('${item._id}')" class="action-btn btn-success">Khôi phục</button>
+            <button onclick="showAuditHistory('${item._id}')" class="action-btn btn-secondary">Lịch sử</button>
+          `
           }
         </div>
       </td>
@@ -135,99 +228,89 @@ function renderItems(items) {
     tbody.appendChild(row);
   });
 
-  // Update sort indicators
   updateSortIndicators();
 }
 
-// Sort table
+// ─── Sort ─────────────────────────────────────────────────────────────────────
 function sortTable(field) {
-  // Toggle sort order
   if (currentSort.field === field) {
     currentSort.order = currentSort.order === "asc" ? "desc" : "asc";
   } else {
     currentSort.field = field;
     currentSort.order = "asc";
   }
-
-  // Update sort states
-  Object.keys(sortStates).forEach((key) => {
-    sortStates[key] = "none";
-  });
+  Object.keys(sortStates).forEach((k) => (sortStates[k] = "none"));
   sortStates[field] = currentSort.order;
-
-  // Fetch items with new sort
   fetchItems();
 }
 
-// Update sort indicators in table headers
 function updateSortIndicators() {
-  // Reset all indicators
-  document.querySelectorAll(".sort-indicator").forEach((indicator) => {
-    indicator.textContent = "↕";
-  });
-
-  // Set current sort indicator
-  const currentField = currentSort.field;
-  const currentIndicator = document.getElementById(
-    `sort-${currentField.replace(".", "-")}`,
+  document
+    .querySelectorAll(".sort-indicator")
+    .forEach((el) => (el.textContent = "↕"));
+  const el = document.getElementById(
+    `sort-${currentSort.field.replace(".", "-")}`,
   );
-  if (currentIndicator) {
-    currentIndicator.textContent = currentSort.order === "asc" ? "↑" : "↓";
-  }
+  if (el) el.textContent = currentSort.order === "asc" ? "↑" : "↓";
 }
 
-// Tìm kiếm mặt hàng
+// ─── Search ───────────────────────────────────────────────────────────────────
 function searchItems() {
-  const searchTerm = document.getElementById("search").value.toLowerCase();
+  const q = document.getElementById("search").value.toLowerCase();
   const filtered = allItems.filter(
-    (item) =>
-      item.name.toLowerCase().includes(searchTerm) ||
-      item.code.toLowerCase().includes(searchTerm) ||
-      item.unit.toLowerCase().includes(searchTerm) ||
-      item.createdBy?.username?.toLowerCase().includes(searchTerm),
+    (i) =>
+      i.name.toLowerCase().includes(q) ||
+      i.code.toLowerCase().includes(q) ||
+      (i.unit || "").toLowerCase().includes(q) ||
+      (i.createdBy?.username || "").toLowerCase().includes(q),
   );
   renderItems(filtered);
 }
 
-// Chuyển đổi giữa hiển thị mặt hàng đã xóa/chưa xóa
+// ─── Toggle deleted ───────────────────────────────────────────────────────────
 function toggleDeletedItems() {
   showDeleted = !showDeleted;
-  const btn = document.querySelector(".btn-secondary");
-  btn.textContent = showDeleted
-    ? "Hiện mặt hàng đang hoạt động"
-    : "Hiện mặt hàng đã xóa";
+  document.getElementById("btn-toggle-deleted").textContent = showDeleted
+    ? "Hiện đang hoạt động"
+    : "Hiện đã xóa";
   fetchItems();
 }
 
-// Hiển thị modal thêm mới
+// ─── Add / Edit Modal ─────────────────────────────────────────────────────────
 function showAddModal() {
+  if (!selectedCostCenterId) {
+    showAlert("Vui lòng chọn cost center trước!", "error");
+    return;
+  }
   document.getElementById("modal-title").textContent = "Thêm mặt hàng mới";
   document.getElementById("item-form").reset();
   document.getElementById("item-id").value = "";
   document.getElementById("unit").value = "cái";
   document.getElementById("vat").value = "10";
   document.getElementById("inStorage").value = "0";
+  document.getElementById("modal-cost-center-name").value =
+    selectedCostCenterName;
+  document.getElementById("storage-cc-label").textContent =
+    `(${selectedCostCenterName})`;
   calculatePriceAfterVAT();
   document.getElementById("item-modal").style.display = "block";
-
-  // Focus on first input
-  setTimeout(() => {
-    document.getElementById("code").focus();
-  }, 100);
+  setTimeout(() => document.getElementById("code").focus(), 100);
 }
 
-// Hiển thị modal chỉnh sửa
 async function showEditModal(itemId) {
+  if (!selectedCostCenterId) {
+    showAlert("Vui lòng chọn cost center trước!", "error");
+    return;
+  }
   try {
-    const response = await fetch(`/itemManagementControl/${itemId}`, {
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      throw new Error("Không thể tải thông tin mặt hàng");
-    }
-
-    const item = await response.json();
+    const res = await fetch(
+      `/itemManagementControl/${itemId}?costCenterId=${selectedCostCenterId}`,
+      {
+        credentials: "include",
+      },
+    );
+    if (!res.ok) throw new Error("Không thể tải thông tin mặt hàng");
+    const item = await res.json();
 
     document.getElementById("modal-title").textContent = "Sửa mặt hàng";
     document.getElementById("item-id").value = item._id;
@@ -238,140 +321,29 @@ async function showEditModal(itemId) {
     document.getElementById("vat").value = item.vat;
     document.getElementById("unitPriceAfterVAT").value =
       item.unitPriceAfterVAT.toFixed(2);
-    document.getElementById("inStorage").value = item.inStorage || 0;
+    document.getElementById("inStorage").value = item.inStorage ?? 0;
+    document.getElementById("modal-cost-center-name").value =
+      selectedCostCenterName;
+    document.getElementById("storage-cc-label").textContent =
+      `(${selectedCostCenterName})`;
     document.getElementById("item-modal").style.display = "block";
-
-    // Focus on first input
-    setTimeout(() => {
-      document.getElementById("code").focus();
-    }, 100);
-  } catch (error) {
-    showAlert("Lỗi khi tải mặt hàng: " + error.message, "error");
+    setTimeout(() => document.getElementById("code").focus(), 100);
+  } catch (err) {
+    showAlert("Lỗi khi tải mặt hàng: " + err.message, "error");
   }
 }
 
-// Hiển thị lịch sử thay đổi
-async function showAuditHistory(itemId) {
-  try {
-    const response = await fetch(`/itemManagementControl/${itemId}/audit`, {
-      credentials: "include",
-    });
-
-    if (!response.ok) {
-      throw new Error("Không thể tải lịch sử thay đổi");
-    }
-
-    const auditHistory = await response.json();
-
-    const tbody = document.getElementById("audit-body");
-    tbody.innerHTML = "";
-
-    if (auditHistory.length === 0) {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td colspan="10" style="text-align: center; padding: 40px; color: #666;">
-          Không có lịch sử thay đổi nào
-        </td>
-      `;
-      tbody.appendChild(row);
-    } else {
-      auditHistory.forEach((audit) => {
-        const row = document.createElement("tr");
-
-        // Định dạng thay đổi
-        const nameChanges = audit.oldName
-          ? `<span class="old-value">${
-              audit.oldName
-            }</span> → <span class="new-value">${audit.newName || ""}</span>`
-          : `<span class="new-value">${audit.newName}</span>`;
-
-        const codeChanges = audit.oldCode
-          ? `<span class="old-value">${
-              audit.oldCode
-            }</span> → <span class="new-value">${audit.newCode || ""}</span>`
-          : `<span class="new-value">${audit.newCode}</span>`;
-
-        const unitChanges = audit.oldUnit
-          ? `<span class="old-value">${
-              audit.oldUnit
-            }</span> → <span class="new-value">${audit.newUnit || ""}</span>`
-          : `<span class="new-value">${audit.newUnit || "cái"}</span>`;
-
-        const priceChanges = audit.oldUnitPrice
-          ? `<span class="old-value">${formatCurrency(
-              audit.oldUnitPrice,
-            )}</span> → <span class="new-value">${formatCurrency(
-              audit.newUnitPrice,
-            )}</span>`
-          : `<span class="new-value">${formatCurrency(
-              audit.newUnitPrice,
-            )}</span>`;
-
-        const vatChanges =
-          audit.oldVAT !== undefined
-            ? `<span class="old-value">${audit.oldVAT}%</span> → <span class="new-value">${audit.newVAT}%</span>`
-            : `<span class="new-value">${audit.newVAT}%</span>`;
-
-        const priceAfterVATChanges =
-          audit.oldUnitPriceAfterVAT !== undefined
-            ? `<span class="old-value">${formatCurrency(
-                audit.oldUnitPriceAfterVAT,
-              )}</span> → <span class="new-value">${formatCurrency(
-                audit.newUnitPriceAfterVAT,
-              )}</span>`
-            : `<span class="new-value">${formatCurrency(
-                audit.newUnitPriceAfterVAT,
-              )}</span>`;
-
-        const inStorageChanges =
-          audit.oldInStorage !== undefined
-            ? `<span class="old-value">${audit.oldInStorage}</span> → <span class="new-value">${audit.newInStorage}</span>`
-            : `<span class="new-value">${audit.newInStorage}</span>`;
-
-        row.innerHTML = `
-          <td>${formatDate(audit.editedAt)}</td>
-          <td><span class="status-badge ${getActionClass(
-            audit.action,
-          )}">${getActionText(audit.action)}</span></td>
-          <td>${audit.editedBy?.username || "Không xác định"}</td>
-          <td class="change-cell">${nameChanges}</td>
-          <td class="change-cell">${codeChanges}</td>
-          <td class="change-cell">${unitChanges}</td>
-          <td class="change-cell">${priceChanges}</td>
-          <td class="change-cell">${vatChanges}</td>
-          <td class="change-cell">${priceAfterVATChanges}</td>
-          <td class="change-cell">${inStorageChanges}</td>
-        `;
-        tbody.appendChild(row);
-      });
-    }
-
-    document.getElementById("audit-section").style.display = "block";
-    document.getElementById("items-table").style.display = "none";
-  } catch (error) {
-    showAlert("Lỗi khi tải lịch sử: " + error.message, "error");
-  }
+function closeModal() {
+  document.getElementById("item-modal").style.display = "none";
 }
 
-// Get action text in Vietnamese
-function getActionText(action) {
-  const actions = {
-    create: "Tạo mới",
-    update: "Cập nhật",
-    delete: "Xóa",
-  };
-  return actions[action] || action;
-}
-
-// Ẩn lịch sử thay đổi
-function hideAuditHistory() {
-  document.getElementById("audit-section").style.display = "none";
-  document.getElementById("items-table").style.display = "table";
-}
-
-// Xử lý gửi form
 async function handleSubmit(event) {
   event.preventDefault();
+
+  if (!selectedCostCenterId) {
+    showAlert("Vui lòng chọn cost center!", "error");
+    return;
+  }
 
   const itemId = document.getElementById("item-id").value;
   const code = document.getElementById("code").value.trim();
@@ -381,127 +353,291 @@ async function handleSubmit(event) {
   const vat = parseFloat(document.getElementById("vat").value);
   const inStorage = parseInt(document.getElementById("inStorage").value) || 0;
 
-  // Validation
   if (!code || !name || !unit || isNaN(unitPrice) || unitPrice < 0) {
     showAlert("Vui lòng nhập đầy đủ và chính xác thông tin!", "error");
     return;
   }
-
   if (vat < 0 || vat > 100) {
     showAlert("VAT phải nằm trong khoảng 0-100%!", "error");
     return;
   }
-
   if (inStorage < 0) {
     showAlert("Tồn kho không được âm!", "error");
     return;
   }
 
-  const itemData = { code, name, unit, unitPrice, vat, inStorage };
-
+  const body = {
+    code,
+    name,
+    unit,
+    unitPrice,
+    vat,
+    inStorage,
+    costCenterId: selectedCostCenterId,
+  };
   const url = itemId
     ? `/itemManagementControl/${itemId}`
     : "/itemManagementControl";
   const method = itemId ? "PUT" : "POST";
 
   try {
-    const response = await fetch(url, {
+    const res = await fetch(url, {
       method,
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(itemData),
+      body: JSON.stringify(body),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Không thể lưu mặt hàng");
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Không thể lưu mặt hàng");
     }
 
-    const result = await response.json();
-    showAlert(`Mặt hàng đã được ${itemId ? "cập nhật" : "tạo"} thành công!`);
+    const result = await res.json();
+    const verb = itemId ? "cập nhật" : "tạo";
+    let msg = `Mặt hàng đã được ${verb} thành công!`;
+    if (result.ordersUpdated)
+      msg += ` (${result.ordersUpdated} đơn hàng chờ đã được cập nhật)`;
+    showAlert(msg);
     closeModal();
     fetchItems();
-  } catch (error) {
-    showAlert("Lỗi: " + error.message, "error");
+  } catch (err) {
+    showAlert("Lỗi: " + err.message, "error");
   }
 }
 
-// Xóa mặt hàng
-async function deleteItem(itemId) {
-  if (!confirm("Bạn có chắc chắn muốn xóa mặt hàng này?")) return;
+// ─── Quick Stock Edit ─────────────────────────────────────────────────────────
+function showStockEditModal(itemId, itemName, currentStock) {
+  if (!selectedCostCenterId) {
+    showAlert("Vui lòng chọn cost center!", "error");
+    return;
+  }
+  document.getElementById("stock-edit-item-id").value = itemId;
+  document.getElementById("stock-edit-cc-id").value = selectedCostCenterId;
+  document.getElementById("stock-edit-item-label").textContent =
+    `Mặt hàng: ${itemName}`;
+  document.getElementById("stock-edit-cc-label").textContent =
+    `Cost Center: ${selectedCostCenterName}`;
+  document.getElementById("stock-edit-value").value = currentStock;
+  document.getElementById("stock-edit-modal").style.display = "block";
+  setTimeout(() => document.getElementById("stock-edit-value").focus(), 100);
+}
+
+function closeStockEditModal() {
+  document.getElementById("stock-edit-modal").style.display = "none";
+}
+
+async function handleStockEditSubmit(event) {
+  event.preventDefault();
+  const itemId = document.getElementById("stock-edit-item-id").value;
+  const costCenterId = document.getElementById("stock-edit-cc-id").value;
+  const inStorage = parseInt(document.getElementById("stock-edit-value").value);
 
   try {
-    const response = await fetch(`/itemManagementControl/${itemId}`, {
+    const res = await fetch(`/itemManagementControl/${itemId}/stock`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ costCenterId, inStorage }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Không thể cập nhật tồn kho");
+    }
+    showAlert("Đã cập nhật tồn kho thành công!");
+    closeStockEditModal();
+    fetchItems();
+  } catch (err) {
+    showAlert("Lỗi: " + err.message, "error");
+  }
+}
+
+// ─── All-CC Stock Panel ───────────────────────────────────────────────────────
+async function showAllStock(itemId, itemName) {
+  try {
+    const res = await fetch(`/itemManagementControl/${itemId}/stock`, {
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Không thể tải tồn kho");
+    const stocks = await res.json();
+
+    document.getElementById("stock-panel-title").textContent =
+      `Tồn kho: ${itemName}`;
+    const tbody = document.getElementById("stock-panel-body");
+    tbody.innerHTML = "";
+
+    if (!stocks.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">Chưa có tồn kho tại cost center nào</td></tr>`;
+    } else {
+      stocks.forEach((s) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td><strong>${s.costCenterId?.name || "—"}</strong></td>
+          <td><span class="badge bg-secondary">${s.costCenterId?.category || "—"}</span></td>
+          <td class="${s.inStorage > 0 ? "text-success fw-bold" : "text-warning"}">${s.inStorage}</td>
+          <td>${s.updatedAt ? formatDate(s.updatedAt) : "—"}</td>
+          <td>${s.updatedBy?.username || "—"}</td>
+          <td>
+            <button class="btn btn-sm btn-outline-primary"
+              onclick="showStockEditModal('${itemId}', '${escapeAttr(itemName)}', ${s.inStorage}); 
+                       document.getElementById('stock-edit-cc-id').value='${s.costCenterId?._id}';
+                       document.getElementById('stock-edit-cc-label').textContent='Cost Center: ${escapeAttr(s.costCenterId?.name || "")}';">
+              Sửa
+            </button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    document.getElementById("stock-panel").style.display = "block";
+    document
+      .getElementById("stock-panel")
+      .scrollIntoView({ behavior: "smooth" });
+  } catch (err) {
+    showAlert("Lỗi khi tải tồn kho: " + err.message, "error");
+  }
+}
+
+function hideStockPanel() {
+  document.getElementById("stock-panel").style.display = "none";
+}
+
+// ─── Delete / Restore ─────────────────────────────────────────────────────────
+async function deleteItem(itemId) {
+  if (!confirm("Bạn có chắc chắn muốn xóa mặt hàng này?")) return;
+  try {
+    const res = await fetch(`/itemManagementControl/${itemId}`, {
       method: "DELETE",
       credentials: "include",
     });
-
-    if (!response.ok) {
-      throw new Error("Không thể xóa mặt hàng");
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Không thể xóa mặt hàng");
     }
-
-    const result = await response.json();
     showAlert("Đã xóa mặt hàng thành công!");
     fetchItems();
-  } catch (error) {
-    showAlert("Lỗi khi xóa mặt hàng: " + error.message, "error");
+  } catch (err) {
+    showAlert("Lỗi khi xóa: " + err.message, "error");
   }
 }
 
-// Khôi phục mặt hàng
 async function restoreItem(itemId) {
   if (!confirm("Bạn có chắc chắn muốn khôi phục mặt hàng này?")) return;
-
   try {
-    const response = await fetch(`/itemManagementControl/${itemId}/restore`, {
+    const res = await fetch(`/itemManagementControl/${itemId}/restore`, {
       method: "PATCH",
       credentials: "include",
     });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Không thể khôi phục mặt hàng");
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Không thể khôi phục");
     }
-
-    const result = await response.json();
     showAlert("Đã khôi phục mặt hàng thành công!");
     fetchItems();
-  } catch (error) {
-    showAlert("Lỗi khi khôi phục mặt hàng: " + error.message, "error");
+  } catch (err) {
+    showAlert("Lỗi khi khôi phục: " + err.message, "error");
   }
 }
 
-// Đóng modal
-function closeModal() {
-  document.getElementById("item-modal").style.display = "none";
+// ─── Audit History ────────────────────────────────────────────────────────────
+async function showAuditHistory(itemId) {
+  try {
+    const res = await fetch(`/itemManagementControl/${itemId}/audit`, {
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Không thể tải lịch sử");
+    const history = await res.json();
+
+    const tbody = document.getElementById("audit-body");
+    tbody.innerHTML = "";
+
+    if (!history.length) {
+      tbody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">Không có lịch sử thay đổi</td></tr>`;
+    } else {
+      history.forEach((a) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${formatDate(a.editedAt)}</td>
+          <td><span class="status-badge ${getActionClass(a.action)}">${getActionText(a.action)}</span></td>
+          <td>${a.editedBy?.username || "—"}</td>
+          <td class="change-cell">${diffCell(a.oldName, a.newName)}</td>
+          <td class="change-cell">${diffCell(a.oldCode, a.newCode)}</td>
+          <td class="change-cell">${diffCell(a.oldUnit, a.newUnit)}</td>
+          <td class="change-cell">${diffCell(
+            a.oldUnitPrice != null ? formatCurrency(a.oldUnitPrice) : null,
+            a.newUnitPrice != null ? formatCurrency(a.newUnitPrice) : null,
+          )}</td>
+          <td class="change-cell">${diffCell(
+            a.oldVAT != null ? a.oldVAT + "%" : null,
+            a.newVAT != null ? a.newVAT + "%" : null,
+          )}</td>
+          <td class="change-cell">${diffCell(
+            a.oldUnitPriceAfterVAT != null
+              ? formatCurrency(a.oldUnitPriceAfterVAT)
+              : null,
+            a.newUnitPriceAfterVAT != null
+              ? formatCurrency(a.newUnitPriceAfterVAT)
+              : null,
+          )}</td>
+          <td class="text-muted small">${a.note || "—"}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    document.getElementById("audit-section").style.display = "block";
+    document.getElementById("items-table").style.display = "none";
+    document
+      .getElementById("audit-section")
+      .scrollIntoView({ behavior: "smooth" });
+  } catch (err) {
+    showAlert("Lỗi khi tải lịch sử: " + err.message, "error");
+  }
 }
 
-// Download template
+function diffCell(oldVal, newVal) {
+  if (oldVal == null && newVal == null) return "—";
+  if (oldVal == null) return `<span class="new-value">${newVal}</span>`;
+  if (newVal == null) return `<span class="old-value">${oldVal}</span>`;
+  if (oldVal === newVal) return `<span>${newVal}</span>`;
+  return `<span class="old-value">${oldVal}</span> → <span class="new-value">${newVal}</span>`;
+}
+
+function hideAuditHistory() {
+  document.getElementById("audit-section").style.display = "none";
+  document.getElementById("items-table").style.display = "table";
+}
+
+// ─── Excel ────────────────────────────────────────────────────────────────────
 function downloadTemplate() {
   window.location.href = "/itemManagementControl/template/excel";
 }
 
-// Export to Excel
-function exportToExcel(includeDeleted = false) {
-  const url = `/itemManagementControl/export/excel?includeDeleted=${includeDeleted}`;
+function exportToExcel(includeDeleted = false, allCostCenters = false) {
+  let url = `/itemManagementControl/export/excel?includeDeleted=${includeDeleted}`;
+  if (!allCostCenters && selectedCostCenterId) {
+    url += `&costCenterId=${selectedCostCenterId}`;
+  }
   window.location.href = url;
 }
 
-// Show import modal
 function showImportModal() {
+  if (!selectedCostCenterId) {
+    showAlert("Vui lòng chọn cost center trước!", "error");
+    return;
+  }
+  document.getElementById("import-cc-name").textContent =
+    selectedCostCenterName;
   document.getElementById("import-modal").style.display = "block";
   resetImportForm();
 }
 
-// Close import modal
 function closeImportModal() {
   document.getElementById("import-modal").style.display = "none";
   resetImportForm();
 }
 
-// Reset import form
 function resetImportForm() {
   document.getElementById("excel-file").value = "";
   document.getElementById("import-progress").style.display = "none";
@@ -513,199 +649,136 @@ function resetImportForm() {
   errorFileData = null;
 }
 
-// Handle import submit
 async function handleImportSubmit(event) {
   event.preventDefault();
+  if (!selectedCostCenterId) {
+    showAlert("Vui lòng chọn cost center!", "error");
+    return;
+  }
 
-  const fileInput = document.getElementById("excel-file");
-  const file = fileInput.files[0];
-
+  const file = document.getElementById("excel-file").files[0];
   if (!file) {
     showAlert("Vui lòng chọn file Excel", "error");
     return;
   }
 
-  // Check file type
-  const validTypes = [
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    "application/vnd.ms-excel",
-    "application/octet-stream", // For some Excel files
-  ];
-
-  if (!validTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls)$/)) {
-    showAlert("Chỉ chấp nhận file Excel (.xlsx, .xls)", "error");
-    return;
-  }
-
-  // Xác nhận trước khi import
   if (
     !confirm(
-      "⚠️ Lưu ý: Nếu file có mã hàng trùng với mã hàng đang hoạt động, thông tin sẽ được CẬP NHẬT (ghi đè).\n\nTiếp tục nhập file?",
+      `⚠️ Lưu ý: File sẽ được nhập vào cost center "${selectedCostCenterName}".\n` +
+        "Nếu có mã hàng trùng, thông tin sẽ được CẬP NHẬT (ghi đè).\n\nTiếp tục?",
     )
-  ) {
+  )
     return;
-  }
 
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("costCenterId", selectedCostCenterId);
 
-  // Show progress
   document.getElementById("import-progress").style.display = "block";
   document.getElementById("import-progress-bar").style.width = "30%";
   document.getElementById("import-submit-btn").disabled = true;
 
   try {
-    const response = await fetch("/itemManagementControl/import/excel", {
+    const res = await fetch("/itemManagementControl/import/excel", {
       method: "POST",
       body: formData,
       credentials: "include",
     });
 
     document.getElementById("import-progress-bar").style.width = "80%";
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || "Không thể nhập file");
+    if (!res.ok) {
+      const e = await res.json();
+      throw new Error(e.error || "Không thể nhập file");
     }
 
-    const result = await response.json();
+    const result = await res.json();
     document.getElementById("import-progress-bar").style.width = "100%";
 
-    // Display results
     displayImportResults(result);
 
-    // Store error file data if exists
     if (result.errorFile) {
       errorFileData = result.errorFile;
       document.getElementById("error-download").style.display = "block";
     }
 
-    // Refresh items list if successful imports
     if (result.summary.success > 0) {
       setTimeout(() => {
         fetchItems();
         showAlert(
-          `Đã nhập thành công ${
-            result.summary.success
-          } mặt hàng từ file Excel! (${result.summary.created || 0} mới, ${
-            result.summary.updated || 0
-          } cập nhật)`,
+          `Đã nhập thành công ${result.summary.success} mặt hàng! ` +
+            `(${result.summary.created || 0} mới, ${result.summary.updated || 0} cập nhật)`,
         );
       }, 1500);
     }
-  } catch (error) {
-    showAlert("Lỗi khi nhập file: " + error.message, "error");
+  } catch (err) {
+    showAlert("Lỗi khi nhập file: " + err.message, "error");
     resetImportForm();
   }
 }
 
-// Display import results
 function displayImportResults(result) {
-  const summary = result.summary;
-  const summaryDiv = document.getElementById("import-summary");
-  const errorsDiv = document.getElementById("import-errors");
-
-  // Display summary
-  summaryDiv.innerHTML = `
+  const s = result.summary;
+  document.getElementById("import-summary").innerHTML = `
     <div class="summary-grid">
-      <div class="summary-item total">
-        <div class="value">${summary.total}</div>
-        <div class="label">Tổng số dòng</div>
-      </div>
-      <div class="summary-item success">
-        <div class="value">${summary.success}</div>
-        <div class="label">Thành công</div>
-      </div>
-      <div class="summary-item created">
-        <div class="value">${summary.created || 0}</div>
-        <div class="label">Tạo mới</div>
-      </div>
-      <div class="summary-item updated">
-        <div class="value">${summary.updated || 0}</div>
-        <div class="label">Cập nhật</div>
-      </div>
-      <div class="summary-item failed">
-        <div class="value">${summary.failed}</div>
-        <div class="label">Thất bại</div>
-      </div>
+      <div class="summary-item"><div class="value">${s.total}</div><div class="label">Tổng dòng</div></div>
+      <div class="summary-item success"><div class="value">${s.success}</div><div class="label">Thành công</div></div>
+      <div class="summary-item created"><div class="value">${s.created || 0}</div><div class="label">Tạo mới</div></div>
+      <div class="summary-item updated"><div class="value">${s.updated || 0}</div><div class="label">Cập nhật</div></div>
+      <div class="summary-item failed"><div class="value">${s.failed}</div><div class="label">Thất bại</div></div>
     </div>
   `;
 
-  // Display errors if any
-  if (summary.errors.length > 0) {
+  const errorsDiv = document.getElementById("import-errors");
+  if (s.errors && s.errors.length > 0) {
     errorsDiv.innerHTML = `
-      <table class="error-table">
-        <thead>
-          <tr>
-            <th>Dòng</th>
-            <th>Mã hàng</th>
-            <th>Thông báo</th>
-            <th>Loại</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${summary.errors
-            .map(
-              (error) => `
-            <tr class="${error.warning ? "warning-row" : "error-row"}">
-              <td>${error.row}</td>
-              <td>${error.code}</td>
-              <td>${error.error}</td>
-              <td><span class="status-badge ${
-                error.warning ? "status-warning" : "status-deleted"
-              }">${error.warning ? "Cảnh báo" : "Lỗi"}</span></td>
-            </tr>
-          `,
-            )
-            .join("")}
+      <table class="error-table table table-sm">
+        <thead><tr><th>Dòng</th><th>Mã hàng</th><th>Thông báo</th><th>Loại</th></tr></thead>
+        <tbody>${s.errors
+          .map(
+            (e) => `
+          <tr class="${e.warning ? "table-warning" : "table-danger"}">
+            <td>${e.row}</td><td>${e.code}</td><td>${e.error}</td>
+            <td><span class="badge ${e.warning ? "bg-warning text-dark" : "bg-danger"}">${e.warning ? "Cảnh báo" : "Lỗi"}</span></td>
+          </tr>`,
+          )
+          .join("")}
         </tbody>
       </table>
     `;
   } else {
-    errorsDiv.innerHTML = '<p class="text-success">Không có lỗi nào.</p>';
+    errorsDiv.innerHTML =
+      '<p class="text-success"><i class="bi bi-check-circle"></i> Không có lỗi nào.</p>';
   }
 
-  // Show results section
   document.getElementById("import-results").style.display = "block";
 }
 
-// Download error file
 function downloadErrorFile() {
   if (!errorFileData) {
     showAlert("Không có file lỗi để tải", "error");
     return;
   }
-
   try {
-    // Convert base64 to binary
-    const binaryString = atob(errorFileData);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-
-    // Create blob and download
+    const bin = atob(errorFileData);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     const blob = new Blob([bytes], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
-    const url = window.URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ket-qua-nhap-file-loi_${
-      new Date().toISOString().split("T")[0]
-    }.xlsx`;
+    a.download = `ket-qua-nhap-loi_${new Date().toISOString().split("T")[0]}.xlsx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-
-    showAlert("Đã tải file lỗi thành công!");
-  } catch (error) {
-    showAlert("Lỗi khi tải file: " + error.message, "error");
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    showAlert("Lỗi khi tải file: " + err.message, "error");
   }
 }
 
-// Hàm hỗ trợ
+// ─── Utilities ────────────────────────────────────────────────────────────────
 function formatCurrency(amount) {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -718,75 +791,37 @@ function formatCurrency(amount) {
 function formatDate(dateString) {
   const date = new Date(dateString);
   const now = new Date();
-  const diffTime = Math.abs(now - date);
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) {
+  const diffDays = Math.floor((now - date) / 86400000);
+  if (diffDays === 0)
     return (
       "Hôm nay, " +
       date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
     );
-  } else if (diffDays === 1) {
+  if (diffDays === 1)
     return (
       "Hôm qua, " +
       date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })
     );
-  } else if (diffDays < 7) {
-    return `${diffDays} ngày trước`;
-  } else {
-    return date.toLocaleDateString("vi-VN");
-  }
+  if (diffDays < 7) return `${diffDays} ngày trước`;
+  return date.toLocaleDateString("vi-VN");
+}
+
+function getActionText(action) {
+  return (
+    { create: "Tạo mới", update: "Cập nhật", delete: "Xóa" }[action] || action
+  );
 }
 
 function getActionClass(action) {
-  switch (action) {
-    case "create":
-      return "status-active";
-    case "update":
-      return "status-badge";
-    case "delete":
-      return "status-deleted";
-    default:
-      return "";
-  }
+  return (
+    {
+      create: "status-active",
+      update: "status-badge",
+      delete: "status-deleted",
+    }[action] || ""
+  );
 }
 
-// Khởi tạo
-document.addEventListener("DOMContentLoaded", () => {
-  const user = getCurrentUser();
-  if (user) {
-    // User info is already in header
-  }
-
-  // Initial fetch
-  fetchItems();
-
-  // Setup event listeners for price calculation
-  document
-    .getElementById("unitPrice")
-    .addEventListener("input", calculatePriceAfterVAT);
-  document
-    .getElementById("vat")
-    .addEventListener("input", calculatePriceAfterVAT);
-
-  // Đóng modal khi click bên ngoài
-  window.onclick = function (event) {
-    const modal = document.getElementById("item-modal");
-    if (event.target === modal) {
-      closeModal();
-    }
-
-    const importModal = document.getElementById("import-modal");
-    if (event.target === importModal) {
-      closeImportModal();
-    }
-  };
-
-  // Close modal with ESC key
-  document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") {
-      closeModal();
-      closeImportModal();
-    }
-  });
-});
+function escapeAttr(str) {
+  return (str || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+}

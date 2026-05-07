@@ -1,11 +1,12 @@
 // controllers/itemManagementController.js
 const Item = require("../models/Item");
+const ItemStock = require("../models/ItemStock");
+const CostCenter = require("../models/CostCenter");
 const Order = require("../models/ItemOrder");
 const ExcelJS = require("exceljs");
-const fs = require("fs");
-const path = require("path");
 
-// Format date with time helper function
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
 const formatDateTime = (date) => {
   const d = new Date(date);
   const day = d.getDate().toString().padStart(2, "0");
@@ -16,18 +17,48 @@ const formatDateTime = (date) => {
   return `${day}-${month}-${year} ${hours}:${minutes}`;
 };
 
+/**
+ * Given an array of items and a costCenterId, merge inStorage from ItemStock.
+ * If costCenterId is omitted, inStorage is returned as null (not tracked globally).
+ */
+const mergeStockIntoItems = async (items, costCenterId) => {
+  if (!costCenterId) {
+    return items.map((item) => ({
+      ...item.toObject(),
+      inStorage: null,
+      costCenterId: null,
+    }));
+  }
+
+  const stocks = await ItemStock.find({
+    costCenterId,
+    itemId: { $in: items.map((i) => i._id) },
+  }).lean();
+
+  const stockMap = Object.fromEntries(
+    stocks.map((s) => [s.itemId.toString(), s.inStorage]),
+  );
+
+  return items.map((item) => ({
+    ...item.toObject(),
+    inStorage: stockMap[item._id.toString()] ?? 0,
+    costCenterId,
+  }));
+};
+
+// ─── Auth / View ─────────────────────────────────────────────────────────────
+
 exports.getItemManagementViews = (req, res) => {
-  if (
-    ![
-      "approver",
-      "superAdmin",
-      "director",
-      "deputyDirector",
-      "headOfPurchasing",
-      "headOfNorthernRepresentativeOffice",
-      "captainOfPurchasing",
-    ].includes(req.user.role)
-  ) {
+  const allowed = [
+    "approver",
+    "superAdmin",
+    "director",
+    "deputyDirector",
+    "headOfPurchasing",
+    "headOfNorthernRepresentativeOffice",
+    "captainOfPurchasing",
+  ];
+  if (!allowed.includes(req.user.role)) {
     return res
       .status(403)
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -37,149 +68,210 @@ exports.getItemManagementViews = (req, res) => {
   });
 };
 
-// Get all active items with sorting
+// ─── Cost Center list (for frontend dropdown) ────────────────────────────────
+
+exports.getCostCenters = async (req, res) => {
+  try {
+    const costCenters = await CostCenter.find(
+      {},
+      "name category allowedUsers",
+    ).lean();
+
+    // Filter by allowedUsers unless superAdmin/director
+    const adminRoles = ["superAdmin", "director", "deputyDirector"];
+    const filtered = adminRoles.includes(req.user.role)
+      ? costCenters
+      : costCenters.filter(
+          (cc) =>
+            cc.allowedUsers.includes(req.user.id) ||
+            cc.allowedUsers.includes(req.user.username),
+        );
+
+    res.json(filtered);
+  } catch (error) {
+    console.error("Error fetching cost centers:", error);
+    res.status(500).json({ error: "Failed to fetch cost centers" });
+  }
+};
+
+// ─── Item CRUD ────────────────────────────────────────────────────────────────
+
+/** GET /itemManagementControl?costCenterId=xxx&sortBy=name&sortOrder=asc */
 exports.getAllItems = async (req, res) => {
   try {
-    const { sortBy = "name", sortOrder = "asc" } = req.query;
-
-    const sortOptions = {};
-    sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
+    const { sortBy = "name", sortOrder = "asc", costCenterId } = req.query;
+    const sortOptions = { [sortBy]: sortOrder === "desc" ? -1 : 1 };
 
     const items = await Item.find({ isDeleted: false })
       .populate("createdBy", "username")
       .sort(sortOptions);
-    res.json(items);
+
+    const result = await mergeStockIntoItems(items, costCenterId);
+    res.json(result);
   } catch (error) {
     console.error("Error fetching items:", error);
     res.status(500).json({ error: "Failed to fetch items" });
   }
 };
 
-// Get all items including deleted (for admin) with sorting
+/** GET /itemManagementControl/all?costCenterId=xxx */
 exports.getAllItemsWithDeleted = async (req, res) => {
   try {
-    const { sortBy = "name", sortOrder = "asc" } = req.query;
-
-    const sortOptions = {};
-    sortOptions[sortBy] = sortOrder === "desc" ? -1 : 1;
+    const { sortBy = "name", sortOrder = "asc", costCenterId } = req.query;
+    const sortOptions = { [sortBy]: sortOrder === "desc" ? -1 : 1 };
 
     const items = await Item.find()
       .populate("createdBy", "username")
       .populate("deletedBy", "username")
       .sort(sortOptions);
-    res.json(items);
+
+    const result = await mergeStockIntoItems(items, costCenterId);
+    res.json(result);
   } catch (error) {
     console.error("Error fetching all items:", error);
     res.status(500).json({ error: "Failed to fetch items" });
   }
 };
 
-// Get single item with audit history
+/** GET /itemManagementControl/:id?costCenterId=xxx */
 exports.getItem = async (req, res) => {
   try {
+    const { costCenterId } = req.query;
+
     const item = await Item.findById(req.params.id)
       .populate("createdBy", "username")
       .populate("auditHistory.editedBy", "username")
       .populate("deletedBy", "username");
 
-    if (!item) {
-      return res.status(404).json({ error: "Item not found" });
-    }
+    if (!item) return res.status(404).json({ error: "Item not found" });
 
-    res.json(item);
+    const [merged] = await mergeStockIntoItems([item], costCenterId);
+    res.json(merged);
   } catch (error) {
     console.error("Error fetching item:", error);
     res.status(500).json({ error: "Failed to fetch item" });
   }
 };
 
-// Create new item
+/** POST /itemManagementControl  — body: { name, code, unit, unitPrice, vat, costCenterId, inStorage } */
 exports.createItem = async (req, res) => {
   try {
-    const { name, code, unit, unitPrice, vat = 0, inStorage = 0 } = req.body;
+    const {
+      name,
+      code,
+      unit,
+      unitPrice,
+      vat = 0,
+      costCenterId,
+      inStorage = 0,
+    } = req.body;
 
-    // Check if code already exists (including deleted items)
-    const existingItem = await Item.findOne({ code });
-    if (existingItem && !existingItem.isDeleted) {
+    // Validate cost center is provided
+    if (!costCenterId) {
+      return res.status(400).json({ error: "costCenterId is required" });
+    }
+
+    // Check cost center exists
+    const costCenter = await CostCenter.findById(costCenterId);
+    if (!costCenter) {
+      return res.status(404).json({ error: "Cost center not found" });
+    }
+
+    // Check for duplicate code among active items
+    const existing = await Item.findOne({ code, isDeleted: false });
+    if (existing) {
       return res.status(400).json({ error: "Item code already exists" });
     }
 
-    // Calculate unitPriceAfterVAT
-    const vatPercentage = parseFloat(vat);
-    const unitPriceValue = parseFloat(unitPrice);
-    const unitPriceAfterVAT = unitPriceValue * (1 + vatPercentage / 100);
+    const vatPct = parseFloat(vat);
+    const price = parseFloat(unitPrice);
+    const priceAfterVAT = price * (1 + vatPct / 100);
     const inStorageValue = parseInt(inStorage) || 0;
 
     const item = new Item({
       name,
       code,
       unit: unit || "cái",
-      unitPrice: unitPriceValue,
-      vat: vatPercentage,
-      unitPriceAfterVAT,
-      inStorage: inStorageValue,
+      unitPrice: price,
+      vat: vatPct,
+      unitPriceAfterVAT: priceAfterVAT,
       createdBy: req.user.id,
       auditHistory: [
         {
           newName: name,
           newCode: code,
           newUnit: unit || "cái",
-          newUnitPrice: unitPriceValue,
-          newVAT: vatPercentage,
-          newUnitPriceAfterVAT: unitPriceAfterVAT,
-          newInStorage: inStorageValue,
+          newUnitPrice: price,
+          newVAT: vatPct,
+          newUnitPriceAfterVAT: priceAfterVAT,
           editedBy: req.user.id,
           action: "create",
+          note: `Tạo tại cost center: ${costCenter.name}`,
         },
       ],
     });
 
     await item.save();
 
-    // Populate the createdBy field before sending response
+    // Create stock record for this cost center
+    await ItemStock.create({
+      itemId: item._id,
+      costCenterId,
+      inStorage: inStorageValue,
+      updatedBy: req.user.id,
+    });
+
     await item.populate("createdBy", "username");
-    res.status(201).json(item);
+
+    res.status(201).json({
+      ...item.toObject(),
+      inStorage: inStorageValue,
+      costCenterId,
+    });
   } catch (error) {
     console.error("Error creating item:", error);
     res.status(500).json({ error: "Failed to create item" });
   }
 };
 
-// Update item
+/** PUT /itemManagementControl/:id  — body: { name, code, unit, unitPrice, vat, costCenterId, inStorage } */
 exports.updateItem = async (req, res) => {
   try {
-    const { name, code, unit, unitPrice, vat, inStorage } = req.body;
+    const { name, code, unit, unitPrice, vat, costCenterId, inStorage } =
+      req.body;
     const itemId = req.params.id;
 
+    if (!costCenterId) {
+      return res.status(400).json({ error: "costCenterId is required" });
+    }
+
     const item = await Item.findById(itemId);
-    if (!item) {
-      return res.status(404).json({ error: "Item not found" });
-    }
-
-    if (item.isDeleted) {
+    if (!item) return res.status(404).json({ error: "Item not found" });
+    if (item.isDeleted)
       return res.status(400).json({ error: "Cannot update deleted item" });
-    }
 
-    // Check if new code conflicts with other active items
+    // Check code uniqueness
     if (code !== item.code) {
-      const existingItem = await Item.findOne({
+      const conflict = await Item.findOne({
         code,
         isDeleted: false,
         _id: { $ne: itemId },
       });
-      if (existingItem) {
+      if (conflict)
         return res.status(400).json({ error: "Item code already exists" });
-      }
     }
 
-    // Calculate new unitPriceAfterVAT
-    const vatPercentage = vat !== undefined ? parseFloat(vat) : item.vat;
-    const unitPriceValue = parseFloat(unitPrice);
-    const unitPriceAfterVAT = unitPriceValue * (1 + vatPercentage / 100);
-    const inStorageValue =
-      inStorage !== undefined ? parseInt(inStorage) : item.inStorage;
+    const vatPct = vat !== undefined ? parseFloat(vat) : item.vat;
+    const price = parseFloat(unitPrice);
+    const priceAfterVAT = price * (1 + vatPct / 100);
 
-    // Create audit entry
+    // Get current stock for this cost center
+    const currentStock = await ItemStock.findOne({ itemId, costCenterId });
+    const oldInStorage = currentStock ? currentStock.inStorage : 0;
+    const newInStorage =
+      inStorage !== undefined ? parseInt(inStorage) : oldInStorage;
+
+    // Audit entry
     const auditEntry = {
       oldName: item.name,
       newName: name,
@@ -188,123 +280,88 @@ exports.updateItem = async (req, res) => {
       oldUnit: item.unit,
       newUnit: unit || item.unit,
       oldUnitPrice: item.unitPrice,
-      newUnitPrice: unitPriceValue,
+      newUnitPrice: price,
       oldVAT: item.vat,
-      newVAT: vatPercentage,
+      newVAT: vatPct,
       oldUnitPriceAfterVAT: item.unitPriceAfterVAT,
-      newUnitPriceAfterVAT: unitPriceAfterVAT,
-      oldInStorage: item.inStorage,
-      newInStorage: inStorageValue,
+      newUnitPriceAfterVAT: priceAfterVAT,
       editedBy: req.user.id,
       action: "update",
+      note: `Cập nhật tại cost center: ${costCenterId}, tồn kho: ${oldInStorage} → ${newInStorage}`,
     };
 
-    // Store old values for order updates
-    const oldItemData = {
-      name: item.name,
-      code: item.code,
-      unit: item.unit,
-      unitPrice: item.unitPrice,
-      vat: item.vat,
-      unitPriceAfterVAT: item.unitPriceAfterVAT,
-      inStorage: item.inStorage,
-    };
-
-    // Update item
+    // Update item fields
     item.name = name;
     item.code = code;
     item.unit = unit || item.unit;
-    item.unitPrice = unitPriceValue;
-    item.vat = vatPercentage;
-    item.unitPriceAfterVAT = unitPriceAfterVAT;
-    item.inStorage = inStorageValue;
+    item.unitPrice = price;
+    item.vat = vatPct;
+    item.unitPriceAfterVAT = priceAfterVAT;
     item.auditHistory.push(auditEntry);
-
     await item.save();
 
-    // Update all pending orders that contain this item
-    let pendingOrders = [];
-    if (
-      name !== oldItemData.name ||
-      code !== oldItemData.code ||
-      unit !== oldItemData.unit ||
-      unitPriceValue !== oldItemData.unitPrice ||
-      vatPercentage !== oldItemData.vat ||
-      inStorageValue !== oldItemData.inStorage
-    ) {
-      try {
-        // Find all pending orders that contain this item
-        pendingOrders = await Order.find({
-          status: "pending",
-          "items.itemId": itemId,
+    // Upsert stock for this cost center
+    await ItemStock.findOneAndUpdate(
+      { itemId, costCenterId },
+      {
+        inStorage: newInStorage,
+        updatedBy: req.user.id,
+        updatedAt: new Date(),
+      },
+      { upsert: true, new: true },
+    );
+
+    // Update pending orders
+    let ordersUpdated = 0;
+    try {
+      const pendingOrders = await Order.find({
+        status: "pending",
+        "items.itemId": itemId,
+      });
+
+      for (const order of pendingOrders) {
+        let changed = false;
+        order.items = order.items.map((oi) => {
+          if (oi.itemId.toString() !== itemId) return oi;
+          changed = true;
+          const qty = oi.quantity;
+          return {
+            ...oi.toObject(),
+            itemName: name,
+            itemCode: code,
+            unit: unit || oi.unit,
+            unitPrice: price,
+            vat: vatPct,
+            unitPriceAfterVAT: priceAfterVAT,
+            totalPrice: price * qty,
+            totalPriceAfterVAT: priceAfterVAT * qty,
+          };
         });
 
-        // Update each pending order
-        for (const order of pendingOrders) {
-          let orderUpdated = false;
-
-          // Update item details in order items array
-          order.items = order.items.map((orderItem) => {
-            if (orderItem.itemId.toString() === itemId) {
-              orderUpdated = true;
-
-              // Calculate new totals based on quantity
-              const quantity = orderItem.quantity;
-              const newTotalPrice = unitPriceValue * quantity;
-              const newTotalPriceAfterVAT = unitPriceAfterVAT * quantity;
-
-              return {
-                ...orderItem.toObject(),
-                itemName: name,
-                itemCode: code,
-                unit: unit || orderItem.unit,
-                unitPrice: unitPriceValue,
-                vat: vatPercentage,
-                unitPriceAfterVAT: unitPriceAfterVAT,
-                inStorage: inStorageValue,
-                totalPrice: newTotalPrice,
-                totalPriceAfterVAT: newTotalPriceAfterVAT,
-              };
-            }
-            return orderItem;
-          });
-
-          // Recalculate order totals if item was updated
-          if (orderUpdated) {
-            order.totalAmount = order.items.reduce(
-              (sum, item) => sum + item.totalPrice,
-              0,
-            );
-            order.totalAmountAfterVAT = order.items.reduce(
-              (sum, item) => sum + item.totalPriceAfterVAT,
-              0,
-            );
-
-            // Update formatted date
-            order.formattedUpdatedAt = formatDateTime(new Date());
-            order.updatedAt = new Date();
-
-            await order.save();
-          }
+        if (changed) {
+          order.totalAmount = order.items.reduce((s, i) => s + i.totalPrice, 0);
+          order.totalAmountAfterVAT = order.items.reduce(
+            (s, i) => s + i.totalPriceAfterVAT,
+            0,
+          );
+          order.formattedUpdatedAt = formatDateTime(new Date());
+          order.updatedAt = new Date();
+          await order.save();
+          ordersUpdated++;
         }
-
-        console.log(
-          `Updated ${pendingOrders.length} pending orders for item ${itemId}`,
-        );
-      } catch (orderUpdateError) {
-        console.error("Error updating orders:", orderUpdateError);
-        // Don't fail the item update if order update fails
-        // Log the error but continue with item update
       }
+    } catch (err) {
+      console.error("Error updating orders:", err);
     }
 
-    // Populate fields before sending response
     await item.populate("createdBy", "username");
     await item.populate("auditHistory.editedBy", "username");
 
     res.json({
       ...item.toObject(),
-      ordersUpdated: pendingOrders ? pendingOrders.length : 0,
+      inStorage: newInStorage,
+      costCenterId,
+      ordersUpdated,
     });
   } catch (error) {
     console.error("Error updating item:", error);
@@ -312,39 +369,72 @@ exports.updateItem = async (req, res) => {
   }
 };
 
-// Soft delete item
+/** PATCH /itemManagementControl/:id/stock  — update stock for one cost center only */
+exports.updateStock = async (req, res) => {
+  try {
+    const { costCenterId, inStorage } = req.body;
+    const itemId = req.params.id;
+
+    if (!costCenterId)
+      return res.status(400).json({ error: "costCenterId is required" });
+    if (inStorage === undefined)
+      return res.status(400).json({ error: "inStorage is required" });
+
+    const item = await Item.findById(itemId);
+    if (!item) return res.status(404).json({ error: "Item not found" });
+    if (item.isDeleted)
+      return res.status(400).json({ error: "Item is deleted" });
+
+    const costCenter = await CostCenter.findById(costCenterId);
+    if (!costCenter)
+      return res.status(404).json({ error: "Cost center not found" });
+
+    const stock = await ItemStock.findOneAndUpdate(
+      { itemId, costCenterId },
+      {
+        inStorage: parseInt(inStorage),
+        updatedBy: req.user.id,
+        updatedAt: new Date(),
+      },
+      { upsert: true, new: true },
+    );
+
+    res.json({ itemId, costCenterId, inStorage: stock.inStorage });
+  } catch (error) {
+    console.error("Error updating stock:", error);
+    res.status(500).json({ error: "Failed to update stock" });
+  }
+};
+
+/** GET /itemManagementControl/:id/stock  — get stock across all cost centers */
+exports.getItemStockByCostCenter = async (req, res) => {
+  try {
+    const stocks = await ItemStock.find({ itemId: req.params.id })
+      .populate("costCenterId", "name category")
+      .populate("updatedBy", "username")
+      .lean();
+
+    res.json(stocks);
+  } catch (error) {
+    console.error("Error fetching item stock:", error);
+    res.status(500).json({ error: "Failed to fetch item stock" });
+  }
+};
+
+/** DELETE /itemManagementControl/:id */
 exports.deleteItem = async (req, res) => {
   try {
     const itemId = req.params.id;
     const item = await Item.findById(itemId);
 
-    if (!item) {
-      return res.status(404).json({ error: "Item not found" });
-    }
-
-    if (item.isDeleted) {
+    if (!item) return res.status(404).json({ error: "Item not found" });
+    if (item.isDeleted)
       return res.status(400).json({ error: "Item already deleted" });
-    }
 
-    // Create audit entry for deletion
-    const auditEntry = {
-      oldName: item.name,
-      oldCode: item.code,
-      oldUnit: item.unit,
-      oldUnitPrice: item.unitPrice,
-      oldVAT: item.vat,
-      oldUnitPriceAfterVAT: item.unitPriceAfterVAT,
-      oldInStorage: item.inStorage,
-      editedBy: req.user.id,
-      action: "delete",
-    };
-
-    // Check if item exists in any pending orders
     const pendingOrders = await Order.find({
       status: "pending",
       "items.itemId": itemId,
     });
-
     if (pendingOrders.length > 0) {
       return res.status(400).json({
         error: `Cannot delete item. It exists in ${pendingOrders.length} pending order(s).`,
@@ -352,23 +442,25 @@ exports.deleteItem = async (req, res) => {
       });
     }
 
-    // Soft delete the item
     item.isDeleted = true;
     item.deletedAt = Date.now();
     item.deletedBy = req.user.id;
-    item.auditHistory.push(auditEntry);
+    item.auditHistory.push({
+      oldName: item.name,
+      oldCode: item.code,
+      oldUnit: item.unit,
+      oldUnitPrice: item.unitPrice,
+      oldVAT: item.vat,
+      oldUnitPriceAfterVAT: item.unitPriceAfterVAT,
+      editedBy: req.user.id,
+      action: "delete",
+    });
 
     await item.save();
 
     res.json({
       message: "Item deleted successfully",
-      item: {
-        id: item._id,
-        name: item.name,
-        code: item.code,
-        unit: item.unit,
-        deletedAt: item.deletedAt,
-      },
+      item: { id: item._id, name: item.name },
     });
   } catch (error) {
     console.error("Error deleting item:", error);
@@ -376,61 +468,46 @@ exports.deleteItem = async (req, res) => {
   }
 };
 
-// Restore deleted item
+/** PATCH /itemManagementControl/:id/restore */
 exports.restoreItem = async (req, res) => {
   try {
     const itemId = req.params.id;
     const item = await Item.findById(itemId);
 
-    if (!item) {
-      return res.status(404).json({ error: "Item not found" });
-    }
-
-    if (!item.isDeleted) {
+    if (!item) return res.status(404).json({ error: "Item not found" });
+    if (!item.isDeleted)
       return res.status(400).json({ error: "Item is not deleted" });
-    }
 
-    // Check if code conflicts with other active items
-    const existingItem = await Item.findOne({
+    const conflict = await Item.findOne({
       code: item.code,
       isDeleted: false,
       _id: { $ne: itemId },
     });
-    if (existingItem) {
+    if (conflict) {
       return res.status(400).json({
-        error: `Cannot restore item. Code "${item.code}" is already in use by another active item.`,
+        error: `Cannot restore item. Code "${item.code}" is already in use.`,
       });
     }
 
-    // Create audit entry for restoration
-    const auditEntry = {
+    item.isDeleted = false;
+    item.deletedAt = null;
+    item.deletedBy = null;
+    item.auditHistory.push({
       newName: item.name,
       newCode: item.code,
       newUnit: item.unit,
       newUnitPrice: item.unitPrice,
       newVAT: item.vat,
       newUnitPriceAfterVAT: item.unitPriceAfterVAT,
-      newInStorage: item.inStorage,
       editedBy: req.user.id,
-      action: "create", // Treating restore as a new creation
-    };
-
-    // Restore the item
-    item.isDeleted = false;
-    item.deletedAt = null;
-    item.deletedBy = null;
-    item.auditHistory.push(auditEntry);
+      action: "create",
+      note: "Khôi phục mặt hàng",
+    });
 
     await item.save();
-
     res.json({
       message: "Item restored successfully",
-      item: {
-        id: item._id,
-        name: item.name,
-        code: item.code,
-        unit: item.unit,
-      },
+      item: { id: item._id, name: item.name },
     });
   } catch (error) {
     console.error("Error restoring item:", error);
@@ -438,19 +515,14 @@ exports.restoreItem = async (req, res) => {
   }
 };
 
-// Get item audit history only
+/** GET /itemManagementControl/:id/audit */
 exports.getItemAuditHistory = async (req, res) => {
   try {
-    const itemId = req.params.id;
-
-    const item = await Item.findById(itemId)
+    const item = await Item.findById(req.params.id)
       .populate("auditHistory.editedBy", "username")
       .select("auditHistory");
 
-    if (!item) {
-      return res.status(404).json({ error: "Item not found" });
-    }
-
+    if (!item) return res.status(404).json({ error: "Item not found" });
     res.json(item.auditHistory);
   } catch (error) {
     console.error("Error fetching audit history:", error);
@@ -458,29 +530,102 @@ exports.getItemAuditHistory = async (req, res) => {
   }
 };
 
-// Export items to Excel
+// ─── Excel Export ─────────────────────────────────────────────────────────────
+
+/** GET /itemManagementControl/export/excel?costCenterId=xxx&includeDeleted=false */
 exports.exportToExcel = async (req, res) => {
   try {
-    const { includeDeleted = false } = req.query;
+    const { includeDeleted = "false", costCenterId } = req.query;
 
-    // Fetch items based on includeDeleted parameter
-    let items;
-    if (includeDeleted === "true") {
-      items = await Item.find()
-        .populate("createdBy", "username")
-        .populate("deletedBy", "username");
-    } else {
-      items = await Item.find({ isDeleted: false }).populate(
-        "createdBy",
-        "username",
+    const query = includeDeleted === "true" ? {} : { isDeleted: false };
+    const items = await Item.find(query)
+      .populate("createdBy", "username")
+      .populate("deletedBy", "username")
+      .lean();
+
+    // Build stock map for requested cost center
+    let stockMap = {};
+    let costCenterName = "";
+    if (costCenterId) {
+      const cc = await CostCenter.findById(costCenterId).lean();
+      costCenterName = cc ? cc.name : costCenterId;
+      const stocks = await ItemStock.find({ costCenterId }).lean();
+      stockMap = Object.fromEntries(
+        stocks.map((s) => [s.itemId.toString(), s.inStorage]),
       );
+    } else {
+      // Export ALL cost center stocks — one sheet per cost center
+      const allCCs = await CostCenter.find({}, "name").lean();
+      const allStocks = await ItemStock.find({}).lean();
+      // group by costCenterId
+      const grouped = {};
+      for (const s of allStocks) {
+        const ccId = s.costCenterId.toString();
+        if (!grouped[ccId]) grouped[ccId] = {};
+        grouped[ccId][s.itemId.toString()] = s.inStorage;
+      }
+
+      const workbook = new ExcelJS.Workbook();
+
+      for (const cc of allCCs) {
+        const ws = workbook.addWorksheet(cc.name.substring(0, 31));
+        const ccStock = grouped[cc._id.toString()] || {};
+
+        ws.columns = [
+          { header: "Mã hàng", key: "code", width: 15 },
+          { header: "Tên hàng", key: "name", width: 30 },
+          { header: "Đơn vị", key: "unit", width: 10 },
+          { header: "Đơn giá", key: "unitPrice", width: 15 },
+          { header: "VAT (%)", key: "vat", width: 10 },
+          { header: "Giá sau VAT", key: "unitPriceAfterVAT", width: 15 },
+          { header: `Tồn kho (${cc.name})`, key: "inStorage", width: 18 },
+          { header: "Trạng thái", key: "status", width: 15 },
+          { header: "Người tạo", key: "createdBy", width: 20 },
+          { header: "Ngày tạo", key: "createdAt", width: 20 },
+        ];
+
+        ws.getRow(1).font = { bold: true };
+        ws.getRow(1).fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFE0E0E0" },
+        };
+
+        items.forEach((item) => {
+          const row = ws.addRow({
+            code: item.code,
+            name: item.name,
+            unit: item.unit || "cái",
+            unitPrice: item.unitPrice,
+            vat: item.vat,
+            unitPriceAfterVAT: item.unitPriceAfterVAT,
+            inStorage: ccStock[item._id.toString()] ?? 0,
+            status: item.isDeleted ? "Đã xóa" : "Đang hoạt động",
+            createdBy: item.createdBy?.username || "Không xác định",
+            createdAt: new Date(item.createdAt).toLocaleString("vi-VN"),
+          });
+          row.getCell("unitPrice").numFmt = "#,##0";
+          row.getCell("unitPriceAfterVAT").numFmt = "#,##0";
+        });
+      }
+
+      const fileName = `danh-sach-mat-hang-tat-ca-cost-center_${new Date().toISOString().split("T")[0]}.xlsx`;
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${fileName}"`,
+      );
+      await workbook.xlsx.write(res);
+      return res.end();
     }
 
-    // Create a new workbook
+    // Single cost center export
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Danh sách mặt hàng");
 
-    // Add header row with styling
     worksheet.columns = [
       { header: "Mã hàng", key: "code", width: 15 },
       { header: "Tên hàng", key: "name", width: 30 },
@@ -488,13 +633,12 @@ exports.exportToExcel = async (req, res) => {
       { header: "Đơn giá", key: "unitPrice", width: 15 },
       { header: "VAT (%)", key: "vat", width: 10 },
       { header: "Giá sau VAT", key: "unitPriceAfterVAT", width: 15 },
-      { header: "Tồn kho", key: "inStorage", width: 12 },
+      { header: `Tồn kho (${costCenterName})`, key: "inStorage", width: 18 },
       { header: "Trạng thái", key: "status", width: 15 },
       { header: "Người tạo", key: "createdBy", width: 20 },
       { header: "Ngày tạo", key: "createdAt", width: 20 },
     ];
 
-    // Style the header row
     worksheet.getRow(1).font = { bold: true };
     worksheet.getRow(1).fill = {
       type: "pattern",
@@ -502,7 +646,6 @@ exports.exportToExcel = async (req, res) => {
       fgColor: { argb: "FFE0E0E0" },
     };
 
-    // Add data rows
     items.forEach((item) => {
       const row = worksheet.addRow({
         code: item.code,
@@ -511,69 +654,30 @@ exports.exportToExcel = async (req, res) => {
         unitPrice: item.unitPrice,
         vat: item.vat,
         unitPriceAfterVAT: item.unitPriceAfterVAT,
-        inStorage: item.inStorage || 0,
+        inStorage: stockMap[item._id.toString()] ?? 0,
         status: item.isDeleted ? "Đã xóa" : "Đang hoạt động",
         createdBy: item.createdBy?.username || "Không xác định",
         createdAt: new Date(item.createdAt).toLocaleString("vi-VN"),
       });
-
-      // Apply currency formatting to price columns
       row.getCell("unitPrice").numFmt = "#,##0";
       row.getCell("unitPriceAfterVAT").numFmt = "#,##0";
 
-      // Color coding for status
-      if (item.isDeleted) {
-        row.getCell("status").fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FFFFCDD2" },
-        };
-      } else {
-        row.getCell("status").fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FFC8E6C9" },
-        };
-      }
-
-      // Color coding for inStorage
-      if (item.inStorage > 0) {
-        row.getCell("inStorage").fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FFC8E6C9" },
-        };
-      } else {
-        row.getCell("inStorage").fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FFFFF3CD" },
-        };
-      }
+      row.getCell("status").fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: item.isDeleted ? "FFFFCDD2" : "FFC8E6C9" },
+      };
     });
 
-    // Auto-fit columns
-    worksheet.columns.forEach((column) => {
-      column.width = Math.max(column.width, column.header.length + 2);
-    });
-
-    // Set response headers for file download
-    const fileName =
-      includeDeleted === "true"
-        ? `danh-sach-mat-hang-toan-bo_${
-            new Date().toISOString().split("T")[0]
-          }.xlsx`
-        : `danh-sach-mat-hang-dang-hoat-dong_${
-            new Date().toISOString().split("T")[0]
-          }.xlsx`;
-
+    const fileName = `danh-sach-mat-hang-${costCenterName || "tat-ca"}_${new Date().toISOString().split("T")[0]}.xlsx`;
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
-    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
-
-    // Write workbook to response
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${encodeURIComponent(fileName)}"`,
+    );
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
@@ -582,37 +686,48 @@ exports.exportToExcel = async (req, res) => {
   }
 };
 
-// Import items from Excel
+// ─── Excel Import ─────────────────────────────────────────────────────────────
+
+/**
+ * POST /itemManagementControl/import/excel
+ * Expects multipart file + body.costCenterId
+ * Excel columns: Mã hàng | Tên hàng | Đơn vị | Đơn giá | VAT (%) | Tồn kho
+ */
 exports.importFromExcel = async (req, res) => {
   try {
-    if (!req.file) {
+    if (!req.file)
       return res.status(400).json({ error: "Không có file được tải lên" });
-    }
+
+    const { costCenterId } = req.body;
+    if (!costCenterId)
+      return res.status(400).json({ error: "Vui lòng chọn cost center" });
+
+    const costCenter = await CostCenter.findById(costCenterId).lean();
+    if (!costCenter)
+      return res.status(404).json({ error: "Cost center không tồn tại" });
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(req.file.buffer);
 
-    const worksheet = workbook.getWorksheet(1); // Get first worksheet
-    if (!worksheet) {
+    const worksheet = workbook.getWorksheet(1);
+    if (!worksheet)
       return res.status(400).json({ error: "File Excel không hợp lệ" });
-    }
 
-    const importResults = {
+    const results = {
+      total: 0,
       success: 0,
       failed: 0,
-      errors: [],
-      updated: 0,
       created: 0,
-      total: 0,
+      updated: 0,
       ordersUpdated: 0,
+      errors: [],
       orderUpdateErrors: [],
     };
 
-    // Skip header row (row 1)
     let rowNumber = 2;
     while (worksheet.getRow(rowNumber).getCell(1).value) {
       const row = worksheet.getRow(rowNumber);
-      importResults.total++;
+      results.total++;
 
       try {
         const code = row.getCell(1).value?.toString().trim();
@@ -623,10 +738,9 @@ exports.importFromExcel = async (req, res) => {
         const inStorage = parseInt(row.getCell(6).value) || 0;
         const unitPriceAfterVAT = unitPrice * (1 + vat / 100);
 
-        // Validate required fields
         if (!code || !name) {
-          importResults.failed++;
-          importResults.errors.push({
+          results.failed++;
+          results.errors.push({
             row: rowNumber,
             code: code || "(trống)",
             error: "Thiếu mã hàng hoặc tên hàng",
@@ -634,10 +748,9 @@ exports.importFromExcel = async (req, res) => {
           rowNumber++;
           continue;
         }
-
         if (isNaN(unitPrice) || unitPrice < 0) {
-          importResults.failed++;
-          importResults.errors.push({
+          results.failed++;
+          results.errors.push({
             row: rowNumber,
             code,
             error: "Đơn giá không hợp lệ",
@@ -645,42 +758,38 @@ exports.importFromExcel = async (req, res) => {
           rowNumber++;
           continue;
         }
-
         if (vat < 0 || vat > 100) {
-          importResults.failed++;
-          importResults.errors.push({
+          results.failed++;
+          results.errors.push({
             row: rowNumber,
             code,
-            error: "VAT phải nằm trong khoảng 0-100%",
+            error: "VAT phải trong khoảng 0-100%",
           });
           rowNumber++;
           continue;
         }
 
-        // Tìm item có cùng code
-        const existingItem = await Item.findOne({
-          code,
-          isDeleted: false,
-        });
+        const existingItem = await Item.findOne({ code, isDeleted: false });
 
         if (existingItem) {
-          // Nếu tồn tại item có cùng code, cập nhật item đó
-
-          // Lưu lại giá trị cũ cho audit history
+          // Update existing item
           const oldValues = {
             name: existingItem.name,
             unit: existingItem.unit,
             unitPrice: existingItem.unitPrice,
             vat: existingItem.vat,
             unitPriceAfterVAT: existingItem.unitPriceAfterVAT,
-            inStorage: existingItem.inStorage,
           };
 
-          // Tạo audit entry
-          const auditEntry = {
+          existingItem.name = name;
+          existingItem.unit = unit;
+          existingItem.unitPrice = unitPrice;
+          existingItem.vat = vat;
+          existingItem.unitPriceAfterVAT = unitPriceAfterVAT;
+          existingItem.auditHistory.push({
             oldName: oldValues.name,
             newName: name,
-            oldCode: code, // Code không thay đổi
+            oldCode: code,
             newCode: code,
             oldUnit: oldValues.unit,
             newUnit: unit,
@@ -690,118 +799,84 @@ exports.importFromExcel = async (req, res) => {
             newVAT: vat,
             oldUnitPriceAfterVAT: oldValues.unitPriceAfterVAT,
             newUnitPriceAfterVAT: unitPriceAfterVAT,
-            oldInStorage: oldValues.inStorage,
-            newInStorage: inStorage,
             editedBy: req.user.id,
             action: "update",
-            note: "Cập nhật từ Excel import",
-          };
-
-          // Cập nhật item
-          existingItem.name = name;
-          existingItem.unit = unit;
-          existingItem.unitPrice = unitPrice;
-          existingItem.vat = vat;
-          existingItem.unitPriceAfterVAT = unitPriceAfterVAT;
-          existingItem.inStorage = inStorage;
-          existingItem.auditHistory.push(auditEntry);
+            note: `Cập nhật từ Excel import tại ${costCenter.name}`,
+          });
 
           await existingItem.save();
-          importResults.updated++;
-          importResults.success++;
 
-          // Update pending orders that contain this item
+          // Upsert stock for this cost center
+          await ItemStock.findOneAndUpdate(
+            { itemId: existingItem._id, costCenterId },
+            { inStorage, updatedBy: req.user.id, updatedAt: new Date() },
+            { upsert: true, new: true },
+          );
+
+          results.updated++;
+          results.success++;
+
+          // Update pending orders
           try {
             const pendingOrders = await Order.find({
               status: "pending",
               "items.itemId": existingItem._id,
             });
-
             for (const order of pendingOrders) {
-              let orderUpdated = false;
-
-              order.items = order.items.map((orderItem) => {
-                if (
-                  orderItem.itemId.toString() === existingItem._id.toString()
-                ) {
-                  orderUpdated = true;
-
-                  const quantity = orderItem.quantity;
-                  const newTotalPrice = unitPrice * quantity;
-                  const newTotalPriceAfterVAT = unitPriceAfterVAT * quantity;
-
-                  return {
-                    ...orderItem.toObject(),
-                    itemName: name,
-                    itemCode: code,
-                    unit: unit,
-                    unitPrice: unitPrice,
-                    vat: vat,
-                    unitPriceAfterVAT: unitPriceAfterVAT,
-                    inStorage: inStorage,
-                    totalPrice: newTotalPrice,
-                    totalPriceAfterVAT: newTotalPriceAfterVAT,
-                  };
-                }
-                return orderItem;
+              let changed = false;
+              order.items = order.items.map((oi) => {
+                if (oi.itemId.toString() !== existingItem._id.toString())
+                  return oi;
+                changed = true;
+                return {
+                  ...oi.toObject(),
+                  itemName: name,
+                  itemCode: code,
+                  unit,
+                  unitPrice,
+                  vat,
+                  unitPriceAfterVAT,
+                  totalPrice: unitPrice * oi.quantity,
+                  totalPriceAfterVAT: unitPriceAfterVAT * oi.quantity,
+                };
               });
-
-              if (orderUpdated) {
+              if (changed) {
                 order.totalAmount = order.items.reduce(
-                  (sum, item) => sum + item.totalPrice,
+                  (s, i) => s + i.totalPrice,
                   0,
                 );
                 order.totalAmountAfterVAT = order.items.reduce(
-                  (sum, item) => sum + item.totalPriceAfterVAT,
+                  (s, i) => s + i.totalPriceAfterVAT,
                   0,
                 );
-
                 order.formattedUpdatedAt = formatDateTime(new Date());
                 order.updatedAt = new Date();
-
                 await order.save();
+                results.ordersUpdated++;
               }
             }
-
-            importResults.ordersUpdated += pendingOrders.length;
-          } catch (orderUpdateError) {
-            console.error(
-              "Error updating orders during import:",
-              orderUpdateError,
-            );
-            importResults.orderUpdateErrors.push({
-              code,
-              error: "Failed to update orders: " + orderUpdateError.message,
-            });
+          } catch (err) {
+            results.orderUpdateErrors.push({ code, error: err.message });
           }
         } else {
-          // Nếu không tồn tại, tạo item mới
-
-          // Kiểm tra nếu có item đã bị xóa với cùng code
-          const deletedItem = await Item.findOne({
-            code,
-            isDeleted: true,
-          });
-
+          // Create new item
+          const deletedItem = await Item.findOne({ code, isDeleted: true });
           if (deletedItem) {
-            // Nếu có item đã bị xóa, hiển thị cảnh báo nhưng vẫn tạo item mới
-            importResults.errors.push({
+            results.errors.push({
               row: rowNumber,
               code,
-              error: `Mã hàng "${code}" đã từng tồn tại và đã bị xóa. Đang tạo mới.`,
+              error: `Mã "${code}" đã từng tồn tại và đã bị xóa. Đang tạo mới.`,
               warning: true,
             });
           }
 
-          // Tạo item mới
-          const item = new Item({
+          const newItem = new Item({
             name,
             code,
             unit,
             unitPrice,
             vat,
             unitPriceAfterVAT,
-            inStorage,
             createdBy: req.user.id,
             auditHistory: [
               {
@@ -811,21 +886,28 @@ exports.importFromExcel = async (req, res) => {
                 newUnitPrice: unitPrice,
                 newVAT: vat,
                 newUnitPriceAfterVAT: unitPriceAfterVAT,
-                newInStorage: inStorage,
                 editedBy: req.user.id,
                 action: "create",
-                note: "Nhập từ Excel",
+                note: `Nhập từ Excel tại ${costCenter.name}`,
               },
             ],
           });
 
-          await item.save();
-          importResults.created++;
-          importResults.success++;
+          await newItem.save();
+
+          await ItemStock.create({
+            itemId: newItem._id,
+            costCenterId,
+            inStorage,
+            updatedBy: req.user.id,
+          });
+
+          results.created++;
+          results.success++;
         }
       } catch (error) {
-        importResults.failed++;
-        importResults.errors.push({
+        results.failed++;
+        results.errors.push({
           row: rowNumber,
           code: row.getCell(1).value?.toString() || "(lỗi)",
           error: error.message || "Lỗi không xác định",
@@ -835,121 +917,69 @@ exports.importFromExcel = async (req, res) => {
       rowNumber++;
     }
 
-    // Generate summary Excel file with import results
-    if (importResults.errors.length > 0 || importResults.updated > 0) {
-      const resultWorkbook = new ExcelJS.Workbook();
-      const resultWorksheet = resultWorkbook.addWorksheet("Kết quả nhập file");
+    // Generate result Excel if there were errors/warnings
+    if (results.errors.length > 0 || results.updated > 0) {
+      const rb = new ExcelJS.Workbook();
+      const rws = rb.addWorksheet("Kết quả nhập file");
 
-      // Add summary
-      resultWorksheet.addRow(["Tổng kết nhập file Excel"]);
-      resultWorksheet.addRow([]);
-      resultWorksheet.addRow(["Tổng số dòng:", importResults.total]);
-      resultWorksheet.addRow(["Thành công:", importResults.success]);
-      resultWorksheet.addRow(["  - Tạo mới:", importResults.created]);
-      resultWorksheet.addRow(["  - Cập nhật:", importResults.updated]);
-      resultWorksheet.addRow([
-        "Đơn hàng được cập nhật:",
-        importResults.ordersUpdated,
-      ]);
-      resultWorksheet.addRow(["Thất bại:", importResults.failed]);
+      rws.addRow(["Tổng kết nhập file Excel"]);
+      rws.addRow([]);
+      rws.addRow(["Cost Center:", costCenter.name]);
+      rws.addRow(["Tổng số dòng:", results.total]);
+      rws.addRow(["Thành công:", results.success]);
+      rws.addRow(["  - Tạo mới:", results.created]);
+      rws.addRow(["  - Cập nhật:", results.updated]);
+      rws.addRow(["Đơn hàng được cập nhật:", results.ordersUpdated]);
+      rws.addRow(["Thất bại:", results.failed]);
+      rws.addRow([]);
 
-      if (importResults.orderUpdateErrors.length > 0) {
-        resultWorksheet.addRow([
-          "Lỗi cập nhật đơn hàng:",
-          importResults.orderUpdateErrors.length,
-        ]);
-      }
-
-      resultWorksheet.addRow([]);
-
-      if (importResults.errors.length > 0) {
-        resultWorksheet.addRow(["Chi tiết lỗi/cảnh báo:"]);
-        resultWorksheet.addRow(["Dòng", "Mã hàng", "Thông báo", "Loại"]);
-
-        // Style headers
-        resultWorksheet.getRow(13).font = { bold: true };
-        resultWorksheet.getRow(13).fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FFFFEBEE" },
-        };
-
-        // Add error details
-        let errorRow = 14;
-        importResults.errors.forEach((error) => {
-          const row = resultWorksheet.addRow([
-            error.row,
-            error.code,
-            error.error,
-            error.warning ? "Cảnh báo" : "Lỗi",
+      if (results.errors.length > 0) {
+        rws.addRow(["Chi tiết lỗi/cảnh báo:"]);
+        const hRow = rws.addRow(["Dòng", "Mã hàng", "Thông báo", "Loại"]);
+        hRow.font = { bold: true };
+        results.errors.forEach((e) => {
+          const r = rws.addRow([
+            e.row,
+            e.code,
+            e.error,
+            e.warning ? "Cảnh báo" : "Lỗi",
           ]);
-
-          if (error.warning) {
-            row.fill = {
+          if (e.warning) {
+            r.fill = {
               type: "pattern",
               pattern: "solid",
               fgColor: { argb: "FFFFF3CD" },
             };
           }
-          errorRow++;
         });
       }
 
-      // Add order update errors if any
-      if (importResults.orderUpdateErrors.length > 0) {
-        resultWorksheet.addRow([]);
-        resultWorksheet.addRow(["Chi tiết lỗi cập nhật đơn hàng:"]);
-        resultWorksheet.addRow(["Mã hàng", "Lỗi"]);
-
-        // Style headers
-        resultWorksheet.getRow(errorRow + 2).font = { bold: true };
-        resultWorksheet.getRow(errorRow + 2).fill = {
-          type: "pattern",
-          pattern: "solid",
-          fgColor: { argb: "FFF3E5F5" },
-        };
-
-        // Add order error details
-        let orderErrorRow = errorRow + 3;
-        importResults.orderUpdateErrors.forEach((error) => {
-          resultWorksheet.addRow([error.code, error.error]);
-          orderErrorRow++;
-        });
-      }
-
-      // Auto-fit columns
-      resultWorksheet.columns.forEach((column) => {
-        column.width = Math.max(column.width || 0, 15);
+      rws.columns.forEach((col) => {
+        col.width = Math.max(col.width || 0, 20);
       });
 
-      const buffer = await resultWorkbook.xlsx.writeBuffer();
-
-      res.json({
+      const buffer = await rb.xlsx.writeBuffer();
+      return res.json({
         message: "Nhập file hoàn tất",
-        summary: importResults,
+        summary: results,
         errorFile: buffer.toString("base64"),
       });
-    } else {
-      res.json({
-        message: "Nhập file thành công",
-        summary: importResults,
-      });
     }
+
+    res.json({ message: "Nhập file thành công", summary: results });
   } catch (error) {
     console.error("Error importing from Excel:", error);
-    res
-      .status(500)
-      .json({ error: "Failed to import from Excel: " + error.message });
+    res.status(500).json({ error: "Failed to import: " + error.message });
   }
 };
 
-// Download template for import
+// ─── Template Download ────────────────────────────────────────────────────────
+
 exports.downloadTemplate = async (req, res) => {
   try {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Mẫu nhập file");
 
-    // Add headers with formatting
     worksheet.addRow([
       "Mã hàng*",
       "Tên hàng*",
@@ -958,9 +988,10 @@ exports.downloadTemplate = async (req, res) => {
       "VAT (%)",
       "Tồn kho",
     ]);
+    worksheet.addRow(["MH001", "Ví dụ mặt hàng 1", "cái", 100000, 10, 50]);
+    worksheet.addRow(["MH002", "Ví dụ mặt hàng 2", "kg", 250000, 8, 100]);
 
-    // Style the header row
-    const headerRow = worksheet.getRow(10);
+    const headerRow = worksheet.getRow(1);
     headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
     headerRow.fill = {
       type: "pattern",
@@ -968,17 +999,6 @@ exports.downloadTemplate = async (req, res) => {
       fgColor: { argb: "FF1976D2" },
     };
 
-    // Style example rows
-    for (let i = 11; i <= 14; i++) {
-      const row = worksheet.getRow(i);
-      row.fill = {
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FFF5F5F5" },
-      };
-    }
-
-    // Set column widths
     worksheet.columns = [
       { width: 15 },
       { width: 30 },
@@ -988,17 +1008,14 @@ exports.downloadTemplate = async (req, res) => {
       { width: 12 },
     ];
 
-    // Set response headers
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     res.setHeader(
       "Content-Disposition",
-      'attachment; filename="mau-nhap-file-mat-hang.xlsx"',
+      'attachment; filename="mau-nhap-mat-hang.xlsx"',
     );
-
-    // Write workbook to response
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
