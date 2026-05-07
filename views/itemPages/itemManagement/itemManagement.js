@@ -13,6 +13,7 @@ let sortStates = {
   unitPrice: "none",
   vat: "none",
   unitPriceAfterVAT: "none",
+  inStorage: "none",
   createdAt: "none",
   "createdBy.username": "none",
 };
@@ -83,7 +84,7 @@ function renderItems(items) {
   if (items.length === 0) {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td colspan="10" style="text-align: center; padding: 40px; color: #666;">
+      <td colspan="11" style="text-align: center; padding: 40px; color: #666;">
         Không có mặt hàng nào để hiển thị
       </td>
     `;
@@ -104,6 +105,7 @@ function renderItems(items) {
       <td>${formatCurrency(item.unitPrice)}</td>
       <td>${item.vat}%</td>
       <td>${formatCurrency(item.unitPriceAfterVAT)}</td>
+      <td>${item.inStorage || 0}</td>
       <td>${formatDate(item.createdAt)}</td>
       <td>
         <span class="status-badge ${
@@ -167,7 +169,7 @@ function updateSortIndicators() {
   // Set current sort indicator
   const currentField = currentSort.field;
   const currentIndicator = document.getElementById(
-    `sort-${currentField.replace(".", "-")}`
+    `sort-${currentField.replace(".", "-")}`,
   );
   if (currentIndicator) {
     currentIndicator.textContent = currentSort.order === "asc" ? "↑" : "↓";
@@ -182,7 +184,7 @@ function searchItems() {
       item.name.toLowerCase().includes(searchTerm) ||
       item.code.toLowerCase().includes(searchTerm) ||
       item.unit.toLowerCase().includes(searchTerm) ||
-      item.createdBy?.username?.toLowerCase().includes(searchTerm)
+      item.createdBy?.username?.toLowerCase().includes(searchTerm),
   );
   renderItems(filtered);
 }
@@ -204,6 +206,7 @@ function showAddModal() {
   document.getElementById("item-id").value = "";
   document.getElementById("unit").value = "cái";
   document.getElementById("vat").value = "10";
+  document.getElementById("inStorage").value = "0";
   calculatePriceAfterVAT();
   document.getElementById("item-modal").style.display = "block";
 
@@ -235,6 +238,7 @@ async function showEditModal(itemId) {
     document.getElementById("vat").value = item.vat;
     document.getElementById("unitPriceAfterVAT").value =
       item.unitPriceAfterVAT.toFixed(2);
+    document.getElementById("inStorage").value = item.inStorage || 0;
     document.getElementById("item-modal").style.display = "block";
 
     // Focus on first input
@@ -265,7 +269,7 @@ async function showAuditHistory(itemId) {
     if (auditHistory.length === 0) {
       const row = document.createElement("tr");
       row.innerHTML = `
-        <td colspan="9" style="text-align: center; padding: 40px; color: #666;">
+        <td colspan="10" style="text-align: center; padding: 40px; color: #666;">
           Không có lịch sử thay đổi nào
         </td>
       `;
@@ -295,12 +299,12 @@ async function showAuditHistory(itemId) {
 
         const priceChanges = audit.oldUnitPrice
           ? `<span class="old-value">${formatCurrency(
-              audit.oldUnitPrice
+              audit.oldUnitPrice,
             )}</span> → <span class="new-value">${formatCurrency(
-              audit.newUnitPrice
+              audit.newUnitPrice,
             )}</span>`
           : `<span class="new-value">${formatCurrency(
-              audit.newUnitPrice
+              audit.newUnitPrice,
             )}</span>`;
 
         const vatChanges =
@@ -311,18 +315,23 @@ async function showAuditHistory(itemId) {
         const priceAfterVATChanges =
           audit.oldUnitPriceAfterVAT !== undefined
             ? `<span class="old-value">${formatCurrency(
-                audit.oldUnitPriceAfterVAT
+                audit.oldUnitPriceAfterVAT,
               )}</span> → <span class="new-value">${formatCurrency(
-                audit.newUnitPriceAfterVAT
+                audit.newUnitPriceAfterVAT,
               )}</span>`
             : `<span class="new-value">${formatCurrency(
-                audit.newUnitPriceAfterVAT
+                audit.newUnitPriceAfterVAT,
               )}</span>`;
+
+        const inStorageChanges =
+          audit.oldInStorage !== undefined
+            ? `<span class="old-value">${audit.oldInStorage}</span> → <span class="new-value">${audit.newInStorage}</span>`
+            : `<span class="new-value">${audit.newInStorage}</span>`;
 
         row.innerHTML = `
           <td>${formatDate(audit.editedAt)}</td>
           <td><span class="status-badge ${getActionClass(
-            audit.action
+            audit.action,
           )}">${getActionText(audit.action)}</span></td>
           <td>${audit.editedBy?.username || "Không xác định"}</td>
           <td class="change-cell">${nameChanges}</td>
@@ -331,6 +340,7 @@ async function showAuditHistory(itemId) {
           <td class="change-cell">${priceChanges}</td>
           <td class="change-cell">${vatChanges}</td>
           <td class="change-cell">${priceAfterVATChanges}</td>
+          <td class="change-cell">${inStorageChanges}</td>
         `;
         tbody.appendChild(row);
       });
@@ -369,6 +379,7 @@ async function handleSubmit(event) {
   const unit = document.getElementById("unit").value.trim();
   const unitPrice = parseFloat(document.getElementById("unitPrice").value);
   const vat = parseFloat(document.getElementById("vat").value);
+  const inStorage = parseInt(document.getElementById("inStorage").value) || 0;
 
   // Validation
   if (!code || !name || !unit || isNaN(unitPrice) || unitPrice < 0) {
@@ -381,7 +392,12 @@ async function handleSubmit(event) {
     return;
   }
 
-  const itemData = { code, name, unit, unitPrice, vat };
+  if (inStorage < 0) {
+    showAlert("Tồn kho không được âm!", "error");
+    return;
+  }
+
+  const itemData = { code, name, unit, unitPrice, vat, inStorage };
 
   const url = itemId
     ? `/itemManagementControl/${itemId}`
@@ -524,7 +540,7 @@ async function handleImportSubmit(event) {
   // Xác nhận trước khi import
   if (
     !confirm(
-      "⚠️ Lưu ý: Nếu file có mã hàng trùng với mã hàng đang hoạt động, thông tin sẽ được CẬP NHẬT (ghi đè).\n\nTiếp tục nhập file?"
+      "⚠️ Lưu ý: Nếu file có mã hàng trùng với mã hàng đang hoạt động, thông tin sẽ được CẬP NHẬT (ghi đè).\n\nTiếp tục nhập file?",
     )
   ) {
     return;
@@ -573,7 +589,7 @@ async function handleImportSubmit(event) {
             result.summary.success
           } mặt hàng từ file Excel! (${result.summary.created || 0} mới, ${
             result.summary.updated || 0
-          } cập nhật)`
+          } cập nhật)`,
         );
       }, 1500);
     }
@@ -639,7 +655,7 @@ function displayImportResults(result) {
                 error.warning ? "status-warning" : "status-deleted"
               }">${error.warning ? "Cảnh báo" : "Lỗi"}</span></td>
             </tr>
-          `
+          `,
             )
             .join("")}
         </tbody>

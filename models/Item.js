@@ -14,6 +14,8 @@ const auditHistorySchema = new mongoose.Schema({
   newVAT: Number,
   oldUnitPriceAfterVAT: Number,
   newUnitPriceAfterVAT: Number,
+  oldInStorage: Number,
+  newInStorage: Number,
   editedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -63,6 +65,11 @@ const itemSchema = new mongoose.Schema({
   unitPriceAfterVAT: {
     type: Number,
     required: true,
+    min: 0,
+  },
+  inStorage: {
+    type: Number,
+    default: 0,
     min: 0,
   },
   createdBy: {

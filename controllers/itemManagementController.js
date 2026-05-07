@@ -96,7 +96,7 @@ exports.getItem = async (req, res) => {
 // Create new item
 exports.createItem = async (req, res) => {
   try {
-    const { name, code, unit, unitPrice, vat = 0 } = req.body;
+    const { name, code, unit, unitPrice, vat = 0, inStorage = 0 } = req.body;
 
     // Check if code already exists (including deleted items)
     const existingItem = await Item.findOne({ code });
@@ -108,6 +108,7 @@ exports.createItem = async (req, res) => {
     const vatPercentage = parseFloat(vat);
     const unitPriceValue = parseFloat(unitPrice);
     const unitPriceAfterVAT = unitPriceValue * (1 + vatPercentage / 100);
+    const inStorageValue = parseInt(inStorage) || 0;
 
     const item = new Item({
       name,
@@ -116,6 +117,7 @@ exports.createItem = async (req, res) => {
       unitPrice: unitPriceValue,
       vat: vatPercentage,
       unitPriceAfterVAT,
+      inStorage: inStorageValue,
       createdBy: req.user.id,
       auditHistory: [
         {
@@ -125,6 +127,7 @@ exports.createItem = async (req, res) => {
           newUnitPrice: unitPriceValue,
           newVAT: vatPercentage,
           newUnitPriceAfterVAT: unitPriceAfterVAT,
+          newInStorage: inStorageValue,
           editedBy: req.user.id,
           action: "create",
         },
@@ -145,7 +148,7 @@ exports.createItem = async (req, res) => {
 // Update item
 exports.updateItem = async (req, res) => {
   try {
-    const { name, code, unit, unitPrice, vat } = req.body;
+    const { name, code, unit, unitPrice, vat, inStorage } = req.body;
     const itemId = req.params.id;
 
     const item = await Item.findById(itemId);
@@ -173,6 +176,8 @@ exports.updateItem = async (req, res) => {
     const vatPercentage = vat !== undefined ? parseFloat(vat) : item.vat;
     const unitPriceValue = parseFloat(unitPrice);
     const unitPriceAfterVAT = unitPriceValue * (1 + vatPercentage / 100);
+    const inStorageValue =
+      inStorage !== undefined ? parseInt(inStorage) : item.inStorage;
 
     // Create audit entry
     const auditEntry = {
@@ -188,6 +193,8 @@ exports.updateItem = async (req, res) => {
       newVAT: vatPercentage,
       oldUnitPriceAfterVAT: item.unitPriceAfterVAT,
       newUnitPriceAfterVAT: unitPriceAfterVAT,
+      oldInStorage: item.inStorage,
+      newInStorage: inStorageValue,
       editedBy: req.user.id,
       action: "update",
     };
@@ -200,6 +207,7 @@ exports.updateItem = async (req, res) => {
       unitPrice: item.unitPrice,
       vat: item.vat,
       unitPriceAfterVAT: item.unitPriceAfterVAT,
+      inStorage: item.inStorage,
     };
 
     // Update item
@@ -209,6 +217,7 @@ exports.updateItem = async (req, res) => {
     item.unitPrice = unitPriceValue;
     item.vat = vatPercentage;
     item.unitPriceAfterVAT = unitPriceAfterVAT;
+    item.inStorage = inStorageValue;
     item.auditHistory.push(auditEntry);
 
     await item.save();
@@ -220,7 +229,8 @@ exports.updateItem = async (req, res) => {
       code !== oldItemData.code ||
       unit !== oldItemData.unit ||
       unitPriceValue !== oldItemData.unitPrice ||
-      vatPercentage !== oldItemData.vat
+      vatPercentage !== oldItemData.vat ||
+      inStorageValue !== oldItemData.inStorage
     ) {
       try {
         // Find all pending orders that contain this item
@@ -251,6 +261,7 @@ exports.updateItem = async (req, res) => {
                 unitPrice: unitPriceValue,
                 vat: vatPercentage,
                 unitPriceAfterVAT: unitPriceAfterVAT,
+                inStorage: inStorageValue,
                 totalPrice: newTotalPrice,
                 totalPriceAfterVAT: newTotalPriceAfterVAT,
               };
@@ -323,6 +334,7 @@ exports.deleteItem = async (req, res) => {
       oldUnitPrice: item.unitPrice,
       oldVAT: item.vat,
       oldUnitPriceAfterVAT: item.unitPriceAfterVAT,
+      oldInStorage: item.inStorage,
       editedBy: req.user.id,
       action: "delete",
     };
@@ -398,6 +410,7 @@ exports.restoreItem = async (req, res) => {
       newUnitPrice: item.unitPrice,
       newVAT: item.vat,
       newUnitPriceAfterVAT: item.unitPriceAfterVAT,
+      newInStorage: item.inStorage,
       editedBy: req.user.id,
       action: "create", // Treating restore as a new creation
     };
@@ -475,6 +488,7 @@ exports.exportToExcel = async (req, res) => {
       { header: "Đơn giá", key: "unitPrice", width: 15 },
       { header: "VAT (%)", key: "vat", width: 10 },
       { header: "Giá sau VAT", key: "unitPriceAfterVAT", width: 15 },
+      { header: "Tồn kho", key: "inStorage", width: 12 },
       { header: "Trạng thái", key: "status", width: 15 },
       { header: "Người tạo", key: "createdBy", width: 20 },
       { header: "Ngày tạo", key: "createdAt", width: 20 },
@@ -497,6 +511,7 @@ exports.exportToExcel = async (req, res) => {
         unitPrice: item.unitPrice,
         vat: item.vat,
         unitPriceAfterVAT: item.unitPriceAfterVAT,
+        inStorage: item.inStorage || 0,
         status: item.isDeleted ? "Đã xóa" : "Đang hoạt động",
         createdBy: item.createdBy?.username || "Không xác định",
         createdAt: new Date(item.createdAt).toLocaleString("vi-VN"),
@@ -518,6 +533,21 @@ exports.exportToExcel = async (req, res) => {
           type: "pattern",
           pattern: "solid",
           fgColor: { argb: "FFC8E6C9" },
+        };
+      }
+
+      // Color coding for inStorage
+      if (item.inStorage > 0) {
+        row.getCell("inStorage").fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFC8E6C9" },
+        };
+      } else {
+        row.getCell("inStorage").fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FFFFF3CD" },
         };
       }
     });
@@ -590,6 +620,7 @@ exports.importFromExcel = async (req, res) => {
         const unit = row.getCell(3).value?.toString().trim() || "cái";
         const unitPrice = parseFloat(row.getCell(4).value) || 0;
         const vat = parseFloat(row.getCell(5).value) || 0;
+        const inStorage = parseInt(row.getCell(6).value) || 0;
         const unitPriceAfterVAT = unitPrice * (1 + vat / 100);
 
         // Validate required fields
@@ -642,6 +673,7 @@ exports.importFromExcel = async (req, res) => {
             unitPrice: existingItem.unitPrice,
             vat: existingItem.vat,
             unitPriceAfterVAT: existingItem.unitPriceAfterVAT,
+            inStorage: existingItem.inStorage,
           };
 
           // Tạo audit entry
@@ -658,6 +690,8 @@ exports.importFromExcel = async (req, res) => {
             newVAT: vat,
             oldUnitPriceAfterVAT: oldValues.unitPriceAfterVAT,
             newUnitPriceAfterVAT: unitPriceAfterVAT,
+            oldInStorage: oldValues.inStorage,
+            newInStorage: inStorage,
             editedBy: req.user.id,
             action: "update",
             note: "Cập nhật từ Excel import",
@@ -669,6 +703,7 @@ exports.importFromExcel = async (req, res) => {
           existingItem.unitPrice = unitPrice;
           existingItem.vat = vat;
           existingItem.unitPriceAfterVAT = unitPriceAfterVAT;
+          existingItem.inStorage = inStorage;
           existingItem.auditHistory.push(auditEntry);
 
           await existingItem.save();
@@ -703,6 +738,7 @@ exports.importFromExcel = async (req, res) => {
                     unitPrice: unitPrice,
                     vat: vat,
                     unitPriceAfterVAT: unitPriceAfterVAT,
+                    inStorage: inStorage,
                     totalPrice: newTotalPrice,
                     totalPriceAfterVAT: newTotalPriceAfterVAT,
                   };
@@ -765,6 +801,7 @@ exports.importFromExcel = async (req, res) => {
             unitPrice,
             vat,
             unitPriceAfterVAT,
+            inStorage,
             createdBy: req.user.id,
             auditHistory: [
               {
@@ -774,6 +811,7 @@ exports.importFromExcel = async (req, res) => {
                 newUnitPrice: unitPrice,
                 newVAT: vat,
                 newUnitPriceAfterVAT: unitPriceAfterVAT,
+                newInStorage: inStorage,
                 editedBy: req.user.id,
                 action: "create",
                 note: "Nhập từ Excel",
@@ -918,6 +956,7 @@ exports.downloadTemplate = async (req, res) => {
       "Đơn vị",
       "Đơn giá*",
       "VAT (%)",
+      "Tồn kho",
     ]);
 
     // Style the header row
@@ -946,6 +985,7 @@ exports.downloadTemplate = async (req, res) => {
       { width: 10 },
       { width: 15 },
       { width: 10 },
+      { width: 12 },
     ];
 
     // Set response headers
