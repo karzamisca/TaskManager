@@ -6,6 +6,83 @@ let currentHistoryData = null;
 let currentHistoryUserId = null;
 let currentMonth = new Date().getMonth() + 1;
 let currentYear = new Date().getFullYear();
+let currentSortColumn = "costCenter"; // Default sort column
+let currentSortDirection = "asc"; // Default sort direction
+
+// Add sorting function
+function sortUsers(users, column, direction) {
+  return [...users].sort((a, b) => {
+    let valueA, valueB;
+
+    switch (column) {
+      case "costCenter":
+        valueA = (a.costCenter?.name || "Chưa có").toLowerCase();
+        valueB = (b.costCenter?.name || "Chưa có").toLowerCase();
+        break;
+      case "username":
+        valueA = (a.username || "").toLowerCase();
+        valueB = (b.username || "").toLowerCase();
+        break;
+      case "realName":
+        valueA = (a.realName || "").toLowerCase();
+        valueB = (b.realName || "").toLowerCase();
+        break;
+      case "email":
+        valueA = (a.email || "").toLowerCase();
+        valueB = (b.email || "").toLowerCase();
+        break;
+      case "manager":
+        valueA = (a.assignedManager?.username || "Chưa có").toLowerCase();
+        valueB = (b.assignedManager?.username || "Chưa có").toLowerCase();
+        break;
+      case "bank":
+        valueA = (a.beneficiaryBank || "").toLowerCase();
+        valueB = (b.beneficiaryBank || "").toLowerCase();
+        break;
+      case "baseSalary":
+        valueA = a.baseSalary || 0;
+        valueB = b.baseSalary || 0;
+        break;
+      case "grossSalary":
+        valueA = a.grossSalary || 0;
+        valueB = b.grossSalary || 0;
+        break;
+      case "currentSalary":
+        valueA = a.currentSalary || 0;
+        valueB = b.currentSalary || 0;
+        break;
+      default:
+        return 0;
+    }
+
+    if (valueA < valueB) return direction === "asc" ? -1 : 1;
+    if (valueA > valueB) return direction === "asc" ? 1 : -1;
+    return 0;
+  });
+}
+
+// Add sort indicator update function
+function updateSortIndicators() {
+  // Remove all sort indicators
+  document
+    .querySelectorAll("#users-table th .sort-indicator")
+    .forEach((indicator) => {
+      indicator.remove();
+    });
+
+  // Add indicator to current sort column
+  const th = document.querySelector(
+    `#users-table th[data-sort="${currentSortColumn}"]`,
+  );
+  if (th) {
+    const indicator = document.createElement("span");
+    indicator.className = "sort-indicator";
+    indicator.textContent = currentSortDirection === "asc" ? " ▲" : " ▼";
+    indicator.style.fontSize = "12px";
+    indicator.style.marginLeft = "5px";
+    th.appendChild(indicator);
+  }
+}
 
 function toggleSelectUser(userId) {
   if (selectedUsers.has(userId)) {
@@ -44,6 +121,16 @@ async function exportToExcel() {
   }
 
   const usersToExport = allUsers.filter((user) => selectedUsers.has(user._id));
+
+  // Sort users by cost center (A-Z) before exporting
+  usersToExport.sort((a, b) => {
+    const costCenterA = (a.costCenter?.name || "Chưa có").toLowerCase();
+    const costCenterB = (b.costCenter?.name || "Chưa có").toLowerCase();
+
+    if (costCenterA < costCenterB) return -1;
+    if (costCenterA > costCenterB) return 1;
+    return 0;
+  });
 
   // Helper function to safely format numbers
   const safeFormat = (value) => {
@@ -635,6 +722,25 @@ document.addEventListener("DOMContentLoaded", function () {
   document
     .getElementById("edit-user-form")
     .addEventListener("submit", updateUser);
+
+  // Add sort functionality to table headers
+  document.querySelectorAll("#users-table th[data-sort]").forEach((th) => {
+    th.addEventListener("click", function () {
+      const sortColumn = this.getAttribute("data-sort");
+      if (!sortColumn) return;
+
+      if (currentSortColumn === sortColumn) {
+        // Toggle direction if clicking same column
+        currentSortDirection = currentSortDirection === "asc" ? "desc" : "asc";
+      } else {
+        // New column, default to ascending
+        currentSortColumn = sortColumn;
+        currentSortDirection = "asc";
+      }
+
+      renderUsers();
+    });
+  });
 });
 
 // Data loading functions
@@ -715,6 +821,9 @@ async function loadUsers() {
 
 // Rendering functions
 function applyFilters() {
+  // Reset sort to default (cost center A-Z) when applying filters
+  currentSortColumn = "costCenter";
+  currentSortDirection = "asc";
   renderUsers();
 }
 
@@ -743,6 +852,16 @@ function renderUsers() {
         (u.assignedManager && u.assignedManager._id === filterManagerId),
     );
   }
+
+  // Apply sorting
+  currentFilteredUsers = sortUsers(
+    currentFilteredUsers,
+    currentSortColumn,
+    currentSortDirection,
+  );
+
+  // Update sort indicators
+  updateSortIndicators();
 
   if (currentFilteredUsers.length === 0) {
     tbody.innerHTML = `<tr><td colspan="28" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;

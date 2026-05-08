@@ -108,15 +108,23 @@
                 <thead>
                   <tr>
                     <th class="checkbox-cell"></th>
-                    <th>Tên đăng nhập</th>
-                    <th>Tên thật</th>
-                    <th>Email</th>
-                    <th>Trạm</th>
-                    <th>Người quản lý</th>
-                    <th>Ngân hàng</th>
+                    <th data-sort="username" style="cursor: pointer">
+                      Tên đăng nhập
+                    </th>
+                    <th data-sort="realName" style="cursor: pointer">
+                      Tên thật
+                    </th>
+                    <th data-sort="email" style="cursor: pointer">Email</th>
+                    <th data-sort="costCenter" style="cursor: pointer">Trạm</th>
+                    <th data-sort="manager" style="cursor: pointer">
+                      Người quản lý
+                    </th>
+                    <th data-sort="bank" style="cursor: pointer">Ngân hàng</th>
                     <th>Số tài khoản</th>
                     <th>Căn cước công dân</th>
-                    <th>Lương cơ bản</th>
+                    <th data-sort="baseSalary" style="cursor: pointer">
+                      Lương cơ bản
+                    </th>
                     <th>Lương theo giờ</th>
                     <th>Hoa hồng</th>
                     <th>Thưởng khác</th>
@@ -127,13 +135,17 @@
                     <th>Giờ tăng ca ngày lễ</th>
                     <th>Lương tăng ca</th>
                     <th>Công tác phí</th>
-                    <th>Tổng lương</th>
+                    <th data-sort="grossSalary" style="cursor: pointer">
+                      Tổng lương
+                    </th>
                     <th>Lương đóng bảo hiểm</th>
                     <th>Bảo hiểm bắt buộc</th>
                     <th>Số người phụ thuộc</th>
                     <th>Thu nhập tính thuế</th>
                     <th>Thuế thu nhập</th>
-                    <th>Lương thực lĩnh</th>
+                    <th data-sort="currentSalary" style="cursor: pointer">
+                      Lương thực lĩnh
+                    </th>
                     <th>Thao tác</th>
                   </tr>
                 </thead>
@@ -530,7 +542,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?v=1.11"></script>
+    <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?v=1.12"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>
