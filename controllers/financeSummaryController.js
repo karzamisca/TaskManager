@@ -35,7 +35,6 @@ exports.getAvailableYears = async (req, res) => {
     const paymentYears = new Set();
 
     paymentDocs.forEach((doc) => {
-      // Process documents with stages
       if (doc.stages && doc.stages.length > 0) {
         doc.stages.forEach((stage) => {
           const dateInfo = getMonthYearFromSubmissionDate(stage.deadline);
@@ -44,12 +43,37 @@ exports.getAvailableYears = async (req, res) => {
           }
         });
       } else {
-        // Process documents without stages
         const dateInfo = getMonthYearFromSubmissionDate(doc.submissionDate);
         if (dateInfo) {
           paymentYears.add(dateInfo.year);
         }
       }
+    });
+
+    // Get unique years from CostCenter bank and daily entries
+    const bankDailyDocs = await CostCenter.find({
+      $or: [{ "bank.0": { $exists: true } }, { "daily.0": { $exists: true } }],
+    })
+      .select("bank daily")
+      .lean();
+
+    const bankDailyYears = new Set();
+
+    bankDailyDocs.forEach((doc) => {
+      (doc.bank || []).forEach((entry) => {
+        if (entry.date) {
+          const [, , yearStr] = entry.date.split("/");
+          const y = parseInt(yearStr);
+          if (y) bankDailyYears.add(y);
+        }
+      });
+      (doc.daily || []).forEach((entry) => {
+        if (entry.date) {
+          const [, , yearStr] = entry.date.split("/");
+          const y = parseInt(yearStr);
+          if (y) bankDailyYears.add(y);
+        }
+      });
     });
 
     // Combine all years and remove duplicates
@@ -58,6 +82,7 @@ exports.getAvailableYears = async (req, res) => {
         ...userRecordYears,
         ...costCenterYears,
         ...Array.from(paymentYears),
+        ...Array.from(bankDailyYears),
       ]),
     ];
 
@@ -92,7 +117,7 @@ exports.getAllCostCenters = async (req, res) => {
       .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
   }
   try {
-    const costCenters = await CostCenter.find().select("name category -_id"); // Include category field
+    const costCenters = await CostCenter.find().select("name category -_id");
 
     const sortedCostCenters = costCenters.sort((a, b) => {
       return a.name.localeCompare(b.name);
@@ -207,19 +232,15 @@ exports.getRevenueByCostCenter = async (req, res) => {
     if (costCenters && costCenters.trim() !== "") {
       const selectedCostCenters = costCenters
         .split(",")
-        .map((cc) => decodeURIComponent(cc.trim())) // Decode URL encoded characters like &, :, etc.
+        .map((cc) => decodeURIComponent(cc.trim()))
         .filter((cc) => cc);
 
       if (selectedCostCenters.length > 0) {
-        // Use more robust matching that handles special characters
         costCenterNames = costCenterNames.filter((name) =>
           selectedCostCenters.some((selected) => {
-            // Exact match
             const exactMatch = selected === name;
-            // Case insensitive match
             const caseInsensitiveMatch =
               selected.toLowerCase() === name.toLowerCase();
-
             return exactMatch || caseInsensitiveMatch;
           }),
         );
@@ -239,7 +260,6 @@ exports.getRevenueByCostCenter = async (req, res) => {
             .map((cc) => cc.name);
         }
 
-        // If still no matches, return empty result
         if (costCenterNames.length === 0) {
           return res.json([]);
         }
@@ -257,15 +277,12 @@ exports.getRevenueByCostCenter = async (req, res) => {
       .populate("costCenter")
       .lean();
 
-    // Enhanced user record filtering with better cost center matching
     const filteredUserRecords = userRecords.filter((record) => {
       if (!record.costCenter) return false;
-
       return costCenterNames.some((ccName) => {
         const exactMatch = ccName === record.costCenter.name;
         const caseInsensitiveMatch =
           ccName.toLowerCase() === record.costCenter.name.toLowerCase();
-
         return exactMatch || caseInsensitiveMatch;
       });
     });
@@ -286,158 +303,105 @@ exports.getRevenueByCostCenter = async (req, res) => {
       name: { $in: costCenterNames },
     }).select("name construction");
 
-    // Get bank data for the specified years
+    // Get bank data for the specified years — includes daily for loan amortization
     const bankData = await CostCenter.find({
       name: { $in: costCenterNames },
-    }).select("name bank");
+    }).select("name bank daily");
 
     // Filter payment documents by submission date and create a map
-    const costCenterPaymentMap = {}; // To accumulate payments by cost center per month
+    const costCenterPaymentMap = {};
 
     paymentDocuments.forEach((doc) => {
-      // Check if the document has stages
       if (doc.stages && doc.stages.length > 0) {
-        // Process each stage separately
         doc.stages.forEach((stage) => {
           const dateInfo = getMonthYearFromSubmissionDate(stage.deadline);
-          if (!dateInfo) {
-            return; // Skip if invalid date
-          }
+          if (!dateInfo) return;
 
-          // Align with your existing month-shifting logic:
-          // Payment in March (month 3) should be attributed to recordMonth 4 of the target year
           let recordMonth = dateInfo.month + 1;
           let recordYear = dateInfo.year;
-
-          // Handle year boundary: December payments should be attributed to January of next year
           if (recordMonth > 12) {
             recordMonth = 1;
             recordYear += 1;
           }
 
-          // Only include payments that align with the requested years
-          if (!yearList.includes(recordYear)) {
-            return;
-          }
+          if (!yearList.includes(recordYear)) return;
 
           const key = `${doc.costCenter}-${recordMonth}-${recordYear}`;
-
           if (!costCenterPaymentMap[key]) {
             costCenterPaymentMap[key] = 0;
           }
-
-          // Use stage amount instead of totalPayment
           costCenterPaymentMap[key] += stage.amount || 0;
         });
       } else if (
         doc.appendedPurchasingDocuments &&
         doc.appendedPurchasingDocuments.length > 0
       ) {
-        // Payment document with appended purchasing documents but no stages
-        // Distribute payment based on product-level cost centers
         const dateInfo = getMonthYearFromSubmissionDate(doc.submissionDate);
-        if (!dateInfo) {
-          return; // Skip if invalid date
-        }
+        if (!dateInfo) return;
 
-        // Align with your existing month-shifting logic
         let recordMonth = dateInfo.month + 1;
         let recordYear = dateInfo.year;
-
-        // Handle year boundary
         if (recordMonth > 12) {
           recordMonth = 1;
           recordYear += 1;
         }
 
-        // Only include payments that align with the requested years
-        if (!yearList.includes(recordYear)) {
-          return;
-        }
+        if (!yearList.includes(recordYear)) return;
 
-        // Iterate through each appended purchasing document
         doc.appendedPurchasingDocuments.forEach((purchasingDoc) => {
           if (purchasingDoc.products && purchasingDoc.products.length > 0) {
-            // Iterate through each product
             purchasingDoc.products.forEach((product) => {
               const productCostCenter = product.costCenter || "Chưa có";
-
-              // Only process if the product's cost center is in our filter list
               if (costCenterNames.includes(productCostCenter)) {
                 const key = `${productCostCenter}-${recordMonth}-${recordYear}`;
-
                 if (!costCenterPaymentMap[key]) {
                   costCenterPaymentMap[key] = 0;
                 }
-
-                // Add the product's total cost (after VAT) to the appropriate cost center
                 costCenterPaymentMap[key] += product.totalCostAfterVat || 0;
               }
             });
           }
         });
       } else {
-        // Original logic for documents without stages or appended purchasing documents
         const dateInfo = getMonthYearFromSubmissionDate(doc.submissionDate);
-        if (!dateInfo) {
-          return; // Skip if invalid date
-        }
+        if (!dateInfo) return;
 
-        // Align with your existing month-shifting logic:
-        // Payment in March (month 3) should be attributed to recordMonth 4 of the target year
         let recordMonth = dateInfo.month + 1;
         let recordYear = dateInfo.year;
-
-        // Handle year boundary: December payments should be attributed to January of next year
         if (recordMonth > 12) {
           recordMonth = 1;
           recordYear += 1;
         }
 
-        // Only include payments that align with the requested years
-        if (!yearList.includes(recordYear)) {
-          return;
-        }
+        if (!yearList.includes(recordYear)) return;
 
         const key = `${doc.costCenter}-${recordMonth}-${recordYear}`;
-
         if (!costCenterPaymentMap[key]) {
           costCenterPaymentMap[key] = 0;
         }
-
-        // Use totalPayment for documents without stages
         costCenterPaymentMap[key] += doc.totalPayment || 0;
       }
     });
 
-    // Process construction data by month using the same month logic
+    // Process construction data by month
     const costCenterConstructionMap = {};
 
     constructionData.forEach((center) => {
       center.construction.forEach((construction) => {
-        // Parse the date (DD/MM/YYYY format)
         const [day, month, yearStr] = construction.date.split("/");
         const constructionMonth = parseInt(month);
         const constructionYear = parseInt(yearStr);
 
-        // Apply the same month-shifting logic as payments:
-        // Construction in March (month 3) should be attributed to recordMonth 4 of the target year
         let recordMonth = constructionMonth + 1;
         let recordYear = constructionYear;
-
-        // Handle year boundary: December construction should be attributed to January of next year
         if (recordMonth > 12) {
           recordMonth = 1;
           recordYear += 1;
         }
 
-        // Only include construction that aligns with the requested years
-        if (!yearList.includes(recordYear)) {
-          return;
-        }
+        if (!yearList.includes(recordYear)) return;
 
         const recordKey = `${center.name}-${recordMonth}-${recordYear}`;
-
         if (!costCenterConstructionMap[recordKey]) {
           costCenterConstructionMap[recordKey] = {
             income: 0,
@@ -454,74 +418,92 @@ exports.getRevenueByCostCenter = async (req, res) => {
       });
     });
 
-    // Process bank data by month using the same month logic
+    // Process bank data by month
+    // — Raw entries for non-loans
+    // — Daily amortization entries for complete loans
     const costCenterBankMap = {};
 
     bankData.forEach((center) => {
+      // 1. Raw bank entries (skip complete loans to avoid double-counting)
       center.bank.forEach((bankEntry) => {
-        // Parse the date (DD/MM/YYYY format)
+        if (bankEntry.isCompleteLoan) return;
+
         const [day, month, yearStr] = bankEntry.date.split("/");
         const bankMonth = parseInt(month);
         const bankYear = parseInt(yearStr);
 
-        // Apply the same month-shifting logic as payments and construction:
-        // Bank entry in March (month 3) should be attributed to recordMonth 4 of the target year
         let recordMonth = bankMonth + 1;
         let recordYear = bankYear;
-
-        // Handle year boundary: December bank entries should be attributed to January of next year
         if (recordMonth > 12) {
           recordMonth = 1;
           recordYear += 1;
         }
 
-        // Only include bank entries that align with the requested years
-        if (!yearList.includes(recordYear)) {
-          return;
-        }
+        if (!yearList.includes(recordYear)) return;
 
         const recordKey = `${center.name}-${recordMonth}-${recordYear}`;
-
         if (!costCenterBankMap[recordKey]) {
-          costCenterBankMap[recordKey] = {
-            income: 0,
-            expense: 0,
-            net: 0,
-          };
+          costCenterBankMap[recordKey] = { income: 0, expense: 0, net: 0 };
         }
 
         costCenterBankMap[recordKey].income += bankEntry.income || 0;
         costCenterBankMap[recordKey].expense += bankEntry.expense || 0;
         costCenterBankMap[recordKey].net +=
-          bankEntry.income - bankEntry.expense || 0;
+          (bankEntry.income || 0) - (bankEntry.expense || 0);
+      });
+
+      // 2. Daily loan amortization entries (generated by generateDailyEntries)
+      (center.daily || []).forEach((dailyEntry) => {
+        if (!dailyEntry.isLoanInterest) return;
+
+        const [day, month, yearStr] = dailyEntry.date.split("/");
+        const dailyMonth = parseInt(month);
+        const dailyYear = parseInt(yearStr);
+
+        let recordMonth = dailyMonth + 1;
+        let recordYear = dailyYear;
+        if (recordMonth > 12) {
+          recordMonth = 1;
+          recordYear += 1;
+        }
+
+        if (!yearList.includes(recordYear)) return;
+
+        const recordKey = `${center.name}-${recordMonth}-${recordYear}`;
+        if (!costCenterBankMap[recordKey]) {
+          costCenterBankMap[recordKey] = { income: 0, expense: 0, net: 0 };
+        }
+
+        // expensePrediction holds the total periodic payment (interest + principal)
+        const loanExpense = dailyEntry.expensePrediction || 0;
+        const loanIncome = dailyEntry.incomePrediction || 0;
+
+        costCenterBankMap[recordKey].income += loanIncome;
+        costCenterBankMap[recordKey].expense += loanExpense;
+        costCenterBankMap[recordKey].net += loanIncome - loanExpense;
       });
     });
 
     // Process the data
     const results = [];
-    const costCenterSalaryMap = {}; // To accumulate salaries by cost center
+    const costCenterSalaryMap = {};
 
     // First pass: Calculate total salaries per cost center per month
-    // FIXED: Using currentSalary instead of grossSalary
-    // Management roles (deputyDirector, director, headOfAccounting) are already excluded from userRecords
+    // Management roles are already excluded from userRecords query
     for (const record of filteredUserRecords) {
       if (!record.costCenter) continue;
 
       const key = `${record.costCenter.name}-${record.recordMonth}-${record.recordYear}`;
-
       if (!costCenterSalaryMap[key]) {
         costCenterSalaryMap[key] = 0;
       }
-      // Using currentSalary (net salary after deductions)
       costCenterSalaryMap[key] += record.currentSalary || 0;
     }
 
-    // Second pass: Calculate net revenue including payment documents, construction AND bank data
-    // Process for each year in the yearList
+    // Second pass: Build result rows for every cost center / month / year
     for (const year of yearList) {
       for (const costCenterName of costCenterNames) {
         for (let month = 1; month <= 12; month++) {
-          // Calculate the actual month (previous month)
           let actualMonthNumber = month - 1;
           let actualYear = parseInt(year);
 
@@ -532,7 +514,6 @@ exports.getRevenueByCostCenter = async (req, res) => {
 
           const vietnameseMonth = monthNumberToVietnamese[actualMonthNumber];
 
-          // Initialize default values
           let totalSale = 0;
           let totalPurchase = 0;
           let totalTransport = 0;
@@ -541,17 +522,15 @@ exports.getRevenueByCostCenter = async (req, res) => {
           let totalSalary = 0;
           let totalPayments = 0;
 
-          // Initialize construction values
           let constructionIncome = 0;
           let constructionExpense = 0;
           let constructionNet = 0;
 
-          // Initialize bank values
           let bankIncome = 0;
           let bankExpense = 0;
           let bankNet = 0;
 
-          // Find matching finance data
+          // Finance data (sale/purchase contracts)
           const center = financeData.find((c) => c.name === costCenterName);
           if (center) {
             const yearData = center.years.find((y) => y.year === actualYear);
@@ -560,7 +539,6 @@ exports.getRevenueByCostCenter = async (req, res) => {
                 (m) => m.name === vietnameseMonth,
               );
               if (monthData) {
-                // Calculate total values across all entries
                 monthData.entries.forEach((entry) => {
                   totalSale += entry.saleContract?.totalCost || 0;
                   totalPurchase += entry.purchaseContract?.totalCost || 0;
@@ -573,15 +551,15 @@ exports.getRevenueByCostCenter = async (req, res) => {
             }
           }
 
-          // Get total salary for this cost center/month (excluding management roles)
+          // Salary
           const salaryKey = `${costCenterName}-${month}-${year}`;
           totalSalary = costCenterSalaryMap[salaryKey] || 0;
 
-          // Get total payments for this cost center/month
+          // Payments
           const paymentKey = `${costCenterName}-${month}-${year}`;
           totalPayments = costCenterPaymentMap[paymentKey] || 0;
 
-          // Get construction data for this cost center and month (using the same month logic)
+          // Construction
           const constructionKey = `${costCenterName}-${month}-${year}`;
           const constructionDataForMonth =
             costCenterConstructionMap[constructionKey];
@@ -591,7 +569,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
             constructionNet = constructionDataForMonth.net;
           }
 
-          // Get bank data for this cost center and month (using the same month logic)
+          // Bank (raw entries + loan amortization)
           const bankKey = `${costCenterName}-${month}-${year}`;
           const bankDataForMonth = costCenterBankMap[bankKey];
           if (bankDataForMonth) {
@@ -600,7 +578,6 @@ exports.getRevenueByCostCenter = async (req, res) => {
             bankNet = bankDataForMonth.net;
           }
 
-          // Calculate net revenue INCLUDING construction AND bank data
           const netRevenue =
             totalSale -
             totalPurchase -
@@ -610,7 +587,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
             totalSalary -
             totalPayments +
             constructionNet +
-            bankNet; // Add both construction and bank net to overall revenue
+            bankNet;
 
           results.push({
             costCenter: costCenterName,
@@ -626,7 +603,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
             totalTransport: totalTransport,
             totalCommissionPurchase: totalCommissionPurchase,
             totalCommissionSale: totalCommissionSale,
-            totalSalary: totalSalary, // Sum of all employee salaries (EXCLUDING management roles)
+            totalSalary: totalSalary,
             totalPayments: totalPayments,
             constructionIncome: constructionIncome,
             constructionExpense: constructionExpense,
@@ -640,7 +617,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
       }
     }
 
-    // Sort results by cost center name, then by year, then by month
+    // Sort by cost center name, then year, then month
     results.sort((a, b) => {
       if (a.costCenter !== b.costCenter) {
         return a.costCenter.localeCompare(b.costCenter);
@@ -733,9 +710,7 @@ exports.deleteCostCenterGroup = async (req, res) => {
   }
   try {
     const { id } = req.params;
-    const group = await CostCenterGroup.findOneAndDelete({
-      _id: id,
-    });
+    const group = await CostCenterGroup.findOneAndDelete({ _id: id });
 
     if (!group) {
       return res.status(404).json({ error: "Group not found" });
@@ -748,7 +723,6 @@ exports.deleteCostCenterGroup = async (req, res) => {
   }
 };
 
-// Edit cost center group - add or remove cost centers
 exports.updateCostCenterGroup = async (req, res) => {
   if (
     ![
@@ -775,20 +749,15 @@ exports.updateCostCenterGroup = async (req, res) => {
       return res.status(404).json({ error: "Group not found" });
     }
 
-    // If full update with name and costCenters array
     if (name && costCenters) {
       group.name = name;
       group.costCenters = costCenters;
-    }
-    // If single cost center action (add/remove)
-    else if (action && costCenter) {
+    } else if (action && costCenter) {
       if (action === "add") {
-        // Add cost center if not already in group
         if (!group.costCenters.includes(costCenter)) {
           group.costCenters.push(costCenter);
         }
       } else if (action === "remove") {
-        // Remove cost center from group
         group.costCenters = group.costCenters.filter((cc) => cc !== costCenter);
       }
     }
