@@ -326,6 +326,9 @@ exports.updateItem = async (req, res) => {
         : "Cập nhật mặt hàng",
     };
 
+    // Capture old name BEFORE mutation
+    const oldName = item.name;
+
     item.name = name;
     item.code = code;
     item.unit = unit || item.unit;
@@ -345,6 +348,7 @@ exports.updateItem = async (req, res) => {
       );
     }
 
+    // ── Sync orders ──
     let ordersUpdated = 0;
     try {
       const pendingOrders = await Order.find({
@@ -387,6 +391,112 @@ exports.updateItem = async (req, res) => {
       console.error("Error updating orders:", err);
     }
 
+    // ── Sync name to all document types ──
+    const syncResult = {
+      purchasingDocsUpdated: 0,
+      deliveryDocsUpdated: 0,
+      receiptDocsUpdated: 0,
+      paymentDocsUpdated: 0,
+      advancePaymentDocsUpdated: 0,
+      advancePaymentReclaimDocsUpdated: 0,
+    };
+
+    if (oldName !== name) {
+      try {
+        const DocumentPurchasing = require("../models/DocumentPurchasing");
+        const DocumentDelivery = require("../models/DocumentDelivery");
+        const DocumentReceipt = require("../models/DocumentReceipt");
+        const DocumentPayment = require("../models/DocumentPayment");
+        const DocumentAdvancePayment = require("../models/DocumentAdvancePayment");
+        const DocumentAdvancePaymentReclaim = require("../models/DocumentAdvancePaymentReclaim");
+
+        const arrayFilterUpdate = {
+          $set: { "products.$[elem].productName": name },
+        };
+        const arrayFilterOptions = {
+          arrayFilters: [{ "elem.productName": oldName }],
+        };
+        const productNameQuery = { "products.productName": oldName };
+
+        // ── Direct products[] array — single updateMany each ──
+        const [purchasingResult, deliveryResult, receiptResult] =
+          await Promise.all([
+            DocumentPurchasing.updateMany(
+              productNameQuery,
+              arrayFilterUpdate,
+              arrayFilterOptions,
+            ),
+            DocumentDelivery.updateMany(
+              productNameQuery,
+              arrayFilterUpdate,
+              arrayFilterOptions,
+            ),
+            DocumentReceipt.updateMany(
+              productNameQuery,
+              arrayFilterUpdate,
+              arrayFilterOptions,
+            ),
+          ]);
+
+        syncResult.purchasingDocsUpdated = purchasingResult.modifiedCount;
+        syncResult.deliveryDocsUpdated = deliveryResult.modifiedCount;
+        syncResult.receiptDocsUpdated = receiptResult.modifiedCount;
+
+        // ── appendedPurchasingDocuments (Mixed) — must load, mutate, markModified, save ──
+        // Helper: mutate appendedPurchasingDocuments in-place, return whether anything changed
+        const mutateMixedAppended = (doc) => {
+          let changed = false;
+          doc.appendedPurchasingDocuments = doc.appendedPurchasingDocuments.map(
+            (purchDoc) => {
+              if (!Array.isArray(purchDoc.products)) return purchDoc;
+              const updatedProducts = purchDoc.products.map((p) => {
+                if (p.productName === oldName) {
+                  changed = true;
+                  return { ...p, productName: name };
+                }
+                return p;
+              });
+              return { ...purchDoc, products: updatedProducts };
+            },
+          );
+          return changed;
+        };
+
+        const mixedQuery = {
+          "appendedPurchasingDocuments.products.productName": oldName,
+        };
+
+        const [paymentDocs, advancePaymentDocs, advancePaymentReclaimDocs] =
+          await Promise.all([
+            DocumentPayment.find(mixedQuery),
+            DocumentAdvancePayment.find(mixedQuery),
+            DocumentAdvancePaymentReclaim.find(mixedQuery),
+          ]);
+
+        const saveMixedDocs = async (docs, countKey) => {
+          for (const doc of docs) {
+            const changed = mutateMixedAppended(doc);
+            if (changed) {
+              doc.markModified("appendedPurchasingDocuments");
+              await doc.save();
+              syncResult[countKey]++;
+            }
+          }
+        };
+
+        await Promise.all([
+          saveMixedDocs(paymentDocs, "paymentDocsUpdated"),
+          saveMixedDocs(advancePaymentDocs, "advancePaymentDocsUpdated"),
+          saveMixedDocs(
+            advancePaymentReclaimDocs,
+            "advancePaymentReclaimDocsUpdated",
+          ),
+        ]);
+      } catch (err) {
+        console.error("Error syncing item name to documents:", err);
+      }
+    }
+
     await item.populate("createdBy", "username");
     await item.populate("auditHistory.editedBy", "username");
 
@@ -395,6 +505,7 @@ exports.updateItem = async (req, res) => {
       inStorage: costCenterId ? newInStorage : null,
       costCenterId: costCenterId || null,
       ordersUpdated,
+      ...syncResult,
     });
   } catch (error) {
     console.error("Error updating item:", error);
