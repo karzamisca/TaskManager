@@ -6,6 +6,7 @@ const documentController = require("../controllers/documentController");
 const Group = require("../models/Group");
 const Project = require("../models/Project");
 const Product = require("../models/Product");
+const Item = require("../models/Item");
 const authMiddleware = require("../middlewares/authMiddleware");
 const uploadDir = "uploads/";
 
@@ -18,7 +19,7 @@ const storage = multer.diskStorage({
   filename: function (req, file, cb) {
     // Ensure the original filename is properly decoded
     const originalName = Buffer.from(file.originalname, "latin1").toString(
-      "utf8"
+      "utf8",
     );
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, uniqueSuffix + "-" + originalName);
@@ -31,7 +32,7 @@ const upload = multer({
   fileFilter: function (req, file, cb) {
     // Ensure proper encoding handling
     file.originalname = Buffer.from(file.originalname, "latin1").toString(
-      "utf8"
+      "utf8",
     );
     cb(null, true);
   },
@@ -49,39 +50,39 @@ router.get("/documentSubmission", authMiddleware, (req, res) => {
 router.get(
   "/getCurrentUser",
   authMiddleware,
-  documentController.getCurrentUser
+  documentController.getCurrentUser,
 );
 router.get("/costCenters", authMiddleware, documentController.getCostCenters);
 router.post(
   "/submitDocument",
   authMiddleware,
-  documentController.submitDocument
+  documentController.submitDocument,
 );
 // Approve document route
 router.post(
   "/approveDocument/:id",
   authMiddleware,
-  documentController.approveDocument
+  documentController.approveDocument,
 );
 router.get(
   "/exportDocumentToDocx/:id",
   authMiddleware,
-  documentController.exportDocumentToDocx
+  documentController.exportDocumentToDocx,
 );
 router.post(
   "/deleteDocument/:id",
   authMiddleware,
-  documentController.deleteDocument
+  documentController.deleteDocument,
 );
 router.post(
   "/suspendDocument/:id",
   authMiddleware,
-  documentController.suspendDocument
+  documentController.suspendDocument,
 );
 router.post(
   "/openDocument/:id",
   authMiddleware,
-  documentController.openDocument
+  documentController.openDocument,
 );
 router.get("/getGroupDocument", authMiddleware, async (req, res) => {
   try {
@@ -101,7 +102,17 @@ router.get("/getProjectDocument", authMiddleware, async (req, res) => {
 });
 router.get("/documentProduct", async (req, res) => {
   try {
-    const products = await Product.find({}).sort({ name: 1 });
+    const products = await Item.find(
+      {},
+      {
+        name: 1,
+        code: 1,
+      },
+    )
+      .sort({ name: 1 })
+      .lean()
+      .hint({ name: 1 });
+
     res.json(products);
   } catch (error) {
     console.error("Error fetching products:", error);
@@ -111,7 +122,7 @@ router.get("/documentProduct", async (req, res) => {
 router.get(
   "/documentCostCenters",
   authMiddleware,
-  documentController.getAllCostCenters
+  documentController.getAllCostCenters,
 );
 //// END OF GENERAL ROUTE
 
@@ -119,26 +130,26 @@ router.get(
 router.get(
   "/approvedProposalsForPurchasing",
   authMiddleware,
-  documentController.getApprovedProposalsForPurchasing
+  documentController.getApprovedProposalsForPurchasing,
 );
 router.get(
   "/approvedProposalsForDelivery",
   authMiddleware,
-  documentController.getApprovedProposalsForDelivery
+  documentController.getApprovedProposalsForDelivery,
 );
 router.get(
   "/approvedProposalsForReceipt",
   authMiddleware,
-  documentController.getApprovedProposalsForReceipt
+  documentController.getApprovedProposalsForReceipt,
 );
 router.get(
   "/documentsContainingProposal/:proposalId",
-  documentController.getDocumentsContainingProposal
+  documentController.getDocumentsContainingProposal,
 );
 router.get(
   "/proposalDocument/:id",
   authMiddleware,
-  documentController.getProposalDocumentById
+  documentController.getProposalDocumentById,
 );
 router.get("/documentSummaryProposal", authMiddleware, (req, res) => {
   res.sendFile("documentSummaryProposal.html", {
@@ -148,38 +159,38 @@ router.get("/documentSummaryProposal", authMiddleware, (req, res) => {
 router.get(
   "/getProposalDocumentForSeparatedView",
   authMiddleware,
-  documentController.getProposalDocumentForSeparatedView
+  documentController.getProposalDocumentForSeparatedView,
 );
 router.post(
   "/updateProposalDocument/:id",
   upload.array("files", 10), // Changed from upload.single to upload.array
   authMiddleware,
-  documentController.updateProposalDocument
+  documentController.updateProposalDocument,
 );
 router.post(
   "/deleteProposalDocumentFile/:docId/:fileId",
   authMiddleware,
-  documentController.deleteProposalDocumentFile
+  documentController.deleteProposalDocumentFile,
 );
 router.post(
   "/updateProposalDocumentDeclaration/:id",
   authMiddleware,
-  documentController.updateProposalDocumentDeclaration
+  documentController.updateProposalDocumentDeclaration,
 );
 router.get(
   "/getProposalDocument/:id",
   authMiddleware,
-  documentController.getProposalDocument
+  documentController.getProposalDocument,
 );
 router.post(
   "/suspendProposalDocument/:id",
   authMiddleware,
-  documentController.suspendProposalDocument
+  documentController.suspendProposalDocument,
 );
 router.post(
   "/openProposalDocument/:id",
   authMiddleware,
-  documentController.openProposalDocument
+  documentController.openProposalDocument,
 );
 //// END OF PROPOSAL DOCUMENT ROUTE
 
@@ -188,27 +199,27 @@ router.post(
 router.get(
   "/approvedPurchasingDocumentsForPayment",
   authMiddleware,
-  documentController.getApprovedPurchasingDocumentsForPayment
+  documentController.getApprovedPurchasingDocumentsForPayment,
 );
 router.get(
   "/approvedPurchasingDocumentsForAdvancePayment",
   authMiddleware,
-  documentController.getApprovedPurchasingDocumentsForAdvancePayment
+  documentController.getApprovedPurchasingDocumentsForAdvancePayment,
 );
 router.get(
   "/approvedPurchasingDocumentsForAdvancePaymentReclaim",
   authMiddleware,
-  documentController.getApprovedPurchasingDocumentsForAdvancePaymentReclaim
+  documentController.getApprovedPurchasingDocumentsForAdvancePaymentReclaim,
 );
 router.get(
   "/documentsContainingPurchasing/:purchasingId",
-  documentController.getDocumentsContainingPurchasing
+  documentController.getDocumentsContainingPurchasing,
 );
 // Route to fetch a specific Purchasing Document by ID
 router.get(
   "/purchasingDocument/:id",
   authMiddleware,
-  documentController.getPurchasingDocumentById
+  documentController.getPurchasingDocumentById,
 );
 router.get("/documentSummaryPurchasing", authMiddleware, (req, res) => {
   res.sendFile("documentSummaryPurchasing.html", {
@@ -219,40 +230,40 @@ router.get("/documentSummaryPurchasing", authMiddleware, (req, res) => {
 router.get(
   "/getPurchasingDocumentForSeparatedView",
   authMiddleware,
-  documentController.getPurchasingDocumentsForSeparatedView
+  documentController.getPurchasingDocumentsForSeparatedView,
 );
 // Route to fetch a specific purchasing document by ID
 router.get(
   "/getPurchasingDocument/:id",
   authMiddleware,
-  documentController.getPurchasingDocument
+  documentController.getPurchasingDocument,
 );
 // Route to update a purchasing document
 router.post(
   "/updatePurchasingDocument/:id",
   upload.array("files", 10),
   authMiddleware,
-  documentController.updatePurchasingDocument
+  documentController.updatePurchasingDocument,
 );
 router.post(
   "/deletePurchasingDocumentFile/:docId/:fileId",
   authMiddleware,
-  documentController.deletePurchasingDocumentFile
+  documentController.deletePurchasingDocumentFile,
 );
 router.post(
   "/updatePurchasingDocumentDeclaration/:id",
   authMiddleware,
-  documentController.updatePurchasingDocumentDeclaration
+  documentController.updatePurchasingDocumentDeclaration,
 );
 router.post(
   "/suspendPurchasingDocument/:id",
   authMiddleware,
-  documentController.suspendPurchasingDocument
+  documentController.suspendPurchasingDocument,
 );
 router.post(
   "/openPurchasingDocument/:id",
   authMiddleware,
-  documentController.openPurchasingDocument
+  documentController.openPurchasingDocument,
 );
 //// END OF PURCHASING DOCUMENT ROUTE
 
@@ -266,69 +277,69 @@ router.get("/documentSummaryPayment", authMiddleware, (req, res) => {
 router.get(
   "/getPaymentDocumentForSeparatedView",
   authMiddleware,
-  documentController.getPaymentDocumentForSeparatedView
+  documentController.getPaymentDocumentForSeparatedView,
 );
 router.post(
   "/updatePaymentDocument/:id",
   upload.array("files", 10),
   authMiddleware,
-  documentController.updatePaymentDocument
+  documentController.updatePaymentDocument,
 );
 router.delete(
   "/deletePaymentDocumentFile/:docId/:fileId",
   authMiddleware,
-  documentController.deletePaymentDocumentFile
+  documentController.deletePaymentDocumentFile,
 );
 router.post(
   "/uploadStageFile/:docId/:stageIndex",
   upload.single("file"),
   authMiddleware,
-  documentController.uploadStageFile
+  documentController.uploadStageFile,
 );
 router.post(
   "/removeStageFile/:docId/:stageIndex",
   authMiddleware,
-  documentController.removeStageFile
+  documentController.removeStageFile,
 );
 router.post(
   "/updatePaymentDocumentDeclaration/:id",
   authMiddleware,
-  documentController.updatePaymentDocumentDeclaration
+  documentController.updatePaymentDocumentDeclaration,
 );
 router.post(
   "/massUpdatePaymentDocumentDeclaration",
   authMiddleware,
-  documentController.massUpdatePaymentDocumentDeclaration
+  documentController.massUpdatePaymentDocumentDeclaration,
 );
 router.post(
   "/updatePaymentDocumentPriority/:id",
   authMiddleware,
-  documentController.updatePaymentDocumentPriority
+  documentController.updatePaymentDocumentPriority,
 );
 router.get(
   "/getPaymentDocument/:id",
   authMiddleware,
-  documentController.getPaymentDocument
+  documentController.getPaymentDocument,
 );
 router.post(
   "/approvePaymentStage/:docId/:stageIndex",
   authMiddleware,
-  documentController.approvePaymentStage
+  documentController.approvePaymentStage,
 );
 router.post(
   "/approvePaymentDocument/:id",
   authMiddleware,
-  documentController.approvePaymentDocument
+  documentController.approvePaymentDocument,
 );
 router.post(
   "/suspendPaymentStage/:docId/:stageIndex",
   authMiddleware,
-  documentController.suspendPaymentStage
+  documentController.suspendPaymentStage,
 );
 router.post(
   "/openPaymentStage/:docId/:stageIndex",
   authMiddleware,
-  documentController.openPaymentStage
+  documentController.openPaymentStage,
 );
 //// END OF PAYMENT DOCUMENT ROUTE
 
@@ -342,33 +353,33 @@ router.get("/documentSummaryAdvancePayment", authMiddleware, (req, res) => {
 router.get(
   "/getAdvancePaymentDocumentForSeparatedView",
   authMiddleware,
-  documentController.getAdvancePaymentDocumentForSeparatedView
+  documentController.getAdvancePaymentDocumentForSeparatedView,
 );
 router.post(
   "/updateAdvancePaymentDocument/:id",
   upload.array("files", 10),
   authMiddleware,
-  documentController.updateAdvancePaymentDocument
+  documentController.updateAdvancePaymentDocument,
 );
 router.post(
   "/deleteAdvancePaymentDocumentFile/:docId/:fileId",
   authMiddleware,
-  documentController.deleteAdvancePaymentDocumentFile
+  documentController.deleteAdvancePaymentDocumentFile,
 );
 router.post(
   "/updateAdvancePaymentDocumentDeclaration/:id",
   authMiddleware,
-  documentController.updateAdvancePaymentDocumentDeclaration
+  documentController.updateAdvancePaymentDocumentDeclaration,
 );
 router.post(
   "/massUpdateAdvancePaymentDocumentDeclaration",
   authMiddleware,
-  documentController.massUpdateAdvancePaymentDocumentDeclaration
+  documentController.massUpdateAdvancePaymentDocumentDeclaration,
 );
 router.get(
   "/getAdvancePaymentDocument/:id",
   authMiddleware,
-  documentController.getAdvancePaymentDocument
+  documentController.getAdvancePaymentDocument,
 );
 //// END OF ADVANCE PAYMENT DOCUMENT ROUTE
 
@@ -381,43 +392,43 @@ router.get(
     res.sendFile("documentSummaryAdvancePaymentReclaim.html", {
       root: "./views/documentPages/documentSummaryAdvancePaymentReclaim",
     });
-  }
+  },
 );
 router.get(
   "/getAdvancePaymentReclaimDocumentForSeparatedView",
   authMiddleware,
-  documentController.getAdvancePaymentReclaimDocumentForSeparatedView
+  documentController.getAdvancePaymentReclaimDocumentForSeparatedView,
 );
 router.post(
   "/updateAdvancePaymentReclaimDocument/:id",
   upload.array("files", 10),
   authMiddleware,
-  documentController.updateAdvancePaymentReclaimDocument
+  documentController.updateAdvancePaymentReclaimDocument,
 );
 router.post(
   "/deleteAdvancePaymentReclaimDocumentFile/:docId/:fileId",
   authMiddleware,
-  documentController.deleteAdvancePaymentReclaimDocumentFile
+  documentController.deleteAdvancePaymentReclaimDocumentFile,
 );
 router.post(
   "/updateAdvancePaymentReclaimDocumentDeclaration/:id",
   authMiddleware,
-  documentController.updateAdvancePaymentReclaimDocumentDeclaration
+  documentController.updateAdvancePaymentReclaimDocumentDeclaration,
 );
 router.post(
   "/massUpdateAdvancePaymentReclaimDocumentDeclaration",
   authMiddleware,
-  documentController.massUpdateAdvancePaymentReclaimDocumentDeclaration
+  documentController.massUpdateAdvancePaymentReclaimDocumentDeclaration,
 );
 router.get(
   "/getAdvancePaymentReclaimDocument/:id",
   authMiddleware,
-  documentController.getAdvancePaymentReclaimDocument
+  documentController.getAdvancePaymentReclaimDocument,
 );
 router.post(
   "/extendAdvancePaymentReclaimDeadline/:id",
   authMiddleware,
-  documentController.extendAdvancePaymentReclaimDeadline
+  documentController.extendAdvancePaymentReclaimDeadline,
 );
 //// END OF ADVANCE PAYMENT RECLAIM DOCUMENT ROUTE
 
@@ -430,28 +441,28 @@ router.get("/documentSummaryDelivery", authMiddleware, (req, res) => {
 router.get(
   "/getDeliveryDocumentForSeparatedView",
   authMiddleware,
-  documentController.getDeliveryDocumentsForSeparatedView
+  documentController.getDeliveryDocumentsForSeparatedView,
 );
 router.get(
   "/getDeliveryDocument/:id",
   authMiddleware,
-  documentController.getDeliveryDocument
+  documentController.getDeliveryDocument,
 );
 router.post(
   "/updateDeliveryDocument/:id",
   upload.array("files", 10), // Changed to support multiple files
   authMiddleware,
-  documentController.updateDeliveryDocument
+  documentController.updateDeliveryDocument,
 );
 router.post(
   "/deleteDeliveryDocumentFile/:docId/:fileId",
   authMiddleware,
-  documentController.deleteDeliveryDocumentFile
+  documentController.deleteDeliveryDocumentFile,
 );
 router.post(
   "/exportDeliveryDocumentsToExcel",
   authMiddleware,
-  documentController.exportDeliveryDocumentsToExcel
+  documentController.exportDeliveryDocumentsToExcel,
 );
 //// END OF DELIVERY DOCUMENT ROUTE
 
@@ -465,32 +476,32 @@ router.get("/documentSummaryReceipt", authMiddleware, (req, res) => {
 router.get(
   "/getReceiptDocumentForSeparatedView",
   authMiddleware,
-  documentController.getReceiptDocumentsForSeparatedView
+  documentController.getReceiptDocumentsForSeparatedView,
 );
 
 router.get(
   "/getReceiptDocument/:id",
   authMiddleware,
-  documentController.getReceiptDocument
+  documentController.getReceiptDocument,
 );
 
 router.post(
   "/updateReceiptDocument/:id",
   upload.array("files", 10),
   authMiddleware,
-  documentController.updateReceiptDocument
+  documentController.updateReceiptDocument,
 );
 
 router.post(
   "/deleteReceiptDocumentFile/:docId/:fileId",
   authMiddleware,
-  documentController.deleteReceiptDocumentFile
+  documentController.deleteReceiptDocumentFile,
 );
 
 router.post(
   "/exportReceiptDocumentsToExcel",
   authMiddleware,
-  documentController.exportReceiptDocumentsToExcel
+  documentController.exportReceiptDocumentsToExcel,
 );
 //// END OF RECEIPT DOCUMENT ROUTE
 
@@ -499,14 +510,14 @@ router.post(
 router.get(
   "/approvedProjectProposals",
   authMiddleware,
-  documentController.getApprovedProjectProposals
+  documentController.getApprovedProjectProposals,
 );
 
 // Route to fetch a specific Project Proposal by ID
 router.get(
   "/projectProposal/:id",
   authMiddleware,
-  documentController.getProjectProposalById
+  documentController.getProjectProposalById,
 );
 
 router.get("/documentSummaryProjectProposal", authMiddleware, (req, res) => {
@@ -519,14 +530,14 @@ router.get("/documentSummaryProjectProposal", authMiddleware, (req, res) => {
 router.get(
   "/getProjectProposalForSeparatedView",
   authMiddleware,
-  documentController.getProjectProposalsForSeparatedView
+  documentController.getProjectProposalsForSeparatedView,
 );
 
 // Route to fetch a specific project proposal by ID
 router.get(
   "/getProjectProposal/:id",
   authMiddleware,
-  documentController.getProjectProposal
+  documentController.getProjectProposal,
 );
 
 // Route to update a project proposal
@@ -534,25 +545,25 @@ router.post(
   "/updateProjectProposal/:id",
   upload.single("file"),
   authMiddleware,
-  documentController.updateProjectProposal
+  documentController.updateProjectProposal,
 );
 
 router.post(
   "/updateProjectProposalDeclaration/:id",
   authMiddleware,
-  documentController.updateProjectProposalDeclaration
+  documentController.updateProjectProposalDeclaration,
 );
 
 router.post(
   "/suspendProjectProposal/:id",
   authMiddleware,
-  documentController.suspendProjectProposal
+  documentController.suspendProjectProposal,
 );
 
 router.post(
   "/openProjectProposal/:id",
   authMiddleware,
-  documentController.openProjectProposal
+  documentController.openProjectProposal,
 );
 //// END OF PROJECT PROPOSAL DOCUMENT ROUTE
 
@@ -568,7 +579,7 @@ router.get("/documentSummaryUnapproved", authMiddleware, (req, res) => {
 router.get(
   "/unapprovedDocumentsSummary",
   authMiddleware,
-  documentController.getUnapprovedDocumentsSummary
+  documentController.getUnapprovedDocumentsSummary,
 );
 
 module.exports = router;

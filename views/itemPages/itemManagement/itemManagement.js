@@ -1,5 +1,5 @@
 // views/itemPages/itemManagement/itemManagement.js
-// All item operations are cost-center-aware.
+// All item operations are cost-center-aware for stock, but name/code edits work without one.
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let currentItemId = null;
@@ -51,6 +51,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       closeStockEditModal();
     }
   });
+
+  // Load items on page load without requiring a cost center
+  fetchItems();
 });
 
 // ─── Cost Centers ─────────────────────────────────────────────────────────────
@@ -74,8 +77,6 @@ async function loadCostCenters() {
     if (costCenters.length === 1) {
       select.value = costCenters[0]._id;
       onCostCenterChange();
-    } else {
-      showNoCostCenterMessage();
     }
   } catch (err) {
     showAlert("Lỗi tải cost center: " + err.message, "error");
@@ -89,7 +90,6 @@ function onCostCenterChange() {
 
   const badge = document.getElementById("cost-center-badge");
   const hint = document.getElementById("stock-scope-hint");
-  const addBtn = document.getElementById("btn-add");
   const importBtn = document.getElementById("btn-import");
   const storageCC = document.getElementById("th-storage-cc");
   const noCCMsg = document.getElementById("no-cost-center-msg");
@@ -98,28 +98,21 @@ function onCostCenterChange() {
     badge.textContent = selectedCostCenterName;
     badge.style.display = "inline-block";
     hint.style.display = "inline";
-    addBtn.disabled = false;
     importBtn.disabled = false;
     storageCC.textContent = selectedCostCenterName;
     storageCC.style.display = "inline-block";
     noCCMsg.style.display = "none";
     document.getElementById("import-cc-name").textContent =
       selectedCostCenterName;
-    fetchItems();
   } else {
     badge.style.display = "none";
     hint.style.display = "none";
-    addBtn.disabled = true;
     importBtn.disabled = true;
     storageCC.style.display = "none";
-    showNoCostCenterMessage();
+    noCCMsg.style.display = "none";
   }
-}
 
-function showNoCostCenterMessage() {
-  document.getElementById("loading").style.display = "none";
-  document.getElementById("items-table").style.display = "none";
-  document.getElementById("no-cost-center-msg").style.display = "block";
+  fetchItems();
 }
 
 // ─── Alert ───────────────────────────────────────────────────────────────────
@@ -144,16 +137,18 @@ function calculatePriceAfterVAT() {
 
 // ─── Fetch Items ──────────────────────────────────────────────────────────────
 async function fetchItems() {
-  if (!selectedCostCenterId) return;
-
   document.getElementById("loading").style.display = "block";
   document.getElementById("items-table").style.display = "none";
+  document.getElementById("no-cost-center-msg").style.display = "none";
 
   try {
     const base = showDeleted
       ? "/itemManagementControl/all"
       : "/itemManagementControl";
-    const url = `${base}?sortBy=${currentSort.field}&sortOrder=${currentSort.order}&costCenterId=${selectedCostCenterId}`;
+    let url = `${base}?sortBy=${currentSort.field}&sortOrder=${currentSort.order}`;
+    if (selectedCostCenterId) {
+      url += `&costCenterId=${selectedCostCenterId}`;
+    }
     const res = await fetch(url, { credentials: "include" });
     if (!res.ok) throw new Error("Không thể tải danh sách mặt hàng");
 
@@ -285,35 +280,36 @@ function toggleDeletedItems() {
 
 // ─── Add / Edit Modal ─────────────────────────────────────────────────────────
 function showAddModal() {
-  if (!selectedCostCenterId) {
-    showAlert("Vui lòng chọn cost center trước!", "error");
-    return;
-  }
   document.getElementById("modal-title").textContent = "Thêm mặt hàng mới";
   document.getElementById("item-form").reset();
   document.getElementById("item-id").value = "";
   document.getElementById("unit").value = "cái";
   document.getElementById("vat").value = "10";
   document.getElementById("inStorage").value = "0";
-  document.getElementById("modal-cost-center-name").value =
-    selectedCostCenterName;
-  document.getElementById("storage-cc-label").textContent =
-    `(${selectedCostCenterName})`;
+
+  const storageCCLabel = document.getElementById("storage-cc-label");
+  if (selectedCostCenterId) {
+    storageCCLabel.textContent = `(${selectedCostCenterName})`;
+    document.getElementById("inStorage").closest(".form-group").style.display =
+      "block";
+  } else {
+    storageCCLabel.textContent = "";
+    document.getElementById("inStorage").closest(".form-group").style.display =
+      "none";
+  }
+
   calculatePriceAfterVAT();
   document.getElementById("item-modal").style.display = "block";
   setTimeout(() => document.getElementById("code").focus(), 100);
 }
 
 async function showEditModal(itemId) {
-  if (!selectedCostCenterId) {
-    showAlert("Vui lòng chọn cost center trước!", "error");
-    return;
-  }
   try {
-    const res = await fetch(
-      `/itemManagementControl/${itemId}?costCenterId=${selectedCostCenterId}`,
-      { credentials: "include" },
-    );
+    let url = `/itemManagementControl/${itemId}`;
+    if (selectedCostCenterId) {
+      url += `?costCenterId=${selectedCostCenterId}`;
+    }
+    const res = await fetch(url, { credentials: "include" });
     if (!res.ok) throw new Error("Không thể tải thông tin mặt hàng");
     const item = await res.json();
 
@@ -327,10 +323,20 @@ async function showEditModal(itemId) {
     document.getElementById("unitPriceAfterVAT").value =
       item.unitPriceAfterVAT.toFixed(2);
     document.getElementById("inStorage").value = item.inStorage ?? 0;
-    document.getElementById("modal-cost-center-name").value =
-      selectedCostCenterName;
-    document.getElementById("storage-cc-label").textContent =
-      `(${selectedCostCenterName})`;
+
+    const storageCCLabel = document.getElementById("storage-cc-label");
+    if (selectedCostCenterId) {
+      storageCCLabel.textContent = `(${selectedCostCenterName})`;
+      document
+        .getElementById("inStorage")
+        .closest(".form-group").style.display = "block";
+    } else {
+      storageCCLabel.textContent = "";
+      document
+        .getElementById("inStorage")
+        .closest(".form-group").style.display = "none";
+    }
+
     document.getElementById("item-modal").style.display = "block";
     setTimeout(() => document.getElementById("code").focus(), 100);
   } catch (err) {
@@ -344,11 +350,6 @@ function closeModal() {
 
 async function handleSubmit(event) {
   event.preventDefault();
-
-  if (!selectedCostCenterId) {
-    showAlert("Vui lòng chọn cost center!", "error");
-    return;
-  }
 
   const itemId = document.getElementById("item-id").value;
   const code = document.getElementById("code").value.trim();
@@ -366,7 +367,7 @@ async function handleSubmit(event) {
     showAlert("VAT phải nằm trong khoảng 0-100%!", "error");
     return;
   }
-  if (inStorage < 0) {
+  if (selectedCostCenterId && inStorage < 0) {
     showAlert("Tồn kho không được âm!", "error");
     return;
   }
@@ -377,9 +378,14 @@ async function handleSubmit(event) {
     unit,
     unitPrice,
     vat,
-    inStorage,
-    costCenterId: selectedCostCenterId,
+    costCenterId: selectedCostCenterId || null,
   };
+
+  // Only include inStorage when a cost center is selected
+  if (selectedCostCenterId) {
+    body.inStorage = inStorage;
+  }
+
   const url = itemId
     ? `/itemManagementControl/${itemId}`
     : "/itemManagementControl";
@@ -414,7 +420,7 @@ async function handleSubmit(event) {
 // ─── Quick Stock Edit ─────────────────────────────────────────────────────────
 function showStockEditModal(itemId, itemName, currentStock) {
   if (!selectedCostCenterId) {
-    showAlert("Vui lòng chọn cost center!", "error");
+    showAlert("Vui lòng chọn cost center trước!", "error");
     return;
   }
   document.getElementById("stock-edit-item-id").value = itemId;
@@ -700,7 +706,7 @@ function exportToExcel(includeDeleted = false, allCostCenters = false) {
 
 function showImportModal() {
   if (!selectedCostCenterId) {
-    showAlert("Vui lòng chọn cost center trước!", "error");
+    showAlert("Vui lòng chọn cost center trước khi nhập Excel!", "error");
     return;
   }
   document.getElementById("import-cc-name").textContent =

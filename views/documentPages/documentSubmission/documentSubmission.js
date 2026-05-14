@@ -613,17 +613,23 @@ async function handleAddProductSubmit(e) {
   }
 
   try {
-    const response = await fetch("/products", {
+    const response = await fetch("/itemManagementControl", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(product),
+      body: JSON.stringify({
+        name: product.name,
+        code: product.code,
+        unit: "cái",
+        unitPrice: 0,
+        vat: 10,
+      }),
     });
 
     if (!response.ok) {
       const data = await response.json();
-      throw new Error(data.message || "Không thể thêm sản phẩm");
+      throw new Error(data.message || data.error || "Không thể thêm sản phẩm");
     }
 
     showAddProductMessage("Sản phẩm đã được thêm thành công!", "success");
@@ -773,7 +779,7 @@ async function loadProductsForManagement() {
   `;
 
   try {
-    const response = await fetch("/products");
+    const response = await fetch("/itemManagementControl");
     if (!response.ok) {
       throw new Error("Failed to fetch products");
     }
@@ -822,8 +828,6 @@ function renderProductManagementTable() {
           ${product.code ? `<span class="product-code-badge">${product.code}</span>` : ""}
         </td>
         <td>${product.code || "—"}</td>
-        <td>${product.inStorage || 0}</td>
-        <td>${product.aboutToTransfer || 0}</td>
         <td class="product-actions">
           <button class="edit-btn" onclick="startEditProduct('${product._id}')" title="Chỉnh sửa">
             <i class="fas fa-edit"></i> Sửa
@@ -941,24 +945,26 @@ async function handleEditProductSubmit(e) {
     return;
   }
 
-  const updatedProduct = {
-    _id: productId,
-    name: productName,
-    code: productCode,
-  };
-
   try {
-    const response = await fetch(`/products/${productId}`, {
+    const response = await fetch(`/itemManagementControl/${productId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(updatedProduct),
+      body: JSON.stringify({
+        name: productName,
+        code: productCode,
+        unit: currentEditingProduct.unit || "cái",
+        unitPrice: currentEditingProduct.unitPrice ?? 0,
+        vat: currentEditingProduct.vat ?? 10,
+      }),
     });
 
     if (!response.ok) {
       const data = await response.json();
-      throw new Error(data.message || "Không thể cập nhật sản phẩm");
+      throw new Error(
+        data.message || data.error || "Không thể cập nhật sản phẩm",
+      );
     }
 
     showEditProductMessage("Sản phẩm đã được cập nhật thành công!", "success");
@@ -1002,13 +1008,13 @@ async function deleteProductFromManagement(productId) {
   }
 
   try {
-    const response = await fetch(`/products/${productId}`, {
+    const response = await fetch(`/itemManagementControl/${productId}`, {
       method: "DELETE",
     });
 
     if (!response.ok) {
       const data = await response.json();
-      throw new Error(data.message || "Không thể xóa sản phẩm");
+      throw new Error(data.message || data.error || "Không thể xóa sản phẩm");
     }
 
     await loadProductsForManagement();
@@ -1562,7 +1568,7 @@ function fetchCostCenters() {
 
 async function fetchProducts() {
   try {
-    const response = await fetch("/documentProduct");
+    const response = await fetch("/itemManagementControl");
     if (!response.ok) {
       throw new Error("Failed to fetch products");
     }

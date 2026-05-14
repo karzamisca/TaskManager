@@ -185,7 +185,7 @@ exports.getItem = async (req, res) => {
   }
 };
 
-/** POST /itemManagementControl  — body: { name, code, unit, unitPrice, vat, costCenterId, inStorage } */
+/** POST /itemManagementControl  — body: { name, code, unit, unitPrice, vat, costCenterId?, inStorage? } */
 exports.createItem = async (req, res) => {
   try {
     const {
@@ -198,13 +198,13 @@ exports.createItem = async (req, res) => {
       inStorage = 0,
     } = req.body;
 
-    if (!costCenterId) {
-      return res.status(400).json({ error: "costCenterId is required" });
-    }
-
-    const costCenter = await CostCenter.findById(costCenterId);
-    if (!costCenter) {
-      return res.status(404).json({ error: "Cost center not found" });
+    // costCenterId is now optional
+    let costCenter = null;
+    if (costCenterId) {
+      costCenter = await CostCenter.findById(costCenterId);
+      if (!costCenter) {
+        return res.status(404).json({ error: "Cost center not found" });
+      }
     }
 
     const existing = await Item.findOne({ code, isDeleted: false });
@@ -235,27 +235,31 @@ exports.createItem = async (req, res) => {
           newUnitPriceAfterVAT: priceAfterVAT,
           editedBy: req.user.id,
           action: "create",
-          note: `Tạo tại cost center: ${costCenter.name}`,
+          note: costCenter
+            ? `Tạo tại cost center: ${costCenter.name}`
+            : "Tạo mặt hàng",
         },
       ],
     });
 
     await item.save();
 
-    await upsertStock(
-      item._id,
-      costCenterId,
-      inStorageValue,
-      req.user.id,
-      `Tạo mặt hàng tại ${costCenter.name}`,
-    );
+    if (costCenterId && costCenter) {
+      await upsertStock(
+        item._id,
+        costCenterId,
+        inStorageValue,
+        req.user.id,
+        `Tạo mặt hàng tại ${costCenter.name}`,
+      );
+    }
 
     await item.populate("createdBy", "username");
 
     res.status(201).json({
       ...item.toObject(),
-      inStorage: inStorageValue,
-      costCenterId,
+      inStorage: costCenterId ? inStorageValue : null,
+      costCenterId: costCenterId || null,
     });
   } catch (error) {
     console.error("Error creating item:", error);
@@ -263,16 +267,12 @@ exports.createItem = async (req, res) => {
   }
 };
 
-/** PUT /itemManagementControl/:id  — body: { name, code, unit, unitPrice, vat, costCenterId, inStorage } */
+/** PUT /itemManagementControl/:id  — body: { name, code, unit, unitPrice, vat, costCenterId?, inStorage? } */
 exports.updateItem = async (req, res) => {
   try {
     const { name, code, unit, unitPrice, vat, costCenterId, inStorage } =
       req.body;
     const itemId = req.params.id;
-
-    if (!costCenterId) {
-      return res.status(400).json({ error: "costCenterId is required" });
-    }
 
     const item = await Item.findById(itemId);
     if (!item) return res.status(404).json({ error: "Item not found" });
@@ -289,14 +289,19 @@ exports.updateItem = async (req, res) => {
         return res.status(400).json({ error: "Item code already exists" });
     }
 
-    const costCenter = await CostCenter.findById(costCenterId).lean();
-    const costCenterName = costCenter ? costCenter.name : costCenterId;
+    let costCenterName = costCenterId || "";
+    if (costCenterId) {
+      const costCenter = await CostCenter.findById(costCenterId).lean();
+      costCenterName = costCenter ? costCenter.name : costCenterId;
+    }
 
     const vatPct = vat !== undefined ? parseFloat(vat) : item.vat;
     const price = parseFloat(unitPrice);
     const priceAfterVAT = price * (1 + vatPct / 100);
 
-    const currentStock = await ItemStock.findOne({ itemId, costCenterId });
+    const currentStock = costCenterId
+      ? await ItemStock.findOne({ itemId, costCenterId })
+      : null;
     const oldInStorage = currentStock ? currentStock.inStorage : 0;
     const newInStorage =
       inStorage !== undefined ? parseInt(inStorage) : oldInStorage;
@@ -316,7 +321,9 @@ exports.updateItem = async (req, res) => {
       newUnitPriceAfterVAT: priceAfterVAT,
       editedBy: req.user.id,
       action: "update",
-      note: `Cập nhật tại cost center: ${costCenterName}, tồn kho: ${oldInStorage} → ${newInStorage}`,
+      note: costCenterId
+        ? `Cập nhật tại cost center: ${costCenterName}, tồn kho: ${oldInStorage} → ${newInStorage}`
+        : "Cập nhật mặt hàng",
     };
 
     item.name = name;
@@ -328,13 +335,15 @@ exports.updateItem = async (req, res) => {
     item.auditHistory.push(auditEntry);
     await item.save();
 
-    await upsertStock(
-      itemId,
-      costCenterId,
-      newInStorage,
-      req.user.id,
-      `Cập nhật mặt hàng tại ${costCenterName}`,
-    );
+    if (costCenterId) {
+      await upsertStock(
+        itemId,
+        costCenterId,
+        newInStorage,
+        req.user.id,
+        `Cập nhật mặt hàng tại ${costCenterName}`,
+      );
+    }
 
     let ordersUpdated = 0;
     try {
@@ -383,8 +392,8 @@ exports.updateItem = async (req, res) => {
 
     res.json({
       ...item.toObject(),
-      inStorage: newInStorage,
-      costCenterId,
+      inStorage: costCenterId ? newInStorage : null,
+      costCenterId: costCenterId || null,
       ordersUpdated,
     });
   } catch (error) {
