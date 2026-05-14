@@ -119,16 +119,7 @@ exports.getCostCenters = async (req, res) => {
       "name category allowedUsers",
     ).lean();
 
-    const adminRoles = ["superAdmin", "director", "deputyDirector"];
-    const filtered = adminRoles.includes(req.user.role)
-      ? costCenters
-      : costCenters.filter(
-          (cc) =>
-            cc.allowedUsers.includes(req.user.id) ||
-            cc.allowedUsers.includes(req.user.username),
-        );
-
-    res.json(filtered);
+    res.json(costCenters);
   } catch (error) {
     console.error("Error fetching cost centers:", error);
     res.status(500).json({ error: "Failed to fetch cost centers" });
