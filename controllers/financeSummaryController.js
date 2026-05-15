@@ -585,9 +585,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
             totalCommissionPurchase -
             totalCommissionSale -
             totalSalary -
-            totalPayments +
-            constructionNet +
-            bankNet;
+            totalPayments;
 
           results.push({
             costCenter: costCenterName,

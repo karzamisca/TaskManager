@@ -156,7 +156,7 @@ $(document).ready(function () {
     if (costCenter.element && $(costCenter.element).data("category")) {
       const category = $(costCenter.element).data("category");
       $container.append(
-        $('<span class="cost-center-category"></span>').text(` (${category})`)
+        $('<span class="cost-center-category"></span>').text(` (${category})`),
       );
     }
     return $container;
@@ -173,7 +173,7 @@ $(document).ready(function () {
     if (costCenter.element && $(costCenter.element).data("category")) {
       const category = $(costCenter.element).data("category");
       $container.append(
-        $('<span class="cost-center-category"></span>').text(` (${category})`)
+        $('<span class="cost-center-category"></span>').text(` (${category})`),
       );
     }
     return $container;
@@ -185,13 +185,10 @@ $(document).ready(function () {
     const yearSelect = $("#yearSelect");
 
     try {
-      // Fetch available years from the server
       const response = await fetch("/finaceSummaryGetAvailableYears");
       const availableYears = await response.json();
 
-      // If API is available and returns valid data, use those years
       if (availableYears && availableYears.length > 0) {
-        // Sort years in descending order (newest first)
         availableYears
           .sort((a, b) => b - a)
           .forEach((year) => {
@@ -199,18 +196,15 @@ $(document).ready(function () {
           });
         console.log("Loaded available years from server:", availableYears);
       } else {
-        // Fallback: last 15 years if no data from server
         console.log("No data from server, using fallback years");
         for (let year = currentYear; year >= currentYear - 14; year--) {
           yearSelect.append(`<option value="${year}">${year}</option>`);
         }
       }
 
-      // Select current year by default
       yearSelect.val([currentYear]).trigger("change");
     } catch (error) {
       console.error("Error fetching available years, using fallback:", error);
-      // Fallback: last 15 years if API call fails
       for (let year = currentYear; year >= currentYear - 14; year--) {
         yearSelect.append(`<option value="${year}">${year}</option>`);
       }
@@ -218,7 +212,6 @@ $(document).ready(function () {
     }
   }
 
-  // Call this function to populate years
   populateYearSelect();
 
   // Function to get cost center category
@@ -253,7 +246,7 @@ $(document).ready(function () {
         costCenter.category === currentCategory
       ) {
         const option = $(
-          `<option value="${costCenter.name}">${costCenter.name}</option>`
+          `<option value="${costCenter.name}">${costCenter.name}</option>`,
         );
         option.data("category", costCenter.category);
         costCenterSelect.append(option);
@@ -261,7 +254,7 @@ $(document).ready(function () {
     });
 
     const validSelections = currentSelections.filter(
-      (value) => costCenterSelect.find(`option[value="${value}"]`).length > 0
+      (value) => costCenterSelect.find(`option[value="${value}"]`).length > 0,
     );
     if (validSelections.length > 0) {
       costCenterSelect.val(validSelections).trigger("change");
@@ -322,22 +315,16 @@ $(document).ready(function () {
       const category = $("#categoryFilter").val();
       const categoryText = category === "all" ? "Tất cả loại" : category;
       infoElement.text(
-        `Hiển thị: Tất cả trạm (${categoryText}) - Năm: ${selectedYears.join(
-          ", "
-        )}`
+        `Hiển thị: Tất cả trạm (${categoryText}) - Năm: ${selectedYears.join(", ")}`,
       );
     } else {
       infoElement.text(
-        `Hiển thị: ${
-          selectedValues.length
-        } trạm được chọn (${selectedValues.join(
-          ", "
-        )}) - Năm: ${selectedYears.join(", ")}`
+        `Hiển thị: ${selectedValues.length} trạm được chọn (${selectedValues.join(", ")}) - Năm: ${selectedYears.join(", ")}`,
       );
     }
   }
 
-  // Function to create vertical stacked table with construction and bank as separate categories
+  // Function to create vertical stacked table
   function createVerticalStackedTable(data) {
     if (currentTable) {
       currentTable.destroy();
@@ -396,16 +383,7 @@ $(document).ready(function () {
       entry.bankIncome += item.bankIncome;
       entry.bankExpense += item.bankExpense;
       entry.bankNet += item.bankNet;
-      entry.netRevenue =
-        entry.totalSale -
-        entry.totalPurchase -
-        entry.totalTransport -
-        entry.totalCommissionPurchase -
-        entry.totalCommissionSale -
-        entry.totalSalary -
-        entry.totalPayments +
-        entry.constructionNet +
-        entry.bankNet; // Include both construction and bank net
+      entry.netRevenue += item.netRevenue;
     });
 
     // Round all numeric values in pivotData
@@ -444,7 +422,7 @@ $(document).ready(function () {
     headerRow.append('<th class="first-column">Loại / Chỉ số / Trạm</th>');
     sortedMonths.forEach((month) => {
       headerRow.append(
-        `<th class="month-column" style="text-align: center;">${month}</th>`
+        `<th class="month-column" style="text-align: center;">${month}</th>`,
       );
     });
     tableHead.append(headerRow);
@@ -481,20 +459,18 @@ $(document).ready(function () {
       };
     });
 
-    // Calculate total revenue across all categories (excluding construction and bank) for each month
+    // Accumulate core trading revenue per month (no constructionNet, no bankNet)
     const monthlyRevenueData = {};
     sortedMonths.forEach((month) => {
       monthlyRevenueData[month] = 0;
     });
 
-    // First, process all categories and accumulate revenue data
     sortedCategories.forEach((category) => {
       if (category === "Xây Dựng" || category === "Ngân Hàng") return;
 
-      // Accumulate revenue data for the summary row
       sortedMonths.forEach((month) => {
         const categoryCostCenters = Array.from(
-          costCentersByCategory[category] || []
+          costCentersByCategory[category] || [],
         );
 
         categoryCostCenters.forEach((costCenter) => {
@@ -502,10 +478,9 @@ $(document).ready(function () {
             (item) =>
               item.costCenter === costCenter &&
               item.month === month &&
-              item.category === category
+              item.category === category,
           );
           if (entry) {
-            // Calculate revenue from first 4 metrics: totalSale, totalPurchase, totalTransport, totalCommissionPurchase
             monthlyRevenueData[month] +=
               (entry.totalSale || 0) -
               (entry.totalPurchase || 0) -
@@ -519,23 +494,23 @@ $(document).ready(function () {
       });
     });
 
-    // Now create the table rows
+    // --- Regular category rows ---
     sortedCategories.forEach((category) => {
       if (category === "Xây Dựng" || category === "Ngân Hàng") return;
 
       const categoryRow = $(
-        `<tr class="category-row" data-category="${category}"></tr>`
+        `<tr class="category-row" data-category="${category}"></tr>`,
       );
       categoryRow.append(
         `<td class="first-column">
           <span class="category-toggle">▶</span>
           <strong class="text-primary">${category}</strong>
-        </td>`
+        </td>`,
       );
 
       sortedMonths.forEach(() => {
         categoryRow.append(
-          `<td class="month-column" style="text-align: right; font-weight: bold;"></td>`
+          `<td class="month-column" style="text-align: right; font-weight: bold;"></td>`,
         );
       });
 
@@ -545,11 +520,11 @@ $(document).ready(function () {
 
       if (category === "Thuê bồn") {
         filteredMetrics = filteredMetrics.filter(
-          (metric) => metric.key !== "totalSalary"
+          (metric) => metric.key !== "totalSalary",
         );
       } else if (category === "Đội") {
         filteredMetrics = filteredMetrics.filter((metric) =>
-          ["totalSalary", "totalPayments", "netRevenue"].includes(metric.key)
+          ["totalSalary", "totalPayments", "netRevenue"].includes(metric.key),
         );
       }
 
@@ -559,19 +534,19 @@ $(document).ready(function () {
         }
 
         const metricRow = $(
-          `<tr class="metric-row" data-category="${category}" data-metric="${metric.key}" style="display: none;"></tr>`
+          `<tr class="metric-row" data-category="${category}" data-metric="${metric.key}" style="display: none;"></tr>`,
         );
         metricRow.append(
           `<td class="first-column" style="width: 250px; min-width: 250px; max-width: 250px; padding-left: 30px; white-space: nowrap;">
             <span class="metric-toggle">▶</span>
             <strong>${metric.label}</strong>
-          </td>`
+          </td>`,
         );
 
         sortedMonths.forEach((month) => {
           let totalValue = 0;
           const categoryCostCenters = Array.from(
-            costCentersByCategory[category] || []
+            costCentersByCategory[category] || [],
           );
 
           categoryCostCenters.forEach((costCenter) => {
@@ -579,7 +554,7 @@ $(document).ready(function () {
               (item) =>
                 item.costCenter === costCenter &&
                 item.month === month &&
-                item.category === category
+                item.category === category,
             );
             if (entry) {
               totalValue += entry[metric.key] || 0;
@@ -596,24 +571,24 @@ $(document).ready(function () {
           const formattedValue =
             totalValue === 0 ? "-" : totalValue.toLocaleString("vi-VN");
           metricRow.append(
-            `<td class="month-column ${cellClass}" style="width: 150px; min-width: 150px; max-width: 150px; text-align: right; font-weight: bold; white-space: nowrap;">${formattedValue}</td>`
+            `<td class="month-column ${cellClass}" style="width: 150px; min-width: 150px; max-width: 150px; text-align: right; font-weight: bold; white-space: nowrap;">${formattedValue}</td>`,
           );
         });
 
         tableBody.append(metricRow);
 
         const categoryCostCenters = Array.from(
-          costCentersByCategory[category] || []
+          costCentersByCategory[category] || [],
         ).sort();
 
         categoryCostCenters.forEach((costCenter) => {
           const costCenterRow = $(
-            `<tr class="cost-center-row" data-category="${category}" data-metric="${metric.key}" data-cost-center="${costCenter}" style="display: none;"></tr>`
+            `<tr class="cost-center-row" data-category="${category}" data-metric="${metric.key}" data-cost-center="${costCenter}" style="display: none;"></tr>`,
           );
           costCenterRow.append(
             `<td class="first-column" style="padding-left: 60px;">
               <strong>${costCenter}</strong>
-            </td>`
+            </td>`,
           );
 
           sortedMonths.forEach((month) => {
@@ -621,7 +596,7 @@ $(document).ready(function () {
               (item) =>
                 item.costCenter === costCenter &&
                 item.month === month &&
-                item.category === category
+                item.category === category,
             );
             let value = entry ? Math.ceil(entry[metric.key] || 0) : 0;
 
@@ -633,7 +608,7 @@ $(document).ready(function () {
             const formattedValue =
               value === 0 ? "-" : value.toLocaleString("vi-VN");
             costCenterRow.append(
-              `<td class="month-column ${cellClass}" style="text-align: right;">${formattedValue}</td>`
+              `<td class="month-column ${cellClass}" style="text-align: right;">${formattedValue}</td>`,
             );
           });
 
@@ -642,20 +617,20 @@ $(document).ready(function () {
       });
     });
 
-    // Add Bank Category RIGHT AFTER the regular categories
+    // --- Bank Category ---
     const bankCategoryRow = $(
-      `<tr class="category-row" data-category="Ngân Hàng"></tr>`
+      `<tr class="category-row" data-category="Ngân Hàng"></tr>`,
     );
     bankCategoryRow.append(
       `<td class="first-column">
           <span class="category-toggle">▶</span>
           <strong class="text-primary">Ngân Hàng</strong>
-        </td>`
+        </td>`,
     );
 
     sortedMonths.forEach(() => {
       bankCategoryRow.append(
-        `<td class="month-column" style="text-align: right; font-weight: bold;"></td>`
+        `<td class="month-column" style="text-align: right; font-weight: bold;"></td>`,
       );
     });
 
@@ -663,13 +638,13 @@ $(document).ready(function () {
 
     bankMetrics.forEach((metric) => {
       const metricRow = $(
-        `<tr class="metric-row" data-category="Ngân Hàng" data-metric="${metric.key}" style="display: none;"></tr>`
+        `<tr class="metric-row" data-category="Ngân Hàng" data-metric="${metric.key}" style="display: none;"></tr>`,
       );
       metricRow.append(
         `<td class="first-column" style="width: 250px; min-width: 250px; max-width: 250px; padding-left: 30px; white-space: nowrap;">
             <span class="metric-toggle">▶</span>
             <strong>${metric.label}</strong>
-          </td>`
+          </td>`,
       );
 
       sortedMonths.forEach((month) => {
@@ -690,7 +665,7 @@ $(document).ready(function () {
         const formattedValue =
           totalValue === 0 ? "-" : totalValue.toLocaleString("vi-VN");
         metricRow.append(
-          `<td class="month-column ${cellClass}" style="width: 150px; min-width: 150px; max-width: 150px; text-align: right; font-weight: bold; white-space: nowrap;">${formattedValue}</td>`
+          `<td class="month-column ${cellClass}" style="width: 150px; min-width: 150px; max-width: 150px; text-align: right; font-weight: bold; white-space: nowrap;">${formattedValue}</td>`,
         );
       });
 
@@ -699,12 +674,12 @@ $(document).ready(function () {
       const bankCostCenters = Object.keys(bankData).sort();
       bankCostCenters.forEach((costCenter) => {
         const costCenterRow = $(
-          `<tr class="cost-center-row" data-category="Ngân Hàng" data-metric="${metric.key}" data-cost-center="${costCenter}" style="display: none;"></tr>`
+          `<tr class="cost-center-row" data-category="Ngân Hàng" data-metric="${metric.key}" data-cost-center="${costCenter}" style="display: none;"></tr>`,
         );
         costCenterRow.append(
           `<td class="first-column" style="padding-left: 60px;">
               <strong>${costCenter}</strong>
-            </td>`
+            </td>`,
         );
 
         sortedMonths.forEach((month) => {
@@ -721,7 +696,7 @@ $(document).ready(function () {
           const formattedValue =
             value === 0 ? "-" : value.toLocaleString("vi-VN");
           costCenterRow.append(
-            `<td class="month-column ${cellClass}" style="text-align: right;">${formattedValue}</td>`
+            `<td class="month-column ${cellClass}" style="text-align: right;">${formattedValue}</td>`,
           );
         });
 
@@ -729,51 +704,20 @@ $(document).ready(function () {
       });
     });
 
-    // Add FINAL Revenue Calculation Row that includes Bank
-    const finalRevenueRow = $(`<tr class="revenue-calculation-row"></tr>`);
-    finalRevenueRow.append(
-      `<td class="first-column" style="width: 250px; min-width: 250px; max-width: 250px; padding-left: 15px; white-space: nowrap;">
-        <strong>Tổng Doanh Thu</strong>
-      </td>`
-    );
-
-    sortedMonths.forEach((month) => {
-      let totalBankNet = 0;
-      Object.keys(bankData).forEach((costCenter) => {
-        if (bankData[costCenter][month]) {
-          totalBankNet += bankData[costCenter][month].bankNet || 0;
-        }
-      });
-
-      const totalRevenue = Math.ceil(monthlyRevenueData[month] + totalBankNet);
-
-      let cellClass = "";
-      if (totalRevenue > 0) cellClass = "positive";
-      else if (totalRevenue < 0) cellClass = "negative";
-
-      const formattedValue =
-        totalRevenue === 0 ? "-" : totalRevenue.toLocaleString("vi-VN");
-      finalRevenueRow.append(
-        `<td class="month-column ${cellClass}" style="width: 150px; min-width: 150px; max-width: 150px; text-align: right; font-weight: bold; white-space: nowrap;">${formattedValue}</td>`
-      );
-    });
-
-    tableBody.append(finalRevenueRow);
-
-    // Add Construction Category at the end
+    // --- Construction Category ---
     const constructionCategoryRow = $(
-      `<tr class="category-row" data-category="Xây Dựng"></tr>`
+      `<tr class="category-row" data-category="Xây Dựng"></tr>`,
     );
     constructionCategoryRow.append(
       `<td class="first-column">
           <span class="category-toggle">▶</span>
           <strong class="text-primary">Mua bán và Xây dựng</strong>
-        </td>`
+        </td>`,
     );
 
     sortedMonths.forEach(() => {
       constructionCategoryRow.append(
-        `<td class="month-column" style="text-align: right; font-weight: bold;"></td>`
+        `<td class="month-column" style="text-align: right; font-weight: bold;"></td>`,
       );
     });
 
@@ -781,13 +725,13 @@ $(document).ready(function () {
 
     constructionMetrics.forEach((metric) => {
       const metricRow = $(
-        `<tr class="metric-row" data-category="Xây Dựng" data-metric="${metric.key}" style="display: none;"></tr>`
+        `<tr class="metric-row" data-category="Xây Dựng" data-metric="${metric.key}" style="display: none;"></tr>`,
       );
       metricRow.append(
         `<td class="first-column" style="width: 250px; min-width: 250px; max-width: 250px; padding-left: 30px; white-space: nowrap;">
             <span class="metric-toggle">▶</span>
             <strong>${metric.label}</strong>
-          </td>`
+          </td>`,
       );
 
       sortedMonths.forEach((month) => {
@@ -808,7 +752,7 @@ $(document).ready(function () {
         const formattedValue =
           totalValue === 0 ? "-" : totalValue.toLocaleString("vi-VN");
         metricRow.append(
-          `<td class="month-column ${cellClass}" style="width: 150px; min-width: 150px; max-width: 150px; text-align: right; font-weight: bold; white-space: nowrap;">${formattedValue}</td>`
+          `<td class="month-column ${cellClass}" style="width: 150px; min-width: 150px; max-width: 150px; text-align: right; font-weight: bold; white-space: nowrap;">${formattedValue}</td>`,
         );
       });
 
@@ -817,19 +761,19 @@ $(document).ready(function () {
       const constructionCostCenters = Object.keys(constructionData).sort();
       constructionCostCenters.forEach((costCenter) => {
         const costCenterRow = $(
-          `<tr class="cost-center-row" data-category="Xây Dựng" data-metric="${metric.key}" data-cost-center="${costCenter}" style="display: none;"></tr>`
+          `<tr class="cost-center-row" data-category="Xây Dựng" data-metric="${metric.key}" data-cost-center="${costCenter}" style="display: none;"></tr>`,
         );
         costCenterRow.append(
           `<td class="first-column" style="padding-left: 60px;">
               <strong>${costCenter}</strong>
-            </td>`
+            </td>`,
         );
 
         sortedMonths.forEach((month) => {
           let value = 0;
           if (constructionData[costCenter][month]) {
             value = Math.ceil(
-              constructionData[costCenter][month][metric.key] || 0
+              constructionData[costCenter][month][metric.key] || 0,
             );
           }
 
@@ -841,7 +785,7 @@ $(document).ready(function () {
           const formattedValue =
             value === 0 ? "-" : value.toLocaleString("vi-VN");
           costCenterRow.append(
-            `<td class="month-column ${cellClass}" style="text-align: right;">${formattedValue}</td>`
+            `<td class="month-column ${cellClass}" style="text-align: right;">${formattedValue}</td>`,
           );
         });
 
@@ -849,6 +793,48 @@ $(document).ready(function () {
       });
     });
 
+    // --- Tổng Doanh Thu row (bottom, includes bankNet + constructionNet) ---
+    const finalRevenueRow = $(`<tr class="revenue-calculation-row"></tr>`);
+    finalRevenueRow.append(
+      `<td class="first-column" style="width: 250px; min-width: 250px; max-width: 250px; padding-left: 15px; white-space: nowrap;">
+        <strong>Tổng Doanh Thu</strong>
+      </td>`,
+    );
+
+    sortedMonths.forEach((month) => {
+      let totalBankNet = 0;
+      Object.keys(bankData).forEach((costCenter) => {
+        if (bankData[costCenter][month]) {
+          totalBankNet += bankData[costCenter][month].bankNet || 0;
+        }
+      });
+
+      let totalConstructionNet = 0;
+      Object.keys(constructionData).forEach((costCenter) => {
+        if (constructionData[costCenter][month]) {
+          totalConstructionNet +=
+            constructionData[costCenter][month].constructionNet || 0;
+        }
+      });
+
+      const totalRevenue = Math.ceil(
+        monthlyRevenueData[month] + totalBankNet + totalConstructionNet,
+      );
+
+      let cellClass = "";
+      if (totalRevenue > 0) cellClass = "positive";
+      else if (totalRevenue < 0) cellClass = "negative";
+
+      const formattedValue =
+        totalRevenue === 0 ? "-" : totalRevenue.toLocaleString("vi-VN");
+      finalRevenueRow.append(
+        `<td class="month-column ${cellClass}" style="width: 150px; min-width: 150px; max-width: 150px; text-align: right; font-weight: bold; white-space: nowrap;">${formattedValue}</td>`,
+      );
+    });
+
+    tableBody.append(finalRevenueRow);
+
+    // --- Event listeners ---
     $(".category-row").on("click", function () {
       const category = $(this).data("category");
       const toggle = $(this).find(".category-toggle");
@@ -878,13 +864,13 @@ $(document).ready(function () {
         $(this).removeClass("expanded");
         toggle.removeClass("expanded");
         $(
-          `.cost-center-row[data-category="${category}"][data-metric="${metric}"]`
+          `.cost-center-row[data-category="${category}"][data-metric="${metric}"]`,
         ).hide();
       } else {
         $(this).addClass("expanded");
         toggle.addClass("expanded");
         $(
-          `.cost-center-row[data-category="${category}"][data-metric="${metric}"]`
+          `.cost-center-row[data-category="${category}"][data-metric="${metric}"]`,
         ).show();
       }
     });
@@ -971,7 +957,6 @@ $(document).ready(function () {
     const budgetContainer = $("#budgetSummaryContainer");
     const budgetDetails = $("#budgetDetails");
 
-    // Only show budget summary if 2025 is selected
     if (!years.includes("2025")) {
       budgetContainer.hide();
       return;
@@ -992,7 +977,6 @@ $(document).ready(function () {
     let totalBankExpense = 0;
     let totalBankNet = 0;
 
-    // Filter data for 2025 only for budget calculations
     const data2025 = data.filter((item) => item.year === 2025);
 
     data2025.forEach((item) => {
@@ -1018,12 +1002,13 @@ $(document).ready(function () {
       if (
         !shouldHideMetricForCategory(
           "totalCommissionPurchase",
-          costCenterCategory
+          costCenterCategory,
         )
       ) {
         totalCommissionPurchase += item.totalCommissionPurchase;
       }
 
+      // Use frontend-computed netRevenue (no constructionNet/bankNet)
       totalNetRevenue += item.netRevenue;
     });
 
@@ -1042,7 +1027,9 @@ $(document).ready(function () {
     totalBankNet = Math.ceil(totalBankNet);
     totalNetRevenue = Math.ceil(totalNetRevenue);
 
-    const currentBudget = STARTING_BUDGET_2025 + totalNetRevenue;
+    // Tổng Doanh Thu = netRevenue + bankNet + constructionNet
+    const totalRevenue = totalNetRevenue + totalBankNet + totalConstructionNet;
+    const currentBudget = STARTING_BUDGET_2025 + totalRevenue;
 
     const format = (num) => num.toLocaleString("vi-VN");
 
@@ -1094,6 +1081,12 @@ $(document).ready(function () {
         <span class="negative">-${format(totalPayments)} VNĐ</span>
       </div>
       <div class="budget-item">
+        <span>Doanh thu ròng (không bao gồm xây dựng & ngân hàng):</span>
+        <span class="${totalNetRevenue >= 0 ? "positive" : "negative"}">
+          ${totalNetRevenue >= 0 ? "+" : ""}${format(totalNetRevenue)} VNĐ
+        </span>
+      </div>
+      <div class="budget-item">
         <span>Thu từ mua bán và xây dựng:</span>
         <span class="positive">+${format(totalConstructionIncome)} VNĐ</span>
       </div>
@@ -1104,9 +1097,7 @@ $(document).ready(function () {
       <div class="budget-item">
         <span>Lợi nhuận mua bán và xây dựng:</span>
         <span class="${totalConstructionNet >= 0 ? "positive" : "negative"}">
-          ${totalConstructionNet >= 0 ? "+" : ""}${format(
-      totalConstructionNet
-    )} VNĐ
+          ${totalConstructionNet >= 0 ? "+" : ""}${format(totalConstructionNet)} VNĐ
         </span>
       </div>
       <div class="budget-item">
@@ -1124,16 +1115,14 @@ $(document).ready(function () {
         </span>
       </div>
       <div class="budget-item">
-        <span>Tổng doanh thu ròng (2025):</span>
-        <span class="${totalNetRevenue >= 0 ? "positive" : "negative"}">
-          ${totalNetRevenue >= 0 ? "+" : ""}${format(totalNetRevenue)} VNĐ
+        <span>Tổng doanh thu (2025):</span>
+        <span class="${totalRevenue >= 0 ? "positive" : "negative"}">
+          ${totalRevenue >= 0 ? "+" : ""}${format(totalRevenue)} VNĐ
         </span>
       </div>
       <div class="budget-item budget-total">
         <span>Ngân sách hiện tại:</span>
-        <span class="${
-          currentBudget >= STARTING_BUDGET_2025 ? "positive" : "negative"
-        }">
+        <span class="${currentBudget >= STARTING_BUDGET_2025 ? "positive" : "negative"}">
           ${format(currentBudget)} VNĐ
         </span>
       </div>
@@ -1172,17 +1161,9 @@ $(document).ready(function () {
 
       categorizedCenters[category].forEach((costCenter) => {
         const item = $(`
-          <div class="cost-center-item" data-value="${
-            costCenter.name
-          }" data-category="${costCenter.category}">
-            <input type="checkbox" id="cc_${costCenter.name.replace(
-              /\s/g,
-              "_"
-            )}" />
-            <label for="cc_${costCenter.name.replace(
-              /\s/g,
-              "_"
-            )}" style="margin-bottom: 0; cursor: pointer; flex: 1;">
+          <div class="cost-center-item" data-value="${costCenter.name}" data-category="${costCenter.category}">
+            <input type="checkbox" id="cc_${costCenter.name.replace(/\s/g, "_")}" />
+            <label for="cc_${costCenter.name.replace(/\s/g, "_")}" style="margin-bottom: 0; cursor: pointer; flex: 1;">
               ${costCenter.name}
             </label>
           </div>
@@ -1229,7 +1210,7 @@ $(document).ready(function () {
     $("#selectedCount").text(`${count} trạm được chọn`);
     $("#saveGroup").prop(
       "disabled",
-      count === 0 || !$("#groupName").val().trim()
+      count === 0 || !$("#groupName").val().trim(),
     );
   }
 
@@ -1296,19 +1277,14 @@ $(document).ready(function () {
       url: "/financeSummaryCostCenterGroups",
       method: "POST",
       contentType: "application/json",
-      data: JSON.stringify({
-        name,
-        costCenters,
-      }),
+      data: JSON.stringify({ name, costCenters }),
       success: function () {
         $("#groupName").val("");
         selectedCostCenters.clear();
         $(".cost-center-item").removeClass("selected");
         $('.cost-center-item input[type="checkbox"]').prop("checked", false);
         updateSelectedCount();
-
         loadCostCenterGroups();
-
         alert("Nhóm đã được tạo thành công!");
       },
       error: function (xhr) {
@@ -1318,34 +1294,27 @@ $(document).ready(function () {
     });
   }
 
-  // Function to open edit group modal
   function openEditGroupModal(group) {
-    // Populate the modal with group data
     $("#groupName").val(group.name);
 
-    // Clear and reselect cost centers
     selectedCostCenters.clear();
     $(".cost-center-item").removeClass("selected");
     $('.cost-center-item input[type="checkbox"]').prop("checked", false);
 
-    // Select the group's cost centers
     group.costCenters.forEach((costCenterName) => {
       selectedCostCenters.add(costCenterName);
       $(`.cost-center-item[data-value="${costCenterName}"]`).addClass(
-        "selected"
+        "selected",
       );
       $(
-        `.cost-center-item[data-value="${costCenterName}"] input[type="checkbox"]`
+        `.cost-center-item[data-value="${costCenterName}"] input[type="checkbox"]`,
       ).prop("checked", true);
     });
 
-    // Change save button to update button
     $("#saveGroup").text("Cập nhật nhóm").data("editing-id", group._id);
-
     updateSelectedCount();
   }
 
-  // Function to update cost center group
   function updateCostCenterGroup(groupId) {
     const name = $("#groupName").val().trim();
     const costCenters = Array.from(selectedCostCenters);
@@ -1364,70 +1333,19 @@ $(document).ready(function () {
       url: `/financeSummaryCostCenterGroups/${groupId}`,
       method: "PUT",
       contentType: "application/json",
-      data: JSON.stringify({
-        name,
-        costCenters,
-      }),
+      data: JSON.stringify({ name, costCenters }),
       success: function () {
-        // Reset modal
         $("#groupName").val("");
         selectedCostCenters.clear();
         $(".cost-center-item").removeClass("selected");
         $('.cost-center-item input[type="checkbox"]').prop("checked", false);
         updateSelectedCount();
-
-        // Reset button text
         $("#saveGroup").text("Tạo nhóm").removeData("editing-id");
-
         loadCostCenterGroups();
         alert("Nhóm đã được cập nhật thành công!");
       },
       error: function (xhr) {
         const errorMsg = xhr.responseJSON?.message || "Lỗi khi cập nhật nhóm";
-        alert(errorMsg);
-      },
-    });
-  }
-
-  // Function to add single cost center to group
-  function addCostCenterToGroup(groupId, costCenterName) {
-    $.ajax({
-      url: `/financeSummaryCostCenterGroups/${groupId}`,
-      method: "PUT",
-      contentType: "application/json",
-      data: JSON.stringify({
-        action: "add",
-        costCenter: costCenterName,
-      }),
-      success: function () {
-        loadCostCenterGroups();
-        // Optional: show success message
-      },
-      error: function (xhr) {
-        const errorMsg =
-          xhr.responseJSON?.message || "Lỗi khi thêm trạm vào nhóm";
-        alert(errorMsg);
-      },
-    });
-  }
-
-  // Function to remove single cost center from group
-  function removeCostCenterFromGroup(groupId, costCenterName) {
-    $.ajax({
-      url: `/financeSummaryCostCenterGroups/${groupId}`,
-      method: "PUT",
-      contentType: "application/json",
-      data: JSON.stringify({
-        action: "remove",
-        costCenter: costCenterName,
-      }),
-      success: function () {
-        loadCostCenterGroups();
-        // Optional: show success message
-      },
-      error: function (xhr) {
-        const errorMsg =
-          xhr.responseJSON?.message || "Lỗi khi xóa trạm khỏi nhóm";
         alert(errorMsg);
       },
     });
@@ -1444,7 +1362,7 @@ $(document).ready(function () {
 
   function loadCostCenterGroups() {
     $("#groupList").html(
-      '<div class="list-group-item text-muted text-center">Đang tải nhóm...</div>'
+      '<div class="list-group-item text-muted text-center">Đang tải nhóm...</div>',
     );
 
     $.ajax({
@@ -1456,7 +1374,7 @@ $(document).ready(function () {
 
         if (groups.length === 0) {
           groupList.html(
-            '<div class="list-group-item text-muted text-center">Bạn chưa có nhóm nào</div>'
+            '<div class="list-group-item text-muted text-center">Bạn chưa có nhóm nào</div>',
           );
           return;
         }
@@ -1466,22 +1384,14 @@ $(document).ready(function () {
             <div class="list-group-item group-item d-flex justify-content-between align-items-center">
               <div style="flex: 1; cursor: pointer;">
                 <strong>${group.name}</strong>
-                <div class="text-muted small">${
-                  group.costCenters.length
-                } trạm</div>
-                <div class="text-muted small" style="font-size: 0.75em;">${group.costCenters.join(
-                  ", "
-                )}</div>
+                <div class="text-muted small">${group.costCenters.length} trạm</div>
+                <div class="text-muted small" style="font-size: 0.75em;">${group.costCenters.join(", ")}</div>
               </div>
               <div>
-                <button class="btn btn-sm btn-outline-primary edit-group me-1" data-id="${
-                  group._id
-                }" title="Sửa nhóm">
+                <button class="btn btn-sm btn-outline-primary edit-group me-1" data-id="${group._id}" title="Sửa nhóm">
                   ✎
                 </button>
-                <button class="btn btn-sm btn-outline-danger delete-group" data-id="${
-                  group._id
-                }" title="Xóa nhóm">
+                <button class="btn btn-sm btn-outline-danger delete-group" data-id="${group._id}" title="Xóa nhóm">
                   ✕
                 </button>
               </div>
@@ -1512,7 +1422,7 @@ $(document).ready(function () {
       },
       error: function () {
         $("#groupList").html(
-          '<div class="list-group-item text-danger text-center">Lỗi khi tải nhóm</div>'
+          '<div class="list-group-item text-danger text-center">Lỗi khi tải nhóm</div>',
         );
       },
     });
@@ -1545,7 +1455,6 @@ $(document).ready(function () {
     loadCostCenterGroups();
     selectedCostCenters.clear();
     $("#groupName").val("");
-    // Reset button to create mode
     $("#saveGroup").text("Tạo nhóm").removeData("editing-id");
     updateSelectedCount();
   });
@@ -1554,7 +1463,6 @@ $(document).ready(function () {
     selectedCostCenters.clear();
     $("#groupName").val("");
     $("#costCenterGrid").empty();
-    // Reset button to create mode
     $("#saveGroup").text("Tạo nhóm").removeData("editing-id");
   });
 
@@ -1565,11 +1473,9 @@ $(document).ready(function () {
     const selectedCostCenters = $("#costCenterSelect").val();
     const category = $("#categoryFilter").val();
 
-    // Auto-select current year if no years are selected
     const currentYear = new Date().getFullYear();
     const finalYears = years && years.length > 0 ? years : [currentYear];
 
-    // Update the select if it was empty
     if (!years || years.length === 0) {
       $("#yearSelect").val([currentYear]).trigger("change");
     }
@@ -1597,7 +1503,7 @@ $(document).ready(function () {
         if (data.length === 0) {
           alert("Không tìm thấy dữ liệu cho năm đã chọn");
           $("#tableBody").html(
-            '<tr><td colspan="100%" class="text-center text-muted">Không có dữ liệu</td></tr>'
+            '<tr><td colspan="100%" class="text-center text-muted">Không có dữ liệu</td></tr>',
           );
           $("#budgetSummaryContainer").hide();
           return;
