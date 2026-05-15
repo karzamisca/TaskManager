@@ -209,7 +209,6 @@ exports.getRevenueByCostCenter = async (req, res) => {
       return res.status(400).json({ error: "Years parameter is required" });
     }
 
-    // Parse years parameter - it can be a single year or multiple years separated by commas
     const yearList = years
       .split(",")
       .map((year) => parseInt(year.trim()))
@@ -219,7 +218,6 @@ exports.getRevenueByCostCenter = async (req, res) => {
       return res.status(400).json({ error: "No valid years provided" });
     }
 
-    // Get all cost centers with optional category filter
     let query = {};
     if (category && category !== "all") {
       query.category = category;
@@ -228,7 +226,6 @@ exports.getRevenueByCostCenter = async (req, res) => {
     const allCostCenters = await CostCenter.find(query).lean();
     let costCenterNames = allCostCenters.map((cc) => cc.name);
 
-    // Enhanced cost center filtering with better URL handling and matching
     if (costCenters && costCenters.trim() !== "") {
       const selectedCostCenters = costCenters
         .split(",")
@@ -245,7 +242,6 @@ exports.getRevenueByCostCenter = async (req, res) => {
           }),
         );
 
-        // If no exact matches found, try partial matching
         if (costCenterNames.length === 0) {
           costCenterNames = allCostCenters
             .filter((cc) =>
@@ -266,8 +262,6 @@ exports.getRevenueByCostCenter = async (req, res) => {
       }
     }
 
-    // Get all user monthly records for the specified years and cost centers
-    // EXCLUDE management roles: deputyDirector, director, headOfAccounting
     const userRecords = await UserMonthlyRecord.find({
       recordYear: { $in: yearList },
       role: {
@@ -287,32 +281,29 @@ exports.getRevenueByCostCenter = async (req, res) => {
       });
     });
 
-    // Get all finance data from the merged CostCenter model for all years
     const financeData = await CostCenter.find({
       "years.year": { $in: yearList },
       name: { $in: costCenterNames },
     }).lean();
 
-    // Get all payment documents for the specified years and cost centers
     const paymentDocuments = await DocumentPayment.find({
       costCenter: { $in: costCenterNames },
     }).lean();
 
-    // Get construction data for the specified years
     const constructionData = await CostCenter.find({
       name: { $in: costCenterNames },
     }).select("name construction");
 
-    // Get bank data for the specified years — includes daily for loan amortization
     const bankData = await CostCenter.find({
       name: { $in: costCenterNames },
     }).select("name bank daily");
 
-    // Filter payment documents by submission date and create a map
+    // Build payment map
     const costCenterPaymentMap = {};
 
     paymentDocuments.forEach((doc) => {
       if (doc.stages && doc.stages.length > 0) {
+        // Staged payments: use stage deadline
         doc.stages.forEach((stage) => {
           const dateInfo = getMonthYearFromSubmissionDate(stage.deadline);
           if (!dateInfo) return;
@@ -327,16 +318,21 @@ exports.getRevenueByCostCenter = async (req, res) => {
           if (!yearList.includes(recordYear)) return;
 
           const key = `${doc.costCenter}-${recordMonth}-${recordYear}`;
-          if (!costCenterPaymentMap[key]) {
-            costCenterPaymentMap[key] = 0;
-          }
+          if (!costCenterPaymentMap[key]) costCenterPaymentMap[key] = 0;
           costCenterPaymentMap[key] += stage.amount || 0;
         });
-      } else if (
-        doc.appendedPurchasingDocuments &&
-        doc.appendedPurchasingDocuments.length > 0
-      ) {
-        const dateInfo = getMonthYearFromSubmissionDate(doc.submissionDate);
+      } else if (doc.appendedPurchasingDocuments?.length > 0) {
+        // Appended purchasing documents: use deputyDirector's approvalDate
+        const deputyApproval = doc.approvedBy?.find(
+          (a) => a.role === "deputyDirector",
+        );
+
+        // Skip if not yet approved by deputyDirector
+        if (!deputyApproval) return;
+
+        const dateInfo = getMonthYearFromSubmissionDate(
+          deputyApproval.approvalDate,
+        );
         if (!dateInfo) return;
 
         let recordMonth = dateInfo.month + 1;
@@ -349,21 +345,29 @@ exports.getRevenueByCostCenter = async (req, res) => {
         if (!yearList.includes(recordYear)) return;
 
         doc.appendedPurchasingDocuments.forEach((purchasingDoc) => {
-          if (purchasingDoc.products && purchasingDoc.products.length > 0) {
+          if (purchasingDoc.products?.length > 0) {
             purchasingDoc.products.forEach((product) => {
               const productCostCenter = product.costCenter || "Chưa có";
               if (costCenterNames.includes(productCostCenter)) {
                 const key = `${productCostCenter}-${recordMonth}-${recordYear}`;
-                if (!costCenterPaymentMap[key]) {
-                  costCenterPaymentMap[key] = 0;
-                }
+                if (!costCenterPaymentMap[key]) costCenterPaymentMap[key] = 0;
                 costCenterPaymentMap[key] += product.totalCostAfterVat || 0;
               }
             });
           }
         });
       } else {
-        const dateInfo = getMonthYearFromSubmissionDate(doc.submissionDate);
+        // Normal documents: use deputyDirector's approvalDate
+        const deputyApproval = doc.approvedBy?.find(
+          (a) => a.role === "deputyDirector",
+        );
+
+        // Skip if not yet approved by deputyDirector
+        if (!deputyApproval) return;
+
+        const dateInfo = getMonthYearFromSubmissionDate(
+          deputyApproval.approvalDate,
+        );
         if (!dateInfo) return;
 
         let recordMonth = dateInfo.month + 1;
@@ -376,9 +380,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
         if (!yearList.includes(recordYear)) return;
 
         const key = `${doc.costCenter}-${recordMonth}-${recordYear}`;
-        if (!costCenterPaymentMap[key]) {
-          costCenterPaymentMap[key] = 0;
-        }
+        if (!costCenterPaymentMap[key]) costCenterPaymentMap[key] = 0;
         costCenterPaymentMap[key] += doc.totalPayment || 0;
       }
     });
@@ -419,12 +421,10 @@ exports.getRevenueByCostCenter = async (req, res) => {
     });
 
     // Process bank data by month
-    // — Raw entries for non-loans
-    // — Daily amortization entries for complete loans
     const costCenterBankMap = {};
 
     bankData.forEach((center) => {
-      // 1. Raw bank entries (skip complete loans to avoid double-counting)
+      // Raw bank entries (skip complete loans)
       center.bank.forEach((bankEntry) => {
         if (bankEntry.isCompleteLoan) return;
 
@@ -452,7 +452,7 @@ exports.getRevenueByCostCenter = async (req, res) => {
           (bankEntry.income || 0) - (bankEntry.expense || 0);
       });
 
-      // 2. Daily loan amortization entries (generated by generateDailyEntries)
+      // Daily loan amortization entries
       (center.daily || []).forEach((dailyEntry) => {
         if (!dailyEntry.isLoanInterest) return;
 
@@ -474,7 +474,6 @@ exports.getRevenueByCostCenter = async (req, res) => {
           costCenterBankMap[recordKey] = { income: 0, expense: 0, net: 0 };
         }
 
-        // expensePrediction holds the total periodic payment (interest + principal)
         const loanExpense = dailyEntry.expensePrediction || 0;
         const loanIncome = dailyEntry.incomePrediction || 0;
 
@@ -484,23 +483,18 @@ exports.getRevenueByCostCenter = async (req, res) => {
       });
     });
 
-    // Process the data
+    // Build results
     const results = [];
     const costCenterSalaryMap = {};
 
-    // First pass: Calculate total salaries per cost center per month
-    // Management roles are already excluded from userRecords query
     for (const record of filteredUserRecords) {
       if (!record.costCenter) continue;
 
       const key = `${record.costCenter.name}-${record.recordMonth}-${record.recordYear}`;
-      if (!costCenterSalaryMap[key]) {
-        costCenterSalaryMap[key] = 0;
-      }
+      if (!costCenterSalaryMap[key]) costCenterSalaryMap[key] = 0;
       costCenterSalaryMap[key] += record.currentSalary || 0;
     }
 
-    // Second pass: Build result rows for every cost center / month / year
     for (const year of yearList) {
       for (const costCenterName of costCenterNames) {
         for (let month = 1; month <= 12; month++) {
@@ -521,16 +515,13 @@ exports.getRevenueByCostCenter = async (req, res) => {
           let totalCommissionSale = 0;
           let totalSalary = 0;
           let totalPayments = 0;
-
           let constructionIncome = 0;
           let constructionExpense = 0;
           let constructionNet = 0;
-
           let bankIncome = 0;
           let bankExpense = 0;
           let bankNet = 0;
 
-          // Finance data (sale/purchase contracts)
           const center = financeData.find((c) => c.name === costCenterName);
           if (center) {
             const yearData = center.years.find((y) => y.year === actualYear);
@@ -551,15 +542,12 @@ exports.getRevenueByCostCenter = async (req, res) => {
             }
           }
 
-          // Salary
           const salaryKey = `${costCenterName}-${month}-${year}`;
           totalSalary = costCenterSalaryMap[salaryKey] || 0;
 
-          // Payments
           const paymentKey = `${costCenterName}-${month}-${year}`;
           totalPayments = costCenterPaymentMap[paymentKey] || 0;
 
-          // Construction
           const constructionKey = `${costCenterName}-${month}-${year}`;
           const constructionDataForMonth =
             costCenterConstructionMap[constructionKey];
@@ -569,7 +557,6 @@ exports.getRevenueByCostCenter = async (req, res) => {
             constructionNet = constructionDataForMonth.net;
           }
 
-          // Bank (raw entries + loan amortization)
           const bankKey = `${costCenterName}-${month}-${year}`;
           const bankDataForMonth = costCenterBankMap[bankKey];
           if (bankDataForMonth) {
