@@ -870,13 +870,13 @@ function renderUsers() {
 
   currentFilteredUsers = [...allUsers];
 
-  if (filterCostCenterId !== "all") {
+  if (filterCostCenterId && filterCostCenterId !== "all") {
     currentFilteredUsers = currentFilteredUsers.filter(
       (u) => u.costCenter && u.costCenter._id === filterCostCenterId,
     );
   }
 
-  if (filterManagerId !== "all") {
+  if (filterManagerId && filterManagerId !== "all") {
     currentFilteredUsers = currentFilteredUsers.filter(
       (u) =>
         (filterManagerId === "none" && !u.assignedManager) ||
@@ -943,9 +943,7 @@ function renderUsers() {
       <td>${user.realName}</td>
       <td>${emailDisplay}</td>
       <td>${user.costCenter ? user.costCenter.name : "Chưa có"}</td>
-      <td>${
-        user.assignedManager ? user.assignedManager.username : "Chưa có"
-      }</td>
+      <td>${user.assignedManager ? user.assignedManager.username : "Chưa có"}</td>
       <td>${user.beneficiaryBank || "Chưa có"}</td>
       <td>${user.bankAccountNumber || "Chưa có"}</td>
       <td>${user.citizenID || "Chưa có"}</td>
