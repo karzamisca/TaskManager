@@ -555,6 +555,38 @@
   background: var(--scrollbar-thumb-hover);
 }
 
+/* Toast notification */
+.salary-calculation-page .toast-notification {
+  position: fixed;
+  top: 20px;
+  right: -400px;
+  z-index: 9999;
+  padding: 14px 20px;
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  font-size: 15px;
+  font-weight: 500;
+  max-width: 340px;
+  transition: right 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.salary-calculation-page .toast-notification.toast-success {
+  background-color: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.salary-calculation-page .toast-notification.toast-error {
+  background-color: var(--error-bg);
+  color: var(--error-text);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.salary-calculation-page .toast-notification.toast-visible {
+  right: 20px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .salary-calculation-page .container {

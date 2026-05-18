@@ -8,6 +8,7 @@ let currentMonth = new Date().getMonth() + 1;
 let currentYear = new Date().getFullYear();
 let currentSortColumn = "costCenter";
 let currentSortDirection = "asc";
+let toastTimer = null;
 
 function sortUsers(users, column, direction) {
   return [...users].sort((a, b) => {
@@ -1192,27 +1193,32 @@ async function deleteUser(id) {
   }
 }
 
+function showToast(message, type) {
+  let toast = document.querySelector(".toast-notification");
+  if (!toast) {
+    toast = document.createElement("div");
+    // Attach to page root so position:fixed works regardless of scroll
+    document.querySelector(".salary-calculation-page").appendChild(toast);
+  }
+
+  // Reset classes and set new type
+  toast.className = `toast-notification toast-${type}`;
+  toast.textContent = message;
+
+  // Force reflow so the slide-in transition fires even if toast is already showing
+  void toast.offsetWidth;
+  toast.classList.add("toast-visible");
+
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove("toast-visible");
+  }, 3000);
+}
+
 function showSuccess(message) {
-  const successEl =
-    document.querySelector(".success-message") ||
-    createMessageElement("success-message");
-  successEl.textContent = message;
-  successEl.style.display = "block";
-  setTimeout(() => (successEl.style.display = "none"), 3000);
+  showToast(message, "success");
 }
 
 function showError(message) {
-  const errorEl =
-    document.querySelector(".error-message") ||
-    createMessageElement("error-message");
-  errorEl.textContent = message;
-  errorEl.style.display = "block";
-  setTimeout(() => (errorEl.style.display = "none"), 3000);
-}
-
-function createMessageElement(className) {
-  const el = document.createElement("div");
-  el.className = className;
-  document.querySelector(".container").prepend(el);
-  return el;
+  showToast(message, "error");
 }
