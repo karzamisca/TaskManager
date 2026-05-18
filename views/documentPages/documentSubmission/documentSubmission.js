@@ -1101,7 +1101,7 @@ function handlePurchasingDocument() {
   grandTotalCost = 0;
 
   contentFields.innerHTML = `
-      <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
+      <label for="name"><i class="fas fa-file-signature"></i> Tên phiếu</label>
       <input type="text" name="name" required />
       <label for="costCenter"><i class="fas fa-building"></i> Trạm</label>
       <select name="costCenter" id="costCenter" required>
@@ -1181,7 +1181,7 @@ function handlePaymentDocument() {
   fetchPurchasingDocumentsForPayment();
 
   contentFields.innerHTML = `
-      <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
+      <label for="name"><i class="fas fa-file-signature"></i> Tên phiếu</label>
       <input type="text" name="name" required />
       <label for="content"><i class="fas fa-align-left"></i> Nội dung</label>
       <input type="text" name="content" required />
@@ -1237,7 +1237,7 @@ function handleAdvancePaymentDocument() {
   fetchPurchasingDocumentsForAdvancePayment();
 
   contentFields.innerHTML = `
-      <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
+      <label for="name"><i class="fas fa-file-signature"></i> Tên phiếu</label>
       <input type="text" name="name" required />
       <label for="content"><i class="fas fa-align-left"></i> Nội dung</label>
       <input type="text" name="content" required />
@@ -1285,7 +1285,7 @@ function handleAdvancePaymentReclaimDocument() {
   fetchPurchasingDocumentsForAdvancePaymentReclaim();
 
   contentFields.innerHTML = `
-      <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
+      <label for="name"><i class="fas fa-file-signature"></i> Tên phiếu</label>
       <input type="text" name="name" required />
       <label for="content"><i class="fas fa-align-left"></i> Nội dung</label>
       <input type="text" name="content" required />
@@ -1323,6 +1323,64 @@ function handleAdvancePaymentReclaimDocument() {
   fetchCostCenters();
 }
 
+// Function to populate both cost center selects for Delivery and Receipt documents
+function populateCostCenterSelects() {
+  fetch("/getCurrentUser")
+    .then((response) => response.json())
+    .then((userData) => {
+      const currentUser = userData.username;
+
+      fetch("/costCenters")
+        .then((response) => response.json())
+        .then((costCenters) => {
+          const costCenterFromSelect =
+            document.getElementById("costCenterFrom");
+          const costCenterToSelect = document.getElementById("costCenterTo");
+
+          if (costCenterFromSelect) {
+            costCenterFromSelect.innerHTML =
+              '<option value="">Chọn trạm xuất</option>';
+
+            costCenters.forEach((center) => {
+              if (
+                center.allowedUsers.length === 0 ||
+                center.allowedUsers.includes(currentUser)
+              ) {
+                const option = document.createElement("option");
+                option.value = center.name;
+                option.textContent = center.name;
+                costCenterFromSelect.appendChild(option);
+              }
+            });
+          }
+
+          if (costCenterToSelect) {
+            costCenterToSelect.innerHTML =
+              '<option value="">Chọn trạm nhập</option>';
+
+            costCenters.forEach((center) => {
+              if (
+                center.allowedUsers.length === 0 ||
+                center.allowedUsers.includes(currentUser)
+              ) {
+                const option = document.createElement("option");
+                option.value = center.name;
+                option.textContent = center.name;
+                costCenterToSelect.appendChild(option);
+              }
+            });
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching cost centers:", error);
+        });
+    })
+    .catch((error) => {
+      console.error("Error fetching current user:", error);
+    });
+}
+
+// Updated handleDeliveryDocument function
 function handleDeliveryDocument() {
   const contentFields = document.getElementById("content-fields");
   const approvedProposalSection = document.getElementById(
@@ -1333,12 +1391,19 @@ function handleDeliveryDocument() {
   grandTotalCost = 0;
 
   contentFields.innerHTML = `
-      <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
+      <label for="name"><i class="fas fa-file-signature"></i> Tên phiếu</label>
       <input type="text" name="name" required />
-      <label for="costCenter"><i class="fas fa-building"></i> Trạm</label>
-      <select name="costCenter" id="costCenter" required>
-        <option value="">Chọn một trạm</option>
+      
+      <label for="costCenterFrom"><i class="fas fa-building"></i> Trạm xuất (Nơi gửi đi)</label>
+      <select name="costCenterFrom" id="costCenterFrom" required>
+        <option value="">Chọn trạm xuất</option>
       </select>
+      
+      <label for="costCenterTo"><i class="fas fa-building"></i> Trạm nhập (Nơi nhận)</label>
+      <select name="costCenterTo" id="costCenterTo" required>
+        <option value="">Chọn trạm nhập</option>
+      </select>
+      
       <div id="product-entries">
         <div class="product-entry" id="product-entry-0">
           <button type="button" class="remove-product-btn" onclick="removeProductEntry(0)" title="Xóa sản phẩm">
@@ -1395,9 +1460,10 @@ function handleDeliveryDocument() {
   populateProjectDropdown();
   approvedProposalSection.style.display = "block";
   fetchApprovedProposalsForDelivery();
-  fetchCostCenters();
+  populateCostCenterSelects();
 }
 
+// Updated handleReceiptDocument function
 function handleReceiptDocument() {
   const contentFields = document.getElementById("content-fields");
   const approvedProposalSection = document.getElementById(
@@ -1408,12 +1474,19 @@ function handleReceiptDocument() {
   grandTotalCost = 0;
 
   contentFields.innerHTML = `
-      <label for="name"><i class="fas fa-file-signature"></i> Tên</label>
+      <label for="name"><i class="fas fa-file-signature"></i> Tên phiếu</label>
       <input type="text" name="name" required />
-      <label for="costCenter"><i class="fas fa-building"></i> Trạm</label>
-      <select name="costCenter" id="costCenter" required>
-        <option value="">Chọn một trạm</option>
+      
+      <label for="costCenterFrom"><i class="fas fa-building"></i> Trạm xuất (Nơi gửi đi)</label>
+      <select name="costCenterFrom" id="costCenterFrom" required>
+        <option value="">Chọn trạm xuất</option>
       </select>
+      
+      <label for="costCenterTo"><i class="fas fa-building"></i> Trạm nhập (Nơi nhận)</label>
+      <select name="costCenterTo" id="costCenterTo" required>
+        <option value="">Chọn trạm nhập</option>
+      </select>
+      
       <div id="product-entries">
         <div class="product-entry" id="product-entry-0">
           <button type="button" class="remove-product-btn" onclick="removeProductEntry(0)" title="Xóa sản phẩm">
@@ -1470,7 +1543,7 @@ function handleReceiptDocument() {
   populateProjectDropdown();
   approvedProposalSection.style.display = "block";
   fetchApprovedProposalsForReceipt();
-  fetchCostCenters();
+  populateCostCenterSelects();
 }
 
 function handleProjectProposalDocument() {
@@ -2131,6 +2204,32 @@ document
       return;
     }
 
+    const selectedTitle = document.getElementById("title-dropdown").value;
+
+    // Add validation for costCenterFrom and costCenterTo for Delivery and Receipt documents
+    if (
+      selectedTitle === "Delivery Document" ||
+      selectedTitle === "Receipt Document"
+    ) {
+      const costCenterFrom = document.getElementById("costCenterFrom")?.value;
+      const costCenterTo = document.getElementById("costCenterTo")?.value;
+
+      if (!costCenterFrom) {
+        alert("Vui lòng chọn trạm xuất (nơi gửi đi)");
+        return;
+      }
+
+      if (!costCenterTo) {
+        alert("Vui lòng chọn trạm nhập (nơi nhận)");
+        return;
+      }
+
+      if (costCenterFrom === costCenterTo) {
+        alert("Trạm xuất và trạm nhập không thể giống nhau");
+        return;
+      }
+    }
+
     const productCostCenters = document.querySelectorAll(
       ".product-cost-center",
     );
@@ -2167,7 +2266,6 @@ document
         return;
       }
 
-      const selectedTitle = document.getElementById("title-dropdown").value;
       if (
         [
           "Purchasing Document",

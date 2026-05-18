@@ -25,10 +25,10 @@ function filterDocumentsForCurrentUser(documents) {
 
   return documents.filter((doc) => {
     const isRequiredApprover = doc.approvers.some(
-      (approver) => approver.username === currentUser.username
+      (approver) => approver.username === currentUser.username,
     );
     const hasNotApprovedYet = !doc.approvedBy.some(
-      (approved) => approved.username === currentUser.username
+      (approved) => approved.username === currentUser.username,
     );
     return isRequiredApprover && hasNotApprovedYet;
   });
@@ -97,7 +97,7 @@ function renderProducts(products) {
               product.note || ""
             }</td>
           </tr>
-        `
+        `,
           )
           .join("")}
       </tbody>
@@ -124,13 +124,13 @@ function renderProposals(proposals) {
                     ${proposal.fileMetadata
                       .map(
                         (file) =>
-                          `<a href="${file.link}" target="_blank" style="display: block; margin: 2px 0;">${file.name}</a>`
+                          `<a href="${file.link}" target="_blank" style="display: block; margin: 2px 0;">${file.name}</a>`,
                       )
                       .join("")}`
                   : ""
               }
             </div>
-          `
+          `,
         )
         .join("")}
     </div>
@@ -147,14 +147,14 @@ function renderFiles(fileMetadata) {
           (file) => `
           <div>
             <a href="${file.link}" class="file-link" target="_blank" title="${
-            file.name
-          }">
+              file.name
+            }">
               <i class="fas fa-file" style="margin-right: 4px;"></i>
               ${file.name}
               ${file.size ? ` <small>(${file.size})</small>` : ""}
             </a>
           </div>
-          `
+          `,
         )
         .join("")}
     </div>
@@ -269,7 +269,7 @@ async function exportSelectedToExcel() {
       document.body.removeChild(a);
 
       showMessage(
-        `Đã xuất thành công ${selectedDocuments.size} phiếu ra Excel`
+        `Đã xuất thành công ${selectedDocuments.size} phiếu ra Excel`,
       );
     } else {
       const error = await response.text();
@@ -285,7 +285,7 @@ async function exportSelectedToExcel() {
   }
 }
 
-// Updated renderTableRows function with selection checkboxes
+// Updated renderTableRows function with selection checkboxes and dual cost centers
 function renderTableRows() {
   const filteredDocuments = filterDocumentsForCurrentUser(deliveryDocuments);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -302,7 +302,7 @@ function renderTableRows() {
     const approvalStatus = doc.approvers
       .map((approver) => {
         const hasApproved = doc.approvedBy.find(
-          (a) => a.username === approver.username
+          (a) => a.username === approver.username,
         );
         return `
           <div class="approver-item">
@@ -329,9 +329,10 @@ function renderTableRows() {
                ${isSelected ? "checked" : ""}
                onchange="toggleDocumentSelection('${doc._id}', this.checked)">
       </td>
-      <td>${doc.name}</td>
-      <td>${doc.costCenter}</td>   
-      <td>${doc.groupName}</td>           
+      <td>${doc.name || "-"}</td>
+      <td>${doc.costCenterFrom || "-"}</td>
+      <td>${doc.costCenterTo || "-"}</td>   
+      <td>${doc.groupName || "-"}</td>           
       <td>${renderProducts(doc.products)}</td>
       <td>${renderFiles(doc.fileMetadata)}</td>
       <td>${doc.grandTotalCost?.toLocaleString() || "-"}</td>
@@ -500,21 +501,21 @@ function renderPagination() {
           &laquo; Đầu
         </button>
         <button onclick="changePage(${currentPage - 1})" ${
-      currentPage === 1 ? "disabled" : ""
-    }>
+          currentPage === 1 ? "disabled" : ""
+        }>
           &lsaquo; Trước
         </button>
         <span class="page-info">
           Trang ${currentPage} / ${totalPages}
         </span>
         <button onclick="changePage(${currentPage + 1})" ${
-      currentPage === totalPages ? "disabled" : ""
-    }>
+          currentPage === totalPages ? "disabled" : ""
+        }>
           Sau &rsaquo;
         </button>
         <button onclick="changePage(${totalPages})" ${
-      currentPage === totalPages ? "disabled" : ""
-    }>
+          currentPage === totalPages ? "disabled" : ""
+        }>
           Cuối &raquo;
         </button>
       </div>
@@ -700,12 +701,12 @@ async function addProductField(product = null) {
     const selectElement = this.parentElement.querySelector(".product-select");
     if (selectElement) {
       const choicesInstance = choicesInstances.find(
-        (c) => c.passedElement.element === selectElement
+        (c) => c.passedElement.element === selectElement,
       );
       if (choicesInstance) {
         choicesInstance.destroy();
         choicesInstances = choicesInstances.filter(
-          (c) => c !== choicesInstance
+          (c) => c !== choicesInstance,
         );
       }
     }
@@ -714,7 +715,7 @@ async function addProductField(product = null) {
   container.appendChild(removeButton);
 }
 
-async function populateCostCenterDropdown() {
+async function populateCostCenterDropdowns() {
   try {
     const userResponse = await fetch("/getCurrentUser");
     const userData = await userResponse.json();
@@ -723,21 +724,41 @@ async function populateCostCenterDropdown() {
     const costCenterResponse = await fetch("/costCenters");
     const costCenters = await costCenterResponse.json();
 
-    const costCenterDropdown = document.getElementById("editCostCenter");
+    const costCenterFromDropdown =
+      document.getElementById("editCostCenterFrom");
+    const costCenterToDropdown = document.getElementById("editCostCenterTo");
 
-    costCenterDropdown.innerHTML = '<option value="">Chọn một trạm</option>';
+    if (costCenterFromDropdown) {
+      costCenterFromDropdown.innerHTML =
+        '<option value="">Chọn trạm xuất</option>';
+      costCenters.forEach((center) => {
+        if (
+          center.allowedUsers.length === 0 ||
+          center.allowedUsers.includes(currentUser)
+        ) {
+          const option = document.createElement("option");
+          option.value = center.name;
+          option.textContent = center.name;
+          costCenterFromDropdown.appendChild(option);
+        }
+      });
+    }
 
-    costCenters.forEach((center) => {
-      if (
-        center.allowedUsers.length === 0 ||
-        center.allowedUsers.includes(currentUser)
-      ) {
-        const option = document.createElement("option");
-        option.value = center.name;
-        option.textContent = center.name;
-        costCenterDropdown.appendChild(option);
-      }
-    });
+    if (costCenterToDropdown) {
+      costCenterToDropdown.innerHTML =
+        '<option value="">Chọn trạm nhập</option>';
+      costCenters.forEach((center) => {
+        if (
+          center.allowedUsers.length === 0 ||
+          center.allowedUsers.includes(currentUser)
+        ) {
+          const option = document.createElement("option");
+          option.value = center.name;
+          option.textContent = center.name;
+          costCenterToDropdown.appendChild(option);
+        }
+      });
+    }
   } catch (error) {
     console.error("Lỗi khi lấy danh sách trạm:", error);
   }
@@ -764,7 +785,7 @@ function renderCurrentApprovers() {
           <input type="text" value="${approver.subRole}" onchange="updateApproverSubRole('${approver.approver}', this.value)" style="width: 100px; padding: 4px;">
           <button type="button" class="approve-btn" onclick="removeApprover('${approver.approver}')" style="background: #dc3545; padding: 4px 8px;">Xóa</button>
         </div>
-      `
+      `,
     )
     .join("");
 }
@@ -810,7 +831,7 @@ function addNewApprover() {
 async function populateNewApproversDropdown() {
   const allApprovers = await fetchApprovers();
   const availableApprovers = allApprovers.filter(
-    (approver) => !currentApprovers.some((a) => a.approver === approver._id)
+    (approver) => !currentApprovers.some((a) => a.approver === approver._id),
   );
 
   const dropdown = document.getElementById("newApproversDropdown");
@@ -820,7 +841,7 @@ async function populateNewApproversDropdown() {
       .map(
         (approver) => `
       <option value="${approver._id}">${approver.username}</option>
-    `
+    `,
       )
       .join("")}
   `;
@@ -843,10 +864,12 @@ async function editDocument(docId) {
     const doc = await response.json();
 
     document.getElementById("editDocId").value = docId;
-    document.getElementById("editName").value = doc.name;
+    document.getElementById("editName").value = doc.name || "";
 
-    await populateCostCenterDropdown();
-    document.getElementById("editCostCenter").value = doc.costCenter;
+    await populateCostCenterDropdowns();
+    document.getElementById("editCostCenterFrom").value =
+      doc.costCenterFrom || "";
+    document.getElementById("editCostCenterTo").value = doc.costCenterTo || "";
 
     // Populate group dropdown
     const groups = await fetchGroups();
@@ -864,7 +887,11 @@ async function editDocument(docId) {
 
     const productsList = document.getElementById("productsList");
     productsList.innerHTML = "";
-    doc.products.forEach((product) => addProductField(product));
+    if (doc.products && doc.products.length > 0) {
+      doc.products.forEach((product) => addProductField(product));
+    } else {
+      addProductField();
+    }
 
     currentApprovers = doc.approvers.map((approver) => ({
       approver: approver.approver?._id || approver.approver,
@@ -888,7 +915,7 @@ async function editDocument(docId) {
 // Add function to render current files
 function renderCurrentFiles(fileMetadata) {
   const currentFilesContainer = document.getElementById(
-    "currentFilesContainer"
+    "currentFilesContainer",
   );
   if (!currentFilesContainer) return;
 
@@ -961,7 +988,7 @@ async function deleteCurrentFile(fileId) {
       `/deleteDeliveryDocumentFile/${docId}/${fileId}`,
       {
         method: "POST",
-      }
+      },
     );
 
     const result = await response.json();
@@ -972,7 +999,7 @@ async function deleteCurrentFile(fileId) {
 
       // Get current file metadata
       const currentFileMetadataInput = document.getElementById(
-        "currentFileMetadata"
+        "currentFileMetadata",
       );
       let currentFiles = [];
 
@@ -1015,8 +1042,10 @@ function closeEditModal() {
   choicesInstances = [];
 
   document.getElementById("editModal").style.display = "none";
-  document.getElementById("editForm").reset();
-  document.getElementById("productsList").innerHTML = "";
+  const editForm = document.getElementById("editForm");
+  if (editForm) editForm.reset();
+  const productsList = document.getElementById("productsList");
+  if (productsList) productsList.innerHTML = "";
 }
 
 async function handleEditSubmit(event) {
@@ -1026,8 +1055,12 @@ async function handleEditSubmit(event) {
 
   formData.append("name", document.getElementById("editName").value);
   formData.append(
-    "costCenter",
-    document.getElementById("editCostCenter").value
+    "costCenterFrom",
+    document.getElementById("editCostCenterFrom").value,
+  );
+  formData.append(
+    "costCenterTo",
+    document.getElementById("editCostCenterTo").value,
   );
   formData.append("groupName", document.getElementById("editGroupName").value);
 
@@ -1073,7 +1106,7 @@ async function handleEditSubmit(event) {
 
   const grandTotalCost = products.reduce(
     (sum, product) => sum + product.totalCostAfterVat,
-    0
+    0,
   );
   formData.append("grandTotalCost", grandTotalCost);
 
@@ -1085,7 +1118,7 @@ async function handleEditSubmit(event) {
   }
 
   const fileInput = document.getElementById("editFile");
-  if (fileInput.files.length > 0) {
+  if (fileInput && fileInput.files.length > 0) {
     for (let i = 0; i < fileInput.files.length; i++) {
       formData.append("files", fileInput.files[i]);
     }
@@ -1112,6 +1145,9 @@ async function handleEditSubmit(event) {
 }
 
 function addEditModal() {
+  // Check if modal already exists
+  if (document.getElementById("editModal")) return;
+
   const modalHTML = `
     <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
       <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-color); padding: 20px; border-radius: 8px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto;">
@@ -1125,9 +1161,16 @@ function addEditModal() {
           </div>
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
-            <label for="editCostCenter" style="display: block; margin-bottom: 0.5em;">Trạm:</label>
-            <select id="editCostCenter" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
-              <option value="">Chọn một trạm</option>
+            <label for="editCostCenterFrom" style="display: block; margin-bottom: 0.5em;">Trạm xuất (Nơi gửi đi):</label>
+            <select id="editCostCenterFrom" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
+              <option value="">Chọn trạm xuất</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
+            <label for="editCostCenterTo" style="display: block; margin-bottom: 0.5em;">Trạm nhập (Nơi nhận):</label>
+            <select id="editCostCenterTo" required style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; border: 1px solid var(--border-color); border-radius: clamp(3px, 0.5vw, 6px);">
+              <option value="">Chọn trạm nhập</option>
             </select>
           </div>
 
@@ -1214,11 +1257,15 @@ function showFullView(docId) {
         <div class="detail-grid">
           <div class="detail-item">
             <span class="detail-label">Tên:</span>
-            <span class="detail-value">${doc.name}</span>
+            <span class="detail-value">${doc.name || "-"}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-label">Trạm:</span>
-            <span class="detail-value">${doc.costCenter}</span>
+            <span class="detail-label">Trạm xuất (Nơi gửi đi):</span>
+            <span class="detail-value">${doc.costCenterFrom || "-"}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Trạm nhập (Nơi nhận):</span>
+            <span class="detail-value">${doc.costCenterTo || "-"}</span>
           </div>                
           <div class="detail-item">
             <span class="detail-label">Nhóm:</span>
@@ -1232,7 +1279,7 @@ function showFullView(docId) {
           </div>
           <div class="detail-item">
             <span class="detail-label">Người nộp:</span>
-            <span class="detail-value">${doc.submittedBy.username}</span>
+            <span class="detail-value">${doc.submittedBy?.username || "-"}</span>
           </div>          
           <div class="detail-item">
             <span class="detail-label">Kê khai:</span>
@@ -1272,7 +1319,7 @@ function showFullView(docId) {
             ${doc.approvers
               .map((approver) => {
                 const hasApproved = doc.approvedBy.find(
-                  (a) => a.username === approver.username
+                  (a) => a.username === approver.username,
                 );
                 return `
                 <div class="approver-item">
@@ -1310,21 +1357,26 @@ function closeFullViewModal() {
 async function initializePage() {
   await fetchCurrentUser();
 
-  document
-    .getElementById("paginationToggle")
-    .addEventListener("change", togglePagination);
+  const paginationToggle = document.getElementById("paginationToggle");
+  if (paginationToggle) {
+    paginationToggle.addEventListener("change", togglePagination);
+  }
 
-  document.getElementById("pendingToggle").addEventListener("change", (e) => {
-    showOnlyPendingApprovals = e.target.checked;
-    currentPage = 1;
-    selectedDocuments.clear();
-    fetchDeliveryDocuments();
-  });
+  const pendingToggle = document.getElementById("pendingToggle");
+  if (pendingToggle) {
+    pendingToggle.addEventListener("change", (e) => {
+      showOnlyPendingApprovals = e.target.checked;
+      currentPage = 1;
+      selectedDocuments.clear();
+      fetchDeliveryDocuments();
+    });
+  }
 
   // Add export button event listener
-  document
-    .getElementById("exportSelectedBtn")
-    .addEventListener("click", exportSelectedToExcel);
+  const exportBtn = document.getElementById("exportSelectedBtn");
+  if (exportBtn) {
+    exportBtn.addEventListener("click", exportSelectedToExcel);
+  }
 
   fetchDeliveryDocuments();
 }

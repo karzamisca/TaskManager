@@ -1329,7 +1329,8 @@ async function createPurchasingDocument(
 
 // Create a Delivery Document
 async function createDeliveryDocument(req, approverDetails, uploadedFilesData) {
-  const { products, approvedProposals } = req.body;
+  const { products, approvedProposals, costCenterFrom, costCenterTo } =
+    req.body;
 
   // Process product entries
   const productEntries = processProducts(products);
@@ -1375,7 +1376,8 @@ async function createDeliveryDocument(req, approverDetails, uploadedFilesData) {
     tag,
     title: req.body.title,
     name: req.body.name,
-    costCenter: req.body.costCenter,
+    costCenterFrom: costCenterFrom, // Origin cost center
+    costCenterTo: costCenterTo, // Destination cost center
     products: productEntries,
     grandTotalCost,
     appendedProposals: processedProposals,
@@ -1400,7 +1402,8 @@ async function createDeliveryDocument(req, approverDetails, uploadedFilesData) {
 
 // Create a Receipt Document
 async function createReceiptDocument(req, approverDetails, uploadedFilesData) {
-  const { products, approvedProposals } = req.body;
+  const { products, approvedProposals, costCenterFrom, costCenterTo } =
+    req.body;
 
   // Process product entries
   const productEntries = processProducts(products);
@@ -1446,7 +1449,8 @@ async function createReceiptDocument(req, approverDetails, uploadedFilesData) {
     tag,
     title: req.body.title,
     name: req.body.name,
-    costCenter: req.body.costCenter,
+    costCenterFrom: costCenterFrom, // Origin cost center
+    costCenterTo: costCenterTo, // Destination cost center
     products: productEntries,
     grandTotalCost,
     appendedProposals: processedProposals,
@@ -5764,7 +5768,8 @@ exports.updateDeliveryDocument = async (req, res) => {
     // Parse grandTotalCost as a number
     const grandTotalCost = parseFloat(req.body.grandTotalCost);
     const name = req.body.name;
-    const costCenter = req.body.costCenter;
+    const costCenterFrom = req.body.costCenterFrom;
+    const costCenterTo = req.body.costCenterTo;
     const groupName = req.body.groupName;
 
     // Parse appendedProposals if it exists
@@ -5818,14 +5823,18 @@ exports.updateDeliveryDocument = async (req, res) => {
       ],
     });
 
-    // Check if the new cost center is allowed for the user
-    const isCostCenterAllowed = costCenters.some(
-      (center) => center.name === costCenter,
+    // Check if the new cost centers are allowed for the user
+    const isCostCenterFromAllowed = costCenters.some(
+      (center) => center.name === costCenterFrom,
+    );
+    const isCostCenterToAllowed = costCenters.some(
+      (center) => center.name === costCenterTo,
     );
 
-    if (!isCostCenterAllowed) {
+    if (!isCostCenterFromAllowed || !isCostCenterToAllowed) {
       return res.status(403).json({
-        message: "You do not have permission to edit this cost center.",
+        message:
+          "You do not have permission to use one or both of these cost centers.",
       });
     }
 
@@ -5842,7 +5851,8 @@ exports.updateDeliveryDocument = async (req, res) => {
     doc.products = products;
     doc.grandTotalCost = grandTotalCost;
     doc.name = name;
-    doc.costCenter = costCenter;
+    doc.costCenterFrom = costCenterFrom;
+    doc.costCenterTo = costCenterTo;
     doc.groupName = groupName;
 
     if (appendedProposals) {
@@ -6253,7 +6263,8 @@ exports.updateReceiptDocument = async (req, res) => {
     // Parse grandTotalCost as a number
     const grandTotalCost = parseFloat(req.body.grandTotalCost);
     const name = req.body.name;
-    const costCenter = req.body.costCenter;
+    const costCenterFrom = req.body.costCenterFrom;
+    const costCenterTo = req.body.costCenterTo;
     const groupName = req.body.groupName;
 
     // Parse appendedProposals if it exists
@@ -6306,14 +6317,18 @@ exports.updateReceiptDocument = async (req, res) => {
       ],
     });
 
-    // Check if the new cost center is allowed for the user
-    const isCostCenterAllowed = costCenters.some(
-      (center) => center.name === costCenter,
+    // Check if the new cost centers are allowed for the user
+    const isCostCenterFromAllowed = costCenters.some(
+      (center) => center.name === costCenterFrom,
+    );
+    const isCostCenterToAllowed = costCenters.some(
+      (center) => center.name === costCenterTo,
     );
 
-    if (!isCostCenterAllowed) {
+    if (!isCostCenterFromAllowed || !isCostCenterToAllowed) {
       return res.status(403).json({
-        message: "You do not have permission to edit this cost center.",
+        message:
+          "You do not have permission to use one or both of these cost centers.",
       });
     }
 
@@ -6328,7 +6343,8 @@ exports.updateReceiptDocument = async (req, res) => {
     doc.products = products;
     doc.grandTotalCost = grandTotalCost;
     doc.name = name;
-    doc.costCenter = costCenter;
+    doc.costCenterFrom = costCenterFrom;
+    doc.costCenterTo = costCenterTo;
     doc.groupName = groupName;
 
     if (appendedProposals) {

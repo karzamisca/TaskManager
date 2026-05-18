@@ -5,7 +5,8 @@ const deliveryDocumentSchema = new mongoose.Schema({
   tag: { type: String, required: true, unique: true },
   title: { type: String, default: "Delivery Document", required: true },
   name: { type: String, required: true },
-  costCenter: { type: String, required: true }, // Added costCenter field with same restrictions as ProposalDocument
+  costCenterFrom: { type: String, required: true },
+  costCenterTo: { type: String, required: true },
   products: [
     {
       productName: { type: String, required: true },
