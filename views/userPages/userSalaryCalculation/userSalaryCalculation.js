@@ -1,4 +1,4 @@
-// views\userPages\userSalaryCalculation\userSalaryCalculation.js
+// views/userPages/userSalaryCalculation/userSalaryCalculation.js
 let selectedUsers = new Set();
 let currentFilteredUsers = [];
 let allUsers = [];
@@ -6,10 +6,9 @@ let currentHistoryData = null;
 let currentHistoryUserId = null;
 let currentMonth = new Date().getMonth() + 1;
 let currentYear = new Date().getFullYear();
-let currentSortColumn = "costCenter"; // Default sort column
-let currentSortDirection = "asc"; // Default sort direction
+let currentSortColumn = "costCenter";
+let currentSortDirection = "asc";
 
-// Add sorting function
 function sortUsers(users, column, direction) {
   return [...users].sort((a, b) => {
     let valueA, valueB;
@@ -61,16 +60,13 @@ function sortUsers(users, column, direction) {
   });
 }
 
-// Add sort indicator update function
 function updateSortIndicators() {
-  // Remove all sort indicators
   document
     .querySelectorAll("#users-table th .sort-indicator")
     .forEach((indicator) => {
       indicator.remove();
     });
 
-  // Add indicator to current sort column
   const th = document.querySelector(
     `#users-table th[data-sort="${currentSortColumn}"]`,
   );
@@ -102,16 +98,104 @@ function toggleSelectAll() {
   const allSelected = selectedUsers.size === currentFilteredUsers.length;
 
   if (allSelected) {
-    // Deselect all
     selectedUsers.clear();
     selectAllToggle.checked = false;
   } else {
-    // Select all filtered users
     currentFilteredUsers.forEach((user) => selectedUsers.add(user._id));
     selectAllToggle.checked = true;
   }
   updateSelectedCount();
   renderUsers();
+}
+
+// Lock salary calculation for selected users
+async function lockSalaryCalculation() {
+  if (selectedUsers.size === 0) {
+    showError("Vui lòng chọn ít nhất một nhân viên để khóa");
+    return;
+  }
+
+  if (
+    !confirm(
+      `Bạn có chắc muốn KHÓA chỉnh sửa lương cho ${selectedUsers.size} nhân viên đã chọn?`,
+    )
+  ) {
+    return;
+  }
+
+  const lockBtn = document.getElementById("lock-salary-btn");
+  const originalText = lockBtn.textContent;
+  lockBtn.textContent = "Đang xử lý...";
+  lockBtn.disabled = true;
+
+  try {
+    const response = await fetch("/lockSalaryCalculation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userIds: Array.from(selectedUsers),
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || "Không thể khóa chỉnh sửa lương");
+    }
+
+    showSuccess(result.message);
+    loadUsers();
+  } catch (err) {
+    showError(err.message || "Lỗi khi khóa chỉnh sửa lương");
+  } finally {
+    lockBtn.textContent = originalText;
+    lockBtn.disabled = false;
+  }
+}
+
+// Unlock salary calculation for selected users
+async function unlockSalaryCalculation() {
+  if (selectedUsers.size === 0) {
+    showError("Vui lòng chọn ít nhất một nhân viên để mở khóa");
+    return;
+  }
+
+  if (
+    !confirm(
+      `Bạn có chắc muốn MỞ KHÓA chỉnh sửa lương cho ${selectedUsers.size} nhân viên đã chọn?`,
+    )
+  ) {
+    return;
+  }
+
+  const unlockBtn = document.getElementById("unlock-salary-btn");
+  const originalText = unlockBtn.textContent;
+  unlockBtn.textContent = "Đang xử lý...";
+  unlockBtn.disabled = true;
+
+  try {
+    const response = await fetch("/unlockSalaryCalculation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userIds: Array.from(selectedUsers),
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || "Không thể mở khóa chỉnh sửa lương");
+    }
+
+    showSuccess(result.message);
+    loadUsers();
+  } catch (err) {
+    showError(err.message || "Lỗi khi mở khóa chỉnh sửa lương");
+  } finally {
+    unlockBtn.textContent = originalText;
+    unlockBtn.disabled = false;
+  }
 }
 
 async function exportToExcel() {
@@ -122,7 +206,6 @@ async function exportToExcel() {
 
   const usersToExport = allUsers.filter((user) => selectedUsers.has(user._id));
 
-  // Sort users by cost center (A-Z) before exporting
   usersToExport.sort((a, b) => {
     const costCenterA = (a.costCenter?.name || "Chưa có").toLowerCase();
     const costCenterB = (b.costCenter?.name || "Chưa có").toLowerCase();
@@ -132,12 +215,10 @@ async function exportToExcel() {
     return 0;
   });
 
-  // Helper function to safely format numbers
   const safeFormat = (value) => {
     return value !== null && value !== undefined ? value : 0;
   };
 
-  // Helper function to calculate optimal column width
   const calculateColumnWidth = (data, columnIndex, header) => {
     const headerLength = header.length;
     const maxDataLength = Math.max(
@@ -150,14 +231,10 @@ async function exportToExcel() {
       }),
     );
 
-    // Return the maximum between header length and data length, with some padding
     const optimalWidth = Math.max(headerLength, maxDataLength) + 2;
-
-    // Set minimum and maximum bounds for column width
     return Math.min(Math.max(optimalWidth, 8), 35);
   };
 
-  // Define headers in Vietnamese
   const headers = [
     "Tên đăng nhập",
     "Tên thật",
@@ -167,6 +244,7 @@ async function exportToExcel() {
     "Ngân hàng",
     "Số tài khoản",
     "Căn cước công dân",
+    "Khóa chỉnh sửa",
     "Lương cơ bản",
     "Lương theo giờ",
     "Hoa hồng",
@@ -187,7 +265,6 @@ async function exportToExcel() {
     "Lương thực lĩnh",
   ];
 
-  // Prepare the data
   const data = usersToExport.map((user) => [
     user.username,
     user.realName,
@@ -200,6 +277,7 @@ async function exportToExcel() {
       v: user.bankAccountNumber ? user.bankAccountNumber.toString() : "Chưa có",
     },
     { t: "s", v: user.citizenID ? user.citizenID.toString() : "Chưa có" },
+    user.userSalaryCalculationLocked ? "Đã khóa" : "Mở",
     safeFormat(user.baseSalary),
     safeFormat(user.hourlyWage),
     safeFormat(user.commissionBonus),
@@ -220,28 +298,21 @@ async function exportToExcel() {
     safeFormat(user.currentSalary),
   ]);
 
-  // Create a worksheet
   const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
 
-  // Calculate dynamic column widths
   const columnWidths = headers.map((header, index) => ({
     wch: calculateColumnWidth(data, index, header),
   }));
 
-  // Set dynamic column widths
   ws["!cols"] = columnWidths;
 
-  // Set row heights for better readability
   const rowHeights = [];
-  // Header row height
   rowHeights.push({ hpt: 25 });
-  // Data rows height
   for (let i = 0; i < data.length; i++) {
     rowHeights.push({ hpt: 20 });
   }
   ws["!rows"] = rowHeights;
 
-  // Apply styling to header row
   const headerRange = XLSX.utils.decode_range(ws["!ref"]);
   for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
     const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
@@ -260,7 +331,6 @@ async function exportToExcel() {
     };
   }
 
-  // Apply styling to data rows
   for (let row = 1; row <= data.length; row++) {
     for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
       const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
@@ -276,24 +346,18 @@ async function exportToExcel() {
         },
       };
 
-      // Right-align numeric columns
-      if (col >= 8) {
+      if (col >= 9) {
         ws[cellAddress].s.alignment.horizontal = "right";
       }
     }
   }
 
-  // Auto-filter for the data
   ws["!autofilter"] = { ref: ws["!ref"] };
-
-  // Freeze the header row
   ws["!freeze"] = { xSplit: 0, ySplit: 1 };
 
-  // Create a workbook
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Bảng lương");
 
-  // Generate Excel file and download
   const date = new Date().toISOString().slice(0, 10);
   XLSX.writeFile(wb, `bang_luong_${date}.xlsx`);
 
@@ -304,7 +368,6 @@ async function viewUserHistory(userId, username, realName) {
   try {
     currentHistoryUserId = userId;
 
-    // Show loading state
     document.getElementById("history-user-name").textContent = realName;
     document.getElementById("history-username").textContent = username;
     document.getElementById("history-table-body").innerHTML = `
@@ -315,10 +378,8 @@ async function viewUserHistory(userId, username, realName) {
       </tr>
     `;
 
-    // Show modal
     document.getElementById("user-history-modal").style.display = "block";
 
-    // Fetch history data
     const response = await fetch(`/userMonthlyRecords/${userId}`);
 
     if (!response.ok) {
@@ -328,10 +389,8 @@ async function viewUserHistory(userId, username, realName) {
     const records = await response.json();
     currentHistoryData = records;
 
-    // Render history table
     renderHistoryTable(records);
 
-    // Show/hide export button
     const exportBtn = document.getElementById("export-history-btn");
     if (records.length > 0) {
       exportBtn.style.display = "inline-block";
@@ -411,12 +470,10 @@ async function exportHistoryToExcel() {
     return value !== null && value !== undefined ? value : 0;
   };
 
-  // Get user info
   const user = allUsers.find((u) => u._id === currentHistoryUserId);
   const userName = user ? user.realName : "N/A";
   const username = user ? user.username : "N/A";
 
-  // Define headers in Vietnamese
   const headers = [
     "Tháng",
     "Năm",
@@ -442,7 +499,6 @@ async function exportHistoryToExcel() {
     "Ngày ghi nhận",
   ];
 
-  // Prepare the data
   const data = currentHistoryData.map((record) => [
     record.recordMonth,
     record.recordYear,
@@ -468,10 +524,8 @@ async function exportHistoryToExcel() {
     new Date(record.recordDate).toLocaleDateString("vi-VN"),
   ]);
 
-  // Create a worksheet
   const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
 
-  // Apply basic styling
   const headerRange = XLSX.utils.decode_range(ws["!ref"]);
   for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
     const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
@@ -490,11 +544,9 @@ async function exportHistoryToExcel() {
     };
   }
 
-  // Create a workbook
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Lịch sử lương");
 
-  // Generate Excel file and download
   const safeUserName = userName.replace(/[^\w\s]/gi, "").replace(/\s+/g, "_");
   const date = new Date().toISOString().slice(0, 10);
   XLSX.writeFile(wb, `lich_su_luong_${safeUserName}_${date}.xlsx`);
@@ -502,7 +554,6 @@ async function exportHistoryToExcel() {
   showSuccess("Xuất lịch sử lương thành công!");
 }
 
-// Function to send salary emails
 async function sendSalaryEmails() {
   if (selectedUsers.size === 0) {
     showError("Vui lòng chọn ít nhất một nhân viên để gửi email");
@@ -535,7 +586,6 @@ async function sendSalaryEmails() {
     return;
   }
 
-  // Show loading state
   const sendBtn = document.getElementById("send-email-btn");
   const originalText = sendBtn.textContent;
   sendBtn.textContent = "Đang gửi...";
@@ -555,7 +605,6 @@ async function sendSalaryEmails() {
     const result = await response.json();
 
     if (!response.ok) {
-      // Check if it's an email validation error
       if (response.status === 400 && result.usersWithoutEmail) {
         let errorMessage = result.message + "\n\n";
         result.usersWithoutEmail.forEach((user) => {
@@ -569,7 +618,6 @@ async function sendSalaryEmails() {
             errorMessage + "\n\nBạn có muốn cập nhật email ngay bây giờ không?",
           )
         ) {
-          // Open edit modal for first user without email
           const firstUser = allUsers.find(
             (u) => u._id === result.usersWithoutEmail[0].id,
           );
@@ -582,18 +630,15 @@ async function sendSalaryEmails() {
       throw new Error(result.message || "Không thể gửi email");
     }
 
-    // Show results in modal
     showEmailResults(result);
   } catch (err) {
     showError(err.message || "Lỗi khi gửi email");
   } finally {
-    // Restore button state
     sendBtn.textContent = originalText;
     sendBtn.disabled = false;
   }
 }
 
-// Function to show email results in modal
 function showEmailResults(result) {
   const modal = document.getElementById("email-results-modal");
   const content = document.getElementById("email-results-content");
@@ -655,11 +700,9 @@ function showEmailResults(result) {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
-  // Load initial data
   loadCostCentersAndManagers();
   loadUsers();
 
-  // Initialize month and year fields
   document.getElementById("send-month").value = currentMonth;
   document.getElementById("send-year").value = currentYear;
 
@@ -671,12 +714,18 @@ document.addEventListener("DOMContentLoaded", function () {
     .getElementById("export-xlsx-btn")
     .addEventListener("click", exportToExcel);
 
-  // History export button
   document
     .getElementById("export-history-btn")
     .addEventListener("click", exportHistoryToExcel);
 
-  // Tab functionality
+  document
+    .getElementById("lock-salary-btn")
+    .addEventListener("click", lockSalaryCalculation);
+
+  document
+    .getElementById("unlock-salary-btn")
+    .addEventListener("click", unlockSalaryCalculation);
+
   document.querySelectorAll(".tab-button").forEach((button) => {
     button.addEventListener("click", function () {
       document
@@ -692,18 +741,15 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  // Form submissions
   document
     .getElementById("filter-button")
     .addEventListener("click", applyFilters);
   document.getElementById("add-user-form").addEventListener("submit", addUser);
 
-  // Email functionality
   document
     .getElementById("send-email-btn")
     .addEventListener("click", sendSalaryEmails);
 
-  // Modal functionality
   document.querySelectorAll(".close-modal").forEach((btn) => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".modal").forEach((modal) => {
@@ -718,22 +764,18 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  // Edit form submissions
   document
     .getElementById("edit-user-form")
     .addEventListener("submit", updateUser);
 
-  // Add sort functionality to table headers
   document.querySelectorAll("#users-table th[data-sort]").forEach((th) => {
     th.addEventListener("click", function () {
       const sortColumn = this.getAttribute("data-sort");
       if (!sortColumn) return;
 
       if (currentSortColumn === sortColumn) {
-        // Toggle direction if clicking same column
         currentSortDirection = currentSortDirection === "asc" ? "desc" : "asc";
       } else {
-        // New column, default to ascending
         currentSortColumn = sortColumn;
         currentSortDirection = "asc";
       }
@@ -743,18 +785,14 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 });
 
-// Data loading functions
 async function loadCostCentersAndManagers() {
   try {
-    // Load cost centers
     const costCentersRes = await fetch("/userControlCostCenters");
     const costCenters = await costCentersRes.json();
 
-    // Load managers
     const managersRes = await fetch("/userControlManagers");
     const managers = await managersRes.json();
 
-    // Update cost center dropdowns
     const costCenterSelects = [
       document.getElementById("user-cost-center-filter"),
       document.getElementById("new-cost-center"),
@@ -763,7 +801,7 @@ async function loadCostCentersAndManagers() {
 
     costCenterSelects.forEach((select) => {
       if (!select) return;
-      select.innerHTML = '<option value="all">Tất cả trạm</option>';
+      select.innerHTML = '<option value="">Chọn trạm</option>';
       costCenters.forEach((cc) => {
         const option = document.createElement("option");
         option.value = cc._id;
@@ -772,7 +810,6 @@ async function loadCostCentersAndManagers() {
       });
     });
 
-    // Update manager dropdowns
     const managerSelects = [
       document.getElementById("user-manager-filter"),
       document.getElementById("new-assigned-manager"),
@@ -781,7 +818,7 @@ async function loadCostCentersAndManagers() {
 
     managerSelects.forEach((select) => {
       if (!select) return;
-      select.innerHTML = '<option value="all">Tất cả quản lý</option>';
+      select.innerHTML = '<option value="">Chọn quản lý</option>';
       managers.forEach((manager) => {
         const option = document.createElement("option");
         option.value = manager._id;
@@ -789,14 +826,12 @@ async function loadCostCentersAndManagers() {
         select.appendChild(option);
       });
 
-      // Add "No manager" option to the filter dropdown
       if (select.id === "user-manager-filter") {
         const noneOption = document.createElement("option");
         noneOption.value = "none";
         noneOption.textContent = "Không có quản lý";
         select.appendChild(noneOption);
       } else {
-        // For other dropdowns (add/edit forms)
         const noneOption = document.createElement("option");
         noneOption.value = "";
         noneOption.textContent = "Không có";
@@ -819,9 +854,7 @@ async function loadUsers() {
   }
 }
 
-// Rendering functions
 function applyFilters() {
-  // Reset sort to default (cost center A-Z) when applying filters
   currentSortColumn = "costCenter";
   currentSortDirection = "asc";
   renderUsers();
@@ -837,14 +870,12 @@ function renderUsers() {
 
   currentFilteredUsers = [...allUsers];
 
-  // Apply cost center filter
   if (filterCostCenterId !== "all") {
     currentFilteredUsers = currentFilteredUsers.filter(
       (u) => u.costCenter && u.costCenter._id === filterCostCenterId,
     );
   }
 
-  // Apply manager filter
   if (filterManagerId !== "all") {
     currentFilteredUsers = currentFilteredUsers.filter(
       (u) =>
@@ -853,18 +884,16 @@ function renderUsers() {
     );
   }
 
-  // Apply sorting
   currentFilteredUsers = sortUsers(
     currentFilteredUsers,
     currentSortColumn,
     currentSortDirection,
   );
 
-  // Update sort indicators
   updateSortIndicators();
 
   if (currentFilteredUsers.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="28" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="29" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
     return;
   }
 
@@ -892,6 +921,17 @@ function renderUsers() {
       ? user.email
       : '<span style="color: #dc3545; font-size: 0.8em;">(Chưa có email)</span>';
 
+    const lockStatus = user.userSalaryCalculationLocked
+      ? '<span style="color: #e74c3c; font-size: 0.9em;">🔒 Đã khóa</span>'
+      : '<span style="color: #27ae60; font-size: 0.9em;">🔓 Mở</span>';
+
+    let editButton;
+    if (user.userSalaryCalculationLocked) {
+      editButton = `<button class="btn" style="background: #95a5a6; cursor: not-allowed; opacity: 0.7;" disabled title="Đã khóa chỉnh sửa">🔒 Đã khóa</button>`;
+    } else {
+      editButton = `<button class="btn" onclick="editUser('${user._id}')">Chỉnh sửa</button>`;
+    }
+
     const row = document.createElement("tr");
     row.innerHTML = `
       <td class="checkbox-cell">
@@ -909,6 +949,7 @@ function renderUsers() {
       <td>${user.beneficiaryBank || "Chưa có"}</td>
       <td>${user.bankAccountNumber || "Chưa có"}</td>
       <td>${user.citizenID || "Chưa có"}</td>
+      <td>${lockStatus}</td>
       <td>${formatNumber(user.baseSalary)}</td>
       <td>${formatNumber(user.hourlyWage)}</td>
       <td>${formatNumber(user.commissionBonus)}</td>
@@ -929,7 +970,7 @@ function renderUsers() {
       <td>${formatNumber(user.currentSalary)}</td>
       <td>
         <div class="action-buttons">
-          <button class="btn" onclick="editUser('${user._id}')">Chỉnh sửa</button>
+          ${editButton}
           <button class="btn btn-danger" onclick="deleteUser('${user._id}')">Xóa</button>
           <button class="btn btn-history" onclick="viewUserHistory('${user._id}', '${user.username}', '${user.realName}')">
             Lịch sử
@@ -943,7 +984,6 @@ function renderUsers() {
   updateSelectedCount();
 }
 
-// CRUD Operations
 async function addUser(e) {
   e.preventDefault();
 
@@ -1012,6 +1052,13 @@ async function editUser(id) {
   const user = allUsers.find((u) => u._id === id);
   if (!user) return;
 
+  if (user.userSalaryCalculationLocked) {
+    showError(
+      "Nhân viên này đã bị khóa chỉnh sửa lương. Vui lòng mở khóa trước khi chỉnh sửa.",
+    );
+    return;
+  }
+
   document.getElementById("edit-user-id").value = user._id;
   document.getElementById("edit-username").value = user.username;
   document.getElementById("edit-real-name").value = user.realName;
@@ -1037,7 +1084,6 @@ async function editUser(id) {
   document.getElementById("edit-insurable-salary").value = user.insurableSalary;
   document.getElementById("edit-dependant-count").value = user.dependantCount;
 
-  // Set the correct cost center
   const costCenterSelect = document.getElementById("edit-cost-center");
   if (user.costCenter) {
     Array.from(costCenterSelect.options).forEach((option) => {
@@ -1063,6 +1109,14 @@ async function updateUser(e) {
   e.preventDefault();
 
   const userId = document.getElementById("edit-user-id").value;
+
+  const user = allUsers.find((u) => u._id === userId);
+  if (user && user.userSalaryCalculationLocked) {
+    showError("Nhân viên này đã bị khóa chỉnh sửa lương. Không thể cập nhật.");
+    document.getElementById("edit-user-modal").style.display = "none";
+    return;
+  }
+
   const userData = {
     username: document.getElementById("edit-username").value,
     realName: document.getElementById("edit-real-name").value,
@@ -1140,7 +1194,6 @@ async function deleteUser(id) {
   }
 }
 
-// Utility functions
 function showSuccess(message) {
   const successEl =
     document.querySelector(".success-message") ||

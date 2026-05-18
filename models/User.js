@@ -54,6 +54,8 @@ const userSchema = new mongoose.Schema({
   allowanceGeneral: { type: Number, default: 0 },
   // Permissions array
   permissions: [{ type: String }],
+  // Salary Calculation Lock Feature
+  userSalaryCalculationLocked: { type: Boolean, default: false },
 });
 
 // Pre-save hook to generate password and calculate salary/tax

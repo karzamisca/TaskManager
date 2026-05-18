@@ -99,7 +99,6 @@ const itemSchema = new mongoose.Schema({
 
 // Define indexes for better query performance
 itemSchema.index({ name: 1 }); // Index on name for sorting and searching
-itemSchema.index({ code: 1 }); // Index on code (already unique, but explicitly define)
 itemSchema.index({ createdAt: -1 }); // Index on createdAt for sorting by date
 itemSchema.index({ isDeleted: 1 }); // Index on isDeleted for filtering soft-deleted items
 itemSchema.index({ name: 1, code: 1 }); // Compound index for combined queries

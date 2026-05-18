@@ -2323,3 +2323,97 @@ exports.updateUserEmail = async (req, res) => {
     });
   }
 };
+
+// Lock salary calculation for multiple users
+exports.lockSalaryCalculation = async (req, res) => {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Truy cập bị từ chối. Bạn không có quyền truy cập." });
+    }
+
+    const { userIds } = req.body;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Vui lòng chọn ít nhất một nhân viên" });
+    }
+
+    const updateData = {
+      userSalaryCalculationLocked: true,
+      userSalaryCalculationLockedDateFrom: null,
+      userSalaryCalculationLockedDateTo: null,
+    };
+
+    const result = await User.updateMany(
+      { _id: { $in: userIds } },
+      { $set: updateData },
+    );
+
+    res.json({
+      message: `Đã khóa chỉnh sửa lương cho ${result.modifiedCount} nhân viên`,
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.error("Error locking salary calculation:", error);
+    res
+      .status(500)
+      .json({ message: "Lỗi khi khóa chỉnh sửa lương: " + error.message });
+  }
+};
+
+// Unlock salary calculation for multiple users
+exports.unlockSalaryCalculation = async (req, res) => {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfAccounting",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .json({ message: "Truy cập bị từ chối. Bạn không có quyền truy cập." });
+    }
+
+    const { userIds } = req.body;
+
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Vui lòng chọn ít nhất một nhân viên" });
+    }
+
+    const updateData = {
+      userSalaryCalculationLocked: false,
+      userSalaryCalculationLockedDateFrom: null,
+      userSalaryCalculationLockedDateTo: null,
+    };
+
+    const result = await User.updateMany(
+      { _id: { $in: userIds } },
+      { $set: updateData },
+    );
+
+    res.json({
+      message: `Đã mở khóa chỉnh sửa lương cho ${result.modifiedCount} nhân viên`,
+      modifiedCount: result.modifiedCount,
+    });
+  } catch (error) {
+    console.error("Error unlocking salary calculation:", error);
+    res
+      .status(500)
+      .json({ message: "Lỗi khi mở khóa chỉnh sửa lương: " + error.message });
+  }
+};

@@ -34,13 +34,13 @@
                     >Nhân viên thuộc trạm:</label
                   >
                   <select id="user-cost-center-filter">
-                    <option value="all">Tất cả trạm</option>
+                    <option value="all">Chọn trạm</option>
                   </select>
                 </div>
                 <div class="form-group">
                   <label for="user-manager-filter">Người quản lý:</label>
                   <select id="user-manager-filter">
-                    <option value="all">Tất cả quản lý</option>
+                    <option value="all">Chọn quản lý</option>
                   </select>
                 </div>
                 <button id="filter-button" class="btn primary">
@@ -102,6 +102,37 @@
               </div>
             </div>
 
+            <!-- Lock/Unlock Section -->
+            <div
+              class="lock-section"
+              style="
+                background: var(--card-background);
+                padding: 15px;
+                border-radius: var(--border-radius-lg);
+                border: 1px solid var(--border-color);
+                margin-bottom: 15px;
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                flex-wrap: wrap;
+              "
+            >
+              <button
+                id="lock-salary-btn"
+                class="btn"
+                style="background: #e74c3c"
+              >
+                🔒 Khóa chỉnh sửa
+              </button>
+              <button
+                id="unlock-salary-btn"
+                class="btn"
+                style="background: #27ae60"
+              >
+                🔓 Mở khóa chỉnh sửa
+              </button>
+            </div>
+
             <h2>Thông tin nhân viên</h2>
             <div class="table-container">
               <table id="users-table">
@@ -122,6 +153,7 @@
                     <th data-sort="bank" style="cursor: pointer">Ngân hàng</th>
                     <th>Số tài khoản</th>
                     <th>Căn cước công dân</th>
+                    <th>Khóa chỉnh sửa</th>
                     <th data-sort="baseSalary" style="cursor: pointer">
                       Lương cơ bản
                     </th>
@@ -305,7 +337,7 @@
           </div>
         </div>
 
-        <!-- Edit User Modal (now includes email) -->
+        <!-- Edit User Modal -->
         <div id="edit-user-modal" class="modal">
           <div class="modal-content">
             <span class="close-modal">&times;</span>
@@ -542,7 +574,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?v=1.12"></script>
+    <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?v=1.13"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>

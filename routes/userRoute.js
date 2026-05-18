@@ -1,4 +1,4 @@
-//routes\userRoute.js
+// routes/userRoute.js
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
@@ -58,5 +58,18 @@ router.post(
 );
 
 router.post("/updateUserEmail", authMiddleware, userController.updateUserEmail);
+
+// New routes for salary calculation lock/unlock
+router.post(
+  "/lockSalaryCalculation",
+  authMiddleware,
+  userController.lockSalaryCalculation,
+);
+
+router.post(
+  "/unlockSalaryCalculation",
+  authMiddleware,
+  userController.unlockSalaryCalculation,
+);
 
 module.exports = router;
