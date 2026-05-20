@@ -2,29 +2,25 @@
 const mongoose = require("mongoose");
 
 const documentSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  content: [
+  name: { type: String },
+  title: { type: String, default: "Generic Document", required: true },
+  notes: { type: String },
+  fileMetadata: [
     {
-      name: { type: String, required: true }, // Name for the content
-      text: { type: String, required: true }, // Actual content
+      driveFileId: { type: String },
+      name: { type: String },
+      displayName: { type: String },
+      actualFilename: { type: String },
+      link: { type: String },
+      path: { type: String },
+      size: { type: String },
+      mimeType: { type: String },
+      uploadTimestamp: { type: String },
     },
   ],
-  fileMetadata: {
-    driveFileId: { type: String },
-    name: { type: String },
-    displayName: { type: String },
-    actualFilename: { type: String },
-    link: { type: String },
-    path: { type: String },
-    size: { type: String },
-    mimeType: { type: String },
-    uploadTimestamp: { type: String },
-  },
   stages: [
     {
       name: { type: String, required: true },
-      amount: { type: Number, required: true },
-      deadline: { type: String },
       approvers: [
         {
           approver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -45,8 +41,18 @@ const documentSchema = new mongoose.Schema({
         enum: ["Pending", "Approved", "Suspended"],
         default: "Pending",
       },
-      paymentMethod: { type: String },
       notes: { type: String },
+      fileMetadata: {
+        driveFileId: { type: String },
+        name: { type: String },
+        displayName: { type: String },
+        actualFilename: { type: String },
+        link: { type: String },
+        path: { type: String },
+        size: { type: String },
+        mimeType: { type: String },
+        uploadTimestamp: { type: String },
+      },
     },
   ],
   submissionDate: { type: String, required: true },
@@ -68,7 +74,7 @@ const documentSchema = new mongoose.Schema({
   ],
   status: {
     type: String,
-    enum: ["Pending", "Approved", "Suspended"], // Possible states
+    enum: ["Pending", "Approved", "Suspended"],
     default: "Pending",
   },
   groupName: { type: String },

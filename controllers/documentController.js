@@ -1650,30 +1650,10 @@ async function createProjectProposalDocument(
 
 // Create a Standard Document
 async function createStandardDocument(req, approverDetails, uploadedFilesData) {
-  const { contentName, contentText, approvedDocuments } = req.body;
-
-  // Process content array
-  const contentArray = [];
-
-  if (Array.isArray(contentName) && Array.isArray(contentText)) {
-    contentName.forEach((name, index) => {
-      contentArray.push({ name, text: contentText[index] });
-    });
-  } else {
-    contentArray.push({ name: contentName, text: contentText });
-  }
-
-  // Append approved documents content
-  if (approvedDocuments && approvedDocuments.length > 0) {
-    const approvedDocs = await Document.find({
-      _id: { $in: approvedDocuments },
-    });
-    approvedDocs.forEach((doc) => contentArray.push(...doc.content));
-  }
-
   return new Document({
     title: req.body.title,
-    content: contentArray,
+    name: req.body.name,
+    notes: req.body.notes,
     groupName: req.body.groupName,
     projectName: req.body.projectName,
     submittedBy: req.user.id,

@@ -1583,22 +1583,23 @@ function handleGenericDocument() {
   );
 
   contentFields.innerHTML = `
-      <label for="contentName"><i class="fas fa-heading"></i> Tên nội dung</label>
-      <input type="text" name="contentName" required />
-      <label for="contentText"><i class="fas fa-align-left"></i> Nội dung</label>
-      <textarea name="contentText" rows="5" required></textarea>
-      <label for="groupName"><i class="fas fa-users"></i> Nhóm</label>
-      <select name="groupName" id="groupName">
-        <option value="">Chọn nhóm</option>
-      </select>
-      <label for="projectName"><i class="fas fa-project-diagram"></i> Dự án</label>
-      <select name="projectName" id="projectName">
-        <option value="">Chọn dự án</option>
-      </select>             
-    `;
+    <label for="name"><i class="fas fa-file-signature"></i> Tên phiếu</label>
+    <input type="text" name="name" />
+    <label for="notes"><i class="fas fa-sticky-note"></i> Ghi chú</label>
+    <textarea name="notes" rows="5"></textarea>
+    <label for="groupName"><i class="fas fa-users"></i> Nhóm</label>
+    <select name="groupName" id="groupName">
+      <option value="">Chọn nhóm</option>
+    </select>
+    <label for="projectName"><i class="fas fa-project-diagram"></i> Dự án</label>
+    <select name="projectName" id="projectName">
+      <option value="">Chọn dự án</option>
+    </select>
+  `;
+
   populateGroupDropdown();
   populateProjectDropdown();
-  addContentButton.style.display = "inline-block";
+  addContentButton.style.display = "none";
   appendApprovedDocumentsSection.style.display = "none";
 }
 
