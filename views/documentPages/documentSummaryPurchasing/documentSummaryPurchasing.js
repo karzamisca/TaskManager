@@ -273,7 +273,7 @@ const setupCustomFilterHandlers = () => {
   // Total cost custom filter (remains the same)
   const totalCostFilter = document.getElementById("totalCostFilter");
   const totalCostCustomContainer = document.getElementById(
-    "totalCostCustomContainer"
+    "totalCostCustomContainer",
   );
   const applyTotalCostCustom = document.getElementById("applyTotalCostCustom");
   const clearTotalCostCustom = document.getElementById("clearTotalCostCustom");
@@ -302,7 +302,7 @@ const setupCustomFilterHandlers = () => {
     if (min === null && max === null) {
       showMessage(
         "Vui lòng nhập ít nhất một giá trị cho khoảng tùy chỉnh",
-        true
+        true,
       );
       return;
     }
@@ -330,16 +330,16 @@ const setupCustomFilterHandlers = () => {
     // Update dropdown text to show custom range
     let rangeText = "Tùy chỉnh: ";
     if (min !== null && max !== null) {
-      rangeText += `${min.toLocaleString()} - ${max.toLocaleString()}`;
+      rangeText += `${min.toLocaleString("en-EN", { maximumFractionDigits: 20 })} - ${max.toLocaleString("en-EN", { maximumFractionDigits: 20 })}`;
     } else if (min !== null) {
-      rangeText += `Trên ${min.toLocaleString()}`;
+      rangeText += `Trên ${min.toLocaleString("en-EN", { maximumFractionDigits: 20 })}`;
     } else if (max !== null) {
-      rangeText += `Dưới ${max.toLocaleString()}`;
+      rangeText += `Dưới ${max.toLocaleString("en-EN", { maximumFractionDigits: 20 })}`;
     }
 
     // Change the selected option text
     const customOption = totalCostFilter.querySelector(
-      'option[value="custom"]'
+      'option[value="custom"]',
     );
     customOption.textContent = rangeText;
     customOption.title = rangeText;
@@ -357,7 +357,7 @@ const setupCustomFilterHandlers = () => {
 
     // Reset custom option text
     const customOption = totalCostFilter.querySelector(
-      'option[value="custom"]'
+      'option[value="custom"]',
     );
     customOption.textContent = "Nhập khoảng tùy chỉnh...";
     customOption.title = "";
@@ -570,7 +570,7 @@ const populateCostCenterMultiSelect = async () => {
     const selectAllCheckbox = document.getElementById("selectAllCostCenters");
     selectAllCheckbox.addEventListener("change", (e) => {
       const checkboxes = dropdown.querySelectorAll(
-        'input[type="checkbox"]:not(#selectAllCostCenters)'
+        'input[type="checkbox"]:not(#selectAllCostCenters)',
       );
       checkboxes.forEach((checkbox) => {
         checkbox.checked = e.target.checked;
@@ -579,7 +579,7 @@ const populateCostCenterMultiSelect = async () => {
     });
 
     const checkboxes = dropdown.querySelectorAll(
-      'input[type="checkbox"]:not(#selectAllCostCenters)'
+      'input[type="checkbox"]:not(#selectAllCostCenters)',
     );
     checkboxes.forEach((checkbox) => {
       checkbox.addEventListener("change", () => {
@@ -609,7 +609,7 @@ const populateCostCenterMultiSelect = async () => {
     });
 
     const buttonContainer = document.getElementById(
-      "costCenterMultiSelectButton"
+      "costCenterMultiSelectButton",
     );
     buttonContainer.appendChild(clearButton);
   } catch (error) {
@@ -651,7 +651,7 @@ const populateGroupMultiSelect = async () => {
     const selectAllCheckbox = document.getElementById("selectAllGroups");
     selectAllCheckbox.addEventListener("change", (e) => {
       const checkboxes = dropdown.querySelectorAll(
-        'input[type="checkbox"]:not(#selectAllGroups)'
+        'input[type="checkbox"]:not(#selectAllGroups)',
       );
       checkboxes.forEach((checkbox) => {
         checkbox.checked = e.target.checked;
@@ -660,7 +660,7 @@ const populateGroupMultiSelect = async () => {
     });
 
     const checkboxes = dropdown.querySelectorAll(
-      'input[type="checkbox"]:not(#selectAllGroups)'
+      'input[type="checkbox"]:not(#selectAllGroups)',
     );
     checkboxes.forEach((checkbox) => {
       checkbox.addEventListener("change", () => {
@@ -699,7 +699,7 @@ const populateGroupMultiSelect = async () => {
 // Update cost center filter based on selected options
 const updateCostCenterFilter = () => {
   const checkboxes = document.querySelectorAll(
-    '#costCenterMultiSelectDropdown input[type="checkbox"]:not(#selectAllCostCenters)'
+    '#costCenterMultiSelectDropdown input[type="checkbox"]:not(#selectAllCostCenters)',
   );
   const selectedCostCenters = Array.from(checkboxes)
     .filter((cb) => cb.checked)
@@ -736,7 +736,7 @@ const updateCostCenterFilter = () => {
 // Update group filter based on selected options
 const updateGroupFilter = () => {
   const checkboxes = document.querySelectorAll(
-    '#groupMultiSelectDropdown input[type="checkbox"]:not(#selectAllGroups)'
+    '#groupMultiSelectDropdown input[type="checkbox"]:not(#selectAllGroups)',
   );
   const selectedGroups = Array.from(checkboxes)
     .filter((cb) => cb.checked)
@@ -748,7 +748,7 @@ const updateGroupFilter = () => {
   const textElement = document.getElementById("groupMultiSelectText");
   const buttonContainer = document.getElementById("groupMultiSelectButton");
   const countElement = buttonContainer.querySelector(
-    ".multi-select-selected-count"
+    ".multi-select-selected-count",
   );
 
   if (selectedGroups.length === 0) {
@@ -844,17 +844,19 @@ const renderProducts = (products) => {
               (product) => `
             <tr>
               <td><strong>${product.productName}</strong></td>
-              <td class="text-right">${product.costPerUnit.toLocaleString()}</td>
-              <td class="text-right">${product.amount.toLocaleString()}</td>
-              <td class="text-right">${product.vat.toLocaleString() || ""}</td>
-              <td class="text-right">${product.totalCost.toLocaleString()}</td>
+              <td class="text-right">${product.costPerUnit.toLocaleString("en-EN", { maximumFractionDigits: 20 })}</td>
+              <td class="text-right">${product.amount.toLocaleString("en-EN", { maximumFractionDigits: 20 })}</td>
+              <td class="text-right">${product.vat.toLocaleString("en-EN", { maximumFractionDigits: 20 }) || ""}</td>
+              <td class="text-right">${product.totalCost.toLocaleString("en-EN", { maximumFractionDigits: 20 })}</td>
               <td class="text-right">${
-                product.totalCostAfterVat.toLocaleString() || ""
+                product.totalCostAfterVat.toLocaleString("en-EN", {
+                  maximumFractionDigits: 20,
+                }) || ""
               }</td>
               <td>${product.costCenter || ""}</td>
               <td>${product.note || ""}</td>
             </tr>
-          `
+          `,
             )
             .join("")}
         </tbody>
@@ -875,7 +877,7 @@ const renderFiles = (fileArray) => {
           <i class="fas fa-paperclip file-icon"></i>
           <a href="${file.link}" class="file-link" target="_blank">${file.name}</a>
         </div>
-      `
+      `,
         )
         .join("")}
     </div>
@@ -928,11 +930,11 @@ const renderProposals = (proposals) => {
                 <li>
                   ${approval.username} - ${approval.approvalDate}
                 </li>
-              `
+              `,
                 )
                 .join("")}
             </ul>                        
-        `
+        `,
         )
         .join("")}
     </div>
@@ -958,7 +960,7 @@ const fetchPurchasingDocuments = async () => {
     state.purchasingDocuments = data.purchasingDocuments;
 
     const filteredDocuments = filterDocumentsForCurrentUser(
-      state.purchasingDocuments
+      state.purchasingDocuments,
     );
 
     // Calculate total pages
@@ -1004,10 +1006,10 @@ const filterDocumentsForCurrentUser = (documents) => {
   if (state.showOnlyPendingApprovals && state.currentUser) {
     filteredDocs = filteredDocs.filter((doc) => {
       const isRequiredApprover = doc.approvers.some(
-        (approver) => approver.username === state.currentUser.username
+        (approver) => approver.username === state.currentUser.username,
       );
       const hasNotApprovedYet = !doc.approvedBy.some(
-        (approved) => approved.username === state.currentUser.username
+        (approved) => approved.username === state.currentUser.username,
       );
       return isRequiredApprover && hasNotApprovedYet;
     });
@@ -1016,21 +1018,21 @@ const filterDocumentsForCurrentUser = (documents) => {
   // Apply name filter if there's a search term
   if (state.nameFilter) {
     filteredDocs = filteredDocs.filter((doc) =>
-      doc.name?.toLowerCase().includes(state.nameFilter)
+      doc.name?.toLowerCase().includes(state.nameFilter),
     );
   }
 
   // Apply cost center filter (multiple selection)
   if (state.currentCostCenterFilter.length > 0) {
     filteredDocs = filteredDocs.filter((doc) =>
-      state.currentCostCenterFilter.includes(doc.costCenter)
+      state.currentCostCenterFilter.includes(doc.costCenter),
     );
   }
 
   // Apply group filter (multiple selection)
   if (state.currentGroupFilter.length > 0) {
     filteredDocs = filteredDocs.filter((doc) =>
-      state.currentGroupFilter.includes(doc.groupName)
+      state.currentGroupFilter.includes(doc.groupName),
     );
   }
 
@@ -1040,8 +1042,8 @@ const filterDocumentsForCurrentUser = (documents) => {
       isInTotalCostRange(
         doc.grandTotalCost,
         state.currentTotalCostFilter,
-        state.customTotalCostRange
-      )
+        state.customTotalCostRange,
+      ),
     );
   }
 
@@ -1051,8 +1053,8 @@ const filterDocumentsForCurrentUser = (documents) => {
       isDateInRange(
         doc.submissionDate,
         state.currentDateFilter,
-        state.customDateRange
-      )
+        state.customDateRange,
+      ),
     );
   }
 
@@ -1070,7 +1072,7 @@ const renderDocumentsTable = (documents) => {
     const approvalStatus = doc.approvers
       .map((approver) => {
         const hasApproved = doc.approvedBy.find(
-          (a) => a.username === approver.username
+          (a) => a.username === approver.username,
         );
         return `
           <div class="approver-item">
@@ -1112,7 +1114,7 @@ const renderDocumentsTable = (documents) => {
         }
       </td>
       <td>${renderFiles(doc.fileMetadata)}</td>
-      <td>${doc.grandTotalCost?.toLocaleString() || "-"}</td>
+      <td>${doc.grandTotalCost?.toLocaleString("en-EN", { maximumFractionDigits: 20 }) || "-"}</td>
       <td>${renderProposals(doc.appendedProposals)}</td>
       <td>${renderStatus(doc.status)}</td>
       <td class="approval-status">${approvalStatus}</td>
@@ -1187,29 +1189,31 @@ const renderDocumentsTable = (documents) => {
 
 const updateSummary = (filteredDocuments) => {
   const approvedDocs = filteredDocuments.filter(
-    (doc) => doc.status === "Approved"
+    (doc) => doc.status === "Approved",
   );
   const unapprovedDocs = filteredDocuments.filter(
-    (doc) => doc.status === "Pending"
+    (doc) => doc.status === "Pending",
   );
 
   const approvedSum = approvedDocs.reduce(
     (sum, doc) => sum + (doc.grandTotalCost || 0),
-    0
+    0,
   );
   const unapprovedSum = unapprovedDocs.reduce(
     (sum, doc) => sum + (doc.grandTotalCost || 0),
-    0
+    0,
   );
 
   document.getElementById("approvedSum").textContent =
-    approvedSum.toLocaleString();
+    approvedSum.toLocaleString("en-EN", { maximumFractionDigits: 20 });
   document.getElementById("unapprovedSum").textContent =
-    unapprovedSum.toLocaleString();
+    unapprovedSum.toLocaleString("en-EN", { maximumFractionDigits: 20 });
   document.getElementById("approvedDocument").textContent =
-    approvedDocs.length.toLocaleString();
+    approvedDocs.length.toLocaleString("en-EN", { maximumFractionDigits: 20 });
   document.getElementById("unapprovedDocument").textContent =
-    unapprovedDocs.length.toLocaleString();
+    unapprovedDocs.length.toLocaleString("en-EN", {
+      maximumFractionDigits: 20,
+    });
 };
 
 const renderPagination = () => {
@@ -1231,8 +1235,8 @@ const renderPagination = () => {
           <i class="fas fa-angle-double-left"></i> Trang đầu
         </button>
         <button onclick="changePage(${state.currentPage - 1})" ${
-      state.currentPage === 1 ? "disabled" : ""
-    }>
+          state.currentPage === 1 ? "disabled" : ""
+        }>
           <i class="fas fa-angle-left"></i> Trang trước
         </button>
         <span class="page-info">
@@ -1245,13 +1249,13 @@ const renderPagination = () => {
           <button onclick="goToPage()">Đi</button>
         </div>
         <button onclick="changePage(${state.currentPage + 1})" ${
-      state.currentPage === state.totalPages ? "disabled" : ""
-    }>
+          state.currentPage === state.totalPages ? "disabled" : ""
+        }>
           Trang tiếp <i class="fas fa-angle-right"></i>
         </button>
         <button onclick="changePage(${state.totalPages})" ${
-      state.currentPage === state.totalPages ? "disabled" : ""
-    }>
+          state.currentPage === state.totalPages ? "disabled" : ""
+        }>
           Trang cuối <i class="fas fa-angle-double-right"></i>
         </button>
       </div>
@@ -1470,7 +1474,7 @@ const saveDeclaration = async (docId) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ declaration }),
-      }
+      },
     );
 
     const message = await response.text();
@@ -1480,7 +1484,7 @@ const saveDeclaration = async (docId) => {
       closeDeclarationModal();
       // Update the local state to reflect changes
       const docIndex = state.purchasingDocuments.findIndex(
-        (d) => d._id === docId
+        (d) => d._id === docId,
       );
       if (docIndex !== -1) {
         state.purchasingDocuments[docIndex].declaration = declaration;
@@ -1572,7 +1576,7 @@ const showFullView = (docId) => {
             ${doc.approvers
               .map((approver) => {
                 const hasApproved = doc.approvedBy.find(
-                  (a) => a.username === approver.username
+                  (a) => a.username === approver.username,
                 );
                 return `
                 <div class="approver-item">
@@ -1615,10 +1619,10 @@ const fetchAvailableProposals = async () => {
 
     // Filter out proposals that are already appended to the current document
     const currentProposalIds = state.currentAppendedProposals.map(
-      (p) => p.proposalId
+      (p) => p.proposalId,
     );
     state.availableProposals = allProposals.filter(
-      (proposal) => !currentProposalIds.includes(proposal._id)
+      (proposal) => !currentProposalIds.includes(proposal._id),
     );
 
     populateProposalsDropdown();
@@ -1642,7 +1646,7 @@ const populateProposalsDropdown = () => {
 
 const renderCurrentAppendedProposals = () => {
   const currentProposalsList = document.getElementById(
-    "currentAppendedProposalsList"
+    "currentAppendedProposalsList",
   );
 
   if (state.currentAppendedProposals.length === 0) {
@@ -1668,14 +1672,14 @@ const renderCurrentAppendedProposals = () => {
           <i class="fas fa-trash"></i> Xóa
         </button>
       </div>
-    `
+    `,
     )
     .join("");
 };
 
 const removeAppendedProposal = (proposalId) => {
   state.currentAppendedProposals = state.currentAppendedProposals.filter(
-    (proposal) => proposal.proposalId !== proposalId
+    (proposal) => proposal.proposalId !== proposalId,
   );
   renderCurrentAppendedProposals();
   fetchAvailableProposals(); // Refresh available proposals
@@ -1683,7 +1687,7 @@ const removeAppendedProposal = (proposalId) => {
 
 const addNewProposal = () => {
   const selectedProposalId = document.getElementById(
-    "newProposalsDropdown"
+    "newProposalsDropdown",
   ).value;
 
   if (!selectedProposalId) {
@@ -1692,7 +1696,7 @@ const addNewProposal = () => {
   }
 
   const selectedProposal = state.availableProposals.find(
-    (proposal) => proposal._id === selectedProposalId
+    (proposal) => proposal._id === selectedProposalId,
   );
 
   if (selectedProposal) {
@@ -1887,7 +1891,7 @@ const validateProductFields = () => {
       if (!input.value || input.value === "") {
         showMessage(
           `Vui lòng điền đầy đủ thông tin sản phẩm (${input.placeholder})`,
-          true
+          true,
         );
         input.focus();
         return false;
@@ -1947,7 +1951,7 @@ const addProductField = async (product = null) => {
   costInput.placeholder = "Đơn giá";
   costInput.value = product?.costPerUnit || "";
   costInput.required = true;
-  costInput.step = "0.01";
+  costInput.step = "any";
   costInput.className = "form-input";
 
   const amountInput = document.createElement("input");
@@ -1955,7 +1959,7 @@ const addProductField = async (product = null) => {
   amountInput.placeholder = "Số lượng";
   amountInput.value = product?.amount || "";
   amountInput.required = true;
-  amountInput.step = "0.01";
+  amountInput.step = "any";
   amountInput.className = "form-input";
 
   const vatInput = document.createElement("input");
@@ -1963,7 +1967,7 @@ const addProductField = async (product = null) => {
   vatInput.placeholder = "VAT(%)";
   vatInput.value = product?.vat !== undefined ? product.vat : "";
   vatInput.required = true;
-  vatInput.step = "0.01";
+  vatInput.step = "any";
   vatInput.className = "form-input";
 
   // Create cost center dropdown
@@ -2130,14 +2134,14 @@ const renderCurrentApprovers = () => {
             <i class="fas fa-trash"></i> Xóa
           </button>
         </div>
-      `
+      `,
     )
     .join("");
 };
 
 const updateApproverSubRole = (approverId, newSubRole) => {
   const approver = state.currentApprovers.find(
-    (a) => a.approver === approverId
+    (a) => a.approver === approverId,
   );
   if (approver) {
     approver.subRole = newSubRole;
@@ -2146,7 +2150,7 @@ const updateApproverSubRole = (approverId, newSubRole) => {
 
 const removeApprover = (approverId) => {
   state.currentApprovers = state.currentApprovers.filter(
-    (a) => a._id !== approverId // Compare with _id
+    (a) => a._id !== approverId, // Compare with _id
   );
 
   renderCurrentApprovers();
@@ -2157,7 +2161,7 @@ const populateNewApproversDropdown = async () => {
   const allApprovers = await fetchApprovers();
   const availableApprovers = allApprovers.filter(
     (approver) =>
-      !state.currentApprovers.some((a) => a.approver === approver._id)
+      !state.currentApprovers.some((a) => a.approver === approver._id),
   );
 
   const dropdown = document.getElementById("newApproversDropdown");
@@ -2167,7 +2171,7 @@ const populateNewApproversDropdown = async () => {
       .map(
         (approver) => `
       <option value="${approver._id}">${approver.username}</option>
-    `
+    `,
       )
       .join("")}
   `;
@@ -2221,7 +2225,7 @@ const renderCurrentFiles = (files, docId) => {
         <i class="fas fa-trash"></i> Xóa
       </button>
     </div>
-  `
+  `,
     )
     .join("");
 };
@@ -2237,7 +2241,7 @@ const removeCurrentFile = async (fileId, docId) => {
       `/deletePurchasingDocumentFile/${docId}/${fileId}`,
       {
         method: "POST",
-      }
+      },
     );
 
     const result = await response.json();
@@ -2334,7 +2338,7 @@ const handleEditSubmit = async (event) => {
   formData.append("name", document.getElementById("editName").value);
   formData.append(
     "costCenter",
-    document.getElementById("editCostCenter").value
+    document.getElementById("editCostCenter").value,
   );
   formData.append("groupName", document.getElementById("editGroupName").value);
 
@@ -2348,7 +2352,7 @@ const handleEditSubmit = async (event) => {
 
     // Get all input elements (not including selects)
     const inputs = item.querySelectorAll(
-      'input[type="number"], input[type="text"]'
+      'input[type="number"], input[type="text"]',
     );
 
     // Handle product name from select or input
@@ -2411,7 +2415,7 @@ const handleEditSubmit = async (event) => {
   // Calculate grand total
   const grandTotalCost = products.reduce(
     (sum, product) => sum + product.totalCostAfterVat,
-    0
+    0,
   );
   formData.append("grandTotalCost", grandTotalCost);
 
@@ -2421,14 +2425,14 @@ const handleEditSubmit = async (event) => {
   // Add appended proposals
   formData.append(
     "appendedProposals",
-    JSON.stringify(state.currentAppendedProposals)
+    JSON.stringify(state.currentAppendedProposals),
   );
 
   // Add removed file IDs if any
   if (window.removedFileIds && window.removedFileIds.size > 0) {
     formData.append(
       "removedFileIds",
-      JSON.stringify(Array.from(window.removedFileIds))
+      JSON.stringify(Array.from(window.removedFileIds)),
     );
   }
 
@@ -2463,7 +2467,7 @@ const handleEditSubmit = async (event) => {
 const showDocumentsContainingPurchasing = async (purchasingId) => {
   try {
     const response = await fetch(
-      `/documentsContainingPurchasing/${purchasingId}`
+      `/documentsContainingPurchasing/${purchasingId}`,
     );
     const data = await response.json();
 
@@ -2488,7 +2492,7 @@ const showDocumentsContainingPurchasing = async (purchasingId) => {
                 ${
                   data.advancePaymentDocuments.length > 0
                     ? renderAdvancePaymentDocuments(
-                        data.advancePaymentDocuments
+                        data.advancePaymentDocuments,
                       )
                     : "<p>Không có phiếu tạm ứng nào liên quan</p>"
                 }
@@ -2499,7 +2503,7 @@ const showDocumentsContainingPurchasing = async (purchasingId) => {
                 ${
                   data.advancePaymentReclaimDocuments.length > 0
                     ? renderAdvancePaymentReclaimDocuments(
-                        data.advancePaymentReclaimDocuments
+                        data.advancePaymentReclaimDocuments,
                       )
                     : "<p>Không có phiếu thu hồi tạm ứng nào liên quan</p>"
                 }
@@ -2537,10 +2541,14 @@ const renderPaymentDocuments = (paymentDocs) => {
                 doc.paymentMethod
               }</div>
               <div><strong>Tổng thanh toán:</strong> ${
-                doc.totalPayment?.toLocaleString() || "-"
+                doc.totalPayment?.toLocaleString("en-EN", {
+                  maximumFractionDigits: 20,
+                }) || "-"
               }</div>
               <div><strong>Tạm ứng:</strong> ${
-                doc.advancePayment?.toLocaleString() || "-"
+                doc.advancePayment?.toLocaleString("en-EN", {
+                  maximumFractionDigits: 20,
+                }) || "-"
               }</div>
               <div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div>
               <div><strong>Tệp tin:</strong> ${
@@ -2549,11 +2557,11 @@ const renderPaymentDocuments = (paymentDocs) => {
                   : "-"
               }</div>
               <div><strong>Tình trạng:</strong> ${renderStatus(
-                doc.status
+                doc.status,
               )}</div>
             </div>
           </div>
-        `
+        `,
         )
         .join("")}
     </div>
@@ -2578,7 +2586,9 @@ const renderAdvancePaymentDocuments = (advancePaymentDocs) => {
                 doc.paymentMethod
               }</div>
               <div><strong>Tạm ứng:</strong> ${
-                doc.advancePayment?.toLocaleString() || "-"
+                doc.advancePayment?.toLocaleString("en-EN", {
+                  maximumFractionDigits: 20,
+                }) || "-"
               }</div>
               <div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div>
               <div><strong>Tệp tin:</strong> ${
@@ -2587,11 +2597,11 @@ const renderAdvancePaymentDocuments = (advancePaymentDocs) => {
                   : "-"
               }</div>
               <div><strong>Tình trạng:</strong> ${renderStatus(
-                doc.status
+                doc.status,
               )}</div>
             </div>
           </div>
-        `
+        `,
         )
         .join("")}
     </div>
@@ -2616,7 +2626,9 @@ const renderAdvancePaymentReclaimDocuments = (reclaimDocs) => {
                 doc.paymentMethod
               }</div>
               <div><strong>Thu hồi tạm ứng:</strong> ${
-                doc.advancePaymentReclaim?.toLocaleString() || "-"
+                doc.advancePaymentReclaim?.toLocaleString("en-EN", {
+                  maximumFractionDigits: 20,
+                }) || "-"
               }</div>
               <div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div>
               <div><strong>Tệp tin:</strong> ${
@@ -2625,11 +2637,11 @@ const renderAdvancePaymentReclaimDocuments = (reclaimDocs) => {
                   : "-"
               }</div>
               <div><strong>Tình trạng:</strong> ${renderStatus(
-                doc.status
+                doc.status,
               )}</div>
             </div>
           </div>
-        `
+        `,
         )
         .join("")}
     </div>
@@ -2644,7 +2656,7 @@ const closeContainingDocsModal = () => {
 };
 
 const formatCurrency = (amount) => {
-  return amount?.toLocaleString() || "-";
+  return amount?.toLocaleString("en-EN", { maximumFractionDigits: 20 }) || "-";
 };
 
 // Export functions
@@ -2658,7 +2670,7 @@ const exportSelectedToExcel = () => {
 
   try {
     const documentsToExport = state.purchasingDocuments.filter((doc) =>
-      selectedDocs.includes(doc._id)
+      selectedDocs.includes(doc._id),
     );
 
     const wb = XLSX.utils.book_new();
@@ -2685,8 +2697,8 @@ const exportSelectedToExcel = () => {
           doc.status === "Approved"
             ? "Đã phê duyệt"
             : doc.status === "Suspended"
-            ? "Từ chối"
-            : "Chưa phê duyệt",
+              ? "Từ chối"
+              : "Chưa phê duyệt",
         "Kê khai": doc.declaration || "Không có",
         "Lý do từ chối": doc.suspendReason || "Không có",
         "Tệp đính kèm": doc.fileMetadata ? doc.fileMetadata.name : "Không có",
@@ -2794,7 +2806,7 @@ const exportSelectedToExcel = () => {
           // For Vietnamese text, add extra width as characters may be wider
           const adjustedLength =
             /[àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(
-              cellValue
+              cellValue,
             )
               ? Math.ceil(cellLength * 1.1)
               : cellLength;
@@ -2852,7 +2864,7 @@ const exportSelectedToExcel = () => {
 
     XLSX.writeFile(
       wb,
-      `Bao_cao_phieu_mua_hang_${new Date().toISOString().slice(0, 10)}.xlsx`
+      `Bao_cao_phieu_mua_hang_${new Date().toISOString().slice(0, 10)}.xlsx`,
     );
 
     showMessage(`Đã xuất ${selectedDocs.length} phiếu mua hàng.`);
@@ -2893,7 +2905,7 @@ const updateSelectAllCheckbox = () => {
 
   selectAllCheckbox.disabled = false;
   const allChecked = Array.from(checkboxes).every(
-    (checkbox) => checkbox.checked
+    (checkbox) => checkbox.checked,
   );
   selectAllCheckbox.checked = allChecked;
 };

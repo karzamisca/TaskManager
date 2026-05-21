@@ -156,7 +156,7 @@ function calculateProductCost(index) {
     costDisplay.style.color = "#38a169";
   }
 
-  costDisplay.textContent = `Tổng chi phí: ${totalCost.toLocaleString("vi-VN")}₫ (${subtotal.toLocaleString("vi-VN")}₫ + ${vatAmount.toLocaleString("vi-VN")}₫ VAT)`;
+  costDisplay.textContent = `Tổng chi phí: ${totalCost.toLocaleString("en-EN", { maximumFractionDigits: 20 })}₫ (${subtotal.toLocaleString("en-EN", { maximumFractionDigits: 20 })}₫ + ${vatAmount.toLocaleString("en-EN", { maximumFractionDigits: 20 })}₫ VAT)`;
 
   productEntries[index] = {
     productName,
@@ -218,7 +218,7 @@ function updateGrandTotal() {
                 ${displayName}
               </span>
               <span class="cost-value product-cost-summary" style="${costColor}">
-                ${product.totalCost.toLocaleString("vi-VN")}₫
+                ${product.totalCost.toLocaleString("en-EN", { maximumFractionDigits: 20 })}₫
               </span>
             </div>
           `;
@@ -230,7 +230,7 @@ function updateGrandTotal() {
       summaryHTML += `
         <div class="total-cost">
           <span class="cost-label">TỔNG CỘNG:</span>
-          <span class="cost-value" style="${totalColor}">${grandTotalCost.toLocaleString("vi-VN")}₫</span>
+          <span class="cost-value" style="${totalColor}">${grandTotalCost.toLocaleString("en-EN", { maximumFractionDigits: 20 })}₫</span>
         </div>
       `;
 
@@ -269,9 +269,6 @@ function attachProductCostListeners(index) {
       newInput.addEventListener("change", () => calculateProductCost(index));
 
       newInput.addEventListener("blur", () => {
-        if (newInput.value && !isNaN(newInput.value)) {
-          newInput.value = parseFloat(newInput.value).toFixed(2);
-        }
         calculateProductCost(index);
       });
     }
@@ -388,13 +385,13 @@ function addProductEntry() {
           </div>
         </div>
         <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
-        <input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required 
+        <input type="number" step="any" name="products[${productCount}][costPerUnit]" required 
                placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
         <label><i class="fas fa-hashtag"></i> Số lượng</label>
-        <input type="number" step="0.01" min="0" name="products[${productCount}][amount]" required 
+        <input type="number" step="any" min="0" name="products[${productCount}][amount]" required 
                placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
         <label><i class="fas fa-percentage"></i> Thuế VAT (%)</label>
-        <input type="number" step="0.01" min="0" max="100" name="products[${productCount}][vat]" required 
+        <input type="number" step="any" min="0" max="100" name="products[${productCount}][vat]" required 
                placeholder="10" value="10" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='10'" />
         <label><i class="fas fa-building"></i> Trạm sản phẩm</label>
         <select name="products[${productCount}][costCenter]" class="product-cost-center" required>
@@ -425,13 +422,13 @@ function addProductEntry() {
           </div>
         </div>
         <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
-        <input type="number" step="0.01" name="products[${productCount}][costPerUnit]" required 
+        <input type="number" step="any" name="products[${productCount}][costPerUnit]" required 
                placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
         <label><i class="fas fa-hashtag"></i> Số lượng</label>
-        <input type="number" step="0.01" min="0" name="products[${productCount}][amount]" required 
+        <input type="number" step="any" min="0" name="products[${productCount}][amount]" required 
                placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
         <label><i class="fas fa-percentage"></i> Thuế (%)</label>
-        <input type="number" step="0.01" min="0" max="100" name="products[${productCount}][vat]" required 
+        <input type="number" step="any" min="0" max="100" name="products[${productCount}][vat]" required 
                placeholder="10" value="10" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='10'" />
         <label><i class="fas fa-sticky-note"></i> Ghi chú</label>
         <input type="text" name="products[${productCount}][note]" />
@@ -1127,13 +1124,13 @@ function handlePurchasingDocument() {
             </div>
           </div>
           <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
-          <input type="number" step="0.01" name="products[0][costPerUnit]" required 
+          <input type="number" step="any" name="products[0][costPerUnit]" required 
                  placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
           <label><i class="fas fa-hashtag"></i> Số lượng</label>
-          <input type="number" step="0.01" min="0" name="products[0][amount]" required 
+          <input type="number" step="any" min="0" name="products[0][amount]" required 
                  placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
           <label><i class="fas fa-percentage"></i> Thuế VAT (%)</label>
-          <input type="number" step="0.01" min="0" max="100" name="products[0][vat]" required 
+          <input type="number" step="any" min="0" max="100" name="products[0][vat]" required 
                  placeholder="10" value="10" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='10'" />
           <label><i class="fas fa-building"></i> Trạm sản phẩm</label>
           <select name="products[0][costCenter]" class="product-cost-center" required>
@@ -1196,7 +1193,7 @@ function handlePaymentDocument() {
         <option value="Hợp đồng">Hợp đồng</option>
       </select>
       <label for="totalPayment"><i class="fas fa-money-bill-wave"></i> Tổng thanh toán:</label>
-      <input type="number" step="0.01" name="totalPayment" required />
+      <input type="number" step="any" name="totalPayment" required />
       <label for="paymentDeadline"><i class="fas fa-calendar-times"></i> Thời hạn trả</label>
       <input type="text" name="paymentDeadline" id="paymentDeadline"/>
       <label for="priority"><i class="fas fa-exclamation-triangle"></i> Mức độ ưu tiên</label>
@@ -1252,7 +1249,7 @@ function handleAdvancePaymentDocument() {
         <option value="Hợp đồng">Hợp đồng</option>
       </select>
       <label for="advancePayment"><i class="fas fa-money-bill-wave"></i> Tạm ứng:</label>
-      <input type="number" step="0.01" name="advancePayment"/>
+      <input type="number" step="any" name="advancePayment"/>
       <label for="paymentDeadline"><i class="fas fa-calendar-times"></i> Thời hạn trả</label>
       <input type="text" name="paymentDeadline" id="paymentDeadline"/>
       <label for="groupName"><i class="fas fa-users"></i> Nhóm</label>
@@ -1300,7 +1297,7 @@ function handleAdvancePaymentReclaimDocument() {
         <option value="Hợp đồng">Hợp đồng</option>
       </select>
       <label for="advancePaymentReclaim"><i class="fas fa-money-bill-wave"></i> Số tiền thu lại:</label>
-      <input type="number" step="0.01" name="advancePaymentReclaim"/>
+      <input type="number" step="any" name="advancePaymentReclaim"/>
       <label for="paymentDeadline"><i class="fas fa-calendar-times"></i> Thời hạn trả</label>
       <input type="text" name="paymentDeadline" id="paymentDeadline"/>
       <label for="groupName"><i class="fas fa-users"></i> Nhóm</label>
@@ -1424,13 +1421,13 @@ function handleDeliveryDocument() {
             </div>
           </div>
           <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
-          <input type="number" step="0.01" name="products[0][costPerUnit]" required 
+          <input type="number" step="any" name="products[0][costPerUnit]" required 
                  placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
           <label><i class="fas fa-hashtag"></i> Số lượng</label>
-          <input type="number" step="0.01" min="0" name="products[0][amount]" required 
+          <input type="number" step="any" min="0" name="products[0][amount]" required 
                  placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
           <label><i class="fas fa-percentage"></i> Thuế (%)</label>
-          <input type="number" step="0.01" min="0" max="100" name="products[0][vat]" required 
+          <input type="number" step="any" min="0" max="100" name="products[0][vat]" required 
                  placeholder="10" value="10" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='10'" />
           <label><i class="fas fa-sticky-note"></i> Ghi chú</label>
           <input type="text" name="products[0][note]" />
@@ -1507,13 +1504,13 @@ function handleReceiptDocument() {
             </div>
           </div>
           <label><i class="fas fa-tag"></i> Đơn giá (₫)</label>
-          <input type="number" step="0.01" name="products[0][costPerUnit]" required 
+          <input type="number" step="any" name="products[0][costPerUnit]" required 
                  placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
           <label><i class="fas fa-hashtag"></i> Số lượng</label>
-          <input type="number" step="0.01" min="0" name="products[0][amount]" required 
+          <input type="number" step="any" min="0" name="products[0][amount]" required 
                  placeholder="0.00" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='0.00'" />
           <label><i class="fas fa-percentage"></i> Thuế (%)</label>
-          <input type="number" step="0.01" min="0" max="100" name="products[0][vat]" required 
+          <input type="number" step="any" min="0" max="100" name="products[0][vat]" required 
                  placeholder="10" value="10" onfocus="this.placeholder=''" onblur="if(this.value==='')this.placeholder='10'" />
           <label><i class="fas fa-sticky-note"></i> Ghi chú</label>
           <input type="text" name="products[0][note]" />
@@ -2282,7 +2279,7 @@ document
         const grandTotalField = document.createElement("input");
         grandTotalField.type = "hidden";
         grandTotalField.name = "grandTotalCost";
-        grandTotalField.value = grandTotalCost.toFixed(2);
+        grandTotalField.value = grandTotalCost;
         grandTotalField.id = "grand-total-hidden";
         this.appendChild(grandTotalField);
 
@@ -2291,7 +2288,7 @@ document
             const productCostField = document.createElement("input");
             productCostField.type = "hidden";
             productCostField.name = `products[${index}][totalCost]`;
-            productCostField.value = product.totalCost.toFixed(2);
+            productCostField.value = product.totalCost;
             this.appendChild(productCostField);
           }
         });
