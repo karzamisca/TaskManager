@@ -30,5 +30,8 @@
     "pdfmake": "^0.2.20",
     "ssh2": "^1.16.0",
     "streamifier": "^0.1.1"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   }
 }
