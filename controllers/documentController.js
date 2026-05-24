@@ -2,6 +2,8 @@
 const Document = require("../models/Document");
 const User = require("../models/User");
 const CostCenter = require("../models/CostCenter");
+const Item = require("../models/Item");
+const ItemStock = require("../models/ItemStock");
 const mongoose = require("mongoose");
 const moment = require("moment-timezone");
 const ProposalDocument = require("../models/DocumentProposal.js");
@@ -3413,6 +3415,124 @@ exports.openPurchasingDocument = async (req, res) => {
   } catch (err) {
     console.error("Lỗi khi mở lại phiếu:", err);
     res.status(500).send("Lỗi khi mở lại phiếu.");
+  }
+};
+// Add this to your purchasing document controller
+exports.moveProductsToItemStock = async (req, res) => {
+  try {
+    const { purchasingDocId } = req.params;
+    const { selectedProducts } = req.body; // Array of products to move
+
+    // Get the purchasing document
+    const purchasingDoc = await PurchasingDocument.findById(purchasingDocId);
+    if (!purchasingDoc) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Purchasing document not found" });
+    }
+
+    // Get cost centers mapping (name to ID)
+    const costCenters = await CostCenter.find({});
+    const costCenterMap = new Map();
+    costCenters.forEach((cc) => {
+      costCenterMap.set(cc.name, cc._id.toString());
+    });
+
+    const results = [];
+    const errors = [];
+
+    // Process each selected product
+    for (const selectedProduct of selectedProducts) {
+      const product = purchasingDoc.products.find(
+        (p) => p.productName === selectedProduct.productName,
+      );
+      if (!product) {
+        errors.push(
+          `Product ${selectedProduct.productName} not found in document`,
+        );
+        continue;
+      }
+
+      // Find the item by name (assuming you have an Item model)
+      const item = await Item.findOne({ name: product.productName });
+      if (!item) {
+        errors.push(`Item ${product.productName} not found in inventory`);
+        continue;
+      }
+
+      // Get cost center ID from product's cost center name
+      const costCenterId = costCenterMap.get(product.costCenter);
+      if (!costCenterId) {
+        errors.push(
+          `Cost center ${product.costCenter} not found for product ${product.productName}`,
+        );
+        continue;
+      }
+
+      // Find or create item stock record
+      let itemStock = await ItemStock.findOne({
+        itemId: item._id,
+        costCenterId: costCenterId,
+      });
+
+      const oldInStorage = itemStock ? itemStock.inStorage : 0;
+      const newInStorage = oldInStorage + product.amount;
+
+      if (!itemStock) {
+        // Create new item stock record
+        itemStock = new ItemStock({
+          itemId: item._id,
+          costCenterId: costCenterId,
+          inStorage: newInStorage,
+          updatedBy: req.user._id,
+          stockHistory: [
+            {
+              oldInStorage: 0,
+              newInStorage: newInStorage,
+              updatedBy: req.user._id,
+              note: `Added from purchasing document ${purchasingDoc.tag || purchasingDocId}`,
+              updatedAt: new Date(),
+            },
+          ],
+        });
+      } else {
+        // Update existing item stock
+        itemStock.inStorage = newInStorage;
+        itemStock.updatedBy = req.user._id;
+        itemStock.updatedAt = new Date();
+        itemStock.stockHistory.push({
+          oldInStorage: oldInStorage,
+          newInStorage: newInStorage,
+          updatedBy: req.user._id,
+          note: `Added from purchasing document ${purchasingDoc.tag || purchasingDocId}`,
+          updatedAt: new Date(),
+        });
+      }
+
+      await itemStock.save();
+
+      results.push({
+        productName: product.productName,
+        amount: product.amount,
+        costCenter: product.costCenter,
+        oldStock: oldInStorage,
+        newStock: newInStorage,
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `${results.length} products moved to stock successfully`,
+      results: results,
+      errors: errors.length > 0 ? errors : null,
+    });
+  } catch (error) {
+    console.error("Error moving products to item stock:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error moving products to item stock",
+      error: error.message,
+    });
   }
 };
 //// END OF PURCHASING DOCUMENT CONTROLLER

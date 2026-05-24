@@ -265,6 +265,11 @@ router.post(
   authMiddleware,
   documentController.openPurchasingDocument,
 );
+router.post(
+  "/moveProductsToItemStock/:purchasingDocId",
+  authMiddleware,
+  documentController.moveProductsToItemStock,
+);
 //// END OF PURCHASING DOCUMENT ROUTE
 
 //// PAYMENT DOCUMENT ROUTE

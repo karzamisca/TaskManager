@@ -24,6 +24,13 @@ const state = {
   groups: [], // Add groups array
 };
 
+// Stock movement state
+const stockMovementState = {
+  currentDocument: null,
+  selectedProducts: new Set(),
+  productDetails: [],
+};
+
 // Helper function to validate and parse dd/mm/yyyy dates
 const validateAndParseDate = (dateStr) => {
   if (!dateStr) return { isValid: false, date: null, message: "" };
@@ -270,7 +277,7 @@ const formatDisplayDate = (dateStr) => {
 
 // Custom filter UI handlers
 const setupCustomFilterHandlers = () => {
-  // Total cost custom filter (remains the same)
+  // Total cost custom filter
   const totalCostFilter = document.getElementById("totalCostFilter");
   const totalCostCustomContainer = document.getElementById(
     "totalCostCustomContainer",
@@ -366,7 +373,7 @@ const setupCustomFilterHandlers = () => {
     fetchPurchasingDocuments();
   });
 
-  // Date custom filter with SIMPLIFIED input (no auto-formatting)
+  // Date custom filter
   const dateFilter = document.getElementById("dateFilter");
   const dateCustomContainer = document.getElementById("dateCustomContainer");
   const applyDateCustom = document.getElementById("applyDateCustom");
@@ -488,6 +495,7 @@ const setupCustomFilterHandlers = () => {
     }
   });
 };
+
 // Multi-select functionality for cost centers
 const initializeCostCenterMultiSelect = () => {
   const button = document.getElementById("costCenterMultiSelectButton");
@@ -941,6 +949,238 @@ const renderProposals = (proposals) => {
   `;
 };
 
+// STOCK MOVEMENT FUNCTIONS
+const showMoveToStockModal = async (docId) => {
+  try {
+    // Get the document
+    const response = await fetch(`/getPurchasingDocument/${docId}`);
+    const doc = await response.json();
+
+    stockMovementState.currentDocument = doc;
+    stockMovementState.selectedProducts.clear();
+
+    // Create modal HTML
+    const modalHTML = `
+            <div id="moveToStockModal" class="modal" style="display: block;">
+                <div class="modal-content" style="max-width: 800px;">
+                    <span class="modal-close" onclick="closeMoveToStockModal()">&times;</span>
+                    <h2 class="modal-title">
+                        <i class="fas fa-boxes"></i> 
+                        Nhập kho - ${doc.name || doc.tag}
+                    </h2>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-check-square"></i> 
+                                Chọn sản phẩm để nhập kho:
+                            </label>
+                            <div id="productsToStockList" class="products-list">
+                                ${renderProductsForStockSelection(doc.products)}
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions" style="margin-top: 20px;">
+                            <button onclick="confirmMoveToStock()" class="btn btn-primary">
+                                <i class="fas fa-arrow-right"></i> Nhập kho
+                            </button>
+                            <button onclick="closeMoveToStockModal()" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Hủy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+    // Remove existing modal if any
+    const existingModal = document.getElementById("moveToStockModal");
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    // Append modal to body
+    document.body.insertAdjacentHTML("beforeend", modalHTML);
+
+    // Add event listeners for checkboxes
+    document.querySelectorAll(".product-stock-checkbox").forEach((checkbox) => {
+      checkbox.addEventListener("change", (e) => {
+        const productName = e.target.getAttribute("data-product-name");
+        if (e.target.checked) {
+          stockMovementState.selectedProducts.add(productName);
+        } else {
+          stockMovementState.selectedProducts.delete(productName);
+        }
+      });
+    });
+
+    // Setup select all functionality
+    const selectAllCheckbox = document.getElementById("selectAllStockProducts");
+    if (selectAllCheckbox) {
+      selectAllCheckbox.addEventListener("change", (e) => {
+        const checkboxes = document.querySelectorAll(".product-stock-checkbox");
+        checkboxes.forEach((checkbox) => {
+          checkbox.checked = e.target.checked;
+          const productName = checkbox.getAttribute("data-product-name");
+          if (e.target.checked) {
+            stockMovementState.selectedProducts.add(productName);
+          } else {
+            stockMovementState.selectedProducts.delete(productName);
+          }
+        });
+      });
+    }
+  } catch (error) {
+    console.error("Error showing move to stock modal:", error);
+    showMessage("Error loading products for stock movement", true);
+  }
+};
+
+const renderProductsForStockSelection = (products) => {
+  if (!products || products.length === 0) {
+    return '<p class="text-muted">Không có sản phẩm nào trong phiếu này</p>';
+  }
+
+  return `
+        <div class="stock-products-container">
+            <div class="stock-header">
+                <label class="select-all-stock">
+                    <input type="checkbox" id="selectAllStockProducts">
+                    <span><strong>Chọn tất cả</strong></span>
+                </label>
+            </div>
+            ${products
+              .map(
+                (product) => `
+                <div class="stock-product-item">
+                    <label class="product-stock-label">
+                        <input type="checkbox" 
+                               class="product-stock-checkbox" 
+                               data-product-name="${product.productName.replace(/"/g, "&quot;")}"
+                               data-product-amount="${product.amount}"
+                               data-product-costcenter="${(product.costCenter || "").replace(/"/g, "&quot;")}">
+                        <div class="product-stock-info">
+                            <strong>${product.productName}</strong>
+                            <div class="product-stock-details">
+                                <span><i class="fas fa-cubes"></i> Số lượng: ${product.amount.toLocaleString("en-EN")}</span>
+                                <span><i class="fas fa-map-marker-alt"></i> Trạm: ${product.costCenter || "Chưa có"}</span>
+                                <span><i class="fas fa-dollar-sign"></i> Đơn giá: ${product.costPerUnit.toLocaleString("en-EN")} đ</span>
+                                <span><i class="fas fa-percent"></i> VAT: ${product.vat || 0}%</span>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            `,
+              )
+              .join("")}
+        </div>
+    `;
+};
+
+const confirmMoveToStock = async () => {
+  if (stockMovementState.selectedProducts.size === 0) {
+    showMessage("Vui lòng chọn ít nhất một sản phẩm để nhập kho", true);
+    return;
+  }
+
+  // Get selected products with their details - FIXED VERSION
+  const selectedProductsArray = [];
+
+  // Iterate through the selected product names
+  for (const productName of stockMovementState.selectedProducts) {
+    // Find the product in the current document's products array
+    const product = stockMovementState.currentDocument.products.find(
+      (p) => p.productName === productName,
+    );
+
+    if (product) {
+      selectedProductsArray.push({
+        productName: product.productName,
+        amount: product.amount,
+        costPerUnit: product.costPerUnit,
+        costCenter:
+          product.costCenter || stockMovementState.currentDocument.costCenter,
+        vat: product.vat || 0,
+      });
+    } else {
+      console.error(`Product not found: ${productName}`);
+    }
+  }
+
+  if (selectedProductsArray.length === 0) {
+    showMessage("Không tìm thấy sản phẩm nào được chọn", true);
+    return;
+  }
+
+  // Confirm with user
+  const confirmMessage =
+    `Xác nhận nhập kho\n\nBạn có chắc chắn muốn nhập kho ${selectedProductsArray.length} sản phẩm?\n\n` +
+    selectedProductsArray
+      .map(
+        (p) =>
+          `• ${p.productName}: ${p.amount.toLocaleString("en-EN")} (Trạm: ${p.costCenter || "Chưa có"})`,
+      )
+      .join("\n");
+
+  if (!confirm(confirmMessage)) {
+    return;
+  }
+
+  showLoading(true);
+
+  try {
+    const response = await fetch(
+      `/moveProductsToItemStock/${stockMovementState.currentDocument._id}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          selectedProducts: selectedProductsArray,
+        }),
+      },
+    );
+
+    const result = await response.json();
+
+    if (result.success) {
+      // Show success message with details
+      let message = result.message;
+      if (result.results && result.results.length > 0) {
+        message += "\n\n✅ Chi tiết thành công:\n";
+        result.results.forEach((r) => {
+          message += `• ${r.productName}: ${r.oldStock.toLocaleString("en-EN")} → ${r.newStock.toLocaleString("en-EN")}\n`;
+        });
+      }
+      if (result.errors && result.errors.length > 0) {
+        message +=
+          "\n\n⚠️ Lỗi:\n" + result.errors.map((e) => `• ${e}`).join("\n");
+      }
+      showMessage(message, false);
+      closeMoveToStockModal();
+
+      // Refresh the purchasing documents list
+      fetchPurchasingDocuments();
+    } else {
+      showMessage(result.message || "Lỗi khi nhập kho", true);
+    }
+  } catch (error) {
+    console.error("Error moving products to stock:", error);
+    showMessage("Lỗi khi nhập kho: " + error.message, true);
+  } finally {
+    showLoading(false);
+  }
+};
+
+const closeMoveToStockModal = () => {
+  const modal = document.getElementById("moveToStockModal");
+  if (modal) {
+    modal.style.display = "none";
+    setTimeout(() => modal.remove(), 300);
+  }
+  stockMovementState.selectedProducts.clear();
+};
+
 // Data fetching
 const fetchCurrentUser = async () => {
   try {
@@ -1120,14 +1360,10 @@ const renderDocumentsTable = (documents) => {
       <td class="approval-status">${approvalStatus}</td>
       <td>
         <div class="action-buttons">
-          <button class="btn btn-primary btn-sm" onclick="showFullView('${
-            doc._id
-          }')">
+          <button class="btn btn-primary btn-sm" onclick="showFullView('${doc._id}')">
             <i class="fas fa-eye"></i> Xem
           </button>
-          <form action="/exportDocumentToDocx/${
-            doc._id
-          }" method="GET" style="display:inline;">
+          <form action="/exportDocumentToDocx/${doc._id}" method="GET" style="display:inline;">
             <button class="btn btn-primary btn-sm">
               <i class="fas fa-file-word"></i> Xuất DOCX
             </button>
@@ -1159,6 +1395,9 @@ const renderDocumentsTable = (documents) => {
                 <button class="btn btn-primary btn-sm" onclick="editDeclaration('${doc._id}')">
                   <i class="fas fa-edit"></i> Kê khai
                 </button>
+                <button class="btn btn-success btn-sm" onclick="showMoveToStockModal('${doc._id}')">
+                  <i class="fas fa-boxes"></i> Nhập kho
+                </button>
               `
               : ""
           }
@@ -1175,9 +1414,7 @@ const renderDocumentsTable = (documents) => {
                 </button>
               `
           }
-          <button class="btn btn-secondary btn-sm" onclick="showDocumentsContainingPurchasing('${
-            doc._id
-          }')">
+          <button class="btn btn-secondary btn-sm" onclick="showDocumentsContainingPurchasing('${doc._id}')">
             <i class="fas fa-link"></i> Liên quan
           </button>
         </div>
@@ -1185,6 +1422,9 @@ const renderDocumentsTable = (documents) => {
     `;
     tableBody.appendChild(row);
   });
+
+  // Update select all checkbox state
+  updateSelectAllCheckbox();
 };
 
 const updateSummary = (filteredDocuments) => {
@@ -1567,7 +1807,7 @@ const showFullView = (docId) => {
         <div class="detail-grid">
           <div class="detail-item">
             <span class="detail-label">Tình trạng:</span>
-            <span class="detail-value ${renderStatus(doc.status)}</span>
+            <span class="detail-value">${renderStatus(doc.status)}</span>
           </div>
         </div>
         <div class="approval-section">
@@ -2130,7 +2370,7 @@ const renderCurrentApprovers = () => {
                  onchange="updateApproverSubRole('${approver._id}', this.value)" 
                  class="form-input" style="width: 120px;">
           <button type="button" class="btn btn-danger btn-sm" 
-                  onclick="removeApprover('${approver._id}')">  <!-- Use _id here -->
+                  onclick="removeApprover('${approver._id}')">
             <i class="fas fa-trash"></i> Xóa
           </button>
         </div>
@@ -2150,9 +2390,8 @@ const updateApproverSubRole = (approverId, newSubRole) => {
 
 const removeApprover = (approverId) => {
   state.currentApprovers = state.currentApprovers.filter(
-    (a) => a._id !== approverId, // Compare with _id
+    (a) => a._id !== approverId,
   );
-
   renderCurrentApprovers();
   populateNewApproversDropdown();
 };
@@ -2688,7 +2927,7 @@ const exportSelectedToExcel = () => {
         "Trạm sản phẩm": "",
         "Số lượng": "",
         "Giá trước VAT": "",
-        "Tổng trước VAT": "", // Will be calculated below
+        "Tổng trước VAT": "",
         "VAT (%)": "",
         "Giá sau VAT": "",
         "Tổng sau VAT": doc.grandTotalCost || 0,
@@ -2790,7 +3029,7 @@ const exportSelectedToExcel = () => {
     // Initialize with minimum widths for headers
     const headers = Object.keys(detailedData[0] || {});
     headers.forEach((header, colIndex) => {
-      colWidths[colIndex] = Math.max(header.length, 8); // Minimum 8 characters
+      colWidths[colIndex] = Math.max(header.length, 8);
     });
 
     // Check all data rows to find maximum content length per column
@@ -2818,7 +3057,7 @@ const exportSelectedToExcel = () => {
 
     // Set maximum reasonable width to prevent extremely wide columns
     detailedWs["!cols"] = colWidths.map((width) => ({
-      wch: Math.min(width + 2, 100), // Add 2 for padding, max 100 characters
+      wch: Math.min(width + 2, 100),
     }));
 
     // Set row heights for better visibility
@@ -2845,7 +3084,7 @@ const exportSelectedToExcel = () => {
     }
 
     // Auto-wrap text for better readability in cells with long content
-    const wrapTextColumns = [1, 7, 8, 9, 10, 20]; // Columns with potentially long text
+    const wrapTextColumns = [1, 7, 8, 9, 10, 20];
 
     for (let rowNum = sheetRange.s.r; rowNum <= sheetRange.e.r; rowNum++) {
       wrapTextColumns.forEach((colNum) => {
@@ -2999,7 +3238,7 @@ const setupEventListeners = () => {
 const initialize = async () => {
   await fetchCurrentUser();
   setupEventListeners();
-  setupCustomFilterHandlers(); // NEW: Setup custom filter handlers
+  setupCustomFilterHandlers();
   await populateCostCenterMultiSelect();
   initializeCostCenterMultiSelect();
   await populateGroupMultiSelect();
@@ -3010,3 +3249,30 @@ const initialize = async () => {
 
 // Initialize when DOM is loaded
 document.addEventListener("DOMContentLoaded", initialize);
+
+// Make functions globally available
+window.showFullView = showFullView;
+window.editDocument = editDocument;
+window.deleteDocument = deleteDocument;
+window.approveDocument = approveDocument;
+window.suspendDocument = suspendDocument;
+window.openDocument = openDocument;
+window.editDeclaration = editDeclaration;
+window.showDocumentsContainingPurchasing = showDocumentsContainingPurchasing;
+window.closeFullViewModal = closeFullViewModal;
+window.closeSuspendModal = closeSuspendModal;
+window.closeDeclarationModal = closeDeclarationModal;
+window.closeContainingDocsModal = closeContainingDocsModal;
+window.changePage = changePage;
+window.goToPage = goToPage;
+window.addProductField = addProductField;
+window.removeAppendedProposal = removeAppendedProposal;
+window.addNewProposal = addNewProposal;
+window.updateApproverSubRole = updateApproverSubRole;
+window.removeApprover = removeApprover;
+window.addNewApprover = addNewApprover;
+window.removeCurrentFile = removeCurrentFile;
+window.closeEditModal = closeEditModal;
+window.showMoveToStockModal = showMoveToStockModal;
+window.confirmMoveToStock = confirmMoveToStock;
+window.closeMoveToStockModal = closeMoveToStockModal;
