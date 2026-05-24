@@ -270,6 +270,11 @@ router.post(
   authMiddleware,
   documentController.moveProductsToItemStock,
 );
+router.get(
+  "/getTransferStatus/:purchasingDocId",
+  authMiddleware,
+  documentController.getTransferStatus,
+);
 //// END OF PURCHASING DOCUMENT ROUTE
 
 //// PAYMENT DOCUMENT ROUTE

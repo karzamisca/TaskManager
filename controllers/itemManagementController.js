@@ -114,10 +114,9 @@ exports.getItemManagementViews = (req, res) => {
 
 exports.getCostCenters = async (req, res) => {
   try {
-    const costCenters = await CostCenter.find(
-      {},
-      "name category allowedUsers",
-    ).lean();
+    const costCenters = await CostCenter.find({}, "name category allowedUsers")
+      .sort({ name: 1 }) // alphabetical A-Z
+      .lean();
 
     res.json(costCenters);
   } catch (error) {

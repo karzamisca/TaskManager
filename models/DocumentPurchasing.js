@@ -145,6 +145,28 @@ const purchasingDocumentSchema = new mongoose.Schema({
   groupName: { type: String },
   groupDeclarationName: { type: String },
   projectName: { type: String },
+  transferredQuantities: [
+    {
+      productName: { type: String, required: true },
+      transferredAmount: { type: Number, default: 0 },
+      totalAmount: { type: Number, required: true },
+      firstTransferDate: { type: Date },
+      lastTransferDate: { type: Date },
+      lastTransferAmount: { type: Number },
+      transferHistory: [
+        {
+          amount: { type: Number, required: true },
+          date: { type: Date, default: Date.now },
+          transferredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+          note: { type: String },
+        },
+      ],
+    },
+  ],
+  fullyTransferred: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 module.exports = mongoose.model("DocumentPurchasing", purchasingDocumentSchema);

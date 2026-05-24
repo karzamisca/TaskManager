@@ -3421,7 +3421,7 @@ exports.openPurchasingDocument = async (req, res) => {
 exports.moveProductsToItemStock = async (req, res) => {
   try {
     const { purchasingDocId } = req.params;
-    const { selectedProducts } = req.body; // Array of products to move
+    const { selectedProducts } = req.body;
 
     // Get the purchasing document
     const purchasingDoc = await PurchasingDocument.findById(purchasingDocId);
@@ -3429,6 +3429,14 @@ exports.moveProductsToItemStock = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Purchasing document not found" });
+    }
+
+    // Initialize or get transferred quantities tracking (use array instead of Map)
+    if (
+      !purchasingDoc.transferredQuantities ||
+      !Array.isArray(purchasingDoc.transferredQuantities)
+    ) {
+      purchasingDoc.transferredQuantities = [];
     }
 
     // Get cost centers mapping (name to ID)
@@ -3453,10 +3461,36 @@ exports.moveProductsToItemStock = async (req, res) => {
         continue;
       }
 
-      // Find the item by name (assuming you have an Item model)
-      const item = await Item.findOne({ name: product.productName });
+      // Check if already transferred
+      const existingTransfer = purchasingDoc.transferredQuantities.find(
+        (t) => t.productName === product.productName,
+      );
+      const alreadyTransferred = existingTransfer
+        ? existingTransfer.transferredAmount
+        : 0;
+      const remainingToTransfer = product.amount - alreadyTransferred;
+
+      // Validate transfer amount
+      if (selectedProduct.amount <= 0) {
+        errors.push(`Invalid amount for ${product.productName}`);
+        continue;
+      }
+
+      if (selectedProduct.amount > remainingToTransfer) {
+        errors.push(
+          `Cannot transfer ${selectedProduct.amount} of ${product.productName}. Only ${remainingToTransfer} remaining to transfer.`,
+        );
+        continue;
+      }
+
+      // Find the item by name (case-insensitive search)
+      const item = await Item.findOne({
+        name: { $regex: new RegExp(`^${product.productName}$`, "i") },
+      });
       if (!item) {
-        errors.push(`Item ${product.productName} not found in inventory`);
+        errors.push(
+          `Item ${product.productName} not found in inventory. Please check if the product name matches exactly.`,
+        );
         continue;
       }
 
@@ -3476,7 +3510,7 @@ exports.moveProductsToItemStock = async (req, res) => {
       });
 
       const oldInStorage = itemStock ? itemStock.inStorage : 0;
-      const newInStorage = oldInStorage + product.amount;
+      const newInStorage = oldInStorage + selectedProduct.amount;
 
       if (!itemStock) {
         // Create new item stock record
@@ -3484,13 +3518,13 @@ exports.moveProductsToItemStock = async (req, res) => {
           itemId: item._id,
           costCenterId: costCenterId,
           inStorage: newInStorage,
-          updatedBy: req.user._id,
+          updatedBy: req._id,
           stockHistory: [
             {
               oldInStorage: 0,
               newInStorage: newInStorage,
-              updatedBy: req.user._id,
-              note: `Added from purchasing document ${purchasingDoc.tag || purchasingDocId}`,
+              updatedBy: req._id,
+              note: `Thêm ${selectedProduct.amount} đơn vị từ phiếu mua hàng ${purchasingDoc.tag || purchasingDocId}`,
               updatedAt: new Date(),
             },
           ],
@@ -3498,26 +3532,69 @@ exports.moveProductsToItemStock = async (req, res) => {
       } else {
         // Update existing item stock
         itemStock.inStorage = newInStorage;
-        itemStock.updatedBy = req.user._id;
+        itemStock.updatedBy = req._id;
         itemStock.updatedAt = new Date();
         itemStock.stockHistory.push({
           oldInStorage: oldInStorage,
           newInStorage: newInStorage,
-          updatedBy: req.user._id,
-          note: `Added from purchasing document ${purchasingDoc.tag || purchasingDocId}`,
+          updatedBy: req._id,
+          note: `Thêm ${selectedProduct.amount} đơn vị từ phiếu mua hàng ${purchasingDoc.tag || purchasingDocId}`,
           updatedAt: new Date(),
         });
       }
 
       await itemStock.save();
 
+      // Update transferred quantities tracking (using array)
+      if (existingTransfer) {
+        existingTransfer.transferredAmount =
+          alreadyTransferred + selectedProduct.amount;
+        existingTransfer.lastTransferDate = new Date();
+        existingTransfer.lastTransferAmount = selectedProduct.amount;
+      } else {
+        purchasingDoc.transferredQuantities.push({
+          productName: product.productName,
+          transferredAmount: selectedProduct.amount,
+          totalAmount: product.amount,
+          firstTransferDate: new Date(),
+          lastTransferDate: new Date(),
+          transferHistory: [
+            {
+              amount: selectedProduct.amount,
+              date: new Date(),
+              transferredBy: req._id,
+            },
+          ],
+        });
+      }
+
       results.push({
         productName: product.productName,
-        amount: product.amount,
-        costCenter: product.costCenter,
+        amountMoved: selectedProduct.amount,
+        remainingToMove:
+          product.amount - (alreadyTransferred + selectedProduct.amount),
         oldStock: oldInStorage,
         newStock: newInStorage,
+        isComplete:
+          alreadyTransferred + selectedProduct.amount === product.amount,
       });
+    }
+
+    // Save the updated purchasing document with transfer tracking
+    await purchasingDoc.save();
+
+    const allCompleted = purchasingDoc.products.every((product) => {
+      const transfer = purchasingDoc.transferredQuantities.find(
+        (t) => t.productName === product.productName,
+      );
+      const transferred = transfer ? transfer.transferredAmount : 0;
+      return transferred === product.amount;
+    });
+
+    // Optional: Update document status if all products are fully transferred
+    if (allCompleted && purchasingDoc.status === "Approved") {
+      purchasingDoc.fullyTransferred = true;
+      await purchasingDoc.save();
     }
 
     res.json({
@@ -3525,6 +3602,7 @@ exports.moveProductsToItemStock = async (req, res) => {
       message: `${results.length} products moved to stock successfully`,
       results: results,
       errors: errors.length > 0 ? errors : null,
+      allTransferred: allCompleted,
     });
   } catch (error) {
     console.error("Error moving products to item stock:", error);
@@ -3532,6 +3610,51 @@ exports.moveProductsToItemStock = async (req, res) => {
       success: false,
       message: "Error moving products to item stock",
       error: error.message,
+    });
+  }
+};
+// Get transfer status for a purchasing document
+exports.getTransferStatus = async (req, res) => {
+  try {
+    const { purchasingDocId } = req.params;
+
+    const purchasingDoc = await PurchasingDocument.findById(purchasingDocId);
+    if (!purchasingDoc) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Purchasing document not found" });
+    }
+
+    const transferStatus = purchasingDoc.products.map((product) => {
+      const transfer = purchasingDoc.transferredQuantities
+        ? purchasingDoc.transferredQuantities.find(
+            (t) => t.productName === product.productName,
+          )
+        : null;
+      const transferredAmount = transfer ? transfer.transferredAmount : 0;
+
+      return {
+        productName: product.productName,
+        totalAmount: product.amount,
+        transferredAmount: transferredAmount,
+        remainingAmount: product.amount - transferredAmount,
+        isComplete: transferredAmount === product.amount,
+        transferHistory: transfer ? transfer.transferHistory : [],
+      };
+    });
+
+    const allCompleted = transferStatus.every((status) => status.isComplete);
+
+    res.json({
+      success: true,
+      transferStatus: transferStatus,
+      allCompleted: allCompleted,
+    });
+  } catch (error) {
+    console.error("Error getting transfer status:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error getting transfer status",
     });
   }
 };

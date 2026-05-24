@@ -14,14 +14,14 @@ const state = {
   selectedDocuments: new Set(),
   currentEditDoc: null,
   nameFilter: "",
-  currentGroupFilter: [], // Changed from string to array for multiple selection
-  currentCostCenterFilter: [], // Array for multiple selection
-  currentTotalCostFilter: "", // NEW: Total cost filter
-  currentDateFilter: "", // NEW: Date filter
-  customTotalCostRange: { min: null, max: null }, // NEW: Custom cost range
-  customDateRange: { from: null, to: null }, // NEW: Custom date range
+  currentGroupFilter: [],
+  currentCostCenterFilter: [],
+  currentTotalCostFilter: "",
+  currentDateFilter: "",
+  customTotalCostRange: { min: null, max: null },
+  customDateRange: { from: null, to: null },
   costCenters: [],
-  groups: [], // Add groups array
+  groups: [],
 };
 
 // Stock movement state
@@ -51,7 +51,6 @@ const validateAndParseDate = (dateStr) => {
   const month = parseInt(match[2], 10);
   const year = parseInt(match[3], 10);
 
-  // Basic validation
   if (month < 1 || month > 12) {
     return {
       isValid: false,
@@ -60,7 +59,6 @@ const validateAndParseDate = (dateStr) => {
     };
   }
 
-  // Check day range based on month
   const daysInMonth = new Date(year, month, 0).getDate();
   if (day < 1 || day > daysInMonth) {
     return {
@@ -70,7 +68,6 @@ const validateAndParseDate = (dateStr) => {
     };
   }
 
-  // Check year range (reasonable range)
   const currentYear = new Date().getFullYear();
   if (year < 2000 || year > currentYear + 10) {
     return {
@@ -82,7 +79,6 @@ const validateAndParseDate = (dateStr) => {
 
   const date = new Date(year, month - 1, day);
 
-  // Verify the parsed date matches the input
   if (
     date.getDate() !== day ||
     date.getMonth() !== month - 1 ||
@@ -98,11 +94,9 @@ const validateAndParseDate = (dateStr) => {
   return { isValid: true, date, message: "" };
 };
 
-// Helper functions for date parsing and filtering
 const parseSubmissionDate = (dateString) => {
   if (!dateString) return null;
 
-  // Parse DD-MM-YYYY HH:MM:SS format
   const parts = dateString.split(" ");
   if (parts.length < 2) return null;
 
@@ -113,7 +107,7 @@ const parseSubmissionDate = (dateString) => {
   if (dateParts.length !== 3) return null;
 
   const day = parseInt(dateParts[0], 10);
-  const month = parseInt(dateParts[1], 10) - 1; // Month is 0-indexed
+  const month = parseInt(dateParts[1], 10) - 1;
   const year = parseInt(dateParts[2], 10);
 
   const timeParts = timePart.split(":");
@@ -129,7 +123,6 @@ const getDateRange = (filterType, customRange = null) => {
   const start = new Date();
   const end = new Date();
 
-  // If custom range is provided, use it
   if (filterType === "custom" && customRange) {
     if (customRange.from) {
       const fromParts = customRange.from.split("/");
@@ -140,7 +133,7 @@ const getDateRange = (filterType, customRange = null) => {
         start.setHours(0, 0, 0, 0);
       }
     } else {
-      start.setTime(new Date(0).getTime()); // Earliest possible date
+      start.setTime(new Date(0).getTime());
     }
 
     if (customRange.to) {
@@ -152,7 +145,7 @@ const getDateRange = (filterType, customRange = null) => {
         end.setHours(23, 59, 59, 999);
       }
     } else {
-      end.setTime(new Date().getTime()); // Current date
+      end.setTime(new Date().getTime());
       end.setHours(23, 59, 59, 999);
     }
 
@@ -165,7 +158,6 @@ const getDateRange = (filterType, customRange = null) => {
       end.setHours(23, 59, 59, 999);
       break;
     case "thisWeek":
-      // Start from Monday (0 = Sunday, 1 = Monday in getDay())
       const day = now.getDay();
       const diff = now.getDate() - day + (day === 0 ? -6 : 1);
       start.setDate(diff);
@@ -217,7 +209,6 @@ const isDateInRange = (dateString, filterType, customRange = null) => {
 const isInTotalCostRange = (amount, range, customRange = null) => {
   if (!amount && amount !== 0) return true;
 
-  // If custom range is provided, use it
   if (range === "custom" && customRange) {
     const { min, max } = customRange;
     if (min !== null && amount < min) return false;
@@ -242,27 +233,19 @@ const isInTotalCostRange = (amount, range, customRange = null) => {
   return true;
 };
 
-// Format date to dd/mm/yyyy
 const formatDateToDDMMYYYY = (date) => {
   if (!date) return "";
-
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const year = date.getFullYear();
-
   return `${day}/${month}/${year}`;
 };
 
-// Format date for display
 const formatDisplayDate = (dateStr) => {
   if (!dateStr) return "";
-
-  // If it's already in dd/mm/yyyy format, return as is
   if (dateStr.includes("/")) {
     return dateStr;
   }
-
-  // If it's a Date object string, format it
   try {
     const date = new Date(dateStr);
     if (!isNaN(date.getTime())) {
@@ -271,13 +254,10 @@ const formatDisplayDate = (dateStr) => {
   } catch (e) {
     console.error("Error formatting date:", e);
   }
-
   return dateStr;
 };
 
-// Custom filter UI handlers
 const setupCustomFilterHandlers = () => {
-  // Total cost custom filter
   const totalCostFilter = document.getElementById("totalCostFilter");
   const totalCostCustomContainer = document.getElementById(
     "totalCostCustomContainer",
@@ -290,7 +270,6 @@ const setupCustomFilterHandlers = () => {
   totalCostFilter.addEventListener("change", (e) => {
     if (e.target.value === "custom") {
       totalCostCustomContainer.style.display = "block";
-      // Reset custom inputs
       totalCostMin.value = "";
       totalCostMax.value = "";
     } else {
@@ -334,7 +313,6 @@ const setupCustomFilterHandlers = () => {
     state.currentPage = 1;
     fetchPurchasingDocuments();
 
-    // Update dropdown text to show custom range
     let rangeText = "Tùy chỉnh: ";
     if (min !== null && max !== null) {
       rangeText += `${min.toLocaleString("en-EN", { maximumFractionDigits: 20 })} - ${max.toLocaleString("en-EN", { maximumFractionDigits: 20 })}`;
@@ -344,7 +322,6 @@ const setupCustomFilterHandlers = () => {
       rangeText += `Dưới ${max.toLocaleString("en-EN", { maximumFractionDigits: 20 })}`;
     }
 
-    // Change the selected option text
     const customOption = totalCostFilter.querySelector(
       'option[value="custom"]',
     );
@@ -362,7 +339,6 @@ const setupCustomFilterHandlers = () => {
     totalCostFilter.value = "";
     totalCostCustomContainer.style.display = "none";
 
-    // Reset custom option text
     const customOption = totalCostFilter.querySelector(
       'option[value="custom"]',
     );
@@ -373,7 +349,6 @@ const setupCustomFilterHandlers = () => {
     fetchPurchasingDocuments();
   });
 
-  // Date custom filter
   const dateFilter = document.getElementById("dateFilter");
   const dateCustomContainer = document.getElementById("dateCustomContainer");
   const applyDateCustom = document.getElementById("applyDateCustom");
@@ -384,7 +359,6 @@ const setupCustomFilterHandlers = () => {
   dateFilter.addEventListener("change", (e) => {
     if (e.target.value === "custom") {
       dateCustomContainer.style.display = "block";
-      // Reset date inputs
       dateFrom.value = "";
       dateTo.value = "";
       dateFrom.classList.remove("invalid");
@@ -407,7 +381,6 @@ const setupCustomFilterHandlers = () => {
       return;
     }
 
-    // Validate dates using the helper function
     let fromDate = null;
     let toDate = null;
 
@@ -445,7 +418,6 @@ const setupCustomFilterHandlers = () => {
     state.currentPage = 1;
     fetchPurchasingDocuments();
 
-    // Update dropdown text to show custom range
     let dateText = "Tùy chỉnh: ";
     if (from && to) {
       dateText += `${from} - ${to}`;
@@ -455,7 +427,6 @@ const setupCustomFilterHandlers = () => {
       dateText += `Đến ${to}`;
     }
 
-    // Change the selected option text
     const customOption = dateFilter.querySelector('option[value="custom"]');
     customOption.textContent = dateText;
     customOption.title = dateText;
@@ -473,7 +444,6 @@ const setupCustomFilterHandlers = () => {
     dateFilter.value = "";
     dateCustomContainer.style.display = "none";
 
-    // Reset custom option text
     const customOption = dateFilter.querySelector('option[value="custom"]');
     customOption.textContent = "Chọn khoảng ngày tùy chỉnh...";
     customOption.title = "";
@@ -482,7 +452,6 @@ const setupCustomFilterHandlers = () => {
     fetchPurchasingDocuments();
   });
 
-  // Also handle Enter key in custom date inputs
   dateFrom.addEventListener("keypress", (e) => {
     if (e.key === "Enter") {
       applyDateCustom.click();
@@ -496,55 +465,46 @@ const setupCustomFilterHandlers = () => {
   });
 };
 
-// Multi-select functionality for cost centers
 const initializeCostCenterMultiSelect = () => {
   const button = document.getElementById("costCenterMultiSelectButton");
   const dropdown = document.getElementById("costCenterMultiSelectDropdown");
 
-  // Toggle dropdown
   button.addEventListener("click", (e) => {
     e.stopPropagation();
     dropdown.classList.toggle("open");
     button.classList.toggle("open");
   });
 
-  // Close dropdown when clicking outside
   document.addEventListener("click", () => {
     dropdown.classList.remove("open");
     button.classList.remove("open");
   });
 
-  // Prevent dropdown from closing when clicking inside
   dropdown.addEventListener("click", (e) => {
     e.stopPropagation();
   });
 };
 
-// Multi-select functionality for groups
 const initializeGroupMultiSelect = () => {
   const button = document.getElementById("groupMultiSelectButton");
   const dropdown = document.getElementById("groupMultiSelectDropdown");
 
-  // Toggle dropdown
   button.addEventListener("click", (e) => {
     e.stopPropagation();
     dropdown.classList.toggle("open");
     button.classList.toggle("open");
   });
 
-  // Close dropdown when clicking outside
   document.addEventListener("click", () => {
     dropdown.classList.remove("open");
     button.classList.remove("open");
   });
 
-  // Prevent dropdown from closing when clicking inside
   dropdown.addEventListener("click", (e) => {
     e.stopPropagation();
   });
 };
 
-// Populate multi-select dropdown with cost centers
 const populateCostCenterMultiSelect = async () => {
   try {
     const response = await fetch("/documentCostCenters");
@@ -554,7 +514,6 @@ const populateCostCenterMultiSelect = async () => {
     const dropdown = document.getElementById("costCenterMultiSelectDropdown");
     dropdown.innerHTML = "";
 
-    // Add "Select All" option
     const selectAllOption = document.createElement("div");
     selectAllOption.className = "multi-select-option";
     selectAllOption.innerHTML = `
@@ -563,7 +522,6 @@ const populateCostCenterMultiSelect = async () => {
     `;
     dropdown.appendChild(selectAllOption);
 
-    // Add individual cost center options
     costCenters.forEach((center) => {
       const option = document.createElement("div");
       option.className = "multi-select-option";
@@ -574,7 +532,6 @@ const populateCostCenterMultiSelect = async () => {
       dropdown.appendChild(option);
     });
 
-    // Add event listeners
     const selectAllCheckbox = document.getElementById("selectAllCostCenters");
     selectAllCheckbox.addEventListener("change", (e) => {
       const checkboxes = dropdown.querySelectorAll(
@@ -591,18 +548,14 @@ const populateCostCenterMultiSelect = async () => {
     );
     checkboxes.forEach((checkbox) => {
       checkbox.addEventListener("change", () => {
-        // Update "Select All" checkbox state
         const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
         const someChecked = Array.from(checkboxes).some((cb) => cb.checked);
-
         selectAllCheckbox.checked = allChecked;
         selectAllCheckbox.indeterminate = someChecked && !allChecked;
-
         updateCostCenterFilter();
       });
     });
 
-    // Add clear button
     const clearButton = document.createElement("button");
     clearButton.className = "multi-select-clear";
     clearButton.innerHTML = '<i class="fas fa-times"></i> Xóa tất cả';
@@ -625,7 +578,6 @@ const populateCostCenterMultiSelect = async () => {
   }
 };
 
-// Populate multi-select dropdown with groups
 const populateGroupMultiSelect = async () => {
   try {
     const response = await fetch("/getGroupDocument");
@@ -635,7 +587,6 @@ const populateGroupMultiSelect = async () => {
     const dropdown = document.getElementById("groupMultiSelectDropdown");
     dropdown.innerHTML = "";
 
-    // Add "Select All" option
     const selectAllOption = document.createElement("div");
     selectAllOption.className = "multi-select-option";
     selectAllOption.innerHTML = `
@@ -644,7 +595,6 @@ const populateGroupMultiSelect = async () => {
     `;
     dropdown.appendChild(selectAllOption);
 
-    // Add individual group options
     groups.forEach((group) => {
       const option = document.createElement("div");
       option.className = "multi-select-option";
@@ -655,7 +605,6 @@ const populateGroupMultiSelect = async () => {
       dropdown.appendChild(option);
     });
 
-    // Add event listeners
     const selectAllCheckbox = document.getElementById("selectAllGroups");
     selectAllCheckbox.addEventListener("change", (e) => {
       const checkboxes = dropdown.querySelectorAll(
@@ -672,18 +621,14 @@ const populateGroupMultiSelect = async () => {
     );
     checkboxes.forEach((checkbox) => {
       checkbox.addEventListener("change", () => {
-        // Update "Select All" checkbox state
         const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
         const someChecked = Array.from(checkboxes).some((cb) => cb.checked);
-
         selectAllCheckbox.checked = allChecked;
         selectAllCheckbox.indeterminate = someChecked && !allChecked;
-
         updateGroupFilter();
       });
     });
 
-    // Add clear button
     const clearButton = document.createElement("button");
     clearButton.className = "multi-select-clear";
     clearButton.innerHTML = '<i class="fas fa-times"></i> Xóa tất cả';
@@ -704,7 +649,6 @@ const populateGroupMultiSelect = async () => {
   }
 };
 
-// Update cost center filter based on selected options
 const updateCostCenterFilter = () => {
   const checkboxes = document.querySelectorAll(
     '#costCenterMultiSelectDropdown input[type="checkbox"]:not(#selectAllCostCenters)',
@@ -715,7 +659,6 @@ const updateCostCenterFilter = () => {
 
   state.currentCostCenterFilter = selectedCostCenters;
 
-  // Update button text
   const textElement = document.getElementById("costCenterMultiSelectText");
   const countElement = document.querySelector(".multi-select-selected-count");
 
@@ -741,7 +684,6 @@ const updateCostCenterFilter = () => {
   fetchPurchasingDocuments();
 };
 
-// Update group filter based on selected options
 const updateGroupFilter = () => {
   const checkboxes = document.querySelectorAll(
     '#groupMultiSelectDropdown input[type="checkbox"]:not(#selectAllGroups)',
@@ -752,7 +694,6 @@ const updateGroupFilter = () => {
 
   state.currentGroupFilter = selectedGroups;
 
-  // Update button text
   const textElement = document.getElementById("groupMultiSelectText");
   const buttonContainer = document.getElementById("groupMultiSelectButton");
   const countElement = buttonContainer.querySelector(
@@ -781,34 +722,25 @@ const updateGroupFilter = () => {
   fetchPurchasingDocuments();
 };
 
-// Utility functions
 const showMessage = (message, isError = false) => {
   const messageContainer = document.getElementById("messageContainer");
 
-  // Clear any existing timeouts to prevent multiple messages interfering
   if (messageContainer.timeoutId) {
     clearTimeout(messageContainer.timeoutId);
   }
 
-  // Reset the message container
   messageContainer.className = `message ${isError ? "error" : "success"}`;
   messageContainer.textContent = message;
   messageContainer.style.display = "block";
 
-  // Force reflow to ensure the element is visible before starting animation
   void messageContainer.offsetWidth;
-
-  // Show with animation
   messageContainer.classList.remove("hidden");
 
-  // Set timeout to hide after 5 seconds
   messageContainer.timeoutId = setTimeout(() => {
     messageContainer.classList.add("hidden");
-
-    // Remove completely after animation completes
     setTimeout(() => {
       messageContainer.style.display = "none";
-    }, 300); // Match this with your transition duration
+    }, 300);
   }, 5000);
 };
 
@@ -905,31 +837,14 @@ const renderProposals = (proposals) => {
             <div><strong>Công việc:</strong> ${proposal.task}</div>
             <div><strong>Trạm:</strong> ${proposal.costCenter}</div>
             <div><strong>Nhóm:</strong> ${proposal.groupName}</div>
-            <div><strong>Dự án:</strong> ${
-              proposal.projectName || "Không có"
-            }</div>
+            <div><strong>Dự án:</strong> ${proposal.projectName || "Không có"}</div>
             <div><strong>Mô tả:</strong> ${proposal.detailsDescription}</div>
             <div><strong>Ngày nộp:</strong> ${proposal.submissionDate}</div>
-            <div><strong>Người nộp:</strong> ${
-              proposal.submittedBy?.username || "Không rõ"
-            }</div>
+            <div><strong>Người nộp:</strong> ${proposal.submittedBy?.username || "Không rõ"}</div>
             <div><strong>Trạng thái:</strong> ${proposal.status}</div>
-            ${
-              proposal.declaration
-                ? `<div><strong>Kê khai:</strong> ${proposal.declaration}</div>`
-                : ""
-            }
-            ${
-              proposal.suspendReason
-                ? `<div><strong>Lý do tạm dừng:</strong> ${proposal.suspendReason}</div>`
-                : ""
-            }
-            ${
-              proposal.fileMetadata && proposal.fileMetadata.length > 0
-                ? `<div><strong>Tệp đính kèm:</strong> 
-                   ${renderFiles(proposal.fileMetadata)}</div>`
-                : ""
-            }            
+            ${proposal.declaration ? `<div><strong>Kê khai:</strong> ${proposal.declaration}</div>` : ""}
+            ${proposal.suspendReason ? `<div><strong>Lý do tạm dừng:</strong> ${proposal.suspendReason}</div>` : ""}
+            ${proposal.fileMetadata && proposal.fileMetadata.length > 0 ? `<div><strong>Tệp đính kèm:</strong> ${renderFiles(proposal.fileMetadata)}</div>` : ""}            
             <div><strong>Đã phê duyệt bởi:</strong></div>
             <ul>
               ${proposal.approvedBy
@@ -949,33 +864,131 @@ const renderProposals = (proposals) => {
   `;
 };
 
+// TRANSFER HISTORY FUNCTIONS
+const showTransferHistory = async (docId) => {
+  try {
+    const response = await fetch(`/getTransferStatus/${docId}`);
+    const data = await response.json();
+
+    if (data.success) {
+      let historyHtml = `
+        <div class="transfer-history-container">
+          <div class="transfer-history-header">
+            <i class="fas fa-chart-line"></i> Tình trạng nhập kho
+          </div>
+      `;
+
+      data.transferStatus.forEach((status) => {
+        const percentage =
+          (status.transferredAmount / status.totalAmount) * 100;
+        const isComplete = status.isComplete;
+
+        historyHtml += `
+          <div class="transfer-status-item ${isComplete ? "complete" : "incomplete"}">
+            <div class="transfer-product-name">
+              <strong><i class="fas fa-box"></i> ${status.productName}</strong>
+              ${isComplete ? '<span class="complete-badge"><i class="fas fa-check-circle"></i> Hoàn thành</span>' : '<span class="incomplete-badge"><i class="fas fa-clock"></i> Chưa hoàn thành</span>'}
+            </div>
+            <div class="transfer-details">
+              <div class="transfer-detail-row">
+                <span><i class="fas fa-chart-simple"></i> Tiến độ:</span>
+                <div class="progress-bar-container">
+                  <div class="progress-bar" style="width: ${percentage}%"></div>
+                  <span class="progress-text">${percentage.toFixed(1)}%</span>
+                </div>
+              </div>
+              <div class="transfer-detail-row">
+                <span><i class="fas fa-cubes"></i> Tổng số lượng:</span>
+                <strong>${status.totalAmount.toLocaleString("en-EN")}</strong>
+              </div>
+              <div class="transfer-detail-row">
+                <span><i class="fas fa-arrow-down"></i> Đã nhập kho:</span>
+                <strong class="text-success">${status.transferredAmount.toLocaleString("en-EN")}</strong>
+              </div>
+              <div class="transfer-detail-row">
+                <span><i class="fas fa-hourglass-half"></i> Còn lại:</span>
+                <strong class="text-warning">${status.remainingAmount.toLocaleString("en-EN")}</strong>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+
+      if (data.allCompleted) {
+        historyHtml += `
+          <div class="transfer-complete-message">
+            <i class="fas fa-trophy"></i> Tất cả sản phẩm đã được nhập kho đầy đủ!
+          </div>
+        `;
+      }
+
+      historyHtml += "</div>";
+
+      const modalHTML = `
+        <div id="transferHistoryModal" class="modal" style="display: block;">
+          <div class="modal-content" style="max-width: 600px;">
+            <span class="modal-close" onclick="closeTransferHistoryModal()">&times;</span>
+            <h2 class="modal-title">
+              <i class="fas fa-history"></i> 
+              Lịch sử nhập kho
+            </h2>
+            <div class="modal-body">
+              ${historyHtml}
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML("beforeend", modalHTML);
+    } else {
+      showMessage("Error fetching transfer history", true);
+    }
+  } catch (error) {
+    console.error("Error fetching transfer history:", error);
+    showMessage("Error fetching transfer history", true);
+  }
+};
+
+const closeTransferHistoryModal = () => {
+  const modal = document.getElementById("transferHistoryModal");
+  if (modal) {
+    modal.remove();
+  }
+};
+
 // STOCK MOVEMENT FUNCTIONS
 const showMoveToStockModal = async (docId) => {
   try {
-    // Get the document
     const response = await fetch(`/getPurchasingDocument/${docId}`);
     const doc = await response.json();
+
+    // First check transfer status to show remaining quantities
+    const transferStatusResponse = await fetch(`/getTransferStatus/${docId}`);
+    const transferData = await transferStatusResponse.json();
 
     stockMovementState.currentDocument = doc;
     stockMovementState.selectedProducts.clear();
 
-    // Create modal HTML
     const modalHTML = `
             <div id="moveToStockModal" class="modal" style="display: block;">
-                <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-content" style="max-width: 900px;">
                     <span class="modal-close" onclick="closeMoveToStockModal()">&times;</span>
                     <h2 class="modal-title">
                         <i class="fas fa-boxes"></i> 
                         Nhập kho - ${doc.name || doc.tag}
                     </h2>
                     <div class="modal-body">
+                        <div class="info-banner">
+                            <i class="fas fa-info-circle"></i> 
+                            <strong>Hướng dẫn:</strong> Chọn sản phẩm và nhập số lượng thực tế nhập kho (có thể nhập một phần)
+                        </div>
                         <div class="form-group">
                             <label class="form-label">
                                 <i class="fas fa-check-square"></i> 
                                 Chọn sản phẩm để nhập kho:
                             </label>
                             <div id="productsToStockList" class="products-list">
-                                ${renderProductsForStockSelection(doc.products)}
+                                ${renderProductsForStockSelection(doc.products, transferData.transferStatus)}
                             </div>
                         </div>
                         
@@ -992,50 +1005,77 @@ const showMoveToStockModal = async (docId) => {
             </div>
         `;
 
-    // Remove existing modal if any
     const existingModal = document.getElementById("moveToStockModal");
     if (existingModal) {
       existingModal.remove();
     }
 
-    // Append modal to body
     document.body.insertAdjacentHTML("beforeend", modalHTML);
 
-    // Add event listeners for checkboxes
     document.querySelectorAll(".product-stock-checkbox").forEach((checkbox) => {
       checkbox.addEventListener("change", (e) => {
+        const productItem = e.target.closest(".stock-product-item");
+        const quantityInputDiv = productItem.querySelector(
+          ".product-quantity-input",
+        );
         const productName = e.target.getAttribute("data-product-name");
+
         if (e.target.checked) {
+          quantityInputDiv.style.display = "block";
           stockMovementState.selectedProducts.add(productName);
         } else {
+          quantityInputDiv.style.display = "none";
           stockMovementState.selectedProducts.delete(productName);
         }
       });
     });
 
-    // Setup select all functionality
     const selectAllCheckbox = document.getElementById("selectAllStockProducts");
     if (selectAllCheckbox) {
       selectAllCheckbox.addEventListener("change", (e) => {
         const checkboxes = document.querySelectorAll(".product-stock-checkbox");
         checkboxes.forEach((checkbox) => {
           checkbox.checked = e.target.checked;
+          const productItem = checkbox.closest(".stock-product-item");
+          const quantityInputDiv = productItem.querySelector(
+            ".product-quantity-input",
+          );
           const productName = checkbox.getAttribute("data-product-name");
+
           if (e.target.checked) {
+            quantityInputDiv.style.display = "block";
             stockMovementState.selectedProducts.add(productName);
           } else {
+            quantityInputDiv.style.display = "none";
             stockMovementState.selectedProducts.delete(productName);
           }
         });
       });
     }
+
+    document.querySelectorAll(".quantity-input").forEach((input) => {
+      input.addEventListener("change", (e) => {
+        const max = parseInt(e.target.getAttribute("max"));
+        let value = parseInt(e.target.value);
+
+        if (isNaN(value) || value < 1) {
+          e.target.value = 1;
+        } else if (value > max) {
+          e.target.value = max;
+          showMessage(
+            `Số lượng nhập kho không thể vượt quá ${max.toLocaleString("en-EN")}`,
+            true,
+          );
+        }
+      });
+    });
   } catch (error) {
     console.error("Error showing move to stock modal:", error);
     showMessage("Error loading products for stock movement", true);
   }
 };
 
-const renderProductsForStockSelection = (products) => {
+const renderProductsForStockSelection = (products, transferStatus = null) => {
   if (!products || products.length === 0) {
     return '<p class="text-muted">Không có sản phẩm nào trong phiếu này</p>';
   }
@@ -1049,28 +1089,68 @@ const renderProductsForStockSelection = (products) => {
                 </label>
             </div>
             ${products
-              .map(
-                (product) => `
-                <div class="stock-product-item">
-                    <label class="product-stock-label">
-                        <input type="checkbox" 
-                               class="product-stock-checkbox" 
-                               data-product-name="${product.productName.replace(/"/g, "&quot;")}"
-                               data-product-amount="${product.amount}"
-                               data-product-costcenter="${(product.costCenter || "").replace(/"/g, "&quot;")}">
-                        <div class="product-stock-info">
-                            <strong>${product.productName}</strong>
-                            <div class="product-stock-details">
-                                <span><i class="fas fa-cubes"></i> Số lượng: ${product.amount.toLocaleString("en-EN")}</span>
-                                <span><i class="fas fa-map-marker-alt"></i> Trạm: ${product.costCenter || "Chưa có"}</span>
-                                <span><i class="fas fa-dollar-sign"></i> Đơn giá: ${product.costPerUnit.toLocaleString("en-EN")} đ</span>
-                                <span><i class="fas fa-percent"></i> VAT: ${product.vat || 0}%</span>
+              .map((product, index) => {
+                // Get transferred amount if available
+                let transferredAmount = 0;
+                let remainingAmount = product.amount;
+                if (transferStatus) {
+                  const status = transferStatus.find(
+                    (s) => s.productName === product.productName,
+                  );
+                  if (status) {
+                    transferredAmount = status.transferredAmount;
+                    remainingAmount = status.remainingAmount;
+                  }
+                }
+
+                const isFullyTransferred = remainingAmount === 0;
+
+                return `
+                <div class="stock-product-item ${isFullyTransferred ? "fully-transferred" : ""}" data-product-index="${index}">
+                    <div class="product-stock-header">
+                        <label class="product-stock-label">
+                            <input type="checkbox" 
+                                   class="product-stock-checkbox" 
+                                   data-product-name="${product.productName.replace(/"/g, "&quot;")}"
+                                   data-product-index="${index}"
+                                   ${isFullyTransferred ? "disabled" : ""}>
+                            <div class="product-stock-info">
+                                <strong>${product.productName}</strong>
+                                <div class="product-stock-details">
+                                    <span><i class="fas fa-cubes"></i> Tổng số lượng: ${product.amount.toLocaleString("en-EN")}</span>
+                                    ${transferredAmount > 0 ? `<span><i class="fas fa-check-circle"></i> Đã nhập: ${transferredAmount.toLocaleString("en-EN")}</span>` : ""}
+                                    ${remainingAmount > 0 && remainingAmount < product.amount ? `<span><i class="fas fa-hourglass-half"></i> Còn lại: ${remainingAmount.toLocaleString("en-EN")}</span>` : ""}
+                                    <span><i class="fas fa-map-marker-alt"></i> Trạm: ${product.costCenter || "Chưa có"}</span>
+                                    <span><i class="fas fa-dollar-sign"></i> Đơn giá: ${product.costPerUnit.toLocaleString("en-EN")} đ</span>
+                                    <span><i class="fas fa-percent"></i> VAT: ${product.vat || 0}%</span>
+                                </div>
+                                ${isFullyTransferred ? '<div class="fully-transferred-badge"><i class="fas fa-check-circle"></i> Đã nhập đủ</div>' : ""}
                             </div>
-                        </div>
-                    </label>
+                        </label>
+                    </div>
+                    ${
+                      !isFullyTransferred
+                        ? `
+                    <div class="product-quantity-input" style="display: none; margin-top: 10px; margin-left: 30px;">
+                        <label style="display: flex; align-items: center; gap: 10px;">
+                            <span><i class="fas fa-box"></i> Số lượng nhập kho:</span>
+                            <input type="number" 
+                                   class="quantity-input" 
+                                   data-product-name="${product.productName.replace(/"/g, "&quot;")}"
+                                   min="1" 
+                                   max="${remainingAmount}" 
+                                   step="1"
+                                   value="${remainingAmount}"
+                                   style="width: 150px; padding: 5px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                            <span class="remaining-quantity">(Tối đa: ${remainingAmount.toLocaleString("en-EN")})</span>
+                        </label>
+                    </div>
+                    `
+                        : ""
+                    }
                 </div>
-            `,
-              )
+            `;
+              })
               .join("")}
         </div>
     `;
@@ -1082,20 +1162,58 @@ const confirmMoveToStock = async () => {
     return;
   }
 
-  // Get selected products with their details - FIXED VERSION
-  const selectedProductsArray = [];
+  const selectedProductsArrayFinal = [];
 
-  // Iterate through the selected product names
+  // Debug: Log selected products
+  console.log(
+    "Selected products:",
+    Array.from(stockMovementState.selectedProducts),
+  );
+
   for (const productName of stockMovementState.selectedProducts) {
-    // Find the product in the current document's products array
     const product = stockMovementState.currentDocument.products.find(
       (p) => p.productName === productName,
     );
 
     if (product) {
-      selectedProductsArray.push({
+      // Find the quantity input for this product - use more reliable method
+      let quantityToMove = product.amount; // Default to full amount
+
+      // Find all quantity inputs and find the one for this product
+      const allQuantityInputs = document.querySelectorAll(".quantity-input");
+      console.log(`Found ${allQuantityInputs.length} quantity inputs`);
+
+      for (let input of allQuantityInputs) {
+        const inputProductName = input.getAttribute("data-product-name");
+        console.log(
+          `Checking input for: ${inputProductName}, looking for: ${productName}`,
+        );
+
+        if (inputProductName === productName) {
+          const inputValue = parseInt(input.value);
+          console.log(
+            `Found matching input for ${productName}, value: ${inputValue}`,
+          );
+
+          if (!isNaN(inputValue) && inputValue > 0) {
+            quantityToMove = inputValue;
+          }
+          break;
+        }
+      }
+
+      // Ensure we don't exceed available amount
+      if (quantityToMove > product.amount) {
+        quantityToMove = product.amount;
+      }
+
+      console.log(
+        `Product: ${productName}, Full amount: ${product.amount}, Moving: ${quantityToMove}`,
+      );
+
+      selectedProductsArrayFinal.push({
         productName: product.productName,
-        amount: product.amount,
+        amount: quantityToMove,
         costPerUnit: product.costPerUnit,
         costCenter:
           product.costCenter || stockMovementState.currentDocument.costCenter,
@@ -1106,20 +1224,38 @@ const confirmMoveToStock = async () => {
     }
   }
 
-  if (selectedProductsArray.length === 0) {
+  if (selectedProductsArrayFinal.length === 0) {
     showMessage("Không tìm thấy sản phẩm nào được chọn", true);
     return;
   }
 
-  // Confirm with user
-  const confirmMessage =
-    `Xác nhận nhập kho\n\nBạn có chắc chắn muốn nhập kho ${selectedProductsArray.length} sản phẩm?\n\n` +
-    selectedProductsArray
-      .map(
-        (p) =>
-          `• ${p.productName}: ${p.amount.toLocaleString("en-EN")} (Trạm: ${p.costCenter || "Chưa có"})`,
-      )
-      .join("\n");
+  // Check if any product has partial transfer (amount < original)
+  const hasPartialTransfer = selectedProductsArrayFinal.some((p) => {
+    const originalProduct = stockMovementState.currentDocument.products.find(
+      (op) => op.productName === p.productName,
+    );
+    return p.amount < originalProduct.amount;
+  });
+
+  // Build confirmation message
+  let confirmMessage = `Xác nhận nhập kho\n\n`;
+  confirmMessage += `Bạn có chắc chắn muốn nhập kho ${selectedProductsArrayFinal.length} sản phẩm?\n\n`;
+  confirmMessage += selectedProductsArrayFinal
+    .map((p) => {
+      const originalProduct = stockMovementState.currentDocument.products.find(
+        (op) => op.productName === p.productName,
+      );
+      const isPartial = p.amount < originalProduct.amount;
+      const partialText = isPartial
+        ? ` (⚠️ NHẬP MỘT PHẦN: ${p.amount.toLocaleString("en-EN")}/${originalProduct.amount.toLocaleString("en-EN")})`
+        : "";
+      return `• ${p.productName}: ${p.amount.toLocaleString("en-EN")}${partialText}`;
+    })
+    .join("\n");
+
+  if (hasPartialTransfer) {
+    confirmMessage += "\n\n⚠️ LƯU Ý: Một số sản phẩm sẽ được nhập một phần!";
+  }
 
   if (!confirm(confirmMessage)) {
     return;
@@ -1136,7 +1272,7 @@ const confirmMoveToStock = async () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          selectedProducts: selectedProductsArray,
+          selectedProducts: selectedProductsArrayFinal,
         }),
       },
     );
@@ -1144,22 +1280,28 @@ const confirmMoveToStock = async () => {
     const result = await response.json();
 
     if (result.success) {
-      // Show success message with details
       let message = result.message;
       if (result.results && result.results.length > 0) {
         message += "\n\n✅ Chi tiết thành công:\n";
         result.results.forEach((r) => {
-          message += `• ${r.productName}: ${r.oldStock.toLocaleString("en-EN")} → ${r.newStock.toLocaleString("en-EN")}\n`;
+          message += `• ${r.productName}: ${r.oldStock.toLocaleString("en-EN")} → ${r.newStock.toLocaleString("en-EN")} (Nhập: ${r.amountMoved.toLocaleString("en-EN")})\n`;
+          if (r.remainingToMove > 0) {
+            message += `  ⏳ Còn lại: ${r.remainingToMove.toLocaleString("en-EN")}\n`;
+          }
         });
       }
       if (result.errors && result.errors.length > 0) {
         message +=
           "\n\n⚠️ Lỗi:\n" + result.errors.map((e) => `• ${e}`).join("\n");
       }
+
+      if (!result.allTransferred) {
+        message +=
+          "\n\n💡 Gợi ý: Một số sản phẩm còn tồn lại. Bạn có thể nhập kho phần còn lại sau.";
+      }
+
       showMessage(message, false);
       closeMoveToStockModal();
-
-      // Refresh the purchasing documents list
       fetchPurchasingDocuments();
     } else {
       showMessage(result.message || "Lỗi khi nhập kho", true);
@@ -1202,11 +1344,8 @@ const fetchPurchasingDocuments = async () => {
     const filteredDocuments = filterDocumentsForCurrentUser(
       state.purchasingDocuments,
     );
-
-    // Calculate total pages
     state.totalPages = Math.ceil(filteredDocuments.length / state.itemsPerPage);
 
-    // Make sure current page is in valid range
     if (state.currentPage > state.totalPages) {
       state.currentPage = state.totalPages;
     }
@@ -1214,11 +1353,8 @@ const fetchPurchasingDocuments = async () => {
       state.currentPage = 1;
     }
 
-    // Calculate slice indexes for current page
     const startIndex = (state.currentPage - 1) * state.itemsPerPage;
     const endIndex = startIndex + state.itemsPerPage;
-
-    // Get documents for current page only if pagination is enabled, otherwise show all
     const pageDocuments = state.paginationEnabled
       ? filteredDocuments.slice(startIndex, endIndex)
       : filteredDocuments;
@@ -1242,7 +1378,6 @@ const fetchPurchasingDocuments = async () => {
 const filterDocumentsForCurrentUser = (documents) => {
   let filteredDocs = [...documents];
 
-  // Apply pending approval filter if enabled
   if (state.showOnlyPendingApprovals && state.currentUser) {
     filteredDocs = filteredDocs.filter((doc) => {
       const isRequiredApprover = doc.approvers.some(
@@ -1255,28 +1390,24 @@ const filterDocumentsForCurrentUser = (documents) => {
     });
   }
 
-  // Apply name filter if there's a search term
   if (state.nameFilter) {
     filteredDocs = filteredDocs.filter((doc) =>
       doc.name?.toLowerCase().includes(state.nameFilter),
     );
   }
 
-  // Apply cost center filter (multiple selection)
   if (state.currentCostCenterFilter.length > 0) {
     filteredDocs = filteredDocs.filter((doc) =>
       state.currentCostCenterFilter.includes(doc.costCenter),
     );
   }
 
-  // Apply group filter (multiple selection)
   if (state.currentGroupFilter.length > 0) {
     filteredDocs = filteredDocs.filter((doc) =>
       state.currentGroupFilter.includes(doc.groupName),
     );
   }
 
-  // Apply total cost filter
   if (state.currentTotalCostFilter) {
     filteredDocs = filteredDocs.filter((doc) =>
       isInTotalCostRange(
@@ -1287,7 +1418,6 @@ const filterDocumentsForCurrentUser = (documents) => {
     );
   }
 
-  // Apply date filter
   if (state.currentDateFilter) {
     filteredDocs = filteredDocs.filter((doc) =>
       isDateInRange(
@@ -1301,7 +1431,6 @@ const filterDocumentsForCurrentUser = (documents) => {
   return filteredDocs;
 };
 
-// Rendering functions
 const renderDocumentsTable = (documents) => {
   const tableBody = document
     .getElementById("purchasingDocumentsTable")
@@ -1316,16 +1445,10 @@ const renderDocumentsTable = (documents) => {
         );
         return `
           <div class="approver-item">
-            <span class="status-icon ${
-              hasApproved ? "status-approved" : "status-pending"
-            }"></span>
+            <span class="status-icon ${hasApproved ? "status-approved" : "status-pending"}"></span>
             <div>
               <div>${approver.username} (${approver.subRole})</div>
-              ${
-                hasApproved
-                  ? `<div class="approval-date">Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
-                  : '<div class="approval-date">Chưa phê duyệt</div>'
-              }
+              ${hasApproved ? `<div class="approval-date">Đã phê duyệt vào: ${hasApproved.approvalDate}</div>` : '<div class="approval-date">Chưa phê duyệt</div>'}
             </div>
           </div>
         `;
@@ -1334,24 +1457,14 @@ const renderDocumentsTable = (documents) => {
 
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td><input type="checkbox" class="doc-checkbox" data-doc-id="${
-        doc._id
-      }" ${state.selectedDocuments.has(doc._id) ? "checked" : ""}></td>
+      <td><input type="checkbox" class="doc-checkbox" data-doc-id="${doc._id}" ${state.selectedDocuments.has(doc._id) ? "checked" : ""}></td>
       <td>${doc.name ? doc.name : ""}</td>
       <td>${doc.costCenter ? doc.costCenter : ""}</td>
       <td>${doc.groupName ? doc.groupName : ""}</td>               
       <td>
         ${renderProducts(doc.products)} 
-        ${
-          doc.declaration
-            ? `<div class="declaration"><strong>Kê khai:</strong> ${doc.declaration}</div>`
-            : ""
-        }
-        ${
-          doc.suspendReason
-            ? `<div class="suspend-reason"><strong>Lý do từ chối:</strong> ${doc.suspendReason}</div>`
-            : ""
-        }
+        ${doc.declaration ? `<div class="declaration"><strong>Kê khai:</strong> ${doc.declaration}</div>` : ""}
+        ${doc.suspendReason ? `<div class="suspend-reason"><strong>Lý do từ chối:</strong> ${doc.suspendReason}</div>` : ""}
       </td>
       <td>${renderFiles(doc.fileMetadata)}</td>
       <td>${doc.grandTotalCost?.toLocaleString("en-EN", { maximumFractionDigits: 20 }) || "-"}</td>
@@ -1371,59 +1484,61 @@ const renderDocumentsTable = (documents) => {
           ${
             doc.approvedBy.length === 0
               ? `
-                <button class="btn btn-primary btn-sm" onclick="editDocument('${doc._id}')">
-                  <i class="fas fa-edit"></i> Sửa
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="deleteDocument('${doc._id}')">
-                  <i class="fas fa-trash"></i> Xóa
-                </button>
-              `
+            <button class="btn btn-primary btn-sm" onclick="editDocument('${doc._id}')">
+              <i class="fas fa-edit"></i> Sửa
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteDocument('${doc._id}')">
+              <i class="fas fa-trash"></i> Xóa
+            </button>
+          `
               : ""
           }
           ${
             doc.status === "Pending"
               ? `
-                <button class="btn btn-primary btn-sm" onclick="approveDocument('${doc._id}')">
-                  <i class="fas fa-check"></i> Phê duyệt
-                </button>
-              `
+            <button class="btn btn-primary btn-sm" onclick="approveDocument('${doc._id}')">
+              <i class="fas fa-check"></i> Phê duyệt
+            </button>
+          `
               : ""
           }
           ${
             doc.status === "Approved"
               ? `
-                <button class="btn btn-primary btn-sm" onclick="editDeclaration('${doc._id}')">
-                  <i class="fas fa-edit"></i> Kê khai
-                </button>
-                <button class="btn btn-success btn-sm" onclick="showMoveToStockModal('${doc._id}')">
-                  <i class="fas fa-boxes"></i> Nhập kho
-                </button>
-              `
+            <button class="btn btn-primary btn-sm" onclick="editDeclaration('${doc._id}')">
+              <i class="fas fa-edit"></i> Kê khai
+            </button>
+            <button class="btn btn-success btn-sm" onclick="showMoveToStockModal('${doc._id}')">
+              <i class="fas fa-boxes"></i> Nhập kho
+            </button>
+            <button class="btn btn-info btn-sm" onclick="showTransferHistory('${doc._id}')">
+              <i class="fas fa-history"></i> Lịch sử nhập
+            </button>
+          `
               : ""
           }
           ${
             doc.status === "Suspended"
               ? `
-                <button class="btn btn-primary btn-sm" onclick="openDocument('${doc._id}')">
-                  <i class="fas fa-lock-open"></i> Mở
-                </button>
-              `
+            <button class="btn btn-primary btn-sm" onclick="openDocument('${doc._id}')">
+              <i class="fas fa-lock-open"></i> Mở
+            </button>
+          `
               : `
-                <button class="btn btn-danger btn-sm" onclick="suspendDocument('${doc._id}')">
-                  <i class="fas fa-ban"></i> Từ chối
-                </button>
-              `
+            <button class="btn btn-danger btn-sm" onclick="suspendDocument('${doc._id}')">
+              <i class="fas fa-ban"></i> Từ chối
+            </button>
+          `
           }
           <button class="btn btn-secondary btn-sm" onclick="showDocumentsContainingPurchasing('${doc._id}')">
             <i class="fas fa-link"></i> Liên quan
           </button>
         </div>
-      </td>
+       </td>
     `;
     tableBody.appendChild(row);
   });
 
-  // Update select all checkbox state
   updateSelectAllCheckbox();
 };
 
@@ -1469,33 +1584,22 @@ const renderPagination = () => {
   if (state.totalPages > 1) {
     paginationContainer.innerHTML = `
       <div class="pagination">
-        <button onclick="changePage(1)" ${
-          state.currentPage === 1 ? "disabled" : ""
-        }>
+        <button onclick="changePage(1)" ${state.currentPage === 1 ? "disabled" : ""}>
           <i class="fas fa-angle-double-left"></i> Trang đầu
         </button>
-        <button onclick="changePage(${state.currentPage - 1})" ${
-          state.currentPage === 1 ? "disabled" : ""
-        }>
+        <button onclick="changePage(${state.currentPage - 1})" ${state.currentPage === 1 ? "disabled" : ""}>
           <i class="fas fa-angle-left"></i> Trang trước
         </button>
-        <span class="page-info">
-          Trang ${state.currentPage} / ${state.totalPages}
-        </span>
+        <span class="page-info">Trang ${state.currentPage} / ${state.totalPages}</span>
         <div class="go-to-page">
           <span>Đến trang:</span>
-          <input type="number" class="page-input" id="pageInput" 
-                 min="1" max="${state.totalPages}" value="${state.currentPage}">
+          <input type="number" class="page-input" id="pageInput" min="1" max="${state.totalPages}" value="${state.currentPage}">
           <button onclick="goToPage()">Đi</button>
         </div>
-        <button onclick="changePage(${state.currentPage + 1})" ${
-          state.currentPage === state.totalPages ? "disabled" : ""
-        }>
+        <button onclick="changePage(${state.currentPage + 1})" ${state.currentPage === state.totalPages ? "disabled" : ""}>
           Trang tiếp <i class="fas fa-angle-right"></i>
         </button>
-        <button onclick="changePage(${state.totalPages})" ${
-          state.currentPage === state.totalPages ? "disabled" : ""
-        }>
+        <button onclick="changePage(${state.totalPages})" ${state.currentPage === state.totalPages ? "disabled" : ""}>
           Trang cuối <i class="fas fa-angle-double-right"></i>
         </button>
       </div>
@@ -1525,7 +1629,6 @@ const goToPage = () => {
   ) {
     changePage(pageNumber);
   } else {
-    // Reset to current page if input is invalid
     pageInput.value = state.currentPage;
   }
 };
@@ -1548,9 +1651,7 @@ const approveDocument = async (documentId) => {
     const response = await fetch(`/approveDocument/${documentId}`, {
       method: "POST",
     });
-
     const message = await response.text();
-
     if (response.ok) {
       showMessage(message);
       fetchPurchasingDocuments();
@@ -1564,17 +1665,12 @@ const approveDocument = async (documentId) => {
 };
 
 const deleteDocument = async (documentId) => {
-  if (!confirm("Bạn có chắc chắn muốn xóa tài liệu này?")) {
-    return;
-  }
-
+  if (!confirm("Bạn có chắc chắn muốn xóa tài liệu này?")) return;
   try {
     const response = await fetch(`/deleteDocument/${documentId}`, {
       method: "POST",
     });
-
     const message = await response.text();
-
     if (response.ok) {
       showMessage(message);
       fetchPurchasingDocuments();
@@ -1601,18 +1697,13 @@ const handleSuspendSubmit = async (event) => {
   event.preventDefault();
   const docId = event.target.dataset.docId;
   const suspendReason = document.getElementById("suspendReason").value;
-
   try {
     const response = await fetch(`/suspendPurchasingDocument/${docId}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ suspendReason }),
     });
-
     const message = await response.text();
-
     if (response.ok) {
       showMessage(message);
       closeSuspendModal();
@@ -1631,9 +1722,7 @@ const openDocument = async (docId) => {
     const response = await fetch(`/openPurchasingDocument/${docId}`, {
       method: "POST",
     });
-
     const message = await response.text();
-
     if (response.ok) {
       showMessage(message);
       fetchPurchasingDocuments();
@@ -1647,49 +1736,31 @@ const openDocument = async (docId) => {
 };
 
 const editDeclaration = (docId) => {
-  // Remove any existing declaration modal first
   const existingModal = document.getElementById("declarationModal");
-  if (existingModal) {
-    existingModal.remove();
-  }
+  if (existingModal) existingModal.remove();
 
   const doc = state.purchasingDocuments.find((d) => d._id === docId);
   if (!doc) return;
 
-  // Create a fresh modal
   const modalHTML = `
     <div id="declarationModal" class="modal">
       <div class="modal-content">
         <span class="modal-close" onclick="closeDeclarationModal()">&times;</span>
-        <h2 class="modal-title"><i class="fas fa-edit"></i> Kê Khai - ${
-          doc.tag || doc.name
-        }</h2>
+        <h2 class="modal-title"><i class="fas fa-edit"></i> Kê Khai - ${doc.tag || doc.name}</h2>
         <div class="modal-body">
           <div class="form-group">
-            <textarea id="declarationInput" class="form-textarea">${
-              doc.declaration || ""
-            }</textarea>
+            <textarea id="declarationInput" class="form-textarea">${doc.declaration || ""}</textarea>
           </div>
           <div class="form-actions">
-            <button onclick="saveDeclaration('${docId}')" class="btn btn-primary">
-              <i class="fas fa-save"></i> Lưu kê khai
-            </button>
-            <button onclick="closeDeclarationModal()" class="btn btn-secondary">
-              <i class="fas fa-times"></i> Hủy
-            </button>
+            <button onclick="saveDeclaration('${docId}')" class="btn btn-primary"><i class="fas fa-save"></i> Lưu kê khai</button>
+            <button onclick="closeDeclarationModal()" class="btn btn-secondary"><i class="fas fa-times"></i> Hủy</button>
           </div>
         </div>
       </div>
     </div>
   `;
-
-  // Append the modal to the body
   document.body.insertAdjacentHTML("beforeend", modalHTML);
-
-  // Show the modal
   document.getElementById("declarationModal").style.display = "block";
-
-  // Focus on the textarea
   document.getElementById("declarationInput").focus();
 };
 
@@ -1697,39 +1768,26 @@ const closeDeclarationModal = () => {
   const modal = document.getElementById("declarationModal");
   if (modal) {
     modal.style.display = "none";
-    // Remove after animation completes
     setTimeout(() => modal.remove(), 300);
   }
 };
 
 const saveDeclaration = async (docId) => {
   const declaration = document.getElementById("declarationInput").value;
-
   try {
     const response = await fetch(
       `/updatePurchasingDocumentDeclaration/${docId}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ declaration }),
       },
     );
-
     const message = await response.text();
-
     if (response.ok) {
       showMessage(message);
       closeDeclarationModal();
-      // Update the local state to reflect changes
-      const docIndex = state.purchasingDocuments.findIndex(
-        (d) => d._id === docId,
-      );
-      if (docIndex !== -1) {
-        state.purchasingDocuments[docIndex].declaration = declaration;
-      }
-      fetchPurchasingDocuments(); // Refresh the view
+      fetchPurchasingDocuments();
     } else {
       showMessage(message, true);
     }
@@ -1745,101 +1803,36 @@ const showFullView = (docId) => {
     if (!doc) throw new Error("Document not found");
 
     const fullViewContent = document.getElementById("fullViewContent");
-
-    // Format date strings
     const submissionDate = doc.submissionDate || "Không có";
 
     fullViewContent.innerHTML = `
-      <!-- Basic Information Section -->
       <div class="full-view-section">
         <h3><i class="fas fa-info-circle"></i> Thông tin cơ bản</h3>
         <div class="detail-grid">
-          <div class="detail-item">
-            <span class="detail-label">Tên:</span>
-            <span class="detail-value">${doc.name}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Trạm:</span>
-            <span class="detail-value">${doc.costCenter}</span>
-          </div>                
-          <div class="detail-item">
-            <span class="detail-label">Nhóm:</span>
-            <span class="detail-value">${doc.groupName || "Không có"}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Người nộp:</span>
-            <span class="detail-value">${
-              doc.submittedBy?.username || "Không rõ"
-            }</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Ngày nộp:</span>
-            <span class="detail-value">${submissionDate}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Kê khai:</span>
-            <span class="detail-value">${doc.declaration || "Không có"}</span>
-          </div>
+          <div class="detail-item"><span class="detail-label">Tên:</span><span class="detail-value">${doc.name}</span></div>
+          <div class="detail-item"><span class="detail-label">Trạm:</span><span class="detail-value">${doc.costCenter}</span></div>
+          <div class="detail-item"><span class="detail-label">Nhóm:</span><span class="detail-value">${doc.groupName || "Không có"}</span></div>
+          <div class="detail-item"><span class="detail-label">Người nộp:</span><span class="detail-value">${doc.submittedBy?.username || "Không rõ"}</span></div>
+          <div class="detail-item"><span class="detail-label">Ngày nộp:</span><span class="detail-value">${submissionDate}</span></div>
+          <div class="detail-item"><span class="detail-label">Kê khai:</span><span class="detail-value">${doc.declaration || "Không có"}</span></div>
         </div>
       </div>
-      
-      <!-- Products Section -->
-      <div class="full-view-section">
-        <h3><i class="fas fa-boxes"></i> Sản phẩm</h3>
-        ${renderProducts(doc.products)}
-      </div>
-      
-      <!-- File Attachment Section -->
-      <div class="full-view-section">
-        <h3><i class="fas fa-paperclip"></i> Tệp tin kèm theo</h3>
-        ${renderFiles(doc.fileMetadata)}
-      </div>
-      
-      <!-- Proposals Section -->
-      <div class="full-view-section">
-        <h3><i class="fas fa-file-alt"></i> Phiếu đề xuất kèm theo</h3>
-        ${renderProposals(doc.appendedProposals)}
-      </div>
-      
-      <!-- Status Section -->
+      <div class="full-view-section"><h3><i class="fas fa-boxes"></i> Sản phẩm</h3>${renderProducts(doc.products)}</div>
+      <div class="full-view-section"><h3><i class="fas fa-paperclip"></i> Tệp tin kèm theo</h3>${renderFiles(doc.fileMetadata)}</div>
+      <div class="full-view-section"><h3><i class="fas fa-file-alt"></i> Phiếu đề xuất kèm theo</h3>${renderProposals(doc.appendedProposals)}</div>
       <div class="full-view-section">
         <h3><i class="fas fa-tasks"></i> Trạng thái</h3>
-        <div class="detail-grid">
-          <div class="detail-item">
-            <span class="detail-label">Tình trạng:</span>
-            <span class="detail-value">${renderStatus(doc.status)}</span>
-          </div>
-        </div>
-        <div class="approval-section">
-          <h4><i class="fas fa-user-check"></i> Trạng thái phê duyệt:</h4>
-          <div class="approval-status">
-            ${doc.approvers
-              .map((approver) => {
-                const hasApproved = doc.approvedBy.find(
-                  (a) => a.username === approver.username,
-                );
-                return `
-                <div class="approver-item">
-                  <span class="status-icon ${
-                    hasApproved ? "status-approved" : "status-pending"
-                  }"></span>
-                  <div>
-                    <div>${approver.username} (${approver.subRole})</div>
-                    ${
-                      hasApproved
-                        ? `<div class="approval-date"><i class="fas fa-calendar-check"></i> Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
-                        : '<div class="approval-date"><i class="fas fa-clock"></i> Chưa phê duyệt</div>'
-                    }
-                  </div>
-                </div>
-              `;
-              })
-              .join("")}
-          </div>
-        </div>
+        <div class="detail-grid"><div class="detail-item"><span class="detail-label">Tình trạng:</span><span class="detail-value">${renderStatus(doc.status)}</span></div></div>
+        <div class="approval-section"><h4><i class="fas fa-user-check"></i> Trạng thái phê duyệt:</h4><div class="approval-status">${doc.approvers
+          .map((approver) => {
+            const hasApproved = doc.approvedBy.find(
+              (a) => a.username === approver.username,
+            );
+            return `<div class="approver-item"><span class="status-icon ${hasApproved ? "status-approved" : "status-pending"}"></span><div><div>${approver.username} (${approver.subRole})</div>${hasApproved ? `<div class="approval-date"><i class="fas fa-calendar-check"></i> Đã phê duyệt vào: ${hasApproved.approvalDate}</div>` : '<div class="approval-date"><i class="fas fa-clock"></i> Chưa phê duyệt</div>'}</div></div>`;
+          })
+          .join("")}</div></div>
       </div>
     `;
-
     document.getElementById("fullViewModal").style.display = "block";
   } catch (err) {
     console.error("Error showing full view:", err);
@@ -1849,123 +1842,6 @@ const showFullView = (docId) => {
 
 const closeFullViewModal = () => {
   document.getElementById("fullViewModal").style.display = "none";
-};
-
-// Proposal Management Functions
-const fetchAvailableProposals = async () => {
-  try {
-    const response = await fetch("/approvedProposalsForPurchasing");
-    const allProposals = await response.json();
-
-    // Filter out proposals that are already appended to the current document
-    const currentProposalIds = state.currentAppendedProposals.map(
-      (p) => p.proposalId,
-    );
-    state.availableProposals = allProposals.filter(
-      (proposal) => !currentProposalIds.includes(proposal._id),
-    );
-
-    populateProposalsDropdown();
-  } catch (error) {
-    console.error("Error fetching available proposals:", error);
-    showMessage("Error loading available proposals", true);
-  }
-};
-
-const populateProposalsDropdown = () => {
-  const dropdown = document.getElementById("newProposalsDropdown");
-  dropdown.innerHTML = '<option value="">Chọn phiếu đề xuất</option>';
-
-  state.availableProposals.forEach((proposal) => {
-    const option = document.createElement("option");
-    option.value = proposal._id;
-    option.textContent = `${proposal.task} - ${proposal.costCenter} - ${proposal.submissionDate}`;
-    dropdown.appendChild(option);
-  });
-};
-
-const renderCurrentAppendedProposals = () => {
-  const currentProposalsList = document.getElementById(
-    "currentAppendedProposalsList",
-  );
-
-  if (state.currentAppendedProposals.length === 0) {
-    currentProposalsList.innerHTML =
-      '<p class="text-muted">Không có phiếu đề xuất nào</p>';
-    return;
-  }
-
-  currentProposalsList.innerHTML = state.currentAppendedProposals
-    .map(
-      (proposal, index) => `
-      <div class="proposal-item" data-proposal-id="${proposal.proposalId}">
-        <div class="proposal-info">
-          <strong>${proposal.task}</strong>
-          <div class="proposal-details">
-            <span>Trạm: ${proposal.costCenter}</span>
-            <span>Nhóm: ${proposal.groupName}</span>
-            <span>Ngày: ${proposal.submissionDate}</span>
-          </div>
-        </div>
-        <button type="button" class="btn btn-danger btn-sm" 
-                onclick="removeAppendedProposal('${proposal.proposalId}')">
-          <i class="fas fa-trash"></i> Xóa
-        </button>
-      </div>
-    `,
-    )
-    .join("");
-};
-
-const removeAppendedProposal = (proposalId) => {
-  state.currentAppendedProposals = state.currentAppendedProposals.filter(
-    (proposal) => proposal.proposalId !== proposalId,
-  );
-  renderCurrentAppendedProposals();
-  fetchAvailableProposals(); // Refresh available proposals
-};
-
-const addNewProposal = () => {
-  const selectedProposalId = document.getElementById(
-    "newProposalsDropdown",
-  ).value;
-
-  if (!selectedProposalId) {
-    showMessage("Vui lòng chọn một phiếu đề xuất.", true);
-    return;
-  }
-
-  const selectedProposal = state.availableProposals.find(
-    (proposal) => proposal._id === selectedProposalId,
-  );
-
-  if (selectedProposal) {
-    const newAppendedProposal = {
-      task: selectedProposal.task,
-      costCenter: selectedProposal.costCenter,
-      groupName: selectedProposal.groupName,
-      dateOfError: selectedProposal.dateOfError,
-      detailsDescription: selectedProposal.detailsDescription,
-      direction: selectedProposal.direction,
-      fileMetadata: selectedProposal.fileMetadata || [],
-      proposalId: selectedProposal._id,
-      submissionDate: selectedProposal.submissionDate,
-      submittedBy: selectedProposal.submittedBy,
-      approvers: selectedProposal.approvers,
-      approvedBy: selectedProposal.approvedBy,
-      status: selectedProposal.status,
-      declaration: selectedProposal.declaration,
-      suspendReason: selectedProposal.suspendReason,
-      projectName: selectedProposal.projectName,
-    };
-
-    state.currentAppendedProposals.push(newAppendedProposal);
-    renderCurrentAppendedProposals();
-    fetchAvailableProposals(); // Refresh available proposals
-
-    // Clear the dropdown selection
-    document.getElementById("newProposalsDropdown").value = "";
-  }
 };
 
 // Edit Document Functions
@@ -1979,7 +1855,6 @@ const addEditModal = () => {
           <form id="editForm" onsubmit="handleEditSubmit(event)" class="modal-form" enctype="multipart/form-data">
             <input type="hidden" id="editDocId">
             
-            <!-- Basic Fields -->
             <div class="form-group">
               <label for="editName" class="form-label">Tên:</label>
               <input type="text" id="editName" required class="form-input">
@@ -1989,7 +1864,6 @@ const addEditModal = () => {
               <label for="editCostCenter" class="form-label">Trạm:</label>
               <select id="editCostCenter" required class="form-select">
                 <option value="">Chọn một trạm</option>
-                <!-- Options will be populated dynamically -->
               </select>
             </div>
 
@@ -1997,7 +1871,6 @@ const addEditModal = () => {
               <label for="editGroupName" class="form-label">Nhóm:</label>
               <select id="editGroupName" required class="form-select">
                 <option value="">Chọn một nhóm</option>
-                <!-- Options will be populated dynamically -->
               </select>
             </div>            
 
@@ -2009,49 +1882,41 @@ const addEditModal = () => {
               </button>
             </div>
             
-            <!-- Current Files Section -->
             <div class="form-group">
               <label class="form-label">Tệp tin hiện tại:</label>
               <div id="currentFilesList" class="files-list"></div>
             </div>
             
-            <!-- New Files Section -->
             <div class="form-group">
-              <label for="editFiles" class="form-label">Thay tệp tin mới:</label>
+              <label for="editFiles" class="form-label">Thêm tệp tin mới:</label>
               <input type="file" id="editFiles" class="form-input" multiple>
               <small class="form-text">Có thể chọn nhiều tệp tin</small>
             </div>
             
-            <!-- Current Appended Proposals Section -->
             <div class="form-group">
               <label class="form-label">Phiếu đề xuất đã gắn kèm:</label>
               <div id="currentAppendedProposalsList" class="proposals-list"></div>
             </div>
             
-            <!-- Add New Proposals Section -->
             <div class="form-group">
               <label class="form-label">Thêm phiếu đề xuất:</label>
               <select id="newProposalsDropdown" class="form-select">
                 <option value="">Chọn phiếu đề xuất</option>
-                <!-- Options will be populated dynamically -->
               </select>
               <button type="button" class="btn btn-primary" onclick="addNewProposal()" style="margin-top: var(--space-sm);">
                 <i class="fas fa-plus"></i> Thêm phiếu đề xuất
               </button>
             </div>
             
-            <!-- Current Approvers Section -->
             <div class="form-group">
               <label class="form-label">Người phê duyệt hiện tại:</label>
               <div id="currentApproversList" class="approvers-list"></div>
             </div>
             
-            <!-- Add New Approvers Section -->
             <div class="form-group">
               <label class="form-label">Thêm người phê duyệt:</label>
               <select id="newApproversDropdown" class="form-select">
                 <option value="">Chọn người phê duyệt</option>
-                <!-- Options will be populated dynamically -->
               </select>
               <input type="text" id="newApproverSubRole" placeholder="Vai trò" class="form-input" style="margin-top: var(--space-sm);">
               <button type="button" class="btn btn-primary" onclick="addNewApprover()" style="margin-top: var(--space-sm);">
@@ -2072,7 +1937,6 @@ const addEditModal = () => {
       </div>
     </div>
   `;
-
   document.body.insertAdjacentHTML("beforeend", modalHTML);
 };
 
@@ -2087,88 +1951,26 @@ const fetchProducts = async () => {
   }
 };
 
-const validateProductFields = () => {
-  const productItems = document.querySelectorAll(".product-item");
-
-  if (productItems.length === 0) {
-    showMessage("Vui lòng thêm ít nhất một sản phẩm", true);
-    return false;
-  }
-
-  for (let item of productItems) {
-    const productSelect = item.querySelector(".product-select");
-
-    // Check if product name is selected
-    if (productSelect) {
-      const choicesInstance = productSelect._choices;
-      const productName = choicesInstance
-        ? choicesInstance.getValue(true)
-        : productSelect.value;
-
-      if (!productName || productName === "") {
-        showMessage("Vui lòng chọn tên sản phẩm cho tất cả các mục", true);
-        // Try to focus on the field
-        if (choicesInstance) {
-          choicesInstance.showDropdown();
-        } else {
-          productSelect.focus();
-        }
-        return false;
-      }
-    } else {
-      // Fallback text input
-      const nameInput = item.querySelector('input[type="text"]:first-of-type');
-      if (nameInput && !nameInput.value) {
-        showMessage("Vui lòng nhập tên sản phẩm cho tất cả các mục", true);
-        nameInput.focus();
-        return false;
-      }
-    }
-
-    // Check other required fields
-    const requiredInputs = item.querySelectorAll("input[required]");
-    for (let input of requiredInputs) {
-      if (!input.value || input.value === "") {
-        showMessage(
-          `Vui lòng điền đầy đủ thông tin sản phẩm (${input.placeholder})`,
-          true,
-        );
-        input.focus();
-        return false;
-      }
-    }
-  }
-
-  return true;
-};
-
 const addProductField = async (product = null) => {
   const productsList = document.getElementById("productsList");
   const productDiv = document.createElement("div");
   productDiv.className = "product-item";
 
-  // Create the container first
   const fieldsContainer = document.createElement("div");
   fieldsContainer.className = "product-fields";
   productDiv.appendChild(fieldsContainer);
 
-  // Product dropdown with unique ID for Choices.js
   const productDropdown = document.createElement("select");
-  const uniqueId = `product-select-${Date.now()}-${Math.random()
-    .toString(36)
-    .substr(2, 9)}`;
+  const uniqueId = `product-select-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   productDropdown.id = uniqueId;
   productDropdown.className = "form-select product-select";
-  // Remove required attribute temporarily - we'll validate manually
   productDropdown.removeAttribute("required");
 
-  // Add default option
   const defaultOption = document.createElement("option");
   defaultOption.value = "";
   defaultOption.textContent = "Chọn sản phẩm";
   productDropdown.appendChild(defaultOption);
 
-  // Fetch and populate products
   let fallbackToInput = false;
   let selectedProductName = product?.productName;
 
@@ -2185,7 +1987,6 @@ const addProductField = async (product = null) => {
     fallbackToInput = true;
   }
 
-  // Create other inputs
   const costInput = document.createElement("input");
   costInput.type = "number";
   costInput.placeholder = "Đơn giá";
@@ -2210,17 +2011,14 @@ const addProductField = async (product = null) => {
   vatInput.step = "any";
   vatInput.className = "form-input";
 
-  // Create cost center dropdown
   const costCenterSelect = document.createElement("select");
   costCenterSelect.className = "product-cost-center form-select";
-  // Cost center is optional, so no required attribute
 
   const defaultCenterOption = document.createElement("option");
   defaultCenterOption.value = "";
   defaultCenterOption.textContent = "Chọn trạm";
   costCenterSelect.appendChild(defaultCenterOption);
 
-  // Populate cost centers if available
   if (state.costCenters) {
     state.costCenters.forEach((center) => {
       const option = document.createElement("option");
@@ -2239,13 +2037,11 @@ const addProductField = async (product = null) => {
   noteInput.value = product?.note || "";
   noteInput.className = "form-input";
 
-  // Create remove button
   const removeButton = document.createElement("button");
   removeButton.type = "button";
   removeButton.className = "btn btn-danger btn-sm";
   removeButton.innerHTML = '<i class="fas fa-trash"></i> Xóa';
   removeButton.onclick = function () {
-    // Destroy Choices instance before removing
     const productSelect =
       this.parentElement.parentElement.querySelector(".product-select");
     if (productSelect && productSelect._choices) {
@@ -2254,7 +2050,6 @@ const addProductField = async (product = null) => {
     this.parentElement.parentElement.remove();
   };
 
-  // If products couldn't be loaded, fall back to text input
   if (fallbackToInput) {
     const nameInput = document.createElement("input");
     nameInput.type = "text";
@@ -2264,14 +2059,12 @@ const addProductField = async (product = null) => {
     nameInput.className = "form-input";
     fieldsContainer.appendChild(nameInput);
   } else {
-    // Set the value BEFORE appending to DOM if we have one
     if (selectedProductName) {
       productDropdown.value = selectedProductName;
     }
     fieldsContainer.appendChild(productDropdown);
   }
 
-  // Append all other inputs
   fieldsContainer.appendChild(costInput);
   fieldsContainer.appendChild(amountInput);
   fieldsContainer.appendChild(vatInput);
@@ -2281,7 +2074,6 @@ const addProductField = async (product = null) => {
 
   productsList.appendChild(productDiv);
 
-  // Initialize Choices.js after DOM insertion
   if (!fallbackToInput) {
     setTimeout(() => {
       const choices = new Choices(`#${uniqueId}`, {
@@ -2295,11 +2087,7 @@ const addProductField = async (product = null) => {
         placeholder: true,
         placeholderValue: "Chọn sản phẩm",
       });
-
-      // Store Choices instance for cleanup
       productDropdown._choices = choices;
-
-      // Set the selected value AFTER Choices.js initializes
       if (selectedProductName) {
         choices.setChoiceByValue(selectedProductName);
       }
@@ -2312,11 +2100,7 @@ const populateCostCenterDropdownForEditing = async () => {
     const response = await fetch("/costCenters");
     const costCenters = await response.json();
     const dropdown = document.getElementById("editCostCenter");
-
-    // Clear existing options except the first one
     dropdown.innerHTML = '<option value="">Chọn một trạm</option>';
-
-    // Add new options
     costCenters.forEach((center) => {
       const option = document.createElement("option");
       option.value = center.name;
@@ -2333,11 +2117,7 @@ const populateGroupDropdownForEditing = async () => {
     const response = await fetch("/getGroupDocument");
     const groups = await response.json();
     const dropdown = document.getElementById("editGroupName");
-
-    // Clear existing options except the first one
     dropdown.innerHTML = '<option value="">Chọn một nhóm</option>';
-
-    // Add new options
     groups.forEach((group) => {
       const option = document.createElement("option");
       option.value = group.name;
@@ -2345,7 +2125,7 @@ const populateGroupDropdownForEditing = async () => {
       dropdown.appendChild(option);
     });
   } catch (error) {
-    console.error("Error fetching groups for filter:", error);
+    console.error("Error fetching groups:", error);
   }
 };
 
@@ -2364,17 +2144,14 @@ const renderCurrentApprovers = () => {
   currentApproversList.innerHTML = state.currentApprovers
     .map(
       (approver) => `
-        <div class="approver-item">
-          <span>${approver.username}</span>
-          <input type="text" value="${approver.subRole}" 
-                 onchange="updateApproverSubRole('${approver._id}', this.value)" 
-                 class="form-input" style="width: 120px;">
-          <button type="button" class="btn btn-danger btn-sm" 
-                  onclick="removeApprover('${approver._id}')">
-            <i class="fas fa-trash"></i> Xóa
-          </button>
-        </div>
-      `,
+    <div class="approver-item">
+      <span>${approver.username}</span>
+      <input type="text" value="${approver.subRole}" onchange="updateApproverSubRole('${approver._id}', this.value)" class="form-input" style="width: 120px;">
+      <button type="button" class="btn btn-danger btn-sm" onclick="removeApprover('${approver._id}')">
+        <i class="fas fa-trash"></i> Xóa
+      </button>
+    </div>
+  `,
     )
     .join("");
 };
@@ -2402,29 +2179,17 @@ const populateNewApproversDropdown = async () => {
     (approver) =>
       !state.currentApprovers.some((a) => a.approver === approver._id),
   );
-
   const dropdown = document.getElementById("newApproversDropdown");
-  dropdown.innerHTML = `
-    <option value="">Chọn người phê duyệt</option>
-    ${availableApprovers
-      .map(
-        (approver) => `
-      <option value="${approver._id}">${approver.username}</option>
-    `,
-      )
-      .join("")}
-  `;
+  dropdown.innerHTML = `<option value="">Chọn người phê duyệt</option>${availableApprovers.map((approver) => `<option value="${approver._id}">${approver.username}</option>`).join("")}`;
 };
 
 const addNewApprover = () => {
   const newApproverId = document.getElementById("newApproversDropdown").value;
   const newSubRole = document.getElementById("newApproverSubRole").value;
-
   if (!newApproverId || !newSubRole) {
     showMessage("Vui lòng chọn người phê duyệt và nhập vai trò phụ.", true);
     return;
   }
-
   const newApprover = {
     approver: newApproverId,
     username: document
@@ -2432,17 +2197,13 @@ const addNewApprover = () => {
       .selectedOptions[0].text.split(" (")[0],
     subRole: newSubRole,
   };
-
   state.currentApprovers.push(newApprover);
   renderCurrentApprovers();
   populateNewApproversDropdown();
-
-  // Clear the input fields
   document.getElementById("newApproversDropdown").value = "";
   document.getElementById("newApproverSubRole").value = "";
 };
 
-// Add function to render current files
 const renderCurrentFiles = (files, docId) => {
   const currentFilesList = document.getElementById("currentFilesList");
   if (!files || files.length === 0) {
@@ -2450,17 +2211,13 @@ const renderCurrentFiles = (files, docId) => {
       '<p class="text-muted">Không có tệp tin nào</p>';
     return;
   }
-
   currentFilesList.innerHTML = files
     .map(
       (file) => `
     <div class="file-item" data-file-id="${file._id || file.driveFileId}">
       <i class="fas fa-paperclip file-icon"></i>
       <a href="${file.link}" class="file-link" target="_blank">${file.name}</a>
-      <button type="button" class="btn btn-danger btn-sm" 
-              onclick="removeCurrentFile('${
-                file._id || file.driveFileId
-              }', '${docId}')">
+      <button type="button" class="btn btn-danger btn-sm" onclick="removeCurrentFile('${file._id || file.driveFileId}', '${docId}')">
         <i class="fas fa-trash"></i> Xóa
       </button>
     </div>
@@ -2469,31 +2226,18 @@ const renderCurrentFiles = (files, docId) => {
     .join("");
 };
 
-// Add function to remove current file
 const removeCurrentFile = async (fileId, docId) => {
-  if (!confirm("Bạn có chắc chắn muốn xóa tệp tin này?")) {
-    return;
-  }
-
+  if (!confirm("Bạn có chắc chắn muốn xóa tệp tin này?")) return;
   try {
     const response = await fetch(
       `/deletePurchasingDocumentFile/${docId}/${fileId}`,
-      {
-        method: "POST",
-      },
+      { method: "POST" },
     );
-
     const result = await response.json();
-
     if (result.success) {
-      // Remove from UI
       const fileItem = document.querySelector(`[data-file-id="${fileId}"]`);
-      if (fileItem) {
-        fileItem.remove();
-      }
+      if (fileItem) fileItem.remove();
       showMessage("Tệp tin đã được xóa thành công.");
-
-      // Update the file count display if needed
       if (result.remainingFiles === 0) {
         document.getElementById("currentFilesList").innerHTML =
           '<p class="text-muted">Không có tệp tin nào</p>';
@@ -2507,10 +2251,111 @@ const removeCurrentFile = async (fileId, docId) => {
   }
 };
 
-// Update the editDocument function to show current proposals
+const fetchAvailableProposals = async () => {
+  try {
+    const response = await fetch("/approvedProposalsForPurchasing");
+    const allProposals = await response.json();
+    const currentProposalIds = state.currentAppendedProposals.map(
+      (p) => p.proposalId,
+    );
+    state.availableProposals = allProposals.filter(
+      (proposal) => !currentProposalIds.includes(proposal._id),
+    );
+    populateProposalsDropdown();
+  } catch (error) {
+    console.error("Error fetching available proposals:", error);
+    showMessage("Error loading available proposals", true);
+  }
+};
+
+const populateProposalsDropdown = () => {
+  const dropdown = document.getElementById("newProposalsDropdown");
+  dropdown.innerHTML = '<option value="">Chọn phiếu đề xuất</option>';
+  state.availableProposals.forEach((proposal) => {
+    const option = document.createElement("option");
+    option.value = proposal._id;
+    option.textContent = `${proposal.task} - ${proposal.costCenter} - ${proposal.submissionDate}`;
+    dropdown.appendChild(option);
+  });
+};
+
+const renderCurrentAppendedProposals = () => {
+  const currentProposalsList = document.getElementById(
+    "currentAppendedProposalsList",
+  );
+  if (state.currentAppendedProposals.length === 0) {
+    currentProposalsList.innerHTML =
+      '<p class="text-muted">Không có phiếu đề xuất nào</p>';
+    return;
+  }
+  currentProposalsList.innerHTML = state.currentAppendedProposals
+    .map(
+      (proposal) => `
+    <div class="proposal-item" data-proposal-id="${proposal.proposalId}">
+      <div class="proposal-info">
+        <strong>${proposal.task}</strong>
+        <div class="proposal-details">
+          <span>Trạm: ${proposal.costCenter}</span>
+          <span>Nhóm: ${proposal.groupName}</span>
+          <span>Ngày: ${proposal.submissionDate}</span>
+        </div>
+      </div>
+      <button type="button" class="btn btn-danger btn-sm" onclick="removeAppendedProposal('${proposal.proposalId}')">
+        <i class="fas fa-trash"></i> Xóa
+      </button>
+    </div>
+  `,
+    )
+    .join("");
+};
+
+const removeAppendedProposal = (proposalId) => {
+  state.currentAppendedProposals = state.currentAppendedProposals.filter(
+    (p) => p.proposalId !== proposalId,
+  );
+  renderCurrentAppendedProposals();
+  fetchAvailableProposals();
+};
+
+const addNewProposal = () => {
+  const selectedProposalId = document.getElementById(
+    "newProposalsDropdown",
+  ).value;
+  if (!selectedProposalId) {
+    showMessage("Vui lòng chọn một phiếu đề xuất.", true);
+    return;
+  }
+  const selectedProposal = state.availableProposals.find(
+    (p) => p._id === selectedProposalId,
+  );
+  if (selectedProposal) {
+    const newAppendedProposal = {
+      task: selectedProposal.task,
+      costCenter: selectedProposal.costCenter,
+      groupName: selectedProposal.groupName,
+      dateOfError: selectedProposal.dateOfError,
+      detailsDescription: selectedProposal.detailsDescription,
+      direction: selectedProposal.direction,
+      fileMetadata: selectedProposal.fileMetadata || [],
+      proposalId: selectedProposal._id,
+      submissionDate: selectedProposal.submissionDate,
+      submittedBy: selectedProposal.submittedBy,
+      approvers: selectedProposal.approvers,
+      approvedBy: selectedProposal.approvedBy,
+      status: selectedProposal.status,
+      declaration: selectedProposal.declaration,
+      suspendReason: selectedProposal.suspendReason,
+      projectName: selectedProposal.projectName,
+    };
+    state.currentAppendedProposals.push(newAppendedProposal);
+    renderCurrentAppendedProposals();
+    fetchAvailableProposals();
+    document.getElementById("newProposalsDropdown").value = "";
+  }
+};
+
 const editDocument = async (docId) => {
   try {
-    // Load cost centers first
     const costCenterResponse = await fetch("/costCenters");
     state.costCenters = await costCenterResponse.json();
 
@@ -2526,26 +2371,16 @@ const editDocument = async (docId) => {
     await populateGroupDropdownForEditing();
     document.getElementById("editGroupName").value = doc.groupName;
 
-    // Clear and repopulate products
     const productsList = document.getElementById("productsList");
     productsList.innerHTML = "";
     doc.products.forEach((product) => addProductField(product));
 
-    // Show current files - PASS THE DOC ID
     renderCurrentFiles(doc.fileMetadata, docId);
-
-    // Populate current appended proposals
     state.currentAppendedProposals = doc.appendedProposals || [];
     renderCurrentAppendedProposals();
-
-    // Fetch and populate available proposals
     await fetchAvailableProposals();
-
-    // Populate current approvers
     state.currentApprovers = doc.approvers;
     renderCurrentApprovers();
-
-    // Populate new approvers dropdown
     await populateNewApproversDropdown();
 
     document.getElementById("editModal").style.display = "block";
@@ -2563,17 +2398,58 @@ const closeEditModal = () => {
   state.currentApprovers = [];
 };
 
+const validateProductFields = () => {
+  const productItems = document.querySelectorAll(".product-item");
+  if (productItems.length === 0) {
+    showMessage("Vui lòng thêm ít nhất một sản phẩm", true);
+    return false;
+  }
+  for (let item of productItems) {
+    const productSelect = item.querySelector(".product-select");
+    if (productSelect) {
+      const choicesInstance = productSelect._choices;
+      const productName = choicesInstance
+        ? choicesInstance.getValue(true)
+        : productSelect.value;
+      if (!productName || productName === "") {
+        showMessage("Vui lòng chọn tên sản phẩm cho tất cả các mục", true);
+        if (choicesInstance) {
+          choicesInstance.showDropdown();
+        } else {
+          productSelect.focus();
+        }
+        return false;
+      }
+    } else {
+      const nameInput = item.querySelector('input[type="text"]:first-of-type');
+      if (nameInput && !nameInput.value) {
+        showMessage("Vui lòng nhập tên sản phẩm cho tất cả các mục", true);
+        nameInput.focus();
+        return false;
+      }
+    }
+    const requiredInputs = item.querySelectorAll("input[required]");
+    for (let input of requiredInputs) {
+      if (!input.value || input.value === "") {
+        showMessage(
+          `Vui lòng điền đầy đủ thông tin sản phẩm (${input.placeholder})`,
+          true,
+        );
+        input.focus();
+        return false;
+      }
+    }
+  }
+  return true;
+};
+
 const handleEditSubmit = async (event) => {
   event.preventDefault();
-
-  if (!validateProductFields()) {
-    return;
-  }
+  if (!validateProductFields()) return;
 
   const docId = document.getElementById("editDocId").value;
   const formData = new FormData();
 
-  // Add basic fields
   formData.append("name", document.getElementById("editName").value);
   formData.append(
     "costCenter",
@@ -2581,61 +2457,45 @@ const handleEditSubmit = async (event) => {
   );
   formData.append("groupName", document.getElementById("editGroupName").value);
 
-  // Get all products
   const products = [];
   const productItems = document.querySelectorAll(".product-item");
 
   productItems.forEach((item) => {
     const productSelect = item.querySelector(".product-select");
     const costCenterSelect = item.querySelector(".product-cost-center");
-
-    // Get all input elements (not including selects)
     const inputs = item.querySelectorAll(
       'input[type="number"], input[type="text"]',
     );
 
-    // Handle product name from select or input
     let productName = "";
     if (productSelect && productSelect.tagName === "SELECT") {
-      // Get value from Choices.js instance or directly from select
       const choicesInstance = productSelect._choices;
       productName = choicesInstance
         ? choicesInstance.getValue(true)
         : productSelect.value;
     } else {
-      // Fallback to first input if dropdown failed to load
       const nameInput = item.querySelector('input[type="text"]:first-of-type');
-      if (nameInput) {
-        productName = nameInput.value;
-      }
+      if (nameInput) productName = nameInput.value;
     }
 
-    if (!productName) {
-      return; // Skip this product if no name
-    }
+    if (!productName) return;
 
-    // Now we need to find the correct inputs
-    // If we have a select, inputs are: cost, amount, vat, note
-    // If we have text input for name, inputs are: name, cost, amount, vat, note
     const hasSelect = productSelect && productSelect.tagName === "SELECT";
-
     let costPerUnit, amount, vat, note;
 
     if (hasSelect) {
-      // With select: inputs[0]=cost, inputs[1]=amount, inputs[2]=vat, inputs[3]=note
       costPerUnit = parseFloat(inputs[0]?.value) || 0;
       amount = parseFloat(inputs[1]?.value) || 0;
       vat = parseFloat(inputs[2]?.value) || 0;
       note = inputs[3]?.value || "";
     } else {
-      // With text input: inputs[0]=name, inputs[1]=cost, inputs[2]=amount, inputs[3]=vat, inputs[4]=note
       costPerUnit = parseFloat(inputs[1]?.value) || 0;
       amount = parseFloat(inputs[2]?.value) || 0;
       vat = parseFloat(inputs[3]?.value) || 0;
       note = inputs[4]?.value || "";
     }
 
-    const product = {
+    products.push({
       productName: productName,
       costPerUnit: costPerUnit,
       amount: amount,
@@ -2645,37 +2505,21 @@ const handleEditSubmit = async (event) => {
         costPerUnit * amount + costPerUnit * amount * (vat / 100),
       costCenter: costCenterSelect ? costCenterSelect.value : "",
       note: note,
-    };
-    products.push(product);
+    });
   });
 
   formData.append("products", JSON.stringify(products));
-
-  // Calculate grand total
   const grandTotalCost = products.reduce(
     (sum, product) => sum + product.totalCostAfterVat,
     0,
   );
   formData.append("grandTotalCost", grandTotalCost);
-
-  // Add approvers
   formData.append("approvers", JSON.stringify(state.currentApprovers));
-
-  // Add appended proposals
   formData.append(
     "appendedProposals",
     JSON.stringify(state.currentAppendedProposals),
   );
 
-  // Add removed file IDs if any
-  if (window.removedFileIds && window.removedFileIds.size > 0) {
-    formData.append(
-      "removedFileIds",
-      JSON.stringify(Array.from(window.removedFileIds)),
-    );
-  }
-
-  // Add files
   const fileInput = document.getElementById("editFiles");
   if (fileInput.files.length > 0) {
     for (let i = 0; i < fileInput.files.length; i++) {
@@ -2709,49 +2553,8 @@ const showDocumentsContainingPurchasing = async (purchasingId) => {
       `/documentsContainingPurchasing/${purchasingId}`,
     );
     const data = await response.json();
-
     if (data.success) {
-      const modalHTML = `
-        <div id="containingDocsModal" class="modal" style="display: block;">
-          <div class="modal-content">
-            <span class="modal-close" onclick="closeContainingDocsModal()">&times;</span>
-            <h2 class="modal-title"><i class="fas fa-link"></i> Phiếu liên quan</h2>
-            <div class="modal-body">
-              <div class="related-docs-section">
-                <h3><i class="fas fa-money-bill-wave"></i> Thanh toán</h3>
-                ${
-                  data.paymentDocuments.length > 0
-                    ? renderPaymentDocuments(data.paymentDocuments)
-                    : "<p>Không có phiếu thanh toán nào liên quan</p>"
-                }
-              </div>
-              
-              <div class="related-docs-section">
-                <h3><i class="fas fa-hand-holding-usd"></i> Tạm ứng</h3>
-                ${
-                  data.advancePaymentDocuments.length > 0
-                    ? renderAdvancePaymentDocuments(
-                        data.advancePaymentDocuments,
-                      )
-                    : "<p>Không có phiếu tạm ứng nào liên quan</p>"
-                }
-              </div>
-              
-              <div class="related-docs-section">
-                <h3><i class="fas fa-exchange-alt"></i> Thu hồi tạm ứng</h3>
-                ${
-                  data.advancePaymentReclaimDocuments.length > 0
-                    ? renderAdvancePaymentReclaimDocuments(
-                        data.advancePaymentReclaimDocuments,
-                      )
-                    : "<p>Không có phiếu thu hồi tạm ứng nào liên quan</p>"
-                }
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-
+      const modalHTML = `<div id="containingDocsModal" class="modal" style="display: block;"><div class="modal-content"><span class="modal-close" onclick="closeContainingDocsModal()">&times;</span><h2 class="modal-title"><i class="fas fa-link"></i> Phiếu liên quan</h2><div class="modal-body"><div class="related-docs-section"><h3><i class="fas fa-money-bill-wave"></i> Thanh toán</h3>${data.paymentDocuments.length > 0 ? renderPaymentDocuments(data.paymentDocuments) : "<p>Không có phiếu thanh toán nào liên quan</p>"}</div><div class="related-docs-section"><h3><i class="fas fa-hand-holding-usd"></i> Tạm ứng</h3>${data.advancePaymentDocuments.length > 0 ? renderAdvancePaymentDocuments(data.advancePaymentDocuments) : "<p>Không có phiếu tạm ứng nào liên quan</p>"}</div><div class="related-docs-section"><h3><i class="fas fa-exchange-alt"></i> Thu hồi tạm ứng</h3>${data.advancePaymentReclaimDocuments.length > 0 ? renderAdvancePaymentReclaimDocuments(data.advancePaymentReclaimDocuments) : "<p>Không có phiếu thu hồi tạm ứng nào liên quan</p>"}</div></div></div></div>`;
       document.body.insertAdjacentHTML("beforeend", modalHTML);
     } else {
       showMessage("Error fetching related documents", true);
@@ -2764,159 +2567,38 @@ const showDocumentsContainingPurchasing = async (purchasingId) => {
 
 const renderPaymentDocuments = (paymentDocs) => {
   if (!paymentDocs || paymentDocs.length === 0) return "-";
-
-  return `
-    <div class="documents-container">
-      ${paymentDocs
-        .map(
-          (doc) => `
-          <div class="document-card">
-            <h4>${doc.title || "Payment Document"}</h4>
-            <div class="document-details">
-              <div><strong>Tem:</strong> ${doc.tag}</div>
-              <div><strong>Tên:</strong> ${doc.name}</div>
-              <div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div>
-              <div><strong>Phương thức thanh toán:</strong> ${
-                doc.paymentMethod
-              }</div>
-              <div><strong>Tổng thanh toán:</strong> ${
-                doc.totalPayment?.toLocaleString("en-EN", {
-                  maximumFractionDigits: 20,
-                }) || "-"
-              }</div>
-              <div><strong>Tạm ứng:</strong> ${
-                doc.advancePayment?.toLocaleString("en-EN", {
-                  maximumFractionDigits: 20,
-                }) || "-"
-              }</div>
-              <div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div>
-              <div><strong>Tệp tin:</strong> ${
-                doc.fileMetadata?.link
-                  ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-                  : "-"
-              }</div>
-              <div><strong>Tình trạng:</strong> ${renderStatus(
-                doc.status,
-              )}</div>
-            </div>
-          </div>
-        `,
-        )
-        .join("")}
-    </div>
-  `;
+  return `<div class="documents-container">${paymentDocs.map((doc) => `<div class="document-card"><h4>${doc.title || "Payment Document"}</h4><div class="document-details"><div><strong>Tem:</strong> ${doc.tag}</div><div><strong>Tên:</strong> ${doc.name}</div><div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div><div><strong>Phương thức thanh toán:</strong> ${doc.paymentMethod}</div><div><strong>Tổng thanh toán:</strong> ${doc.totalPayment?.toLocaleString("en-EN", { maximumFractionDigits: 20 }) || "-"}</div><div><strong>Tạm ứng:</strong> ${doc.advancePayment?.toLocaleString("en-EN", { maximumFractionDigits: 20 }) || "-"}</div><div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div><div><strong>Tệp tin:</strong> ${doc.fileMetadata?.link ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>` : "-"}</div><div><strong>Tình trạng:</strong> ${renderStatus(doc.status)}</div></div></div>`).join("")}</div>`;
 };
 
 const renderAdvancePaymentDocuments = (advancePaymentDocs) => {
   if (!advancePaymentDocs || advancePaymentDocs.length === 0) return "-";
-
-  return `
-    <div class="documents-container">
-      ${advancePaymentDocs
-        .map(
-          (doc) => `
-          <div class="document-card">
-            <h4>Phiếu tạm ứng</h4>
-            <div class="document-details">
-              <div><strong>Tem:</strong> ${doc.tag}</div>
-              <div><strong>Tên:</strong> ${doc.name}</div>
-              <div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div>
-              <div><strong>Phương thức thanh toán:</strong> ${
-                doc.paymentMethod
-              }</div>
-              <div><strong>Tạm ứng:</strong> ${
-                doc.advancePayment?.toLocaleString("en-EN", {
-                  maximumFractionDigits: 20,
-                }) || "-"
-              }</div>
-              <div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div>
-              <div><strong>Tệp tin:</strong> ${
-                doc.fileMetadata?.link
-                  ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-                  : "-"
-              }</div>
-              <div><strong>Tình trạng:</strong> ${renderStatus(
-                doc.status,
-              )}</div>
-            </div>
-          </div>
-        `,
-        )
-        .join("")}
-    </div>
-  `;
+  return `<div class="documents-container">${advancePaymentDocs.map((doc) => `<div class="document-card"><h4>Phiếu tạm ứng</h4><div class="document-details"><div><strong>Tem:</strong> ${doc.tag}</div><div><strong>Tên:</strong> ${doc.name}</div><div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div><div><strong>Phương thức thanh toán:</strong> ${doc.paymentMethod}</div><div><strong>Tạm ứng:</strong> ${doc.advancePayment?.toLocaleString("en-EN", { maximumFractionDigits: 20 }) || "-"}</div><div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div><div><strong>Tệp tin:</strong> ${doc.fileMetadata?.link ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>` : "-"}</div><div><strong>Tình trạng:</strong> ${renderStatus(doc.status)}</div></div></div>`).join("")}</div>`;
 };
 
 const renderAdvancePaymentReclaimDocuments = (reclaimDocs) => {
   if (!reclaimDocs || reclaimDocs.length === 0) return "-";
-
-  return `
-    <div class="documents-container">
-      ${reclaimDocs
-        .map(
-          (doc) => `
-          <div class="document-card">
-            <h4>Phiếu thu hồi tạm ứng</h4>
-            <div class="document-details">
-              <div><strong>Tem:</strong> ${doc.tag}</div>
-              <div><strong>Tên:</strong> ${doc.name}</div>
-              <div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div>
-              <div><strong>Phương thức thanh toán:</strong> ${
-                doc.paymentMethod
-              }</div>
-              <div><strong>Thu hồi tạm ứng:</strong> ${
-                doc.advancePaymentReclaim?.toLocaleString("en-EN", {
-                  maximumFractionDigits: 20,
-                }) || "-"
-              }</div>
-              <div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div>
-              <div><strong>Tệp tin:</strong> ${
-                doc.fileMetadata?.link
-                  ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>`
-                  : "-"
-              }</div>
-              <div><strong>Tình trạng:</strong> ${renderStatus(
-                doc.status,
-              )}</div>
-            </div>
-          </div>
-        `,
-        )
-        .join("")}
-    </div>
-  `;
+  return `<div class="documents-container">${reclaimDocs.map((doc) => `<div class="document-card"><h4>Phiếu thu hồi tạm ứng</h4><div class="document-details"><div><strong>Tem:</strong> ${doc.tag}</div><div><strong>Tên:</strong> ${doc.name}</div><div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div><div><strong>Phương thức thanh toán:</strong> ${doc.paymentMethod}</div><div><strong>Thu hồi tạm ứng:</strong> ${doc.advancePaymentReclaim?.toLocaleString("en-EN", { maximumFractionDigits: 20 }) || "-"}</div><div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div><div><strong>Tệp tin:</strong> ${doc.fileMetadata?.link ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>` : "-"}</div><div><strong>Tình trạng:</strong> ${renderStatus(doc.status)}</div></div></div>`).join("")}</div>`;
 };
 
 const closeContainingDocsModal = () => {
   const modal = document.getElementById("containingDocsModal");
-  if (modal) {
-    modal.remove();
-  }
-};
-
-const formatCurrency = (amount) => {
-  return amount?.toLocaleString("en-EN", { maximumFractionDigits: 20 }) || "-";
+  if (modal) modal.remove();
 };
 
 // Export functions
 const exportSelectedToExcel = () => {
   const selectedDocs = Array.from(state.selectedDocuments);
-
   if (selectedDocs.length === 0) {
     showMessage("Xin hãy chọn ít nhất một phiếu để xuất.", true);
     return;
   }
-
   try {
     const documentsToExport = state.purchasingDocuments.filter((doc) =>
       selectedDocs.includes(doc._id),
     );
-
     const wb = XLSX.utils.book_new();
     const detailedData = [];
-
     documentsToExport.forEach((doc, docIndex) => {
-      // Document header
       detailedData.push({
         STT: docIndex + 1,
         "Tên phiếu": doc.name || "Không có",
@@ -2946,10 +2628,7 @@ const exportSelectedToExcel = () => {
         "Người phê duyệt":
           doc.approvedBy.map((a) => a.username).join(", ") || "Chưa có",
       });
-
-      // Products section
       let documentTotalBeforeVAT = 0;
-
       if (doc.products?.length) {
         doc.products.forEach((product, productIndex) => {
           const costBeforeVAT = product.costPerUnit || 0;
@@ -2958,9 +2637,7 @@ const exportSelectedToExcel = () => {
           const amount = product.amount || 0;
           const totalBeforeVAT = costBeforeVAT * amount;
           const totalAfterVAT = costAfterVAT * amount;
-
           documentTotalBeforeVAT += totalBeforeVAT;
-
           detailedData.push({
             STT: `SP${productIndex + 1}`,
             "Tên phiếu": "",
@@ -2985,127 +2662,18 @@ const exportSelectedToExcel = () => {
             "Người phê duyệt": "",
           });
         });
-
-        // Update document header with calculated total before VAT
         detailedData[detailedData.length - doc.products.length - 1][
           "Tổng trước VAT"
         ] = documentTotalBeforeVAT;
-      } else {
-        detailedData.push({
-          STT: "",
-          "Tên phiếu": "",
-          Trạm: "",
-          Nhóm: "",
-          "Ngày nộp": "",
-          "Tên sản phẩm": "Không có sản phẩm",
-          "Trạm sản phẩm": "",
-          "Số lượng": "",
-          "Giá trước VAT": "",
-          "Tổng trước VAT": "",
-          "VAT (%)": "",
-          "Giá sau VAT": "",
-          "Tổng sau VAT": "",
-          "Ghi chú": "",
-          "Tình trạng": "",
-          "Kê khai": "",
-          "Lý do từ chối": "",
-          "Tệp đính kèm": "",
-          "Link tệp": "",
-          "Người nộp": "",
-          "Người phê duyệt": "",
-        });
       }
-
-      // Add empty row as separator
       detailedData.push({});
     });
-
     const detailedWs = XLSX.utils.json_to_sheet(detailedData);
-
-    // Calculate optimal column widths based on actual content
-    const sheetRange = XLSX.utils.decode_range(detailedWs["!ref"]);
-    const colWidths = [];
-
-    // Initialize with minimum widths for headers
-    const headers = Object.keys(detailedData[0] || {});
-    headers.forEach((header, colIndex) => {
-      colWidths[colIndex] = Math.max(header.length, 8);
-    });
-
-    // Check all data rows to find maximum content length per column
-    for (let rowNum = sheetRange.s.r; rowNum <= sheetRange.e.r; rowNum++) {
-      for (let colNum = sheetRange.s.c; colNum <= sheetRange.e.c; colNum++) {
-        const cellRef = XLSX.utils.encode_cell({ r: rowNum, c: colNum });
-        const cell = detailedWs[cellRef];
-
-        if (cell && cell.v) {
-          const cellValue = String(cell.v);
-          const cellLength = cellValue.length;
-
-          // For Vietnamese text, add extra width as characters may be wider
-          const adjustedLength =
-            /[àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(
-              cellValue,
-            )
-              ? Math.ceil(cellLength * 1.1)
-              : cellLength;
-
-          colWidths[colNum] = Math.max(colWidths[colNum] || 0, adjustedLength);
-        }
-      }
-    }
-
-    // Set maximum reasonable width to prevent extremely wide columns
-    detailedWs["!cols"] = colWidths.map((width) => ({
-      wch: Math.min(width + 2, 100),
-    }));
-
-    // Set row heights for better visibility
-    detailedWs["!rows"] = [];
-
-    for (let rowNum = sheetRange.s.r; rowNum <= sheetRange.e.r; rowNum++) {
-      // Check if this is a document header row (has numeric STT)
-      const sttCell = detailedWs[XLSX.utils.encode_cell({ r: rowNum, c: 0 })];
-      const isDocumentHeader = sttCell && typeof sttCell.v === "number";
-
-      // Check if this is an empty separator row
-      const isEmptyRow = !sttCell || sttCell.v === "";
-
-      if (isDocumentHeader) {
-        // Document header rows - taller for prominence
-        detailedWs["!rows"][rowNum] = { hpt: 25 };
-      } else if (isEmptyRow) {
-        // Separator rows - smaller height
-        detailedWs["!rows"][rowNum] = { hpt: 8 };
-      } else {
-        // Product rows - standard height
-        detailedWs["!rows"][rowNum] = { hpt: 20 };
-      }
-    }
-
-    // Auto-wrap text for better readability in cells with long content
-    const wrapTextColumns = [1, 7, 8, 9, 10, 20];
-
-    for (let rowNum = sheetRange.s.r; rowNum <= sheetRange.e.r; rowNum++) {
-      wrapTextColumns.forEach((colNum) => {
-        const cellRef = XLSX.utils.encode_cell({ r: rowNum, c: colNum });
-        if (detailedWs[cellRef]) {
-          if (!detailedWs[cellRef].s) detailedWs[cellRef].s = {};
-          detailedWs[cellRef].s.alignment = { wrapText: true, vertical: "top" };
-        }
-      });
-    }
-
-    // Add freeze panes to keep headers visible
-    detailedWs["!freeze"] = { xSplit: 1, ySplit: 1 };
-
     XLSX.utils.book_append_sheet(wb, detailedWs, "Chi tiết đầy đủ");
-
     XLSX.writeFile(
       wb,
       `Bao_cao_phieu_mua_hang_${new Date().toISOString().slice(0, 10)}.xlsx`,
     );
-
     showMessage(`Đã xuất ${selectedDocs.length} phiếu mua hàng.`);
   } catch (err) {
     console.error("Error exporting documents:", err);
@@ -3115,17 +2683,13 @@ const exportSelectedToExcel = () => {
 
 const updateDocumentSelection = (checkbox) => {
   const docId = checkbox.dataset.docId;
-  if (checkbox.checked) {
-    state.selectedDocuments.add(docId);
-  } else {
-    state.selectedDocuments.delete(docId);
-  }
+  if (checkbox.checked) state.selectedDocuments.add(docId);
+  else state.selectedDocuments.delete(docId);
 };
 
 const toggleSelectAll = () => {
   const selectAllCheckbox = document.getElementById("selectAllCheckbox");
   const checkboxes = document.querySelectorAll(".doc-checkbox");
-
   checkboxes.forEach((checkbox) => {
     checkbox.checked = selectAllCheckbox.checked;
     updateDocumentSelection(checkbox);
@@ -3135,13 +2699,11 @@ const toggleSelectAll = () => {
 const updateSelectAllCheckbox = () => {
   const checkboxes = document.querySelectorAll(".doc-checkbox");
   const selectAllCheckbox = document.getElementById("selectAllCheckbox");
-
   if (checkboxes.length === 0) {
     selectAllCheckbox.checked = false;
     selectAllCheckbox.disabled = true;
     return;
   }
-
   selectAllCheckbox.disabled = false;
   const allChecked = Array.from(checkboxes).every(
     (checkbox) => checkbox.checked,
@@ -3151,27 +2713,22 @@ const updateSelectAllCheckbox = () => {
 
 // Event listeners
 const setupEventListeners = () => {
-  // Toggle switches
   document.getElementById("pendingToggle").addEventListener("change", (e) => {
     state.showOnlyPendingApprovals = e.target.checked;
     state.currentPage = 1;
     fetchPurchasingDocuments();
   });
-
   document.getElementById("paginationToggle").addEventListener("change", () => {
     state.paginationEnabled =
       document.getElementById("paginationToggle").checked;
     state.currentPage = 1;
     fetchPurchasingDocuments();
   });
-
   document.getElementById("nameFilter").addEventListener("input", (e) => {
     state.nameFilter = e.target.value.trim().toLowerCase();
     state.currentPage = 1;
     fetchPurchasingDocuments();
   });
-
-  // Total cost filter (standard options)
   const totalCostFilter = document.getElementById("totalCostFilter");
   totalCostFilter.addEventListener("change", (e) => {
     if (e.target.value !== "custom") {
@@ -3181,8 +2738,6 @@ const setupEventListeners = () => {
       fetchPurchasingDocuments();
     }
   });
-
-  // Date filter (standard options)
   const dateFilter = document.getElementById("dateFilter");
   dateFilter.addEventListener("change", (e) => {
     if (e.target.value !== "custom") {
@@ -3192,46 +2747,31 @@ const setupEventListeners = () => {
       fetchPurchasingDocuments();
     }
   });
-
   document.addEventListener("keypress", (e) => {
-    if (e.target.id === "pageInput" && e.key === "Enter") {
-      goToPage();
-    }
+    if (e.target.id === "pageInput" && e.key === "Enter") goToPage();
   });
-
-  // Export and selection
   document
     .getElementById("exportSelectedBtn")
     .addEventListener("click", () => exportSelectedToExcel());
   document
     .getElementById("selectAllCheckbox")
     .addEventListener("change", () => toggleSelectAll());
-
-  // Table checkboxes
   document.addEventListener("change", (e) => {
     if (e.target.classList.contains("doc-checkbox")) {
       updateDocumentSelection(e.target);
       updateSelectAllCheckbox();
     }
   });
-
   document.getElementById("suspendForm").addEventListener("submit", (e) => {
     e.preventDefault();
     handleSuspendSubmit(e);
   });
-
   document
     .querySelector("#fullViewModal .modal-close")
-    .addEventListener("click", () => {
-      closeFullViewModal();
-    });
-
-  // Suspend Modal close button
+    .addEventListener("click", () => closeFullViewModal());
   document
     .querySelector("#suspendModal .modal-close")
-    .addEventListener("click", () => {
-      closeSuspendModal();
-    });
+    .addEventListener("click", () => closeSuspendModal());
 };
 
 // Initialize the application
@@ -3247,10 +2787,7 @@ const initialize = async () => {
   addEditModal();
 };
 
-// Initialize when DOM is loaded
-document.addEventListener("DOMContentLoaded", initialize);
-
-// Make functions globally available
+// Make all functions globally available
 window.showFullView = showFullView;
 window.editDocument = editDocument;
 window.deleteDocument = deleteDocument;
@@ -3276,3 +2813,8 @@ window.closeEditModal = closeEditModal;
 window.showMoveToStockModal = showMoveToStockModal;
 window.confirmMoveToStock = confirmMoveToStock;
 window.closeMoveToStockModal = closeMoveToStockModal;
+window.showTransferHistory = showTransferHistory;
+window.closeTransferHistoryModal = closeTransferHistoryModal;
+
+// Initialize when DOM is loaded
+document.addEventListener("DOMContentLoaded", initialize);
