@@ -315,11 +315,11 @@ const setupCustomFilterHandlers = () => {
 
     let rangeText = "Tùy chỉnh: ";
     if (min !== null && max !== null) {
-      rangeText += `${min.toLocaleString("en-EN", { maximumFractionDigits: 20 })} - ${max.toLocaleString("en-EN", { maximumFractionDigits: 20 })}`;
+      rangeText += `${min.toLocaleString("en-EN", { maximumFractionDigits: 5 })} - ${max.toLocaleString("en-EN", { maximumFractionDigits: 5 })}`;
     } else if (min !== null) {
-      rangeText += `Trên ${min.toLocaleString("en-EN", { maximumFractionDigits: 20 })}`;
+      rangeText += `Trên ${min.toLocaleString("en-EN", { maximumFractionDigits: 5 })}`;
     } else if (max !== null) {
-      rangeText += `Dưới ${max.toLocaleString("en-EN", { maximumFractionDigits: 20 })}`;
+      rangeText += `Dưới ${max.toLocaleString("en-EN", { maximumFractionDigits: 5 })}`;
     }
 
     const customOption = totalCostFilter.querySelector(
@@ -784,13 +784,13 @@ const renderProducts = (products) => {
               (product) => `
             <tr>
               <td><strong>${product.productName}</strong></td>
-              <td class="text-right">${product.costPerUnit.toLocaleString("en-EN", { maximumFractionDigits: 20 })}</td>
-              <td class="text-right">${product.amount.toLocaleString("en-EN", { maximumFractionDigits: 20 })}</td>
-              <td class="text-right">${product.vat.toLocaleString("en-EN", { maximumFractionDigits: 20 }) || ""}</td>
-              <td class="text-right">${product.totalCost.toLocaleString("en-EN", { maximumFractionDigits: 20 })}</td>
+              <td class="text-right">${product.costPerUnit.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</td>
+              <td class="text-right">${product.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</td>
+              <td class="text-right">${product.vat.toLocaleString("en-EN", { maximumFractionDigits: 5 }) || ""}</td>
+              <td class="text-right">${product.totalCost.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</td>
               <td class="text-right">${
                 product.totalCostAfterVat.toLocaleString("en-EN", {
-                  maximumFractionDigits: 20,
+                  maximumFractionDigits: 5,
                 }) || ""
               }</td>
               <td>${product.costCenter || ""}</td>
@@ -899,15 +899,15 @@ const showTransferHistory = async (docId) => {
               </div>
               <div class="transfer-detail-row">
                 <span><i class="fas fa-cubes"></i> Tổng số lượng:</span>
-                <strong>${status.totalAmount.toLocaleString("en-EN")}</strong>
+                <strong>${status.totalAmount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</strong>
               </div>
               <div class="transfer-detail-row">
                 <span><i class="fas fa-arrow-down"></i> Đã nhập kho:</span>
-                <strong class="text-success">${status.transferredAmount.toLocaleString("en-EN")}</strong>
+                <strong class="text-success">${status.transferredAmount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</strong>
               </div>
               <div class="transfer-detail-row">
                 <span><i class="fas fa-hourglass-half"></i> Còn lại:</span>
-                <strong class="text-warning">${status.remainingAmount.toLocaleString("en-EN")}</strong>
+                <strong class="text-warning">${status.remainingAmount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</strong>
               </div>
             </div>
           </div>
@@ -1063,7 +1063,7 @@ const showMoveToStockModal = async (docId) => {
         } else if (value > max) {
           e.target.value = max;
           showMessage(
-            `Số lượng nhập kho không thể vượt quá ${max.toLocaleString("en-EN")}`,
+            `Số lượng nhập kho không thể vượt quá ${max.toLocaleString("en-EN", { maximumFractionDigits: 5 })}`,
             true,
           );
         }
@@ -1117,11 +1117,11 @@ const renderProductsForStockSelection = (products, transferStatus = null) => {
                             <div class="product-stock-info">
                                 <strong>${product.productName}</strong>
                                 <div class="product-stock-details">
-                                    <span><i class="fas fa-cubes"></i> Tổng số lượng: ${product.amount.toLocaleString("en-EN")}</span>
-                                    ${transferredAmount > 0 ? `<span><i class="fas fa-check-circle"></i> Đã nhập: ${transferredAmount.toLocaleString("en-EN")}</span>` : ""}
-                                    ${remainingAmount > 0 && remainingAmount < product.amount ? `<span><i class="fas fa-hourglass-half"></i> Còn lại: ${remainingAmount.toLocaleString("en-EN")}</span>` : ""}
+                                    <span><i class="fas fa-cubes"></i> Tổng số lượng: ${product.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</span>
+                                    ${transferredAmount > 0 ? `<span><i class="fas fa-check-circle"></i> Đã nhập: ${transferredAmount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</span>` : ""}
+                                    ${remainingAmount > 0 && remainingAmount < product.amount ? `<span><i class="fas fa-hourglass-half"></i> Còn lại: ${remainingAmount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</span>` : ""}
                                     <span><i class="fas fa-map-marker-alt"></i> Trạm: ${product.costCenter || "Chưa có"}</span>
-                                    <span><i class="fas fa-dollar-sign"></i> Đơn giá: ${product.costPerUnit.toLocaleString("en-EN")} đ</span>
+                                    <span><i class="fas fa-dollar-sign"></i> Đơn giá: ${product.costPerUnit.toLocaleString("en-EN", { maximumFractionDigits: 5 })} đ</span>
                                     <span><i class="fas fa-percent"></i> VAT: ${product.vat || 0}%</span>
                                 </div>
                                 ${isFullyTransferred ? '<div class="fully-transferred-badge"><i class="fas fa-check-circle"></i> Đã nhập đủ</div>' : ""}
@@ -1142,7 +1142,7 @@ const renderProductsForStockSelection = (products, transferStatus = null) => {
                                    step="1"
                                    value="${remainingAmount}"
                                    style="width: 150px; padding: 5px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-                            <span class="remaining-quantity">(Tối đa: ${remainingAmount.toLocaleString("en-EN")})</span>
+                            <span class="remaining-quantity">(Tối đa: ${remainingAmount.toLocaleString("en-EN", { maximumFractionDigits: 5 })})</span>
                         </label>
                     </div>
                     `
@@ -1247,9 +1247,9 @@ const confirmMoveToStock = async () => {
       );
       const isPartial = p.amount < originalProduct.amount;
       const partialText = isPartial
-        ? ` (⚠️ NHẬP MỘT PHẦN: ${p.amount.toLocaleString("en-EN")}/${originalProduct.amount.toLocaleString("en-EN")})`
+        ? ` (⚠️ NHẬP MỘT PHẦN: ${p.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}/${originalProduct.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })})`
         : "";
-      return `• ${p.productName}: ${p.amount.toLocaleString("en-EN")}${partialText}`;
+      return `• ${p.productName}: ${p.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}${partialText}`;
     })
     .join("\n");
 
@@ -1284,9 +1284,9 @@ const confirmMoveToStock = async () => {
       if (result.results && result.results.length > 0) {
         message += "\n\n✅ Chi tiết thành công:\n";
         result.results.forEach((r) => {
-          message += `• ${r.productName}: ${r.oldStock.toLocaleString("en-EN")} → ${r.newStock.toLocaleString("en-EN")} (Nhập: ${r.amountMoved.toLocaleString("en-EN")})\n`;
+          message += `• ${r.productName}: ${r.oldStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} → ${r.newStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} (Nhập: ${r.amountMoved.toLocaleString("en-EN", { maximumFractionDigits: 5 })})\n`;
           if (r.remainingToMove > 0) {
-            message += `  ⏳ Còn lại: ${r.remainingToMove.toLocaleString("en-EN")}\n`;
+            message += `  ⏳ Còn lại: ${r.remainingToMove.toLocaleString("en-EN", { maximumFractionDigits: 5 })}\n`;
           }
         });
       }
@@ -1467,7 +1467,7 @@ const renderDocumentsTable = (documents) => {
         ${doc.suspendReason ? `<div class="suspend-reason"><strong>Lý do từ chối:</strong> ${doc.suspendReason}</div>` : ""}
       </td>
       <td>${renderFiles(doc.fileMetadata)}</td>
-      <td>${doc.grandTotalCost?.toLocaleString("en-EN", { maximumFractionDigits: 20 }) || "-"}</td>
+      <td>${doc.grandTotalCost?.toLocaleString("en-EN", { maximumFractionDigits: 5 }) || "-"}</td>
       <td>${renderProposals(doc.appendedProposals)}</td>
       <td>${renderStatus(doc.status)}</td>
       <td class="approval-status">${approvalStatus}</td>
@@ -1560,11 +1560,11 @@ const updateSummary = (filteredDocuments) => {
   );
 
   document.getElementById("approvedSum").textContent =
-    approvedSum.toLocaleString("en-EN", { maximumFractionDigits: 20 });
+    approvedSum.toLocaleString("en-EN", { maximumFractionDigits: 5 });
   document.getElementById("unapprovedSum").textContent =
-    unapprovedSum.toLocaleString("en-EN", { maximumFractionDigits: 20 });
+    unapprovedSum.toLocaleString("en-EN", { maximumFractionDigits: 5 });
   document.getElementById("approvedDocument").textContent =
-    approvedDocs.length.toLocaleString("en-EN", { maximumFractionDigits: 20 });
+    approvedDocs.length.toLocaleString("en-EN", { maximumFractionDigits: 5 });
   document.getElementById("unapprovedDocument").textContent =
     unapprovedDocs.length.toLocaleString("en-EN", {
       maximumFractionDigits: 20,
@@ -2567,17 +2567,17 @@ const showDocumentsContainingPurchasing = async (purchasingId) => {
 
 const renderPaymentDocuments = (paymentDocs) => {
   if (!paymentDocs || paymentDocs.length === 0) return "-";
-  return `<div class="documents-container">${paymentDocs.map((doc) => `<div class="document-card"><h4>${doc.title || "Payment Document"}</h4><div class="document-details"><div><strong>Tem:</strong> ${doc.tag}</div><div><strong>Tên:</strong> ${doc.name}</div><div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div><div><strong>Phương thức thanh toán:</strong> ${doc.paymentMethod}</div><div><strong>Tổng thanh toán:</strong> ${doc.totalPayment?.toLocaleString("en-EN", { maximumFractionDigits: 20 }) || "-"}</div><div><strong>Tạm ứng:</strong> ${doc.advancePayment?.toLocaleString("en-EN", { maximumFractionDigits: 20 }) || "-"}</div><div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div><div><strong>Tệp tin:</strong> ${doc.fileMetadata?.link ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>` : "-"}</div><div><strong>Tình trạng:</strong> ${renderStatus(doc.status)}</div></div></div>`).join("")}</div>`;
+  return `<div class="documents-container">${paymentDocs.map((doc) => `<div class="document-card"><h4>${doc.title || "Payment Document"}</h4><div class="document-details"><div><strong>Tem:</strong> ${doc.tag}</div><div><strong>Tên:</strong> ${doc.name}</div><div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div><div><strong>Phương thức thanh toán:</strong> ${doc.paymentMethod}</div><div><strong>Tổng thanh toán:</strong> ${doc.totalPayment?.toLocaleString("en-EN", { maximumFractionDigits: 5 }) || "-"}</div><div><strong>Tạm ứng:</strong> ${doc.advancePayment?.toLocaleString("en-EN", { maximumFractionDigits: 5 }) || "-"}</div><div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div><div><strong>Tệp tin:</strong> ${doc.fileMetadata?.link ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>` : "-"}</div><div><strong>Tình trạng:</strong> ${renderStatus(doc.status)}</div></div></div>`).join("")}</div>`;
 };
 
 const renderAdvancePaymentDocuments = (advancePaymentDocs) => {
   if (!advancePaymentDocs || advancePaymentDocs.length === 0) return "-";
-  return `<div class="documents-container">${advancePaymentDocs.map((doc) => `<div class="document-card"><h4>Phiếu tạm ứng</h4><div class="document-details"><div><strong>Tem:</strong> ${doc.tag}</div><div><strong>Tên:</strong> ${doc.name}</div><div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div><div><strong>Phương thức thanh toán:</strong> ${doc.paymentMethod}</div><div><strong>Tạm ứng:</strong> ${doc.advancePayment?.toLocaleString("en-EN", { maximumFractionDigits: 20 }) || "-"}</div><div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div><div><strong>Tệp tin:</strong> ${doc.fileMetadata?.link ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>` : "-"}</div><div><strong>Tình trạng:</strong> ${renderStatus(doc.status)}</div></div></div>`).join("")}</div>`;
+  return `<div class="documents-container">${advancePaymentDocs.map((doc) => `<div class="document-card"><h4>Phiếu tạm ứng</h4><div class="document-details"><div><strong>Tem:</strong> ${doc.tag}</div><div><strong>Tên:</strong> ${doc.name}</div><div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div><div><strong>Phương thức thanh toán:</strong> ${doc.paymentMethod}</div><div><strong>Tạm ứng:</strong> ${doc.advancePayment?.toLocaleString("en-EN", { maximumFractionDigits: 5 }) || "-"}</div><div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div><div><strong>Tệp tin:</strong> ${doc.fileMetadata?.link ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>` : "-"}</div><div><strong>Tình trạng:</strong> ${renderStatus(doc.status)}</div></div></div>`).join("")}</div>`;
 };
 
 const renderAdvancePaymentReclaimDocuments = (reclaimDocs) => {
   if (!reclaimDocs || reclaimDocs.length === 0) return "-";
-  return `<div class="documents-container">${reclaimDocs.map((doc) => `<div class="document-card"><h4>Phiếu thu hồi tạm ứng</h4><div class="document-details"><div><strong>Tem:</strong> ${doc.tag}</div><div><strong>Tên:</strong> ${doc.name}</div><div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div><div><strong>Phương thức thanh toán:</strong> ${doc.paymentMethod}</div><div><strong>Thu hồi tạm ứng:</strong> ${doc.advancePaymentReclaim?.toLocaleString("en-EN", { maximumFractionDigits: 20 }) || "-"}</div><div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div><div><strong>Tệp tin:</strong> ${doc.fileMetadata?.link ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>` : "-"}</div><div><strong>Tình trạng:</strong> ${renderStatus(doc.status)}</div></div></div>`).join("")}</div>`;
+  return `<div class="documents-container">${reclaimDocs.map((doc) => `<div class="document-card"><h4>Phiếu thu hồi tạm ứng</h4><div class="document-details"><div><strong>Tem:</strong> ${doc.tag}</div><div><strong>Tên:</strong> ${doc.name}</div><div><strong>Trạm:</strong> ${doc.costCenter || "-"}</div><div><strong>Phương thức thanh toán:</strong> ${doc.paymentMethod}</div><div><strong>Thu hồi tạm ứng:</strong> ${doc.advancePaymentReclaim?.toLocaleString("en-EN", { maximumFractionDigits: 5 }) || "-"}</div><div><strong>Hạn thanh toán:</strong> ${doc.paymentDeadline}</div><div><strong>Tệp tin:</strong> ${doc.fileMetadata?.link ? `<a href="${doc.fileMetadata.link}" class="file-link" target="_blank">${doc.fileMetadata.name}</a>` : "-"}</div><div><strong>Tình trạng:</strong> ${renderStatus(doc.status)}</div></div></div>`).join("")}</div>`;
 };
 
 const closeContainingDocsModal = () => {
