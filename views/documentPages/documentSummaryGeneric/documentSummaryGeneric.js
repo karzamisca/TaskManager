@@ -568,7 +568,7 @@ const renderDocumentsTable = (documents) => {
           `
           }
         </div>
-      </tr>
+      </td>
     `;
     tableBody.appendChild(row);
   });
@@ -721,23 +721,83 @@ const approveGenericStage = async (docId, stageIndex) => {
   }
 };
 
-const suspendGenericStage = async (docId, stageIndex) => {
-  const suspendReason = prompt("Nhập lý do từ chối giai đoạn:");
+// Stage file management functions
+const renderStageFiles = (stage, stageIndex, docId) => {
+  if (!stage.fileMetadata || stage.fileMetadata.length === 0) {
+    return '<p class="no-files">Chưa có tệp tin nào trong giai đoạn này</p>';
+  }
 
-  if (!suspendReason || suspendReason.trim() === "") {
-    showMessage("Vui lòng nhập lý do từ chối.", true);
+  return `
+    <div class="stage-files-list">
+      ${stage.fileMetadata
+        .map(
+          (file, fileIndex) => `
+        <div class="file-item" data-file-id="${file._id || file.driveFileId}">
+          <div class="file-info">
+            <i class="fas fa-file"></i>
+            <span class="file-name">${file.name || file.displayName}</span>
+            ${file.size ? `<span class="file-size">(${file.size})</span>` : ""}
+          </div>
+          <div class="file-actions">
+            <a href="${file.link}" target="_blank" class="btn btn-primary btn-sm">
+              <i class="fas fa-download"></i>
+            </a>
+            ${
+              stage.status !== "Approved"
+                ? `
+              <button type="button" class="btn btn-danger btn-sm" 
+                      onclick="removeStageFile('${docId}', ${stageIndex}, '${file._id || file.driveFileId}')">
+                <i class="fas fa-trash"></i>
+              </button>
+            `
+                : ""
+            }
+          </div>
+        </div>
+      `,
+        )
+        .join("")}
+    </div>
+  `;
+};
+
+const renderStageFileUpload = (stageIndex, docId, stageStatus) => {
+  if (stageStatus === "Approved") {
+    return '<p class="stage-locked-message"><i class="fas fa-lock"></i> Giai đoạn đã được phê duyệt, không thể thêm tệp tin</p>';
+  }
+
+  return `
+    <div class="stage-file-upload">
+      <input type="file" id="stageFileInput${stageIndex}" multiple class="form-input" 
+             accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.txt">
+      <button type="button" class="btn btn-primary btn-sm" 
+              onclick="uploadStageFiles('${docId}', ${stageIndex})">
+        <i class="fas fa-upload"></i> Tải lên tệp tin
+      </button>
+    </div>
+  `;
+};
+
+// Upload files to stage
+const uploadStageFiles = async (docId, stageIndex) => {
+  const fileInput = document.getElementById(`stageFileInput${stageIndex}`);
+  if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+    showMessage("Vui lòng chọn tệp tin để tải lên.", true);
     return;
   }
 
+  const formData = new FormData();
+  for (let i = 0; i < fileInput.files.length; i++) {
+    formData.append("files", fileInput.files[i]);
+  }
+
   try {
+    showLoading(true);
     const response = await fetch(
-      `/suspendGenericStage/${docId}/${stageIndex}`,
+      `/uploadMultipleGenericStageFiles/${docId}/${stageIndex}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ suspendReason: suspendReason.trim() }),
+        body: formData,
       },
     );
 
@@ -745,37 +805,65 @@ const suspendGenericStage = async (docId, stageIndex) => {
 
     if (response.ok) {
       showMessage(result.message);
-      fetchGenericDocuments();
+      fileInput.value = "";
+      await fetchGenericDocuments();
+      if (state.currentEditDoc && state.currentEditDoc._id === docId) {
+        await refreshCurrentEditDoc(docId);
+      }
     } else {
-      showMessage(result.message, true);
+      showMessage(result.message || "Error uploading files", true);
     }
   } catch (err) {
-    console.error("Error suspending stage:", err);
-    showMessage("Lỗi khi từ chối giai đoạn.", true);
+    console.error("Error uploading stage files:", err);
+    showMessage("Error uploading files", true);
+  } finally {
+    showLoading(false);
   }
 };
 
-const openGenericStage = async (docId, stageIndex) => {
-  if (!confirm("Bạn có chắc chắn muốn mở lại giai đoạn này?")) {
+// Remove file from stage
+const removeStageFile = async (docId, stageIndex, fileId) => {
+  if (!confirm("Bạn có chắc chắn muốn xóa tệp tin này khỏi giai đoạn?")) {
     return;
   }
 
   try {
-    const response = await fetch(`/openGenericStage/${docId}/${stageIndex}`, {
-      method: "POST",
-    });
+    showLoading(true);
+    const response = await fetch(
+      `/removeGenericStageFile/${docId}/${stageIndex}/${fileId}`,
+      {
+        method: "DELETE",
+      },
+    );
 
     const result = await response.json();
 
     if (response.ok) {
       showMessage(result.message);
-      fetchGenericDocuments();
+      await fetchGenericDocuments();
+      if (state.currentEditDoc && state.currentEditDoc._id === docId) {
+        await refreshCurrentEditDoc(docId);
+      }
     } else {
-      showMessage(result.message, true);
+      showMessage(result.message || "Error removing file", true);
     }
   } catch (err) {
-    console.error("Error opening stage:", err);
-    showMessage("Lỗi khi mở lại giai đoạn.", true);
+    console.error("Error removing stage file:", err);
+    showMessage("Error removing file", true);
+  } finally {
+    showLoading(false);
+  }
+};
+
+// Refresh current edit document
+const refreshCurrentEditDoc = async (docId) => {
+  try {
+    const response = await fetch(`/getGenericDocument/${docId}`);
+    const doc = await response.json();
+    state.currentEditDoc = doc;
+    renderGenericStages();
+  } catch (err) {
+    console.error("Error refreshing document:", err);
   }
 };
 
@@ -1241,10 +1329,10 @@ const renderCurrentApprovers = () => {
         <div class="approver-item">
           <span>${approver.username}</span>
           <input type="text" value="${approver.subRole}" 
-                 onchange="updateApproverSubRole('${approver._id}', this.value)" 
+                 onchange="updateApproverSubRole('${approver.approver}', this.value)" 
                  class="form-input" style="width: 120px;">
           <button type="button" class="btn btn-danger btn-sm" 
-                  onclick="removeApprover('${approver._id}')">
+                  onclick="removeApprover('${approver.approver}')">
             <i class="fas fa-trash"></i> Xóa
           </button>
         </div>
@@ -1370,6 +1458,7 @@ const renderGenericStages = () => {
              </div>`
           : ""
       }
+      
       <div class="form-group">
         <label>Tên giai đoạn:</label>
         <input type="text" class="form-input stage-name" value="${
@@ -1378,12 +1467,27 @@ const renderGenericStages = () => {
                onchange="updateGenericStageField(${index}, 'name', this.value)"
                ${isLocked ? "disabled" : ""}>
       </div>
+      
       <div class="form-group">
         <label>Mô tả:</label>
         <textarea class="form-textarea stage-description" 
                   onchange="updateGenericStageField(${index}, 'description', this.value)"
                   ${isLocked ? "disabled" : ""}>${stage.description || ""}</textarea>
       </div>
+      
+      <!-- FILE ATTACHMENTS SECTION -->
+      <div class="form-group">
+        <label><i class="fas fa-paperclip"></i> Tệp tin đính kèm:</label>
+        <div class="stage-files-section">
+          <div id="stageFilesList${index}">
+            ${renderStageFiles(stage, index, state.currentEditDoc._id)}
+          </div>
+          <div class="stage-upload-section">
+            ${renderStageFileUpload(index, state.currentEditDoc._id, stage.status)}
+          </div>
+        </div>
+      </div>
+      
       <div class="form-group">
         <label>Người phê duyệt:</label>
         <div class="stage-approvers-container" id="genericStageApproversContainer${index}">
@@ -1492,6 +1596,7 @@ const addGenericStage = () => {
     description: "",
     approvers: [],
     approvedBy: [],
+    fileMetadata: [],
     status: "Pending",
     suspendReason: "",
     order: state.currentEditDoc.stages.length,
@@ -1511,7 +1616,6 @@ const removeGenericStage = (index) => {
       return;
     }
     state.currentEditDoc.stages.splice(index, 1);
-    // Reorder remaining stages
     state.currentEditDoc.stages.forEach((s, idx) => (s.order = idx));
     renderGenericStages();
   }
@@ -1852,6 +1956,21 @@ const showFullView = async (docId) => {
                     ? `<div><strong>Lý do từ chối:</strong> ${stage.suspendReason}</div>`
                     : ""
                 }
+                ${
+                  stage.fileMetadata && stage.fileMetadata.length > 0
+                    ? `<div><strong>Tệp tin đính kèm:</strong><br>
+                        ${stage.fileMetadata
+                          .map(
+                            (file) => `
+                          <a href="${file.link}" target="_blank" style="display: inline-block; margin-top: 4px;">
+                            <i class="fas fa-file"></i> ${file.name}
+                          </a>
+                        `,
+                          )
+                          .join("<br>")}
+                       </div>`
+                    : ""
+                }
               </div>
               <div class="stage-approval-status">
                 <h5>Trạng thái phê duyệt:</h5>
@@ -2048,6 +2167,18 @@ const exportSelectedToExcel = () => {
               "Giá trị": "",
             });
           }
+
+          if (stage.fileMetadata && stage.fileMetadata.length > 0) {
+            stage.fileMetadata.forEach((file, fileIndex) => {
+              detailedData.push({
+                STT: "",
+                "Mã phiếu": "",
+                "Loại thông tin": `  Tệp tin ${fileIndex + 1}`,
+                "Chi tiết": file.name || "",
+                "Giá trị": file.link || "",
+              });
+            });
+          }
         });
       }
 
@@ -2106,9 +2237,7 @@ const exportSelectedToExcel = () => {
       `Bao_cao_phieu_van_ban_chung_${new Date().toISOString().slice(0, 10)}.xlsx`,
     );
 
-    showMessage(
-      `Đã xuất báo cáo chi tiết ${selectedDocs.length} phiếu văn bản chung.`,
-    );
+    showMessage(`Đã xuất báo cáo chi tiết ${selectedDocs.length} phiếu chung.`);
   } catch (err) {
     console.error("Error exporting documents:", err);
     showMessage("Lỗi khi xuất dữ liệu: " + err.message, true);
@@ -2421,8 +2550,8 @@ window.removeExistingFile = removeExistingFile;
 window.closeSuspendModal = closeSuspendModal;
 window.closeMassDeclarationModal = closeMassDeclarationModal;
 window.approveGenericStage = approveGenericStage;
-window.suspendGenericStage = suspendGenericStage;
-window.openGenericStage = openGenericStage;
+window.uploadStageFiles = uploadStageFiles;
+window.removeStageFile = removeStageFile;
 window.addGenericStage = addGenericStage;
 window.removeGenericStage = removeGenericStage;
 window.updateGenericStageField = updateGenericStageField;

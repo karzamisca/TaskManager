@@ -787,6 +787,60 @@ tr:hover {
   font-size: 0.9em;
 }
 
+/* Stage Files Section */
+.stage-files-section {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+
+.stage-files-list {
+  margin-bottom: var(--space-md);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.stage-files-list .file-item {
+  margin-bottom: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.stage-upload-section {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border-color);
+}
+
+.stage-file-upload {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.stage-file-upload .form-input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.stage-locked-message {
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: var(--space-sm);
+  background-color: var(--table-stripe);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.no-files {
+  color: var(--text-secondary);
+  font-style: italic;
+  padding: var(--space-xs);
+  text-align: center;
+}
+
 /* Modals */
 .modal {
   display: none;
@@ -807,7 +861,7 @@ tr:hover {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   width: 90%;
-  max-width: 800px;
+  max-width: 900px;
   max-height: 90vh;
   overflow-y: auto;
   padding: var(--space-lg);
@@ -888,6 +942,7 @@ tr:hover {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  flex-wrap: wrap;
 }
 
 .pagination button {
@@ -912,7 +967,7 @@ tr:hover {
 }
 
 .page-input {
-  width: 50px;
+  width: 60px;
   padding: var(--space-sm);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
@@ -1129,6 +1184,7 @@ tr:hover {
   display: flex;
   align-items: center;
   gap: var(--space-xs);
+  flex-wrap: wrap;
 }
 
 .custom-input-group .filter-select {
@@ -1331,6 +1387,19 @@ tr:hover {
 
   .detail-label {
     min-width: auto;
+  }
+
+  .pagination {
+    flex-direction: column;
+  }
+
+  .stage-file-upload {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .stage-file-upload .form-input {
+    width: 100%;
   }
 }
 

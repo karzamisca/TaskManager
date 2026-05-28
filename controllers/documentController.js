@@ -7869,4 +7869,229 @@ exports.openGenericStage = async (req, res) => {
     res.status(500).json({ message: "Lỗi khi mở lại giai đoạn." });
   }
 };
+
+// Upload file to a specific stage in generic document
+exports.uploadGenericStageFile = async (req, res) => {
+  const { docId, stageIndex } = req.params;
+
+  try {
+    // Check if file was uploaded
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    // Find the generic document
+    const doc = await Document.findById(docId);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Check if stage exists
+    if (!doc.stages || doc.stages.length <= stageIndex) {
+      return res.status(404).json({ message: "Stage not found" });
+    }
+
+    const stage = doc.stages[stageIndex];
+
+    // Check if stage is already approved - prevent file upload to approved stages
+    if (stage.status === "Approved") {
+      return res.status(403).json({
+        message: "Không thể thêm tệp tin vào giai đoạn đã được phê duyệt",
+      });
+    }
+
+    // Handle file upload
+    req.body.title = doc.title;
+    const uploadedFileData = await handleFileUpload(req);
+
+    // Initialize fileMetadata array if it doesn't exist
+    if (!stage.fileMetadata) {
+      stage.fileMetadata = [];
+    }
+
+    // Add file to stage's fileMetadata array
+    stage.fileMetadata.push(uploadedFileData);
+    await doc.save();
+
+    res.json({
+      success: true,
+      message: "File uploaded successfully to stage",
+      fileMetadata: uploadedFileData,
+      stageIndex: stageIndex,
+      stageName: stage.name,
+    });
+  } catch (error) {
+    console.error("Error uploading stage file:", error);
+    res.status(500).json({
+      message: "Error uploading file",
+      error: error.message,
+    });
+  }
+};
+
+// Upload multiple files to a specific stage
+exports.uploadMultipleGenericStageFiles = async (req, res) => {
+  const { docId, stageIndex } = req.params;
+
+  try {
+    // Check if files were uploaded
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
+    }
+
+    // Find the generic document
+    const doc = await Document.findById(docId);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Check if stage exists
+    if (!doc.stages || doc.stages.length <= stageIndex) {
+      return res.status(404).json({ message: "Stage not found" });
+    }
+
+    const stage = doc.stages[stageIndex];
+
+    // Check if stage is already approved
+    if (stage.status === "Approved") {
+      return res.status(403).json({
+        message: "Không thể thêm tệp tin vào giai đoạn đã được phê duyệt",
+      });
+    }
+
+    // Handle multiple file uploads
+    req.body.title = doc.title;
+    const uploadedFilesData = await handleMultipleFileUploads(req);
+
+    // Initialize fileMetadata array if it doesn't exist
+    if (!stage.fileMetadata) {
+      stage.fileMetadata = [];
+    }
+
+    // Add files to stage's fileMetadata array
+    stage.fileMetadata.push(...uploadedFilesData);
+    await doc.save();
+
+    res.json({
+      success: true,
+      message: `${uploadedFilesData.length} files uploaded successfully to stage`,
+      fileMetadata: uploadedFilesData,
+      stageIndex: stageIndex,
+      stageName: stage.name,
+    });
+  } catch (error) {
+    console.error("Error uploading stage files:", error);
+    res.status(500).json({
+      message: "Error uploading files",
+      error: error.message,
+    });
+  }
+};
+
+// Remove a file from a specific stage
+exports.removeGenericStageFile = async (req, res) => {
+  const { docId, stageIndex, fileId } = req.params;
+
+  try {
+    // Find the generic document
+    const document = await Document.findById(docId);
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    // Check if stage exists
+    if (!document.stages || document.stages.length <= stageIndex) {
+      return res.status(404).json({ message: "Stage not found" });
+    }
+
+    const stage = document.stages[stageIndex];
+
+    // Check if stage has been approved
+    if (stage.status === "Approved") {
+      return res.status(403).json({
+        message: "Không thể xóa tệp tin trong giai đoạn đã được phê duyệt",
+      });
+    }
+
+    // Check if there's a file to remove
+    if (!stage.fileMetadata || stage.fileMetadata.length === 0) {
+      return res.status(400).json({ message: "No files to remove" });
+    }
+
+    // Find the file to delete
+    const fileToDelete = stage.fileMetadata.find(
+      (file) => file._id.toString() === fileId || file.driveFileId === fileId,
+    );
+
+    if (!fileToDelete) {
+      return res.status(404).json({ message: "File not found" });
+    }
+
+    // Delete the file from Nextcloud
+    if (fileToDelete.path) {
+      try {
+        const client = getNextcloudClient();
+        await client.deleteFile(fileToDelete.path);
+      } catch (storageError) {
+        console.error(
+          "Warning: Could not delete file from storage",
+          storageError,
+        );
+        // Continue with database deletion even if storage deletion fails
+      }
+    }
+
+    // Remove the file metadata from the stage
+    stage.fileMetadata = stage.fileMetadata.filter(
+      (file) => file._id.toString() !== fileId && file.driveFileId !== fileId,
+    );
+
+    await document.save();
+
+    res.json({
+      success: true,
+      message: "File removed from stage successfully",
+      remainingFiles: stage.fileMetadata.length,
+    });
+  } catch (error) {
+    console.error("Error removing stage file:", error);
+    res.status(500).json({
+      message: "Error removing stage file",
+      error: error.message,
+    });
+  }
+};
+
+// Get all files for a specific stage
+exports.getGenericStageFiles = async (req, res) => {
+  const { docId, stageIndex } = req.params;
+
+  try {
+    const document = await Document.findById(docId);
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    if (!document.stages || document.stages.length <= stageIndex) {
+      return res.status(404).json({ message: "Stage not found" });
+    }
+
+    const stage = document.stages[stageIndex];
+    const files = stage.fileMetadata || [];
+
+    res.json({
+      success: true,
+      files: files,
+      stageName: stage.name,
+      stageStatus: stage.status,
+      fileCount: files.length,
+    });
+  } catch (error) {
+    console.error("Error getting stage files:", error);
+    res.status(500).json({
+      message: "Error getting stage files",
+      error: error.message,
+    });
+  }
+};
 //// END OF GENERIC DOCUMENT CONTROLLER

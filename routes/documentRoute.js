@@ -639,6 +639,33 @@ router.post(
   authMiddleware,
   documentController.openGenericStage,
 );
+
+// Stage file management routes for generic documents
+router.post(
+  "/uploadGenericStageFile/:docId/:stageIndex",
+  upload.single("file"),
+  authMiddleware,
+  documentController.uploadGenericStageFile,
+);
+
+router.post(
+  "/uploadMultipleGenericStageFiles/:docId/:stageIndex",
+  upload.array("files", 10),
+  authMiddleware,
+  documentController.uploadMultipleGenericStageFiles,
+);
+
+router.delete(
+  "/removeGenericStageFile/:docId/:stageIndex/:fileId",
+  authMiddleware,
+  documentController.removeGenericStageFile,
+);
+
+router.get(
+  "/getGenericStageFiles/:docId/:stageIndex",
+  authMiddleware,
+  documentController.getGenericStageFiles,
+);
 //// END OF GENERIC DOCUMENT ROUTE
 
 //// SUMMARY ROUTES

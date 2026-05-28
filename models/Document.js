@@ -1,89 +1,90 @@
 // models/Document.js
 const mongoose = require("mongoose");
 
+const stageFileMetadataSchema = new mongoose.Schema(
+  {
+    driveFileId: String,
+    name: String,
+    displayName: String,
+    actualFilename: String,
+    link: String,
+    path: String,
+    size: Number,
+    mimeType: String,
+    uploadTimestamp: String,
+  },
+  { _id: true },
+);
+
+const stageSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true },
+    description: String,
+    order: { type: Number, default: 0 },
+    status: {
+      type: String,
+      enum: ["Pending", "Approved", "Suspended"],
+      default: "Pending",
+    },
+    approvers: [
+      {
+        approver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        username: String,
+        subRole: String,
+      },
+    ],
+    approvedBy: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        username: String,
+        role: String,
+        approvalDate: String,
+      },
+    ],
+    suspendReason: { type: String, default: "" },
+    // Add fileMetadata for stages
+    fileMetadata: [stageFileMetadataSchema],
+    // Optional: Add deadline for stage
+    deadline: String,
+    // Optional: Add amount for stage
+    amount: Number,
+  },
+  { _id: true },
+);
+
 const documentSchema = new mongoose.Schema({
-  tag: { type: String },
-  name: { type: String },
-  title: { type: String, default: "Generic Document", required: true },
-  notes: { type: String },
-  fileMetadata: [
-    {
-      driveFileId: { type: String },
-      name: { type: String },
-      displayName: { type: String },
-      actualFilename: { type: String },
-      link: { type: String },
-      path: { type: String },
-      size: { type: String },
-      mimeType: { type: String },
-      uploadTimestamp: { type: String },
-    },
-  ],
-  stages: [
-    {
-      name: { type: String, required: true },
-      approvers: [
-        {
-          approver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-          username: { type: String, required: true },
-          subRole: { type: String, required: true },
-        },
-      ],
-      approvedBy: [
-        {
-          user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-          username: { type: String, required: true },
-          role: { type: String, required: true },
-          approvalDate: { type: String, required: true },
-        },
-      ],
-      status: {
-        type: String,
-        enum: ["Pending", "Approved", "Suspended"],
-        default: "Pending",
-      },
-      description: { type: String, default: "" },
-      notes: { type: String },
-      fileMetadata: {
-        driveFileId: { type: String },
-        name: { type: String },
-        displayName: { type: String },
-        actualFilename: { type: String },
-        link: { type: String },
-        path: { type: String },
-        size: { type: String },
-        mimeType: { type: String },
-        uploadTimestamp: { type: String },
-      },
-    },
-  ],
-  submissionDate: { type: String, required: true },
+  tag: { type: String, unique: true },
+  title: String,
+  name: String,
+  notes: String,
+  groupName: String,
+  projectName: String,
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   approvers: [
     {
       approver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      username: { type: String, required: true },
-      subRole: { type: String, required: true },
+      username: String,
+      subRole: String,
     },
   ],
   approvedBy: [
     {
       user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      username: { type: String, required: true },
-      role: { type: String, required: true },
-      approvalDate: { type: String, required: true },
+      username: String,
+      role: String,
+      approvalDate: String,
     },
   ],
+  fileMetadata: [stageFileMetadataSchema], // Document-level files
+  stages: [stageSchema], // Stages with their own fileMetadata
+  submissionDate: String,
   status: {
     type: String,
     enum: ["Pending", "Approved", "Suspended"],
     default: "Pending",
   },
   suspendReason: { type: String, default: "" },
-  declaration: { type: String, default: "" },
-  groupName: { type: String },
-  groupDeclarationName: { type: String },
-  projectName: { type: String },
+  declaration: String,
 });
 
 module.exports = mongoose.model("Document", documentSchema);
