@@ -2,6 +2,7 @@
 const mongoose = require("mongoose");
 
 const documentSchema = new mongoose.Schema({
+  tag: { type: String },
   name: { type: String },
   title: { type: String, default: "Generic Document", required: true },
   notes: { type: String },
@@ -77,6 +78,8 @@ const documentSchema = new mongoose.Schema({
     enum: ["Pending", "Approved", "Suspended"],
     default: "Pending",
   },
+  suspendReason: { type: String, default: "" },
+  declaration: { type: String, default: "" },
   groupName: { type: String },
   groupDeclarationName: { type: String },
   projectName: { type: String },

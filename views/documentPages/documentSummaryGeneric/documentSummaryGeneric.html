@@ -1,0 +1,411 @@
+<!-- views/documentPages/documentSummaryGeneric/documentSummaryGeneric.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phiếu văn bản chung</title>
+    <link
+      rel="stylesheet"
+      href="documentPages/documentSummaryGeneric/documentSummaryGeneric.css?v=1.0"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <header class="page-header">
+      <h1><i class="fas fa-file-alt"></i> Phiếu văn bản chung</h1>
+    </header>
+
+    <div id="messageContainer" class="message"></div>
+
+    <div class="control-panel">
+      <div class="control-group">
+        <label class="toggle-switch">
+          <input type="checkbox" id="paginationToggle" checked />
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">Phân trang</span>
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label for="tagFilter">
+          <span>Mã phiếu:</span>
+          <input
+            type="text"
+            id="tagFilter"
+            class="filter-select"
+            placeholder="Nhập mã phiếu cần tìm..."
+          />
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label for="nameFilter">
+          <span>Tên phiếu:</span>
+          <input
+            type="text"
+            id="nameFilter"
+            class="filter-select"
+            placeholder="Nhập tên cần tìm..."
+          />
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label for="groupMultiSelect">
+          <span>Nhóm:</span>
+          <div class="multi-select-container" id="groupMultiSelectContainer">
+            <button
+              type="button"
+              class="multi-select-button"
+              id="groupMultiSelectButton"
+            >
+              <span id="groupMultiSelectText">Tất cả</span>
+              <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="multi-select-dropdown" id="groupMultiSelectDropdown">
+              <!-- Options will be populated dynamically -->
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label for="projectFilter">
+          <span>Dự án:</span>
+          <input
+            type="text"
+            id="projectFilter"
+            class="filter-select"
+            placeholder="Nhập dự án cần tìm..."
+          />
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label for="submissionDateFilter">
+          <span>Ngày nộp:</span>
+          <div class="filter-with-custom">
+            <select id="submissionDateFilter" class="filter-select">
+              <option value="">Tất cả</option>
+              <option value="today">Hôm nay</option>
+              <option value="thisWeek">Tuần này</option>
+              <option value="thisMonth">Tháng này</option>
+              <option value="lastMonth">Tháng trước</option>
+              <option value="last3Months">3 tháng gần đây</option>
+              <option value="thisYear">Năm nay</option>
+              <option value="custom">Chọn khoảng ngày tùy chỉnh...</option>
+            </select>
+            <div
+              id="submissionDateCustomContainer"
+              class="custom-input-container"
+              style="display: none"
+            >
+              <div class="custom-input-group">
+                <input
+                  type="text"
+                  id="submissionDateFrom"
+                  class="filter-select date-picker"
+                  placeholder="Từ ngày (dd/mm/yyyy)"
+                />
+                <span class="custom-input-separator">-</span>
+                <input
+                  type="text"
+                  id="submissionDateTo"
+                  class="filter-select date-picker"
+                  placeholder="Đến ngày (dd/mm/yyyy)"
+                />
+                <button
+                  type="button"
+                  id="applySubmissionDateCustom"
+                  class="btn btn-primary btn-sm"
+                >
+                  <i class="fas fa-check"></i>
+                </button>
+                <button
+                  type="button"
+                  id="clearSubmissionDateCustom"
+                  class="btn btn-secondary btn-sm"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+              <small class="form-text"
+                >Định dạng: dd/mm/yyyy (ví dụ: 15/01/2024)</small
+              >
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label class="toggle-switch">
+          <input type="checkbox" id="pendingToggle" />
+          <span class="toggle-slider"></span>
+          <span class="toggle-label">Phiếu tôi cần phê duyệt</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="export-panel">
+      <button id="exportSelectedBtn" class="btn btn-export">
+        <i class="fas fa-file-excel"></i> Xuất đã chọn ra Excel
+      </button>
+      <button id="massDeclarationBtn" class="btn btn-primary">
+        <i class="fas fa-clipboard-list"></i> Cập nhật kê khai hàng loạt
+      </button>
+      <label class="select-all">
+        <input type="checkbox" id="selectAllCheckbox" />
+        <span>Chọn tất cả</span>
+      </label>
+    </div>
+
+    <div class="table-container">
+      <table id="genericDocumentsTable">
+        <thead>
+          <tr>
+            <th width="40px">Chọn</th>
+            <th>Mã phiếu</th>
+            <th>Tên phiếu</th>
+            <th>Nhóm</th>
+            <th>Dự án</th>
+            <th>Ghi chú</th>
+            <th>Ngày nộp</th>
+            <th>Tình trạng</th>
+            <th>Trạng thái phê duyệt</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Generic documents will be populated here -->
+        </tbody>
+      </table>
+      <div id="paginationContainer" class="pagination-container"></div>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Đang tải dữ liệu...</div>
+    </div>
+
+    <!-- Full View Modal -->
+    <div id="fullViewModal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h2 class="modal-title">
+          <i class="fas fa-file-alt"></i> Chi tiết đầy đủ
+        </h2>
+        <div id="fullViewContent" class="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Suspend Modal -->
+    <div id="suspendModal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h2 class="modal-title"><i class="fas fa-ban"></i> Từ chối tài liệu</h2>
+        <form id="suspendForm" class="modal-form">
+          <div class="form-group">
+            <label for="suspendReason">Lý do từ chối:</label>
+            <textarea
+              id="suspendReason"
+              required
+              class="form-textarea"
+            ></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-danger">
+              <i class="fas fa-ban"></i> Từ chối
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeSuspendModal()"
+            >
+              <i class="fas fa-times"></i> Hủy
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Mass Declaration Modal -->
+    <div id="massDeclarationModal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close" onclick="closeMassDeclarationModal()"
+          >&times;</span
+        >
+        <h2 class="modal-title">
+          <i class="fas fa-clipboard-list"></i> Cập nhật kê khai hàng loạt
+        </h2>
+        <form id="massDeclarationForm" class="modal-form">
+          <div class="form-group">
+            <label for="massDeclarationInput">Kê khai:</label>
+            <textarea
+              id="massDeclarationInput"
+              required
+              class="form-textarea"
+            ></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i> Cập nhật
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeMassDeclarationModal()"
+            >
+              <i class="fas fa-times"></i> Hủy
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close" onclick="closeEditModal()">&times;</span>
+        <h2 class="modal-title">
+          <i class="fas fa-edit"></i> Chỉnh sửa phiếu văn bản chung
+        </h2>
+        <form id="editForm" class="modal-form">
+          <input type="hidden" id="editDocId" />
+
+          <div class="form-group">
+            <label for="editName" class="form-label">Tên phiếu:</label>
+            <input type="text" id="editName" class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label for="editGroupName" class="form-label">Nhóm:</label>
+            <select id="editGroupName" class="form-select">
+              <option value="">Chọn một nhóm</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="editProjectName" class="form-label">Dự án:</label>
+            <select id="editProjectName" class="form-select">
+              <option value="">Chọn một dự án</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="editNotes" class="form-label">Ghi chú:</label>
+            <textarea id="editNotes" class="form-textarea"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tệp tin hiện tại:</label>
+            <div id="currentFilesList" class="current-files-list">
+              <!-- Current files will be populated here -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editFiles" class="form-label">Thêm tệp tin mới:</label>
+            <input type="file" id="editFiles" class="form-input" multiple />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Người phê duyệt hiện tại:</label>
+            <div id="currentApproversList" class="approvers-list"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Thêm người phê duyệt:</label>
+            <select id="newApproversDropdown" class="form-select">
+              <option value="">Chọn người phê duyệt</option>
+            </select>
+            <input
+              type="text"
+              id="newApproverSubRole"
+              placeholder="Vai trò"
+              class="form-input"
+              style="margin-top: var(--space-sm)"
+            />
+            <button
+              type="button"
+              class="btn btn-primary"
+              onclick="addNewApprover()"
+              style="margin-top: var(--space-sm)"
+            >
+              <i class="fas fa-plus"></i> Thêm
+            </button>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-save"></i> Lưu thay đổi
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              onclick="closeEditModal()"
+            >
+              <i class="fas fa-times"></i> Hủy
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Declaration Modal -->
+    <div id="declarationModal" class="modal">
+      <div class="modal-content">
+        <span class="modal-close" onclick="closeDeclarationModal()"
+          >&times;</span
+        >
+        <h2 class="modal-title"><i class="fas fa-edit"></i> Kê Khai</h2>
+        <div class="modal-body">
+          <div class="form-group">
+            <textarea
+              id="declarationInput"
+              class="form-textarea"
+              style="min-height: 150px"
+            ></textarea>
+          </div>
+          <div class="form-actions">
+            <button
+              onclick="saveDeclaration()"
+              class="btn btn-primary"
+              id="saveDeclarationBtn"
+            >
+              <i class="fas fa-save"></i> Lưu
+            </button>
+            <button onclick="closeDeclarationModal()" class="btn btn-secondary">
+              <i class="fas fa-times"></i> Hủy
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-panel">
+      <h2><i class="fas fa-chart-pie"></i> Tóm tắt</h2>
+      <div class="summary-grid">
+        <div class="summary-card approved">
+          <div class="summary-value" id="approvedDocument">0</div>
+          <div class="summary-label">Số phiếu đã phê duyệt</div>
+        </div>
+        <div class="summary-card unapproved">
+          <div class="summary-value" id="unapprovedDocument">0</div>
+          <div class="summary-label">Số phiếu chưa phê duyệt</div>
+        </div>
+        <div class="summary-card pending">
+          <div class="summary-value" id="pendingForMe">0</div>
+          <div class="summary-label">Phiếu cần tôi phê duyệt</div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="documentPages/documentSummaryGeneric/documentSummaryGeneric.js?v=1.0"></script>
+    <script src="/components/header/headerLoader.js?v=1.0"></script>
+  </body>
+</html>

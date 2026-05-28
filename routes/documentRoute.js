@@ -577,6 +577,51 @@ router.post(
 );
 //// END OF PROJECT PROPOSAL DOCUMENT ROUTE
 
+//// GENERIC DOCUMENT ROUTE
+router.get("/documentSummaryGeneric", authMiddleware, (req, res) => {
+  res.sendFile("documentSummaryGeneric.html", {
+    root: "./views/documentPages/documentSummaryGeneric",
+  });
+});
+
+router.get(
+  "/getGenericDocumentForSeparatedView",
+  authMiddleware,
+  documentController.getGenericDocumentsForSeparatedView,
+);
+
+router.get(
+  "/getGenericDocument/:id",
+  authMiddleware,
+  documentController.getGenericDocument,
+);
+
+router.post(
+  "/updateGenericDocument/:id",
+  upload.array("files", 10),
+  authMiddleware,
+  documentController.updateGenericDocument,
+);
+
+router.delete(
+  "/deleteGenericDocumentFile/:docId/:fileId",
+  authMiddleware,
+  documentController.deleteGenericDocumentFile,
+);
+
+router.post(
+  "/updateDocumentDeclaration/:id",
+  authMiddleware,
+  documentController.updateDocumentDeclaration,
+);
+
+router.post(
+  "/massUpdateDocumentDeclaration",
+  authMiddleware,
+  documentController.massUpdateDocumentDeclaration,
+);
+//// END OF GENERIC DOCUMENT ROUTE
+
 //// SUMMARY ROUTES
 // Serve the summary HTML page
 router.get("/documentSummaryUnapproved", authMiddleware, (req, res) => {

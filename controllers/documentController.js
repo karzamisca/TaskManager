@@ -1652,7 +1652,14 @@ async function createProjectProposalDocument(
 
 // Create a Standard Document
 async function createStandardDocument(req, approverDetails, uploadedFilesData) {
+  // Format the submission date for both display and the tag
+  const now = moment().tz("Asia/Bangkok");
+  const submissionDateForTag = now.format("DDMMYYYYHHmmss");
+  // Create the tag by combining name and formatted date
+  const tag = `${req.body.name}${submissionDateForTag}`;
+
   return new Document({
+    tag,
     title: req.body.title,
     name: req.body.name,
     notes: req.body.notes,
@@ -7335,3 +7342,274 @@ exports.getUnapprovedDocumentsSummary = async (req, res) => {
     });
   }
 };
+//// END OF PROJECT PROPOSAL DOCUMENT CONTROLLER
+
+//// GENERIC DOCUMENT CONTROLLER
+// Get generic documents for separated view
+exports.getGenericDocumentsForSeparatedView = async (req, res) => {
+  try {
+    const userId = req._id;
+    const userRole = req.role;
+    const username = req.user.username;
+
+    const genericDocuments = await Document.find(
+      documentUtils.filterDocumentsByUserAccess(userId, userRole),
+    )
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
+
+    const filteredDocuments = documentUtils.filterDocumentsByUsername(
+      genericDocuments,
+      username,
+    );
+
+    const sortedDocuments =
+      documentUtils.sortDocumentsByStatusAndDate(filteredDocuments);
+
+    const { approvedDocument, unapprovedDocument } =
+      documentUtils.countDocumentsByStatus(sortedDocuments);
+
+    res.json({
+      genericDocuments: sortedDocuments,
+      approvedDocument,
+      unapprovedDocument,
+    });
+  } catch (err) {
+    console.error("Error fetching generic documents:", err);
+    res.status(500).send("Error fetching generic documents");
+  }
+};
+
+// Get generic document by ID
+exports.getGenericDocument = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const document = await Document.findById(id)
+      .populate("submittedBy", "username")
+      .populate("approvers.approver", "username role")
+      .populate("approvedBy.user", "username");
+    if (!document) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+    res.json(document);
+  } catch (error) {
+    console.error("Error fetching generic document:", error);
+    res.status(500).json({ message: "Error fetching document" });
+  }
+};
+
+// Update generic document
+exports.updateGenericDocument = async (req, res) => {
+  let tempFilePaths = [];
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      groupName,
+      projectName,
+      notes,
+      currentFileMetadata,
+      approvers,
+    } = req.body;
+    const files = req.files;
+
+    if (files && files.length > 0) {
+      files.forEach((file) => {
+        tempFilePaths.push(file.path);
+      });
+    }
+
+    const doc = await Document.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    let parsedApprovers = [];
+    if (approvers) {
+      try {
+        parsedApprovers = JSON.parse(approvers);
+      } catch (error) {
+        return res
+          .status(400)
+          .json({ message: "Invalid approvers data format" });
+      }
+    }
+
+    let currentFiles = [];
+    if (currentFileMetadata) {
+      try {
+        currentFiles = JSON.parse(currentFileMetadata);
+      } catch (error) {
+        console.error("Error parsing current file metadata:", error);
+      }
+    }
+
+    let uploadedFilesData = [];
+    if (files && files.length > 0) {
+      req.body.title = doc.title; // Preserve the existing title
+      uploadedFilesData = await handleMultipleFileUploads(req);
+    }
+
+    // Update fields - preserve title if not provided
+    doc.name = name;
+    doc.groupName = groupName;
+    doc.projectName = projectName;
+    doc.notes = notes;
+    doc.fileMetadata = [...currentFiles, ...uploadedFilesData];
+
+    if (parsedApprovers) {
+      doc.approvers = parsedApprovers;
+    }
+
+    await doc.save();
+    res.json({ message: "Document updated successfully" });
+  } catch (error) {
+    console.error("Error updating generic document:", error);
+    res
+      .status(500)
+      .json({ message: "Error updating document", error: error.message });
+  } finally {
+    tempFilePaths.forEach((tempFilePath) => {
+      if (tempFilePath && fs.existsSync(tempFilePath)) {
+        try {
+          fs.unlinkSync(tempFilePath);
+        } catch (cleanupError) {
+          console.error("Error cleaning up temp file:", cleanupError);
+        }
+      }
+    });
+  }
+};
+
+// Delete generic document file
+exports.deleteGenericDocumentFile = async (req, res) => {
+  const { docId, fileId } = req.params;
+
+  try {
+    const document = await Document.findById(docId);
+    if (!document) {
+      return res.status(404).json({ message: "Không tìm thấy phiếu" });
+    }
+
+    if (document.status === "Approved") {
+      return res.status(400).json({
+        message: "Không thể xóa tệp tin của phiếu đã được phê duyệt",
+      });
+    }
+
+    if (document.approvedBy && document.approvedBy.length > 0) {
+      return res.status(400).json({
+        message: "Không thể xóa tệp tin của phiếu đã có người phê duyệt",
+      });
+    }
+
+    const fileToDelete = document.fileMetadata.find(
+      (file) => file.driveFileId === fileId || file._id.toString() === fileId,
+    );
+
+    if (!fileToDelete) {
+      return res.status(404).json({ message: "Không tìm thấy tệp tin" });
+    }
+
+    if (fileToDelete.path) {
+      try {
+        const client = getNextcloudClient();
+        await client.deleteFile(fileToDelete.path);
+      } catch (storageError) {
+        console.error("Error deleting file from storage:", storageError);
+      }
+    }
+
+    document.fileMetadata = document.fileMetadata.filter(
+      (file) => file.driveFileId !== fileId && file._id.toString() !== fileId,
+    );
+
+    await document.save();
+
+    res.json({
+      success: true,
+      message: "Tệp tin đã được xóa thành công",
+      remainingFiles: document.fileMetadata.length,
+    });
+  } catch (error) {
+    console.error("Error deleting file:", error);
+    res.status(500).json({
+      message: "Lỗi khi xóa tệp tin",
+      error: error.message,
+    });
+  }
+};
+
+// Update document declaration
+exports.updateDocumentDeclaration = async (req, res) => {
+  const { id } = req.params;
+  const { declaration } = req.body;
+
+  try {
+    if (
+      !["superAdmin", "headOfAccounting", "headOfPurchasing"].includes(
+        req.user.role,
+      )
+    ) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
+    const doc = await Document.findById(id);
+    if (!doc) {
+      return res.status(404).json({ message: "Document not found" });
+    }
+
+    doc.declaration = declaration;
+    await doc.save();
+
+    res.send("Kê khai cập nhật thành công.");
+  } catch (error) {
+    console.error("Error updating declaration:", error);
+    res.status(500).json({ message: "Error updating declaration" });
+  }
+};
+
+// Mass update document declaration
+exports.massUpdateDocumentDeclaration = async (req, res) => {
+  const { documentIds, declaration } = req.body;
+
+  try {
+    if (
+      !["superAdmin", "headOfAccounting", "headOfPurchasing"].includes(
+        req.user.role,
+      )
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
+    if (
+      !documentIds ||
+      !Array.isArray(documentIds) ||
+      documentIds.length === 0
+    ) {
+      return res.status(400).json({ message: "Invalid document IDs provided" });
+    }
+
+    if (!declaration || typeof declaration !== "string") {
+      return res.status(400).json({ message: "Invalid declaration provided" });
+    }
+
+    const result = await Document.updateMany(
+      { _id: { $in: documentIds } },
+      { declaration },
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: "No documents found or updated" });
+    }
+
+    res.send(`Kê khai cập nhật thành công cho ${result.modifiedCount} phiếu.`);
+  } catch (error) {
+    console.error("Error updating declaration:", error);
+    res.status(500).json({ message: "Error updating declaration" });
+  }
+};
+//// END OF GENERIC DOCUMENT CONTROLLER
