@@ -1652,11 +1652,28 @@ async function createProjectProposalDocument(
 
 // Create a Standard Document
 async function createStandardDocument(req, approverDetails, uploadedFilesData) {
-  // Format the submission date for both display and the tag
   const now = moment().tz("Asia/Bangkok");
   const submissionDateForTag = now.format("DDMMYYYYHHmmss");
-  // Create the tag by combining name and formatted date
   const tag = `${req.body.name}${submissionDateForTag}`;
+
+  // Parse stages if provided
+  let stages = [];
+  if (req.body.stages) {
+    try {
+      stages = JSON.parse(req.body.stages);
+      // Add order to each stage
+      stages = stages.map((stage, index) => ({
+        ...stage,
+        order: index,
+        status: stage.status || "Pending",
+        approvers: stage.approvers || [],
+        approvedBy: [],
+        suspendReason: "",
+      }));
+    } catch (error) {
+      console.error("Error parsing stages:", error);
+    }
+  }
 
   return new Document({
     tag,
@@ -1668,6 +1685,7 @@ async function createStandardDocument(req, approverDetails, uploadedFilesData) {
     submittedBy: req.user.id,
     approvers: approverDetails,
     fileMetadata: uploadedFilesData,
+    stages: stages,
     submissionDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
   });
 }
@@ -7411,6 +7429,7 @@ exports.updateGenericDocument = async (req, res) => {
       notes,
       currentFileMetadata,
       approvers,
+      stages, // Add stages to destructuring
     } = req.body;
     const files = req.files;
 
@@ -7436,6 +7455,39 @@ exports.updateGenericDocument = async (req, res) => {
       }
     }
 
+    // Parse stages if provided
+    let parsedStages = [];
+    if (stages) {
+      try {
+        parsedStages = JSON.parse(stages);
+        // Preserve existing approval data for existing stages
+        if (doc.stages && doc.stages.length > 0) {
+          parsedStages = parsedStages.map((newStage, index) => {
+            const existingStage = doc.stages[index];
+            if (existingStage && existingStage.status === "Approved") {
+              // Keep approved stage data
+              return { ...existingStage, ...newStage };
+            }
+            return {
+              ...newStage,
+              order: index,
+              status: newStage.status || "Pending",
+            };
+          });
+        } else {
+          parsedStages = parsedStages.map((stage, index) => ({
+            ...stage,
+            order: index,
+            status: "Pending",
+            approvedBy: [],
+            suspendReason: "",
+          }));
+        }
+      } catch (error) {
+        console.error("Error parsing stages:", error);
+      }
+    }
+
     let currentFiles = [];
     if (currentFileMetadata) {
       try {
@@ -7447,11 +7499,11 @@ exports.updateGenericDocument = async (req, res) => {
 
     let uploadedFilesData = [];
     if (files && files.length > 0) {
-      req.body.title = doc.title; // Preserve the existing title
+      req.body.title = doc.title;
       uploadedFilesData = await handleMultipleFileUploads(req);
     }
 
-    // Update fields - preserve title if not provided
+    // Update fields
     doc.name = name;
     doc.groupName = groupName;
     doc.projectName = projectName;
@@ -7460,6 +7512,10 @@ exports.updateGenericDocument = async (req, res) => {
 
     if (parsedApprovers) {
       doc.approvers = parsedApprovers;
+    }
+
+    if (parsedStages) {
+      doc.stages = parsedStages;
     }
 
     await doc.save();
@@ -7610,6 +7666,207 @@ exports.massUpdateDocumentDeclaration = async (req, res) => {
   } catch (error) {
     console.error("Error updating declaration:", error);
     res.status(500).json({ message: "Error updating declaration" });
+  }
+};
+
+// Approve a stage in generic document
+exports.approveGenericStage = async (req, res) => {
+  const { docId, stageIndex } = req.params;
+
+  try {
+    if (
+      ![
+        "approver",
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfMechanical",
+        "headOfTechnical",
+        "headOfAccounting",
+        "headOfPurchasing",
+        "headOfOperations",
+      ].includes(req.user.role)
+    ) {
+      return res.status(403).json({
+        message: "Truy cập bị từ chối. Bạn không có quyền truy cập.",
+      });
+    }
+
+    const document = await Document.findById(docId);
+    if (!document) {
+      return res.status(404).json({ message: "Không tìm thấy phiếu." });
+    }
+
+    if (!document.stages || document.stages.length <= stageIndex) {
+      return res.status(404).json({ message: "Không tìm thấy giai đoạn." });
+    }
+
+    const stage = document.stages[stageIndex];
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "Không tìm thấy người dùng." });
+    }
+
+    // Check if user is an approver for this stage
+    const isStageApprover = stage.approvers.some(
+      (approver) => approver.approver.toString() === req.user.id,
+    );
+
+    if (!isStageApprover) {
+      return res.status(403).json({
+        message:
+          "Truy cập bị từ chối. Bạn không có quyền phê duyệt giai đoạn này.",
+      });
+    }
+
+    // Check if user has already approved this stage
+    const hasApproved = stage.approvedBy.some(
+      (approver) => approver.user.toString() === req.user.id,
+    );
+
+    if (hasApproved) {
+      return res.status(400).json({
+        message: "Bạn đã phê duyệt giai đoạn này rồi.",
+      });
+    }
+
+    // Check sequential order - ensure previous stages are approved
+    if (stage.order > 0) {
+      const previousStage = document.stages[stage.order - 1];
+      if (previousStage && previousStage.status !== "Approved") {
+        return res.status(400).json({
+          message: "Vui lòng phê duyệt các giai đoạn trước trước.",
+        });
+      }
+    }
+
+    // Add approval
+    stage.approvedBy.push({
+      user: user.id,
+      username: user.username,
+      role: user.role,
+      approvalDate: moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss"),
+    });
+
+    // Check if all stage approvers have approved
+    if (stage.approvedBy.length === stage.approvers.length) {
+      stage.status = "Approved";
+    }
+
+    await document.save();
+
+    // Check if all stages are approved
+    const allStagesApproved = document.stages.every(
+      (s) => s.status === "Approved",
+    );
+
+    // If all stages are approved, allow document approval
+    if (allStagesApproved && document.approvers.length > 0) {
+      return res.status(200).json({
+        message:
+          "Giai đoạn đã được phê duyệt. Bạn có thể phê duyệt toàn bộ phiếu.",
+        canApproveDocument: true,
+      });
+    }
+
+    return res.status(200).json({
+      message:
+        stage.status === "Approved"
+          ? "Giai đoạn đã được phê duyệt hoàn toàn."
+          : "Giai đoạn đã được phê duyệt thành công.",
+      canApproveDocument: false,
+    });
+  } catch (err) {
+    console.error("Error approving generic stage:", err);
+    return res.status(500).json({
+      message: "Lỗi phê duyệt giai đoạn.",
+    });
+  }
+};
+
+// Suspend a stage in generic document
+exports.suspendGenericStage = async (req, res) => {
+  const { docId, stageIndex } = req.params;
+  const { suspendReason } = req.body;
+
+  try {
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res.status(403).json({
+        message: "Truy cập bị từ chối. Bạn không có quyền truy cập.",
+      });
+    }
+
+    const document = await Document.findById(docId);
+    if (!document) {
+      return res.status(404).json({ message: "Không tìm thấy phiếu." });
+    }
+
+    if (!document.stages || document.stages.length <= stageIndex) {
+      return res.status(404).json({ message: "Không tìm thấy giai đoạn." });
+    }
+
+    const stage = document.stages[stageIndex];
+
+    if (stage.status === "Suspended") {
+      return res
+        .status(400)
+        .json({ message: "Giai đoạn này đã được từ chối trước đó." });
+    }
+
+    if (stage.status === "Approved") {
+      return res
+        .status(400)
+        .json({ message: "Không thể từ chối giai đoạn đã được phê duyệt." });
+    }
+
+    stage.status = "Suspended";
+    stage.suspendReason = suspendReason;
+    stage.approvedBy = [];
+
+    await document.save();
+    res.json({ message: "Giai đoạn đã được từ chối thành công." });
+  } catch (err) {
+    console.error("Error suspending generic stage:", err);
+    res.status(500).json({ message: "Lỗi khi từ chối giai đoạn." });
+  }
+};
+
+// Open a suspended stage in generic document
+exports.openGenericStage = async (req, res) => {
+  const { docId, stageIndex } = req.params;
+
+  try {
+    if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
+      return res.status(403).json({
+        message: "Truy cập bị từ chối. Bạn không có quyền truy cập.",
+      });
+    }
+
+    const document = await Document.findById(docId);
+    if (!document) {
+      return res.status(404).json({ message: "Không tìm thấy phiếu." });
+    }
+
+    if (!document.stages || document.stages.length <= stageIndex) {
+      return res.status(404).json({ message: "Không tìm thấy giai đoạn." });
+    }
+
+    const stage = document.stages[stageIndex];
+
+    if (stage.status !== "Suspended") {
+      return res
+        .status(400)
+        .json({ message: "Giai đoạn này không ở trạng thái từ chối." });
+    }
+
+    stage.status = "Pending";
+    stage.suspendReason = "";
+
+    await document.save();
+    res.json({ message: "Giai đoạn đã được mở lại thành công." });
+  } catch (err) {
+    console.error("Error opening generic stage:", err);
+    res.status(500).json({ message: "Lỗi khi mở lại giai đoạn." });
   }
 };
 //// END OF GENERIC DOCUMENT CONTROLLER

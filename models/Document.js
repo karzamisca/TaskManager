@@ -42,6 +42,7 @@ const documentSchema = new mongoose.Schema({
         enum: ["Pending", "Approved", "Suspended"],
         default: "Pending",
       },
+      description: { type: String, default: "" },
       notes: { type: String },
       fileMetadata: {
         driveFileId: { type: String },

@@ -280,6 +280,29 @@ const renderApprovalStatus = (approvers, approvedBy) => {
     .join("");
 };
 
+const renderStageApprovalStatus = (approvers, approvedBy) => {
+  return approvers
+    .map((approver) => {
+      const hasApproved = approvedBy.find(
+        (a) => a.username === approver.username,
+      );
+      return `
+        <div class="approver-item">
+          <span class="status-icon ${hasApproved ? "status-approved" : "status-pending"}"></span>
+          <div>
+            <div>${approver.username} (${approver.subRole})</div>
+            ${
+              hasApproved
+                ? `<div class="approval-date">Đã phê duyệt vào: ${hasApproved.approvalDate}</div>`
+                : '<div class="approval-date">Chưa phê duyệt</div>'
+            }
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+};
+
 // Data fetching
 const fetchCurrentUser = async () => {
   try {
@@ -434,6 +457,59 @@ const renderDocumentsTable = (documents) => {
             ? `<div class="suspend-reason"><strong>Lý do từ chối:</strong> ${doc.suspendReason}</div>`
             : ""
         }
+        ${
+          doc.stages?.length > 0
+            ? `<div class="stages-summary">
+                <strong>Các giai đoạn:</strong>
+                ${doc.stages
+                  .map((stage, idx) => {
+                    return `
+                  <div class="stage-summary-item ${
+                    stage.status === "Approved"
+                      ? "approved"
+                      : stage.status === "Suspended"
+                        ? "suspended"
+                        : "pending"
+                  }">
+                    <span>Giai đoạn: ${stage.name}</span>
+                    <span class="status-badge">${
+                      stage.status === "Approved"
+                        ? "Đã duyệt"
+                        : stage.status === "Suspended"
+                          ? "Từ chối"
+                          : "Chờ duyệt"
+                    }</span>
+                    ${
+                      stage.status === "Suspended" && stage.suspendReason
+                        ? `<div class="suspend-reason" style="font-size: 0.8em; margin-top: 4px;">
+                            <strong>Lý do:</strong> ${stage.suspendReason}
+                           </div>`
+                        : ""
+                    }
+                    <div class="stage-action-buttons">
+                      ${
+                        stage.status === "Pending" &&
+                        stage.approvers.some(
+                          (approver) =>
+                            approver.username === state.currentUser?.username,
+                        ) &&
+                        !stage.approvedBy.some(
+                          (approved) =>
+                            approved.username === state.currentUser?.username,
+                        )
+                          ? `<button class="btn btn-primary btn-sm stage-approve-btn" 
+                                 onclick="approveGenericStage('${doc._id}', ${idx})">
+                              <i class="fas fa-check-circle"></i> Duyệt ${stage.name}
+                            </button>`
+                          : ""
+                      }
+                    </div>
+                  </div>`;
+                  })
+                  .join("")}
+              </div>`
+            : ""
+        }
       </td>
       <td>${formatDisplayDate(doc.submissionDate) || "-"}</td>
       <td>${renderStatus(doc.status)}</td>
@@ -492,7 +568,7 @@ const renderDocumentsTable = (documents) => {
           `
           }
         </div>
-      </td>
+      </tr>
     `;
     tableBody.appendChild(row);
   });
@@ -613,6 +689,93 @@ const goToPage = () => {
     changePage(pageNumber);
   } else {
     pageInput.value = state.currentPage;
+  }
+};
+
+// Stage functions for generic documents
+const approveGenericStage = async (docId, stageIndex) => {
+  try {
+    const response = await fetch(
+      `/approveGenericStage/${docId}/${stageIndex}`,
+      {
+        method: "POST",
+      },
+    );
+
+    const result = await response.json();
+
+    if (response.ok) {
+      showMessage(result.message);
+      if (result.canApproveDocument) {
+        showMessage(
+          "Tất cả giai đoạn đã được phê duyệt. Bạn có thể phê duyệt toàn bộ phiếu bây giờ.",
+        );
+      }
+      fetchGenericDocuments();
+    } else {
+      showMessage(result.message || "Error approving stage", true);
+    }
+  } catch (err) {
+    console.error("Error approving stage:", err);
+    showMessage("Error approving stage", true);
+  }
+};
+
+const suspendGenericStage = async (docId, stageIndex) => {
+  const suspendReason = prompt("Nhập lý do từ chối giai đoạn:");
+
+  if (!suspendReason || suspendReason.trim() === "") {
+    showMessage("Vui lòng nhập lý do từ chối.", true);
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `/suspendGenericStage/${docId}/${stageIndex}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ suspendReason: suspendReason.trim() }),
+      },
+    );
+
+    const result = await response.json();
+
+    if (response.ok) {
+      showMessage(result.message);
+      fetchGenericDocuments();
+    } else {
+      showMessage(result.message, true);
+    }
+  } catch (err) {
+    console.error("Error suspending stage:", err);
+    showMessage("Lỗi khi từ chối giai đoạn.", true);
+  }
+};
+
+const openGenericStage = async (docId, stageIndex) => {
+  if (!confirm("Bạn có chắc chắn muốn mở lại giai đoạn này?")) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/openGenericStage/${docId}/${stageIndex}`, {
+      method: "POST",
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      showMessage(result.message);
+      fetchGenericDocuments();
+    } else {
+      showMessage(result.message, true);
+    }
+  } catch (err) {
+    console.error("Error opening stage:", err);
+    showMessage("Lỗi khi mở lại giai đoạn.", true);
   }
 };
 
@@ -1006,6 +1169,7 @@ const editDocument = async (docId) => {
     renderCurrentApprovers();
     await populateNewApproversDropdown();
     renderCurrentFiles(doc.fileMetadata || []);
+    renderGenericStages();
 
     document.getElementById("editModal").style.display = "block";
   } catch (err) {
@@ -1151,6 +1315,301 @@ const addNewApprover = () => {
   document.getElementById("newApproverSubRole").value = "";
 };
 
+// Stage rendering functions for generic documents
+const renderGenericStages = () => {
+  const container = document.getElementById("genericStagesContainer");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (
+    !state.currentEditDoc?.stages ||
+    state.currentEditDoc.stages.length === 0
+  ) {
+    container.innerHTML = "<p>Không có giai đoạn nào được thiết lập</p>";
+    return;
+  }
+
+  state.currentEditDoc.stages.forEach((stage, index) => {
+    const isPartiallyApproved = stage.approvedBy?.length > 0;
+    const isFullyApproved = stage.status === "Approved";
+    const isSuspended = stage.status === "Suspended";
+    const isLocked = isFullyApproved;
+
+    const stageElement = document.createElement("div");
+    stageElement.className = `payment-stage ${
+      isPartiallyApproved ? "partially-approved-stage" : ""
+    } ${isFullyApproved ? "approved-stage" : ""} ${
+      isSuspended ? "stage-suspended" : ""
+    }`;
+    stageElement.dataset.index = index;
+
+    stageElement.innerHTML = `
+      <div class="stage-header">
+        <h4>Giai đoạn ${stage.name} ${
+          isPartiallyApproved
+            ? `(${stage.approvedBy.length}/${stage.approvers.length} đã duyệt)`
+            : ""
+        } ${isFullyApproved ? "(Đã phê duyệt hoàn toàn)" : ""} ${
+          isSuspended ? "(Đã từ chối)" : ""
+        }</h4>
+        ${
+          !isLocked && !isSuspended
+            ? `<button type="button" class="btn btn-danger btn-sm" onclick="removeGenericStage(${index})">
+                <i class="fas fa-trash"></i> Xóa
+              </button>`
+            : isSuspended
+              ? '<span class="lock-icon"><i class="fas fa-ban"></i> Đã từ chối (Có thể chỉnh sửa)</span>'
+              : '<span class="lock-icon"><i class="fas fa-lock"></i> Đã khóa</span>'
+        }
+      </div>
+      ${
+        isSuspended && stage.suspendReason
+          ? `<div class="suspend-reason">
+              <strong>Lý do từ chối:</strong> ${stage.suspendReason}
+             </div>`
+          : ""
+      }
+      <div class="form-group">
+        <label>Tên giai đoạn:</label>
+        <input type="text" class="form-input stage-name" value="${
+          stage.name || ""
+        }" 
+               onchange="updateGenericStageField(${index}, 'name', this.value)"
+               ${isLocked ? "disabled" : ""}>
+      </div>
+      <div class="form-group">
+        <label>Mô tả:</label>
+        <textarea class="form-textarea stage-description" 
+                  onchange="updateGenericStageField(${index}, 'description', this.value)"
+                  ${isLocked ? "disabled" : ""}>${stage.description || ""}</textarea>
+      </div>
+      <div class="form-group">
+        <label>Người phê duyệt:</label>
+        <div class="stage-approvers-container" id="genericStageApproversContainer${index}">
+          ${renderGenericStageApprovers(
+            stage.approvers || [],
+            stage.approvedBy || [],
+            index,
+            isLocked,
+          )}
+        </div>
+        ${
+          !isLocked
+            ? `<div class="add-stage-approver">
+                <select class="form-select stage-approver-select" id="genericStageApproverSelect${index}">
+                  <option value="">Chọn người phê duyệt</option>
+                </select>
+                <input type="text" class="form-input stage-approver-subrole" 
+                       id="genericStageApproverSubRole${index}" placeholder="Vai trò">
+                <button type="button" class="btn btn-primary btn-sm" 
+                        onclick="addGenericStageApprover(${index})">
+                  <i class="fas fa-plus"></i> Thêm
+                </button>
+              </div>`
+            : ""
+        }
+      </div>
+    `;
+
+    container.appendChild(stageElement);
+    if (!isLocked) {
+      populateGenericStageApproversDropdown(index);
+    }
+  });
+};
+
+const renderGenericStageApprovers = (
+  approvers,
+  approvedBy,
+  stageIndex,
+  isLocked,
+) => {
+  return approvers
+    .map((approver) => {
+      const hasApproved = approvedBy.some(
+        (a) => a.username === approver.username,
+      );
+      return `
+        <div class="approver-item ${hasApproved ? "approved" : ""}">
+          <span class="status-icon ${
+            hasApproved ? "status-approved" : "status-pending"
+          }"></span>
+          <div class="approver-info">
+            <div>${approver.username} (${approver.subRole})</div>
+            ${
+              hasApproved
+                ? `<div class="approval-date">Đã phê duyệt</div>`
+                : '<div class="approval-date">Chưa phê duyệt</div>'
+            }
+          </div>
+          ${
+            !isLocked
+              ? `<button type="button" class="btn btn-danger btn-sm" 
+                        onclick="removeGenericStageApprover(${stageIndex}, '${approver.approver}')">
+                    <i class="fas fa-trash"></i> Xóa
+                  </button>`
+              : ""
+          }
+        </div>
+      `;
+    })
+    .join("");
+};
+
+const populateGenericStageApproversDropdown = async (stageIndex) => {
+  const allApprovers = await fetchApprovers();
+  const currentApprovers =
+    state.currentEditDoc.stages[stageIndex].approvers || [];
+  const availableApprovers = allApprovers.filter(
+    (approver) => !currentApprovers.some((a) => a.approver === approver._id),
+  );
+
+  const dropdown = document.getElementById(
+    `genericStageApproverSelect${stageIndex}`,
+  );
+  if (dropdown) {
+    dropdown.innerHTML = `
+      <option value="">Chọn người phê duyệt</option>
+      ${availableApprovers
+        .map(
+          (approver) => `
+            <option value="${approver._id}">${approver.username}</option>
+          `,
+        )
+        .join("")}
+    `;
+  }
+};
+
+const addGenericStage = () => {
+  if (!state.currentEditDoc.stages) {
+    state.currentEditDoc.stages = [];
+  }
+
+  state.currentEditDoc.stages.push({
+    name: `Giai đoạn ${state.currentEditDoc.stages.length + 1}`,
+    description: "",
+    approvers: [],
+    approvedBy: [],
+    status: "Pending",
+    suspendReason: "",
+    order: state.currentEditDoc.stages.length,
+  });
+
+  renderGenericStages();
+};
+
+const removeGenericStage = (index) => {
+  if (
+    state.currentEditDoc.stages &&
+    state.currentEditDoc.stages.length > index
+  ) {
+    const stage = state.currentEditDoc.stages[index];
+    if (stage.approvedBy && stage.approvedBy.length > 0) {
+      showMessage("Không thể xóa giai đoạn đã có người phê duyệt", true);
+      return;
+    }
+    state.currentEditDoc.stages.splice(index, 1);
+    // Reorder remaining stages
+    state.currentEditDoc.stages.forEach((s, idx) => (s.order = idx));
+    renderGenericStages();
+  }
+};
+
+const updateGenericStageField = (index, field, value) => {
+  if (
+    state.currentEditDoc.stages &&
+    state.currentEditDoc.stages.length > index
+  ) {
+    state.currentEditDoc.stages[index][field] = value;
+  }
+};
+
+const addGenericStageApprover = async (stageIndex) => {
+  const approverId = document.getElementById(
+    `genericStageApproverSelect${stageIndex}`,
+  ).value;
+  const subRole = document.getElementById(
+    `genericStageApproverSubRole${stageIndex}`,
+  ).value;
+
+  if (!approverId || !subRole.trim()) {
+    showMessage("Vui lòng chọn người phê duyệt và nhập vai trò phụ.", true);
+    return;
+  }
+
+  const allApprovers = await fetchApprovers();
+  const approver = allApprovers.find((a) => a._id === approverId);
+
+  if (approver) {
+    const existingApprover = state.currentEditDoc.stages[
+      stageIndex
+    ].approvers.find((a) => a.approver === approverId);
+
+    if (existingApprover) {
+      showMessage("Người phê duyệt này đã được thêm vào giai đoạn này.", true);
+      return;
+    }
+
+    state.currentEditDoc.stages[stageIndex].approvers.push({
+      approver: approverId,
+      username: approver.username,
+      subRole: subRole.trim(),
+    });
+
+    document.getElementById(`genericStageApproverSelect${stageIndex}`).value =
+      "";
+    document.getElementById(`genericStageApproverSubRole${stageIndex}`).value =
+      "";
+
+    renderGenericStages();
+    showMessage(`Đã thêm người phê duyệt vào giai đoạn ${stageIndex + 1}.`);
+  }
+};
+
+const removeGenericStageApprover = (stageIndex, approverId) => {
+  if (
+    state.currentEditDoc.stages &&
+    state.currentEditDoc.stages.length > stageIndex
+  ) {
+    const stage = state.currentEditDoc.stages[stageIndex];
+
+    if (stage.approvers.length === 1) {
+      showMessage(
+        "Không thể xóa người phê duyệt cuối cùng. Mỗi giai đoạn phải có ít nhất một người phê duyệt.",
+        true,
+      );
+      return;
+    }
+
+    const approverToRemove = stage.approvers.find(
+      (a) => a.approver === approverId,
+    );
+    const hasAlreadyApproved = stage.approvedBy.some(
+      (a) => a.username === approverToRemove?.username,
+    );
+
+    if (hasAlreadyApproved) {
+      showMessage(
+        "Không thể xóa người phê duyệt đã thực hiện phê duyệt.",
+        true,
+      );
+      return;
+    }
+
+    if (!confirm("Bạn có chắc chắn muốn xóa người phê duyệt này không?")) {
+      return;
+    }
+
+    state.currentEditDoc.stages[stageIndex].approvers = stage.approvers.filter(
+      (a) => a.approver !== approverId,
+    );
+    renderGenericStages();
+    showMessage("Đã xóa người phê duyệt khỏi giai đoạn.");
+  }
+};
+
 const renderCurrentFiles = (files) => {
   const currentFilesList = document.getElementById("currentFilesList");
 
@@ -1242,6 +1701,10 @@ const handleEditSubmit = async (event) => {
   );
   formData.append("notes", document.getElementById("editNotes").value);
   formData.append("approvers", JSON.stringify(state.currentApprovers));
+
+  if (state.currentEditDoc.stages) {
+    formData.append("stages", JSON.stringify(state.currentEditDoc.stages));
+  }
 
   if (state.currentEditDoc.fileMetadata) {
     formData.append(
@@ -1362,6 +1825,48 @@ const showFullView = async (docId) => {
         ${filesSection}
       </div>
       
+      ${
+        doc.stages && doc.stages.length > 0
+          ? `
+      <div class="full-view-section">
+        <h3><i class="fas fa-layer-group"></i> Các giai đoạn</h3>
+        <div class="stages-container">
+          ${doc.stages
+            .map(
+              (stage, index) => `
+            <div class="stage-item ${stage.status.toLowerCase()}">
+              <div class="stage-header">
+                <h4>Giai đoạn: ${stage.name}</h4>
+                <span class="status-badge">${
+                  stage.status === "Approved"
+                    ? "Đã phê duyệt"
+                    : stage.status === "Suspended"
+                      ? "Từ chối"
+                      : "Chưa phê duyệt"
+                }</span>
+              </div>
+              <div class="stage-details">
+                <div><strong>Mô tả:</strong> ${stage.description || "Không có"}</div>
+                ${
+                  stage.status === "Suspended" && stage.suspendReason
+                    ? `<div><strong>Lý do từ chối:</strong> ${stage.suspendReason}</div>`
+                    : ""
+                }
+              </div>
+              <div class="stage-approval-status">
+                <h5>Trạng thái phê duyệt:</h5>
+                ${renderStageApprovalStatus(stage.approvers, stage.approvedBy)}
+              </div>
+            </div>
+          `,
+            )
+            .join("")}
+        </div>
+      </div>
+      `
+          : ""
+      }
+      
       <div class="full-view-section">
         <h3><i class="fas fa-tasks"></i> Trạng thái</h3>
         <div class="detail-grid">
@@ -1430,6 +1935,7 @@ const exportSelectedToExcel = () => {
         .map((a) => `${a.username} - ${a.approvalDate}`)
         .join(", "),
       "Số tệp đính kèm": doc.fileMetadata?.length || 0,
+      "Số giai đoạn": doc.stages?.length || 0,
     }));
 
     const overviewWs = XLSX.utils.json_to_sheet(overviewData);
@@ -1491,6 +1997,57 @@ const exportSelectedToExcel = () => {
           "Loại thông tin": "Tệp đính kèm",
           "Chi tiết": "Không có tệp tin",
           "Giá trị": "",
+        });
+      }
+
+      if (doc.stages && doc.stages.length > 0) {
+        detailedData.push({
+          STT: "",
+          "Mã phiếu": "",
+          "Loại thông tin": "=== CÁC GIAI ĐOẠN ===",
+          "Chi tiết": "",
+          "Giá trị": "",
+        });
+
+        doc.stages.forEach((stage, stageIndex) => {
+          detailedData.push({
+            STT: "",
+            "Mã phiếu": "",
+            "Loại thông tin": `Giai đoạn ${stageIndex + 1}`,
+            "Chi tiết": stage.name || "",
+            "Giá trị": "",
+          });
+
+          detailedData.push({
+            STT: "",
+            "Mã phiếu": "",
+            "Loại thông tin": `  Mô tả`,
+            "Chi tiết": stage.description || "Không có",
+            "Giá trị": "",
+          });
+
+          detailedData.push({
+            STT: "",
+            "Mã phiếu": "",
+            "Loại thông tin": `  Trạng thái`,
+            "Chi tiết":
+              stage.status === "Approved"
+                ? "Đã phê duyệt"
+                : stage.status === "Suspended"
+                  ? "Từ chối"
+                  : "Chưa phê duyệt",
+            "Giá trị": "",
+          });
+
+          if (stage.suspendReason) {
+            detailedData.push({
+              STT: "",
+              "Mã phiếu": "",
+              "Loại thông tin": `  Lý do từ chối`,
+              "Chi tiết": stage.suspendReason,
+              "Giá trị": "",
+            });
+          }
         });
       }
 
@@ -1844,16 +2401,6 @@ const setupEventListeners = () => {
   }
 };
 
-// Initialize the application
-const initialize = async () => {
-  await fetchCurrentUser();
-  await populateGroupMultiSelect();
-  initializeMultiSelect();
-  setupEventListeners();
-  setupCustomFilterHandlers();
-  await fetchGenericDocuments();
-};
-
 // Make functions available globally
 window.changePage = changePage;
 window.goToPage = goToPage;
@@ -1873,5 +2420,23 @@ window.addNewApprover = addNewApprover;
 window.removeExistingFile = removeExistingFile;
 window.closeSuspendModal = closeSuspendModal;
 window.closeMassDeclarationModal = closeMassDeclarationModal;
+window.approveGenericStage = approveGenericStage;
+window.suspendGenericStage = suspendGenericStage;
+window.openGenericStage = openGenericStage;
+window.addGenericStage = addGenericStage;
+window.removeGenericStage = removeGenericStage;
+window.updateGenericStageField = updateGenericStageField;
+window.addGenericStageApprover = addGenericStageApprover;
+window.removeGenericStageApprover = removeGenericStageApprover;
+
+// Initialize the application
+const initialize = async () => {
+  await fetchCurrentUser();
+  await populateGroupMultiSelect();
+  initializeMultiSelect();
+  setupEventListeners();
+  setupCustomFilterHandlers();
+  await fetchGenericDocuments();
+};
 
 document.addEventListener("DOMContentLoaded", initialize);

@@ -620,6 +620,25 @@ router.post(
   authMiddleware,
   documentController.massUpdateDocumentDeclaration,
 );
+
+// Stage approval routes for generic documents
+router.post(
+  "/approveGenericStage/:docId/:stageIndex",
+  authMiddleware,
+  documentController.approveGenericStage,
+);
+
+router.post(
+  "/suspendGenericStage/:docId/:stageIndex",
+  authMiddleware,
+  documentController.suspendGenericStage,
+);
+
+router.post(
+  "/openGenericStage/:docId/:stageIndex",
+  authMiddleware,
+  documentController.openGenericStage,
+);
 //// END OF GENERIC DOCUMENT ROUTE
 
 //// SUMMARY ROUTES
