@@ -43,6 +43,10 @@ function sortUsers(users, column, direction) {
         valueA = a.baseSalary || 0;
         valueB = b.baseSalary || 0;
         break;
+      case "dayOff":
+        valueA = a.dayOff || 0;
+        valueB = b.dayOff || 0;
+        break;
       case "grossSalary":
         valueA = a.grossSalary || 0;
         valueB = b.grossSalary || 0;
@@ -109,7 +113,6 @@ function toggleSelectAll() {
   renderUsers();
 }
 
-// Lock salary calculation for selected users
 async function lockSalaryCalculation() {
   if (selectedUsers.size === 0) {
     showError("Vui lòng chọn ít nhất một nhân viên để khóa");
@@ -154,7 +157,6 @@ async function lockSalaryCalculation() {
   }
 }
 
-// Unlock salary calculation for selected users
 async function unlockSalaryCalculation() {
   if (selectedUsers.size === 0) {
     showError("Vui lòng chọn ít nhất một nhân viên để mở khóa");
@@ -252,6 +254,7 @@ async function exportToExcel() {
     "Thưởng khác",
     "Trách nhiệm",
     "Phụ cấp chung",
+    "Ngày nghỉ (KL)",
     "Giờ tăng ca trong tuần",
     "Giờ tăng ca Chủ Nhật",
     "Giờ tăng ca ngày lễ",
@@ -285,6 +288,7 @@ async function exportToExcel() {
     safeFormat(user.otherBonus),
     safeFormat(user.responsibility),
     safeFormat(user.allowanceGeneral || 0),
+    safeFormat(user.dayOff || 0),
     safeFormat(user.weekdayOvertimeHour),
     safeFormat(user.weekendOvertimeHour),
     safeFormat(user.holidayOvertimeHour),
@@ -373,7 +377,7 @@ async function viewUserHistory(userId, username, realName) {
     document.getElementById("history-username").textContent = username;
     document.getElementById("history-table-body").innerHTML = `
       <tr>
-        <td colspan="22" style="text-align: center; padding: 20px;">
+        <td colspan="23" style="text-align: center; padding: 20px;">
           Đang tải dữ liệu...
         </td>
       </tr>
@@ -402,7 +406,7 @@ async function viewUserHistory(userId, username, realName) {
     console.error("Error loading history:", error);
     document.getElementById("history-table-body").innerHTML = `
       <tr>
-        <td colspan="22" style="text-align: center; color: #dc3545; padding: 20px;">
+        <td colspan="23" style="text-align: center; color: #dc3545; padding: 20px;">
           Lỗi khi tải lịch sử: ${error.message}
         </td>
       </tr>
@@ -417,7 +421,7 @@ function renderHistoryTable(records) {
   if (records.length === 0) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="22" style="text-align: center; padding: 20px;">
+        <td colspan="23" style="text-align: center; padding: 20px;">
           Không có dữ liệu lịch sử lương
         </td>
       </tr>
@@ -440,6 +444,7 @@ function renderHistoryTable(records) {
       <td style="text-align: right;">${formatNumber(record.responsibility)}</td>
       <td style="text-align: right;">${formatNumber(record.otherBonus)}</td>
       <td style="text-align: right;">${formatNumber(record.allowanceGeneral || 0)}</td>
+      <td style="text-align: center;">${record.dayOff || 0}</td>
       <td style="text-align: center;">${record.weekdayOvertimeHour || 0}</td>
       <td style="text-align: center;">${record.weekendOvertimeHour || 0}</td>
       <td style="text-align: center;">${record.holidayOvertimeHour || 0}</td>
@@ -483,6 +488,7 @@ async function exportHistoryToExcel() {
     "Trách nhiệm",
     "Thưởng khác",
     "Phụ cấp chung",
+    "Ngày nghỉ (KL)",
     "Giờ tăng ca trong tuần",
     "Giờ tăng ca Chủ Nhật",
     "Giờ tăng ca ngày lễ",
@@ -508,6 +514,7 @@ async function exportHistoryToExcel() {
     formatNumber(record.responsibility),
     formatNumber(record.otherBonus),
     formatNumber(record.allowanceGeneral || 0),
+    formatNumber(record.dayOff || 0),
     formatNumber(record.weekdayOvertimeHour),
     formatNumber(record.weekendOvertimeHour),
     formatNumber(record.holidayOvertimeHour),
@@ -894,7 +901,7 @@ function renderUsers() {
   updateSortIndicators();
 
   if (currentFilteredUsers.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="29" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
+    tbody.innerHTML = `</tr><td colspan="30" style="text-align:center;">Không tìm thấy nhân viên nào</td></tr>`;
     return;
   }
 
@@ -955,6 +962,7 @@ function renderUsers() {
       <td>${formatNumber(user.otherBonus)}</td>
       <td>${formatNumber(user.responsibility)}</td>
       <td>${formatNumber(user.allowanceGeneral || 0)}</td>
+      <td>${user.dayOff || 0}</td>
       <td>${user.weekdayOvertimeHour || 0}</td>
       <td>${user.weekendOvertimeHour || 0}</td>
       <td>${user.holidayOvertimeHour || 0}</td>
@@ -1007,6 +1015,7 @@ async function addUser(e) {
     ),
     allowanceGeneral:
       parseFloat(document.getElementById("new-allowance-general").value) || 0,
+    dayOff: parseFloat(document.getElementById("new-day-off").value) || 0,
     weekdayOvertimeHour: parseFloat(
       document.getElementById("new-weekday-overtime").value,
     ),
@@ -1073,6 +1082,7 @@ async function editUser(id) {
   document.getElementById("edit-responsibility").value = user.responsibility;
   document.getElementById("edit-allowance-general").value =
     user.allowanceGeneral || 0;
+  document.getElementById("edit-day-off").value = user.dayOff || 0;
   document.getElementById("edit-weekday-overtime").value =
     user.weekdayOvertimeHour;
   document.getElementById("edit-weekend-overtime").value =
@@ -1138,6 +1148,7 @@ async function updateUser(e) {
     ),
     allowanceGeneral:
       parseFloat(document.getElementById("edit-allowance-general").value) || 0,
+    dayOff: parseFloat(document.getElementById("edit-day-off").value) || 0,
     weekdayOvertimeHour: parseFloat(
       document.getElementById("edit-weekday-overtime").value,
     ),
@@ -1197,15 +1208,12 @@ function showToast(message, type) {
   let toast = document.querySelector(".toast-notification");
   if (!toast) {
     toast = document.createElement("div");
-    // Attach to page root so position:fixed works regardless of scroll
     document.querySelector(".salary-calculation-page").appendChild(toast);
   }
 
-  // Reset classes and set new type
   toast.className = `toast-notification toast-${type}`;
   toast.textContent = message;
 
-  // Force reflow so the slide-in transition fires even if toast is already showing
   void toast.offsetWidth;
   toast.classList.add("toast-visible");
 

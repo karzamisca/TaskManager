@@ -79,7 +79,7 @@ exports.getManagers = async (req, res) => {
 
     const managers = await User.find({
       role: { $in: privilegedRoles },
-    }).select("_id username role"); // Only return necessary fields
+    }).select("_id username role");
 
     res.json(managers);
   } catch (err) {
@@ -87,7 +87,6 @@ exports.getManagers = async (req, res) => {
   }
 };
 
-// Get all users except privileged roles
 exports.getAllUsers = async (req, res) => {
   try {
     const privilegedRoles = [
@@ -97,21 +96,19 @@ exports.getAllUsers = async (req, res) => {
       "headOfAccounting",
     ];
 
-    // Always exclude privileged roles from results
     const baseQuery = {
       role: { $nin: privilegedRoles },
     };
 
     let finalQuery = { ...baseQuery };
 
-    // If user is not in privileged roles, only show users they manage
     if (!privilegedRoles.includes(req.user.role)) {
       finalQuery.assignedManager = req._id;
     }
 
     const users = await User.find(finalQuery).populate("costCenter").populate({
       path: "assignedManager",
-      select: "username role", // Only return these fields for manager
+      select: "username role",
     });
 
     res.json(users);
@@ -189,6 +186,7 @@ exports.createUser = async (req, res) => {
       email,
       facebookUserId,
       allowanceGeneral,
+      dayOff,
     } = req.body;
 
     const existingUser = await User.findOne({ username });
@@ -222,12 +220,14 @@ exports.createUser = async (req, res) => {
       allowanceGeneral: allowanceGeneral || 0,
       email: email || "",
       facebookUserId: facebookUserId || "",
+      dayOff: dayOff || 0,
     });
 
     const savedUser = await newUser.save();
     await savedUser.populate("costCenter");
     res.status(201).json(savedUser);
   } catch (err) {
+    console.error("Create user error:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -271,6 +271,7 @@ exports.updateUser = async (req, res) => {
       email,
       facebookUserId,
       allowanceGeneral,
+      dayOff,
     } = req.body;
 
     const user = await User.findById(req.params.id);
@@ -301,9 +302,7 @@ exports.updateUser = async (req, res) => {
       user.bankAccountNumber = bankAccountNumber.toString();
     if (citizenID !== undefined) user.citizenID = citizenID.toString();
     if (baseSalary !== undefined) user.baseSalary = baseSalary;
-    if (commissionBonus !== undefined) {
-      user.commissionBonus = commissionBonus;
-    }
+    if (commissionBonus !== undefined) user.commissionBonus = commissionBonus;
     if (responsibility !== undefined) user.responsibility = responsibility;
     if (otherBonus !== undefined) user.otherBonus = otherBonus;
     if (weekdayOvertimeHour !== undefined)
@@ -318,6 +317,8 @@ exports.updateUser = async (req, res) => {
     if (facebookUserId !== undefined) user.facebookUserId = facebookUserId;
     if (allowanceGeneral !== undefined)
       user.allowanceGeneral = allowanceGeneral;
+    if (dayOff !== undefined) user.dayOff = dayOff;
+
     if (assignedManager) {
       const managerExists = await User.findById(assignedManager);
       if (!managerExists) {
@@ -325,6 +326,7 @@ exports.updateUser = async (req, res) => {
       }
       user.assignedManager = assignedManager;
     }
+
     if (req.body.dependantCount !== undefined) {
       user.dependantCount = req.body.dependantCount;
     }
@@ -333,6 +335,7 @@ exports.updateUser = async (req, res) => {
     await updatedUser.populate("costCenter");
     res.json(updatedUser);
   } catch (err) {
+    console.error("Update user error:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -372,11 +375,8 @@ exports.getAllCostCenters = async (req, res) => {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
-    // Fetch all cost centers
     const costCenters = await CostCenter.find();
 
-    // Sort the cost centers alphabetically by name
-    // Assuming each cost center has a 'name' field - adjust if your field is named differently
     const sortedCostCenters = costCenters.sort((a, b) => {
       return a.name.localeCompare(b.name);
     });
@@ -417,10 +417,8 @@ exports.getAllUserMonthlyRecord = async (req, res) => {
       "headOfAccounting",
     ];
 
-    // Create base query to exclude privileged roles
     let matchQuery = {};
 
-    // If user is not in privileged roles, only show records they manage
     if (!privilegedRoles.includes(req.user.role)) {
       matchQuery.assignedManager = req.user._id;
     }
@@ -429,7 +427,7 @@ exports.getAllUserMonthlyRecord = async (req, res) => {
       .populate({
         path: "userId",
         select: "username role",
-        match: { role: { $nin: privilegedRoles } }, // Exclude privileged users
+        match: { role: { $nin: privilegedRoles } },
       })
       .populate("costCenter", "name")
       .populate({
@@ -438,9 +436,6 @@ exports.getAllUserMonthlyRecord = async (req, res) => {
       })
       .sort({ recordYear: -1, recordMonth: -1 });
 
-    // Filter out records where:
-    // 1. userId is null (due to populate match filter)
-    // 2. assignedManager has role "superAdmin"
     const filteredRecords = records.filter(
       (record) =>
         record.userId !== null && record.assignedManager?.role !== "superAdmin",
@@ -452,7 +447,7 @@ exports.getAllUserMonthlyRecord = async (req, res) => {
   }
 };
 
-// Updated reliable font URLs from Google Fonts
+// Font URLs and helper functions
 const FONT_URLS = {
   normal: "https://fonts.googleapis.com/css2?family=Roboto&display=swap",
   bold: "https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap",
@@ -462,10 +457,8 @@ const FONT_URLS = {
     "https://fonts.googleapis.com/css2?family=Roboto:ital,wght@1,700&display=swap",
 };
 
-// Directory to cache downloaded fonts
 const FONT_CACHE_DIR = path.join(__dirname, "../font_cache");
 
-// Ensure cache directory exists
 if (!fs.existsSync(FONT_CACHE_DIR)) {
   fs.mkdirSync(FONT_CACHE_DIR);
 }
@@ -474,7 +467,6 @@ async function getFontUrl(type) {
   try {
     const response = await axios.get(FONT_URLS[type]);
     const css = response.data;
-    // Extract the actual font URL from the CSS
     const fontUrl = css.match(/src:\s*url\(([^)]+)\)/)[1];
     return fontUrl.replace(/^['"]|['"]$/g, "");
   } catch (error) {
@@ -486,21 +478,15 @@ async function getFontUrl(type) {
 async function downloadFont(type) {
   const fontPath = path.join(FONT_CACHE_DIR, `Roboto-${type}.ttf`);
 
-  // Return cached font if exists
   if (fs.existsSync(fontPath)) {
     return fontPath;
   }
 
   try {
-    // First get the actual font URL from Google Fonts CSS
     const fontUrl = await getFontUrl(type);
-
-    // Download the font file
     const response = await axios.get(fontUrl, {
       responseType: "arraybuffer",
     });
-
-    // Save to cache
     fs.writeFileSync(fontPath, response.data);
     return fontPath;
   } catch (error) {
@@ -533,7 +519,6 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       beneficiaryBankReverse,
     } = req.query;
 
-    // Validate input - only year is required
     if (!year) {
       return res.status(400).json({ message: "Thiếu năm" });
     }
@@ -551,44 +536,36 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       "headOfAccounting",
     ];
 
-    // Build base query
     const query = {
       recordYear: parseInt(year),
     };
 
-    // Add month filter if provided
     if (month) {
       query.recordMonth = parseInt(month);
     }
 
-    // If user is not in full access roles, only show records they manage
     if (!fullAccessRoles.includes(req.user.role)) {
       query.assignedManager = req.user._id;
     }
 
-    // Get records with population first
     let records = await UserMonthlyRecord.find(query)
       .populate({
         path: "userId",
         select: "username role realName",
-        match: { role: { $nin: privilegedRoles } }, // Exclude privileged users
+        match: { role: { $nin: privilegedRoles } },
       })
       .populate("costCenter")
       .populate({
         path: "assignedManager",
         select: "role",
       })
-      .sort({ recordMonth: 1, realName: 1 }); // Sort by month, then name
+      .sort({ recordMonth: 1, realName: 1 });
 
-    // Filter out records where:
-    // 1. userId is null (due to populate match filter)
-    // 2. assignedManager has role "superAdmin"
     records = records.filter(
       (record) =>
         record.userId !== null && record.assignedManager?.role !== "superAdmin",
     );
 
-    // Apply cost center filter AFTER population
     if (costCenter) {
       if (costCenterReverse === "true") {
         records = records.filter(
@@ -601,7 +578,6 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       }
     }
 
-    // Apply beneficiary bank filter
     if (beneficiaryBank) {
       if (beneficiaryBankReverse === "true") {
         records = records.filter(
@@ -628,25 +604,20 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
         .json({ message: "Không tìm thấy bản ghi nào phù hợp" });
     }
 
-    // Sort records by month, then by costCenter name, then by realName
     records.sort((a, b) => {
-      // First sort by month
       if (a.recordMonth < b.recordMonth) return -1;
       if (a.recordMonth > b.recordMonth) return 1;
 
-      // If same month, sort by cost center
       const costCenterA = a.costCenter?.name || "";
       const costCenterB = b.costCenter?.name || "";
       if (costCenterA < costCenterB) return -1;
       if (costCenterA > costCenterB) return 1;
 
-      // If same cost center, sort by name
       const nameA = a.realName || "";
       const nameB = b.realName || "";
       return nameA.localeCompare(nameB);
     });
 
-    // Download fonts with error handling
     let fonts;
     try {
       const [normal, bold, italics, bolditalics] = await Promise.all([
@@ -666,7 +637,6 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       };
     } catch (fontError) {
       console.error("Font download failed, using fallback fonts:", fontError);
-      // Fallback to built-in PDFMake fonts if download fails
       fonts = {
         Roboto: {
           normal: "Helvetica",
@@ -679,7 +649,6 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
 
     const printer = new PdfPrinter(fonts);
 
-    // Prepare document content - modified for year report
     const reportTitle = month
       ? `DANH SÁCH CHI LƯƠNG THÁNG ${month} NĂM ${year}`
       : `DANH SÁCH CHI LƯƠNG NĂM ${year}`;
@@ -688,7 +657,6 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       ? `(Kèm theo Hợp đồng Dịch vụ chi lương số 41/HDCL-HDBCH ngày 15 tháng 09 năm 2022 được kì kết giữa Ngân Hàng TMCP Phát Triển TP. Hồ Chí Minh – Chi nhánh Cộng Hòa và Công ty TNHH Đầu Tư Thương Mại Dịch Vụ Kỳ Long)`
       : `Báo cáo chi lương cả năm ${year}`;
 
-    // Calculate totals for summary
     const totalSalary = records.reduce(
       (sum, record) => sum + Math.ceil(record.currentSalary),
       0,
@@ -702,7 +670,6 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       0,
     );
 
-    // Prepare content array
     const content = [
       {
         text: reportTitle,
@@ -718,7 +685,6 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       },
     ];
 
-    // Main table for monthly records
     content.push({
       table: {
         headerRows: 1,
@@ -784,7 +750,6 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
             ];
 
             if (month) {
-              // Monthly report layout
               baseRow.push(
                 {
                   text: record.costCenter?.name || "N/A",
@@ -801,7 +766,6 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
                 },
               );
             } else {
-              // Yearly report layout
               baseRow.push(
                 {
                   text: record.recordMonth.toString(),
@@ -840,19 +804,13 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       },
     });
 
-    // Add summary table for yearly report only
     if (!month) {
-      // Create summary data: total salary per user per year
-      // Use the records that are already filtered and displayed in the main table
       const userSummary = {};
 
       records.forEach((record) => {
-        // Use realName from the record (already available)
         const userName = record.realName || "N/A";
         const costCenterName = record.costCenter?.name || "N/A";
         const salary = Math.ceil(record.currentSalary);
-
-        // Create a unique key using name and cost center to group by user
         const userKey = `${userName}-${costCenterName}`;
 
         if (!userSummary[userKey]) {
@@ -868,37 +826,30 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
         userSummary[userKey].monthsWorked.add(record.recordMonth);
       });
 
-      // Convert to array and sort by costCenter, then by name
       const summaryArray = Object.values(userSummary).map((user) => ({
         ...user,
         monthsCount: user.monthsWorked.size,
       }));
 
       summaryArray.sort((a, b) => {
-        // First sort by cost center
         const costCenterA = a.costCenter || "";
         const costCenterB = b.costCenter || "";
         if (costCenterA < costCenterB) return -1;
         if (costCenterA > costCenterB) return 1;
-
-        // If same cost center, sort by name
         return a.userName.localeCompare(b.userName);
       });
 
-      // Calculate total summary salary
       const summaryTotalSalary = summaryArray.reduce(
         (sum, user) => sum + user.totalSalary,
         0,
       );
 
-      // Add spacing before summary table
       content.push({
         text: "TỔNG HỢP LƯƠNG CẢ NĂM THEO NHÂN VIÊN",
         style: "summaryHeader",
         margin: [0, 20, 0, 10],
       });
 
-      // Add summary table
       content.push({
         table: {
           headerRows: 1,
@@ -945,9 +896,9 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
                 colSpan: 4,
                 alignment: "center",
               },
-              {}, // empty for colspan
-              {}, // empty for colspan
-              {}, // empty for colspan
+              {},
+              {},
+              {},
               {
                 text: summaryTotalSalary.toLocaleString("vi-VN"),
                 style: "tableHeader",
@@ -972,7 +923,6 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
         },
       });
 
-      // Add yearly summary section
       content.push({
         text: [
           { text: "TỔNG HỢP NĂM:\n", style: "summaryHeader" },
@@ -998,14 +948,12 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       });
     }
 
-    // Add total salary row
     content.push({
       text: `Tổng lương thực lĩnh: ${totalSalary.toLocaleString("vi-VN")} VND`,
       style: "total",
       margin: [0, 15, 0, 0],
     });
 
-    // Add signature
     content.push({
       columns: [
         {
@@ -1078,10 +1026,8 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       },
     };
 
-    // Create PDF stream
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
 
-    // Set response headers
     let fileName = month
       ? `ChiLuong_Thang${month}_${year}`
       : `ChiLuong_Nam${year}`;
@@ -1106,7 +1052,6 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
       `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`,
     );
 
-    // Stream the PDF to the response
     pdfDoc.pipe(res);
     pdfDoc.end();
   } catch (error) {
@@ -1144,7 +1089,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       includeSummary,
     } = req.query;
 
-    // Validate input - only year is required
     if (!year) {
       return res.status(400).json({ message: "Thiếu năm" });
     }
@@ -1162,27 +1106,23 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       "headOfAccounting",
     ];
 
-    // Build base query
     const query = {
       recordYear: parseInt(year),
     };
 
-    // Add month filter if provided
     if (month) {
       query.recordMonth = parseInt(month);
     }
 
-    // If user is not in full access roles, only show records they manage
     if (!fullAccessRoles.includes(req.user.role)) {
       query.assignedManager = req.user._id;
     }
 
-    // Get records with population first
     let records = await UserMonthlyRecord.find(query)
       .populate({
         path: "userId",
         select: "username role realName",
-        match: { role: { $nin: privilegedRoles } }, // Exclude privileged users
+        match: { role: { $nin: privilegedRoles } },
       })
       .populate("costCenter")
       .populate({
@@ -1191,15 +1131,11 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       })
       .sort({ recordMonth: 1, realName: 1 });
 
-    // Filter out records where:
-    // 1. userId is null (due to populate match filter)
-    // 2. assignedManager has role "superAdmin"
     records = records.filter(
       (record) =>
         record.userId !== null && record.assignedManager?.role !== "superAdmin",
     );
 
-    // Apply cost center filter AFTER population
     if (costCenter) {
       if (costCenterReverse === "true") {
         records = records.filter(
@@ -1212,7 +1148,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       }
     }
 
-    // Apply beneficiary bank filter
     if (beneficiaryBank) {
       if (beneficiaryBankReverse === "true") {
         records = records.filter(
@@ -1233,7 +1168,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       }
     }
 
-    // Apply realName filter
     if (realName) {
       if (realNameReverse === "true") {
         records = records.filter(
@@ -1256,7 +1190,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         .json({ message: "Không tìm thấy bản ghi nào phù hợp" });
     }
 
-    // Group records by cost center, then by user (similar to HTML view)
     const groupedRecords = {};
 
     records.forEach((record) => {
@@ -1274,19 +1207,16 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       groupedRecords[costCenterName][userName].push(record);
     });
 
-    // Sort cost centers alphabetically
     const sortedCostCenters = Object.keys(groupedRecords).sort();
 
-    // Create a new workbook
     const workbook = new ExcelJS.Workbook();
     const worksheetName = month
       ? `Chi tiết lương tháng ${month}-${year}`
       : `Chi tiết lương năm ${year}`;
     const worksheet = workbook.addWorksheet(worksheetName);
 
-    // Set page setup for better printing
     worksheet.pageSetup = {
-      paperSize: 9, // A4
+      paperSize: 9,
       orientation: "landscape",
       fitToPage: true,
       fitToWidth: 1,
@@ -1301,12 +1231,11 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       },
     };
 
-    // Add main title
     const reportTitle = month
       ? `BÁO CÁO CHI TIẾT LƯƠNG THÁNG ${month} NĂM ${year}`
       : `BÁO CÁO CHI TIẾT LƯƠNG NĂM ${year}`;
 
-    const columnsCount = 20; // Updated from 19 to 20 for allowanceGeneral
+    const columnsCount = 21; // Increased from 20 to 21 for dayOff
 
     worksheet.mergeCells(`A1:${String.fromCharCode(64 + columnsCount)}1`);
     worksheet.getCell("A1").value = reportTitle;
@@ -1317,7 +1246,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     };
     worksheet.getRow(1).height = 25;
 
-    // Add subtitle
     worksheet.mergeCells(`A2:${String.fromCharCode(64 + columnsCount)}3`);
     const description = month
       ? "(Kèm theo Hợp đồng Dịch vụ chi lương số 41/HDCL-HDBCH ngày 15 tháng 09 năm 2022)"
@@ -1333,10 +1261,8 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     worksheet.getRow(2).height = 30;
     worksheet.getRow(3).height = 15;
 
-    // Add empty row for spacing
     worksheet.addRow([]);
 
-    // Define headers for all fields
     const headers = [
       { header: "STT", key: "stt", width: 4 },
       { header: "Họ và tên", key: "name", width: 18 },
@@ -1348,7 +1274,8 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       { header: "Công tác phí", key: "travelExpense", width: 11 },
       { header: "Hoa hồng", key: "commissionBonus", width: 11 },
       { header: "Thưởng khác", key: "otherBonus", width: 11 },
-      { header: "Phụ cấp chung", key: "allowanceGeneral", width: 11 }, // Added allowanceGeneral
+      { header: "Phụ cấp chung", key: "allowanceGeneral", width: 11 },
+      { header: "Ngày nghỉ (KL)", key: "dayOff", width: 10 },
       { header: "Giờ TC tuần", key: "weekdayOvertime", width: 9 },
       { header: "Giờ TC CN", key: "weekendOvertime", width: 8 },
       { header: "Giờ TC lễ", key: "holidayOvertime", width: 8 },
@@ -1360,10 +1287,8 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       { header: "Trạm", key: "costCenter", width: 15 },
     ];
 
-    // Set column widths
     worksheet.columns = headers;
 
-    // Add header row (row 5)
     const headerRow = worksheet.getRow(5);
     headers.forEach((header, index) => {
       const cell = headerRow.getCell(index + 1);
@@ -1388,7 +1313,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     });
     headerRow.height = 25;
 
-    // Initialize totals
     let totalRecords = 0;
     let totalBaseSalary = 0;
     let totalHourlyWage = 0;
@@ -1396,7 +1320,8 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     let totalTravelExpense = 0;
     let totalCommissionBonus = 0;
     let totalOtherBonus = 0;
-    let totalAllowanceGeneral = 0; // Added for allowanceGeneral
+    let totalAllowanceGeneral = 0;
+    let totalDayOff = 0;
     let totalWeekdayOvertime = 0;
     let totalWeekendOvertime = 0;
     let totalHolidayOvertime = 0;
@@ -1406,17 +1331,14 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     let totalTax = 0;
     let totalCurrentSalary = 0;
 
-    let currentRow = 6; // Start after header row
+    let currentRow = 6;
     let globalIndex = 1;
 
-    // Process each cost center group
     sortedCostCenters.forEach((costCenterName, costCenterIndex) => {
-      // Add cost center header row
       const costCenterRow = worksheet.getRow(currentRow++);
       costCenterRow.height = 22;
 
-      // Merge all cells for cost center header
-      worksheet.mergeCells(`A${currentRow - 1}:T${currentRow - 1}`); // Updated from S to T
+      worksheet.mergeCells(`A${currentRow - 1}:U${currentRow - 1}`);
       costCenterRow.getCell(1).value = `TRẠM ${
         costCenterIndex + 1
       }: ${costCenterName}`;
@@ -1436,7 +1358,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         vertical: "middle",
       };
 
-      // Style all cells in the cost center row
       for (let i = 1; i <= columnsCount; i++) {
         costCenterRow.getCell(i).fill = {
           type: "pattern",
@@ -1451,24 +1372,19 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         };
       }
 
-      // Get users in this cost center and sort them alphabetically
       const usersInCostCenter = Object.keys(
         groupedRecords[costCenterName],
       ).sort();
 
-      // Process each user in this cost center
       usersInCostCenter.forEach((userName, userIndex) => {
         const userRecords = groupedRecords[costCenterName][userName];
 
-        // Sort user's records by month
         userRecords.sort((a, b) => a.recordMonth - b.recordMonth);
 
-        // Add user group header row
         const userHeaderRow = worksheet.getRow(currentRow++);
         userHeaderRow.height = 20;
 
-        // Merge all cells for user header
-        worksheet.mergeCells(`A${currentRow - 1}:T${currentRow - 1}`); // Updated from S to T
+        worksheet.mergeCells(`A${currentRow - 1}:U${currentRow - 1}`);
         userHeaderRow.getCell(1).value = `Nhân viên ${
           userIndex + 1
         }: ${userName}${costCenterName ? ` - ${costCenterName}` : ""}`;
@@ -1487,7 +1403,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
           vertical: "middle",
         };
 
-        // Style all cells in the user header row
         for (let i = 1; i <= columnsCount; i++) {
           userHeaderRow.getCell(i).fill = {
             type: "pattern",
@@ -1502,14 +1417,14 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
           };
         }
 
-        // Add individual records for this user
         let userTotalBaseSalary = 0;
         let userTotalHourlyWage = 0;
         let userTotalResponsibility = 0;
         let userTotalTravelExpense = 0;
         let userTotalCommissionBonus = 0;
         let userTotalOtherBonus = 0;
-        let userTotalAllowanceGeneral = 0; // Added for allowanceGeneral
+        let userTotalAllowanceGeneral = 0;
+        let userTotalDayOff = 0;
         let userTotalWeekdayOvertime = 0;
         let userTotalWeekendOvertime = 0;
         let userTotalHolidayOvertime = 0;
@@ -1531,7 +1446,8 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
             travelExpense: Math.ceil(record.travelExpense || 0),
             commissionBonus: Math.ceil(record.commissionBonus || 0),
             otherBonus: Math.ceil(record.otherBonus || 0),
-            allowanceGeneral: Math.ceil(record.allowanceGeneral || 0), // Added allowanceGeneral
+            allowanceGeneral: Math.ceil(record.allowanceGeneral || 0),
+            dayOff: record.dayOff || 0,
             weekdayOvertime: record.weekdayOvertimeHour || 0,
             weekendOvertime: record.weekendOvertimeHour || 0,
             holidayOvertime: record.holidayOvertimeHour || 0,
@@ -1543,14 +1459,14 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
             costCenter: record.costCenter?.name || "N/A",
           };
 
-          // Accumulate user totals
           userTotalBaseSalary += rowData.baseSalary;
           userTotalHourlyWage += rowData.hourlyWage;
           userTotalResponsibility += rowData.responsibility;
           userTotalTravelExpense += rowData.travelExpense;
           userTotalCommissionBonus += rowData.commissionBonus;
           userTotalOtherBonus += rowData.otherBonus;
-          userTotalAllowanceGeneral += rowData.allowanceGeneral; // Added
+          userTotalAllowanceGeneral += rowData.allowanceGeneral;
+          userTotalDayOff += rowData.dayOff;
           userTotalWeekdayOvertime += rowData.weekdayOvertime;
           userTotalWeekendOvertime += rowData.weekendOvertime;
           userTotalHolidayOvertime += rowData.holidayOvertime;
@@ -1560,14 +1476,14 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
           userTotalTax += rowData.tax;
           userTotalCurrentSalary += rowData.currentSalary;
 
-          // Add to global totals
           totalBaseSalary += rowData.baseSalary;
           totalHourlyWage += rowData.hourlyWage;
           totalResponsibility += rowData.responsibility;
           totalTravelExpense += rowData.travelExpense;
           totalCommissionBonus += rowData.commissionBonus;
           totalOtherBonus += rowData.otherBonus;
-          totalAllowanceGeneral += rowData.allowanceGeneral; // Added
+          totalAllowanceGeneral += rowData.allowanceGeneral;
+          totalDayOff += rowData.dayOff;
           totalWeekdayOvertime += rowData.weekdayOvertime;
           totalWeekendOvertime += rowData.weekendOvertime;
           totalHolidayOvertime += rowData.holidayOvertime;
@@ -1580,7 +1496,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
 
           const dataRow = worksheet.getRow(currentRow++);
 
-          // Set values for each cell (now 20 columns)
           dataRow.getCell(1).value = rowData.stt;
           dataRow.getCell(2).value = rowData.name;
           dataRow.getCell(3).value = rowData.month;
@@ -1591,18 +1506,18 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
           dataRow.getCell(8).value = rowData.travelExpense;
           dataRow.getCell(9).value = rowData.commissionBonus;
           dataRow.getCell(10).value = rowData.otherBonus;
-          dataRow.getCell(11).value = rowData.allowanceGeneral; // Added
-          dataRow.getCell(12).value = rowData.weekdayOvertime;
-          dataRow.getCell(13).value = rowData.weekendOvertime;
-          dataRow.getCell(14).value = rowData.holidayOvertime;
-          dataRow.getCell(15).value = rowData.overtimePay;
-          dataRow.getCell(16).value = rowData.taxableIncome;
-          dataRow.getCell(17).value = rowData.grossSalary;
-          dataRow.getCell(18).value = rowData.tax;
-          dataRow.getCell(19).value = rowData.currentSalary;
-          dataRow.getCell(20).value = rowData.costCenter;
+          dataRow.getCell(11).value = rowData.allowanceGeneral;
+          dataRow.getCell(12).value = rowData.dayOff;
+          dataRow.getCell(13).value = rowData.weekdayOvertime;
+          dataRow.getCell(14).value = rowData.weekendOvertime;
+          dataRow.getCell(15).value = rowData.holidayOvertime;
+          dataRow.getCell(16).value = rowData.overtimePay;
+          dataRow.getCell(17).value = rowData.taxableIncome;
+          dataRow.getCell(18).value = rowData.grossSalary;
+          dataRow.getCell(19).value = rowData.tax;
+          dataRow.getCell(20).value = rowData.currentSalary;
+          dataRow.getCell(21).value = rowData.costCenter;
 
-          // Format each cell in the data row
           dataRow.eachCell((cell, colNumber) => {
             cell.font = { size: 8, name: "Arial" };
             cell.border = {
@@ -1612,7 +1527,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
               right: { style: "thin", color: { argb: "FF000000" } },
             };
 
-            // Alternate row colors for readability
             if (recordIndex % 2 === 0) {
               cell.fill = {
                 type: "pattern",
@@ -1621,24 +1535,20 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
               };
             }
 
-            // Alignment based on column
             if (colNumber === 1 || colNumber === 3 || colNumber === 4) {
-              // STT, Month, Year
+              cell.alignment = { horizontal: "center", vertical: "middle" };
+            } else if (colNumber === 12) {
               cell.alignment = { horizontal: "center", vertical: "middle" };
             } else if (colNumber >= 5 && colNumber <= 11) {
-              // Salary fields (5-11): baseSalary to allowanceGeneral
               cell.alignment = { horizontal: "right", vertical: "middle" };
               cell.numFmt = "#,##0";
-            } else if (colNumber >= 12 && colNumber <= 14) {
-              // Overtime hours (12-14)
+            } else if (colNumber >= 13 && colNumber <= 15) {
               cell.alignment = { horizontal: "center", vertical: "middle" };
               cell.numFmt = "0.0";
-            } else if (colNumber >= 15 && colNumber <= 19) {
-              // Other salary fields (15-19): overtimePay to currentSalary
+            } else if (colNumber >= 16 && colNumber <= 20) {
               cell.alignment = { horizontal: "right", vertical: "middle" };
               cell.numFmt = "#,##0";
-            } else if (colNumber === 20) {
-              // Cost center
+            } else if (colNumber === 21) {
               cell.alignment = { horizontal: "left", vertical: "middle" };
             } else {
               cell.alignment = {
@@ -1652,11 +1562,9 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
           dataRow.height = 18;
         });
 
-        // Add user summary row
         const userSummaryRow = worksheet.getRow(currentRow++);
         userSummaryRow.height = 20;
 
-        // Calculate user averages
         const userRecordCount = userRecords.length;
         const userAverageCurrentSalary =
           userRecordCount > 0
@@ -1665,7 +1573,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         const userAverageTax =
           userRecordCount > 0 ? Math.round(userTotalTax / userRecordCount) : 0;
 
-        // User summary row with merged cells
         worksheet.mergeCells(`A${currentRow - 1}:B${currentRow - 1}`);
         userSummaryRow.getCell(1).value = "Tổng hợp:";
         userSummaryRow.getCell(1).font = {
@@ -1679,41 +1586,44 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
           vertical: "middle",
         };
 
-        // Set user summary values (now 20 columns)
-        userSummaryRow.getCell(3).value = ""; // Month column
-        userSummaryRow.getCell(4).value = ""; // Year column
+        userSummaryRow.getCell(3).value = "";
+        userSummaryRow.getCell(4).value = "";
         userSummaryRow.getCell(5).value = userTotalBaseSalary;
         userSummaryRow.getCell(6).value = userTotalHourlyWage;
         userSummaryRow.getCell(7).value = userTotalResponsibility;
         userSummaryRow.getCell(8).value = userTotalTravelExpense;
         userSummaryRow.getCell(9).value = userTotalCommissionBonus;
         userSummaryRow.getCell(10).value = userTotalOtherBonus;
-        userSummaryRow.getCell(11).value = userTotalAllowanceGeneral; // Added
-        userSummaryRow.getCell(12).value = userTotalWeekdayOvertime;
-        userSummaryRow.getCell(13).value = userTotalWeekendOvertime;
-        userSummaryRow.getCell(14).value = userTotalHolidayOvertime;
-        userSummaryRow.getCell(15).value = userTotalOvertimePay;
-        userSummaryRow.getCell(16).value = userTotalTaxableIncome;
-        userSummaryRow.getCell(17).value = userTotalGrossSalary;
-        userSummaryRow.getCell(18).value = userTotalTax;
-        userSummaryRow.getCell(19).value = userTotalCurrentSalary;
+        userSummaryRow.getCell(11).value = userTotalAllowanceGeneral;
+        userSummaryRow.getCell(12).value = userTotalDayOff;
+        userSummaryRow.getCell(13).value = userTotalWeekdayOvertime;
+        userSummaryRow.getCell(14).value = userTotalWeekendOvertime;
+        userSummaryRow.getCell(15).value = userTotalHolidayOvertime;
+        userSummaryRow.getCell(16).value = userTotalOvertimePay;
+        userSummaryRow.getCell(17).value = userTotalTaxableIncome;
+        userSummaryRow.getCell(18).value = userTotalGrossSalary;
+        userSummaryRow.getCell(19).value = userTotalTax;
         userSummaryRow.getCell(19).font = {
           bold: true,
           size: 9,
           name: "Arial",
         };
+        userSummaryRow.getCell(20).value = userTotalCurrentSalary;
+        userSummaryRow.getCell(20).font = {
+          bold: true,
+          size: 9,
+          name: "Arial",
+        };
 
-        // Merge last two cells for note
-        worksheet.mergeCells(`T${currentRow - 1}:U${currentRow - 1}`); // Updated from S:T to T:U
-        userSummaryRow.getCell(20).value =
+        worksheet.mergeCells(`U${currentRow - 1}:V${currentRow - 1}`);
+        userSummaryRow.getCell(21).value =
           `TB: ${userAverageCurrentSalary.toLocaleString()} | Thuế TB: ${userAverageTax.toLocaleString()}`;
-        userSummaryRow.getCell(20).font = { size: 8, name: "Arial" };
-        userSummaryRow.getCell(20).alignment = {
+        userSummaryRow.getCell(21).font = { size: 8, name: "Arial" };
+        userSummaryRow.getCell(21).alignment = {
           horizontal: "left",
           vertical: "middle",
         };
 
-        // Format user summary row
         userSummaryRow.eachCell((cell, colNumber) => {
           cell.fill = {
             type: "pattern",
@@ -1728,34 +1638,32 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
           };
           cell.font = { size: 8, name: "Arial" };
 
-          // Alignment for summary row
           if (colNumber === 1 || colNumber === 2) {
             cell.alignment = { horizontal: "left", vertical: "middle" };
+          } else if (colNumber === 12) {
+            cell.alignment = { horizontal: "center", vertical: "middle" };
           } else if (colNumber >= 5 && colNumber <= 11) {
-            // Updated range for allowanceGeneral
             cell.alignment = { horizontal: "right", vertical: "middle" };
             cell.numFmt = "#,##0";
-          } else if (colNumber >= 12 && colNumber <= 14) {
+          } else if (colNumber >= 13 && colNumber <= 15) {
             cell.alignment = { horizontal: "center", vertical: "middle" };
             cell.numFmt = "0.0";
-          } else if (colNumber >= 15 && colNumber <= 19) {
+          } else if (colNumber >= 16 && colNumber <= 20) {
             cell.alignment = { horizontal: "right", vertical: "middle" };
             cell.numFmt = "#,##0";
-          } else if (colNumber === 20 || colNumber === 21) {
+          } else if (colNumber === 21 || colNumber === 22) {
             cell.alignment = { horizontal: "left", vertical: "middle" };
           } else if (colNumber === 3 || colNumber === 4) {
             cell.alignment = { horizontal: "center", vertical: "middle" };
           }
         });
 
-        // Add empty row between users
         currentRow++;
       });
 
-      // Add empty row between cost centers
       const separatorRow = worksheet.getRow(currentRow++);
       separatorRow.height = 5;
-      worksheet.mergeCells(`A${currentRow - 1}:T${currentRow - 1}`); // Updated from S to T
+      worksheet.mergeCells(`A${currentRow - 1}:U${currentRow - 1}`);
       separatorRow.getCell(1).value = "";
       separatorRow.getCell(1).fill = {
         type: "pattern",
@@ -1773,12 +1681,10 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       }
     });
 
-    // Add grand total row
     const totalRowIndex = currentRow;
     const totalRow = worksheet.getRow(totalRowIndex);
     totalRow.height = 22;
 
-    // Merge cells for total label
     worksheet.mergeCells(`A${totalRowIndex}:D${totalRowIndex}`);
     totalRow.getCell(1).value = "TỔNG CỘNG";
     totalRow.getCell(1).font = { bold: true, size: 10, name: "Arial" };
@@ -1792,23 +1698,23 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       vertical: "middle",
     };
 
-    // Add totals for each column
     const totals = [
-      { col: 5, value: totalBaseSalary }, // baseSalary
-      { col: 6, value: totalHourlyWage }, // hourlyWage
-      { col: 7, value: totalResponsibility }, // responsibility
-      { col: 8, value: totalTravelExpense }, // travelExpense
-      { col: 9, value: totalCommissionBonus }, // commissionBonus
-      { col: 10, value: totalOtherBonus }, // otherBonus
-      { col: 11, value: totalAllowanceGeneral }, // allowanceGeneral
-      { col: 12, value: totalWeekdayOvertime }, // weekdayOvertime
-      { col: 13, value: totalWeekendOvertime }, // weekendOvertime
-      { col: 14, value: totalHolidayOvertime }, // holidayOvertime
-      { col: 15, value: totalOvertimePay }, // overtimePay
-      { col: 16, value: totalTaxableIncome }, // taxableIncome
-      { col: 17, value: totalGrossSalary }, // grossSalary
-      { col: 18, value: totalTax }, // tax
-      { col: 19, value: totalCurrentSalary }, // currentSalary
+      { col: 5, value: totalBaseSalary },
+      { col: 6, value: totalHourlyWage },
+      { col: 7, value: totalResponsibility },
+      { col: 8, value: totalTravelExpense },
+      { col: 9, value: totalCommissionBonus },
+      { col: 10, value: totalOtherBonus },
+      { col: 11, value: totalAllowanceGeneral },
+      { col: 12, value: totalDayOff },
+      { col: 13, value: totalWeekdayOvertime },
+      { col: 14, value: totalWeekendOvertime },
+      { col: 15, value: totalHolidayOvertime },
+      { col: 16, value: totalOvertimePay },
+      { col: 17, value: totalTaxableIncome },
+      { col: 18, value: totalGrossSalary },
+      { col: 19, value: totalTax },
+      { col: 20, value: totalCurrentSalary },
     ];
 
     totals.forEach((total) => {
@@ -1821,18 +1727,17 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         fgColor: { argb: "FFE6E6E6" },
       };
 
-      if (total.col >= 12 && total.col <= 14) {
-        // Overtime hours
+      if (total.col === 12) {
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+      } else if (total.col >= 13 && total.col <= 15) {
         cell.alignment = { horizontal: "center", vertical: "middle" };
         cell.numFmt = "0.0";
       } else {
-        // Money fields
         cell.alignment = { horizontal: "right", vertical: "middle" };
         cell.numFmt = "#,##0";
       }
     });
 
-    // Add borders to total row
     for (let i = 1; i <= columnsCount; i++) {
       totalRow.getCell(i).border = {
         top: { style: "thin", color: { argb: "FF000000" } },
@@ -1842,17 +1747,14 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       };
     }
 
-    // Add summary section if requested
     if (includeSummary === "true") {
-      // Add empty rows before summary
       currentRow += 2;
       worksheet.addRow([]);
       worksheet.addRow([]);
 
-      // Add summary title
       const summaryTitleRow = worksheet.getRow(currentRow++);
       worksheet.mergeCells(
-        `A${summaryTitleRow.number}:T${summaryTitleRow.number}`, // Updated from S to T
+        `A${summaryTitleRow.number}:U${summaryTitleRow.number}`,
       );
       summaryTitleRow.getCell(1).value = "TỔNG HỢP THỐNG KÊ";
       summaryTitleRow.getCell(1).font = { bold: true, size: 14, name: "Arial" };
@@ -1862,7 +1764,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       };
       summaryTitleRow.height = 25;
 
-      // Calculate averages
       const averageCurrentSalary = Math.round(
         totalCurrentSalary / totalRecords,
       );
@@ -1870,9 +1771,9 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       const averageBaseSalary = Math.round(totalBaseSalary / totalRecords);
       const averageAllowanceGeneral = Math.round(
         totalAllowanceGeneral / totalRecords,
-      ); // Added
+      );
+      const averageDayOff = totalRecords > 0 ? totalDayOff / totalRecords : 0;
 
-      // Add summary data in a compact format
       const summaryData = [
         [
           "Tổng số bản ghi",
@@ -1899,13 +1800,18 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
           "Phụ cấp TB",
           averageAllowanceGeneral,
         ],
+        [
+          "Tổng ngày nghỉ",
+          totalDayOff,
+          "Ngày nghỉ TB",
+          averageDayOff.toFixed(1),
+        ],
       ];
 
       summaryData.forEach((row, index) => {
         const summaryRow = worksheet.getRow(currentRow++);
         summaryRow.height = 18;
 
-        // Create two columns of summary data
         worksheet.mergeCells(`A${summaryRow.number}:C${summaryRow.number}`);
         summaryRow.getCell(1).value = row[0];
         summaryRow.getCell(1).font = { size: 9, name: "Arial" };
@@ -1942,7 +1848,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         summaryRow.getCell(10).numFmt =
           typeof row[3] === "number" ? "#,##0" : "0";
 
-        // Add borders
         for (let i = 1; i <= 12; i++) {
           if (summaryRow.getCell(i)) {
             summaryRow.getCell(i).border = {
@@ -1952,7 +1857,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
               right: { style: "thin", color: { argb: "FF000000" } },
             };
 
-            // Alternate row colors
             if (index % 2 === 0) {
               summaryRow.getCell(i).fill = {
                 type: "pattern",
@@ -1965,7 +1869,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       });
     }
 
-    // Add signature section
     currentRow += 3;
     const signatureRow = worksheet.getRow(currentRow);
     const signatureColumn = String.fromCharCode(
@@ -1983,18 +1886,13 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     };
     signatureRow.height = 20;
 
-    // Set print area
     const printAreaEnd = currentRow + 2;
-    worksheet.pageSetup.printArea = `A1:${String.fromCharCode(
-      64 + columnsCount,
-    )}${printAreaEnd}`;
+    worksheet.pageSetup.printArea = `A1:${String.fromCharCode(64 + columnsCount)}${printAreaEnd}`;
 
-    // Freeze header row
     worksheet.views = [
       { state: "frozen", xSplit: 0, ySplit: 5, activeCell: "A6" },
     ];
 
-    // Set response headers
     let fileName = month
       ? `BaoCaoLuong_Thang${month}_${year}_TheoTrạmVàNhanVien`
       : `BaoCaoLuong_Nam${year}_TheoTrạmVàNhanVien`;
@@ -2029,7 +1927,6 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`,
     );
 
-    // Stream the Excel file to the response
     await workbook.xlsx.write(res);
     res.end();
   } catch (error) {
@@ -2040,12 +1937,10 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
   }
 };
 
-// Add this function to exports.getAllUserMonthlyRecord
 exports.getUserMonthlyRecords = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // Check if user has permission
     if (
       ![
         "superAdmin",
@@ -2065,7 +1960,6 @@ exports.getUserMonthlyRecords = async (req, res) => {
         .json({ message: "Truy cập bị từ chối. Bạn không có quyền truy cập." });
     }
 
-    // Get all monthly records for this user
     const records = await UserMonthlyRecord.find({ userId })
       .populate("costCenter", "name")
       .populate({
@@ -2096,7 +1990,6 @@ exports.sendSalaryCalculationEmails = async (req, res) => {
       });
     }
 
-    // Check permission
     const allowedRoles = [
       "superAdmin",
       "director",
@@ -2110,7 +2003,6 @@ exports.sendSalaryCalculationEmails = async (req, res) => {
       });
     }
 
-    // Fetch selected users with their monthly records
     const users = await User.find({ _id: { $in: userIds } });
 
     if (users.length === 0) {
@@ -2119,7 +2011,6 @@ exports.sendSalaryCalculationEmails = async (req, res) => {
       });
     }
 
-    // Check for users without email
     const usersWithoutEmail = users.filter(
       (user) => !user.email || user.email.trim() === "",
     );
@@ -2137,7 +2028,6 @@ exports.sendSalaryCalculationEmails = async (req, res) => {
       });
     }
 
-    // Get monthly records for the selected users
     const records = await UserMonthlyRecord.find({
       userId: { $in: userIds },
       recordMonth: parseInt(month),
@@ -2155,7 +2045,6 @@ exports.sendSalaryCalculationEmails = async (req, res) => {
     let successfulCount = 0;
     let failedCount = 0;
 
-    // Calculate previous month and year for display
     let displayMonth, displayYear;
     if (parseInt(month) === 1) {
       displayMonth = 12;
@@ -2165,7 +2054,6 @@ exports.sendSalaryCalculationEmails = async (req, res) => {
       displayYear = parseInt(year);
     }
 
-    // Send emails to each user
     for (const user of users) {
       const userRecord = records.find(
         (r) => r.userId.toString() === user._id.toString(),
@@ -2193,6 +2081,7 @@ exports.sendSalaryCalculationEmails = async (req, res) => {
           responsibility: userRecord.responsibility,
           otherBonus: userRecord.otherBonus,
           allowanceGeneral: userRecord.allowanceGeneral || 0,
+          dayOff: userRecord.dayOff || 0,
           overtimePay: userRecord.overtimePay,
           travelExpense: userRecord.travelExpense,
           grossSalary: userRecord.grossSalary,
@@ -2266,7 +2155,6 @@ exports.sendSalaryCalculationEmails = async (req, res) => {
   }
 };
 
-// Also add a function to update email only
 exports.updateUserEmail = async (req, res) => {
   try {
     const { userId, email } = req.body;
@@ -2277,7 +2165,6 @@ exports.updateUserEmail = async (req, res) => {
       });
     }
 
-    // Simple email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({
@@ -2292,7 +2179,6 @@ exports.updateUserEmail = async (req, res) => {
       });
     }
 
-    // Check if email already exists for another user
     const existingUser = await User.findOne({
       email: email.trim().toLowerCase(),
       _id: { $ne: userId },
@@ -2324,7 +2210,6 @@ exports.updateUserEmail = async (req, res) => {
   }
 };
 
-// Lock salary calculation for multiple users
 exports.lockSalaryCalculation = async (req, res) => {
   try {
     if (
@@ -2371,7 +2256,6 @@ exports.lockSalaryCalculation = async (req, res) => {
   }
 };
 
-// Unlock salary calculation for multiple users
 exports.unlockSalaryCalculation = async (req, res) => {
   try {
     if (

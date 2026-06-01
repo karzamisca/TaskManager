@@ -52,6 +52,8 @@ const userSchema = new mongoose.Schema({
   // Travel Expense Fields
   travelExpense: { type: Number, default: 0 },
   allowanceGeneral: { type: Number, default: 0 },
+  // Day off (unpaid leave) - will be deducted from salary
+  dayOff: { type: Number, default: 0 },
   // Permissions array
   permissions: [{ type: String }],
   // Salary Calculation Lock Feature
@@ -65,6 +67,12 @@ userSchema.pre("save", function (next) {
     this.password = generateRandomPassword();
   }
 
+  // Calculate daily wage for day-off deduction (baseSalary/26 working days per month)
+  const dailyWage = this.baseSalary / 26 || 0;
+
+  // Calculate day-off deduction
+  const dayOffDeduction = dailyWage * (this.dayOff || 0);
+
   // Calculate hourly wage according to Vietnamese law (baseSalary/26 working days/8 hours per day)
   this.hourlyWage = this.baseSalary / 26 / 8 || 0;
 
@@ -75,7 +83,7 @@ userSchema.pre("save", function (next) {
   this.overtimePay =
     weekdayOvertimePay + weekendOvertimePay + holidayOvertimePay;
 
-  // Calculate gross salary (before deductions)
+  // Calculate gross salary (before deductions) - SUBTRACT day off deduction
   this.grossSalary =
     this.baseSalary +
     this.commissionBonus +
@@ -83,29 +91,26 @@ userSchema.pre("save", function (next) {
     this.otherBonus +
     this.overtimePay +
     this.travelExpense +
-    this.allowanceGeneral;
+    this.allowanceGeneral -
+    dayOffDeduction;
+
+  // Ensure grossSalary doesn't go negative
+  this.grossSalary = Math.max(0, this.grossSalary);
 
   // Calculate mandatory insurance according to Vietnamese law
-  // Social Insurance (8%), Health Insurance (1.5%), Unemployment Insurance (1%)
-  const totalInsuranceRate = 0.105; // 10.5% total for employee contribution
-
-  // Vietnam has both minimum salary and regional minimum salary
   const minimumSalary = 2340000; // Basic minimum salary in VND
   const regionalMinSalary = 5310000; // Region I minimum salary in VND
 
-  // For social insurance and health insurance, cap is based on 20x basic minimum salary
-  // For unemployment insurance, cap is based on 20x regional minimum salary
-  const siHiCap = 20 * minimumSalary * 0.095; // Social Insurance (8%) + Health Insurance (1.5%)
-  const uiCap = 20 * regionalMinSalary * 0.01; // Unemployment Insurance (1%)
+  const siHiCap = 20 * minimumSalary * 0.095;
+  const uiCap = 20 * regionalMinSalary * 0.01;
 
-  // Calculate each component separately to respect their different caps
   const siHiContribution = Math.min(this.insurableSalary * 0.095, siHiCap);
   const uiContribution = Math.min(this.insurableSalary * 0.01, uiCap);
 
   this.mandatoryInsurance =
     this.insurableSalary > 0 ? siHiContribution + uiContribution : 0;
 
-  // Calculate taxable income according to Vietnamese law
+  // Calculate taxable income
   const standardDeduction = 15500000;
   const dependantDeduction = 6200000 * this.dependantCount;
 
@@ -117,7 +122,7 @@ userSchema.pre("save", function (next) {
       dependantDeduction,
   );
 
-  // Vietnamese progressive tax rates (2023) - using official formula
+  // Vietnamese progressive tax rates (2023)
   let tax = 0;
   const tn = this.taxableIncome;
 
@@ -137,7 +142,6 @@ userSchema.pre("save", function (next) {
     tax = tn * 0.35 - 9850000;
   }
 
-  // Ensure tax isn't negative (can happen with rounding errors)
   this.tax = Math.max(0, Math.round(tax));
 
   this.currentSalary = this.grossSalary - this.mandatoryInsurance - this.tax;

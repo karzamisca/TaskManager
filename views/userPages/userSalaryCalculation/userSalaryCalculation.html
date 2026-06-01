@@ -162,6 +162,9 @@
                     <th>Thưởng khác</th>
                     <th>Trách nhiệm</th>
                     <th>Phụ cấp chung</th>
+                    <th data-sort="dayOff" style="cursor: pointer">
+                      Ngày nghỉ (KL)
+                    </th>
                     <th>Giờ tăng ca trong tuần</th>
                     <th>Giờ tăng ca Chủ Nhật</th>
                     <th>Giờ tăng ca ngày lễ</th>
@@ -270,6 +273,19 @@
                   step="0.01"
                   value="0"
                 />
+              </div>
+              <div class="form-group">
+                <label for="new-day-off">Ngày nghỉ không lương:</label>
+                <input
+                  type="number"
+                  id="new-day-off"
+                  min="0"
+                  step="0.5"
+                  value="0"
+                />
+                <small style="color: var(--light-text)"
+                  >Số ngày nghỉ sẽ bị trừ vào lương cơ bản</small
+                >
               </div>
               <div class="form-group">
                 <label for="new-weekday-overtime"
@@ -430,6 +446,19 @@
                 />
               </div>
               <div class="form-group">
+                <label for="edit-day-off">Ngày nghỉ không lương:</label>
+                <input
+                  type="number"
+                  id="edit-day-off"
+                  min="0"
+                  step="0.5"
+                  value="0"
+                />
+                <small style="color: var(--light-text)"
+                  >Số ngày nghỉ sẽ bị trừ vào lương cơ bản</small
+                >
+              </div>
+              <div class="form-group">
                 <label for="edit-weekday-overtime"
                   >Giờ tăng ca trong tuần:</label
                 >
@@ -528,6 +557,7 @@
                     <th>Trách nhiệm</th>
                     <th>Thưởng khác</th>
                     <th>Phụ cấp chung</th>
+                    <th>Ngày nghỉ (KL)</th>
                     <th>Giờ tăng ca trong tuần</th>
                     <th>Giờ tăng ca Chủ Nhật</th>
                     <th>Giờ tăng ca ngày lễ</th>
@@ -574,7 +604,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?v=1.15"></script>
+    <script src="userPages/userSalaryCalculation/userSalaryCalculation.js?v=1.16"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>
