@@ -186,7 +186,7 @@ const fetchMonthlyRecords = async () => {
 };
 
 // ====================================================================
-// DATA PROCESSING FUNCTIONS - UPDATED FOR COST CENTER SORTING
+// DATA PROCESSING FUNCTIONS
 // ====================================================================
 
 /**
@@ -402,7 +402,8 @@ const calculateUserSummary = (userRecords) => {
     totalTravelExpense: 0,
     totalCommissionBonus: 0,
     totalOtherBonus: 0,
-    totalAllowanceGeneral: 0, // Added for allowanceGeneral
+    totalAllowanceGeneral: 0,
+    totalDayOff: 0, // Added for dayOff
     totalWeekdayOvertimeHours: 0,
     totalWeekendOvertimeHours: 0,
     totalHolidayOvertimeHours: 0,
@@ -422,7 +423,8 @@ const calculateUserSummary = (userRecords) => {
     summary.totalTravelExpense += Number(record.travelExpense) || 0;
     summary.totalCommissionBonus += Number(record.commissionBonus) || 0;
     summary.totalOtherBonus += Number(record.otherBonus) || 0;
-    summary.totalAllowanceGeneral += Number(record.allowanceGeneral) || 0; // Added
+    summary.totalAllowanceGeneral += Number(record.allowanceGeneral) || 0;
+    summary.totalDayOff += Number(record.dayOff) || 0; // Added for dayOff
     summary.totalWeekdayOvertimeHours +=
       Number(record.weekdayOvertimeHour) || 0;
     summary.totalWeekendOvertimeHours +=
@@ -550,7 +552,8 @@ const calculateSummary = (records) => {
       totalTravelExpense: 0,
       totalCommissionBonus: 0,
       totalOtherBonus: 0,
-      totalAllowanceGeneral: 0, // Added for allowanceGeneral
+      totalAllowanceGeneral: 0,
+      totalDayOff: 0, // Added for dayOff
       totalWeekdayOvertimeHours: 0,
       totalWeekendOvertimeHours: 0,
       totalHolidayOvertimeHours: 0,
@@ -560,7 +563,8 @@ const calculateSummary = (records) => {
       totalTax: 0,
       totalCurrentSalary: 0,
       averageBaseSalary: 0,
-      averageAllowanceGeneral: 0, // Added for allowanceGeneral
+      averageAllowanceGeneral: 0,
+      averageDayOff: 0, // Added for dayOff
       averageCurrentSalary: 0,
       averageTax: 0,
       minCurrentSalary: 0,
@@ -576,7 +580,8 @@ const calculateSummary = (records) => {
     totalTravelExpense: 0,
     totalCommissionBonus: 0,
     totalOtherBonus: 0,
-    totalAllowanceGeneral: 0, // Added for allowanceGeneral
+    totalAllowanceGeneral: 0,
+    totalDayOff: 0, // Added for dayOff
     totalWeekdayOvertimeHours: 0,
     totalWeekendOvertimeHours: 0,
     totalHolidayOvertimeHours: 0,
@@ -596,7 +601,8 @@ const calculateSummary = (records) => {
     totals.totalTravelExpense += Number(record.travelExpense) || 0;
     totals.totalCommissionBonus += Number(record.commissionBonus) || 0;
     totals.totalOtherBonus += Number(record.otherBonus) || 0;
-    totals.totalAllowanceGeneral += Number(record.allowanceGeneral) || 0; // Added
+    totals.totalAllowanceGeneral += Number(record.allowanceGeneral) || 0;
+    totals.totalDayOff += Number(record.dayOff) || 0; // Added for dayOff
     totals.totalWeekdayOvertimeHours += Number(record.weekdayOvertimeHour) || 0;
     totals.totalWeekendOvertimeHours += Number(record.weekendOvertimeHour) || 0;
     totals.totalHolidayOvertimeHours += Number(record.holidayOvertimeHour) || 0;
@@ -624,6 +630,10 @@ const calculateSummary = (records) => {
   totals.averageAllowanceGeneral =
     totals.totalRecords > 0
       ? Math.round(totals.totalAllowanceGeneral / totals.totalRecords)
+      : 0;
+  totals.averageDayOff = // Added for dayOff
+    totals.totalRecords > 0
+      ? (totals.totalDayOff / totals.totalRecords).toFixed(1)
       : 0;
   totals.averageCurrentSalary =
     totals.totalRecords > 0
@@ -763,7 +773,7 @@ const exportToExcel = async () => {
 };
 
 // ====================================================================
-// UI RENDERING FUNCTIONS - UPDATED FOR COST CENTER GROUPING
+// UI RENDERING FUNCTIONS
 // ====================================================================
 
 /**
@@ -775,7 +785,7 @@ const createCostCenterHeader = (costCenter, groupIndex) => {
   row.setAttribute("role", "row");
 
   row.innerHTML = `
-    <td colspan="20" role="gridcell">
+    <td colspan="21" role="gridcell">
       <strong style="color: #1976d2; font-size: 1.1em;">TRẠM ${
         groupIndex + 1
       }: ${costCenter}</strong>
@@ -797,7 +807,7 @@ const createCostCenterSeparator = () => {
   row.setAttribute("role", "row");
 
   row.innerHTML = `
-    <td colspan="20" role="gridcell">
+    <td colspan="21" role="gridcell">
       <div style="height: 1px; background-color: #e0e0e0; margin: 10px 0;"></div>
     </td>
   `;
@@ -817,7 +827,7 @@ const createUserGroupHeader = (user, costCenter, groupIndex) => {
   }`;
 
   row.innerHTML = `
-    <td colspan="20" role="gridcell">
+    <td colspan="21" role="gridcell">
       <strong>Nhân viên ${groupIndex + 1}:</strong> ${employeeInfo}
       <span style="float: right; font-weight: normal; font-size: 0.9em; color: var(--text-secondary);">
         ${user.email || ""}
@@ -829,7 +839,7 @@ const createUserGroupHeader = (user, costCenter, groupIndex) => {
 };
 
 /**
- * Creates a user summary row WITH ALLOWANCE GENERAL COLUMN
+ * Creates a user summary row WITH DAYOFF COLUMN
  */
 const createUserSummaryRow = (summary) => {
   const row = document.createElement("tr");
@@ -870,9 +880,14 @@ const createUserSummaryRow = (summary) => {
       align: "right",
     },
     {
-      text: summary.totalAllowanceGeneral.toLocaleString(), // Added allowanceGeneral
+      text: summary.totalAllowanceGeneral.toLocaleString(),
       colSpan: 1,
       align: "right",
+    },
+    {
+      text: summary.totalDayOff.toFixed(1),
+      colSpan: 1,
+      align: "center",
     },
     {
       text: summary.totalWeekdayOvertimeHours.toFixed(1),
@@ -920,7 +935,7 @@ const createUserSummaryRow = (summary) => {
   let html = "";
   let cellIndex = 0;
 
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 21; i++) {
     if (cellIndex < cells.length) {
       const cell = cells[cellIndex];
 
@@ -943,7 +958,7 @@ const createUserSummaryRow = (summary) => {
 };
 
 /**
- * Creates a table row for a record
+ * Creates a table row for a record WITH DAYOFF COLUMN
  */
 const createRecordRow = (record, index) => {
   const row = document.createElement("tr");
@@ -961,6 +976,7 @@ const createRecordRow = (record, index) => {
     <td role="gridcell">${safeToLocaleString(record.commissionBonus)}</td>
     <td role="gridcell">${safeToLocaleString(record.otherBonus)}</td>
     <td role="gridcell">${safeToLocaleString(record.allowanceGeneral)}</td>
+    <td role="gridcell">${record.dayOff || 0}</td>
     <td role="gridcell">${record.weekdayOvertimeHour || 0}</td>
     <td role="gridcell">${record.weekendOvertimeHour || 0}</td>
     <td role="gridcell">${record.holidayOvertimeHour || 0}</td>
@@ -997,10 +1013,10 @@ const renderTableWithGrouping = (items) => {
   if (items.length === 0) {
     recordsBody.innerHTML = `
       <tr role="row">
-        <td colspan="20" role="gridcell" style="text-align: center; padding: 20px; color: #666;">
+        <td colspan="21" role="gridcell" style="text-align: center; padding: 20px; color: #666;">
           Không tìm thấy bản ghi nào phù hợp với tiêu chí tìm kiếm.
         </td>
-      </tr>
+      </table>
     `;
     return;
   }
@@ -1098,7 +1114,7 @@ const populateCostCenterFilter = (costCenters) => {
 };
 
 /**
- * Renders the summary section
+ * Renders the summary section WITH DAYOFF
  */
 const renderSummary = (summaryData) => {
   const summarySection = elements.summarySection();
@@ -1152,8 +1168,13 @@ const renderSummary = (summaryData) => {
     },
     {
       label: "Tổng phụ cấp chung",
-      value: summaryData.totalAllowanceGeneral.toLocaleString() + " VND", // Added
+      value: summaryData.totalAllowanceGeneral.toLocaleString() + " VND",
       className: "summary-value positive",
+    },
+    {
+      label: "Tổng ngày nghỉ (không lương)",
+      value: summaryData.totalDayOff.toFixed(1) + " ngày",
+      className: "summary-value",
     },
     {
       label: "Tổng giờ TC tuần",
@@ -1207,7 +1228,12 @@ const renderSummary = (summaryData) => {
     },
     {
       label: "Phụ cấp TB",
-      value: summaryData.averageAllowanceGeneral.toLocaleString() + " VND", // Added
+      value: summaryData.averageAllowanceGeneral.toLocaleString() + " VND",
+      className: "summary-value",
+    },
+    {
+      label: "Ngày nghỉ TB",
+      value: summaryData.averageDayOff + " ngày",
       className: "summary-value",
     },
     {
@@ -1272,7 +1298,7 @@ const showRecordCount = (count) => {
 };
 
 /**
- * Creates modal content for record details
+ * Creates modal content for record details WITH DAYOFF
  */
 const createModalContent = (record) => {
   const monthName = getMonthName(record.recordMonth);
@@ -1328,6 +1354,7 @@ const createModalContent = (record) => {
       <p><strong>Phụ cấp chung:</strong> ${safeToLocaleString(
         record.allowanceGeneral,
       )}</p>
+      <p><strong>Ngày nghỉ (không lương):</strong> ${record.dayOff || 0} ngày</p>
     </div>
 
     <div class="modal-section">
@@ -1346,7 +1373,7 @@ const createModalContent = (record) => {
     </div>
 
     <div class="modal-section">
-      <p><strong>Tổng lương:</strong> ${safeToLocaleString(
+      <p><strong>Tổng lương gộp:</strong> ${safeToLocaleString(
         record.grossSalary,
       )}</p>
     </div>
@@ -1663,7 +1690,7 @@ const initializeApp = async () => {
     await loadData();
 
     console.log(
-      "User Monthly Record application initialized successfully with cost center grouping and allowanceGeneral",
+      "User Monthly Record application initialized successfully with cost center grouping, allowanceGeneral, and dayOff fields",
     );
   } catch (error) {
     console.error("Application initialization failed:", error);

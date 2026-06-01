@@ -68,6 +68,7 @@ const monthlyUserRecordSchema = new mongoose.Schema(
 
     // Travel expenses
     travelExpense: { type: Number, default: 0 },
+    dayOff: { type: Number, default: 0 },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt
