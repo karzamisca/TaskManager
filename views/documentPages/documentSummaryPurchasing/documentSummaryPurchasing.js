@@ -1323,6 +1323,226 @@ const closeMoveToStockModal = () => {
   stockMovementState.selectedProducts.clear();
 };
 
+// APPROVE MULTIPLE DOCUMENTS FUNCTIONS
+const approveSelectedDocuments = async () => {
+  const selectedDocs = Array.from(state.selectedDocuments);
+
+  if (selectedDocs.length === 0) {
+    showMessage("Vui lòng chọn ít nhất một phiếu để phê duyệt", true);
+    return;
+  }
+
+  // Filter only pending documents that current user needs to approve
+  const documentsToApprove = selectedDocs.filter((docId) => {
+    const doc = state.purchasingDocuments.find((d) => d._id === docId);
+    if (!doc) return false;
+
+    // Only approve documents that are pending
+    if (doc.status !== "Pending") return false;
+
+    // Check if current user is an approver who hasn't approved yet
+    const isApprover = doc.approvers.some(
+      (approver) => approver.username === state.currentUser?.username,
+    );
+    const hasApproved = doc.approvedBy.some(
+      (approved) => approved.username === state.currentUser?.username,
+    );
+
+    return isApprover && !hasApproved;
+  });
+
+  if (documentsToApprove.length === 0) {
+    showMessage(
+      "Không có phiếu nào trong danh sách đã chọn cần bạn phê duyệt",
+      true,
+    );
+    return;
+  }
+
+  // Show confirmation dialog
+  const confirmMessage =
+    `Bạn có chắc chắn muốn phê duyệt ${documentsToApprove.length} phiếu mua hàng?\n\n` +
+    documentsToApprove
+      .map((docId) => {
+        const doc = state.purchasingDocuments.find((d) => d._id === docId);
+        return `• ${doc?.name || docId}`;
+      })
+      .join("\n");
+
+  if (!confirm(confirmMessage)) return;
+
+  // Show approval progress modal
+  showApprovalProgressModal(documentsToApprove.length);
+
+  // Process approvals
+  const results = {
+    success: [],
+    error: [],
+  };
+
+  for (let i = 0; i < documentsToApprove.length; i++) {
+    const docId = documentsToApprove[i];
+    const doc = state.purchasingDocuments.find((d) => d._id === docId);
+
+    updateApprovalProgress(
+      i + 1,
+      documentsToApprove.length,
+      doc?.name || docId,
+    );
+
+    try {
+      const response = await fetch(`/approveDocument/${docId}`, {
+        method: "POST",
+      });
+      const message = await response.text();
+
+      if (response.ok) {
+        results.success.push({ id: docId, name: doc?.name || docId, message });
+      } else {
+        results.error.push({ id: docId, name: doc?.name || docId, message });
+      }
+    } catch (err) {
+      console.error(`Error approving document ${docId}:`, err);
+      results.error.push({
+        id: docId,
+        name: doc?.name || docId,
+        message: "Lỗi kết nối",
+      });
+    }
+  }
+
+  // Show final results
+  showApprovalResults(results);
+
+  // Refresh the data
+  fetchPurchasingDocuments();
+};
+
+const showApprovalProgressModal = (totalDocs) => {
+  // Remove existing modal if any
+  const existingModal = document.getElementById("approvalProgressModal");
+  if (existingModal) existingModal.remove();
+
+  const modalHTML = `
+    <div id="approvalProgressModal" class="modal" style="display: block;">
+      <div class="modal-content" style="max-width: 600px;">
+        <h2 class="modal-title">
+          <i class="fas fa-check-double"></i> Đang phê duyệt hàng loạt
+        </h2>
+        <div class="modal-body">
+          <div class="approval-progress">
+            <div class="approval-progress-bar">
+              <div class="approval-progress-fill" id="approvalProgressFill" style="width: 0%">
+                0%
+              </div>
+            </div>
+            <div class="approval-progress-text" id="approvalProgressText">
+              Đang chuẩn bị...
+            </div>
+          </div>
+          <div class="approval-results" id="approvalResultsList"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", modalHTML);
+};
+
+const updateApprovalProgress = (current, total, docName) => {
+  const percentage = Math.round((current / total) * 100);
+  const progressFill = document.getElementById("approvalProgressFill");
+  const progressText = document.getElementById("approvalProgressText");
+
+  if (progressFill) {
+    progressFill.style.width = `${percentage}%`;
+    progressFill.textContent = `${percentage}%`;
+  }
+
+  if (progressText) {
+    progressText.textContent = `Đang phê duyệt ${current}/${total}: ${docName}`;
+  }
+};
+
+const showApprovalResults = (results) => {
+  const resultsList = document.getElementById("approvalResultsList");
+  const progressText = document.getElementById("approvalProgressText");
+  const modal = document.getElementById("approvalProgressModal");
+
+  if (!resultsList) return;
+
+  // Update progress to 100%
+  const progressFill = document.getElementById("approvalProgressFill");
+  if (progressFill) {
+    progressFill.style.width = "100%";
+    progressFill.textContent = "100%";
+  }
+
+  if (progressText) {
+    const totalProcessed = results.success.length + results.error.length;
+    progressText.textContent = `Hoàn thành: ${results.success.length} thành công, ${results.error.length} thất bại trong tổng số ${totalProcessed}`;
+  }
+
+  let resultsHTML = "";
+
+  // Show success results
+  results.success.forEach((result) => {
+    resultsHTML += `
+      <div class="approval-result-item success">
+        <i class="fas fa-check-circle"></i>
+        <div>
+          <strong>${result.name}</strong>
+          <div class="text-success">${result.message}</div>
+        </div>
+      </div>
+    `;
+  });
+
+  // Show error results
+  results.error.forEach((result) => {
+    resultsHTML += `
+      <div class="approval-result-item error">
+        <i class="fas fa-times-circle"></i>
+        <div>
+          <strong>${result.name}</strong>
+          <div class="text-danger">${result.message}</div>
+        </div>
+      </div>
+    `;
+  });
+
+  resultsList.innerHTML = resultsHTML;
+
+  // Add close button if not exists
+  if (!modal.querySelector(".modal-close")) {
+    const closeButton = document.createElement("span");
+    closeButton.className = "modal-close";
+    closeButton.innerHTML = "&times;";
+    closeButton.onclick = closeApprovalProgressModal;
+    modal
+      .querySelector(".modal-content")
+      .insertBefore(closeButton, modal.querySelector(".modal-title"));
+  }
+
+  // Auto close after 5 seconds if no errors
+  if (results.error.length === 0 && results.success.length > 0) {
+    setTimeout(() => {
+      closeApprovalProgressModal();
+      showMessage(
+        `Đã phê duyệt thành công ${results.success.length} phiếu mua hàng`,
+      );
+    }, 3000);
+  }
+};
+
+const closeApprovalProgressModal = () => {
+  const modal = document.getElementById("approvalProgressModal");
+  if (modal) {
+    modal.style.display = "none";
+    setTimeout(() => modal.remove(), 300);
+  }
+};
+
 // Data fetching
 const fetchCurrentUser = async () => {
   try {
@@ -2754,6 +2974,9 @@ const setupEventListeners = () => {
     .getElementById("exportSelectedBtn")
     .addEventListener("click", () => exportSelectedToExcel());
   document
+    .getElementById("approveSelectedBtn")
+    .addEventListener("click", () => approveSelectedDocuments());
+  document
     .getElementById("selectAllCheckbox")
     .addEventListener("change", () => toggleSelectAll());
   document.addEventListener("change", (e) => {
@@ -2815,6 +3038,8 @@ window.confirmMoveToStock = confirmMoveToStock;
 window.closeMoveToStockModal = closeMoveToStockModal;
 window.showTransferHistory = showTransferHistory;
 window.closeTransferHistoryModal = closeTransferHistoryModal;
+window.approveSelectedDocuments = approveSelectedDocuments;
+window.closeApprovalProgressModal = closeApprovalProgressModal;
 
 // Initialize when DOM is loaded
 document.addEventListener("DOMContentLoaded", initialize);

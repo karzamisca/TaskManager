@@ -7,7 +7,7 @@
     <title>Phiếu mua hàng</title>
     <link
       rel="stylesheet"
-      href="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.css?v=1.6"
+      href="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.css?v=1.7"
     />
     <link
       rel="stylesheet"
@@ -216,6 +216,12 @@
       <button id="exportSelectedBtn" class="btn btn-export">
         <i class="fas fa-file-excel"></i> Xuất đã chọn ra Excel
       </button>
+      <button
+        id="approveSelectedBtn"
+        class="btn btn-primary btn-approve-multiple"
+      >
+        <i class="fas fa-check-double"></i> Phê duyệt đã chọn
+      </button>
       <label class="select-all">
         <input type="checkbox" id="selectAllCheckbox" />
         <span>Chọn tất cả</span>
@@ -318,7 +324,7 @@
       </div>
     </div>
 
-    <script src="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.js?v=1.30"></script>
+    <script src="documentPages/documentSummaryPurchasing/documentSummaryPurchasing.js?v=1.31"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
