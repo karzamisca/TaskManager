@@ -1329,10 +1329,10 @@ const renderCurrentApprovers = () => {
         <div class="approver-item">
           <span>${approver.username}</span>
           <input type="text" value="${approver.subRole}" 
-                 onchange="updateApproverSubRole('${approver.approver}', this.value)" 
+                 onchange="updateApproverSubRole('${approver._id}', this.value)" 
                  class="form-input" style="width: 120px;">
           <button type="button" class="btn btn-danger btn-sm" 
-                  onclick="removeApprover('${approver.approver}')">
+                  onclick="removeApprover('${approver._id}')">
             <i class="fas fa-trash"></i> Xóa
           </button>
         </div>
@@ -1342,17 +1342,13 @@ const renderCurrentApprovers = () => {
 };
 
 const updateApproverSubRole = (approverId, newSubRole) => {
-  const approver = state.currentApprovers.find(
-    (a) => a.approver === approverId,
-  );
-  if (approver) {
-    approver.subRole = newSubRole;
-  }
+  const approver = state.currentApprovers.find((a) => a._id === approverId);
+  if (approver) approver.subRole = newSubRole;
 };
 
 const removeApprover = (approverId) => {
   state.currentApprovers = state.currentApprovers.filter(
-    (a) => a.approver !== approverId,
+    (a) => a._id !== approverId,
   );
   renderCurrentApprovers();
   populateNewApproversDropdown();
