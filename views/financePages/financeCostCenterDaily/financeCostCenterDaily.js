@@ -25,6 +25,10 @@ let addingCostCenterId = null;
 let allViewMultipleEntryCounter = 0;
 let isAddingMultipleInAllView = false;
 
+// Bulk delete state
+let selectedSingleEntries = new Set();
+let selectedAllViewEntries = new Set();
+
 let filterState = {
   dateFrom: "",
   dateTo: "",
@@ -63,10 +67,7 @@ function getProfitClass(profit) {
 }
 
 // ── Progressive (running) totals ─────────────────────────────────────────────
-// Accumulates chronologically regardless of display sort direction.
-// Returns Map<date, {actual: number, predicted: number}>
 function buildProgressiveTotals(sortedEntries, direction) {
-  // Always accumulate oldest→newest
   const chronological =
     direction === "asc" ? [...sortedEntries] : [...sortedEntries].reverse();
 
@@ -90,8 +91,6 @@ function buildProgressiveTotals(sortedEntries, direction) {
     const d = byDate[date];
     runActual += d.income - d.expense;
     runPredicted += d.incomeP - d.expenseP;
-
-    // Round up to remove decimals (ceiling to nearest integer)
     totalsMap[date] = {
       actual: Math.ceil(runActual),
       predicted: Math.ceil(runPredicted),
@@ -101,7 +100,6 @@ function buildProgressiveTotals(sortedEntries, direction) {
   return totalsMap;
 }
 
-// Creates the separator row displayed after each day's entries
 function createDailyTotalRow(date, actual, predicted, colCount, isAllView) {
   const tr = document.createElement("tr");
   tr.className = "daily-progressive-row";
@@ -113,8 +111,8 @@ function createDailyTotalRow(date, actual, predicted, colCount, isAllView) {
   const predictedFmt = predicted.toLocaleString("vi-VN");
 
   if (isAllView) {
-    // 9 data cols + 1 actions = 10 total (Trạm, Tên, Ngày, Thu, Chi, Dự thu, Dự chi, Ghi chú, Thao tác)
     tr.innerHTML = `
+      <td class="checkbox-column"></td>
       <td colspan="3" class="daily-progressive-label">
         <span class="daily-progressive-date">${date}</span>
         <span class="daily-progressive-title">Lũy kế đến cuối ngày</span>
@@ -128,8 +126,8 @@ function createDailyTotalRow(date, actual, predicted, colCount, isAllView) {
       <td colspan="2" class="daily-progressive-spacer"></td>
     `;
   } else {
-    // Single view: 6 data cols + 1 actions = 7 total (Tên, Ngày, Thu, Chi, Dự thu, Dự chi, Ghi chú, Thao tác)
     tr.innerHTML = `
+      <td class="checkbox-column"></td>
       <td colspan="2" class="daily-progressive-label">
         <span class="daily-progressive-date">${date}</span>
         <span class="daily-progressive-title">Lũy kế đến cuối ngày</span>
@@ -358,6 +356,18 @@ async function updateGlobalSummary() {
   if (alternativeViewActive) renderAllCostCentersView();
 }
 
+// Helper function to sync single view data with all view cache
+function syncSingleViewToAllView() {
+  if (currentCostCenterId && allEntries[currentCostCenterId]) {
+    allEntries[currentCostCenterId].entries = entries;
+    flattenAllEntries();
+    calculateGlobalSummary();
+    if (alternativeViewActive) {
+      renderAllCostCentersView();
+    }
+  }
+}
+
 function toggleView() {
   const toggle = document.getElementById("viewToggle");
   alternativeViewActive = toggle.checked;
@@ -378,12 +388,16 @@ function toggleView() {
     isAdding = false;
     editingEntryId = null;
     isAddingMultipleInAllView = false;
+    selectedSingleEntries.clear();
+    updateSingleBulkDeleteButton();
     populateCostCenterFilter();
     renderAllCostCentersView();
   } else {
     isAddingInAllView = false;
     addingCostCenterId = null;
     isAddingMultipleInAllView = false;
+    selectedAllViewEntries.clear();
+    updateAllViewBulkDeleteButton();
     hideAllViewMultipleEntryForm();
   }
 }
@@ -394,6 +408,7 @@ function createAllViewAddRow(costCenterId) {
   row.className = "editing-row";
   const today = getTodayFormatted();
   row.innerHTML = `
+    <td class="checkbox-column"></td>
     <td>
       <select id="allViewNewCostCenter" class="form-select" style="width:100%;">
         ${allCostCenters.map((cc) => `<option value="${cc._id}" ${cc._id === costCenterId ? "selected" : ""}>${cc.name}</option>`).join("")}
@@ -482,6 +497,13 @@ async function saveAllViewNewEntry() {
       addingCostCenterId = null;
       await loadAllCostCentersData();
       applyAllFilters();
+
+      // If current single view is showing the affected cost center, refresh it
+      if (currentCostCenterId === costCenterId) {
+        await loadEntries();
+        applyFilters();
+      }
+
       alert("Thêm mục thành công!");
     } else {
       const errorData = await response.json();
@@ -569,6 +591,7 @@ async function saveAllViewMultipleEntries() {
 
   const entriesToSave = [];
   let hasError = false;
+  const affectedCostCenters = new Set();
 
   for (let row of entryRows) {
     const entryId = row.id;
@@ -622,6 +645,7 @@ async function saveAllViewMultipleEntries() {
         note,
       },
     });
+    affectedCostCenters.add(costCenterId);
   }
 
   if (hasError) return;
@@ -657,6 +681,12 @@ async function saveAllViewMultipleEntries() {
       hideAllViewMultipleEntryForm();
       await loadAllCostCentersData();
       applyAllFilters();
+
+      // If current single view is showing an affected cost center, refresh it
+      if (currentCostCenterId && affectedCostCenters.has(currentCostCenterId)) {
+        await loadEntries();
+        applyFilters();
+      }
     } else {
       alert(
         `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`,
@@ -665,6 +695,15 @@ async function saveAllViewMultipleEntries() {
         hideAllViewMultipleEntryForm();
         await loadAllCostCentersData();
         applyAllFilters();
+
+        // If current single view is showing an affected cost center, refresh it
+        if (
+          currentCostCenterId &&
+          affectedCostCenters.has(currentCostCenterId)
+        ) {
+          await loadEntries();
+          applyFilters();
+        }
       }
     }
   } catch (error) {
@@ -707,6 +746,10 @@ function renderAllEntriesTable() {
 
   const today = getTodayFormatted();
 
+  // Clear selections when re-rendering
+  selectedAllViewEntries.clear();
+  updateAllViewBulkDeleteButton();
+
   if (isAddingInAllView) {
     tbody.appendChild(
       createAllViewAddRow(addingCostCenterId || allCostCenters[0]?._id),
@@ -719,7 +762,7 @@ function renderAllEntriesTable() {
     !isAddingMultipleInAllView
   ) {
     const row = document.createElement("tr");
-    row.innerHTML = `<td colspan="10" style="text-align:center;color:#666;padding:20px;">${
+    row.innerHTML = `<td colspan="11" style="text-align:center;color:#666;padding:20px;">${
       allEntriesFlat.length === 0
         ? "Không có dữ liệu nào từ các trạm."
         : "Không có kết quả phù hợp với bộ lọc."
@@ -727,9 +770,9 @@ function renderAllEntriesTable() {
     tbody.appendChild(row);
     const addNewRow = document.createElement("tr");
     addNewRow.className = "add-row";
-    addNewRow.innerHTML = `<td colspan="10"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
+    addNewRow.innerHTML = `<td colspan="11"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
     tbody.appendChild(addNewRow);
-    applyTodayRedLines(tbody, today, 10);
+    applyTodayRedLines(tbody, today, 11);
     return;
   }
 
@@ -748,13 +791,11 @@ function renderAllEntriesTable() {
 
     const note = entry.note || "";
     const dateClass = entry.date === today ? "current-date" : "";
-    const profit = calculateProfit(entry.income, entry.expense);
-    const profitPrediction = calculateProfit(
-      entry.incomePrediction,
-      entry.expensePrediction,
-    );
 
     row.innerHTML = `
+      <td class="checkbox-column">
+        <input type="checkbox" class="entry-checkbox" data-entry-id="${entry._id}" data-cost-center-id="${entry.costCenterId}" onchange="toggleAllViewEntrySelection('${entry._id}', '${entry.costCenterId}', this)">
+      </td>
       <td>${entry.costCenterName}</td>
       <td>${entry.name}</td>
       <td class="${dateClass}">${entry.date}</td>
@@ -781,7 +822,7 @@ function renderAllEntriesTable() {
             entry.date,
             totals.actual,
             totals.predicted,
-            10,
+            11,
             true,
           ),
         );
@@ -791,10 +832,10 @@ function renderAllEntriesTable() {
 
   const addNewRow = document.createElement("tr");
   addNewRow.className = "add-row";
-  addNewRow.innerHTML = `<td colspan="10"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
+  addNewRow.innerHTML = `<td colspan="11"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Mục Mới Cho Trạm</button></td>`;
   tbody.appendChild(addNewRow);
 
-  applyTodayRedLines(tbody, today, 10);
+  applyTodayRedLines(tbody, today, 11);
 }
 
 function applyAllFilters() {
@@ -873,6 +914,10 @@ function resetAllFilters() {
   addingCostCenterId = null;
   isAddingMultipleInAllView = false;
   hideAllViewMultipleEntryForm();
+  selectedAllViewEntries.clear();
+  const selectAll = document.getElementById("selectAllAllView");
+  if (selectAll) selectAll.checked = false;
+  updateAllViewBulkDeleteButton();
   applyAllFilters();
 }
 
@@ -927,18 +972,17 @@ function switchToCostCenterAndEdit(costCenterId, entryId) {
   });
 }
 
-function switchToCostCenterAndDelete(costCenterId, entryId) {
+async function switchToCostCenterAndDelete(costCenterId, entryId) {
   const toggle = document.getElementById("viewToggle");
   if (toggle.checked) {
     toggle.checked = false;
     toggleView();
   }
   document.getElementById("costCenterSelect").value = costCenterId;
-  loadCostCenterData().then(() => {
-    setTimeout(() => {
-      deleteEntry(entryId);
-    }, 500);
-  });
+  await loadCostCenterData();
+  setTimeout(() => {
+    deleteEntry(entryId);
+  }, 500);
 }
 
 async function loadCostCenterData() {
@@ -1015,6 +1059,7 @@ function hideMultipleEntryForm() {
   document.getElementById("bulkActions").classList.remove("hidden");
   showAddButton();
   clearMultipleEntries();
+  updateSingleBulkDeleteButton();
 }
 
 function sortEntries(field, direction) {
@@ -1110,15 +1155,19 @@ function renderEntries() {
     filteredEntries.length;
   document.getElementById("totalEntriesCount").textContent = entries.length;
 
+  // Clear selections when re-rendering
+  selectedSingleEntries.clear();
+  updateSingleBulkDeleteButton();
+
   if (filteredEntries.length === 0 && !isAdding) {
     const row = document.createElement("tr");
-    row.innerHTML = `<td colspan="8" style="text-align:center;color:#666;padding:20px;">${
+    row.innerHTML = `<td colspan="9" style="text-align:center;color:#666;padding:20px;">${
       entries.length === 0
         ? "Chưa có dữ liệu nào. Hãy thêm mục mới."
         : "Không có kết quả phù hợp với bộ lọc."
     }</td>`;
     tbody.appendChild(row);
-    applyTodayRedLines(tbody, getTodayFormatted(), 8);
+    applyTodayRedLines(tbody, getTodayFormatted(), 9);
     return;
   }
 
@@ -1138,16 +1187,12 @@ function renderEntries() {
   filteredEntries.forEach((entry, idx) => {
     const row = document.createElement("tr");
     row.setAttribute("data-date", entry.date);
-
-    const profit = calculateProfit(entry.income, entry.expense);
-    const profitPrediction = calculateProfit(
-      entry.incomePrediction,
-      entry.expensePrediction,
-    );
+    row.setAttribute("data-entry-id", entry._id);
 
     if (entry._id === editingEntryId) {
       row.className = "editing-row";
       row.innerHTML = `
+        <td class="checkbox-column"></td>
         <td><input type="text" id="editName_${entry._id}" value="${entry.name}"></td>
         <td><input type="text" id="editDate_${entry._id}" value="${entry.date}" placeholder="DD/MM/YYYY"></td>
         <td><input type="number" id="editIncome_${entry._id}" value="${entry.income}" min="0"></td>
@@ -1163,6 +1208,9 @@ function renderEntries() {
       const note = entry.note || "";
       const dateClass = entry.date === today ? "current-date" : "";
       row.innerHTML = `
+        <td class="checkbox-column">
+          <input type="checkbox" class="entry-checkbox" data-entry-id="${entry._id}" onchange="toggleSingleEntrySelection('${entry._id}', this)">
+        </td>
         <td>${entry.name}</td>
         <td class="${dateClass}">${entry.date}</td>
         <td>${(entry.income || 0).toLocaleString("vi-VN")}</td>
@@ -1190,7 +1238,7 @@ function renderEntries() {
             entry.date,
             totals.actual,
             totals.predicted,
-            8,
+            9,
             false,
           ),
         );
@@ -1198,7 +1246,7 @@ function renderEntries() {
     }
   });
 
-  applyTodayRedLines(tbody, today, 8);
+  applyTodayRedLines(tbody, today, 9);
 }
 
 function createAddRow() {
@@ -1207,6 +1255,7 @@ function createAddRow() {
   row.className = "editing-row";
   const today = getTodayFormatted();
   row.innerHTML = `
+    <td class="checkbox-column"></td>
     <td><input type="text" id="newName" placeholder="Tên giao dịch" required></td>
     <td><input type="text" id="newDate" value="${today}" placeholder="DD/MM/YYYY" pattern="\\d{2}/\\d{2}/\\d{4}" required></td>
     <td><input type="number" id="newIncome" placeholder="Thu nhập" step="0.1" value="0" required></td>
@@ -1279,6 +1328,7 @@ async function saveNewEntry() {
       cancelAdd();
       await loadEntries();
       await updateGlobalSummary();
+      syncSingleViewToAllView();
       alert("Thêm mục thành công!");
     } else {
       const errorData = await response.json();
@@ -1355,6 +1405,7 @@ async function saveEdit(entryId) {
       editingEntryId = null;
       await loadEntries();
       await updateGlobalSummary();
+      syncSingleViewToAllView();
       alert("Cập nhật thành công!");
     } else {
       const errorData = await response.json();
@@ -1376,6 +1427,7 @@ async function deleteEntry(entryId) {
       if (response.ok) {
         await loadEntries();
         await updateGlobalSummary();
+        syncSingleViewToAllView();
         alert("Xóa mục thành công!");
       } else {
         alert("Lỗi khi xóa mục");
@@ -1457,6 +1509,10 @@ function resetFilters() {
     searchNote: "",
     predictionFilter: "all",
   };
+  selectedSingleEntries.clear();
+  const selectAll = document.getElementById("selectAllSingle");
+  if (selectAll) selectAll.checked = false;
+  updateSingleBulkDeleteButton();
   applyFilters();
 }
 
@@ -1609,6 +1665,7 @@ async function saveMultipleEntries() {
       hideMultipleEntryForm();
       await loadEntries();
       await updateGlobalSummary();
+      syncSingleViewToAllView();
     } else {
       alert(
         `Đã thêm ${successCount} mục thành công, ${errorCount} mục thất bại.`,
@@ -1618,6 +1675,7 @@ async function saveMultipleEntries() {
         hideMultipleEntryForm();
         await loadEntries();
         await updateGlobalSummary();
+        syncSingleViewToAllView();
       }
     }
   } catch (error) {
@@ -1675,7 +1733,6 @@ function showGlobalDetails() {
   const costCentersWithEntries = Object.entries(allEntries).filter(
     ([_, data]) => {
       if (!data.entries || data.entries.length === 0) return false;
-      // Check if there's any actual data OR prediction data
       return data.entries.some(
         (e) =>
           (e.income && e.income > 0) ||
@@ -1743,8 +1800,6 @@ function showGlobalDetails() {
                       const profit = t.totalIncome - t.totalExpense;
                       const profitPrediction =
                         t.totalIncomePrediction - t.totalExpensePrediction;
-
-                      // Only show prediction columns if there are predictions
                       const hasPredictionData = t.withPrediction > 0;
 
                       return `<tr onclick="switchToCostCenter('${costCenterId}')" style="cursor:pointer;">
@@ -1900,4 +1955,266 @@ async function exportAlternativeView() {
   } catch (error) {
     alert("Lỗi khi xuất dữ liệu: " + error.message);
   }
+}
+
+// ── Bulk Delete Functions ───────────────────────────────────────────────────
+
+// Single cost center view bulk delete
+function toggleSelectAllSingle(checkbox) {
+  const checkboxes = document.querySelectorAll("#entriesBody .entry-checkbox");
+  selectedSingleEntries.clear();
+
+  if (checkbox.checked) {
+    checkboxes.forEach((cb) => {
+      cb.checked = true;
+      selectedSingleEntries.add(cb.getAttribute("data-entry-id"));
+    });
+  } else {
+    checkboxes.forEach((cb) => {
+      cb.checked = false;
+    });
+  }
+
+  updateSingleBulkDeleteButton();
+}
+
+function toggleSingleEntrySelection(entryId, checkbox) {
+  if (checkbox.checked) {
+    selectedSingleEntries.add(entryId);
+  } else {
+    selectedSingleEntries.delete(entryId);
+    const selectAll = document.getElementById("selectAllSingle");
+    if (selectAll) selectAll.checked = false;
+  }
+
+  const allCheckboxes = document.querySelectorAll(
+    "#entriesBody .entry-checkbox",
+  );
+  const selectAll = document.getElementById("selectAllSingle");
+  if (
+    selectAll &&
+    selectedSingleEntries.size === allCheckboxes.length &&
+    allCheckboxes.length > 0
+  ) {
+    selectAll.checked = true;
+  }
+
+  updateSingleBulkDeleteButton();
+}
+
+function updateSingleBulkDeleteButton() {
+  const btn = document.getElementById("bulkDeleteSingleBtn");
+  const countSpan = document.getElementById("selectedCountSingle");
+
+  if (btn && countSpan) {
+    countSpan.textContent = selectedSingleEntries.size;
+    btn.disabled = selectedSingleEntries.size === 0;
+  }
+}
+
+async function bulkDeleteSingle() {
+  if (selectedSingleEntries.size === 0) {
+    alert("Vui lòng chọn ít nhất một mục để xóa");
+    return;
+  }
+
+  if (!currentCostCenterId) return;
+
+  if (
+    !confirm(
+      `Bạn có chắc chắn muốn xóa ${selectedSingleEntries.size} mục đã chọn không? Hành động này không thể hoàn tác.`,
+    )
+  ) {
+    return;
+  }
+
+  const deleteBtn = document.getElementById("bulkDeleteSingleBtn");
+  const originalHTML = deleteBtn.innerHTML;
+  deleteBtn.disabled = true;
+  deleteBtn.innerHTML = "🗑️ Đang xóa...";
+
+  let successCount = 0;
+  let errorCount = 0;
+
+  for (const entryId of selectedSingleEntries) {
+    try {
+      const response = await fetch(
+        `${API_BASE}/${currentCostCenterId}/entries/${entryId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (response.ok) {
+        successCount++;
+      } else {
+        errorCount++;
+      }
+    } catch (error) {
+      errorCount++;
+    }
+  }
+
+  deleteBtn.innerHTML = originalHTML;
+
+  if (errorCount === 0) {
+    alert(`Đã xóa thành công ${successCount} mục!`);
+  } else {
+    alert(`Đã xóa ${successCount} mục thành công, ${errorCount} mục thất bại.`);
+  }
+
+  selectedSingleEntries.clear();
+  const selectAll = document.getElementById("selectAllSingle");
+  if (selectAll) selectAll.checked = false;
+  updateSingleBulkDeleteButton();
+
+  await loadEntries();
+  await updateGlobalSummary();
+  syncSingleViewToAllView();
+}
+
+// All cost centers view bulk delete
+function toggleSelectAllAllView(checkbox) {
+  const checkboxes = document.querySelectorAll(
+    "#allEntriesBody .entry-checkbox",
+  );
+  selectedAllViewEntries.clear();
+
+  if (checkbox.checked) {
+    checkboxes.forEach((cb) => {
+      cb.checked = true;
+      selectedAllViewEntries.add({
+        entryId: cb.getAttribute("data-entry-id"),
+        costCenterId: cb.getAttribute("data-cost-center-id"),
+      });
+    });
+  } else {
+    checkboxes.forEach((cb) => {
+      cb.checked = false;
+    });
+  }
+
+  updateAllViewBulkDeleteButton();
+}
+
+function toggleAllViewEntrySelection(entryId, costCenterId, checkbox) {
+  if (checkbox.checked) {
+    // Check if already exists
+    let found = false;
+    for (const item of selectedAllViewEntries) {
+      if (item.entryId === entryId && item.costCenterId === costCenterId) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      selectedAllViewEntries.add({ entryId, costCenterId });
+    }
+  } else {
+    // Remove matching entry
+    for (const item of selectedAllViewEntries) {
+      if (item.entryId === entryId && item.costCenterId === costCenterId) {
+        selectedAllViewEntries.delete(item);
+        break;
+      }
+    }
+    const selectAll = document.getElementById("selectAllAllView");
+    if (selectAll) selectAll.checked = false;
+  }
+
+  const allCheckboxes = document.querySelectorAll(
+    "#allEntriesBody .entry-checkbox",
+  );
+  const selectAll = document.getElementById("selectAllAllView");
+  if (
+    selectAll &&
+    selectedAllViewEntries.size === allCheckboxes.length &&
+    allCheckboxes.length > 0
+  ) {
+    selectAll.checked = true;
+  }
+
+  updateAllViewBulkDeleteButton();
+}
+
+function updateAllViewBulkDeleteButton() {
+  const btn = document.getElementById("bulkDeleteAllBtn");
+  const countSpan = document.getElementById("selectedCountAll");
+
+  if (btn && countSpan) {
+    countSpan.textContent = selectedAllViewEntries.size;
+    btn.disabled = selectedAllViewEntries.size === 0;
+  }
+}
+
+async function bulkDeleteAllView() {
+  if (selectedAllViewEntries.size === 0) {
+    alert("Vui lòng chọn ít nhất một mục để xóa");
+    return;
+  }
+
+  if (
+    !confirm(
+      `Bạn có chắc chắn muốn xóa ${selectedAllViewEntries.size} mục đã chọn không? Hành động này không thể hoàn tác.`,
+    )
+  ) {
+    return;
+  }
+
+  const deleteBtn = document.getElementById("bulkDeleteAllBtn");
+  const originalHTML = deleteBtn.innerHTML;
+  deleteBtn.disabled = true;
+  deleteBtn.innerHTML = "🗑️ Đang xóa...";
+
+  let successCount = 0;
+  let errorCount = 0;
+
+  // Track which cost centers were affected
+  const affectedCostCenters = new Set();
+
+  for (const item of selectedAllViewEntries) {
+    try {
+      const response = await fetch(
+        `${API_BASE}/${item.costCenterId}/entries/${item.entryId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (response.ok) {
+        successCount++;
+        affectedCostCenters.add(item.costCenterId);
+      } else {
+        errorCount++;
+      }
+    } catch (error) {
+      errorCount++;
+    }
+  }
+
+  deleteBtn.innerHTML = originalHTML;
+
+  if (errorCount === 0) {
+    alert(`Đã xóa thành công ${successCount} mục!`);
+  } else {
+    alert(`Đã xóa ${successCount} mục thành công, ${errorCount} mục thất bại.`);
+  }
+
+  selectedAllViewEntries.clear();
+  const selectAll = document.getElementById("selectAllAllView");
+  if (selectAll) selectAll.checked = false;
+  updateAllViewBulkDeleteButton();
+
+  // Reload all data first
+  await loadAllCostCentersData();
+  applyAllFilters();
+
+  // If current single view has a cost center loaded that was affected, refresh it
+  if (currentCostCenterId && affectedCostCenters.has(currentCostCenterId)) {
+    await loadEntries();
+    applyFilters();
+  }
+
+  // Update global summary
+  calculateGlobalSummary();
 }

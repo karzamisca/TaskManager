@@ -512,10 +512,83 @@
   gap: 8px;
   margin-bottom: 15px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .finance-daily-page .bulk-actions button {
   margin-top: 0;
+}
+
+/* Bulk delete styles */
+.finance-daily-page .bulk-delete-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.finance-daily-page .bulk-delete-btn {
+  background: #dc3545;
+  border-color: #dc3545;
+  margin-top: 0;
+}
+
+.finance-daily-page .bulk-delete-btn:hover {
+  background: #c82333;
+  border-color: #bd2130;
+}
+
+.finance-daily-page .bulk-delete-btn:disabled {
+  background: #6c757d;
+  border-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.finance-daily-page .bulk-delete-btn:disabled:hover {
+  background: #6c757d;
+  border-color: #6c757d;
+}
+
+.finance-daily-page .select-all-checkbox {
+  width: auto;
+  cursor: pointer;
+  margin: 0;
+}
+
+.finance-daily-page .entry-checkbox {
+  width: auto;
+  cursor: pointer;
+  margin: 0;
+}
+
+.finance-daily-page th.checkbox-column,
+.finance-daily-page td.checkbox-column {
+  width: 40px;
+  min-width: 40px;
+  text-align: center;
+  padding: 10px 6px;
+  white-space: nowrap;
+}
+
+.finance-daily-page .select-all-container {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.finance-daily-page .select-all-label {
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+  user-select: none;
+}
+
+.finance-daily-page .selected-count {
+  font-size: 13px;
+  color: #fff;
+  font-weight: 600;
 }
 
 .finance-daily-page .filters-section {
@@ -1033,6 +1106,16 @@
   .finance-daily-page .profit-negative {
     color: #f28b82 !important;
   }
+
+  /* Dark mode bulk delete */
+  .finance-daily-page .bulk-delete-btn:disabled {
+    background: #555;
+    border-color: #666;
+  }
+
+  .finance-daily-page .selected-count {
+    color: #f28b82;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1106,5 +1189,19 @@
 
   .finance-daily-page #allViewAddRow .actions button {
     width: auto;
+  }
+
+  /* Responsive bulk delete */
+  .finance-daily-page .bulk-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .finance-daily-page .bulk-delete-container {
+    width: 100%;
+  }
+
+  .finance-daily-page .bulk-delete-btn {
+    width: 100%;
   }
 }
