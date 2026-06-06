@@ -27,7 +27,7 @@ const documentTypes = {
     name: "Chung",
     icon: "bi-file-earmark-text",
     color: "primary",
-    endpoint: "/getDocument",
+    endpoint: "/getGenericDocument",
   },
   proposal: {
     name: "Đề xuất",
@@ -146,7 +146,7 @@ function renderSummaryCards() {
         <div class="col">
           <div class="card summary-card ${key.replace(
             "_",
-            "-"
+            "-",
           )} h-100" onclick="showDocuments('${key}', '${type.name}')">
             <div class="card-body text-center">
               <div class="document-icon text-${type.color}">
@@ -154,8 +154,8 @@ function renderSummaryCards() {
               </div>
               <h5 class="card-title">${type.name}</h5>
               <span class="badge ${badgeClass} badge-count">${
-        summary.count
-      }</span>
+                summary.count
+              }</span>
               <p class="card-text mt-2 text-muted">
                 ${summary.count > 0 ? "Cần bạn phê duyệt" : "Đã cập nhật"}
               </p>
@@ -185,13 +185,13 @@ function getDocumentPriority(document, type) {
   // For documents with stages, find the highest priority among unapproved stages
   if (document.stages && document.stages.length > 0) {
     const unapprovedStages = document.stages.filter(
-      (stage) => stage.status !== "approved" && stage.status !== "Approved"
+      (stage) => stage.status !== "approved" && stage.status !== "Approved",
     );
 
     if (unapprovedStages.length > 0) {
       // Get priorities of unapproved stages (already in Vietnamese)
       const stagePriorities = unapprovedStages.map((stage) =>
-        stage.priority ? stage.priority.toLowerCase() : "trung bình"
+        stage.priority ? stage.priority.toLowerCase() : "trung bình",
       );
 
       // Determine highest priority (Vietnamese values)
@@ -279,7 +279,7 @@ function showDocuments(typeKey, typeName) {
 
   // Only show modal if it's not already shown
   const modal = bootstrap.Modal.getInstance(
-    document.getElementById("documentsModal")
+    document.getElementById("documentsModal"),
   );
   if (!modal || !modal._isShown) {
     new bootstrap.Modal(document.getElementById("documentsModal")).show();
@@ -312,7 +312,7 @@ async function viewDocumentDetails(type, id) {
   try {
     // Only show loading if this is not a refresh (modal not already shown)
     const detailsModal = bootstrap.Modal.getInstance(
-      elements.documentDetailsModal
+      elements.documentDetailsModal,
     );
     const isRefresh = detailsModal && detailsModal._isShown;
 
@@ -390,12 +390,12 @@ function renderDocumentDetails(type, document) {
           </div>
           <div class="col-md-6">
             <p><strong>Trạng thái:</strong> <span class="badge bg-${getStatusBadgeColor(
-              document.status
+              document.status,
             )}">
               ${document.status || "Pending"}
             </span></p>
             <p><strong>Mức độ ưu tiên:</strong> ${getPriorityDisplayName(
-              priority
+              priority,
             )}</p>
             ${
               document.costCenter
@@ -408,6 +408,16 @@ function renderDocumentDetails(type, document) {
 
   // Add type-specific details
   switch (type) {
+    case "generic":
+      detailsHtml += addGenericDetails(document);
+      detailsHtml += `
+        <div class="mt-3">
+          <button class="btn btn-primary" onclick="showFullView('generic', '${document._id}')">
+            <i class="bi bi-eye"></i> Xem toàn bộ thông tin
+          </button>
+        </div>
+      `;
+      break;
     case "proposal":
       detailsHtml += addProposalDetails(document);
       break;
@@ -475,7 +485,7 @@ function formatFileDate(dateString) {
 
       // Build a UTC date
       date = new Date(
-        Date.UTC(year, month - 1, day, hour, minute, second, ms || 0)
+        Date.UTC(year, month - 1, day, hour, minute, second, ms || 0),
       );
     } else {
       // Fallback: try normal parsing
@@ -615,7 +625,7 @@ async function showFullView(type, id) {
             </div>
             <div class="col-md-6">
               <p><strong>Trạng thái:</strong> <span class="badge bg-${getStatusBadgeColor(
-                document.status
+                document.status,
               )}">
                 ${document.status || "Pending"}
               </span></p>
@@ -630,6 +640,9 @@ async function showFullView(type, id) {
 
     // Add type-specific full view content
     switch (type) {
+      case "generic":
+        fullViewHtml += addGenericFullView(document);
+        break;
       case "purchasing":
         fullViewHtml += addPurchasingFullView(document);
         break;
@@ -664,6 +677,403 @@ async function showFullView(type, id) {
   } catch (error) {
     console.error("Error showing full view:", error);
     showToast("danger", "Không thể tải toàn bộ thông tin phiếu");
+  }
+}
+
+// Generic Document Details (modeled after payment details with stages)
+function addGenericDetails(document) {
+  let html = `
+    <hr>
+    <h6>Thông tin chi tiết phiếu chung</h6>
+    <div class="row">
+      <div class="col-md-6">
+        <p><strong>Tiêu đề:</strong> ${document.title || document.name || "Không có tiêu đề"}</p>
+        <p><strong>Tên phiếu:</strong> ${document.name || "Không có"}</p>
+        <p><strong>Nhóm:</strong> ${document.groupName || "Không có"}</p>
+        <p><strong>Dự án:</strong> ${document.projectName || "Không có"}</p>
+      </div>
+      <div class="col-md-6">
+        <p><strong>Trạng thái:</strong> <span class="badge bg-${getStatusBadgeColor(document.status)}">
+          ${document.status || "Chờ phê duyệt"}
+        </span></p>
+        <p><strong>Ngày gửi:</strong> ${document.submissionDate || "Không có"}</p>
+        <p><strong>Ghi chú:</strong> ${document.notes || "Không có"}</p>
+      </div>
+    </div>
+  `;
+
+  // Add stages if they exist (similar to payment stages)
+  if (document.stages && document.stages.length > 0) {
+    html += `
+      <hr>
+      <h6>Các giai đoạn của phiếu</h6>
+      <div class="stages-container">
+        ${document.stages
+          .map((stage, index) => {
+            const isApprover =
+              stage.approvers &&
+              stage.approvers.some(
+                (a) => a.approver && a.approver.toString() === appData.user.id,
+              );
+            const hasApproved =
+              stage.approvedBy &&
+              stage.approvedBy.some(
+                (a) => a.user && a.user.toString() === appData.user.id,
+              );
+            const canApprove =
+              isApprover && !hasApproved && stage.status === "Pending";
+            const stagePriority = stage.priority
+              ? stage.priority.toLowerCase()
+              : "trung bình";
+
+            return `
+            <div class="stage-card card mb-3 ${
+              stage.status === "Approved" ? "border-success" : ""
+            }">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">Giai đoạn ${index + 1}: ${stage.name || "Không tên"}</h6>
+                <div>
+                  <span class="badge bg-${getPriorityBadgeColor(stagePriority)} me-2">
+                    ${getPriorityDisplayName(stagePriority)}
+                  </span>
+                  <span class="badge bg-${getStatusBadgeColor(stage.status)}">
+                    ${
+                      stage.status === "Approved"
+                        ? "Đã phê duyệt"
+                        : stage.status === "Suspended"
+                          ? "Tạm dừng"
+                          : "Chờ phê duyệt"
+                    }
+                  </span>
+                </div>
+              </div>
+              <div class="card-body">
+                ${stage.description ? `<p><strong>Mô tả:</strong> ${stage.description}</p>` : ""}
+                ${stage.amount ? `<p><strong>Số tiền:</strong> ${formatCurrency(stage.amount)}</p>` : ""}
+                ${stage.deadline ? `<p><strong>Hạn:</strong> ${stage.deadline}</p>` : ""}
+                <p><strong>Thứ tự:</strong> ${stage.order || index + 1}</p>
+                
+                ${
+                  stage.fileMetadata && stage.fileMetadata.length > 0
+                    ? `
+                  <div class="file-section mt-2">
+                    <strong>Tệp đính kèm của giai đoạn:</strong>
+                    ${renderFileAttachments(stage.fileMetadata)}
+                  </div>`
+                    : ""
+                }
+                
+                ${
+                  stage.approvedBy && stage.approvedBy.length > 0
+                    ? `
+                  <hr>
+                  <h6>Người đã phê duyệt giai đoạn này</h6>
+                  <ul class="list-unstyled">
+                    ${stage.approvedBy
+                      .map(
+                        (approval) => `
+                      <li>
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        ${approval.username || "Không rõ"} (${approval.role || "Không rõ"}) - ${approval.approvalDate || "Không rõ ngày"}
+                      </li>
+                    `,
+                      )
+                      .join("")}
+                  </ul>
+                `
+                    : ""
+                }
+                
+                ${
+                  stage.suspendReason
+                    ? `
+                  <div class="alert alert-warning mt-2">
+                    <strong>Lý do tạm dừng:</strong> ${stage.suspendReason}
+                  </div>`
+                    : ""
+                }
+                
+                ${
+                  canApprove
+                    ? `
+                  <button onclick="approveGenericStage('${document._id}', ${index})" 
+                          class="btn btn-sm btn-success mt-2">
+                    <i class="bi bi-check-circle"></i> Phê duyệt giai đoạn này
+                  </button>
+                `
+                    : ""
+                }
+              </div>
+            </div>
+          `;
+          })
+          .join("")}
+      </div>
+    `;
+
+    // Check if all stages are approved and show document approval button
+    const allStagesApproved = document.stages.every(
+      (s) => s.status === "Approved",
+    );
+    if (
+      allStagesApproved &&
+      document.approvers &&
+      document.approvers.length > 0
+    ) {
+      const isDocApprover = document.approvers.some(
+        (a) => a.approver && a.approver.toString() === appData.user.id,
+      );
+      const hasDocApproved =
+        document.approvedBy &&
+        document.approvedBy.some(
+          (a) => a.user && a.user.toString() === appData.user.id,
+        );
+
+      if (isDocApprover && !hasDocApproved) {
+        html += `
+          <div class="alert alert-success mt-3">
+            <h6><i class="bi bi-check-circle"></i> Tất cả giai đoạn đã được phê duyệt</h6>
+            <button onclick="approveDocument('generic', '${document._id}')" 
+                    class="btn btn-success">
+              <i class="bi bi-check-all"></i> Phê duyệt toàn bộ phiếu chung
+            </button>
+          </div>
+        `;
+      }
+    }
+  }
+
+  // Add approvedBy section if exists
+  if (document.approvedBy && document.approvedBy.length > 0) {
+    html += `
+      <hr>
+      <h6>Người đã phê duyệt phiếu</h6>
+      <ul class="list-unstyled">
+        ${document.approvedBy
+          .map(
+            (approval) => `
+          <li>
+            <i class="bi bi-check-circle-fill text-success"></i>
+            ${approval.username || "Không rõ"} (${approval.role || "Không rõ"}) - ${approval.approvalDate || "Không rõ ngày"}
+          </li>
+        `,
+          )
+          .join("")}
+      </ul>
+    `;
+  }
+
+  // Add declaration if exists
+  if (document.declaration) {
+    html += `
+      <hr>
+      <h6>Kê khai</h6>
+      <div class="bg-light p-2 rounded">${document.declaration}</div>
+    `;
+  }
+
+  // Add suspend reason if document is suspended
+  if (document.suspendReason) {
+    html += `
+      <div class="alert alert-warning mt-3">
+        <strong>Lý do tạm dừng:</strong> ${document.suspendReason}
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+// Enhanced generic full view (modeled after payment full view with accordion stages)
+function addGenericFullView(document) {
+  let html = `
+    <hr>
+    <h6>Thông tin đầy đủ phiếu chung</h6>
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <p><strong>Tiêu đề:</strong> ${document.title || document.name || "Không có tiêu đề"}</p>
+        <p><strong>Tên phiếu:</strong> ${document.name || "Không có"}</p>
+        <p><strong>Nhóm:</strong> ${document.groupName || "Không có"}</p>
+        <p><strong>Dự án:</strong> ${document.projectName || "Không có"}</p>
+        <p><strong>Người gửi:</strong> ${document.submittedBy?.username || "Không rõ"}</p>
+      </div>
+      <div class="col-md-6">
+        <p><strong>Ngày gửi:</strong> ${document.submissionDate || "Không có"}</p>
+        <p><strong>Trạng thái:</strong> <span class="badge bg-${getStatusBadgeColor(document.status)}">
+          ${document.status || "Chờ phê duyệt"}
+        </span></p>
+        <p><strong>Ghi chú:</strong> ${document.notes || "Không có"}</p>
+      </div>
+    </div>
+  `;
+
+  // Add stages as accordion (like payment stages)
+  if (document.stages && document.stages.length > 0) {
+    html += `
+      <hr>
+      <h6>Các giai đoạn của phiếu</h6>
+      <div class="accordion" id="genericStagesAccordion">
+        ${document.stages
+          .map((stage, index) => {
+            const stageStatus = stage.status || "Pending";
+            const stagePriority = stage.priority || "Trung bình";
+
+            return `
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="genericStageHeading${index}">
+                <button class="accordion-button ${index > 0 ? "collapsed" : ""}" 
+                        type="button" data-bs-toggle="collapse" 
+                        data-bs-target="#genericStageCollapse${index}" 
+                        aria-expanded="${index === 0 ? "true" : "false"}" 
+                        aria-controls="genericStageCollapse${index}">
+                  <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                    <span>Giai đoạn ${index + 1}: ${stage.name || "Không tên"}</span>
+                    <span class="badge bg-${getPriorityBadgeColor(stagePriority.toLowerCase())} ms-2">
+                      ${stagePriority}
+                    </span>
+                    <span class="badge bg-${getStatusBadgeColor(stageStatus)} ms-2">
+                      ${stageStatus === "Approved" ? "Đã duyệt" : stageStatus === "Suspended" ? "Tạm dừng" : "Chờ duyệt"}
+                    </span>
+                  </div>
+                </button>
+              </h2>
+              <div id="genericStageCollapse${index}" 
+                   class="accordion-collapse collapse ${index === 0 ? "show" : ""}" 
+                   aria-labelledby="genericStageHeading${index}" 
+                   data-bs-parent="#genericStagesAccordion">
+                <div class="accordion-body">
+                  ${stage.description ? `<p><strong>Mô tả:</strong> ${stage.description}</p>` : ""}
+                  ${stage.amount ? `<p><strong>Số tiền:</strong> ${formatCurrency(stage.amount)}</p>` : ""}
+                  ${stage.deadline ? `<p><strong>Hạn:</strong> ${stage.deadline}</p>` : ""}
+                  <p><strong>Thứ tự:</strong> ${stage.order || index + 1}</p>
+                  <p><strong>Trạng thái:</strong> ${stageStatus}</p>
+                  
+                  ${
+                    stage.fileMetadata && stage.fileMetadata.length > 0
+                      ? `
+                    <div class="file-section mt-3">
+                      <strong>Tệp đính kèm của giai đoạn:</strong>
+                      ${renderFileAttachments(stage.fileMetadata)}
+                    </div>`
+                      : ""
+                  }
+                  
+                  ${
+                    stage.suspendReason
+                      ? `
+                    <div class="alert alert-warning mt-2">
+                      <strong>Lý do tạm dừng:</strong> ${stage.suspendReason}
+                    </div>`
+                      : ""
+                  }
+                  
+                  ${
+                    stage.approvedBy && stage.approvedBy.length > 0
+                      ? `
+                    <hr>
+                    <h6>Người đã phê duyệt</h6>
+                    <ul class="list-unstyled">
+                      ${stage.approvedBy
+                        .map(
+                          (approval) => `
+                        <li>
+                          <i class="bi bi-check-circle-fill text-success"></i>
+                          ${approval.username || "Không rõ"} (${approval.role || "Không rõ"}) - ${approval.approvalDate || "Không rõ ngày"}
+                        </li>
+                      `,
+                        )
+                        .join("")}
+                    </ul>
+                  `
+                      : ""
+                  }
+                </div>
+              </div>
+            </div>
+          `;
+          })
+          .join("")}
+      </div>
+    `;
+  }
+
+  // Add document content if exists
+  if (document.content) {
+    html += `
+      <hr>
+      <h6>Nội dung phiếu</h6>
+      <div class="bg-light p-2 rounded">${document.content}</div>
+    `;
+  }
+
+  // Add declaration if exists
+  if (document.declaration) {
+    html += `
+      <hr>
+      <h6>Kê khai</h6>
+      <div class="bg-light p-2 rounded">${document.declaration}</div>
+    `;
+  }
+
+  // Add suspend reason if document is suspended
+  if (document.suspendReason) {
+    html += `
+      <div class="alert alert-warning mt-3">
+        <strong>Lý do tạm dừng phiếu:</strong> ${document.suspendReason}
+      </div>
+    `;
+  }
+
+  return html;
+}
+
+// Approve generic document stage (similar to approvePaymentStage)
+async function approveGenericStage(docId, stageIndex) {
+  if (
+    !confirm(`Bạn có chắc chắn muốn phê duyệt giai đoạn ${stageIndex + 1} này?`)
+  )
+    return;
+
+  try {
+    const response = await fetch(
+      `/approveGenericStage/${docId}/${stageIndex}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    const result = await response.json();
+
+    if (result.message) {
+      showToast("success", result.message);
+
+      // Refresh dashboard data
+      await loadDashboardData();
+
+      // Refresh the document details modal if it's open
+      const detailsModal = bootstrap.Modal.getInstance(
+        document.getElementById("documentDetailsModal"),
+      );
+      if (detailsModal && detailsModal._isShown) {
+        await viewDocumentDetails("generic", docId);
+      }
+
+      // Refresh the documents list modal if it's open
+      const docsModal = bootstrap.Modal.getInstance(
+        document.getElementById("documentsModal"),
+      );
+      if (docsModal && docsModal._isShown) {
+        showDocuments("generic", "Chung");
+      }
+    } else {
+      showToast("danger", "Lỗi khi phê duyệt giai đoạn");
+    }
+  } catch (error) {
+    console.error("Error approving generic stage:", error);
+    showToast("danger", "Lỗi khi phê duyệt giai đoạn");
   }
 }
 
@@ -708,14 +1118,14 @@ function addPurchasingFullView(document) {
                 <td>${formatCurrency(product.totalCostAfterVat)}</td>
                 <td>${product.note || ""}</td>
               </tr>
-            `
+            `,
               )
               .join("")}
           </tbody>
         </table>
       </div>
       <p class="text-end fw-bold">Tổng cộng: ${formatCurrency(
-        document.grandTotalCost
+        document.grandTotalCost,
       )}</p>
     `;
   }
@@ -764,7 +1174,7 @@ function addPurchasingFullView(document) {
               }
             </div>
           </div>
-        `
+        `,
           )
           .join("")}
       </div>
@@ -790,12 +1200,12 @@ function addPaymentFullView(document) {
     <p><strong>Nội dung:</strong> ${document.content}</p>
     <p><strong>Phương thức thanh toán:</strong> ${document.paymentMethod}</p>
     <p><strong>Tổng thanh toán:</strong> ${formatCurrency(
-      document.totalPayment
+      document.totalPayment,
     )}</p>
     ${
       document.advancePayment
         ? `<p><strong>Đã tạm ứng:</strong> ${formatCurrency(
-            document.advancePayment
+            document.advancePayment,
           )}</p>`
         : ""
     }
@@ -823,10 +1233,10 @@ function addPaymentFullView(document) {
                       aria-expanded="${index === 0 ? "true" : "false"}" 
                       aria-controls="stageCollapse${index}">
                 Giai đoạn ${index + 1}: ${stage.name} - ${formatCurrency(
-              stage.amount
-            )}
+                  stage.amount,
+                )}
                 <span class="badge bg-${getStatusBadgeColor(
-                  stage.status
+                  stage.status,
                 )} ms-2">
                   ${stage.status || "Pending"}
                 </span>
@@ -866,7 +1276,7 @@ function addPaymentFullView(document) {
                         <i class="bi bi-check-circle-fill text-success"></i>
                         ${approval.username} (${approval.role}) - ${approval.approvalDate}
                       </li>
-                    `
+                    `,
                       )
                       .join("")}
                   </ul>
@@ -876,7 +1286,7 @@ function addPaymentFullView(document) {
               </div>
             </div>
           </div>
-        `
+        `,
           )
           .join("")}
       </div>
@@ -909,7 +1319,7 @@ function addPaymentFullView(document) {
                 </div>
                 <div class="col-md-6">
                   <p><strong>Tổng chi phí:</strong> ${formatCurrency(
-                    purchDoc.grandTotalCost
+                    purchDoc.grandTotalCost,
                   )}</p>
                 </div>
               </div>
@@ -938,7 +1348,7 @@ function addPaymentFullView(document) {
                           <td>${product.vat}</td>
                           <td>${formatCurrency(product.totalCost)}</td>
                         </tr>
-                      `
+                      `,
                         )
                         .join("")}
                     </tbody>
@@ -982,14 +1392,14 @@ function addPaymentFullView(document) {
                                 ? `<div class="file-section mt-3">
                                     <strong>Tệp đính kèm:</strong>
                                     ${renderFileAttachments(
-                                      proposal.fileMetadata
+                                      proposal.fileMetadata,
                                     )}
                                   </div>`
                                 : ""
                             }
                           </div>
                         </div>
-                      `
+                      `,
                         )
                         .join("")}
                     </div>
@@ -998,7 +1408,7 @@ function addPaymentFullView(document) {
               }
             </div>
           </div>
-        `
+        `,
           )
           .join("")}
       </div>
@@ -1049,14 +1459,14 @@ function addDeliveryFullView(document) {
                 <td>${formatCurrency(product.costPerUnit)}</td>
                 <td>${formatCurrency(product.totalCost)}</td>
               </tr>
-            `
+            `,
               )
               .join("")}
           </tbody>
         </table>
       </div>
       <p class="text-end fw-bold">Tổng cộng: ${formatCurrency(
-        document.grandTotalCost
+        document.grandTotalCost,
       )}</p>
     `;
   }
@@ -1105,7 +1515,7 @@ function addDeliveryFullView(document) {
               }
             </div>
           </div>
-        `
+        `,
           )
           .join("")}
       </div>
@@ -1156,14 +1566,14 @@ function addReceiptFullView(document) {
                 <td>${formatCurrency(product.costPerUnit)}</td>
                 <td>${formatCurrency(product.totalCost)}</td>
               </tr>
-            `
+            `,
               )
               .join("")}
           </tbody>
         </table>
       </div>
       <p class="text-end fw-bold">Tổng cộng: ${formatCurrency(
-        document.grandTotalCost
+        document.grandTotalCost,
       )}</p>
     `;
   }
@@ -1212,7 +1622,7 @@ function addReceiptFullView(document) {
               }
             </div>
           </div>
-        `
+        `,
           )
           .join("")}
       </div>
@@ -1272,7 +1682,7 @@ function addAdvancePaymentFullView(document, isReclaim) {
                 </div>
                 <div class="col-md-6">
                   <p><strong>Tổng chi phí:</strong> ${formatCurrency(
-                    purchDoc.grandTotalCost
+                    purchDoc.grandTotalCost,
                   )}</p>
                 </div>
               </div>
@@ -1301,7 +1711,7 @@ function addAdvancePaymentFullView(document, isReclaim) {
                           <td>${product.vat}</td>
                           <td>${formatCurrency(product.totalCost)}</td>
                         </tr>
-                      `
+                      `,
                         )
                         .join("")}
                     </tbody>
@@ -1345,14 +1755,14 @@ function addAdvancePaymentFullView(document, isReclaim) {
                                 ? `<div class="file-section mt-3">
                                     <strong>Tệp đính kèm:</strong>
                                     ${renderFileAttachments(
-                                      proposal.fileMetadata
+                                      proposal.fileMetadata,
                                     )}
                                   </div>`
                                 : ""
                             }
                           </div>
                         </div>
-                      `
+                      `,
                         )
                         .join("")}
                     </div>
@@ -1361,33 +1771,10 @@ function addAdvancePaymentFullView(document, isReclaim) {
               }
             </div>
           </div>
-        `
+        `,
           )
           .join("")}
       </div>
-    `;
-  }
-
-  if (document.declaration) {
-    html += `
-      <hr>
-      <h6>Kê khai</h6>
-      <div class="bg-light p-2 rounded">${document.declaration}</div>
-    `;
-  }
-
-  return html;
-}
-
-// Add generic full view for other document types
-function addGenericFullView(document) {
-  let html = "";
-
-  if (document.content) {
-    html += `
-      <hr>
-      <h6>Nội dung</h6>
-      <div class="bg-light p-2 rounded">${document.content}</div>
     `;
   }
 
@@ -1432,7 +1819,7 @@ function formatCurrency(amount) {
   // Format integer part with comma as thousand separator
   const withThousandSeparator = integerPart.replace(
     /\B(?=(\d{3})+(?!\d))/g,
-    ","
+    ",",
   );
 
   return isInteger
@@ -1498,14 +1885,14 @@ function addPurchasingDetails(document) {
                 <td>${product.vat}%</td>
                 <td>${formatCurrency(product.totalCostAfterVat)}</td>
               </tr>
-            `
+            `,
               )
               .join("")}
           </tbody>
         </table>
       </div>
       <p class="text-end fw-bold">Tổng cộng: ${formatCurrency(
-        document.grandTotalCost
+        document.grandTotalCost,
       )}</p>
     `;
   }
@@ -1540,12 +1927,12 @@ function addPaymentDetails(document) {
     <p><strong>Nội dung:</strong> ${document.content}</p>
     <p><strong>Phương thức thanh toán:</strong> ${document.paymentMethod}</p>
     <p><strong>Tổng thanh toán:</strong> ${formatCurrency(
-      document.totalPayment
+      document.totalPayment,
     )}</p>
     ${
       document.advancePayment
         ? `<p><strong>Đã tạm ứng:</strong> ${formatCurrency(
-            document.advancePayment
+            document.advancePayment,
           )}</p>`
         : ""
     }
@@ -1553,7 +1940,7 @@ function addPaymentDetails(document) {
       document.paymentDeadline || "Không xác định"
     }</p>
     <p><strong>Mức độ ưu tiên tổng thể:</strong> ${getPriorityDisplayName(
-      getDocumentPriority(document, "payment")
+      getDocumentPriority(document, "payment"),
     )}</p>    
   `;
 
@@ -1565,10 +1952,10 @@ function addPaymentDetails(document) {
         ${document.stages
           .map((stage, index) => {
             const isApprover = stage.approvers.some(
-              (a) => a.approver.toString() === appData.user.id
+              (a) => a.approver.toString() === appData.user.id,
             );
             const hasApproved = stage.approvedBy.some(
-              (a) => a.user.toString() === appData.user.id
+              (a) => a.user.toString() === appData.user.id,
             );
             const canApprove =
               isApprover && !hasApproved && stage.status === "Pending";
@@ -1584,7 +1971,7 @@ function addPaymentDetails(document) {
                 <h6 class="mb-0">Giai đoạn ${index + 1}: ${stage.name}</h6>
                 <div>
                   <span class="badge bg-${getPriorityBadgeColor(
-                    stagePriority
+                    stagePriority,
                   )} me-2">
                     ${getPriorityDisplayName(stagePriority)}
                   </span>
@@ -1603,7 +1990,7 @@ function addPaymentDetails(document) {
                   stage.deadline || "Không xác định"
                 }</p>
                 <p><strong>Mức độ ưu tiên:</strong> ${getPriorityDisplayName(
-                  stagePriority
+                  stagePriority,
                 )}</p>                    
                 <p><strong>Phương thức thanh toán:</strong> ${
                   stage.paymentMethod || document.paymentMethod
@@ -1627,7 +2014,7 @@ function addPaymentDetails(document) {
                         <i class="bi bi-check-circle-fill text-success"></i>
                         ${approval.username} (${approval.role}) - ${approval.approvalDate}
                       </li>
-                    `
+                    `,
                       )
                       .join("")}
                   </ul>
@@ -1655,14 +2042,14 @@ function addPaymentDetails(document) {
 
     // Check if all stages are approved and show document approval button
     const allStagesApproved = document.stages.every(
-      (s) => s.status === "Approved"
+      (s) => s.status === "Approved",
     );
     if (allStagesApproved && document.approvers.length > 0) {
       const isDocApprover = document.approvers.some(
-        (a) => a.approver.toString() === appData.user.id
+        (a) => a.approver.toString() === appData.user.id,
       );
       const hasDocApproved = document.approvedBy.some(
-        (a) => a.user.toString() === appData.user.id
+        (a) => a.user.toString() === appData.user.id,
       );
 
       if (isDocApprover && !hasDocApproved) {
@@ -1744,7 +2131,7 @@ function addAdvancePaymentDetails(document, type) {
                 </div>
                 <div class="col-md-6">
                   <p><strong>Tổng chi phí:</strong> ${formatCurrency(
-                    purchDoc.grandTotalCost
+                    purchDoc.grandTotalCost,
                   )}</p>
                 </div>
               </div>
@@ -1773,7 +2160,7 @@ function addAdvancePaymentDetails(document, type) {
                           <td>${product.vat}</td>
                           <td>${formatCurrency(product.totalCost)}</td>
                         </tr>
-                      `
+                      `,
                         )
                         .join("")}
                     </tbody>
@@ -1791,7 +2178,7 @@ function addAdvancePaymentDetails(document, type) {
               }
             </div>
           </div>
-        `
+        `,
           )
           .join("")}
       </div>
@@ -1853,14 +2240,14 @@ function addDeliveryDetails(document) {
                 <td>${formatCurrency(product.costPerUnit)}</td>
                 <td>${formatCurrency(product.totalCost)}</td>
               </tr>
-            `
+            `,
               )
               .join("")}
           </tbody>
         </table>
       </div>
       <p class="text-end fw-bold">Tổng cộng: ${formatCurrency(
-        document.grandTotalCost
+        document.grandTotalCost,
       )}</p>
     `;
   }
@@ -1909,7 +2296,7 @@ function addDeliveryDetails(document) {
               }
             </div>
           </div>
-        `
+        `,
           )
           .join("")}
       </div>
@@ -1971,14 +2358,14 @@ function addReceiptDetails(document) {
                 <td>${formatCurrency(product.costPerUnit)}</td>
                 <td>${formatCurrency(product.totalCost)}</td>
               </tr>
-            `
+            `,
               )
               .join("")}
           </tbody>
         </table>
       </div>
       <p class="text-end fw-bold">Tổng cộng: ${formatCurrency(
-        document.grandTotalCost
+        document.grandTotalCost,
       )}</p>
     `;
   }
@@ -2027,7 +2414,7 @@ function addReceiptDetails(document) {
               }
             </div>
           </div>
-        `
+        `,
           )
           .join("")}
       </div>
@@ -2071,7 +2458,7 @@ function addProjectProposalDetails(document) {
           <h6>${item.name}</h6>
           <div class="bg-light p-2 rounded">${item.text}</div>
         </div>
-      `
+      `,
         )
         .join("")}
     `;
@@ -2102,7 +2489,7 @@ async function approvePaymentStage(docId, stageIndex) {
         headers: {
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     const result = await response.json();
@@ -2115,7 +2502,7 @@ async function approvePaymentStage(docId, stageIndex) {
 
       // Refresh the document details modal if it's open
       const detailsModal = bootstrap.Modal.getInstance(
-        document.getElementById("documentDetailsModal")
+        document.getElementById("documentDetailsModal"),
       );
       if (detailsModal && detailsModal._isShown) {
         await viewDocumentDetails("payment", docId);
@@ -2123,7 +2510,7 @@ async function approvePaymentStage(docId, stageIndex) {
 
       // Refresh the documents list modal if it's open
       const docsModal = bootstrap.Modal.getInstance(
-        document.getElementById("documentsModal")
+        document.getElementById("documentsModal"),
       );
       if (docsModal && docsModal._isShown) {
         showDocuments("payment", "Thanh toán");
@@ -2148,13 +2535,36 @@ async function approveDocument(type, id) {
 
       // Check if all stages are approved
       const allStagesApproved = document.stages.every(
-        (s) => s.status === "Approved"
+        (s) => s.status === "Approved",
       );
       if (!allStagesApproved) {
         return showToast(
           "warning",
-          "Vui lòng phê duyệt tất cả các giai đoạn trước khi phê duyệt toàn bộ phiếu"
+          "Vui lòng phê duyệt tất cả các giai đoạn trước khi phê duyệt toàn bộ phiếu",
         );
+      }
+    } catch (error) {
+      console.error("Error checking document stages:", error);
+      return showToast("danger", "Lỗi khi kiểm tra trạng thái giai đoạn");
+    }
+  }
+
+  // For generic documents with stages, check if all stages are approved
+  if (type === "generic") {
+    try {
+      const response = await fetch(`/getDocument/${id}`);
+      const document = await response.json();
+
+      if (document.stages && document.stages.length > 0) {
+        const allStagesApproved = document.stages.every(
+          (s) => s.status === "Approved",
+        );
+        if (!allStagesApproved) {
+          return showToast(
+            "warning",
+            "Vui lòng phê duyệt tất cả các giai đoạn trước khi phê duyệt toàn bộ phiếu",
+          );
+        }
       }
     } catch (error) {
       console.error("Error checking document stages:", error);
@@ -2165,8 +2575,12 @@ async function approveDocument(type, id) {
   if (
     !confirm(
       `Bạn có chắc chắn muốn phê duyệt ${
-        type === "payment" ? "toàn bộ phiếu thanh toán" : "phiếu này"
-      }?`
+        type === "payment"
+          ? "toàn bộ phiếu thanh toán"
+          : type === "generic"
+            ? "toàn bộ phiếu chung"
+            : "phiếu này"
+      }?`,
     )
   )
     return;
@@ -2189,10 +2603,10 @@ async function approveDocument(type, id) {
 
       // Check which modals are open and refresh them
       const docsModal = bootstrap.Modal.getInstance(
-        document.getElementById("documentsModal")
+        document.getElementById("documentsModal"),
       );
       const detailsModal = bootstrap.Modal.getInstance(
-        document.getElementById("documentDetailsModal")
+        document.getElementById("documentDetailsModal"),
       );
 
       // If documents list modal is open, refresh it
@@ -2216,7 +2630,7 @@ async function approveDocument(type, id) {
           detailsModal.hide();
           showToast(
             "info",
-            "Phiếu đã được phê duyệt hoàn toàn và không còn cần xem xét"
+            "Phiếu đã được phê duyệt hoàn toàn và không còn cần xem xét",
           );
         }
       }
@@ -2237,10 +2651,10 @@ async function refreshModalContent(type, id) {
 
     // Check which modals are currently shown
     const docsModal = bootstrap.Modal.getInstance(
-      document.getElementById("documentsModal")
+      document.getElementById("documentsModal"),
     );
     const detailsModal = bootstrap.Modal.getInstance(
-      document.getElementById("documentDetailsModal")
+      document.getElementById("documentDetailsModal"),
     );
 
     // Refresh documents list modal if open
@@ -2261,7 +2675,7 @@ async function refreshModalContent(type, id) {
         detailsModal.hide();
         showToast(
           "info",
-          "Phiếu đã được xử lý xong và không còn hiển thị trong danh sách cần phê duyệt"
+          "Phiếu đã được xử lý xong và không còn hiển thị trong danh sách cần phê duyệt",
         );
       }
     }
@@ -2316,7 +2730,7 @@ function updateLastUpdated() {
   if (!appData.lastUpdated) return;
   elements.lastUpdated.innerHTML = `
     <i class="bi bi-clock-history"></i> Cập nhật: ${formatDate(
-      appData.lastUpdated
+      appData.lastUpdated,
     )}
   `;
 }
