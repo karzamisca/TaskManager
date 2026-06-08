@@ -7685,6 +7685,7 @@ exports.approveGenericStage = async (req, res) => {
         "headOfAccounting",
         "headOfPurchasing",
         "headOfOperations",
+        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.status(403).json({
