@@ -493,27 +493,47 @@ exports.exportDocumentToDocx = async (req, res) => {
     res.send("Lỗi xuất phiếu.");
   }
 };
+// ── Idempotency cache (evict entries older than 10 s) ──
+const recentSubmissions = new Map();
+
+function isRecentDuplicate(key, userId) {
+  if (!key) return false;
+  const cacheKey = `${userId}:${key}`;
+  const now = Date.now();
+
+  for (const [k, ts] of recentSubmissions) {
+    if (now - ts > 180_000) recentSubmissions.delete(k);
+  }
+
+  if (recentSubmissions.has(cacheKey)) return true;
+  recentSubmissions.set(cacheKey, now);
+  return false;
+}
+
 // Main export function that handles file upload and routes to specific document handlers
 exports.submitDocument = async (req, res) => {
-  // Change from upload.single to upload.array
   upload.array("files", 10)(req, res, async (err) => {
     if (err) {
       console.error("Error uploading files:", err);
       return res.send("Error uploading files.");
     }
 
-    const { title } = req.body;
+    // ── Reject duplicate submissions ──
+    const idempotencyKey = req.body.idempotencyKey;
+    const userId = req.user?.id || "anonymous";
+    if (isRecentDuplicate(idempotencyKey, userId)) {
+      console.warn("Duplicate submission blocked:", idempotencyKey);
+      return res.redirect("/documentSummaryUnapproved");
+    }
 
+    const { title } = req.body;
     try {
       // Process approvers data
       const approverDetails = await processApprovers(req);
-
       // Handle multiple file uploads
       const uploadedFilesData = await handleMultipleFileUploads(req);
-
       // Route to appropriate document handler based on title
       let newDocument;
-
       switch (title) {
         case "Proposal Document":
           newDocument = await createProposalDocument(
@@ -579,7 +599,6 @@ exports.submitDocument = async (req, res) => {
           );
           break;
       }
-
       await newDocument.save();
       res.redirect("/documentSummaryUnapproved");
     } catch (err) {
@@ -590,7 +609,6 @@ exports.submitDocument = async (req, res) => {
     }
   });
 };
-
 async function handleMultipleFileUploads(req) {
   if (!req.files || req.files.length === 0) return [];
 

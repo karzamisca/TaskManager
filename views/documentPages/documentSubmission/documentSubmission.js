@@ -2189,7 +2189,8 @@ document
     event.preventDefault();
     event.stopPropagation();
 
-    if (isSubmitting) {
+    // ── Guard: use sessionStorage so it survives partial re-renders ──
+    if (sessionStorage.getItem("submitting") === "1") {
       console.log("Submission already in progress, ignoring duplicate");
       return;
     }
@@ -2204,51 +2205,43 @@ document
 
     const selectedTitle = document.getElementById("title-dropdown").value;
 
-    // Add validation for costCenterFrom and costCenterTo for Delivery and Receipt documents
     if (
       selectedTitle === "Delivery Document" ||
       selectedTitle === "Receipt Document"
     ) {
       const costCenterFrom = document.getElementById("costCenterFrom")?.value;
       const costCenterTo = document.getElementById("costCenterTo")?.value;
-
       if (!costCenterFrom) {
         alert("Vui lòng chọn trạm xuất (nơi gửi đi)");
         return;
       }
-
       if (!costCenterTo) {
         alert("Vui lòng chọn trạm nhập (nơi nhận)");
         return;
       }
-
       if (costCenterFrom === costCenterTo) {
         alert("Trạm xuất và trạm nhập không thể giống nhau");
         return;
       }
     }
 
-    const productCostCenters = document.querySelectorAll(
-      ".product-cost-center",
-    );
-    let allCostCentersValid = true;
+    const submitButton = this.querySelector('button[type="submit"]');
 
     try {
       const userResponse = await fetch("/getCurrentUser");
       const userData = await userResponse.json();
       const currentUser = userData.username;
-
       const costCenterResponse = await fetch("/costCenters");
       const costCenters = await costCenterResponse.json();
       const allowedCostCenters = costCenters
         .filter(
-          (center) =>
-            center.allowedUsers.length === 0 ||
-            center.allowedUsers.includes(currentUser),
+          (c) =>
+            c.allowedUsers.length === 0 || c.allowedUsers.includes(currentUser),
         )
-        .map((center) => center.name);
+        .map((c) => c.name);
 
-      productCostCenters.forEach((select) => {
+      let allCostCentersValid = true;
+      document.querySelectorAll(".product-cost-center").forEach((select) => {
         if (!allowedCostCenters.includes(select.value)) {
           allCostCentersValid = false;
           select.style.border = "1px solid red";
@@ -2272,9 +2265,7 @@ document
         ].includes(selectedTitle)
       ) {
         const existingField = document.getElementById("grand-total-hidden");
-        if (existingField) {
-          existingField.remove();
-        }
+        if (existingField) existingField.remove();
 
         const grandTotalField = document.createElement("input");
         grandTotalField.type = "hidden";
@@ -2285,35 +2276,44 @@ document
 
         productEntries.forEach((product, index) => {
           if (product) {
-            const productCostField = document.createElement("input");
-            productCostField.type = "hidden";
-            productCostField.name = `products[${index}][totalCost]`;
-            productCostField.value = product.totalCost;
-            this.appendChild(productCostField);
+            const field = document.createElement("input");
+            field.type = "hidden";
+            field.name = `products[${index}][totalCost]`;
+            field.value = product.totalCost;
+            this.appendChild(field);
           }
         });
       }
 
-      isSubmitting = true;
+      // ── Generate + attach idempotency key ──
+      const idempotencyKey = crypto.randomUUID();
+      sessionStorage.setItem("submitting", "1");
+      sessionStorage.setItem("idempotencyKey", idempotencyKey);
 
-      const submitButton = this.querySelector('button[type="submit"]');
+      // Attach key as a hidden field so it rides the multipart POST
+      const keyField = document.createElement("input");
+      keyField.type = "hidden";
+      keyField.name = "idempotencyKey";
+      keyField.value = idempotencyKey;
+      keyField.id = "idempotency-key-hidden";
+      this.appendChild(keyField);
+
       if (submitButton) {
         submitButton.disabled = true;
         submitButton.innerHTML =
           '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
       }
 
-      this.submit();
+      this.submit(); // native submit — page will navigate away on success
     } catch (error) {
-      console.error("Error validating cost centers:", error);
-      isSubmitting = false;
-
-      const submitButton = this.querySelector('button[type="submit"]');
+      console.error("Error during submit validation:", error);
+      // ── Always clean up so the user can retry ──
+      sessionStorage.removeItem("submitting");
+      sessionStorage.removeItem("idempotencyKey");
       if (submitButton) {
         submitButton.disabled = false;
         submitButton.innerHTML = '<i class="fas fa-paper-plane"></i> Nộp phiếu';
       }
-      return;
     }
   });
 
@@ -2365,4 +2365,22 @@ document.getElementById("files").addEventListener("change", function (e) {
     `;
     fileListElement.appendChild(fileItem);
   });
+});
+
+window.addEventListener("pageshow", function (e) {
+  if (e.persisted) {
+    sessionStorage.removeItem("submitting");
+    const submitButton = document.querySelector(
+      '#submit-form button[type="submit"]',
+    );
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.innerHTML = '<i class="fas fa-paper-plane"></i> Nộp phiếu';
+    }
+  }
+});
+
+window.addEventListener("pagehide", function () {
+  sessionStorage.removeItem("submitting");
+  sessionStorage.removeItem("idempotencyKey");
 });
