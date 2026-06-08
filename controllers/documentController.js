@@ -7731,16 +7731,6 @@ exports.approveGenericStage = async (req, res) => {
       });
     }
 
-    // Check sequential order - ensure previous stages are approved
-    if (stage.order > 0) {
-      const previousStage = document.stages[stage.order - 1];
-      if (previousStage && previousStage.status !== "Approved") {
-        return res.status(400).json({
-          message: "Vui lòng phê duyệt các giai đoạn trước trước.",
-        });
-      }
-    }
-
     // Add approval
     stage.approvedBy.push({
       user: user.id,
