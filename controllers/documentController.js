@@ -4,6 +4,7 @@ const User = require("../models/User");
 const CostCenter = require("../models/CostCenter");
 const Item = require("../models/Item");
 const ItemStock = require("../models/ItemStock");
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 const moment = require("moment-timezone");
 const ProposalDocument = require("../models/DocumentProposal.js");
@@ -510,6 +511,33 @@ function isRecentDuplicate(key, userId) {
   return false;
 }
 
+// ── Content hash cache (evict entries older than 30 s) ──
+const recentContentHashes = new Map();
+
+function buildContentHash(userId, body) {
+  const { idempotencyKey, ...rest } = body;
+  const sorted = Object.keys(rest)
+    .sort()
+    .reduce((acc, k) => {
+      acc[k] = rest[k];
+      return acc;
+    }, {});
+  const stable = JSON.stringify({ userId, ...sorted });
+  return crypto.createHash("sha256").update(stable).digest("hex");
+}
+
+function isRecentContentDuplicate(hash) {
+  const now = Date.now();
+
+  for (const [k, ts] of recentContentHashes) {
+    if (now - ts > 180_000) recentContentHashes.delete(k);
+  }
+
+  if (recentContentHashes.has(hash)) return true;
+  recentContentHashes.set(hash, now);
+  return false;
+}
+
 // Main export function that handles file upload and routes to specific document handlers
 exports.submitDocument = async (req, res) => {
   upload.array("files", 10)(req, res, async (err) => {
@@ -518,11 +546,25 @@ exports.submitDocument = async (req, res) => {
       return res.send("Error uploading files.");
     }
 
-    // ── Reject duplicate submissions ──
-    const idempotencyKey = req.body.idempotencyKey;
     const userId = req.user?.id || "anonymous";
+
+    // ── Layer 1: idempotency key (same tab double-click / network retry) ──
+    const idempotencyKey = req.body.idempotencyKey;
     if (isRecentDuplicate(idempotencyKey, userId)) {
-      console.warn("Duplicate submission blocked:", idempotencyKey);
+      console.warn(
+        "Duplicate submission blocked by idempotency key:",
+        idempotencyKey,
+      );
+      return res.redirect("/documentSummaryUnapproved");
+    }
+
+    // ── Layer 2: content hash (two tabs submitting identical document) ──
+    const contentHash = buildContentHash(userId, req.body);
+    if (isRecentContentDuplicate(contentHash)) {
+      console.warn(
+        "Duplicate submission blocked by content hash:",
+        contentHash,
+      );
       return res.redirect("/documentSummaryUnapproved");
     }
 
