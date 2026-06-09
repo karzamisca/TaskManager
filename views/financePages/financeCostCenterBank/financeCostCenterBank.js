@@ -34,6 +34,9 @@ let currentAllSortDirection = "desc";
 
 let currentEditingEntryId = null;
 
+// Bulk delete state
+let selectedSingleEntries = new Set();
+
 document.addEventListener("DOMContentLoaded", loadCostCenters);
 
 function getTodayFormatted() {
@@ -859,15 +862,24 @@ function renderEntries() {
     filteredEntries.length;
   document.getElementById("totalEntriesCount").textContent = entries.length;
   const today = getTodayFormatted();
+
+  // Clear selections when re-rendering
+  selectedSingleEntries.clear();
+  const selectAll = document.getElementById("selectAllSingle");
+  if (selectAll) selectAll.checked = false;
+  updateSingleBulkDeleteButton();
+
   if (filteredEntries.length === 0 && !isAdding) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:20px;">${
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:20px;">${
       entries.length === 0
         ? "Chưa có dữ liệu. Hãy thêm khoản vay mới."
         : "Không có kết quả phù hợp."
     }</td></tr>`;
     return;
   }
+
   if (isAdding) tbody.appendChild(createAddRow());
+
   filteredEntries.forEach((entry) => {
     const row = document.createElement("tr");
     if (entry._id === editingEntryId) {
@@ -880,6 +892,7 @@ function renderEntries() {
       };
       row.className = "editing-row";
       row.innerHTML = `
+        <td class="checkbox-column"></td>
         <td><input type="text" id="editName_${entry._id}" value="${escapeHtml(
           entry.name,
         )}" required></td>
@@ -921,6 +934,9 @@ function renderEntries() {
         : "";
 
       row.innerHTML = `
+        <td class="checkbox-column">
+          <input type="checkbox" class="entry-checkbox" data-entry-id="${entry._id}" onchange="toggleSingleEntrySelection('${entry._id}', this)">
+        </td>
         <td>${escapeHtml(entry.name)}${periodicIndicator}</td>
         <td class="${entry.date === today ? "current-date" : ""}">${
           entry.date
@@ -939,7 +955,7 @@ function renderEntries() {
               ? `<button class="preview-btn" onclick="previewLoanFromEntry('${entry._id}')" style="background:#17a2b8;">Xem lịch</button>`
               : ""
           }
-        </td>
+         </td>
       `;
     }
     tbody.appendChild(row);
@@ -979,6 +995,7 @@ function createAddRow() {
   row.className = "editing-row";
   const today = getTodayFormatted();
   row.innerHTML = `
+    <td class="checkbox-column"></td>
     <td>
       <input type="text" id="newName" placeholder="Tên khoản vay" required>
       ${createPeriodicPrincipalSection("new", {
@@ -988,7 +1005,7 @@ function createAddRow() {
         usePercentageRate: true,
         fixedPrincipalAmount: 0,
       })}
-    </td>
+     </td>
     <td><input type="text" id="newDate" value="${today}" required></td>
     <td><input type="number" id="newIncome" placeholder="Số tiền vay" step="0.1" value="0" required></td>
     <td><input type="number" id="newExpense" placeholder="Đã trả gốc" step="0.1" value="0" required></td>
@@ -1279,6 +1296,13 @@ function resetFilters() {
   document.getElementById("dateTo").value = "";
   document.getElementById("searchName").value = "";
   filterState = { dateFrom: "", dateTo: "", searchName: "" };
+
+  // Clear selections
+  selectedSingleEntries.clear();
+  const selectAll = document.getElementById("selectAllSingle");
+  if (selectAll) selectAll.checked = false;
+  updateSingleBulkDeleteButton();
+
   applyFilters();
 }
 
@@ -1557,7 +1581,7 @@ function renderAllEntriesTable() {
             ? `<button class="preview-btn" onclick="previewLoanFromAllView('${entry.costCenterId}', '${entry._id}')" style="background:#17a2b8;">Xem lịch</button>`
             : ""
         }
-       </td>
+        </td>
     `;
     tbody.appendChild(row);
   });
@@ -1573,7 +1597,7 @@ function createAllViewAddRow(costCenterId) {
   row.className = "editing-row";
   const today = getTodayFormatted();
   row.innerHTML = `
-     <td>
+      <td>
       <select id="allViewNewCostCenter">${allCostCenters
         .map(
           (cc) =>
@@ -1589,20 +1613,20 @@ function createAllViewAddRow(costCenterId) {
         usePercentageRate: true,
         fixedPrincipalAmount: 0,
       })}
-     </td>
-     <td><input type="text" id="allViewNewName" placeholder="Tên khoản vay" required></td>
-     <td><input type="text" id="allViewNewDate" value="${today}" required></td>
-     <td><input type="number" id="allViewNewIncome" placeholder="Số tiền vay" step="0.1" value="0" required></td>
-     <td><input type="number" id="allViewNewExpense" placeholder="Đã trả gốc" step="0.1" value="0" required></td>
-     <td><input type="number" id="allViewNewInterestRate" placeholder="Lãi suất %" step="0.01" value="0" required></td>
-     <td><input type="text" id="allViewNewDeductionDate" placeholder="Ngày trừ nợ" required></td>
-     <td><input type="number" id="allViewNewMonthsWithNoPrincipalRepayment" placeholder="Tháng ân hạn" step="1" value="0"></td>
-     <td><input type="text" id="allViewNewMaturityDate" placeholder="Ngày đáo hạn" required></td>
+      </td>
+      <td><input type="text" id="allViewNewName" placeholder="Tên khoản vay" required></td>
+      <td><input type="text" id="allViewNewDate" value="${today}" required></td>
+      <td><input type="number" id="allViewNewIncome" placeholder="Số tiền vay" step="0.1" value="0" required></td>
+      <td><input type="number" id="allViewNewExpense" placeholder="Đã trả gốc" step="0.1" value="0" required></td>
+      <td><input type="number" id="allViewNewInterestRate" placeholder="Lãi suất %" step="0.01" value="0" required></td>
+      <td><input type="text" id="allViewNewDeductionDate" placeholder="Ngày trừ nợ" required></td>
+      <td><input type="number" id="allViewNewMonthsWithNoPrincipalRepayment" placeholder="Tháng ân hạn" step="1" value="0"></td>
+      <td><input type="text" id="allViewNewMaturityDate" placeholder="Ngày đáo hạn" required></td>
     <td class="actions">
       <button class="preview-btn" onclick="previewAllViewNewLoan()" style="background:#17a2b8;">Xem trước</button>
       <button class="save-btn" onclick="saveAllViewNewEntry()">Lưu</button>
       <button class="cancel-btn" onclick="cancelAllViewAdd()">Hủy</button>
-     </td>
+      </td>
   `;
   return row;
 }
@@ -2075,24 +2099,24 @@ function showGlobalDetails() {
               );
               const duNo = totalVay - totalTra;
               return `<tr onclick="switchToCostCenter('${id}')" style="cursor:pointer">
-               <td><strong>${d.name}</strong></td>
-               <td>${d.entries.length}</td>
-               <td>${totalVay.toLocaleString("vi-VN")}</td>
-               <td>${totalTra.toLocaleString("vi-VN")}</td>
+                <td><strong>${d.name}</strong></td>
+                <td>${d.entries.length}</td>
+                <td>${totalVay.toLocaleString("vi-VN")}</td>
+                <td>${totalTra.toLocaleString("vi-VN")}</td>
               <td class="${
                 duNo >= 0 ? "text-danger" : "text-success"
               }">${duNo.toLocaleString("vi-VN")}</td>
-               <td>${(fund.fundLimitBank || 0).toLocaleString("vi-VN")}</td>
+                <td>${(fund.fundLimitBank || 0).toLocaleString("vi-VN")}</td>
               <td class="${
                 (fund.fundAvailableBank || 0) >= 0
                   ? "text-success"
                   : "text-danger"
               }">${(fund.fundAvailableBank || 0).toLocaleString("vi-VN")}</td>
-             </tr>`;
+              </tr>`;
             })
             .join("")}
         </tbody>
-       </table>
+      </table>
     </div>
   `;
   new bootstrap.Modal(document.getElementById("globalDetailsModal")).show();
@@ -2110,4 +2134,120 @@ function switchToCostCenter(costCenterId) {
   }
   document.getElementById("costCenterSelect").value = costCenterId;
   loadCostCenterData();
+}
+
+// ── Bulk Delete Functions ───────────────────────────────────────────────────
+
+function toggleSelectAllSingle(checkbox) {
+  const checkboxes = document.querySelectorAll("#entriesBody .entry-checkbox");
+  selectedSingleEntries.clear();
+
+  if (checkbox.checked) {
+    checkboxes.forEach((cb) => {
+      cb.checked = true;
+      selectedSingleEntries.add(cb.getAttribute("data-entry-id"));
+    });
+  } else {
+    checkboxes.forEach((cb) => {
+      cb.checked = false;
+    });
+  }
+
+  updateSingleBulkDeleteButton();
+}
+
+function toggleSingleEntrySelection(entryId, checkbox) {
+  if (checkbox.checked) {
+    selectedSingleEntries.add(entryId);
+  } else {
+    selectedSingleEntries.delete(entryId);
+    const selectAll = document.getElementById("selectAllSingle");
+    if (selectAll) selectAll.checked = false;
+  }
+
+  const allCheckboxes = document.querySelectorAll(
+    "#entriesBody .entry-checkbox",
+  );
+  const selectAll = document.getElementById("selectAllSingle");
+  if (
+    selectAll &&
+    selectedSingleEntries.size === allCheckboxes.length &&
+    allCheckboxes.length > 0
+  ) {
+    selectAll.checked = true;
+  }
+
+  updateSingleBulkDeleteButton();
+}
+
+function updateSingleBulkDeleteButton() {
+  const btn = document.getElementById("bulkDeleteSingleBtn");
+  const countSpan = document.getElementById("selectedCountSingle");
+
+  if (btn && countSpan) {
+    countSpan.textContent = selectedSingleEntries.size;
+    btn.disabled = selectedSingleEntries.size === 0;
+  }
+}
+
+async function bulkDeleteSingle() {
+  if (selectedSingleEntries.size === 0) {
+    alert("Vui lòng chọn ít nhất một khoản vay để xóa");
+    return;
+  }
+
+  if (!currentCostCenterId) return;
+
+  if (
+    !confirm(
+      `Bạn có chắc chắn muốn xóa ${selectedSingleEntries.size} khoản vay đã chọn không? Hành động này không thể hoàn tác.`,
+    )
+  ) {
+    return;
+  }
+
+  const deleteBtn = document.getElementById("bulkDeleteSingleBtn");
+  const originalHTML = deleteBtn.innerHTML;
+  deleteBtn.disabled = true;
+  deleteBtn.innerHTML = "🗑️ Đang xóa...";
+
+  let successCount = 0;
+  let errorCount = 0;
+
+  for (const entryId of selectedSingleEntries) {
+    try {
+      const response = await fetch(
+        `${API_BASE}/${currentCostCenterId}/entries/${entryId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (response.ok) {
+        successCount++;
+      } else {
+        errorCount++;
+      }
+    } catch (error) {
+      errorCount++;
+    }
+  }
+
+  deleteBtn.innerHTML = originalHTML;
+
+  if (errorCount === 0) {
+    alert(`Đã xóa thành công ${successCount} khoản vay!`);
+  } else {
+    alert(
+      `Đã xóa ${successCount} khoản vay thành công, ${errorCount} khoản thất bại.`,
+    );
+  }
+
+  selectedSingleEntries.clear();
+  const selectAll = document.getElementById("selectAllSingle");
+  if (selectAll) selectAll.checked = false;
+  updateSingleBulkDeleteButton();
+
+  await loadEntries();
+  await updateGlobalSummary();
 }

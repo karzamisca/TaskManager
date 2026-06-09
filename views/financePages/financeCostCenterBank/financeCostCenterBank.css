@@ -617,10 +617,64 @@
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .finance-bank-page .bulk-actions button {
   margin-top: 0;
+}
+
+/* Bulk delete styles */
+.finance-bank-page .bulk-delete-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.finance-bank-page .bulk-delete-btn {
+  background: #dc3545;
+  border-color: #dc3545;
+  margin-top: 0;
+}
+
+.finance-bank-page .bulk-delete-btn:hover {
+  background: #c82333;
+  border-color: #bd2130;
+}
+
+.finance-bank-page .bulk-delete-btn:disabled {
+  background: #6c757d;
+  border-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.finance-bank-page .bulk-delete-btn:disabled:hover {
+  background: #6c757d;
+  border-color: #6c757d;
+}
+
+.finance-bank-page .select-all-checkbox {
+  width: auto;
+  cursor: pointer;
+  margin: 0;
+}
+
+.finance-bank-page .entry-checkbox {
+  width: auto;
+  cursor: pointer;
+  margin: 0;
+}
+
+.finance-bank-page th.checkbox-column,
+.finance-bank-page td.checkbox-column {
+  width: 40px;
+  min-width: 40px;
+  text-align: center;
+  padding: 10px 6px;
+  white-space: nowrap;
 }
 
 /* Filters Section */
@@ -1010,6 +1064,12 @@
   .finance-bank-page .today-btn:hover {
     background: #3a3a3a;
   }
+
+  /* Dark mode bulk delete */
+  .finance-bank-page .bulk-delete-btn:disabled {
+    background: #555;
+    border-color: #666;
+  }
 }
 
 /* Responsive */
@@ -1099,5 +1159,19 @@
   .finance-bank-page .alternative-view-actions button {
     width: 100%;
     max-width: 250px;
+  }
+
+  /* Responsive bulk delete */
+  .finance-bank-page .bulk-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .finance-bank-page .bulk-delete-container {
+    width: 100%;
+  }
+
+  .finance-bank-page .bulk-delete-btn {
+    width: 100%;
   }
 }

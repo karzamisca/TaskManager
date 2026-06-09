@@ -11,7 +11,7 @@
     />
     <link
       rel="stylesheet"
-      href="financePages/financeCostCenterBank/financeCostCenterBank.css?v=1.9"
+      href="financePages/financeCostCenterBank/financeCostCenterBank.css?v=1.10"
     />
   </head>
   <body>
@@ -157,6 +157,16 @@
           </div>
 
           <div id="bulkActions" class="bulk-actions hidden">
+            <div class="bulk-delete-container">
+              <button
+                class="btn-finance bulk-delete-btn"
+                id="bulkDeleteSingleBtn"
+                onclick="bulkDeleteSingle()"
+                disabled
+              >
+                🗑️ Xóa các mục đã chọn (<span id="selectedCountSingle">0</span>)
+              </button>
+            </div>
             <button
               class="btn-finance add-btn"
               onclick="showMultipleEntryForm()"
@@ -200,6 +210,15 @@
               <table id="entriesTable">
                 <thead>
                   <tr>
+                    <th class="checkbox-column">
+                      <input
+                        type="checkbox"
+                        id="selectAllSingle"
+                        class="select-all-checkbox"
+                        onchange="toggleSelectAllSingle(this)"
+                        title="Chọn tất cả"
+                      />
+                    </th>
                     <th>Tên khoản vay</th>
                     <th class="sortable" onclick="sortTable('date')">
                       Ngày giải ngân
@@ -587,6 +606,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="financePages/financeCostCenterBank/financeCostCenterBank.js?v=1.17"></script>
+    <script src="financePages/financeCostCenterBank/financeCostCenterBank.js?v=1.18"></script>
   </body>
 </html>
