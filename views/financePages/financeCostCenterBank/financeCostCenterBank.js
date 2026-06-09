@@ -1428,9 +1428,8 @@ async function exportData() {
     alert("Không có dữ liệu");
     return;
   }
-  let csv =
-    "Tên khoản vay,Ngày giải ngân,Số tiền vay,Đã trả gốc,Lãi suất %,Ngày trừ nợ,Tháng ân hạn,Ngày đáo hạn,Trả gốc định kỳ,Tần suất (tháng),Tỷ lệ/ST cố định\n";
-  filteredEntries.forEach((e) => {
+
+  const data = filteredEntries.map((e) => {
     const periodic = e.periodicPrincipal || {
       enabled: false,
       paymentFrequencyMonths: 3,
@@ -1443,22 +1442,53 @@ async function exportData() {
         ? `${periodic.principalPaymentRate}%`
         : `${periodic.fixedPrincipalAmount.toLocaleString("vi-VN")} VND`
       : "Không";
-    csv += `"${e.name}",${e.date},${e.income || 0},${e.expense || 0},${
-      e.interestRate || 0
-    },${e.deductionDate || ""},${e.monthsWithNoPrincipalRepayment || 0},${
-      e.maturityDate || ""
-    },${periodic.enabled ? "Có" : "Không"},${
-      periodic.paymentFrequencyMonths
-    },${periodicInfo}\n`;
+
+    return {
+      "Tên khoản vay": e.name,
+      "Ngày giải ngân": e.date,
+      "Số tiền vay": e.income || 0,
+      "Đã trả gốc": e.expense || 0,
+      "Lãi suất %": e.interestRate || 0,
+      "Ngày trừ nợ": e.deductionDate || "",
+      "Tháng ân hạn": e.monthsWithNoPrincipalRepayment || 0,
+      "Ngày đáo hạn": e.maturityDate || "",
+      "Trả gốc định kỳ": periodic.enabled ? "Có" : "Không",
+      "Tần suất (tháng)": periodic.paymentFrequencyMonths,
+      "Tỷ lệ/ST cố định": periodicInfo,
+    };
   });
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `bank_finance_${currentCostCenterId}_${
-    new Date().toISOString().split("T")[0]
-  }.csv`;
-  link.click();
-  URL.revokeObjectURL(link.href);
+
+  const ws = XLSX.utils.json_to_sheet(data);
+
+  // Auto-fit column widths
+  const colWidths = {};
+  const headers = Object.keys(data[0] || {});
+
+  // Calculate max width for each column
+  headers.forEach((header) => {
+    // Start with header length
+    colWidths[header] = header.length;
+
+    // Check each row for max content length
+    data.forEach((row) => {
+      const cellValue = String(row[header] || "");
+      const cellLength = cellValue.length;
+      if (cellLength > colWidths[header]) {
+        colWidths[header] = cellLength;
+      }
+    });
+  });
+
+  // Convert to column width array (add some padding)
+  ws["!cols"] = headers.map((header) => ({
+    wch: Math.min(colWidths[header] + 3, 50), // min width, max 50 characters
+  }));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Bank Finance");
+
+  const fileName = `bank_finance_${currentCostCenterId}_${new Date().toISOString().split("T")[0]}.xlsx`;
+  XLSX.writeFile(wb, fileName);
 }
 
 function showEditFundLimit() {
@@ -2050,9 +2080,8 @@ async function exportAlternativeView() {
     alert("Không có dữ liệu");
     return;
   }
-  let csv =
-    "Trạm,Tên khoản vay,Ngày giải ngân,Số tiền vay,Đã trả gốc,Lãi suất %,Ngày trừ nợ,Tháng ân hạn,Ngày đáo hạn,Trả gốc định kỳ,Tần suất (tháng),Tỷ lệ/ST cố định\n";
-  filteredAllEntries.forEach((e) => {
+
+  const data = filteredAllEntries.map((e) => {
     const periodic = e.periodicPrincipal || {
       enabled: false,
       paymentFrequencyMonths: 3,
@@ -2065,22 +2094,54 @@ async function exportAlternativeView() {
         ? `${periodic.principalPaymentRate}%`
         : `${periodic.fixedPrincipalAmount.toLocaleString("vi-VN")} VND`
       : "Không";
-    csv += `"${e.costCenterName}","${e.name}",${e.date},${e.income || 0},${
-      e.expense || 0
-    },${e.interestRate || 0},${e.deductionDate || ""},${
-      e.monthsWithNoPrincipalRepayment || 0
-    },${e.maturityDate || ""},${periodic.enabled ? "Có" : "Không"},${
-      periodic.paymentFrequencyMonths
-    },${periodicInfo}\n`;
+
+    return {
+      Trạm: e.costCenterName,
+      "Tên khoản vay": e.name,
+      "Ngày giải ngân": e.date,
+      "Số tiền vay": e.income || 0,
+      "Đã trả gốc": e.expense || 0,
+      "Lãi suất %": e.interestRate || 0,
+      "Ngày trừ nợ": e.deductionDate || "",
+      "Tháng ân hạn": e.monthsWithNoPrincipalRepayment || 0,
+      "Ngày đáo hạn": e.maturityDate || "",
+      "Trả gốc định kỳ": periodic.enabled ? "Có" : "Không",
+      "Tần suất (tháng)": periodic.paymentFrequencyMonths,
+      "Tỷ lệ/ST cố định": periodicInfo,
+    };
   });
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `all_bank_finance_${
-    new Date().toISOString().split("T")[0]
-  }.csv`;
-  link.click();
-  URL.revokeObjectURL(link.href);
+
+  const ws = XLSX.utils.json_to_sheet(data);
+
+  // Auto-fit column widths
+  const colWidths = {};
+  const headers = Object.keys(data[0] || {});
+
+  // Calculate max width for each column
+  headers.forEach((header) => {
+    // Start with header length
+    colWidths[header] = header.length;
+
+    // Check each row for max content length
+    data.forEach((row) => {
+      const cellValue = String(row[header] || "");
+      const cellLength = cellValue.length;
+      if (cellLength > colWidths[header]) {
+        colWidths[header] = cellLength;
+      }
+    });
+  });
+
+  // Convert to column width array (add some padding)
+  ws["!cols"] = headers.map((header) => ({
+    wch: Math.min(colWidths[header] + 3, 50), // min width, max 50 characters
+  }));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "All Bank Finance");
+
+  const fileName = `all_bank_finance_${new Date().toISOString().split("T")[0]}.xlsx`;
+  XLSX.writeFile(wb, fileName);
 }
 
 function showGlobalDetails() {

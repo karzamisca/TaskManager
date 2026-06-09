@@ -1698,35 +1698,45 @@ async function exportData() {
     alert("Không có dữ liệu để xuất");
     return;
   }
-  try {
-    let csvContent =
-      "Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Ghi chú\n";
-    filteredEntries.forEach((entry) => {
-      csvContent +=
-        [
-          `"${entry.name}"`,
-          entry.date,
-          entry.income,
-          entry.expense,
-          entry.incomePrediction || 0,
-          entry.expensePrediction || 0,
-          `"${entry.note || ""}"`,
-        ].join(",") + "\n";
+
+  const data = filteredEntries.map((entry) => {
+    return {
+      "Tên giao dịch": entry.name,
+      Ngày: entry.date,
+      "Thu nhập (VND)": entry.income || 0,
+      "Chi phí (VND)": entry.expense || 0,
+      "Dự báo thu (VND)": entry.incomePrediction || 0,
+      "Dự báo chi (VND)": entry.expensePrediction || 0,
+      "Ghi chú": entry.note || "",
+    };
+  });
+
+  const ws = XLSX.utils.json_to_sheet(data);
+
+  // Auto-fit column widths
+  const colWidths = {};
+  const headers = Object.keys(data[0] || {});
+
+  headers.forEach((header) => {
+    colWidths[header] = header.length;
+    data.forEach((row) => {
+      const cellValue = String(row[header] || "");
+      const cellLength = cellValue.length;
+      if (cellLength > colWidths[header]) {
+        colWidths[header] = cellLength;
+      }
     });
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.setAttribute("href", URL.createObjectURL(blob));
-    link.setAttribute(
-      "download",
-      `daily_finance_${currentCostCenterId}_${new Date().toISOString().split("T")[0]}.csv`,
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } catch (error) {
-    alert("Lỗi khi xuất dữ liệu: " + error.message);
-  }
+  });
+
+  ws["!cols"] = headers.map((header) => ({
+    wch: Math.min(colWidths[header] + 3, 50),
+  }));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Daily Finance");
+
+  const fileName = `daily_finance_${currentCostCenterId}_${new Date().toISOString().split("T")[0]}.xlsx`;
+  XLSX.writeFile(wb, fileName);
 }
 
 function showGlobalDetails() {
@@ -1866,52 +1876,62 @@ async function refreshGlobalData() {
 }
 
 async function exportAllData() {
-  try {
-    const costCentersWithEntries = Object.entries(allEntries).filter(
-      ([_, data]) => {
-        if (!data.entries || data.entries.length === 0) return false;
-        return data.entries.some(
-          (e) => (e.income && e.income > 0) || (e.expense && e.expense > 0),
-        );
-      },
-    );
-    if (costCentersWithEntries.length === 0) {
-      alert("Không có dữ liệu thực tế để xuất");
-      return;
-    }
+  const costCentersWithEntries = Object.entries(allEntries).filter(
+    ([_, data]) => {
+      if (!data.entries || data.entries.length === 0) return false;
+      return data.entries.some(
+        (e) => (e.income && e.income > 0) || (e.expense && e.expense > 0),
+      );
+    },
+  );
 
-    let csvContent =
-      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Ghi chú\n";
-    costCentersWithEntries.forEach(([_, data]) => {
-      (data.entries || []).forEach((entry) => {
-        csvContent +=
-          [
-            `"${data.name}"`,
-            `"${entry.name}"`,
-            entry.date,
-            entry.income,
-            entry.expense,
-            entry.incomePrediction || 0,
-            entry.expensePrediction || 0,
-            `"${entry.note || ""}"`,
-          ].join(",") + "\n";
+  if (costCentersWithEntries.length === 0) {
+    alert("Không có dữ liệu thực tế để xuất");
+    return;
+  }
+
+  const data = [];
+  costCentersWithEntries.forEach(([_, costCenterData]) => {
+    (costCenterData.entries || []).forEach((entry) => {
+      data.push({
+        Trạm: costCenterData.name,
+        "Tên giao dịch": entry.name,
+        Ngày: entry.date,
+        "Thu nhập (VND)": entry.income || 0,
+        "Chi phí (VND)": entry.expense || 0,
+        "Dự báo thu (VND)": entry.incomePrediction || 0,
+        "Dự báo chi (VND)": entry.expensePrediction || 0,
+        "Ghi chú": entry.note || "",
       });
     });
+  });
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.setAttribute("href", URL.createObjectURL(blob));
-    link.setAttribute(
-      "download",
-      `all_daily_finance_${new Date().toISOString().split("T")[0]}.csv`,
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } catch (error) {
-    alert("Lỗi khi xuất dữ liệu: " + error.message);
-  }
+  const ws = XLSX.utils.json_to_sheet(data);
+
+  // Auto-fit column widths
+  const colWidths = {};
+  const headers = Object.keys(data[0] || {});
+
+  headers.forEach((header) => {
+    colWidths[header] = header.length;
+    data.forEach((row) => {
+      const cellValue = String(row[header] || "");
+      const cellLength = cellValue.length;
+      if (cellLength > colWidths[header]) {
+        colWidths[header] = cellLength;
+      }
+    });
+  });
+
+  ws["!cols"] = headers.map((header) => ({
+    wch: Math.min(colWidths[header] + 3, 50),
+  }));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "All Daily Finance");
+
+  const fileName = `all_daily_finance_${new Date().toISOString().split("T")[0]}.xlsx`;
+  XLSX.writeFile(wb, fileName);
 }
 
 async function refreshAllData() {
@@ -1921,40 +1941,50 @@ async function refreshAllData() {
 }
 
 async function exportAlternativeView() {
-  try {
-    if (filteredAllEntries.length === 0) {
-      alert("Không có dữ liệu thực tế để xuất");
-      return;
-    }
-    let csvContent =
-      "Trạm,Tên giao dịch,Ngày,Thu nhập (VND),Chi phí (VND),Dự báo thu (VND),Dự báo chi (VND),Ghi chú\n";
-    filteredAllEntries.forEach((entry) => {
-      csvContent +=
-        [
-          `"${entry.costCenterName}"`,
-          `"${entry.name}"`,
-          entry.date,
-          entry.income,
-          entry.expense,
-          entry.incomePrediction || 0,
-          entry.expensePrediction || 0,
-          `"${entry.note || ""}"`,
-        ].join(",") + "\n";
-    });
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.setAttribute("href", URL.createObjectURL(blob));
-    link.setAttribute(
-      "download",
-      `all_cost_centers_daily_${new Date().toISOString().split("T")[0]}.csv`,
-    );
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  } catch (error) {
-    alert("Lỗi khi xuất dữ liệu: " + error.message);
+  if (filteredAllEntries.length === 0) {
+    alert("Không có dữ liệu thực tế để xuất");
+    return;
   }
+
+  const data = filteredAllEntries.map((entry) => {
+    return {
+      Trạm: entry.costCenterName,
+      "Tên giao dịch": entry.name,
+      Ngày: entry.date,
+      "Thu nhập (VND)": entry.income || 0,
+      "Chi phí (VND)": entry.expense || 0,
+      "Dự báo thu (VND)": entry.incomePrediction || 0,
+      "Dự báo chi (VND)": entry.expensePrediction || 0,
+      "Ghi chú": entry.note || "",
+    };
+  });
+
+  const ws = XLSX.utils.json_to_sheet(data);
+
+  // Auto-fit column widths
+  const colWidths = {};
+  const headers = Object.keys(data[0] || {});
+
+  headers.forEach((header) => {
+    colWidths[header] = header.length;
+    data.forEach((row) => {
+      const cellValue = String(row[header] || "");
+      const cellLength = cellValue.length;
+      if (cellLength > colWidths[header]) {
+        colWidths[header] = cellLength;
+      }
+    });
+  });
+
+  ws["!cols"] = headers.map((header) => ({
+    wch: Math.min(colWidths[header] + 3, 50),
+  }));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "All Daily Finance");
+
+  const fileName = `all_cost_centers_daily_${new Date().toISOString().split("T")[0]}.xlsx`;
+  XLSX.writeFile(wb, fileName);
 }
 
 // ── Bulk Delete Functions ───────────────────────────────────────────────────
