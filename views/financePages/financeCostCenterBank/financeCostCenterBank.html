@@ -64,6 +64,7 @@
           </div>
         </div>
 
+        <!-- Single Cost Center View -->
         <div id="singleCostCenterView" class="single-cost-center-view">
           <div class="form-group">
             <label for="costCenterSelect">Chọn Trạm:</label>
@@ -247,9 +248,11 @@
           </div>
         </div>
 
+        <!-- Alternative View (All Cost Centers) -->
         <div id="alternativeView" class="alternative-view-container">
           <div id="allCostCentersTableView" class="all-cost-centers-view">
             <h2>Danh Sách Tất Cả Các Trạm</h2>
+
             <div id="allCostCentersFiltersSection" class="filters-section">
               <h3>Bộ Lọc Tất Cả Trạm</h3>
               <div class="filter-controls">
@@ -288,31 +291,63 @@
                   </button>
                 </div>
               </div>
-              <div class="filter-actions">
-                <button
-                  class="btn-finance apply-filters-btn"
-                  onclick="applyAllFilters()"
+              <div
+                class="filter-actions"
+                style="
+                  display: flex;
+                  gap: 8px;
+                  flex-wrap: wrap;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-top: 15px;
+                "
+              >
+                <div
+                  style="
+                    display: flex;
+                    gap: 8px;
+                    flex-wrap: wrap;
+                    align-items: center;
+                  "
                 >
-                  Áp dụng bộ lọc
-                </button>
-                <button
-                  class="btn-finance reset-filters-btn"
-                  onclick="resetAllFilters()"
-                >
-                  Đặt lại bộ lọc
-                </button>
-                <button
-                  class="btn-finance add-btn"
-                  onclick="showAllViewMultipleEntryForm()"
-                >
-                  + Thêm Nhiều Mục
-                </button>
-                <button
-                  class="btn-finance add-btn"
-                  onclick="showAllViewAddRow()"
-                >
-                  + Thêm Mục Mới
-                </button>
+                  <button
+                    class="btn-finance apply-filters-btn"
+                    onclick="applyAllFilters()"
+                  >
+                    Áp dụng bộ lọc
+                  </button>
+                  <button
+                    class="btn-finance reset-filters-btn"
+                    onclick="resetAllFilters()"
+                  >
+                    Đặt lại bộ lọc
+                  </button>
+                  <button
+                    class="btn-finance bulk-delete-btn"
+                    id="bulkDeleteAllBtn"
+                    onclick="bulkDeleteAllView()"
+                    disabled
+                  >
+                    🗑️ Xóa các mục đã chọn (<span id="selectedCountAll">0</span
+                    >)
+                  </button>
+                </div>
+                <div style="display: flex; gap: 8px">
+                  <button
+                    class="btn-finance add-btn"
+                    onclick="showAllViewMultipleEntryForm()"
+                    style="background: #28a745"
+                  >
+                    + Thêm Nhiều Mục
+                  </button>
+                  <button
+                    class="btn-finance add-btn"
+                    onclick="showAllViewAddRow()"
+                    style="background: #28a745"
+                  >
+                    + Thêm Mục Mới
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -352,6 +387,15 @@
               <table id="allCostCentersTable">
                 <thead>
                   <tr>
+                    <th class="checkbox-column">
+                      <input
+                        type="checkbox"
+                        id="selectAllAllView"
+                        class="select-all-checkbox"
+                        onchange="toggleSelectAllAllView(this)"
+                        title="Chọn tất cả"
+                      />
+                    </th>
                     <th>Trạm</th>
                     <th>Tên khoản vay</th>
                     <th class="sortable" onclick="sortAllTable('date')">
@@ -533,7 +577,6 @@
                 </div>
               </div>
 
-              <!-- Periodic Principal Section -->
               <div id="edit_periodicPrincipalSection"></div>
 
               <div class="row mt-3">
@@ -549,7 +592,6 @@
               </div>
             </form>
 
-            <!-- Prediction Preview Content -->
             <div id="editPredictionPreview" class="mt-3" style="display: none">
               <hr />
               <h6>📊 Dự kiến lịch trả nợ</h6>
@@ -606,6 +648,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
-    <script src="financePages/financeCostCenterBank/financeCostCenterBank.js?v=1.18"></script>
+    <script src="financePages/financeCostCenterBank/financeCostCenterBank.js?v=1.19"></script>
   </body>
 </html>

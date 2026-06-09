@@ -36,6 +36,7 @@ let currentEditingEntryId = null;
 
 // Bulk delete state
 let selectedSingleEntries = new Set();
+let selectedAllViewEntries = new Set();
 
 document.addEventListener("DOMContentLoaded", loadCostCenters);
 
@@ -85,7 +86,6 @@ function isDateOnOrBefore(dateString, compareDateString) {
   return date <= compareDate;
 }
 
-// Periodic Principal UI Functions
 function createPeriodicPrincipalSection(idPrefix, existingSettings = null) {
   const settings = existingSettings || {
     enabled: false,
@@ -273,14 +273,12 @@ function displayLoanPreview(data) {
   new bootstrap.Modal(document.getElementById("loanPreviewModal")).show();
 }
 
-// Edit Modal Functions
 function showEditModal(entryId) {
   const entry = entries.find((e) => e._id === entryId);
   if (!entry) return;
 
   currentEditingEntryId = entryId;
 
-  // Populate form fields
   document.getElementById("edit_name").value = entry.name || "";
   document.getElementById("edit_date").value = entry.date || "";
   document.getElementById("edit_income").value = entry.income || 0;
@@ -292,7 +290,6 @@ function showEditModal(entryId) {
     entry.monthsWithNoPrincipalRepayment || 0;
   document.getElementById("edit_maturityDate").value = entry.maturityDate || "";
 
-  // Populate periodic principal section
   const periodicPrincipal = entry.periodicPrincipal || {
     enabled: false,
     paymentFrequencyMonths: 3,
@@ -308,10 +305,8 @@ function showEditModal(entryId) {
   document.getElementById("edit_periodicPrincipalSection").innerHTML =
     periodicHtml;
 
-  // Hide preview initially
   document.getElementById("editPredictionPreview").style.display = "none";
 
-  // Show modal
   const modal = new bootstrap.Modal(document.getElementById("editLoanModal"));
   modal.show();
 }
@@ -337,7 +332,6 @@ async function previewEditLoan() {
     periodicPrincipalFixedAmount: periodicPrincipal.fixedPrincipalAmount,
   };
 
-  // Validate required fields
   if (
     !loanData.loanDisbursementDate ||
     !loanData.deductionDate ||
@@ -451,7 +445,6 @@ async function saveEditFromModal() {
   const maturityDate = document.getElementById("edit_maturityDate").value;
   const periodicPrincipal = getPeriodicPrincipalData("edit");
 
-  // Validation
   if (!name.trim()) {
     alert("Vui lòng nhập tên khoản vay");
     return;
@@ -506,16 +499,13 @@ async function saveEditFromModal() {
     );
 
     if (response.ok) {
-      // Close modal
       const modal = bootstrap.Modal.getInstance(
         document.getElementById("editLoanModal"),
       );
       modal.hide();
 
-      // Reset states
       currentEditingEntryId = null;
 
-      // Reload data
       await loadEntries();
       await updateGlobalSummary();
 
@@ -863,14 +853,13 @@ function renderEntries() {
   document.getElementById("totalEntriesCount").textContent = entries.length;
   const today = getTodayFormatted();
 
-  // Clear selections when re-rendering
   selectedSingleEntries.clear();
   const selectAll = document.getElementById("selectAllSingle");
   if (selectAll) selectAll.checked = false;
   updateSingleBulkDeleteButton();
 
   if (filteredEntries.length === 0 && !isAdding) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:20px;">${
+    tbody.innerHTML = `<table><td colspan="10" style="text-align:center;padding:20px;">${
       entries.length === 0
         ? "Chưa có dữ liệu. Hãy thêm khoản vay mới."
         : "Không có kết quả phù hợp."
@@ -955,7 +944,7 @@ function renderEntries() {
               ? `<button class="preview-btn" onclick="previewLoanFromEntry('${entry._id}')" style="background:#17a2b8;">Xem lịch</button>`
               : ""
           }
-         </td>
+        </td>
       `;
     }
     tbody.appendChild(row);
@@ -1005,7 +994,7 @@ function createAddRow() {
         usePercentageRate: true,
         fixedPrincipalAmount: 0,
       })}
-     </td>
+    </td>
     <td><input type="text" id="newDate" value="${today}" required></td>
     <td><input type="number" id="newIncome" placeholder="Số tiền vay" step="0.1" value="0" required></td>
     <td><input type="number" id="newExpense" placeholder="Đã trả gốc" step="0.1" value="0" required></td>
@@ -1190,7 +1179,6 @@ async function saveEdit(entryId) {
     return;
   }
 
-  // Get periodic principal data from edit form (if exists)
   let periodicPrincipal = null;
   const periodicCheckbox = document.getElementById(
     `edit_enablePeriodicPrincipal_${entryId}`,
@@ -1297,7 +1285,6 @@ function resetFilters() {
   document.getElementById("searchName").value = "";
   filterState = { dateFrom: "", dateTo: "", searchName: "" };
 
-  // Clear selections
   selectedSingleEntries.clear();
   const selectAll = document.getElementById("selectAllSingle");
   if (selectAll) selectAll.checked = false;
@@ -1542,14 +1529,29 @@ function renderAllEntriesTable() {
   if (!tbody) return;
   tbody.innerHTML = "";
   const today = getTodayFormatted();
+
+  selectedAllViewEntries.clear();
+  const selectAll = document.getElementById("selectAllAllView");
+  if (selectAll) selectAll.checked = false;
+  updateAllViewBulkDeleteButton();
+
   if (isAddingInAllView)
     tbody.appendChild(
       createAllViewAddRow(addingCostCenterId || allCostCenters[0]?._id),
     );
   if (filteredAllEntries.length === 0 && !isAddingInAllView) {
-    tbody.innerHTML = ` <td colspan="10" style="text-align:center;padding:20px;">Không có dữ liệu</td> `;
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:20px;">${
+      allEntriesFlat.length === 0
+        ? "Không có dữ liệu nào từ các trạm."
+        : "Không có kết quả phù hợp với bộ lọc."
+    }</td></tr>`;
+    const addNewRow = document.createElement("tr");
+    addNewRow.className = "add-row";
+    addNewRow.innerHTML = `<td colspan="11"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Khoản Vay Mới</button></td>`;
+    tbody.appendChild(addNewRow);
     return;
   }
+
   filteredAllEntries.forEach((entry) => {
     const isComplete =
       entry.isCompleteLoan &&
@@ -1561,18 +1563,21 @@ function renderAllEntriesTable() {
       ? ` (Định kỳ ${periodicPrincipal.paymentFrequencyMonths} tháng)`
       : "";
     const row = document.createElement("tr");
+    row.setAttribute("data-cost-center-id", entry.costCenterId);
+    row.setAttribute("data-entry-id", entry._id);
     row.innerHTML = `
-       <td>${escapeHtml(entry.costCenterName)}</td>
-       <td>${escapeHtml(entry.name)}${periodicIndicator}</td>
-      <td class="${entry.date === today ? "current-date" : ""}">${
-        entry.date
-      }</td>
-       <td>${(entry.income || 0).toLocaleString("vi-VN")}</td>
-       <td>${(entry.expense || 0).toLocaleString("vi-VN")}</td>
-       <td>${entry.interestRate ? entry.interestRate + "%" : "-"}</td>
-       <td>${entry.deductionDate || "-"}</td>
-       <td>${entry.monthsWithNoPrincipalRepayment || 0}</td>
-       <td>${entry.maturityDate || "-"}</td>
+      <td class="checkbox-column">
+        <input type="checkbox" class="entry-checkbox" data-entry-id="${entry._id}" data-cost-center-id="${entry.costCenterId}" onchange="toggleAllViewEntrySelection('${entry._id}', '${entry.costCenterId}', this)">
+      </td>
+      <td>${escapeHtml(entry.costCenterName)}</td>
+      <td>${escapeHtml(entry.name)}${periodicIndicator}</td>
+      <td class="${entry.date === today ? "current-date" : ""}">${entry.date}</td>
+      <td>${(entry.income || 0).toLocaleString("vi-VN")}</td>
+      <td>${(entry.expense || 0).toLocaleString("vi-VN")}</td>
+      <td>${entry.interestRate ? entry.interestRate + "%" : "-"}</td>
+      <td>${entry.deductionDate || "-"}</td>
+      <td>${entry.monthsWithNoPrincipalRepayment || 0}</td>
+      <td>${entry.maturityDate || "-"}</td>
       <td class="actions">
         <button class="edit-btn" onclick="switchToCostCenterAndEdit('${entry.costCenterId}', '${entry._id}')">Sửa</button>
         <button class="delete-btn" onclick="switchToCostCenterAndDelete('${entry.costCenterId}', '${entry._id}')">Xóa</button>
@@ -1581,13 +1586,14 @@ function renderAllEntriesTable() {
             ? `<button class="preview-btn" onclick="previewLoanFromAllView('${entry.costCenterId}', '${entry._id}')" style="background:#17a2b8;">Xem lịch</button>`
             : ""
         }
-        </td>
+      </td>
     `;
     tbody.appendChild(row);
   });
+
   const addRow = document.createElement("tr");
   addRow.className = "add-row";
-  addRow.innerHTML = `<td colspan="10"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Khoản Vay Mới</button></td>`;
+  addRow.innerHTML = `<td colspan="11"><button class="add-btn" onclick="showAllViewAddRow()">+ Thêm Khoản Vay Mới</button></td>`;
   tbody.appendChild(addRow);
 }
 
@@ -1597,7 +1603,8 @@ function createAllViewAddRow(costCenterId) {
   row.className = "editing-row";
   const today = getTodayFormatted();
   row.innerHTML = `
-      <td>
+    <td class="checkbox-column"></td>
+    <td>
       <select id="allViewNewCostCenter">${allCostCenters
         .map(
           (cc) =>
@@ -1613,20 +1620,20 @@ function createAllViewAddRow(costCenterId) {
         usePercentageRate: true,
         fixedPrincipalAmount: 0,
       })}
-      </td>
-      <td><input type="text" id="allViewNewName" placeholder="Tên khoản vay" required></td>
-      <td><input type="text" id="allViewNewDate" value="${today}" required></td>
-      <td><input type="number" id="allViewNewIncome" placeholder="Số tiền vay" step="0.1" value="0" required></td>
-      <td><input type="number" id="allViewNewExpense" placeholder="Đã trả gốc" step="0.1" value="0" required></td>
-      <td><input type="number" id="allViewNewInterestRate" placeholder="Lãi suất %" step="0.01" value="0" required></td>
-      <td><input type="text" id="allViewNewDeductionDate" placeholder="Ngày trừ nợ" required></td>
-      <td><input type="number" id="allViewNewMonthsWithNoPrincipalRepayment" placeholder="Tháng ân hạn" step="1" value="0"></td>
-      <td><input type="text" id="allViewNewMaturityDate" placeholder="Ngày đáo hạn" required></td>
+    </td>
+    <td><input type="text" id="allViewNewName" placeholder="Tên khoản vay" required></td>
+    <td><input type="text" id="allViewNewDate" value="${today}" required></td>
+    <td><input type="number" id="allViewNewIncome" placeholder="Số tiền vay" step="0.1" value="0" required></td>
+    <td><input type="number" id="allViewNewExpense" placeholder="Đã trả gốc" step="0.1" value="0" required></td>
+    <td><input type="number" id="allViewNewInterestRate" placeholder="Lãi suất %" step="0.01" value="0" required></td>
+    <td><input type="text" id="allViewNewDeductionDate" placeholder="Ngày trừ nợ" required></td>
+    <td><input type="number" id="allViewNewMonthsWithNoPrincipalRepayment" placeholder="Tháng ân hạn" step="1" value="0"></td>
+    <td><input type="text" id="allViewNewMaturityDate" placeholder="Ngày đáo hạn" required></td>
     <td class="actions">
       <button class="preview-btn" onclick="previewAllViewNewLoan()" style="background:#17a2b8;">Xem trước</button>
       <button class="save-btn" onclick="saveAllViewNewEntry()">Lưu</button>
       <button class="cancel-btn" onclick="cancelAllViewAdd()">Hủy</button>
-      </td>
+    </td>
   `;
   return row;
 }
@@ -1962,6 +1969,12 @@ function resetAllFilters() {
     searchName: "",
     costCenterFilter: "all",
   };
+
+  selectedAllViewEntries.clear();
+  const selectAll = document.getElementById("selectAllAllView");
+  if (selectAll) selectAll.checked = false;
+  updateAllViewBulkDeleteButton();
+
   applyAllFilters();
 }
 
@@ -2136,7 +2149,7 @@ function switchToCostCenter(costCenterId) {
   loadCostCenterData();
 }
 
-// ── Bulk Delete Functions ───────────────────────────────────────────────────
+// ── Bulk Delete Functions for Single View ───────────────────────────────────
 
 function toggleSelectAllSingle(checkbox) {
   const checkboxes = document.querySelectorAll("#entriesBody .entry-checkbox");
@@ -2250,4 +2263,146 @@ async function bulkDeleteSingle() {
 
   await loadEntries();
   await updateGlobalSummary();
+}
+
+// ── Bulk Delete Functions for Alternative View ──────────────────────────────
+
+function toggleSelectAllAllView(checkbox) {
+  const checkboxes = document.querySelectorAll(
+    "#allEntriesBody .entry-checkbox",
+  );
+  selectedAllViewEntries.clear();
+
+  if (checkbox.checked) {
+    checkboxes.forEach((cb) => {
+      cb.checked = true;
+      selectedAllViewEntries.add({
+        entryId: cb.getAttribute("data-entry-id"),
+        costCenterId: cb.getAttribute("data-cost-center-id"),
+      });
+    });
+  } else {
+    checkboxes.forEach((cb) => {
+      cb.checked = false;
+    });
+  }
+
+  updateAllViewBulkDeleteButton();
+}
+
+function toggleAllViewEntrySelection(entryId, costCenterId, checkbox) {
+  if (checkbox.checked) {
+    let found = false;
+    for (const item of selectedAllViewEntries) {
+      if (item.entryId === entryId && item.costCenterId === costCenterId) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      selectedAllViewEntries.add({ entryId, costCenterId });
+    }
+  } else {
+    for (const item of selectedAllViewEntries) {
+      if (item.entryId === entryId && item.costCenterId === costCenterId) {
+        selectedAllViewEntries.delete(item);
+        break;
+      }
+    }
+    const selectAll = document.getElementById("selectAllAllView");
+    if (selectAll) selectAll.checked = false;
+  }
+
+  const allCheckboxes = document.querySelectorAll(
+    "#allEntriesBody .entry-checkbox",
+  );
+  const selectAll = document.getElementById("selectAllAllView");
+  if (
+    selectAll &&
+    selectedAllViewEntries.size === allCheckboxes.length &&
+    allCheckboxes.length > 0
+  ) {
+    selectAll.checked = true;
+  }
+
+  updateAllViewBulkDeleteButton();
+}
+
+function updateAllViewBulkDeleteButton() {
+  const btn = document.getElementById("bulkDeleteAllBtn");
+  const countSpan = document.getElementById("selectedCountAll");
+
+  if (btn && countSpan) {
+    countSpan.textContent = selectedAllViewEntries.size;
+    btn.disabled = selectedAllViewEntries.size === 0;
+  }
+}
+
+async function bulkDeleteAllView() {
+  if (selectedAllViewEntries.size === 0) {
+    alert("Vui lòng chọn ít nhất một khoản vay để xóa");
+    return;
+  }
+
+  if (
+    !confirm(
+      `Bạn có chắc chắn muốn xóa ${selectedAllViewEntries.size} khoản vay đã chọn không? Hành động này không thể hoàn tác.`,
+    )
+  ) {
+    return;
+  }
+
+  const deleteBtn = document.getElementById("bulkDeleteAllBtn");
+  const originalHTML = deleteBtn.innerHTML;
+  deleteBtn.disabled = true;
+  deleteBtn.innerHTML = "🗑️ Đang xóa...";
+
+  let successCount = 0;
+  let errorCount = 0;
+  const affectedCostCenters = new Set();
+
+  for (const item of selectedAllViewEntries) {
+    try {
+      const response = await fetch(
+        `${API_BASE}/${item.costCenterId}/entries/${item.entryId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (response.ok) {
+        successCount++;
+        affectedCostCenters.add(item.costCenterId);
+      } else {
+        errorCount++;
+      }
+    } catch (error) {
+      errorCount++;
+    }
+  }
+
+  deleteBtn.innerHTML = originalHTML;
+
+  if (errorCount === 0) {
+    alert(`Đã xóa thành công ${successCount} khoản vay!`);
+  } else {
+    alert(
+      `Đã xóa ${successCount} khoản vay thành công, ${errorCount} khoản thất bại.`,
+    );
+  }
+
+  selectedAllViewEntries.clear();
+  const selectAll = document.getElementById("selectAllAllView");
+  if (selectAll) selectAll.checked = false;
+  updateAllViewBulkDeleteButton();
+
+  await loadAllCostCentersData();
+  applyAllFilters();
+
+  if (currentCostCenterId && affectedCostCenters.has(currentCostCenterId)) {
+    await loadEntries();
+    await updateGlobalSummary();
+  }
+
+  calculateGlobalSummary();
 }
