@@ -878,8 +878,6 @@ $(document).ready(function () {
     setTimeout(() => {
       currentTable = $("#revenueTable").DataTable({
         responsive: false,
-        scrollX: true,
-        scrollY: "500px",
         paging: false,
         searching: false,
         ordering: false,
