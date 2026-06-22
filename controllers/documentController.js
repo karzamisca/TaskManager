@@ -3504,6 +3504,9 @@ exports.openPurchasingDocument = async (req, res) => {
   }
 };
 // Add this to your purchasing document controller
+// Escape regex special characters so the name is matched literally
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 exports.moveProductsToItemStock = async (req, res) => {
   try {
     const { purchasingDocId } = req.params;
@@ -3569,9 +3572,11 @@ exports.moveProductsToItemStock = async (req, res) => {
         continue;
       }
 
-      // Find the item by name (case-insensitive search)
+      // Find the item by name (case-insensitive search, regex-escaped)
       const item = await Item.findOne({
-        name: { $regex: new RegExp(`^${product.productName}$`, "i") },
+        name: {
+          $regex: new RegExp(`^${escapeRegex(product.productName)}$`, "i"),
+        },
       });
       if (!item) {
         errors.push(
@@ -3637,6 +3642,11 @@ exports.moveProductsToItemStock = async (req, res) => {
           alreadyTransferred + selectedProduct.amount;
         existingTransfer.lastTransferDate = new Date();
         existingTransfer.lastTransferAmount = selectedProduct.amount;
+        existingTransfer.transferHistory.push({
+          amount: selectedProduct.amount,
+          date: new Date(),
+          transferredBy: req._id,
+        });
       } else {
         purchasingDoc.transferredQuantities.push({
           productName: product.productName,
@@ -3644,6 +3654,7 @@ exports.moveProductsToItemStock = async (req, res) => {
           totalAmount: product.amount,
           firstTransferDate: new Date(),
           lastTransferDate: new Date(),
+          lastTransferAmount: selectedProduct.amount,
           transferHistory: [
             {
               amount: selectedProduct.amount,
