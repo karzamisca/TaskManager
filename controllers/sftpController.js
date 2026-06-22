@@ -82,7 +82,7 @@ const connectionMonitor = {
       try {
         if (!sftpManager.isConnected()) {
           console.log(
-            "Connection monitor: SFTP connection lost, attempting to reconnect..."
+            "Connection monitor: SFTP connection lost, attempting to reconnect...",
           );
           await sftpManager.connect(sftpConfig.connection);
         }
@@ -229,7 +229,7 @@ exports.uploadFiles = async function (req, res) {
 
     // Validate that all files have the required properties
     const invalidFiles = files.filter(
-      (file) => !file.path || !file.originalname
+      (file) => !file.path || !file.originalname,
     );
     if (invalidFiles.length > 0) {
       console.error("Invalid files detected:", invalidFiles);
@@ -257,7 +257,7 @@ exports.uploadFiles = async function (req, res) {
         console.error(`Failed to upload ${file.originalname}:`, error);
         cleanupTempFile(file.path);
         throw new Error(
-          `Failed to upload ${file.originalname}: ${error.message}`
+          `Failed to upload ${file.originalname}: ${error.message}`,
         );
       }
     });
@@ -298,7 +298,7 @@ exports.downloadFile = async function (req, res) {
     const tempDir = ensureTempDir();
     const tempFilePath = path.join(
       tempDir,
-      `download_${Date.now()}_${filename}`
+      `download_${Date.now()}_${filename}`,
     );
 
     await sftpManager.downloadFile(fullRemotePath, tempFilePath);
@@ -478,7 +478,7 @@ function validatePaymentUserPathAccess(userRole, requestedPath) {
   return allowedPaths.some(
     (allowedPath) =>
       requestedPath === allowedPath ||
-      requestedPath.startsWith(allowedPath + "/")
+      requestedPath.startsWith(allowedPath + "/"),
   );
 }
 
@@ -513,7 +513,7 @@ exports.listFilesForPurchasing = async function (req, res) {
       const allowedSubfolders = ["Hồ sơ nhập khẩu", "invoices", "receipts"];
       files = files.filter(
         (file) =>
-          file.type === "directory" && allowedSubfolders.includes(file.name)
+          file.type === "directory" && allowedSubfolders.includes(file.name),
       );
     }
 
@@ -588,7 +588,7 @@ exports.uploadFilesForPurchasing = async function (req, res) {
 
     // Validate that all files have the required properties
     const invalidFiles = files.filter(
-      (file) => !file.path || !file.originalname
+      (file) => !file.path || !file.originalname,
     );
     if (invalidFiles.length > 0) {
       console.error("Invalid files detected:", invalidFiles);
@@ -616,7 +616,7 @@ exports.uploadFilesForPurchasing = async function (req, res) {
         console.error(`Failed to upload ${file.originalname}:`, error);
         cleanupTempFile(file.path);
         throw new Error(
-          `Failed to upload ${file.originalname}: ${error.message}`
+          `Failed to upload ${file.originalname}: ${error.message}`,
         );
       }
     });
@@ -820,7 +820,7 @@ exports.deleteFilesForTechnical = async function (req, res) {
   try {
     if (
       !["superAdmin", "director", "deputyDirector", "headOfTechnical"].includes(
-        req.user.role
+        req.user.role,
       )
     ) {
       return res
@@ -857,7 +857,7 @@ exports.renameFileForTechnical = async function (req, res) {
   try {
     if (
       !["superAdmin", "director", "deputyDirector", "headOfTechnical"].includes(
-        req.user.role
+        req.user.role,
       )
     ) {
       return res
@@ -888,6 +888,343 @@ exports.renameFileForTechnical = async function (req, res) {
   }
 };
 //END OF SFTP TECHNICAL DEPARTMENT CONTROLLER
+
+//START OF SFTP PROJECT DEPARTMENT CONTROLLER
+exports.getSftpProjectViews = (req, res) => {
+  res.sendFile("sftpProject.html", {
+    root: "./views/sftpPages/sftpProject",
+  });
+};
+
+exports.listFilesForProject = async function (req, res) {
+  try {
+    await ensureConnected();
+
+    const remotePath = sanitizePath(req.query.path || "/");
+
+    let files = await sftpManager.listFiles(remotePath);
+
+    // Filter out parent directory if we're at the root
+    if (remotePath === "/") {
+      files = files.filter((file) => file.name !== ".." && file.name !== ".");
+    }
+
+    res.json(files);
+  } catch (error) {
+    console.error("List files error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.createDirectoryForProject = async function (req, res) {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfProject",
+        "captainOfProject",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+    if (!sftpManager.isConnected()) {
+      return res.status(400).json({ error: "Not connected to SFTP server" });
+    }
+
+    const { path: parentPath, name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: "Directory name is required" });
+    }
+
+    const sanitizedParentPath = sanitizePath(parentPath || "/");
+    const fullPath = path.posix.join(sanitizedParentPath, name);
+
+    await sftpManager.createDirectory(fullPath);
+    res.json({ status: "success" });
+  } catch (error) {
+    console.error("Create directory error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.uploadFilesForProject = async function (req, res) {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfProject",
+        "captainOfProject",
+        "submitterOfProject",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+    if (!sftpManager.isConnected()) {
+      return res.status(400).json({ error: "Not connected to SFTP server" });
+    }
+
+    const remotePath = sanitizePath(req.body.path || "/");
+    const files = req.files;
+
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: "No files uploaded" });
+    }
+
+    // Validate that all files have the required properties
+    const invalidFiles = files.filter(
+      (file) => !file.path || !file.originalname,
+    );
+    if (invalidFiles.length > 0) {
+      console.error("Invalid files detected:", invalidFiles);
+      return res.status(400).json({
+        error: "Some files are missing required properties",
+        details: invalidFiles.map((f) => ({
+          filename: f.originalname,
+          hasPath: !!f.path,
+        })),
+      });
+    }
+
+    const uploadPromises = files.map(async (file) => {
+      const remoteFilePath = path.posix.join(remotePath, file.originalname);
+
+      try {
+        // Verify local file exists
+        if (!fs.existsSync(file.path)) {
+          throw new Error(`Local file not found: ${file.path}`);
+        }
+
+        await sftpManager.uploadFile(file.path, remoteFilePath);
+        cleanupTempFile(file.path);
+      } catch (error) {
+        console.error(`Failed to upload ${file.originalname}:`, error);
+        cleanupTempFile(file.path);
+        throw new Error(
+          `Failed to upload ${file.originalname}: ${error.message}`,
+        );
+      }
+    });
+
+    await Promise.all(uploadPromises);
+    res.json({ status: "success", uploaded: files.length });
+  } catch (error) {
+    console.error("Upload error:", error);
+    // Cleanup any remaining temp files
+    if (req.files) {
+      req.files.forEach((file) => {
+        if (file.path) {
+          cleanupTempFile(file.path);
+        }
+      });
+    }
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.deleteFilesForProject = async function (req, res) {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfProject",
+        "captainOfProject",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+    if (!sftpManager.isConnected()) {
+      return res.status(400).json({ error: "Not connected to SFTP server" });
+    }
+
+    const { path: remotePath, files } = req.body;
+
+    if (!files || !Array.isArray(files)) {
+      return res.status(400).json({ error: "Files array is required" });
+    }
+
+    const sanitizedPath = sanitizePath(remotePath || "/");
+
+    const deletePromises = files.map(async (filename) => {
+      const fullPath = path.posix.join(sanitizedPath, filename);
+      await sftpManager.deleteFile(fullPath);
+    });
+
+    await Promise.all(deletePromises);
+    res.json({ status: "success", deleted: files.length });
+  } catch (error) {
+    console.error("Delete error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.renameFileForProject = async function (req, res) {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfProject",
+        "captainOfProject",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+    if (!sftpManager.isConnected()) {
+      return res.status(400).json({ error: "Not connected to SFTP server" });
+    }
+
+    const { path: remotePath, oldName, newName } = req.body;
+
+    if (!oldName || !newName) {
+      return res
+        .status(400)
+        .json({ error: "Both old and new names are required" });
+    }
+
+    const sanitizedPath = sanitizePath(remotePath || "/");
+    const oldPath = path.posix.join(sanitizedPath, oldName);
+    const newPath = path.posix.join(sanitizedPath, newName);
+
+    await sftpManager.renameFile(oldPath, newPath);
+    res.json({ status: "success" });
+  } catch (error) {
+    console.error("Rename error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.pasteFilesForProject = async function (req, res) {
+  try {
+    if (
+      ![
+        "superAdmin",
+        "director",
+        "deputyDirector",
+        "headOfProject",
+        "captainOfProject",
+      ].includes(req.user.role)
+    ) {
+      return res
+        .status(403)
+        .send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
+    }
+
+    if (!sftpManager.isConnected()) {
+      return res.status(400).json({ error: "Not connected to SFTP server" });
+    }
+
+    const { sourcePath, targetPath, files, operation } = req.body;
+
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      return res.status(400).json({ error: "Files array is required" });
+    }
+
+    if (!operation || !["cut", "copy"].includes(operation)) {
+      return res.status(400).json({ error: "Valid operation is required" });
+    }
+
+    const sanitizedSourcePath = sanitizePath(sourcePath || "/");
+    const sanitizedTargetPath = sanitizePath(targetPath || "/");
+
+    let pastedCount = 0;
+    const results = [];
+
+    for (const filename of files) {
+      const sourceFile = path.posix.join(sanitizedSourcePath, filename);
+      const targetFile = path.posix.join(sanitizedTargetPath, filename);
+
+      try {
+        if (operation === "copy") {
+          await sftpManager.copy(sourceFile, targetFile);
+        } else {
+          // cut operation (move)
+          await sftpManager.move(sourceFile, targetFile);
+        }
+        pastedCount++;
+        results.push({
+          name: filename,
+          status: "success",
+        });
+      } catch (error) {
+        console.error(`Failed to process ${filename}:`, error);
+        results.push({
+          name: filename,
+          status: "error",
+          message: error.message,
+        });
+      }
+    }
+
+    res.json({
+      status: "completed",
+      pasted: pastedCount,
+      total: files.length,
+      results,
+    });
+  } catch (error) {
+    console.error("Paste error:", error);
+    res.status(500).json({
+      error: error.message,
+      status: "failed",
+    });
+  }
+};
+
+exports.downloadFileForProject = async function (req, res) {
+  try {
+    if (!sftpManager.isConnected()) {
+      return res.status(400).json({ error: "Not connected to SFTP server" });
+    }
+
+    const { path: remotePath, filename } = req.body;
+
+    if (!filename) {
+      return res.status(400).json({ error: "Filename is required" });
+    }
+
+    const sanitizedPath = sanitizePath(remotePath || "/");
+    const fullRemotePath = path.posix.join(sanitizedPath, filename);
+
+    // Create temporary file for download
+    const tempDir = ensureTempDir();
+    const tempFilePath = path.join(
+      tempDir,
+      `download_${Date.now()}_${filename}`,
+    );
+
+    await sftpManager.downloadFile(fullRemotePath, tempFilePath);
+
+    // Send file to client
+    res.download(tempFilePath, filename, (err) => {
+      // Cleanup temp file after download
+      cleanupTempFile(tempFilePath);
+
+      if (err) {
+        console.error("Download send error:", err);
+      }
+    });
+  } catch (error) {
+    console.error("Download error:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+//END OF SFTP PROJECT DEPARTMENT CONTROLLER
 
 // Export the sftpManager and utility function for use in other modules
 exports.sftpManager = sftpManager;

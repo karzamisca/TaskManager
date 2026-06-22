@@ -12,22 +12,22 @@ const upload = multer(sftpConfig.upload);
 router.get(
   "/sftpPurchasing",
   authMiddleware,
-  sftpController.getSftpPurchasingViews
+  sftpController.getSftpPurchasingViews,
 );
 router.get(
   "/sftpTechnical",
   authMiddleware,
-  sftpController.getSftpTechnicalViews
+  sftpController.getSftpTechnicalViews,
 );
 router.get(
   "/sftpAccounting",
   authMiddleware,
-  sftpController.getSftpAccountingViews
+  sftpController.getSftpAccountingViews,
 );
 router.get(
   "/sftpNorthernRepresentativeOffice",
   authMiddleware,
-  sftpController.getSftpNorthernRepresentativeOfficeViews
+  sftpController.getSftpNorthernRepresentativeOfficeViews,
 );
 
 // SFTP connection routes
@@ -44,7 +44,7 @@ router.post(
   "/sftpUpload",
   upload.array("files"),
   authMiddleware,
-  sftpController.uploadFiles
+  sftpController.uploadFiles,
 );
 
 router.post("/sftpDownload", authMiddleware, sftpController.downloadFile);
@@ -55,34 +55,34 @@ router.post("/sftpRename", authMiddleware, sftpController.renameFile);
 router.get(
   "/sftpFilesForPurchasing",
   authMiddleware,
-  sftpController.listFilesForPurchasing
+  sftpController.listFilesForPurchasing,
 );
 router.post(
   "/sftpMkdirForPurchasing",
   authMiddleware,
-  sftpController.createDirectoryForPurchasing
+  sftpController.createDirectoryForPurchasing,
 );
 router.post(
   "/sftpUploadForPurchasing",
   upload.array("files"),
   authMiddleware,
-  sftpController.uploadFilesForPurchasing
+  sftpController.uploadFilesForPurchasing,
 );
 router.post(
   "/sftpDeleteForPurchasing",
   authMiddleware,
-  sftpController.deleteFilesForPurchasing
+  sftpController.deleteFilesForPurchasing,
 );
 router.post(
   "/sftpRenameForPurchasing",
   authMiddleware,
-  sftpController.renameFileForPurchasing
+  sftpController.renameFileForPurchasing,
 );
 // Add this to the SFTP Purchasing Department Route
 router.post(
   "/sftpPasteForPurchasing",
   authMiddleware,
-  sftpController.pasteFilesForPurchasing
+  sftpController.pasteFilesForPurchasing,
 );
 //END OF SFTP PURCHASING DEPARTMENT ROUTE
 
@@ -90,14 +90,54 @@ router.post(
 router.post(
   "/sftpDeleteForTechnical",
   authMiddleware,
-  sftpController.deleteFilesForTechnical
+  sftpController.deleteFilesForTechnical,
 );
 router.post(
   "/sftpRenameForTechnical",
   authMiddleware,
-  sftpController.renameFileForTechnical
+  sftpController.renameFileForTechnical,
 );
 //END OF SFTP TECHNICAL DEPARTMENT ROUTE
+
+//START OF SFTP PROJECT DEPARTMENT ROUTE
+router.get("/sftpProject", authMiddleware, sftpController.getSftpProjectViews);
+router.get(
+  "/sftpFilesForProject",
+  authMiddleware,
+  sftpController.listFilesForProject,
+);
+router.post(
+  "/sftpMkdirForProject",
+  authMiddleware,
+  sftpController.createDirectoryForProject,
+);
+router.post(
+  "/sftpUploadForProject",
+  upload.array("files"),
+  authMiddleware,
+  sftpController.uploadFilesForProject,
+);
+router.post(
+  "/sftpDeleteForProject",
+  authMiddleware,
+  sftpController.deleteFilesForProject,
+);
+router.post(
+  "/sftpRenameForProject",
+  authMiddleware,
+  sftpController.renameFileForProject,
+);
+router.post(
+  "/sftpPasteForProject",
+  authMiddleware,
+  sftpController.pasteFilesForProject,
+);
+router.post(
+  "/sftpDownloadForProject",
+  authMiddleware,
+  sftpController.downloadFileForProject,
+);
+//END OF SFTP PROJECT DEPARTMENT ROUTE
 
 // Health check
 router.get("/sftpHealth", authMiddleware, sftpController.getHealth);
