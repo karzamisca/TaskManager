@@ -424,9 +424,35 @@ exports.getRevenueByCostCenter = async (req, res) => {
     const costCenterBankMap = {};
 
     bankData.forEach((center) => {
-      // Raw bank entries (skip complete loans)
+      // Raw bank entries
       center.bank.forEach((bankEntry) => {
-        if (bankEntry.isCompleteLoan) return;
+        if (bankEntry.isCompleteLoan) {
+          // Loan repayments (interest + principal) flow through daily[] as
+          // expense. The disbursement — the principal injected into the
+          // company — lives only on the loan record itself, so record it as
+          // income in the month the money arrived.
+          const disbursement = bankEntry.loanDisbursementDate || bankEntry.date;
+          if (!disbursement) return;
+
+          const [, m, y] = disbursement.split("/");
+          let recordMonth = parseInt(m) + 1;
+          let recordYear = parseInt(y);
+          if (recordMonth > 12) {
+            recordMonth = 1;
+            recordYear += 1;
+          }
+
+          if (!yearList.includes(recordYear)) return;
+
+          const recordKey = `${center.name}-${recordMonth}-${recordYear}`;
+          if (!costCenterBankMap[recordKey]) {
+            costCenterBankMap[recordKey] = { income: 0, expense: 0, net: 0 };
+          }
+
+          costCenterBankMap[recordKey].income += bankEntry.income || 0;
+          costCenterBankMap[recordKey].net += bankEntry.income || 0;
+          return;
+        }
 
         const [day, month, yearStr] = bankEntry.date.split("/");
         const bankMonth = parseInt(month);
