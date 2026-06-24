@@ -3540,19 +3540,25 @@ exports.moveProductsToItemStock = async (req, res) => {
 
     // Process each selected product
     for (const selectedProduct of selectedProducts) {
+      // Match by BOTH name and cost center — the same item can appear
+      // multiple times in one document for different cost centers.
       const product = purchasingDoc.products.find(
-        (p) => p.productName === selectedProduct.productName,
+        (p) =>
+          p.productName === selectedProduct.productName &&
+          p.costCenter === selectedProduct.costCenter,
       );
       if (!product) {
         errors.push(
-          `Product ${selectedProduct.productName} not found in document`,
+          `Product ${selectedProduct.productName} (${selectedProduct.costCenter}) not found in document`,
         );
         continue;
       }
 
-      // Check if already transferred
+      // Check if already transferred (composite key: name + cost center)
       const existingTransfer = purchasingDoc.transferredQuantities.find(
-        (t) => t.productName === product.productName,
+        (t) =>
+          t.productName === product.productName &&
+          t.costCenter === product.costCenter,
       );
       const alreadyTransferred = existingTransfer
         ? existingTransfer.transferredAmount
@@ -3567,7 +3573,7 @@ exports.moveProductsToItemStock = async (req, res) => {
 
       if (selectedProduct.amount > remainingToTransfer) {
         errors.push(
-          `Cannot transfer ${selectedProduct.amount} of ${product.productName}. Only ${remainingToTransfer} remaining to transfer.`,
+          `Cannot transfer ${selectedProduct.amount} of ${product.productName} (${product.costCenter}). Only ${remainingToTransfer} remaining to transfer.`,
         );
         continue;
       }
@@ -3585,7 +3591,7 @@ exports.moveProductsToItemStock = async (req, res) => {
         continue;
       }
 
-      // Get cost center ID from product's cost center name
+      // Use THIS line's cost center, not the first matching product's
       const costCenterId = costCenterMap.get(product.costCenter);
       if (!costCenterId) {
         errors.push(
@@ -3636,7 +3642,7 @@ exports.moveProductsToItemStock = async (req, res) => {
 
       await itemStock.save();
 
-      // Update transferred quantities tracking (using array)
+      // Update transferred quantities tracking (composite key)
       if (existingTransfer) {
         existingTransfer.transferredAmount =
           alreadyTransferred + selectedProduct.amount;
@@ -3650,6 +3656,7 @@ exports.moveProductsToItemStock = async (req, res) => {
       } else {
         purchasingDoc.transferredQuantities.push({
           productName: product.productName,
+          costCenter: product.costCenter, // store it so future matches are unambiguous
           transferredAmount: selectedProduct.amount,
           totalAmount: product.amount,
           firstTransferDate: new Date(),
@@ -3667,6 +3674,7 @@ exports.moveProductsToItemStock = async (req, res) => {
 
       results.push({
         productName: product.productName,
+        costCenter: product.costCenter,
         amountMoved: selectedProduct.amount,
         remainingToMove:
           product.amount - (alreadyTransferred + selectedProduct.amount),
@@ -3682,7 +3690,9 @@ exports.moveProductsToItemStock = async (req, res) => {
 
     const allCompleted = purchasingDoc.products.every((product) => {
       const transfer = purchasingDoc.transferredQuantities.find(
-        (t) => t.productName === product.productName,
+        (t) =>
+          t.productName === product.productName &&
+          t.costCenter === product.costCenter,
       );
       const transferred = transfer ? transfer.transferredAmount : 0;
       return transferred === product.amount;
@@ -3725,13 +3735,16 @@ exports.getTransferStatus = async (req, res) => {
     const transferStatus = purchasingDoc.products.map((product) => {
       const transfer = purchasingDoc.transferredQuantities
         ? purchasingDoc.transferredQuantities.find(
-            (t) => t.productName === product.productName,
+            (t) =>
+              t.productName === product.productName &&
+              t.costCenter === product.costCenter,
           )
         : null;
       const transferredAmount = transfer ? transfer.transferredAmount : 0;
 
       return {
         productName: product.productName,
+        costCenter: product.costCenter, // so the UI can match the right line
         totalAmount: product.amount,
         transferredAmount: transferredAmount,
         remainingAmount: product.amount - transferredAmount,

@@ -148,6 +148,7 @@ const purchasingDocumentSchema = new mongoose.Schema({
   transferredQuantities: [
     {
       productName: { type: String, required: true },
+      costCenter: { type: String },
       transferredAmount: { type: Number, default: 0 },
       totalAmount: { type: Number, required: true },
       firstTransferDate: { type: Date },

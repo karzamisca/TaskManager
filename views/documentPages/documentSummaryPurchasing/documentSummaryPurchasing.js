@@ -1012,20 +1012,21 @@ const showMoveToStockModal = async (docId) => {
 
     document.body.insertAdjacentHTML("beforeend", modalHTML);
 
+    // Per-line checkboxes keyed by index (name is not unique within a doc)
     document.querySelectorAll(".product-stock-checkbox").forEach((checkbox) => {
       checkbox.addEventListener("change", (e) => {
         const productItem = e.target.closest(".stock-product-item");
         const quantityInputDiv = productItem.querySelector(
           ".product-quantity-input",
         );
-        const productName = e.target.getAttribute("data-product-name");
+        const productIndex = e.target.getAttribute("data-product-index");
 
         if (e.target.checked) {
           quantityInputDiv.style.display = "block";
-          stockMovementState.selectedProducts.add(productName);
+          stockMovementState.selectedProducts.add(productIndex);
         } else {
           quantityInputDiv.style.display = "none";
-          stockMovementState.selectedProducts.delete(productName);
+          stockMovementState.selectedProducts.delete(productIndex);
         }
       });
     });
@@ -1035,19 +1036,20 @@ const showMoveToStockModal = async (docId) => {
       selectAllCheckbox.addEventListener("change", (e) => {
         const checkboxes = document.querySelectorAll(".product-stock-checkbox");
         checkboxes.forEach((checkbox) => {
+          if (checkbox.disabled) return; // skip fully-transferred lines
           checkbox.checked = e.target.checked;
           const productItem = checkbox.closest(".stock-product-item");
           const quantityInputDiv = productItem.querySelector(
             ".product-quantity-input",
           );
-          const productName = checkbox.getAttribute("data-product-name");
+          const productIndex = checkbox.getAttribute("data-product-index");
 
           if (e.target.checked) {
             quantityInputDiv.style.display = "block";
-            stockMovementState.selectedProducts.add(productName);
+            stockMovementState.selectedProducts.add(productIndex);
           } else {
             quantityInputDiv.style.display = "none";
-            stockMovementState.selectedProducts.delete(productName);
+            stockMovementState.selectedProducts.delete(productIndex);
           }
         });
       });
@@ -1090,12 +1092,13 @@ const renderProductsForStockSelection = (products, transferStatus = null) => {
             </div>
             ${products
               .map((product, index) => {
-                // Get transferred amount if available
                 let transferredAmount = 0;
                 let remainingAmount = product.amount;
                 if (transferStatus) {
                   const status = transferStatus.find(
-                    (s) => s.productName === product.productName,
+                    (s) =>
+                      s.productName === product.productName &&
+                      s.costCenter === product.costCenter, // <-- composite match
                   );
                   if (status) {
                     transferredAmount = status.transferredAmount;
@@ -1103,15 +1106,14 @@ const renderProductsForStockSelection = (products, transferStatus = null) => {
                   }
                 }
 
-                const isFullyTransferred = remainingAmount === 0;
+                const isFullyTransferred = remainingAmount <= 0;
 
                 return `
                 <div class="stock-product-item ${isFullyTransferred ? "fully-transferred" : ""}" data-product-index="${index}">
                     <div class="product-stock-header">
                         <label class="product-stock-label">
-                            <input type="checkbox" 
-                                   class="product-stock-checkbox" 
-                                   data-product-name="${product.productName.replace(/"/g, "&quot;")}"
+                            <input type="checkbox"
+                                   class="product-stock-checkbox"
                                    data-product-index="${index}"
                                    ${isFullyTransferred ? "disabled" : ""}>
                             <div class="product-stock-info">
@@ -1134,11 +1136,11 @@ const renderProductsForStockSelection = (products, transferStatus = null) => {
                     <div class="product-quantity-input" style="display: none; margin-top: 10px; margin-left: 30px;">
                         <label style="display: flex; align-items: center; gap: 10px;">
                             <span><i class="fas fa-box"></i> Số lượng nhập kho:</span>
-                            <input type="number" 
-                                   class="quantity-input" 
-                                   data-product-name="${product.productName.replace(/"/g, "&quot;")}"
-                                   min="1" 
-                                   max="${remainingAmount}" 
+                            <input type="number"
+                                   class="quantity-input"
+                                   data-product-index="${index}"
+                                   min="1"
+                                   max="${remainingAmount}"
                                    step="1"
                                    value="${remainingAmount}"
                                    style="width: 150px; padding: 5px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
@@ -1164,64 +1166,41 @@ const confirmMoveToStock = async () => {
 
   const selectedProductsArrayFinal = [];
 
-  // Debug: Log selected products
-  console.log(
-    "Selected products:",
-    Array.from(stockMovementState.selectedProducts),
-  );
-
-  for (const productName of stockMovementState.selectedProducts) {
-    const product = stockMovementState.currentDocument.products.find(
-      (p) => p.productName === productName,
-    );
-
-    if (product) {
-      // Find the quantity input for this product - use more reliable method
-      let quantityToMove = product.amount; // Default to full amount
-
-      // Find all quantity inputs and find the one for this product
-      const allQuantityInputs = document.querySelectorAll(".quantity-input");
-      console.log(`Found ${allQuantityInputs.length} quantity inputs`);
-
-      for (let input of allQuantityInputs) {
-        const inputProductName = input.getAttribute("data-product-name");
-        console.log(
-          `Checking input for: ${inputProductName}, looking for: ${productName}`,
-        );
-
-        if (inputProductName === productName) {
-          const inputValue = parseInt(input.value);
-          console.log(
-            `Found matching input for ${productName}, value: ${inputValue}`,
-          );
-
-          if (!isNaN(inputValue) && inputValue > 0) {
-            quantityToMove = inputValue;
-          }
-          break;
-        }
-      }
-
-      // Ensure we don't exceed available amount
-      if (quantityToMove > product.amount) {
-        quantityToMove = product.amount;
-      }
-
-      console.log(
-        `Product: ${productName}, Full amount: ${product.amount}, Moving: ${quantityToMove}`,
-      );
-
-      selectedProductsArrayFinal.push({
-        productName: product.productName,
-        amount: quantityToMove,
-        costPerUnit: product.costPerUnit,
-        costCenter:
-          product.costCenter || stockMovementState.currentDocument.costCenter,
-        vat: product.vat || 0,
-      });
-    } else {
-      console.error(`Product not found: ${productName}`);
+  // selectedProducts holds line indices, so each duplicate-name line is distinct
+  for (const productIndex of stockMovementState.selectedProducts) {
+    const product =
+      stockMovementState.currentDocument.products[parseInt(productIndex, 10)];
+    if (!product) {
+      console.error(`Product not found at index: ${productIndex}`);
+      continue;
     }
+
+    let quantityToMove = product.amount; // default to full amount
+
+    const input = document.querySelector(
+      `.quantity-input[data-product-index="${productIndex}"]`,
+    );
+    if (input) {
+      const inputValue = parseInt(input.value);
+      if (!isNaN(inputValue) && inputValue > 0) {
+        quantityToMove = inputValue;
+      }
+    }
+
+    // Ensure we don't exceed available amount
+    if (quantityToMove > product.amount) {
+      quantityToMove = product.amount;
+    }
+
+    selectedProductsArrayFinal.push({
+      productName: product.productName,
+      amount: quantityToMove,
+      costPerUnit: product.costPerUnit,
+      costCenter:
+        product.costCenter || stockMovementState.currentDocument.costCenter,
+      vat: product.vat || 0,
+      _index: parseInt(productIndex, 10), // helper for the confirm message
+    });
   }
 
   if (selectedProductsArrayFinal.length === 0) {
@@ -1231,10 +1210,8 @@ const confirmMoveToStock = async () => {
 
   // Check if any product has partial transfer (amount < original)
   const hasPartialTransfer = selectedProductsArrayFinal.some((p) => {
-    const originalProduct = stockMovementState.currentDocument.products.find(
-      (op) => op.productName === p.productName,
-    );
-    return p.amount < originalProduct.amount;
+    const original = stockMovementState.currentDocument.products[p._index];
+    return p.amount < original.amount;
   });
 
   // Build confirmation message
@@ -1242,14 +1219,12 @@ const confirmMoveToStock = async () => {
   confirmMessage += `Bạn có chắc chắn muốn nhập kho ${selectedProductsArrayFinal.length} sản phẩm?\n\n`;
   confirmMessage += selectedProductsArrayFinal
     .map((p) => {
-      const originalProduct = stockMovementState.currentDocument.products.find(
-        (op) => op.productName === p.productName,
-      );
-      const isPartial = p.amount < originalProduct.amount;
+      const original = stockMovementState.currentDocument.products[p._index];
+      const isPartial = p.amount < original.amount;
       const partialText = isPartial
-        ? ` (⚠️ NHẬP MỘT PHẦN: ${p.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}/${originalProduct.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })})`
+        ? ` (⚠️ NHẬP MỘT PHẦN: ${p.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}/${original.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })})`
         : "";
-      return `• ${p.productName}: ${p.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}${partialText}`;
+      return `• ${p.productName} [${p.costCenter}]: ${p.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}${partialText}`;
     })
     .join("\n");
 
@@ -1272,7 +1247,10 @@ const confirmMoveToStock = async () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          selectedProducts: selectedProductsArrayFinal,
+          // strip the helper field before sending
+          selectedProducts: selectedProductsArrayFinal.map(
+            ({ _index, ...rest }) => rest,
+          ),
         }),
       },
     );
@@ -1284,7 +1262,7 @@ const confirmMoveToStock = async () => {
       if (result.results && result.results.length > 0) {
         message += "\n\n✅ Chi tiết thành công:\n";
         result.results.forEach((r) => {
-          message += `• ${r.productName}: ${r.oldStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} → ${r.newStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} (Nhập: ${r.amountMoved.toLocaleString("en-EN", { maximumFractionDigits: 5 })})\n`;
+          message += `• ${r.productName} [${r.costCenter}]: ${r.oldStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} → ${r.newStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} (Nhập: ${r.amountMoved.toLocaleString("en-EN", { maximumFractionDigits: 5 })})\n`;
           if (r.remainingToMove > 0) {
             message += `  ⏳ Còn lại: ${r.remainingToMove.toLocaleString("en-EN", { maximumFractionDigits: 5 })}\n`;
           }
