@@ -962,9 +962,21 @@ const showMoveToStockModal = async (docId) => {
     const response = await fetch(`/getPurchasingDocument/${docId}`);
     const doc = await response.json();
 
-    // First check transfer status to show remaining quantities
     const transferStatusResponse = await fetch(`/getTransferStatus/${docId}`);
     const transferData = await transferStatusResponse.json();
+
+    // Ensure we have the full cost center list for the destination selector
+    let costCenters = state.costCenters;
+    if (!costCenters || costCenters.length === 0) {
+      try {
+        const ccResponse = await fetch("/costCenters");
+        costCenters = await ccResponse.json();
+        state.costCenters = costCenters;
+      } catch (e) {
+        console.error("Error fetching cost centers for stock movement:", e);
+        costCenters = [];
+      }
+    }
 
     stockMovementState.currentDocument = doc;
     stockMovementState.selectedProducts.clear();
@@ -980,7 +992,7 @@ const showMoveToStockModal = async (docId) => {
                     <div class="modal-body">
                         <div class="info-banner">
                             <i class="fas fa-info-circle"></i> 
-                            <strong>Hướng dẫn:</strong> Chọn sản phẩm và nhập số lượng thực tế nhập kho (có thể nhập một phần)
+                            <strong>Hướng dẫn:</strong> Chọn sản phẩm, nhập số lượng thực tế (có thể nhập một phần) và chọn trạm nhập kho (mặc định là trạm của sản phẩm)
                         </div>
                         <div class="form-group">
                             <label class="form-label">
@@ -988,7 +1000,7 @@ const showMoveToStockModal = async (docId) => {
                                 Chọn sản phẩm để nhập kho:
                             </label>
                             <div id="productsToStockList" class="products-list">
-                                ${renderProductsForStockSelection(doc.products, transferData.transferStatus)}
+                                ${renderProductsForStockSelection(doc.products, transferData.transferStatus, costCenters)}
                             </div>
                         </div>
                         
@@ -1016,16 +1028,14 @@ const showMoveToStockModal = async (docId) => {
     document.querySelectorAll(".product-stock-checkbox").forEach((checkbox) => {
       checkbox.addEventListener("change", (e) => {
         const productItem = e.target.closest(".stock-product-item");
-        const quantityInputDiv = productItem.querySelector(
-          ".product-quantity-input",
-        );
+        const moveInputs = productItem.querySelector(".product-move-inputs");
         const productIndex = e.target.getAttribute("data-product-index");
 
         if (e.target.checked) {
-          quantityInputDiv.style.display = "block";
+          if (moveInputs) moveInputs.style.display = "block";
           stockMovementState.selectedProducts.add(productIndex);
         } else {
-          quantityInputDiv.style.display = "none";
+          if (moveInputs) moveInputs.style.display = "none";
           stockMovementState.selectedProducts.delete(productIndex);
         }
       });
@@ -1039,16 +1049,14 @@ const showMoveToStockModal = async (docId) => {
           if (checkbox.disabled) return; // skip fully-transferred lines
           checkbox.checked = e.target.checked;
           const productItem = checkbox.closest(".stock-product-item");
-          const quantityInputDiv = productItem.querySelector(
-            ".product-quantity-input",
-          );
+          const moveInputs = productItem.querySelector(".product-move-inputs");
           const productIndex = checkbox.getAttribute("data-product-index");
 
           if (e.target.checked) {
-            quantityInputDiv.style.display = "block";
+            if (moveInputs) moveInputs.style.display = "block";
             stockMovementState.selectedProducts.add(productIndex);
           } else {
-            quantityInputDiv.style.display = "none";
+            if (moveInputs) moveInputs.style.display = "none";
             stockMovementState.selectedProducts.delete(productIndex);
           }
         });
@@ -1077,10 +1085,30 @@ const showMoveToStockModal = async (docId) => {
   }
 };
 
-const renderProductsForStockSelection = (products, transferStatus = null) => {
+const renderProductsForStockSelection = (
+  products,
+  transferStatus = null,
+  costCenters = [],
+) => {
   if (!products || products.length === 0) {
     return '<p class="text-muted">Không có sản phẩm nào trong phiếu này</p>';
   }
+
+  const buildCostCenterOptions = (selectedName) => {
+    const names = costCenters.map((cc) => cc.name);
+    let opts = "";
+    // Keep the product's own cost center selectable even if it's not in the master list
+    if (selectedName && !names.includes(selectedName)) {
+      opts += `<option value="${selectedName}" selected>${selectedName} (trạm của sản phẩm)</option>`;
+    }
+    opts += costCenters
+      .map(
+        (cc) =>
+          `<option value="${cc.name}" ${cc.name === selectedName ? "selected" : ""}>${cc.name}</option>`,
+      )
+      .join("");
+    return opts;
+  };
 
   return `
         <div class="stock-products-container">
@@ -1098,7 +1126,7 @@ const renderProductsForStockSelection = (products, transferStatus = null) => {
                   const status = transferStatus.find(
                     (s) =>
                       s.productName === product.productName &&
-                      s.costCenter === product.costCenter, // <-- composite match
+                      s.costCenter === product.costCenter,
                   );
                   if (status) {
                     transferredAmount = status.transferredAmount;
@@ -1133,8 +1161,8 @@ const renderProductsForStockSelection = (products, transferStatus = null) => {
                     ${
                       !isFullyTransferred
                         ? `
-                    <div class="product-quantity-input" style="display: none; margin-top: 10px; margin-left: 30px;">
-                        <label style="display: flex; align-items: center; gap: 10px;">
+                    <div class="product-move-inputs" style="display: none; margin-top: 10px; margin-left: 30px;">
+                        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                             <span><i class="fas fa-box"></i> Số lượng nhập kho:</span>
                             <input type="number"
                                    class="quantity-input"
@@ -1145,6 +1173,15 @@ const renderProductsForStockSelection = (products, transferStatus = null) => {
                                    value="${remainingAmount}"
                                    style="width: 150px; padding: 5px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
                             <span class="remaining-quantity">(Tối đa: ${remainingAmount.toLocaleString("en-EN", { maximumFractionDigits: 5 })})</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 10px;">
+                            <span><i class="fas fa-map-marker-alt"></i> Nhập vào trạm:</span>
+                            <select class="destination-cost-center"
+                                    data-product-index="${index}"
+                                    style="min-width: 180px; padding: 5px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                                ${buildCostCenterOptions(product.costCenter)}
+                            </select>
+                            <span class="text-muted" style="font-size: 0.8rem;">(Mặc định: trạm của sản phẩm)</span>
                         </label>
                     </div>
                     `
@@ -1166,7 +1203,6 @@ const confirmMoveToStock = async () => {
 
   const selectedProductsArrayFinal = [];
 
-  // selectedProducts holds line indices, so each duplicate-name line is distinct
   for (const productIndex of stockMovementState.selectedProducts) {
     const product =
       stockMovementState.currentDocument.products[parseInt(productIndex, 10)];
@@ -1175,7 +1211,7 @@ const confirmMoveToStock = async () => {
       continue;
     }
 
-    let quantityToMove = product.amount; // default to full amount
+    let quantityToMove = product.amount;
 
     const input = document.querySelector(
       `.quantity-input[data-product-index="${productIndex}"]`,
@@ -1187,19 +1223,28 @@ const confirmMoveToStock = async () => {
       }
     }
 
-    // Ensure we don't exceed available amount
     if (quantityToMove > product.amount) {
       quantityToMove = product.amount;
     }
+
+    const originalCostCenter =
+      product.costCenter || stockMovementState.currentDocument.costCenter;
+
+    // Read the chosen destination; fall back to the product's own cost center.
+    const destSelect = document.querySelector(
+      `.destination-cost-center[data-product-index="${productIndex}"]`,
+    );
+    const destinationCostCenter =
+      destSelect && destSelect.value ? destSelect.value : originalCostCenter;
 
     selectedProductsArrayFinal.push({
       productName: product.productName,
       amount: quantityToMove,
       costPerUnit: product.costPerUnit,
-      costCenter:
-        product.costCenter || stockMovementState.currentDocument.costCenter,
+      costCenter: originalCostCenter, // used to match the document line
+      destinationCostCenter: destinationCostCenter, // where the stock lands
       vat: product.vat || 0,
-      _index: parseInt(productIndex, 10), // helper for the confirm message
+      _index: parseInt(productIndex, 10),
     });
   }
 
@@ -1208,13 +1253,15 @@ const confirmMoveToStock = async () => {
     return;
   }
 
-  // Check if any product has partial transfer (amount < original)
   const hasPartialTransfer = selectedProductsArrayFinal.some((p) => {
     const original = stockMovementState.currentDocument.products[p._index];
     return p.amount < original.amount;
   });
 
-  // Build confirmation message
+  const hasRedirect = selectedProductsArrayFinal.some(
+    (p) => p.destinationCostCenter !== p.costCenter,
+  );
+
   let confirmMessage = `Xác nhận nhập kho\n\n`;
   confirmMessage += `Bạn có chắc chắn muốn nhập kho ${selectedProductsArrayFinal.length} sản phẩm?\n\n`;
   confirmMessage += selectedProductsArrayFinal
@@ -1224,10 +1271,18 @@ const confirmMoveToStock = async () => {
       const partialText = isPartial
         ? ` (⚠️ NHẬP MỘT PHẦN: ${p.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}/${original.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })})`
         : "";
-      return `• ${p.productName} [${p.costCenter}]: ${p.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}${partialText}`;
+      const stationText =
+        p.destinationCostCenter !== p.costCenter
+          ? `${p.costCenter} → ${p.destinationCostCenter}`
+          : p.costCenter;
+      return `• ${p.productName} [${stationText}]: ${p.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}${partialText}`;
     })
     .join("\n");
 
+  if (hasRedirect) {
+    confirmMessage +=
+      "\n\n⚠️ LƯU Ý: Một số sản phẩm sẽ được nhập vào trạm KHÁC với trạm gốc!";
+  }
   if (hasPartialTransfer) {
     confirmMessage += "\n\n⚠️ LƯU Ý: Một số sản phẩm sẽ được nhập một phần!";
   }
@@ -1247,7 +1302,6 @@ const confirmMoveToStock = async () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          // strip the helper field before sending
           selectedProducts: selectedProductsArrayFinal.map(
             ({ _index, ...rest }) => rest,
           ),
@@ -1262,7 +1316,11 @@ const confirmMoveToStock = async () => {
       if (result.results && result.results.length > 0) {
         message += "\n\n✅ Chi tiết thành công:\n";
         result.results.forEach((r) => {
-          message += `• ${r.productName} [${r.costCenter}]: ${r.oldStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} → ${r.newStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} (Nhập: ${r.amountMoved.toLocaleString("en-EN", { maximumFractionDigits: 5 })})\n`;
+          const stationText =
+            r.destinationCostCenter && r.destinationCostCenter !== r.costCenter
+              ? `${r.costCenter} → ${r.destinationCostCenter}`
+              : r.costCenter;
+          message += `• ${r.productName} [${stationText}]: ${r.oldStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} → ${r.newStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} (Nhập: ${r.amountMoved.toLocaleString("en-EN", { maximumFractionDigits: 5 })})\n`;
           if (r.remainingToMove > 0) {
             message += `  ⏳ Còn lại: ${r.remainingToMove.toLocaleString("en-EN", { maximumFractionDigits: 5 })}\n`;
           }

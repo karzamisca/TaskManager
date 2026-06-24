@@ -3464,11 +3464,8 @@ exports.openPurchasingDocument = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Restrict access to only users with the role of "director"
-    if (req.user.role !== "headOfPurchasing") {
-      return res.send(
-        "Truy cập bị từ chối. Chỉ trưởng phòng mua hàng có quyền mở lại phiếu mua hàng.",
-      );
+    if (!["superAdmin", "headOfPurchasing"].includes(req.user.role)) {
+      return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
     // Find the document in any of the collections
@@ -3512,7 +3509,6 @@ exports.moveProductsToItemStock = async (req, res) => {
     const { purchasingDocId } = req.params;
     const { selectedProducts } = req.body;
 
-    // Get the purchasing document
     const purchasingDoc = await PurchasingDocument.findById(purchasingDocId);
     if (!purchasingDoc) {
       return res
@@ -3520,7 +3516,6 @@ exports.moveProductsToItemStock = async (req, res) => {
         .json({ success: false, message: "Purchasing document not found" });
     }
 
-    // Initialize or get transferred quantities tracking (use array instead of Map)
     if (
       !purchasingDoc.transferredQuantities ||
       !Array.isArray(purchasingDoc.transferredQuantities)
@@ -3528,7 +3523,6 @@ exports.moveProductsToItemStock = async (req, res) => {
       purchasingDoc.transferredQuantities = [];
     }
 
-    // Get cost centers mapping (name to ID)
     const costCenters = await CostCenter.find({});
     const costCenterMap = new Map();
     costCenters.forEach((cc) => {
@@ -3538,10 +3532,8 @@ exports.moveProductsToItemStock = async (req, res) => {
     const results = [];
     const errors = [];
 
-    // Process each selected product
     for (const selectedProduct of selectedProducts) {
-      // Match by BOTH name and cost center — the same item can appear
-      // multiple times in one document for different cost centers.
+      // Identify the document line by name + its ORIGINAL cost center.
       const product = purchasingDoc.products.find(
         (p) =>
           p.productName === selectedProduct.productName &&
@@ -3554,7 +3546,7 @@ exports.moveProductsToItemStock = async (req, res) => {
         continue;
       }
 
-      // Check if already transferred (composite key: name + cost center)
+      // Transfer tracking is keyed on the original line, NOT the destination.
       const existingTransfer = purchasingDoc.transferredQuantities.find(
         (t) =>
           t.productName === product.productName &&
@@ -3565,7 +3557,6 @@ exports.moveProductsToItemStock = async (req, res) => {
         : 0;
       const remainingToTransfer = product.amount - alreadyTransferred;
 
-      // Validate transfer amount
       if (selectedProduct.amount <= 0) {
         errors.push(`Invalid amount for ${product.productName}`);
         continue;
@@ -3578,7 +3569,12 @@ exports.moveProductsToItemStock = async (req, res) => {
         continue;
       }
 
-      // Find the item by name (case-insensitive search, regex-escaped)
+      // DESTINATION cost center: where the stock actually goes.
+      // Defaults to the product's own cost center; can be overridden by the user.
+      const destinationCostCenter =
+        selectedProduct.destinationCostCenter || product.costCenter;
+      const isRedirected = destinationCostCenter !== product.costCenter;
+
       const item = await Item.findOne({
         name: {
           $regex: new RegExp(`^${escapeRegex(product.productName)}$`, "i"),
@@ -3591,16 +3587,16 @@ exports.moveProductsToItemStock = async (req, res) => {
         continue;
       }
 
-      // Use THIS line's cost center, not the first matching product's
-      const costCenterId = costCenterMap.get(product.costCenter);
+      // Resolve the DESTINATION cost center to an id.
+      const costCenterId = costCenterMap.get(destinationCostCenter);
       if (!costCenterId) {
         errors.push(
-          `Cost center ${product.costCenter} not found for product ${product.productName}`,
+          `Cost center ${destinationCostCenter} not found for product ${product.productName}`,
         );
         continue;
       }
 
-      // Find or create item stock record
+      // Item stock record is found/created at the DESTINATION cost center.
       let itemStock = await ItemStock.findOne({
         itemId: item._id,
         costCenterId: costCenterId,
@@ -3609,8 +3605,11 @@ exports.moveProductsToItemStock = async (req, res) => {
       const oldInStorage = itemStock ? itemStock.inStorage : 0;
       const newInStorage = oldInStorage + selectedProduct.amount;
 
+      const noteText = isRedirected
+        ? `Thêm ${selectedProduct.amount} đơn vị từ phiếu mua hàng ${purchasingDoc.tag || purchasingDocId} (chuyển từ trạm ${product.costCenter})`
+        : `Thêm ${selectedProduct.amount} đơn vị từ phiếu mua hàng ${purchasingDoc.tag || purchasingDocId}`;
+
       if (!itemStock) {
-        // Create new item stock record
         itemStock = new ItemStock({
           itemId: item._id,
           costCenterId: costCenterId,
@@ -3621,13 +3620,12 @@ exports.moveProductsToItemStock = async (req, res) => {
               oldInStorage: 0,
               newInStorage: newInStorage,
               updatedBy: req._id,
-              note: `Thêm ${selectedProduct.amount} đơn vị từ phiếu mua hàng ${purchasingDoc.tag || purchasingDocId}`,
+              note: noteText,
               updatedAt: new Date(),
             },
           ],
         });
       } else {
-        // Update existing item stock
         itemStock.inStorage = newInStorage;
         itemStock.updatedBy = req._id;
         itemStock.updatedAt = new Date();
@@ -3635,14 +3633,14 @@ exports.moveProductsToItemStock = async (req, res) => {
           oldInStorage: oldInStorage,
           newInStorage: newInStorage,
           updatedBy: req._id,
-          note: `Thêm ${selectedProduct.amount} đơn vị từ phiếu mua hàng ${purchasingDoc.tag || purchasingDocId}`,
+          note: noteText,
           updatedAt: new Date(),
         });
       }
 
       await itemStock.save();
 
-      // Update transferred quantities tracking (composite key)
+      // Tracking uses the ORIGINAL line so remaining-quantity math stays correct.
       if (existingTransfer) {
         existingTransfer.transferredAmount =
           alreadyTransferred + selectedProduct.amount;
@@ -3652,11 +3650,12 @@ exports.moveProductsToItemStock = async (req, res) => {
           amount: selectedProduct.amount,
           date: new Date(),
           transferredBy: req._id,
+          note: isRedirected ? `Nhập vào trạm ${destinationCostCenter}` : "",
         });
       } else {
         purchasingDoc.transferredQuantities.push({
           productName: product.productName,
-          costCenter: product.costCenter, // store it so future matches are unambiguous
+          costCenter: product.costCenter,
           transferredAmount: selectedProduct.amount,
           totalAmount: product.amount,
           firstTransferDate: new Date(),
@@ -3667,6 +3666,9 @@ exports.moveProductsToItemStock = async (req, res) => {
               amount: selectedProduct.amount,
               date: new Date(),
               transferredBy: req._id,
+              note: isRedirected
+                ? `Nhập vào trạm ${destinationCostCenter}`
+                : "",
             },
           ],
         });
@@ -3675,6 +3677,7 @@ exports.moveProductsToItemStock = async (req, res) => {
       results.push({
         productName: product.productName,
         costCenter: product.costCenter,
+        destinationCostCenter: destinationCostCenter,
         amountMoved: selectedProduct.amount,
         remainingToMove:
           product.amount - (alreadyTransferred + selectedProduct.amount),
@@ -3685,7 +3688,6 @@ exports.moveProductsToItemStock = async (req, res) => {
       });
     }
 
-    // Save the updated purchasing document with transfer tracking
     await purchasingDoc.save();
 
     const allCompleted = purchasingDoc.products.every((product) => {
@@ -3698,7 +3700,6 @@ exports.moveProductsToItemStock = async (req, res) => {
       return transferred === product.amount;
     });
 
-    // Optional: Update document status if all products are fully transferred
     if (allCompleted && purchasingDoc.status === "Approved") {
       purchasingDoc.fullyTransferred = true;
       await purchasingDoc.save();
