@@ -159,7 +159,7 @@ const isDeadlineInRange = (deadlineStr, filterType, customRange = null) => {
 const isSubmissionDateInRange = (
   submissionDateStr,
   filterType,
-  customRange = null
+  customRange = null,
 ) => {
   if (!submissionDateStr || !filterType) return true;
 
@@ -314,13 +314,13 @@ const setupCustomFilterHandlers = () => {
   // Total payment custom filter
   const totalPaymentFilter = document.getElementById("totalPaymentFilter");
   const totalPaymentCustomContainer = document.getElementById(
-    "totalPaymentCustomContainer"
+    "totalPaymentCustomContainer",
   );
   const applyTotalPaymentCustom = document.getElementById(
-    "applyTotalPaymentCustom"
+    "applyTotalPaymentCustom",
   );
   const clearTotalPaymentCustom = document.getElementById(
-    "clearTotalPaymentCustom"
+    "clearTotalPaymentCustom",
   );
   const totalPaymentMin = document.getElementById("totalPaymentMin");
   const totalPaymentMax = document.getElementById("totalPaymentMax");
@@ -351,7 +351,7 @@ const setupCustomFilterHandlers = () => {
     if (min === null && max === null) {
       showMessage(
         "Vui lòng nhập ít nhất một giá trị cho khoảng tùy chỉnh",
-        true
+        true,
       );
       return;
     }
@@ -388,7 +388,7 @@ const setupCustomFilterHandlers = () => {
 
     // Change the selected option text
     const customOption = totalPaymentFilter.querySelector(
-      'option[value="custom"]'
+      'option[value="custom"]',
     );
     customOption.textContent = rangeText;
     customOption.title = rangeText;
@@ -406,7 +406,7 @@ const setupCustomFilterHandlers = () => {
 
     // Reset custom option text
     const customOption = totalPaymentFilter.querySelector(
-      'option[value="custom"]'
+      'option[value="custom"]',
     );
     customOption.textContent = "Nhập khoảng tùy chỉnh...";
     customOption.title = "";
@@ -418,7 +418,7 @@ const setupCustomFilterHandlers = () => {
   // Deadline custom filter
   const deadlineFilter = document.getElementById("deadlineFilter");
   const deadlineCustomContainer = document.getElementById(
-    "deadlineCustomContainer"
+    "deadlineCustomContainer",
   );
   const applyDeadlineCustom = document.getElementById("applyDeadlineCustom");
   const clearDeadlineCustom = document.getElementById("clearDeadlineCustom");
@@ -529,13 +529,13 @@ const setupCustomFilterHandlers = () => {
   // Submission date custom filter
   const submissionDateFilter = document.getElementById("submissionDateFilter");
   const submissionDateCustomContainer = document.getElementById(
-    "submissionDateCustomContainer"
+    "submissionDateCustomContainer",
   );
   const applySubmissionDateCustom = document.getElementById(
-    "applySubmissionDateCustom"
+    "applySubmissionDateCustom",
   );
   const clearSubmissionDateCustom = document.getElementById(
-    "clearSubmissionDateCustom"
+    "clearSubmissionDateCustom",
   );
   const submissionDateFrom = document.getElementById("submissionDateFrom");
   const submissionDateTo = document.getElementById("submissionDateTo");
@@ -616,7 +616,7 @@ const setupCustomFilterHandlers = () => {
 
     // Change the selected option text
     const customOption = submissionDateFilter.querySelector(
-      'option[value="custom"]'
+      'option[value="custom"]',
     );
     customOption.textContent = dateText;
     customOption.title = dateText;
@@ -636,7 +636,7 @@ const setupCustomFilterHandlers = () => {
 
     // Reset custom option text
     const customOption = submissionDateFilter.querySelector(
-      'option[value="custom"]'
+      'option[value="custom"]',
     );
     customOption.textContent = "Chọn khoảng ngày tùy chỉnh...";
     customOption.title = "";
@@ -663,10 +663,10 @@ const setupCustomFilterHandlers = () => {
 // Multi-select functionality for cost centers
 const initializeMultiSelect = () => {
   const costCenterButton = document.getElementById(
-    "costCenterMultiSelectButton"
+    "costCenterMultiSelectButton",
   );
   const costCenterDropdown = document.getElementById(
-    "costCenterMultiSelectDropdown"
+    "costCenterMultiSelectDropdown",
   );
 
   const groupButton = document.getElementById("groupMultiSelectButton");
@@ -738,7 +738,7 @@ const populateCostCenterMultiSelect = async () => {
     const selectAllCheckbox = document.getElementById("selectAllCostCenters");
     selectAllCheckbox.addEventListener("change", (e) => {
       const checkboxes = dropdown.querySelectorAll(
-        'input[type="checkbox"]:not(#selectAllCostCenters)'
+        'input[type="checkbox"]:not(#selectAllCostCenters)',
       );
       checkboxes.forEach((checkbox) => {
         checkbox.checked = e.target.checked;
@@ -747,7 +747,7 @@ const populateCostCenterMultiSelect = async () => {
     });
 
     const checkboxes = dropdown.querySelectorAll(
-      'input[type="checkbox"]:not(#selectAllCostCenters)'
+      'input[type="checkbox"]:not(#selectAllCostCenters)',
     );
     checkboxes.forEach((checkbox) => {
       checkbox.addEventListener("change", () => {
@@ -777,7 +777,7 @@ const populateCostCenterMultiSelect = async () => {
     });
 
     const buttonContainer = document.getElementById(
-      "costCenterMultiSelectButton"
+      "costCenterMultiSelectButton",
     );
     buttonContainer.appendChild(clearButton);
   } catch (error) {
@@ -819,7 +819,7 @@ const populateGroupMultiSelect = async () => {
     const selectAllCheckbox = document.getElementById("selectAllGroups");
     selectAllCheckbox.addEventListener("change", (e) => {
       const checkboxes = dropdown.querySelectorAll(
-        'input[type="checkbox"]:not(#selectAllGroups)'
+        'input[type="checkbox"]:not(#selectAllGroups)',
       );
       checkboxes.forEach((checkbox) => {
         checkbox.checked = e.target.checked;
@@ -828,7 +828,7 @@ const populateGroupMultiSelect = async () => {
     });
 
     const checkboxes = dropdown.querySelectorAll(
-      'input[type="checkbox"]:not(#selectAllGroups)'
+      'input[type="checkbox"]:not(#selectAllGroups)',
     );
     checkboxes.forEach((checkbox) => {
       checkbox.addEventListener("change", () => {
@@ -867,7 +867,7 @@ const populateGroupMultiSelect = async () => {
 // Update cost center filter based on selected options
 const updateCostCenterFilter = () => {
   const checkboxes = document.querySelectorAll(
-    '#costCenterMultiSelectDropdown input[type="checkbox"]:not(#selectAllCostCenters)'
+    '#costCenterMultiSelectDropdown input[type="checkbox"]:not(#selectAllCostCenters)',
   );
   const selectedCostCenters = Array.from(checkboxes)
     .filter((cb) => cb.checked)
@@ -878,10 +878,10 @@ const updateCostCenterFilter = () => {
   // Update button text
   const textElement = document.getElementById("costCenterMultiSelectText");
   const buttonContainer = document.getElementById(
-    "costCenterMultiSelectButton"
+    "costCenterMultiSelectButton",
   );
   const countElement = buttonContainer.querySelector(
-    ".multi-select-selected-count"
+    ".multi-select-selected-count",
   );
 
   if (selectedCostCenters.length === 0) {
@@ -909,7 +909,7 @@ const updateCostCenterFilter = () => {
 // Update group filter based on selected options
 const updateGroupFilter = () => {
   const checkboxes = document.querySelectorAll(
-    '#groupMultiSelectDropdown input[type="checkbox"]:not(#selectAllGroups)'
+    '#groupMultiSelectDropdown input[type="checkbox"]:not(#selectAllGroups)',
   );
   const selectedGroups = Array.from(checkboxes)
     .filter((cb) => cb.checked)
@@ -921,7 +921,7 @@ const updateGroupFilter = () => {
   const textElement = document.getElementById("groupMultiSelectText");
   const buttonContainer = document.getElementById("groupMultiSelectButton");
   const countElement = buttonContainer.querySelector(
-    ".multi-select-selected-count"
+    ".multi-select-selected-count",
   );
 
   if (selectedGroups.length === 0) {
@@ -1007,13 +1007,13 @@ const renderPaymentDetails = (doc) => {
 
   if (doc.totalPayment) {
     html += `<span>Tổng thanh toán: <span class="payment-amount">${formatCurrency(
-      doc.totalPayment
+      doc.totalPayment,
     )}</span></span>`;
   }
 
   if (doc.advancePayment) {
     html += `<span>Tạm ứng: <span class="payment-amount">${formatCurrency(
-      doc.advancePayment
+      doc.advancePayment,
     )}</span></span>`;
   }
 
@@ -1041,7 +1041,7 @@ const renderApprovalStatus = (approvers, approvedBy) => {
   return approvers
     .map((approver) => {
       const hasApproved = approvedBy.find(
-        (a) => a.username === approver.username
+        (a) => a.username === approver.username,
       );
       return `
         <div class="approver-item">
@@ -1067,7 +1067,7 @@ const renderStageApprovalStatus = (approvers, approvedBy) => {
   return approvers
     .map((approver) => {
       const hasApproved = approvedBy.find(
-        (a) => a.username === approver.username
+        (a) => a.username === approver.username,
       );
       return `
       <div class="approver-item">
@@ -1107,7 +1107,7 @@ const fetchPaymentDocuments = async () => {
     state.paymentDocuments = data.paymentDocuments;
 
     const filteredDocuments = filterDocumentsForCurrentUser(
-      state.paymentDocuments
+      state.paymentDocuments,
     );
 
     // Calculate total pages
@@ -1152,21 +1152,21 @@ const filterDocumentsForCurrentUser = (documents) => {
   // Apply tag filter if there's a search term
   if (state.currentTagFilter) {
     filteredDocs = filteredDocs.filter((doc) =>
-      doc.tag?.toLowerCase().includes(state.currentTagFilter)
+      doc.tag?.toLowerCase().includes(state.currentTagFilter),
     );
   }
 
   // Apply cost center filter if selected (now handles multiple)
   if (state.currentCostCenterFilter.length > 0) {
     filteredDocs = filteredDocs.filter((doc) =>
-      state.currentCostCenterFilter.includes(doc.costCenter)
+      state.currentCostCenterFilter.includes(doc.costCenter),
     );
   }
 
   // Apply group filter if selected (now handles multiple)
   if (state.currentGroupFilter.length > 0) {
     filteredDocs = filteredDocs.filter((doc) =>
-      state.currentGroupFilter.includes(doc.groupName)
+      state.currentGroupFilter.includes(doc.groupName),
     );
   }
 
@@ -1180,7 +1180,7 @@ const filterDocumentsForCurrentUser = (documents) => {
       // Check stage-level group declarations
       const stageLevelMatch = doc.stages?.some(
         (stage) =>
-          stage.groupDeclarationName === state.currentGroupDeclarationFilter
+          stage.groupDeclarationName === state.currentGroupDeclarationFilter,
       );
 
       // Return true if either document-level or any stage-level matches
@@ -1191,7 +1191,7 @@ const filterDocumentsForCurrentUser = (documents) => {
   // Apply payment method filter if selected
   if (state.currentPaymentMethodFilter) {
     filteredDocs = filteredDocs.filter(
-      (doc) => doc.paymentMethod === state.currentPaymentMethodFilter
+      (doc) => doc.paymentMethod === state.currentPaymentMethodFilter,
     );
   }
 
@@ -1201,8 +1201,8 @@ const filterDocumentsForCurrentUser = (documents) => {
       isInTotalPaymentRange(
         doc.totalPayment,
         state.currentTotalPaymentFilter,
-        state.customTotalPaymentRange
-      )
+        state.customTotalPaymentRange,
+      ),
     );
   }
 
@@ -1212,8 +1212,8 @@ const filterDocumentsForCurrentUser = (documents) => {
       isDeadlineInRange(
         doc.paymentDeadline,
         state.currentDeadlineFilter,
-        state.customDeadlineRange
-      )
+        state.customDeadlineRange,
+      ),
     );
   }
 
@@ -1223,8 +1223,8 @@ const filterDocumentsForCurrentUser = (documents) => {
       isSubmissionDateInRange(
         doc.submissionDate,
         state.currentSubmissionDateFilter,
-        state.customSubmissionDateRange
-      )
+        state.customSubmissionDateRange,
+      ),
     );
   }
 
@@ -1232,10 +1232,10 @@ const filterDocumentsForCurrentUser = (documents) => {
   if (state.showOnlyPendingApprovals && state.currentUser) {
     filteredDocs = filteredDocs.filter((doc) => {
       const isRequiredApprover = doc.approvers.some(
-        (approver) => approver.username === state.currentUser.username
+        (approver) => approver.username === state.currentUser.username,
       );
       const hasNotApprovedYet = !doc.approvedBy.some(
-        (approved) => approved.username === state.currentUser.username
+        (approved) => approved.username === state.currentUser.username,
       );
       return isRequiredApprover && hasNotApprovedYet;
     });
@@ -1278,7 +1278,7 @@ const fetchGroupDeclaration = async () => {
 
 const filterByGroupDeclaration = () => {
   state.currentGroupDeclarationFilter = document.getElementById(
-    "groupDeclarationFilter"
+    "groupDeclarationFilter",
   ).value;
   state.currentPage = 1;
   fetchPaymentDocuments();
@@ -1286,7 +1286,7 @@ const filterByGroupDeclaration = () => {
 
 const filterByPaymentMethod = () => {
   state.currentPaymentMethodFilter = document.getElementById(
-    "paymentMethodFilter"
+    "paymentMethodFilter",
   ).value;
   state.currentPage = 1;
   fetchPaymentDocuments();
@@ -1301,7 +1301,7 @@ const getDocumentPriority = (doc) => {
   // For documents with stages, find the highest priority among unapproved stages
   if (doc.stages && doc.stages.length > 0) {
     const unapprovedStages = doc.stages.filter(
-      (stage) => stage.status !== "Approved" && stage.priority
+      (stage) => stage.status !== "Approved" && stage.priority,
     );
 
     if (unapprovedStages.length > 0) {
@@ -1341,7 +1341,7 @@ const shouldShowPriorityBadge = (doc) => {
   // For documents with stages, only show badge if all stages are approved
   if (doc.stages && doc.stages.length > 0) {
     const allStagesApproved = doc.stages.every(
-      (stage) => stage.status === "Approved"
+      (stage) => stage.status === "Approved",
     );
     return allStagesApproved;
   }
@@ -1355,7 +1355,7 @@ const getDocumentPriorityForBadge = (doc) => {
   // For documents with stages where all are approved, use document priority
   if (doc.stages && doc.stages.length > 0) {
     const allStagesApproved = doc.stages.every(
-      (stage) => stage.status === "Approved"
+      (stage) => stage.status === "Approved",
     );
     if (allStagesApproved) {
       return doc.priority || "Thấp";
@@ -1401,7 +1401,7 @@ const suspendPaymentStage = async (docId, stageIndex) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ suspendReason: suspendReason.trim() }),
-      }
+      },
     );
 
     const message = await response.text();
@@ -1454,7 +1454,7 @@ const renderDocumentsTable = (documents) => {
     // Check if user can approve the document
     const canApproveDocument =
       doc.approvers.some(
-        (approver) => approver.username === state.currentUser?.username
+        (approver) => approver.username === state.currentUser?.username,
       ) &&
       (!doc.stages ||
         doc.stages.length === 0 ||
@@ -1466,10 +1466,10 @@ const renderDocumentsTable = (documents) => {
         ?.map((stage, index) => {
           const canApprove =
             stage.approvers.some(
-              (approver) => approver.username === state.currentUser?.username
+              (approver) => approver.username === state.currentUser?.username,
             ) &&
             !stage.approvedBy.some(
-              (approver) => approver.username === state.currentUser?.username
+              (approver) => approver.username === state.currentUser?.username,
             ) &&
             stage.status === "Pending";
           return { index, canApprove };
@@ -1542,8 +1542,8 @@ const renderDocumentsTable = (documents) => {
                     stage.status === "Approved"
                       ? "approved"
                       : stage.status === "Suspended"
-                      ? "suspended"
-                      : "pending"
+                        ? "suspended"
+                        : "pending"
                   }">
                     <span>GĐ ${idx + 1}: ${stage.name}</span>
                     <span>${formatCurrency(stage.amount)}</span>
@@ -1551,8 +1551,8 @@ const renderDocumentsTable = (documents) => {
                       stage.status === "Approved"
                         ? "Đã duyệt"
                         : stage.status === "Suspended"
-                        ? "Từ chối"
-                        : "Chờ duyệt"
+                          ? "Từ chối"
+                          : "Chờ duyệt"
                     }</span>
                     ${
                       stage.priority && stage.status !== "Approved"
@@ -1591,11 +1591,11 @@ const renderDocumentsTable = (documents) => {
                       ${
                         stage.approvers.some(
                           (approver) =>
-                            approver.username === state.currentUser?.username
+                            approver.username === state.currentUser?.username,
                         ) &&
                         !stage.approvedBy.some(
                           (approved) =>
-                            approved.username === state.currentUser?.username
+                            approved.username === state.currentUser?.username,
                         ) &&
                         stage.status === "Pending"
                           ? `<button class="btn btn-primary btn-sm stage-approve-btn" 
@@ -1623,7 +1623,7 @@ const renderDocumentsTable = (documents) => {
       <td>${renderStatus(doc.status)}</td>
       <td class="approval-status">${renderApprovalStatus(
         doc.approvers,
-        doc.approvedBy
+        doc.approvedBy,
       )}</td>
       <td>
         <div class="action-buttons">
@@ -1651,12 +1651,12 @@ const renderDocumentsTable = (documents) => {
             </button>
           `
               : doc.approvedBy.length === 0
-              ? `
+                ? `
             <button class="btn btn-primary btn-sm" onclick="editDocument('${doc._id}')">
               <i class="fas fa-edit"></i> Sửa
             </button>
           `
-              : ""
+                : ""
           }
           ${
             doc.status === "Pending" && canApproveDocument
@@ -1688,12 +1688,12 @@ const renderDocumentsTable = (documents) => {
                 </button>
               `
               : doc.status === "Suspended"
-              ? `
+                ? `
                 <button class="btn btn-primary btn-sm" onclick="openDocument('${doc._id}')">
                   <i class="fas fa-lock-open"></i> Mở
                 </button>
               `
-              : `
+                : `
                 <button class="btn btn-danger btn-sm" onclick="suspendDocument('${doc._id}')">
                   <i class="fas fa-ban"></i> Từ chối
                 </button>
@@ -1721,13 +1721,13 @@ const openPriorityUpdateModal = (docId) => {
 
   // Show current approval status
   const approvalStatusContainer = document.getElementById(
-    "currentApprovalStatus"
+    "currentApprovalStatus",
   );
   approvalStatusContainer.innerHTML = `
     <div style="font-size: 0.9rem;">
       <div>Đã phê duyệt: ${doc.approvedBy?.length || 0}/${
-    doc.approvers.length
-  }</div>
+        doc.approvers.length
+      }</div>
       <div>Người chưa phê duyệt: ${
         doc.approvers.length - (doc.approvedBy?.length || 0)
       }</div>
@@ -1862,7 +1862,7 @@ const updateSummary = (filteredDocuments) => {
       unapprovedSum: 0,
       approvedDocument: 0,
       unapprovedDocument: 0,
-    }
+    },
   );
 
   // Then calculate the new values (due in 30 days and expired) only for pending documents
@@ -1905,18 +1905,18 @@ const updateSummary = (filteredDocuments) => {
     {
       dueIn30DaysSum: 0,
       expiredSum: 0,
-    }
+    },
   );
 
   // Update the summary display
   document.getElementById("paidSum").textContent = formatCurrency(
-    originalSummary.paidSum
+    originalSummary.paidSum,
   );
   document.getElementById("approvedSum").textContent = formatCurrency(
-    originalSummary.approvedSum
+    originalSummary.approvedSum,
   );
   document.getElementById("unapprovedSum").textContent = formatCurrency(
-    originalSummary.unapprovedSum
+    originalSummary.unapprovedSum,
   );
   document.getElementById("approvedDocument").textContent =
     originalSummary.approvedDocument.toLocaleString();
@@ -1925,10 +1925,10 @@ const updateSummary = (filteredDocuments) => {
 
   // Update the new fields
   document.getElementById("dueIn30DaysSum").textContent = formatCurrency(
-    newCalculations.dueIn30DaysSum
+    newCalculations.dueIn30DaysSum,
   );
   document.getElementById("expiredSum").textContent = formatCurrency(
-    newCalculations.expiredSum
+    newCalculations.expiredSum,
   );
 };
 
@@ -1951,8 +1951,8 @@ const renderPagination = () => {
           <i class="fas fa-angle-double-left"></i> Trang đầu
         </button>
         <button onclick="changePage(${state.currentPage - 1})" ${
-      state.currentPage === 1 ? "disabled" : ""
-    }>
+          state.currentPage === 1 ? "disabled" : ""
+        }>
           <i class="fas fa-angle-left"></i> Trang trước
         </button>
         <span class="page-info">
@@ -1965,13 +1965,13 @@ const renderPagination = () => {
           <button onclick="goToPage()">Đi</button>
         </div>
         <button onclick="changePage(${state.currentPage + 1})" ${
-      state.currentPage === state.totalPages ? "disabled" : ""
-    }>
+          state.currentPage === state.totalPages ? "disabled" : ""
+        }>
           Trang tiếp <i class="fas fa-angle-right"></i>
         </button>
         <button onclick="changePage(${state.totalPages})" ${
-      state.currentPage === state.totalPages ? "disabled" : ""
-    }>
+          state.currentPage === state.totalPages ? "disabled" : ""
+        }>
           Trang cuối <i class="fas fa-angle-double-right"></i>
         </button>
       </div>
@@ -2045,7 +2045,7 @@ const approvePaymentStage = async (docId, stageIndex) => {
       `/approvePaymentStage/${docId}/${stageIndex}`,
       {
         method: "POST",
-      }
+      },
     );
 
     const result = await response.json();
@@ -2056,7 +2056,7 @@ const approvePaymentStage = async (docId, stageIndex) => {
       // If we can now approve the document, show a special message
       if (result.canApproveDocument) {
         showMessage(
-          "Tất cả giai đoạn đã được phê duyệt. Bạn có thể phê duyệt toàn bộ phiếu thanh toán bây giờ."
+          "Tất cả giai đoạn đã được phê duyệt. Bạn có thể phê duyệt toàn bộ phiếu thanh toán bây giờ.",
         );
       }
 
@@ -2318,10 +2318,10 @@ const renderPaymentStages = () => {
     stageElement.innerHTML = `
       <div class="stage-header">
         <h4>Giai đoạn ${index + 1} ${
-      isPartiallyApproved
-        ? `(${stage.approvedBy.length}/${stage.approvers.length} đã duyệt)`
-        : ""
-    } ${isFullyApproved ? "(Đã phê duyệt hoàn toàn)" : ""}
+          isPartiallyApproved
+            ? `(${stage.approvedBy.length}/${stage.approvers.length} đã duyệt)`
+            : ""
+        } ${isFullyApproved ? "(Đã phê duyệt hoàn toàn)" : ""}
       ${isSuspended ? "(Đã từ chối)" : ""}</h4>
         ${
           !isLocked && !isSuspended // Allow deletion only for non-suspended, non-approved stages
@@ -2329,8 +2329,8 @@ const renderPaymentStages = () => {
                 <i class="fas fa-trash"></i> Xóa
               </button>`
             : isSuspended
-            ? '<span class="lock-icon"><i class="fas fa-ban"></i> Đã từ chối (Có thể chỉnh sửa)</span>'
-            : '<span class="lock-icon"><i class="fas fa-lock"></i> Đã khóa</span>'
+              ? '<span class="lock-icon"><i class="fas fa-ban"></i> Đã từ chối (Có thể chỉnh sửa)</span>'
+              : '<span class="lock-icon"><i class="fas fa-lock"></i> Đã khóa</span>'
         }
       </div>
       
@@ -2414,11 +2414,11 @@ const renderPaymentStages = () => {
                 stage.fileMetadata
                   ? `<div class="file-attachment">
                       <a href="${stage.fileMetadata.link}" target="_blank">${
-                      stage.fileMetadata.name
-                    }</a>
+                        stage.fileMetadata.name
+                      }</a>
                       <button type="button" class="btn btn-danger btn-sm" onclick="removeStageFile(${index})" ${
-                      isLocked ? "disabled" : ""
-                    }>
+                        isLocked ? "disabled" : ""
+                      }>
                         <i class="fas fa-trash"></i> Xóa
                       </button>
                     </div>`
@@ -2447,7 +2447,7 @@ const renderPaymentStages = () => {
             stage.approvers || [],
             stage.approvedBy || [],
             index,
-            isLocked
+            isLocked,
           )}
         </div>
         ${
@@ -2527,7 +2527,7 @@ const handleStageFileUpload = async (stageIndex, file) => {
       {
         method: "POST",
         body: formData,
-      }
+      },
     );
 
     const result = await response.json();
@@ -2559,7 +2559,7 @@ const removeStageFile = async (stageIndex) => {
       `/removeStageFile/${state.currentEditDoc._id}/${stageIndex}`,
       {
         method: "POST",
-      }
+      },
     );
 
     const result = await response.json();
@@ -2583,7 +2583,7 @@ const renderStageApprovers = (approvers, approvedBy, stageIndex, isLocked) => {
   return approvers
     .map((approver) => {
       const hasApproved = approvedBy.some(
-        (a) => a.username === approver.username
+        (a) => a.username === approver.username,
       );
       return `
       <div class="approver-item ${hasApproved ? "approved" : ""}">
@@ -2617,7 +2617,7 @@ const populateStageApproversDropdown = async (stageIndex) => {
   const currentApprovers =
     state.currentEditDoc.stages[stageIndex].approvers || [];
   const availableApprovers = allApprovers.filter(
-    (approver) => !currentApprovers.some((a) => a.approver === approver._id)
+    (approver) => !currentApprovers.some((a) => a.approver === approver._id),
   );
 
   const dropdown = document.getElementById(`stageApproverSelect${stageIndex}`);
@@ -2627,7 +2627,7 @@ const populateStageApproversDropdown = async (stageIndex) => {
       .map(
         (approver) => `
       <option value="${approver._id}">${approver.username}</option>
-    `
+    `,
       )
       .join("")}
   `;
@@ -2693,10 +2693,10 @@ const updateStageField = (index, field, value) => {
 
 const addStageApprover = async (stageIndex) => {
   const approverId = document.getElementById(
-    `stageApproverSelect${stageIndex}`
+    `stageApproverSelect${stageIndex}`,
   ).value;
   const subRole = document.getElementById(
-    `stageApproverSubRole${stageIndex}`
+    `stageApproverSubRole${stageIndex}`,
   ).value;
 
   if (!approverId || !subRole.trim()) {
@@ -2744,23 +2744,23 @@ const removeStageApprover = (stageIndex, approverId) => {
     if (stage.approvers.length === 1) {
       showMessage(
         "Không thể xóa người phê duyệt cuối cùng. Mỗi giai đoạn phải có ít nhất một người phê duyệt.",
-        true
+        true,
       );
       return;
     }
 
     // Check if the approver to be removed has already approved
     const approverToRemove = stage.approvers.find(
-      (a) => a.approver === approverId
+      (a) => a.approver === approverId,
     );
     const hasAlreadyApproved = stage.approvedBy.some(
-      (a) => a.username === approverToRemove?.username
+      (a) => a.username === approverToRemove?.username,
     );
 
     if (hasAlreadyApproved) {
       showMessage(
         "Không thể xóa người phê duyệt đã thực hiện phê duyệt.",
-        true
+        true,
       );
       return;
     }
@@ -2771,7 +2771,7 @@ const removeStageApprover = (stageIndex, approverId) => {
 
     state.currentEditDoc.stages[stageIndex].approvers =
       state.currentEditDoc.stages[stageIndex].approvers.filter(
-        (a) => a.approver !== approverId
+        (a) => a.approver !== approverId,
       );
     renderPaymentStages();
     showMessage("Đã xóa người phê duyệt khỏi giai đoạn.");
@@ -2784,7 +2784,7 @@ const updateStageApproverSubRole = (stageIndex, approverId, newSubRole) => {
     state.currentEditDoc.stages.length > stageIndex
   ) {
     const approver = state.currentEditDoc.stages[stageIndex].approvers.find(
-      (a) => a.approver === approverId
+      (a) => a.approver === approverId,
     );
     if (approver) {
       approver.subRole = newSubRole;
@@ -2851,7 +2851,7 @@ const renderCurrentPurchasingDocuments = () => {
             doc.costCenter || "Không có"
           }</div>
           <div class="purchasing-doc-detail"><strong>Tổng chi phí:</strong> ${formatCurrency(
-            doc.grandTotalCost
+            doc.grandTotalCost,
           )}</div>
           ${
             doc.products && doc.products.length > 0
@@ -2864,10 +2864,10 @@ const renderCurrentPurchasingDocuments = () => {
                 <div class="purchasing-doc-product">
                   <span>${product.productName}</span>
                   <span>${product.amount} x ${formatCurrency(
-                    product.costPerUnit
+                    product.costPerUnit,
                   )} = ${formatCurrency(product.totalCost)}</span>
                 </div>
-              `
+              `,
                 )
                 .join("")}
             </div>
@@ -2876,7 +2876,7 @@ const renderCurrentPurchasingDocuments = () => {
           }
         </div>
       </div>
-    `
+    `,
     )
     .join("");
 };
@@ -2895,7 +2895,7 @@ const addPurchasingDocument = () => {
   // Check if document is already added
   if (state.currentEditDoc.appendedPurchasingDocuments) {
     const alreadyAdded = state.currentEditDoc.appendedPurchasingDocuments.some(
-      (doc) => doc._id === selectedDoc._id
+      (doc) => doc._id === selectedDoc._id,
     );
 
     if (alreadyAdded) {
@@ -3043,14 +3043,14 @@ const renderCurrentApprovers = () => {
             <i class="fas fa-trash"></i> Xóa
           </button>
         </div>
-      `
+      `,
     )
     .join("");
 };
 
 const updateApproverSubRole = (approverId, newSubRole) => {
   const approver = state.currentApprovers.find(
-    (a) => a.approver === approverId
+    (a) => a.approver === approverId,
   );
   if (approver) {
     approver.subRole = newSubRole;
@@ -3059,7 +3059,7 @@ const updateApproverSubRole = (approverId, newSubRole) => {
 
 const removeApprover = (approverId) => {
   state.currentApprovers = state.currentApprovers.filter(
-    (a) => a._id !== approverId // Compare with _id
+    (a) => a._id !== approverId, // Compare with _id
   );
 
   renderCurrentApprovers();
@@ -3070,7 +3070,7 @@ const populateNewApproversDropdown = async () => {
   const allApprovers = await fetchApprovers();
   const availableApprovers = allApprovers.filter(
     (approver) =>
-      !state.currentApprovers.some((a) => a.approver === approver._id)
+      !state.currentApprovers.some((a) => a.approver === approver._id),
   );
 
   const dropdown = document.getElementById("newApproversDropdown");
@@ -3080,7 +3080,7 @@ const populateNewApproversDropdown = async () => {
       .map(
         (approver) => `
       <option value="${approver._id}">${approver.username}</option>
-    `
+    `,
       )
       .join("")}
   `;
@@ -3180,7 +3180,7 @@ const renderCurrentFiles = (files) => {
         </button>
       </div>
     </div>
-  `
+  `,
     )
     .join("");
 };
@@ -3197,7 +3197,7 @@ const removeExistingFile = async (index) => {
 
   if (
     !confirm(
-      "Bạn có chắc chắn muốn xóa tệp tin này? Hành động này không thể hoàn tác."
+      "Bạn có chắc chắn muốn xóa tệp tin này? Hành động này không thể hoàn tác.",
     )
   ) {
     return;
@@ -3211,7 +3211,7 @@ const removeExistingFile = async (index) => {
       `/deletePaymentDocumentFile/${state.currentEditDoc._id}/${fileToDelete.driveFileId}`,
       {
         method: "DELETE",
-      }
+      },
     );
 
     const result = await response.json();
@@ -3254,21 +3254,21 @@ const handleEditSubmit = async (event) => {
   formData.append("content", document.getElementById("editContent").value);
   formData.append(
     "costCenter",
-    document.getElementById("editCostCenter").value
+    document.getElementById("editCostCenter").value,
   );
   formData.append("groupName", document.getElementById("editGroupName").value);
   formData.append("priority", document.getElementById("editPriority").value);
   formData.append(
     "paymentMethod",
-    document.getElementById("editPaymentMethod").value
+    document.getElementById("editPaymentMethod").value,
   );
   formData.append(
     "totalPayment",
-    document.getElementById("editTotalPayment").value
+    document.getElementById("editTotalPayment").value,
   );
   formData.append(
     "paymentDeadline",
-    document.getElementById("editDeadline").value
+    document.getElementById("editDeadline").value,
   );
   formData.append("notes", document.getElementById("editNotes").value);
 
@@ -3284,7 +3284,7 @@ const handleEditSubmit = async (event) => {
   if (state.currentEditDoc.appendedPurchasingDocuments) {
     formData.append(
       "appendedPurchasingDocuments",
-      JSON.stringify(state.currentEditDoc.appendedPurchasingDocuments)
+      JSON.stringify(state.currentEditDoc.appendedPurchasingDocuments),
     );
   }
 
@@ -3292,7 +3292,7 @@ const handleEditSubmit = async (event) => {
   if (state.currentEditDoc.fileMetadata) {
     formData.append(
       "currentFileMetadata",
-      JSON.stringify(state.currentEditDoc.fileMetadata)
+      JSON.stringify(state.currentEditDoc.fileMetadata),
     );
   }
 
@@ -3350,7 +3350,7 @@ const showFullView = async (docId) => {
                       ${file.size ? ` (${file.size})` : ""}
                     </a>
                   </div>
-                `
+                `,
                   )
                   .join("")}
               </div>`
@@ -3428,13 +3428,13 @@ const showFullView = async (docId) => {
           <div class="detail-item">
             <span class="detail-label">Tổng thanh toán:</span>
             <span class="detail-value">${formatCurrency(
-              doc.totalPayment
+              doc.totalPayment,
             )}</span>
           </div>
           <div class="detail-item">
             <span class="detail-label">Tạm ứng:</span>
             <span class="detail-value">${formatCurrency(
-              doc.advancePayment
+              doc.advancePayment,
             )}</span>
           </div>
           <div class="detail-item">
@@ -3495,22 +3495,22 @@ const showFullView = async (docId) => {
                   stage.status === "Approved"
                     ? "Đã phê duyệt"
                     : stage.status === "Suspended"
-                    ? "Từ chối"
-                    : "Chưa phê duyệt"
+                      ? "Từ chối"
+                      : "Chưa phê duyệt"
                 }</span>
                 <span class="priority-badge" style="margin-left: 10px; background-color: ${
                   stage.priority === "Cao"
                     ? "#f44336"
                     : stage.priority === "Trung bình"
-                    ? "#ff9800"
-                    : "#4caf50"
+                      ? "#ff9800"
+                      : "#4caf50"
                 }; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8em;">
                   ${stage.priority}
                 </span>                
               </div>
               <div class="stage-details">
                 <div><strong>Số tiền:</strong> ${formatCurrency(
-                  stage.amount
+                  stage.amount,
                 )}</div>
                 <div><strong>Hạn thanh toán:</strong> ${
                   stage.deadline || "Không có"
@@ -3542,7 +3542,7 @@ const showFullView = async (docId) => {
                 ${renderStageApprovalStatus(stage.approvers, stage.approvedBy)}
               </div>
             </div>
-          `
+          `,
             )
             .join("")}
         </div>
@@ -3572,13 +3572,13 @@ const renderPurchasingDocuments = (purchDocs) => {
                 <span class="payment-product-name">${product.productName}</span>
                 <span class="payment-product-amount">${product.amount} x</span>
                 <span class="payment-product-price">${formatCurrency(
-                  product.costPerUnit
+                  product.costPerUnit,
                 )}</span>
                 <span class="payment-product-total">${formatCurrency(
-                  product.totalCost
+                  product.totalCost,
                 )}</span>
               </div>
-            `
+            `,
                 )
                 .join("")
             : "";
@@ -3600,7 +3600,7 @@ const renderPurchasingDocuments = (purchDocs) => {
                           ${file.size ? ` (${file.size})` : ""}
                         </a>
                       </div>
-                    `
+                    `,
                       )
                       .join("")}
                   </div>`
@@ -3630,7 +3630,7 @@ const renderPurchasingDocuments = (purchDocs) => {
                                     ${file.size ? ` (${file.size})` : ""}
                                   </a>
                                 </div>
-                              `
+                              `,
                                 )
                                 .join("")}
                             </div>`
@@ -3658,7 +3658,7 @@ const renderPurchasingDocuments = (purchDocs) => {
               <div><strong>Trạm:</strong> ${purchDoc.costCenter || ""}</div>
               <div><strong>Nhóm:</strong> ${purchDoc.groupName || ""}</div>
               <div><strong>Tổng chi phí:</strong> ${formatCurrency(
-                purchDoc.grandTotalCost
+                purchDoc.grandTotalCost,
               )}</div>
               <div style="margin-top: 10px;"><strong>Sản phẩm:</strong></div>
               <div class="payment-products">${products}</div>
@@ -3699,7 +3699,7 @@ const exportSelectedToExcel = () => {
     // Add some padding and apply min/max constraints
     const calculatedWidth = Math.min(
       Math.max(maxLength + 2, minWidth),
-      maxWidth
+      maxWidth,
     );
     return { wch: calculatedWidth };
   };
@@ -3716,7 +3716,7 @@ const exportSelectedToExcel = () => {
   try {
     // Filter the selected documents from the state
     const documentsToExport = state.paymentDocuments.filter((doc) =>
-      selectedDocs.includes(doc._id)
+      selectedDocs.includes(doc._id),
     );
 
     // Create multiple sheets for comprehensive export
@@ -3736,8 +3736,8 @@ const exportSelectedToExcel = () => {
         doc.status === "Approved"
           ? "Đã phê duyệt"
           : doc.status === "Suspended"
-          ? "Từ chối"
-          : "Chưa phê duyệt",
+            ? "Từ chối"
+            : "Chưa phê duyệt",
       "Phương thức thanh toán": doc.paymentMethod || "Không có",
     }));
 
@@ -3886,7 +3886,7 @@ const exportSelectedToExcel = () => {
                 "Chi tiết": product.productName || "",
                 "Giá trị": product.totalCost || 0,
                 "Ghi chú": `${product.amount || 0} x ${formatCurrency(
-                  product.costPerUnit || 0
+                  product.costPerUnit || 0,
                 )}`,
               });
             });
@@ -3952,8 +3952,8 @@ const exportSelectedToExcel = () => {
           doc.status === "Approved"
             ? "Đã phê duyệt"
             : doc.status === "Suspended"
-            ? "Từ chối"
-            : "Chưa phê duyệt",
+              ? "Từ chối"
+              : "Chưa phê duyệt",
         "Giá trị": "",
         "Ghi chú": "",
       });
@@ -3962,7 +3962,7 @@ const exportSelectedToExcel = () => {
       if (doc.approvers?.length) {
         doc.approvers.forEach((approver, approverIndex) => {
           const hasApproved = doc.approvedBy.find(
-            (a) => a.username === approver.username
+            (a) => a.username === approver.username,
           );
           detailedData.push({
             STT: "",
@@ -4000,7 +4000,7 @@ const exportSelectedToExcel = () => {
     ];
 
     detailedWs["!cols"] = detailedColumns.map((col) =>
-      calculateColumnWidth(detailedData, col.key, col.min, col.max)
+      calculateColumnWidth(detailedData, col.key, col.min, col.max),
     );
     XLSX.utils.book_append_sheet(wb, detailedWs, "Chi tiết đầy đủ");
 
@@ -4010,7 +4010,7 @@ const exportSelectedToExcel = () => {
       if (doc.approvers?.length) {
         doc.approvers.forEach((approver, approverIndex) => {
           const hasApproved = doc.approvedBy.find(
-            (a) => a.username === approver.username
+            (a) => a.username === approver.username,
           );
           approvalData.push({
             STT: docIndex + 1,
@@ -4062,8 +4062,8 @@ const exportSelectedToExcel = () => {
           doc.status === "Approved"
             ? "Đã phê duyệt"
             : doc.status === "Suspended"
-            ? "Từ chối"
-            : "Chưa phê duyệt",
+              ? "Từ chối"
+              : "Chưa phê duyệt",
         "Hạn thanh toán": doc.paymentDeadline || "",
         "Ghi chú": doc.suspendReason || doc.declaration || "",
       });
@@ -4119,7 +4119,7 @@ const exportSelectedToExcel = () => {
         "Trạng thái": "",
         "Hạn thanh toán": "",
         "Ghi chú": "",
-      }
+      },
     );
 
     const financialWs = XLSX.utils.json_to_sheet(financialData);
@@ -4131,11 +4131,11 @@ const exportSelectedToExcel = () => {
       wb,
       `Bao_cao_chi_tiet_phieu_thanh_toan_${new Date()
         .toISOString()
-        .slice(0, 10)}.xlsx`
+        .slice(0, 10)}.xlsx`,
     );
 
     showMessage(
-      `Đã xuất báo cáo chi tiết ${selectedDocs.length} phiếu thanh toán với ${wb.SheetNames.length} bảng tính.`
+      `Đã xuất báo cáo chi tiết ${selectedDocs.length} phiếu thanh toán với ${wb.SheetNames.length} bảng tính.`,
     );
   } catch (err) {
     console.error("Error exporting documents:", err);
@@ -4175,7 +4175,7 @@ const updateSelectAllCheckbox = () => {
 
   selectAllCheckbox.disabled = false;
   const allChecked = Array.from(checkboxes).every(
-    (checkbox) => checkbox.checked
+    (checkbox) => checkbox.checked,
   );
   selectAllCheckbox.checked = allChecked;
 };
@@ -4285,6 +4285,33 @@ const setupEventListeners = () => {
       state.customSubmissionDateRange = { from: null, to: null };
       state.currentPage = 1;
       fetchPaymentDocuments();
+    }
+  });
+
+  // Close any open modal with the Escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+
+    // Map modal element IDs to their proper close handlers
+    const modalClosers = {
+      fullViewModal: closeFullViewModal,
+      suspendModal: closeSuspendModal,
+      massDeclarationModal: closeMassDeclarationModal,
+      editModal: closeEditModal,
+      declarationModal: closeDeclarationModal,
+      priorityUpdateModal: closePriorityUpdateModal,
+    };
+
+    // Find all visible modals
+    const openModals = Object.keys(modalClosers).filter((id) => {
+      const modal = document.getElementById(id);
+      return modal && modal.style.display === "block";
+    });
+
+    // Close the topmost (last-opened) modal
+    if (openModals.length > 0) {
+      const lastModalId = openModals[openModals.length - 1];
+      modalClosers[lastModalId]();
     }
   });
 };
