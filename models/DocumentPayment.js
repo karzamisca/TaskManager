@@ -116,6 +116,14 @@ const paymentDocumentSchema = new mongoose.Schema({
   groupName: { type: String },
   groupDeclarationName: { type: String },
   projectName: { type: String },
+  sendEmailTo: [
+    {
+      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      username: { type: String },
+      email: { type: String },
+      sentDate: { type: String },
+    },
+  ],
 });
 
 module.exports = mongoose.model("DocumentPayment", paymentDocumentSchema);

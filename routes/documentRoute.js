@@ -351,6 +351,16 @@ router.post(
   authMiddleware,
   documentController.openPaymentStage,
 );
+router.get(
+  "/getUsersForEmail",
+  authMiddleware,
+  documentController.getUsersForEmail,
+);
+router.post(
+  "/sendPaymentDocumentEmail/:id",
+  authMiddleware,
+  documentController.sendPaymentDocumentEmail,
+);
 //// END OF PAYMENT DOCUMENT ROUTE
 
 //// ADVANCE PAYMENT DOCUMENT ROUTE

@@ -7,6 +7,7 @@ const ItemStock = require("../models/ItemStock");
 const crypto = require("crypto");
 const mongoose = require("mongoose");
 const moment = require("moment-timezone");
+const nodemailer = require("nodemailer");
 const ProposalDocument = require("../models/DocumentProposal.js");
 const PurchasingDocument = require("../models/DocumentPurchasing.js");
 const DeliveryDocument = require("../models/DocumentDelivery.js");
@@ -38,6 +39,19 @@ const uploadDir = "uploads/"; // Define the upload directory
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
+
+const mailTransporter = nodemailer.createTransport({
+  host: process.env.MAILCOW_HOST,
+  port: Number(process.env.MAILCOW_PORT) || 587,
+  secure: process.env.MAILCOW_SECURE === "true",
+  auth: {
+    user: process.env.MAILCOW_USER,
+    pass: process.env.MAILCOW_PASS,
+  },
+  tls: {
+    rejectUnauthorized: process.env.MAILCOW_REJECT_UNAUTHORIZED !== "false",
+  },
+});
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -5059,6 +5073,147 @@ exports.openPaymentStage = async (req, res) => {
   } catch (err) {
     console.error("Lỗi khi mở lại giai đoạn thanh toán:", err);
     res.status(500).send("Lỗi khi mở lại giai đoạn thanh toán.");
+  }
+};
+// Build the email body from a payment document
+const buildPaymentEmailHtml = (doc) => {
+  const fmt = (n) =>
+    typeof n === "number" ? n.toLocaleString("vi-VN") : n || "-";
+
+  const stagesHtml =
+    doc.stages && doc.stages.length > 0
+      ? `<h3>Các giai đoạn thanh toán</h3>
+         <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
+           <tr><th>GĐ</th><th>Tên</th><th>Số tiền</th><th>Hạn</th><th>Trạng thái</th></tr>
+           ${doc.stages
+             .map(
+               (s, i) =>
+                 `<tr><td>${i + 1}</td><td>${s.name || "-"}</td><td>${fmt(
+                   s.amount,
+                 )}</td><td>${s.deadline || "-"}</td><td>${s.status}</td></tr>`,
+             )
+             .join("")}
+         </table>`
+      : "";
+
+  const filesHtml =
+    doc.fileMetadata && doc.fileMetadata.length > 0
+      ? `<h3>Tệp đính kèm</h3><ul>${doc.fileMetadata
+          .map((f) => `<li><a href="${f.link}">${f.name}</a></li>`)
+          .join("")}</ul>`
+      : "";
+
+  return `
+    <div style="font-family: Arial, sans-serif; color:#212121;">
+      <h2>Phiếu thanh toán: ${doc.tag || doc.name || ""}</h2>
+      <p><strong>Tên:</strong> ${doc.name || "-"}</p>
+      <p><strong>Trạm:</strong> ${doc.costCenter || "-"}</p>
+      <p><strong>Nhóm:</strong> ${doc.groupName || "-"}</p>
+      <p><strong>Nội dung:</strong> ${doc.content || "-"}</p>
+      <p><strong>Phương thức thanh toán:</strong> ${doc.paymentMethod || "-"}</p>
+      <p><strong>Tổng thanh toán:</strong> ${fmt(doc.totalPayment)}</p>
+      <p><strong>Hạn trả:</strong> ${doc.paymentDeadline || "-"}</p>
+      <p><strong>Tình trạng:</strong> ${doc.status}</p>
+      ${stagesHtml}
+      ${filesHtml}
+    </div>
+  `;
+};
+// List users for the email modal
+exports.getUsersForEmail = async (req, res) => {
+  try {
+    const users = await User.find({}, "username realName email role").sort({
+      username: 1,
+    });
+    res.json(users);
+  } catch (err) {
+    console.error("Error fetching users for email:", err);
+    res.status(500).json({ message: "Lỗi khi tải danh sách người dùng." });
+  }
+};
+
+// Send a payment document to one or more users by email
+exports.sendPaymentDocumentEmail = async (req, res) => {
+  const { id } = req.params;
+  const { userIds } = req.body;
+
+  try {
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Vui lòng chọn ít nhất một người nhận." });
+    }
+
+    const document = await PaymentDocument.findById(id);
+    if (!document) {
+      return res
+        .status(404)
+        .json({ message: "Không tìm thấy phiếu thanh toán." });
+    }
+
+    const users = await User.find({ _id: { $in: userIds } });
+
+    const html = buildPaymentEmailHtml(document);
+    const subject = `Phiếu thanh toán: ${document.tag || document.name || ""}`;
+    const sentDate = moment().tz("Asia/Bangkok").format("DD-MM-YYYY HH:mm:ss");
+
+    const sent = [];
+    const warnings = [];
+
+    for (const user of users) {
+      // No email -> warn and skip, keep going for the rest
+      if (!user.email || user.email.trim() === "") {
+        warnings.push(`${user.username} chưa có email — đã bỏ qua.`);
+        continue;
+      }
+
+      try {
+        await mailTransporter.sendMail({
+          from: process.env.SMTP_FROM || process.env.SMTP_USER,
+          to: user.email,
+          subject,
+          html,
+        });
+
+        sent.push({
+          user: user._id,
+          username: user.username,
+          email: user.email,
+          sentDate,
+        });
+      } catch (sendErr) {
+        console.error(`Error emailing ${user.username}:`, sendErr);
+        warnings.push(
+          `Không gửi được email tới ${user.username} (${user.email}).`,
+        );
+      }
+    }
+
+    // Warn for any requested IDs that didn't resolve to a real user
+    const foundIds = users.map((u) => u._id.toString());
+    userIds
+      .filter((uid) => !foundIds.includes(uid))
+      .forEach((uid) => warnings.push(`Không tìm thấy người dùng: ${uid}`));
+
+    if (sent.length > 0) {
+      document.sendEmailTo = [...(document.sendEmailTo || []), ...sent];
+      await document.save();
+    }
+
+    return res.json({
+      message:
+        sent.length > 0
+          ? `Đã gửi email tới ${sent.length} người.`
+          : "Không có email nào được gửi.",
+      sentCount: sent.length,
+      sent,
+      warnings,
+    });
+  } catch (err) {
+    console.error("Error sending payment document email:", err);
+    return res
+      .status(500)
+      .json({ message: "Lỗi khi gửi email phiếu thanh toán." });
   }
 };
 //// END OF PAYMENT DOCUMENT CONTROLLER

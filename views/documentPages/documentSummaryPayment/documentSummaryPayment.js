@@ -26,6 +26,167 @@ const state = {
   groups: [], // Store groups for multi-select
 };
 
+// ===== Email sending feature =====
+let emailModalDocId = null;
+let allUsersForEmail = [];
+const emailSelectedUserIds = new Set();
+
+const openEmailModal = async (docId) => {
+  emailModalDocId = docId;
+  emailSelectedUserIds.clear();
+  document.getElementById("emailUserSearch").value = "";
+  document.getElementById("emailSelectAll").checked = false;
+  document.getElementById("emailModal").style.display = "block";
+  await populateEmailUserList();
+};
+
+const closeEmailModal = () => {
+  document.getElementById("emailModal").style.display = "none";
+  emailModalDocId = null;
+  emailSelectedUserIds.clear();
+};
+
+const populateEmailUserList = async () => {
+  try {
+    const response = await fetch("/getUsersForEmail");
+    allUsersForEmail = await response.json();
+    renderEmailUserList(allUsersForEmail);
+  } catch (err) {
+    console.error("Error fetching users for email:", err);
+    showMessage("Lỗi khi tải danh sách người dùng.", true);
+  }
+};
+
+const renderEmailUserList = (users) => {
+  const container = document.getElementById("emailUserList");
+
+  if (!users || users.length === 0) {
+    container.innerHTML = "<p>Không tìm thấy người dùng</p>";
+    return;
+  }
+
+  container.innerHTML = users
+    .map((u) => {
+      const hasEmail = u.email && u.email.trim() !== "";
+      const displayName =
+        u.realName && u.realName !== "none" ? u.realName : u.username;
+      return `
+        <div class="file-item">
+          <label class="file-info" style="cursor: pointer;">
+            <input type="checkbox" class="email-user-checkbox" value="${u._id}"
+                   ${emailSelectedUserIds.has(u._id) ? "checked" : ""} />
+            <span class="file-name">${displayName} (${u.username})</span>
+            <span class="file-size" style="${
+              hasEmail ? "" : "color: var(--danger-color);"
+            }">
+              ${hasEmail ? u.email : "⚠ Chưa có email"}
+            </span>
+          </label>
+        </div>`;
+    })
+    .join("");
+
+  // Keep the selection Set in sync
+  container.querySelectorAll(".email-user-checkbox").forEach((cb) => {
+    cb.addEventListener("change", () => {
+      if (cb.checked) emailSelectedUserIds.add(cb.value);
+      else emailSelectedUserIds.delete(cb.value);
+    });
+  });
+};
+
+const sendDocumentEmail = async () => {
+  const userIds = Array.from(emailSelectedUserIds);
+
+  if (userIds.length === 0) {
+    showMessage("Vui lòng chọn ít nhất một người nhận.", true);
+    return;
+  }
+
+  try {
+    showLoading(true);
+    const response = await fetch(
+      `/sendPaymentDocumentEmail/${emailModalDocId}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIds }),
+      },
+    );
+
+    const result = await response.json();
+
+    if (response.ok) {
+      // Combine the result + any warnings into one message
+      let msg = result.message;
+      if (result.warnings && result.warnings.length > 0) {
+        msg += " " + result.warnings.join(" ");
+      }
+      showMessage(msg, result.sentCount === 0);
+      closeEmailModal();
+      fetchPaymentDocuments();
+    } else {
+      showMessage(result.message || "Lỗi khi gửi email.", true);
+    }
+  } catch (err) {
+    console.error("Error sending email:", err);
+    showMessage("Lỗi khi gửi email.", true);
+  } finally {
+    showLoading(false);
+  }
+};
+
+const openEmailHistoryModal = (docId) => {
+  const doc = state.paymentDocuments.find((d) => d._id === docId);
+  if (!doc) return;
+
+  const content = document.getElementById("emailHistoryContent");
+  const history = doc.sendEmailTo || [];
+
+  if (history.length === 0) {
+    content.innerHTML = `<p>Phiếu này chưa được gửi cho ai qua email.</p>`;
+  } else {
+    // Most recent first
+    const rows = [...history]
+      .reverse()
+      .map(
+        (entry, idx) => `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>${entry.username || "-"}</td>
+          <td>${entry.email || "-"}</td>
+          <td>${entry.sentDate || "-"}</td>
+        </tr>`,
+      )
+      .join("");
+
+    content.innerHTML = `
+      <p style="margin-bottom: var(--space-md);">
+        <strong>Phiếu:</strong> ${doc.tag || doc.name || "-"}
+        &nbsp;•&nbsp; <strong>Tổng số lần gửi:</strong> ${history.length}
+      </p>
+      <div class="table-container" style="margin-bottom: 0;">
+        <table>
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Người nhận</th>
+              <th>Email</th>
+              <th>Thời gian gửi</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  document.getElementById("emailHistoryModal").style.display = "block";
+};
+
+const closeEmailHistoryModal = () => {
+  document.getElementById("emailHistoryModal").style.display = "none";
+};
+
 // Helper function to validate and parse dd/mm/yyyy dates
 const validateAndParseDate = (dateStr) => {
   if (!dateStr) return { isValid: false, date: null, message: "" };
@@ -1682,6 +1843,12 @@ const renderDocumentsTable = (documents) => {
               ? `
                 <button class="btn btn-primary btn-sm" onclick="editDeclaration('${doc._id}')">
                   <i class="fas fa-edit"></i> Kê khai
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="openEmailModal('${doc._id}')">
+                  <i class="fas fa-envelope"></i> Gửi email
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="openEmailHistoryModal('${doc._id}')">
+                  <i class="fas fa-history"></i> Lịch sử email
                 </button>
                 <button class="btn btn-danger btn-sm" onclick="suspendDocument('${doc._id}')">
                   <i class="fas fa-ban"></i> Từ chối
@@ -4288,6 +4455,27 @@ const setupEventListeners = () => {
     }
   });
 
+  // Email modal: search + select all
+  document.getElementById("emailUserSearch").addEventListener("input", (e) => {
+    const term = e.target.value.toLowerCase();
+    const filtered = allUsersForEmail.filter((u) =>
+      `${u.realName || ""} ${u.username} ${u.email || ""}`
+        .toLowerCase()
+        .includes(term),
+    );
+    renderEmailUserList(filtered);
+  });
+
+  document.getElementById("emailSelectAll").addEventListener("change", (e) => {
+    document
+      .querySelectorAll("#emailUserList .email-user-checkbox")
+      .forEach((cb) => {
+        cb.checked = e.target.checked;
+        if (e.target.checked) emailSelectedUserIds.add(cb.value);
+        else emailSelectedUserIds.delete(cb.value);
+      });
+  });
+
   // Close any open modal with the Escape key
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
@@ -4300,6 +4488,8 @@ const setupEventListeners = () => {
       editModal: closeEditModal,
       declarationModal: closeDeclarationModal,
       priorityUpdateModal: closePriorityUpdateModal,
+      emailModal: closeEmailModal,
+      emailHistoryModal: closeEmailHistoryModal,
     };
 
     // Find all visible modals
