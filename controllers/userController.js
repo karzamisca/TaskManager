@@ -22,6 +22,7 @@ exports.getUserMainPage = (req, res) => {
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
         "headOfSales",
+        "headOfProject",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -49,6 +50,7 @@ exports.getUserSalaryCalculationPage = (req, res) => {
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
         "headOfSales",
+        "headOfProject",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -75,6 +77,7 @@ exports.getManagers = async (req, res) => {
       "headOfOperations",
       "headOfNorthernRepresentativeOffice",
       "headOfSales",
+      "headOfProject",
     ];
 
     const managers = await User.find({
@@ -131,6 +134,7 @@ exports.getUserById = async (req, res) => {
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
         "headOfSales",
+        "headOfProject",
       ].includes(req.user.role)
     ) {
       return res.send(
@@ -161,6 +165,7 @@ exports.createUser = async (req, res) => {
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
         "headOfSales",
+        "headOfProject",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -246,6 +251,7 @@ exports.updateUser = async (req, res) => {
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
         "headOfSales",
+        "headOfProject",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -370,6 +376,7 @@ exports.getAllCostCenters = async (req, res) => {
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
         "headOfSales",
+        "headOfProject",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -1953,6 +1960,7 @@ exports.getUserMonthlyRecords = async (req, res) => {
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
         "headOfSales",
+        "headOfProject",
       ].includes(req.user.role)
     ) {
       return res
