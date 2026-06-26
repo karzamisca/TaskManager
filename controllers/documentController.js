@@ -41,9 +41,9 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 const mailTransporter = nodemailer.createTransport({
-  host: process.env.MAILCOW_HOST,
-  port: Number(process.env.MAILCOW_PORT) || 587,
-  secure: process.env.MAILCOW_SECURE === "true",
+  host: process.env.MAILCOW_HOST || "mail.yourdomain.com",
+  port: process.env.MAILCOW_PORT || 587,
+  secure: process.env.MAILCOW_SECURE === "true", // true for 465, false for other ports
   auth: {
     user: process.env.MAILCOW_USER,
     pass: process.env.MAILCOW_PASS,
@@ -5169,7 +5169,7 @@ exports.sendPaymentDocumentEmail = async (req, res) => {
 
       try {
         await mailTransporter.sendMail({
-          from: process.env.SMTP_FROM || process.env.SMTP_USER,
+          from: process.env.MAILCOW_FROM || process.env.MAILCOW_USER,
           to: user.email,
           subject,
           html,
