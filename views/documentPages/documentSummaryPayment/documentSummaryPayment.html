@@ -64,6 +64,29 @@
         </label>
       </div>
 
+      <!-- NEW: Filter by cost center of products inside appended purchasing documents -->
+      <div class="control-group">
+        <label for="productCostCenterFilter">
+          <span>Trạm (SP mua hàng):</span>
+          <div class="multi-select-container" id="productCostCenterMultiSelect">
+            <button
+              type="button"
+              class="multi-select-button"
+              id="productCostCenterMultiSelectButton"
+            >
+              <span id="productCostCenterMultiSelectText">Tất cả</span>
+              <i class="fas fa-chevron-down"></i>
+            </button>
+            <div
+              class="multi-select-dropdown"
+              id="productCostCenterMultiSelectDropdown"
+            >
+              <!-- Options will be populated dynamically -->
+            </div>
+          </div>
+        </label>
+      </div>
+
       <div class="control-group">
         <label for="groupFilter">
           <span>Nhóm:</span>
@@ -783,7 +806,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="documentPages/documentSummaryPayment/documentSummaryPayment.js?v=1.41"></script>
+    <script src="documentPages/documentSummaryPayment/documentSummaryPayment.js?v=1.42"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
   </body>
