@@ -3028,16 +3028,18 @@ const renderCurrentPurchasingDocuments = () => {
               ${doc.products
                 .map(
                   (product) => `
-                <div class="purchasing-doc-product">
-                  <span>${product.productName}</span>
-                  <span>${product.amount} x ${formatCurrency(
+                <div class="payment-product-item">
+                  <span class="payment-product-name">${product.productName}</span>
+                  <span class="payment-product-costcenter">${
+                    product.costCenter || "Chưa có"
+                  }</span>
+                  <span class="payment-product-amount">${product.amount} x</span>
+                  <span class="payment-product-price">${formatCurrency(
                     product.costPerUnit,
-                  )} = ${formatCurrency(product.totalCost)}</span>
-                  <span class="purchasing-doc-product-costcenter">
-                    <i class="fas fa-map-marker-alt"></i> ${
-                      product.costCenter || "Chưa có"
-                    }
-                  </span>
+                  )}</span>
+                  <span class="payment-product-total">${formatCurrency(
+                    product.totalCost,
+                  )}</span>
                 </div>
               `,
                 )
@@ -3742,6 +3744,9 @@ const renderPurchasingDocuments = (purchDocs) => {
                   (product) => `
               <div class="payment-product-item">
                 <span class="payment-product-name">${product.productName}</span>
+                <span class="payment-product-costcenter">${
+                  product.costCenter || "Chưa có"
+                }</span>
                 <span class="payment-product-amount">${product.amount} x</span>
                 <span class="payment-product-price">${formatCurrency(
                   product.costPerUnit,
@@ -3749,9 +3754,6 @@ const renderPurchasingDocuments = (purchDocs) => {
                 <span class="payment-product-total">${formatCurrency(
                   product.totalCost,
                 )}</span>
-                <span class="payment-product-costcenter">${
-                  product.costCenter || "Chưa có"
-                }</span>
               </div>
             `,
                 )
