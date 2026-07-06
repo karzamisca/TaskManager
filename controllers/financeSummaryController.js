@@ -286,8 +286,20 @@ exports.getRevenueByCostCenter = async (req, res) => {
       name: { $in: costCenterNames },
     }).lean();
 
+    // Broadened: a payment doc is relevant if EITHER its own top-level
+    // costCenter matches, OR any of its appended purchasing products are
+    // line-itemed to a matching cost center. Attribution within the loop
+    // below still decides exactly which cost center each amount belongs to;
+    // this query only widens the fetch so nothing gets excluded upstream.
     const paymentDocuments = await DocumentPayment.find({
-      costCenter: { $in: costCenterNames },
+      $or: [
+        { costCenter: { $in: costCenterNames } },
+        {
+          "appendedPurchasingDocuments.products.costCenter": {
+            $in: costCenterNames,
+          },
+        },
+      ],
     }).lean();
 
     const constructionData = await CostCenter.find({
@@ -302,86 +314,108 @@ exports.getRevenueByCostCenter = async (req, res) => {
     const costCenterPaymentMap = {};
 
     paymentDocuments.forEach((doc) => {
-      if (doc.stages && doc.stages.length > 0) {
-        // Staged payments: use stage deadline
-        doc.stages.forEach((stage) => {
-          const dateInfo = getMonthYearFromSubmissionDate(stage.deadline);
-          if (!dateInfo) return;
+      const hasStages = doc.stages && doc.stages.length > 0;
+      const hasAppended = doc.appendedPurchasingDocuments?.length > 0;
 
-          let recordMonth = dateInfo.month + 1;
-          let recordYear = dateInfo.year;
-          if (recordMonth > 12) {
-            recordMonth = 1;
-            recordYear += 1;
-          }
+      // Staged payments: use stage deadline.
+      // Guarded because the query above may now return this doc solely due
+      // to the appendedPurchasingDocuments $or clause.
+      if (hasStages) {
+        if (costCenterNames.includes(doc.costCenter)) {
+          doc.stages.forEach((stage) => {
+            const dateInfo = getMonthYearFromSubmissionDate(stage.deadline);
+            if (!dateInfo) return;
 
-          if (!yearList.includes(recordYear)) return;
+            let recordMonth = dateInfo.month + 1;
+            let recordYear = dateInfo.year;
+            if (recordMonth > 12) {
+              recordMonth = 1;
+              recordYear += 1;
+            }
 
-          const key = `${doc.costCenter}-${recordMonth}-${recordYear}`;
-          if (!costCenterPaymentMap[key]) costCenterPaymentMap[key] = 0;
-          costCenterPaymentMap[key] += stage.amount || 0;
-        });
-      } else if (doc.appendedPurchasingDocuments?.length > 0) {
-        // Appended purchasing documents: use deputyDirector's approvalDate
+            if (!yearList.includes(recordYear)) return;
+
+            const key = `${doc.costCenter}-${recordMonth}-${recordYear}`;
+            if (!costCenterPaymentMap[key]) costCenterPaymentMap[key] = 0;
+            costCenterPaymentMap[key] += stage.amount || 0;
+          });
+        }
+      }
+
+      // Appended purchasing documents: use deputyDirector's approvalDate.
+      // Runs independently of the stages branch above, so a document with
+      // BOTH non-empty stages and non-empty appendedPurchasingDocuments has
+      // both contributions counted instead of one being silently dropped.
+      if (hasAppended) {
         const deputyApproval = doc.approvedBy?.find(
           (a) => a.role === "deputyDirector",
         );
 
         // Skip if not yet approved by deputyDirector
-        if (!deputyApproval) return;
+        if (deputyApproval) {
+          const dateInfo = getMonthYearFromSubmissionDate(
+            deputyApproval.approvalDate,
+          );
 
-        const dateInfo = getMonthYearFromSubmissionDate(
-          deputyApproval.approvalDate,
-        );
-        if (!dateInfo) return;
+          if (dateInfo) {
+            let recordMonth = dateInfo.month + 1;
+            let recordYear = dateInfo.year;
+            if (recordMonth > 12) {
+              recordMonth = 1;
+              recordYear += 1;
+            }
 
-        let recordMonth = dateInfo.month + 1;
-        let recordYear = dateInfo.year;
-        if (recordMonth > 12) {
-          recordMonth = 1;
-          recordYear += 1;
+            if (yearList.includes(recordYear)) {
+              doc.appendedPurchasingDocuments.forEach((purchasingDoc) => {
+                if (purchasingDoc.products?.length > 0) {
+                  purchasingDoc.products.forEach((product) => {
+                    const productCostCenter = product.costCenter || "Chưa có";
+                    if (costCenterNames.includes(productCostCenter)) {
+                      const key = `${productCostCenter}-${recordMonth}-${recordYear}`;
+                      if (!costCenterPaymentMap[key])
+                        costCenterPaymentMap[key] = 0;
+                      costCenterPaymentMap[key] +=
+                        product.totalCostAfterVat || 0;
+                    }
+                  });
+                }
+              });
+            }
+          }
         }
+      }
 
-        if (!yearList.includes(recordYear)) return;
+      // Normal documents: only when neither stages nor appended purchasing
+      // documents are present, using deputyDirector's approvalDate.
+      // Guarded for the same reason as the stages branch above.
+      if (!hasStages && !hasAppended) {
+        if (costCenterNames.includes(doc.costCenter)) {
+          const deputyApproval = doc.approvedBy?.find(
+            (a) => a.role === "deputyDirector",
+          );
 
-        doc.appendedPurchasingDocuments.forEach((purchasingDoc) => {
-          if (purchasingDoc.products?.length > 0) {
-            purchasingDoc.products.forEach((product) => {
-              const productCostCenter = product.costCenter || "Chưa có";
-              if (costCenterNames.includes(productCostCenter)) {
-                const key = `${productCostCenter}-${recordMonth}-${recordYear}`;
-                if (!costCenterPaymentMap[key]) costCenterPaymentMap[key] = 0;
-                costCenterPaymentMap[key] += product.totalCostAfterVat || 0;
+          // Skip if not yet approved by deputyDirector
+          if (deputyApproval) {
+            const dateInfo = getMonthYearFromSubmissionDate(
+              deputyApproval.approvalDate,
+            );
+
+            if (dateInfo) {
+              let recordMonth = dateInfo.month + 1;
+              let recordYear = dateInfo.year;
+              if (recordMonth > 12) {
+                recordMonth = 1;
+                recordYear += 1;
               }
-            });
+
+              if (yearList.includes(recordYear)) {
+                const key = `${doc.costCenter}-${recordMonth}-${recordYear}`;
+                if (!costCenterPaymentMap[key]) costCenterPaymentMap[key] = 0;
+                costCenterPaymentMap[key] += doc.totalPayment || 0;
+              }
+            }
           }
-        });
-      } else {
-        // Normal documents: use deputyDirector's approvalDate
-        const deputyApproval = doc.approvedBy?.find(
-          (a) => a.role === "deputyDirector",
-        );
-
-        // Skip if not yet approved by deputyDirector
-        if (!deputyApproval) return;
-
-        const dateInfo = getMonthYearFromSubmissionDate(
-          deputyApproval.approvalDate,
-        );
-        if (!dateInfo) return;
-
-        let recordMonth = dateInfo.month + 1;
-        let recordYear = dateInfo.year;
-        if (recordMonth > 12) {
-          recordMonth = 1;
-          recordYear += 1;
         }
-
-        if (!yearList.includes(recordYear)) return;
-
-        const key = `${doc.costCenter}-${recordMonth}-${recordYear}`;
-        if (!costCenterPaymentMap[key]) costCenterPaymentMap[key] = 0;
-        costCenterPaymentMap[key] += doc.totalPayment || 0;
       }
     });
 
