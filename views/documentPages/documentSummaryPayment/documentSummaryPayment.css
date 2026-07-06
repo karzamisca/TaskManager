@@ -716,7 +716,9 @@ tr:hover {
   max-width: 400px;
   transform: translateX(0);
   opacity: 1;
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
 }
 
 .message.hidden {
@@ -1337,6 +1339,19 @@ tr:hover {
   min-width: 100px;
   text-align: right;
   font-weight: bold;
+}
+
+.payment-product-costcenter {
+  min-width: 90px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.purchasing-doc-product-costcenter {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-left: 8px;
 }
 
 .payment-summary-row {

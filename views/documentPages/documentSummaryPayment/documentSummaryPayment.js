@@ -3033,6 +3033,11 @@ const renderCurrentPurchasingDocuments = () => {
                   <span>${product.amount} x ${formatCurrency(
                     product.costPerUnit,
                   )} = ${formatCurrency(product.totalCost)}</span>
+                  <span class="purchasing-doc-product-costcenter">
+                    <i class="fas fa-map-marker-alt"></i> ${
+                      product.costCenter || "Chưa có"
+                    }
+                  </span>
                 </div>
               `,
                 )
@@ -3744,6 +3749,9 @@ const renderPurchasingDocuments = (purchDocs) => {
                 <span class="payment-product-total">${formatCurrency(
                   product.totalCost,
                 )}</span>
+                <span class="payment-product-costcenter">${
+                  product.costCenter || "Chưa có"
+                }</span>
               </div>
             `,
                 )
@@ -4054,7 +4062,7 @@ const exportSelectedToExcel = () => {
                 "Giá trị": product.totalCost || 0,
                 "Ghi chú": `${product.amount || 0} x ${formatCurrency(
                   product.costPerUnit || 0,
-                )}`,
+                )} | Trạm: ${product.costCenter || "Chưa có"}`,
               });
             });
           }
