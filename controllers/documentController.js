@@ -2680,6 +2680,7 @@ exports.suspendProposalDocument = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
