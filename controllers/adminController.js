@@ -188,6 +188,7 @@ exports.getProductAdminPage = (req, res) => {
         "deputyDirector",
         "headOfPurchasing",
         "headOfNorthernRepresentativeOffice",
+        "assistantOfPurchasing",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -213,6 +214,7 @@ exports.getProducts = async (req, res) => {
         "deputyDirector",
         "headOfPurchasing",
         "headOfNorthernRepresentativeOffice",
+        "assistantOfPurchasing",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -249,6 +251,7 @@ exports.getProductById = async (req, res) => {
         "deputyDirector",
         "headOfPurchasing",
         "headOfNorthernRepresentativeOffice",
+        "assistantOfPurchasing",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -395,6 +398,7 @@ exports.createProduct = async (req, res) => {
         "deputyDirector",
         "headOfPurchasing",
         "headOfNorthernRepresentativeOffice",
+        "assistantOfPurchasing",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -432,6 +436,7 @@ exports.updateProduct = async (req, res) => {
         "deputyDirector",
         "headOfPurchasing",
         "headOfNorthernRepresentativeOffice",
+        "assistantOfPurchasing",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -706,6 +711,7 @@ exports.importProducts = async (req, res) => {
         "deputyDirector",
         "headOfPurchasing",
         "headOfNorthernRepresentativeOffice",
+        "assistantOfPurchasing",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -779,6 +785,7 @@ exports.importProductsFromFile = async (req, res) => {
         "deputyDirector",
         "headOfPurchasing",
         "headOfNorthernRepresentativeOffice",
+        "assistantOfPurchasing",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -904,6 +911,7 @@ exports.exportProducts = async (req, res) => {
         "deputyDirector",
         "headOfPurchasing",
         "headOfNorthernRepresentativeOffice",
+        "assistantOfPurchasing",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {

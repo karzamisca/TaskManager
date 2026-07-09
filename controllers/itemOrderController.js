@@ -55,6 +55,7 @@ const canViewAllOrders = (user) => {
     "deputyDirector",
     "headOfPurchasing",
     "headOfNorthernRepresentativeOffice",
+    "assistantOfPurchasing",
     "captainOfPurchasing",
   ];
   return user && user.role && allowedRoles.includes(user.role);

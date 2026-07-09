@@ -25,6 +25,7 @@ exports.getProjectDocumentViews = (req, res) => {
       "headOfPurchasing",
       "headOfOperations",
       "headOfNorthernRepresentativeOffice",
+      "assistantOfPurchasing",
       "captainOfMechanical",
       "captainOfTechnical",
       "captainOfPurchasing",

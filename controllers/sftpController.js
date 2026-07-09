@@ -435,6 +435,7 @@ exports.getSftpPurchasingViews = (req, res) => {
       "director",
       "deputyDirector",
       "headOfPurchasing",
+      "assistantOfPurchasing",
       "captainOfPurchasing",
       "headOfAccounting",
       "captainOfAccounting",
@@ -532,6 +533,7 @@ exports.createDirectoryForPurchasing = async function (req, res) {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "assistantOfPurchasing",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -568,6 +570,7 @@ exports.uploadFilesForPurchasing = async function (req, res) {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "assistantOfPurchasing",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -645,6 +648,7 @@ exports.deleteFilesForPurchasing = async function (req, res) {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "assistantOfPurchasing",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -686,6 +690,7 @@ exports.renameFileForPurchasing = async function (req, res) {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "assistantOfPurchasing",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {
@@ -724,6 +729,7 @@ exports.pasteFilesForPurchasing = async function (req, res) {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "assistantOfPurchasing",
         "captainOfPurchasing",
       ].includes(req.user.role)
     ) {

@@ -25,6 +25,7 @@ exports.getFormAndProjectExpense = (req, res) => {
       "deputyDirector",
       "headOfAccounting",
       "headOfPurchasing",
+      "assistantOfPurchasing",
       "captainOfPurchasing",
     ].includes(req.user.role)
   ) {

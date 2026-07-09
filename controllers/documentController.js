@@ -1829,6 +1829,7 @@ exports.approveDocument = async (req, res) => {
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
         "headOfProject",
+        "assistantOfPurchasing",
         "captainOfMechanical",
         "captainOfTechnical",
         "captainOfPurchasing",
@@ -2680,7 +2681,7 @@ exports.suspendProposalDocument = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
-        "captainOfPurchasing",
+        "assistantOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
@@ -4403,6 +4404,7 @@ exports.updatePaymentDocumentPriority = async (req, res) => {
         "deputyDirector",
         "headOfAccounting",
         "headOfPurchasing",
+        "assistantOfPurchasing",
         "captainOfAccounting",
         "captainOfPurchasing",
         "captainOfFinance",
@@ -4458,6 +4460,7 @@ exports.approvePaymentStage = async (req, res) => {
         "headOfPurchasing",
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
+        "assistantOfPurchasing",
         "captainOfMechanical",
         "captainOfTechnical",
         "captainOfPurchasing",
@@ -4725,6 +4728,7 @@ exports.approvePaymentDocument = async (req, res) => {
         "headOfPurchasing",
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
+        "assistantOfPurchasing",
         "captainOfMechanical",
         "captainOfTechnical",
         "captainOfPurchasing",
@@ -7929,6 +7933,7 @@ exports.approveGenericStage = async (req, res) => {
         "headOfOperations",
         "headOfNorthernRepresentativeOffice",
         "headOfProject",
+        "assistantOfPurchasing",
         "captainOfMechanical",
         "captainOfTechnical",
         "captainOfPurchasing",
