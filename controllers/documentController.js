@@ -122,6 +122,7 @@ const documentUtils = {
         userRole === "deputyDirector" ||
         userRole === "headOfPurchasing" ||
         userRole === "headOfAccounting" ||
+        userRole === "assistantOfPurchasing" ||
         userRole === "captainOfPurchasing" ||
         userRole === "captainOfFinance" ||
         userRole === "captainOfAccounting"
@@ -2731,6 +2732,7 @@ exports.openProposalDocument = async (req, res) => {
         "director",
         "deputyDirector",
         "headOfPurchasing",
+        "assistantOfPurchasing",
       ].includes(req.user.role)
     ) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
