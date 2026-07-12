@@ -1814,6 +1814,228 @@ exports.getPendingDocument = async (req, res) => {
     res.send("Lỗi lấy phiếu.");
   }
 };
+async function moveStockForDocument(
+  document,
+  { userId, documentTypeLabel = "Movement", dryRun = false } = {},
+) {
+  const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  if (!userId)
+    throw new Error(
+      "Thiếu userId để ghi nhận người thực hiện cập nhật tồn kho",
+    );
+  if (!document) throw new Error("Thiếu document để xử lý");
+
+  const report = {
+    documentTag: document.tag,
+    moved: [],
+    skipped: [],
+    errors: [],
+  };
+
+  if (document.stockMovementProcessed) {
+    throw new Error(
+      `Phiếu ${document.tag} đã được xử lý cập nhật tồn kho trước đó.`,
+    );
+  }
+
+  if (!document.costCenterFrom || !document.costCenterTo) {
+    throw new Error(
+      `Phiếu ${document.tag} thiếu thông tin nơi xuất/nơi nhận (costCenterFrom/costCenterTo)`,
+    );
+  }
+
+  if (!document.products || document.products.length === 0) {
+    throw new Error(
+      `Phiếu ${document.tag} không có sản phẩm nào để cập nhật tồn kho`,
+    );
+  }
+
+  // costCenterFrom / costCenterTo are stored as CostCenter *names*
+  // (e.g. "COGAS", "Phòng kỹ thuật"), not ObjectIds — resolve them to
+  // actual CostCenter documents so we can use their _id with ItemStock.
+  const [fromCostCenter, toCostCenter] = await Promise.all([
+    CostCenter.findOne({ name: document.costCenterFrom.trim() }),
+    CostCenter.findOne({ name: document.costCenterTo.trim() }),
+  ]);
+
+  if (!toCostCenter) {
+    throw new Error(
+      `Phiếu ${document.tag}: không tìm thấy nơi nhận "${document.costCenterTo}" trong danh sách trạm/phòng ban`,
+    );
+  }
+  // fromCostCenter may legitimately be null — that's how a document is
+  // treated as stock entering/leaving the system from outside rather than
+  // an internal transfer. Only toCostCenter is required.
+
+  const fromCostCenterId = fromCostCenter?._id;
+  const toCostCenterId = toCostCenter._id;
+
+  // No mongoose session/transaction here — transactions require a replica
+  // set or mongos, which a standalone MongoDB doesn't provide. To still
+  // get "all or nothing" behavior without transactions, this runs in two
+  // passes:
+  //   Pass 1 (read-only): match every product to an Item and validate
+  //     there's enough stock. If ANYTHING is wrong, we throw here before
+  //     writing anything (and before the caller saves the document).
+  //   Pass 2 (writes): apply all the stock changes.
+
+  // ---- Pass 1: match + validate ----------------------------------------
+  const plan = [];
+
+  for (const product of document.products) {
+    const movement = {
+      productName: product.productName,
+      amount: product.amount,
+    };
+
+    const item = await Item.findOne({
+      name: new RegExp(`^${escapeRegex(product.productName.trim())}$`, "i"),
+      isDeleted: false,
+    });
+
+    if (!item) {
+      report.skipped.push({
+        ...movement,
+        reason: `Không tìm thấy vật tư có tên "${product.productName}" trong hệ thống`,
+      });
+      continue;
+    }
+
+    movement.itemId = item._id;
+    movement.itemCode = item.code;
+
+    // Whether this is an internal transfer depends on whether
+    // costCenterFrom resolved to a REAL CostCenter — not on whether an
+    // ItemStock row happens to exist yet. If costCenterFrom is a known
+    // internal cost center, missing ItemStock there means it has 0 of
+    // this item, which must fail the check below (not be skipped).
+    const isInternalTransfer = Boolean(fromCostCenterId);
+    let availableQty = 0;
+
+    if (isInternalTransfer) {
+      const fromStock = await ItemStock.findOne({
+        itemId: item._id,
+        costCenterId: fromCostCenterId,
+      });
+      availableQty = fromStock ? fromStock.inStorage : 0;
+
+      if (availableQty < product.amount) {
+        report.errors.push({
+          ...movement,
+          reason: `Không đủ tồn kho tại nơi xuất. Tồn kho hiện có: ${availableQty}, yêu cầu: ${product.amount}`,
+        });
+        continue;
+      }
+    }
+
+    plan.push({ product, item, isInternalTransfer, movement });
+  }
+
+  if (report.errors.length > 0) {
+    const summary = report.errors
+      .map((e) => `${e.productName}: ${e.reason}`)
+      .join("; ");
+    throw new Error(
+      `Không thể cập nhật tồn kho do lỗi tồn kho không đủ - ${summary}`,
+    );
+  }
+
+  if (dryRun) {
+    for (const p of plan) {
+      report.moved.push({
+        ...p.movement,
+        isInternalTransfer: p.isInternalTransfer,
+      });
+    }
+    return report;
+  }
+
+  // ---- Pass 2: write the changes ----------------------------------------
+  for (const { product, item, isInternalTransfer, movement } of plan) {
+    if (isInternalTransfer) {
+      const fromStock = await ItemStock.findOne({
+        itemId: item._id,
+        costCenterId: fromCostCenterId,
+      });
+      const oldQty = fromStock ? fromStock.inStorage : 0;
+
+      await ItemStock.findOneAndUpdate(
+        { itemId: item._id, costCenterId: fromCostCenterId },
+        {
+          $inc: { inStorage: -product.amount },
+          updatedAt: new Date(),
+          updatedBy: userId,
+          $push: {
+            stockHistory: {
+              oldInStorage: oldQty,
+              newInStorage: oldQty - product.amount,
+              updatedBy: userId,
+              note: `Chuyển ra - ${documentTypeLabel} ${document.tag}`,
+            },
+          },
+        },
+        { upsert: true, setDefaultsOnInsert: true },
+      );
+    }
+
+    let toStock = await ItemStock.findOne({
+      itemId: item._id,
+      costCenterId: toCostCenterId,
+    });
+    const oldToQty = toStock ? toStock.inStorage : 0;
+
+    await ItemStock.findOneAndUpdate(
+      { itemId: item._id, costCenterId: toCostCenterId },
+      {
+        $inc: { inStorage: product.amount },
+        updatedAt: new Date(),
+        updatedBy: userId,
+        $push: {
+          stockHistory: {
+            oldInStorage: oldToQty,
+            newInStorage: oldToQty + product.amount,
+            updatedBy: userId,
+            note: `Chuyển vào - ${documentTypeLabel} ${document.tag}`,
+          },
+        },
+      },
+      { upsert: true, setDefaultsOnInsert: true },
+    );
+
+    // Only bump the global Item.inStorage counter when stock is newly
+    // entering the system (not an internal transfer between two tracked
+    // cost centers).
+    //
+    // Uses an atomic update instead of item.save() so it only touches
+    // inStorage/auditHistory — a full-document save() would re-validate
+    // every field on the Item (including old/legacy ones like unit or
+    // createdBy that may be missing on older records) and fail with an
+    // unrelated validation error.
+    if (!isInternalTransfer) {
+      const oldTotal = item.inStorage || 0;
+      await Item.findByIdAndUpdate(item._id, {
+        $inc: { inStorage: product.amount },
+        $push: {
+          auditHistory: {
+            oldInStorage: oldTotal,
+            newInStorage: oldTotal + product.amount,
+            editedBy: userId,
+            action: "update",
+          },
+        },
+      });
+    }
+
+    report.moved.push({ ...movement, isInternalTransfer });
+  }
+
+  // Mark the in-memory document as processed. The caller must still save it.
+  document.stockMovementProcessed = true;
+  document.stockMovementProcessedAt = new Date();
+
+  return report;
+}
 exports.approveDocument = async (req, res) => {
   const { id } = req.params;
   try {
@@ -1889,12 +2111,40 @@ exports.approveDocument = async (req, res) => {
     });
 
     // If all approvers have approved, mark it as fully approved
-    if (document.approvedBy.length === document.approvers.length) {
+    const isNowFullyApproved =
+      document.approvedBy.length === document.approvers.length;
+
+    if (isNowFullyApproved) {
       document.status = "Approved"; // Update status to Approved
 
       // Check if this is an AdvancePaymentDocument that needs a reclaim document
       if (document instanceof AdvancePaymentDocument) {
         await createAdvancePaymentReclaimAfterAdvancePaymentApproval(document);
+      }
+
+      // Move stock into ItemStock for fully-approved Delivery/Receipt documents.
+      // If this fails (unmatched item, insufficient stock, unknown cost
+      // center...), the whole approval is rejected: nothing is saved below,
+      // so the approver's vote is not recorded either. The approver should
+      // retry once the underlying data issue is fixed.
+      if (
+        document instanceof DeliveryDocument ||
+        document instanceof ReceiptDocument
+      ) {
+        try {
+          await moveStockForDocument(document, {
+            userId: user.id,
+            documentTypeLabel:
+              document instanceof DeliveryDocument
+                ? "Phiếu xuất kho"
+                : "Phiếu nhập kho",
+          });
+        } catch (stockErr) {
+          console.error("Error moving stock on approval:", stockErr);
+          return res.send(
+            `Lỗi cập nhật tồn kho, phiếu chưa được phê duyệt: ${stockErr.message}`,
+          );
+        }
       }
     }
 
