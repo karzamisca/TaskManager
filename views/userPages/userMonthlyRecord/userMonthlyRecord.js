@@ -94,6 +94,58 @@ const getMonthName = (monthNumber) => {
 };
 
 /**
+ * Payroll records are stored one calendar month AHEAD of the period they
+ * actually represent (a record with recordMonth=3 is the payout that covers
+ * February's work, etc). This converts a stored recordMonth/recordYear pair
+ * into the month/year that should actually be shown to the user.
+ *
+ * Critically: when recordMonth is 1, "1 - 1" is 0, which is not a valid
+ * month. That case must roll back to December of the previous year instead.
+ *
+ * This is the ONLY function that should ever compute a "displayed" month.
+ * Every place in this file that shows a month/year to the user must call
+ * this first - never subtract 1 from recordMonth inline.
+ */
+const getDisplayMonthYear = (recordMonth, recordYear) => {
+  const month = Number(recordMonth);
+  const year = Number(recordYear);
+
+  if (!month || isNaN(month)) {
+    return { month: null, year: isNaN(year) ? null : year };
+  }
+
+  if (month === 1) {
+    return { month: 12, year: (isNaN(year) ? null : year) - 1 };
+  }
+
+  return { month: month - 1, year: isNaN(year) ? null : year };
+};
+
+/**
+ * Inverse of getDisplayMonthYear: given the month/year the user picked
+ * (i.e. the DISPLAYED period), returns the recordMonth/recordYear that
+ * would actually be stored for that period. Not currently used for the
+ * export URLs (the backend does that conversion itself, since a
+ * display-year-only filter can span two different stored years), but
+ * kept alongside getDisplayMonthYear so the two stay in sync if this
+ * file ever needs to build a stored-value query itself.
+ */
+const getStoredMonthYear = (displayMonth, displayYear) => {
+  const month = Number(displayMonth);
+  const year = Number(displayYear);
+
+  if (!month || isNaN(month)) {
+    return { month: null, year: isNaN(year) ? null : year };
+  }
+
+  if (month === 12) {
+    return { month: 1, year: (isNaN(year) ? null : year) + 1 };
+  }
+
+  return { month: month + 1, year: isNaN(year) ? null : year };
+};
+
+/**
  * Debounce function to limit API calls
  */
 const debounce = (func, delay) => {
@@ -449,11 +501,18 @@ const calculateUserSummary = (userRecords) => {
 };
 
 /**
- * Extracts unique years from records and sorts them
+ * Extracts unique DISPLAYED years from records and sorts them.
+ *
+ * Must use the display year (via getDisplayMonthYear), not the raw
+ * recordYear - otherwise the dropdown shows storage years the user never
+ * sees, and picking one wouldn't line up with what's shown in the table.
  */
 const extractUniqueYears = (records) => {
   const years = records
-    .map((record) => record.recordYear)
+    .map(
+      (record) =>
+        getDisplayMonthYear(record.recordMonth, record.recordYear).year,
+    )
     .filter((year) => year != null && !isNaN(year));
 
   return [...new Set(years)].sort((a, b) => b - a);
@@ -480,22 +539,32 @@ const extractUniqueCostCenters = (records) => {
 };
 
 /**
- * Filters records based on current filter criteria
+ * Filters records based on current filter criteria.
+ *
+ * IMPORTANT: filters.year / filters.month refer to the DISPLAYED period
+ * (what the dropdowns show and what the table renders), not the raw
+ * stored recordYear / recordMonth. Each record's display period is
+ * recomputed via getDisplayMonthYear before comparing, so a filter of
+ * "Tháng 3" actually matches the records that render as "Tháng 3" in the
+ * table - not the records whose stored recordMonth happens to be 3
+ * (which would actually display as Tháng 2).
  */
 const filterRecords = (records, filters) => {
   return records.filter((record) => {
+    const display = getDisplayMonthYear(record.recordMonth, record.recordYear);
+
     // Year filter with reverse option
     const yearMatch = filters.year
       ? filters.reverseFilters.year
-        ? record.recordYear != filters.year
-        : record.recordYear == filters.year
+        ? display.year != filters.year
+        : display.year == filters.year
       : true;
 
     // Month filter with reverse option
     const monthMatch = filters.month
       ? filters.reverseFilters.month
-        ? record.recordMonth != filters.month
-        : record.recordMonth == filters.month
+        ? display.month != filters.month
+        : display.month == filters.month
       : true;
 
     // Cost Center filter with reverse option
@@ -656,6 +725,12 @@ const calculateSummary = (records) => {
 
 /**
  * Exports data to PDF
+ *
+ * state.filters.year / state.filters.month now hold the DISPLAYED period
+ * (see filterRecords above), and are sent as-is to the backend. The
+ * backend converts them back to stored recordMonth/recordYear before
+ * querying - see getStoredMonthYear / buildDisplayPeriodQuery in
+ * userController.js.
  */
 const exportToPDF = () => {
   const { year, month, costCenter, bank, realName } = state.filters;
@@ -715,6 +790,9 @@ const exportToPDF = () => {
 
 /**
  * Exports data to Excel
+ *
+ * Same note as exportToPDF: filters.year / filters.month are DISPLAYED
+ * period values, converted to stored values on the backend.
  */
 const exportToExcel = async () => {
   const { year, month, costCenter, bank, realName } = state.filters;
@@ -963,12 +1041,17 @@ const createUserSummaryRow = (summary) => {
 const createRecordRow = (record, index) => {
   const row = document.createElement("tr");
   row.setAttribute("role", "row");
-  const monthName = getMonthName(record.recordMonth);
+
+  const { month: displayMonth, year: displayYear } = getDisplayMonthYear(
+    record.recordMonth,
+    record.recordYear,
+  );
+  const monthName = displayMonth != null ? getMonthName(displayMonth) : "N/A";
 
   row.innerHTML = `
     <td role="gridcell">${index + 1}</td>
     <td role="gridcell">${safeGet(record, "realName", "Không có tên")}</td>
-    <td role="gridcell">${monthName} ${record.recordYear || "N/A"}</td>
+    <td role="gridcell">${monthName} ${displayYear ?? "N/A"}</td>
     <td role="gridcell">${safeToLocaleString(record.baseSalary)}</td>
     <td role="gridcell">${safeToLocaleString(record.hourlyWage)}</td>
     <td role="gridcell">${safeToLocaleString(record.responsibility)}</td>
@@ -1016,7 +1099,7 @@ const renderTableWithGrouping = (items) => {
         <td colspan="21" role="gridcell" style="text-align: center; padding: 20px; color: #666;">
           Không tìm thấy bản ghi nào phù hợp với tiêu chí tìm kiếm.
         </td>
-      </table>
+      </tr>
     `;
     return;
   }
@@ -1301,11 +1384,15 @@ const showRecordCount = (count) => {
  * Creates modal content for record details WITH DAYOFF
  */
 const createModalContent = (record) => {
-  const monthName = getMonthName(record.recordMonth);
+  const { month: displayMonth, year: displayYear } = getDisplayMonthYear(
+    record.recordMonth,
+    record.recordYear,
+  );
+  const monthName = displayMonth != null ? getMonthName(displayMonth) : "N/A";
 
   return `
     <h2>${safeGet(record, "realName", "Không có tên")} - ${monthName} ${
-      record.recordYear
+      displayYear ?? ""
     }</h2>
     <p><strong>Ngày ghi nhận:</strong> ${formatDate(record.recordDate)}</p>
     <p><strong>Email:</strong> ${safeGet(record, "email", "Không có")}</p>

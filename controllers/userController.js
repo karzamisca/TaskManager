@@ -8,6 +8,85 @@ const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 
+/**
+ * Payroll records are stored one calendar month AHEAD of the period they
+ * actually represent (e.g. a record with recordMonth=3 is the payout that
+ * covers February's work). This converts a stored recordMonth/recordYear
+ * pair into the month/year that should actually be shown to the user.
+ *
+ * IMPORTANT: when recordMonth is 1, "1 - 1" is 0, which is not a valid
+ * month ("Thanh toan luong thang 0" is wrong) - that case must roll back
+ * to December of the previous year instead.
+ *
+ * This is the ONLY function that should ever compute a "displayed" month
+ * anywhere in this controller. Never do `recordMonth - 1` inline - always
+ * call this helper, so the year-rollover is never forgotten again.
+ */
+function getDisplayMonthYear(recordMonth, recordYear) {
+  const month = parseInt(recordMonth);
+  const year = parseInt(recordYear);
+
+  if (isNaN(month)) {
+    return { month: null, year: isNaN(year) ? null : year };
+  }
+
+  if (month === 1) {
+    return { month: 12, year: (isNaN(year) ? null : year) - 1 };
+  }
+
+  return { month: month - 1, year: isNaN(year) ? null : year };
+}
+
+/**
+ * Inverse of getDisplayMonthYear: given the month/year the user filtered
+ * by (the DISPLAYED period, as sent by the frontend filter/export UI),
+ * returns the recordMonth/recordYear that is actually stored for that
+ * period.
+ */
+function getStoredMonthYear(displayMonth, displayYear) {
+  const month = parseInt(displayMonth);
+  const year = parseInt(displayYear);
+
+  if (isNaN(month)) {
+    return { recordMonth: null, recordYear: isNaN(year) ? null : year };
+  }
+
+  if (month === 12) {
+    return { recordMonth: 1, recordYear: (isNaN(year) ? null : year) + 1 };
+  }
+
+  return { recordMonth: month + 1, recordYear: isNaN(year) ? null : year };
+}
+
+/**
+ * Builds the Mongo query fragment for a DISPLAYED month/year filter
+ * coming from the frontend (export UI).
+ *
+ * - If a specific display month is given, this is unambiguous: convert
+ *   straight to one recordMonth/recordYear pair.
+ * - If only a display year is given (no month - "whole year" export),
+ *   it is NOT a single stored year: the displayed year Y is made up of
+ *   recordMonth 2-12 with recordYear = Y (Feb-Dec's payouts, stored in
+ *   the same year they display) PLUS recordMonth = 1 with
+ *   recordYear = Y + 1 (December's payout, stored one month/year ahead).
+ *   That needs an $or across two stored years.
+ */
+function buildDisplayPeriodQuery(month, year) {
+  const displayYear = parseInt(year);
+
+  if (month) {
+    const stored = getStoredMonthYear(month, displayYear);
+    return { recordMonth: stored.recordMonth, recordYear: stored.recordYear };
+  }
+
+  return {
+    $or: [
+      { recordYear: displayYear, recordMonth: { $ne: 1 } },
+      { recordYear: displayYear + 1, recordMonth: 1 },
+    ],
+  };
+}
+
 exports.getUserMainPage = (req, res) => {
   try {
     if (
@@ -544,12 +623,8 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
     ];
 
     const query = {
-      recordYear: parseInt(year),
+      ...buildDisplayPeriodQuery(month, year),
     };
-
-    if (month) {
-      query.recordMonth = parseInt(month);
-    }
 
     if (!fullAccessRoles.includes(req.user.role)) {
       query.assignedManager = req.user._id;
@@ -656,8 +731,13 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
 
     const printer = new PdfPrinter(fonts);
 
+    // The `month`/`year` query params now represent the DISPLAYED period
+    // (the frontend filter/export UI sends display values directly - see
+    // buildDisplayPeriodQuery above, which converts them back to stored
+    // values for the DB query). So for the title we use them as-is here,
+    // with no further conversion.
     const reportTitle = month
-      ? `DANH SÁCH CHI LƯƠNG THÁNG ${month} NĂM ${year}`
+      ? `DANH SÁCH CHI LƯƠNG THÁNG ${parseInt(month)} NĂM ${parseInt(year)}`
       : `DANH SÁCH CHI LƯƠNG NĂM ${year}`;
 
     const description = month
@@ -724,9 +804,16 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
                 { text: "Thuế", style: "tableHeader" },
               ],
           ...records.map((record, index) => {
-            const descriptionText = month
-              ? `Thanh toán lương tháng ${parseInt(month) - 1}`
-              : `Thanh toán lương tháng ${record.recordMonth}`;
+            // Both the "Nội dung chi lương" text AND the "Tháng" column
+            // must show the SAME display month - previously the text used
+            // recordMonth-1 (buggy for recordMonth=1 => "thang 0") while
+            // one of the two branches showed the raw recordMonth. Both are
+            // now derived from the single getDisplayMonthYear helper.
+            const rowDisplay = getDisplayMonthYear(
+              record.recordMonth,
+              record.recordYear,
+            );
+            const descriptionText = `Thanh toán lương tháng ${rowDisplay.month}`;
 
             const baseRow = [
               {
@@ -767,7 +854,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
                   style: "tableContent",
                 },
                 {
-                  text: record.recordMonth.toString(),
+                  text: rowDisplay.month.toString(),
                   style: "tableContent",
                   alignment: "center",
                 },
@@ -775,7 +862,7 @@ exports.exportSalaryPaymentPDF = async (req, res) => {
             } else {
               baseRow.push(
                 {
-                  text: record.recordMonth.toString(),
+                  text: rowDisplay.month.toString(),
                   style: "tableContent",
                   alignment: "center",
                 },
@@ -1114,12 +1201,8 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
     ];
 
     const query = {
-      recordYear: parseInt(year),
+      ...buildDisplayPeriodQuery(month, year),
     };
-
-    if (month) {
-      query.recordMonth = parseInt(month);
-    }
 
     if (!fullAccessRoles.includes(req.user.role)) {
       query.assignedManager = req.user._id;
@@ -1238,8 +1321,11 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
       },
     };
 
+    // The `month`/`year` query params now represent the DISPLAYED period
+    // (see buildDisplayPeriodQuery, which converts them back to stored
+    // values for the DB query above). The title uses them as-is.
     const reportTitle = month
-      ? `BÁO CÁO CHI TIẾT LƯƠNG THÁNG ${month} NĂM ${year}`
+      ? `BÁO CÁO CHI TIẾT LƯƠNG THÁNG ${parseInt(month)} NĂM ${parseInt(year)}`
       : `BÁO CÁO CHI TIẾT LƯƠNG NĂM ${year}`;
 
     const columnsCount = 21; // Increased from 20 to 21 for dayOff
@@ -1442,11 +1528,18 @@ exports.exportSalaryPaymentExcel = async (req, res) => {
         let userTotalCurrentSalary = 0;
 
         userRecords.forEach((record, recordIndex) => {
+          // Displayed month/year (what the payroll period actually was),
+          // NOT the raw stored recordMonth/recordYear.
+          const rowDisplay = getDisplayMonthYear(
+            record.recordMonth,
+            record.recordYear,
+          );
+
           const rowData = {
             stt: globalIndex++,
             name: record.realName || "N/A",
-            month: record.recordMonth,
-            year: record.recordYear,
+            month: rowDisplay.month,
+            year: rowDisplay.year,
             baseSalary: Math.ceil(record.baseSalary || 0),
             hourlyWage: Math.ceil(record.hourlyWage || 0),
             responsibility: Math.ceil(record.responsibility || 0),
@@ -2053,14 +2146,13 @@ exports.sendSalaryCalculationEmails = async (req, res) => {
     let successfulCount = 0;
     let failedCount = 0;
 
-    let displayMonth, displayYear;
-    if (parseInt(month) === 1) {
-      displayMonth = 12;
-      displayYear = parseInt(year) - 1;
-    } else {
-      displayMonth = parseInt(month) - 1;
-      displayYear = parseInt(year);
-    }
+    // This already correctly rolled Jan (1) back to Dec of the prior year;
+    // now expressed via the same shared helper as everywhere else so the
+    // logic can't drift out of sync again.
+    const { month: displayMonth, year: displayYear } = getDisplayMonthYear(
+      month,
+      year,
+    );
 
     for (const user of users) {
       const userRecord = records.find(
