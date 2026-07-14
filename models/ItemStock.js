@@ -35,6 +35,12 @@ const itemStockSchema = new mongoose.Schema({
     ref: "CostCenter",
     required: true,
   },
+  // Optional grouping within a cost center. null/absent = "no group" (default bucket).
+  groupId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Group",
+    default: null,
+  },
   inStorage: {
     type: Number,
     default: 0,
@@ -54,7 +60,10 @@ const itemStockSchema = new mongoose.Schema({
   },
 });
 
-// One record per item+costCenter combination
-itemStockSchema.index({ itemId: 1, costCenterId: 1 }, { unique: true });
+// One record per item+costCenter+group combination (group defaults to null = "no group").
+itemStockSchema.index(
+  { itemId: 1, costCenterId: 1, groupId: 1 },
+  { unique: true },
+);
 
 module.exports = mongoose.model("ItemStock", itemStockSchema);

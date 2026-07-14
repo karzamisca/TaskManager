@@ -28,6 +28,16 @@ router.get(
   ctrl.getCostCenters,
 );
 
+// ── Groups (for dropdown) ───────────────────────────────────────────────────────
+// NOTE: must be declared before /itemManagementControl/:id routes to avoid collision.
+router.get("/itemManagementControl/groups", authMiddleware, ctrl.getGroups);
+router.post("/itemManagementControl/groups", authMiddleware, ctrl.createGroup);
+router.delete(
+  "/itemManagementControl/groups/:id",
+  authMiddleware,
+  ctrl.deleteGroup,
+);
+
 // ── Excel (must be before /:id to avoid route collision) ──────────────────────
 router.get(
   "/itemManagementControl/export/excel",
@@ -70,7 +80,7 @@ router.get(
   ctrl.getItemAuditHistory,
 );
 
-// ── Per-cost-center stock ──────────────────────────────────────────────────────
+// ── Per-cost-center (+ group) stock ────────────────────────────────────────────
 // NOTE: /stock/history must come BEFORE /stock to avoid Express matching
 //       "history" as the :costCenterId param on a deeper route.
 router.get(

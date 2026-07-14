@@ -2,6 +2,7 @@
 const Item = require("../models/Item");
 const ItemStock = require("../models/ItemStock");
 const CostCenter = require("../models/CostCenter");
+const Group = require("../models/Group");
 const Order = require("../models/ItemOrder");
 const ExcelJS = require("exceljs");
 
@@ -18,20 +19,34 @@ const formatDateTime = (date) => {
 };
 
 /**
- * Given an array of items and a costCenterId, merge inStorage from ItemStock.
- * If costCenterId is omitted, inStorage is returned as null (not tracked globally).
+ * Normalize an incoming groupId value (query/body string, ObjectId, "", undefined)
+ * down to either a real id or null. "No group" is always represented as null.
  */
-const mergeStockIntoItems = async (items, costCenterId) => {
+const normalizeGroupId = (groupId) => {
+  if (!groupId || groupId === "null" || groupId === "undefined") return null;
+  return groupId;
+};
+
+/**
+ * Given an array of items and a costCenterId (+ optional groupId), merge inStorage
+ * from ItemStock. If costCenterId is omitted, inStorage is returned as null
+ * (not tracked globally). groupId defaults to null ("no group" bucket).
+ */
+const mergeStockIntoItems = async (items, costCenterId, groupId) => {
   if (!costCenterId) {
     return items.map((item) => ({
       ...item.toObject(),
       inStorage: null,
       costCenterId: null,
+      groupId: null,
     }));
   }
 
+  const gId = normalizeGroupId(groupId);
+
   const stocks = await ItemStock.find({
     costCenterId,
+    groupId: gId,
     itemId: { $in: items.map((i) => i._id) },
   }).lean();
 
@@ -43,20 +58,28 @@ const mergeStockIntoItems = async (items, costCenterId) => {
     ...item.toObject(),
     inStorage: stockMap[item._id.toString()] ?? 0,
     costCenterId,
+    groupId: gId,
   }));
 };
 
 /**
- * Upsert stock for one item+costCenter and append a stockHistory entry.
+ * Upsert stock for one item+costCenter+group and append a stockHistory entry.
+ * groupId defaults to null ("no group").
  */
 const upsertStock = async (
   itemId,
   costCenterId,
+  groupId,
   newInStorage,
   userId,
   note = "",
 ) => {
-  const existing = await ItemStock.findOne({ itemId, costCenterId });
+  const gId = normalizeGroupId(groupId);
+  const existing = await ItemStock.findOne({
+    itemId,
+    costCenterId,
+    groupId: gId,
+  });
   const oldInStorage = existing ? existing.inStorage : null;
 
   const historyEntry = {
@@ -78,6 +101,7 @@ const upsertStock = async (
     const stock = new ItemStock({
       itemId,
       costCenterId,
+      groupId: gId,
       inStorage: newInStorage,
       updatedBy: userId,
       updatedAt: new Date(),
@@ -126,19 +150,82 @@ exports.getCostCenters = async (req, res) => {
   }
 };
 
+// ─── Group list / management (for frontend dropdown) ─────────────────────────
+
+/** GET /itemManagementControl/groups */
+exports.getGroups = async (req, res) => {
+  try {
+    const groups = await Group.find({}).sort({ name: 1 }).lean();
+    res.json(groups);
+  } catch (error) {
+    console.error("Error fetching groups:", error);
+    res.status(500).json({ error: "Failed to fetch groups" });
+  }
+};
+
+/** POST /itemManagementControl/groups  — body: { name, description } */
+exports.createGroup = async (req, res) => {
+  try {
+    const { name, description = "" } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Tên nhóm là bắt buộc" });
+    }
+
+    const existing = await Group.findOne({ name: name.trim() });
+    if (existing) {
+      return res.status(400).json({ error: "Tên nhóm đã tồn tại" });
+    }
+
+    const group = new Group({ name: name.trim(), description });
+    await group.save();
+    res.status(201).json(group);
+  } catch (error) {
+    console.error("Error creating group:", error);
+    res.status(500).json({ error: "Failed to create group" });
+  }
+};
+
+/** DELETE /itemManagementControl/groups/:id */
+exports.deleteGroup = async (req, res) => {
+  try {
+    const groupId = req.params.id;
+
+    const inUse = await ItemStock.findOne({ groupId });
+    if (inUse) {
+      return res.status(400).json({
+        error:
+          "Không thể xóa nhóm này vì đang có mặt hàng được theo dõi tồn kho theo nhóm.",
+      });
+    }
+
+    const group = await Group.findByIdAndDelete(groupId);
+    if (!group) return res.status(404).json({ error: "Group not found" });
+
+    res.json({ message: "Đã xóa nhóm thành công" });
+  } catch (error) {
+    console.error("Error deleting group:", error);
+    res.status(500).json({ error: "Failed to delete group" });
+  }
+};
+
 // ─── Item CRUD ────────────────────────────────────────────────────────────────
 
-/** GET /itemManagementControl?costCenterId=xxx&sortBy=name&sortOrder=asc */
+/** GET /itemManagementControl?costCenterId=xxx&groupId=xxx&sortBy=name&sortOrder=asc */
 exports.getAllItems = async (req, res) => {
   try {
-    const { sortBy = "name", sortOrder = "asc", costCenterId } = req.query;
+    const {
+      sortBy = "name",
+      sortOrder = "asc",
+      costCenterId,
+      groupId,
+    } = req.query;
     const sortOptions = { [sortBy]: sortOrder === "desc" ? -1 : 1 };
 
     const items = await Item.find({ isDeleted: false })
       .populate("createdBy", "username")
       .sort(sortOptions);
 
-    const result = await mergeStockIntoItems(items, costCenterId);
+    const result = await mergeStockIntoItems(items, costCenterId, groupId);
     res.json(result);
   } catch (error) {
     console.error("Error fetching items:", error);
@@ -146,10 +233,15 @@ exports.getAllItems = async (req, res) => {
   }
 };
 
-/** GET /itemManagementControl/all?costCenterId=xxx */
+/** GET /itemManagementControl/all?costCenterId=xxx&groupId=xxx */
 exports.getAllItemsWithDeleted = async (req, res) => {
   try {
-    const { sortBy = "name", sortOrder = "asc", costCenterId } = req.query;
+    const {
+      sortBy = "name",
+      sortOrder = "asc",
+      costCenterId,
+      groupId,
+    } = req.query;
     const sortOptions = { [sortBy]: sortOrder === "desc" ? -1 : 1 };
 
     const items = await Item.find()
@@ -157,7 +249,7 @@ exports.getAllItemsWithDeleted = async (req, res) => {
       .populate("deletedBy", "username")
       .sort(sortOptions);
 
-    const result = await mergeStockIntoItems(items, costCenterId);
+    const result = await mergeStockIntoItems(items, costCenterId, groupId);
     res.json(result);
   } catch (error) {
     console.error("Error fetching all items:", error);
@@ -165,10 +257,10 @@ exports.getAllItemsWithDeleted = async (req, res) => {
   }
 };
 
-/** GET /itemManagementControl/:id?costCenterId=xxx */
+/** GET /itemManagementControl/:id?costCenterId=xxx&groupId=xxx */
 exports.getItem = async (req, res) => {
   try {
-    const { costCenterId } = req.query;
+    const { costCenterId, groupId } = req.query;
 
     const item = await Item.findById(req.params.id)
       .populate("createdBy", "username")
@@ -177,7 +269,7 @@ exports.getItem = async (req, res) => {
 
     if (!item) return res.status(404).json({ error: "Item not found" });
 
-    const [merged] = await mergeStockIntoItems([item], costCenterId);
+    const [merged] = await mergeStockIntoItems([item], costCenterId, groupId);
     res.json(merged);
   } catch (error) {
     console.error("Error fetching item:", error);
@@ -185,7 +277,7 @@ exports.getItem = async (req, res) => {
   }
 };
 
-/** POST /itemManagementControl  — body: { name, code, unit, unitPrice, vat, costCenterId?, inStorage? } */
+/** POST /itemManagementControl  — body: { name, code, unit, unitPrice, vat, costCenterId?, groupId?, inStorage? } */
 exports.createItem = async (req, res) => {
   try {
     const {
@@ -195,8 +287,11 @@ exports.createItem = async (req, res) => {
       unitPrice,
       vat = 0,
       costCenterId,
+      groupId,
       inStorage = 0,
     } = req.body;
+
+    const gId = normalizeGroupId(groupId);
 
     // costCenterId is now optional
     let costCenter = null;
@@ -204,6 +299,14 @@ exports.createItem = async (req, res) => {
       costCenter = await CostCenter.findById(costCenterId);
       if (!costCenter) {
         return res.status(404).json({ error: "Cost center not found" });
+      }
+    }
+
+    let group = null;
+    if (gId) {
+      group = await Group.findById(gId);
+      if (!group) {
+        return res.status(404).json({ error: "Group not found" });
       }
     }
 
@@ -216,6 +319,13 @@ exports.createItem = async (req, res) => {
     const price = parseFloat(unitPrice);
     const priceAfterVAT = price * (1 + vatPct / 100);
     const inStorageValue = parseInt(inStorage) || 0;
+
+    let createNote = "Tạo mặt hàng";
+    if (costCenter && group) {
+      createNote = `Tạo tại cost center: ${costCenter.name}, nhóm: ${group.name}`;
+    } else if (costCenter) {
+      createNote = `Tạo tại cost center: ${costCenter.name}`;
+    }
 
     const item = new Item({
       name,
@@ -235,9 +345,7 @@ exports.createItem = async (req, res) => {
           newUnitPriceAfterVAT: priceAfterVAT,
           editedBy: req.user.id,
           action: "create",
-          note: costCenter
-            ? `Tạo tại cost center: ${costCenter.name}`
-            : "Tạo mặt hàng",
+          note: createNote,
         },
       ],
     });
@@ -248,9 +356,12 @@ exports.createItem = async (req, res) => {
       await upsertStock(
         item._id,
         costCenterId,
+        gId,
         inStorageValue,
         req.user.id,
-        `Tạo mặt hàng tại ${costCenter.name}`,
+        group
+          ? `Tạo mặt hàng tại ${costCenter.name}, nhóm ${group.name}`
+          : `Tạo mặt hàng tại ${costCenter.name}`,
       );
     }
 
@@ -260,6 +371,7 @@ exports.createItem = async (req, res) => {
       ...item.toObject(),
       inStorage: costCenterId ? inStorageValue : null,
       costCenterId: costCenterId || null,
+      groupId: costCenterId ? gId : null,
     });
   } catch (error) {
     console.error("Error creating item:", error);
@@ -267,12 +379,21 @@ exports.createItem = async (req, res) => {
   }
 };
 
-/** PUT /itemManagementControl/:id  — body: { name, code, unit, unitPrice, vat, costCenterId?, inStorage? } */
+/** PUT /itemManagementControl/:id  — body: { name, code, unit, unitPrice, vat, costCenterId?, groupId?, inStorage? } */
 exports.updateItem = async (req, res) => {
   try {
-    const { name, code, unit, unitPrice, vat, costCenterId, inStorage } =
-      req.body;
+    const {
+      name,
+      code,
+      unit,
+      unitPrice,
+      vat,
+      costCenterId,
+      groupId,
+      inStorage,
+    } = req.body;
     const itemId = req.params.id;
+    const gId = normalizeGroupId(groupId);
 
     const item = await Item.findById(itemId);
     if (!item) return res.status(404).json({ error: "Item not found" });
@@ -295,16 +416,28 @@ exports.updateItem = async (req, res) => {
       costCenterName = costCenter ? costCenter.name : costCenterId;
     }
 
+    let groupName = "";
+    if (gId) {
+      const group = await Group.findById(gId).lean();
+      groupName = group ? group.name : "";
+    }
+
     const vatPct = vat !== undefined ? parseFloat(vat) : item.vat;
     const price = parseFloat(unitPrice);
     const priceAfterVAT = price * (1 + vatPct / 100);
 
     const currentStock = costCenterId
-      ? await ItemStock.findOne({ itemId, costCenterId })
+      ? await ItemStock.findOne({ itemId, costCenterId, groupId: gId })
       : null;
     const oldInStorage = currentStock ? currentStock.inStorage : 0;
     const newInStorage =
       inStorage !== undefined ? parseInt(inStorage) : oldInStorage;
+
+    const scopeLabel = costCenterId
+      ? groupName
+        ? `${costCenterName}, nhóm: ${groupName}`
+        : costCenterName
+      : "";
 
     const auditEntry = {
       oldName: item.name,
@@ -322,7 +455,7 @@ exports.updateItem = async (req, res) => {
       editedBy: req.user.id,
       action: "update",
       note: costCenterId
-        ? `Cập nhật tại cost center: ${costCenterName}, tồn kho: ${oldInStorage} → ${newInStorage}`
+        ? `Cập nhật tại cost center: ${scopeLabel}, tồn kho: ${oldInStorage} → ${newInStorage}`
         : "Cập nhật mặt hàng",
     };
 
@@ -342,9 +475,10 @@ exports.updateItem = async (req, res) => {
       await upsertStock(
         itemId,
         costCenterId,
+        gId,
         newInStorage,
         req.user.id,
-        `Cập nhật mặt hàng tại ${costCenterName}`,
+        `Cập nhật mặt hàng tại ${scopeLabel}`,
       );
     }
 
@@ -504,6 +638,7 @@ exports.updateItem = async (req, res) => {
       ...item.toObject(),
       inStorage: costCenterId ? newInStorage : null,
       costCenterId: costCenterId || null,
+      groupId: costCenterId ? gId : null,
       ordersUpdated,
       ...syncResult,
     });
@@ -513,11 +648,12 @@ exports.updateItem = async (req, res) => {
   }
 };
 
-/** PATCH /itemManagementControl/:id/stock  — update stock for one cost center only */
+/** PATCH /itemManagementControl/:id/stock  — body: { costCenterId, groupId?, inStorage } */
 exports.updateStock = async (req, res) => {
   try {
-    const { costCenterId, inStorage } = req.body;
+    const { costCenterId, groupId, inStorage } = req.body;
     const itemId = req.params.id;
+    const gId = normalizeGroupId(groupId);
 
     if (!costCenterId)
       return res.status(400).json({ error: "costCenterId is required" });
@@ -533,26 +669,41 @@ exports.updateStock = async (req, res) => {
     if (!costCenter)
       return res.status(404).json({ error: "Cost center not found" });
 
+    let group = null;
+    if (gId) {
+      group = await Group.findById(gId);
+      if (!group) return res.status(404).json({ error: "Group not found" });
+    }
+
     const stock = await upsertStock(
       itemId,
       costCenterId,
+      gId,
       parseInt(inStorage),
       req.user.id,
-      "Cập nhật tồn kho thủ công",
+      group
+        ? `Cập nhật tồn kho thủ công (nhóm: ${group.name})`
+        : "Cập nhật tồn kho thủ công",
     );
 
-    res.json({ itemId, costCenterId, inStorage: stock.inStorage });
+    res.json({
+      itemId,
+      costCenterId,
+      groupId: gId,
+      inStorage: stock.inStorage,
+    });
   } catch (error) {
     console.error("Error updating stock:", error);
     res.status(500).json({ error: "Failed to update stock" });
   }
 };
 
-/** GET /itemManagementControl/:id/stock  — get stock across all cost centers */
+/** GET /itemManagementControl/:id/stock  — get stock across all cost centers & groups */
 exports.getItemStockByCostCenter = async (req, res) => {
   try {
     const stocks = await ItemStock.find({ itemId: req.params.id })
       .populate("costCenterId", "name category")
+      .populate("groupId", "name description")
       .populate("updatedBy", "username")
       .lean();
 
@@ -563,16 +714,19 @@ exports.getItemStockByCostCenter = async (req, res) => {
   }
 };
 
-/** GET /itemManagementControl/:id/stock/history?costCenterId=xxx */
+/** GET /itemManagementControl/:id/stock/history?costCenterId=xxx&groupId=xxx */
 exports.getItemStockHistory = async (req, res) => {
   try {
-    const { costCenterId } = req.query;
+    const { costCenterId, groupId } = req.query;
     if (!costCenterId)
       return res.status(400).json({ error: "costCenterId is required" });
+
+    const gId = normalizeGroupId(groupId);
 
     const stock = await ItemStock.findOne({
       itemId: req.params.id,
       costCenterId,
+      groupId: gId,
     })
       .populate("stockHistory.updatedBy", "username")
       .lean();
@@ -698,10 +852,11 @@ exports.getItemAuditHistory = async (req, res) => {
 
 // ─── Excel Export ─────────────────────────────────────────────────────────────
 
-/** GET /itemManagementControl/export/excel?costCenterId=xxx&includeDeleted=false */
+/** GET /itemManagementControl/export/excel?costCenterId=xxx&groupId=xxx&includeDeleted=false */
 exports.exportToExcel = async (req, res) => {
   try {
-    const { includeDeleted = "false", costCenterId } = req.query;
+    const { includeDeleted = "false", costCenterId, groupId } = req.query;
+    const gId = normalizeGroupId(groupId);
 
     const query = includeDeleted === "true" ? {} : { isDeleted: false };
     const items = await Item.find(query)
@@ -711,18 +866,28 @@ exports.exportToExcel = async (req, res) => {
 
     let stockMap = {};
     let costCenterName = "";
+    let groupName = "";
 
     if (costCenterId) {
       const cc = await CostCenter.findById(costCenterId).lean();
       costCenterName = cc ? cc.name : costCenterId;
-      const stocks = await ItemStock.find({ costCenterId }).lean();
+
+      if (gId) {
+        const g = await Group.findById(gId).lean();
+        groupName = g ? g.name : "";
+      }
+
+      const stocks = await ItemStock.find({
+        costCenterId,
+        groupId: gId,
+      }).lean();
       stockMap = Object.fromEntries(
         stocks.map((s) => [s.itemId.toString(), s.inStorage]),
       );
     } else {
-      // Export ALL cost center stocks — one sheet per cost center
+      // Export ALL cost center stocks — one sheet per cost center (ungrouped totals)
       const allCCs = await CostCenter.find({}, "name").lean();
-      const allStocks = await ItemStock.find({}).lean();
+      const allStocks = await ItemStock.find({ groupId: null }).lean();
       const grouped = {};
       for (const s of allStocks) {
         const ccId = s.costCenterId.toString();
@@ -743,7 +908,11 @@ exports.exportToExcel = async (req, res) => {
           { header: "Đơn giá", key: "unitPrice", width: 15 },
           { header: "VAT (%)", key: "vat", width: 10 },
           { header: "Giá sau VAT", key: "unitPriceAfterVAT", width: 15 },
-          { header: `Tồn kho (${cc.name})`, key: "inStorage", width: 18 },
+          {
+            header: `Tồn kho (${cc.name}, không nhóm)`,
+            key: "inStorage",
+            width: 22,
+          },
           { header: "Trạng thái", key: "status", width: 15 },
           { header: "Người tạo", key: "createdBy", width: 20 },
           { header: "Ngày tạo", key: "createdAt", width: 20 },
@@ -787,9 +956,13 @@ exports.exportToExcel = async (req, res) => {
       return res.end();
     }
 
-    // Single cost center export
+    // Single cost center (+ optional group) export
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Danh sách mặt hàng");
+
+    const storageHeader = groupName
+      ? `Tồn kho (${costCenterName}, nhóm: ${groupName})`
+      : `Tồn kho (${costCenterName}, không nhóm)`;
 
     worksheet.columns = [
       { header: "Mã hàng", key: "code", width: 15 },
@@ -798,7 +971,7 @@ exports.exportToExcel = async (req, res) => {
       { header: "Đơn giá", key: "unitPrice", width: 15 },
       { header: "VAT (%)", key: "vat", width: 10 },
       { header: "Giá sau VAT", key: "unitPriceAfterVAT", width: 15 },
-      { header: `Tồn kho (${costCenterName})`, key: "inStorage", width: 18 },
+      { header: storageHeader, key: "inStorage", width: 22 },
       { header: "Trạng thái", key: "status", width: 15 },
       { header: "Người tạo", key: "createdBy", width: 20 },
       { header: "Ngày tạo", key: "createdAt", width: 20 },
@@ -834,7 +1007,10 @@ exports.exportToExcel = async (req, res) => {
       };
     });
 
-    const fileName = `danh-sach-mat-hang-${costCenterName || "tat-ca"}_${new Date().toISOString().split("T")[0]}.xlsx`;
+    const scopeSuffix = groupName
+      ? `${costCenterName}-${groupName}`
+      : costCenterName;
+    const fileName = `danh-sach-mat-hang-${scopeSuffix || "tat-ca"}_${new Date().toISOString().split("T")[0]}.xlsx`;
     res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -858,13 +1034,25 @@ exports.importFromExcel = async (req, res) => {
     if (!req.file)
       return res.status(400).json({ error: "Không có file được tải lên" });
 
-    const { costCenterId } = req.body;
+    const { costCenterId, groupId } = req.body;
     if (!costCenterId)
       return res.status(400).json({ error: "Vui lòng chọn cost center" });
+
+    const gId = normalizeGroupId(groupId);
 
     const costCenter = await CostCenter.findById(costCenterId).lean();
     if (!costCenter)
       return res.status(404).json({ error: "Cost center không tồn tại" });
+
+    let group = null;
+    if (gId) {
+      group = await Group.findById(gId).lean();
+      if (!group) return res.status(404).json({ error: "Nhóm không tồn tại" });
+    }
+
+    const scopeName = group
+      ? `${costCenter.name} (nhóm: ${group.name})`
+      : costCenter.name;
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(req.file.buffer);
@@ -960,7 +1148,7 @@ exports.importFromExcel = async (req, res) => {
             newUnitPriceAfterVAT: unitPriceAfterVAT,
             editedBy: req.user.id,
             action: "update",
-            note: `Cập nhật từ Excel import tại ${costCenter.name}`,
+            note: `Cập nhật từ Excel import tại ${scopeName}`,
           });
 
           await existingItem.save();
@@ -968,9 +1156,10 @@ exports.importFromExcel = async (req, res) => {
           await upsertStock(
             existingItem._id,
             costCenterId,
+            gId,
             inStorage,
             req.user.id,
-            `Cập nhật từ Excel import tại ${costCenter.name}`,
+            `Cập nhật từ Excel import tại ${scopeName}`,
           );
 
           results.updated++;
@@ -1046,7 +1235,7 @@ exports.importFromExcel = async (req, res) => {
                 newUnitPriceAfterVAT: unitPriceAfterVAT,
                 editedBy: req.user.id,
                 action: "create",
-                note: `Nhập từ Excel tại ${costCenter.name}`,
+                note: `Nhập từ Excel tại ${scopeName}`,
               },
             ],
           });
@@ -1056,9 +1245,10 @@ exports.importFromExcel = async (req, res) => {
           await upsertStock(
             newItem._id,
             costCenterId,
+            gId,
             inStorage,
             req.user.id,
-            `Nhập từ Excel tại ${costCenter.name}`,
+            `Nhập từ Excel tại ${scopeName}`,
           );
 
           results.created++;
@@ -1082,7 +1272,7 @@ exports.importFromExcel = async (req, res) => {
 
       rws.addRow(["Tổng kết nhập file Excel"]);
       rws.addRow([]);
-      rws.addRow(["Cost Center:", costCenter.name]);
+      rws.addRow(["Cost Center:", scopeName]);
       rws.addRow(["Tổng số dòng:", results.total]);
       rws.addRow(["Thành công:", results.success]);
       rws.addRow(["  - Tạo mới:", results.created]);

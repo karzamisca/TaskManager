@@ -1,13 +1,18 @@
 // views/itemPages/itemManagement/itemManagement.js
 // All item operations are cost-center-aware for stock, but name/code edits work without one.
+// Stock can additionally be scoped to an optional "group" within a cost center.
+// No group selected = "no group" bucket (groupId = null), which is the default.
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let currentItemId = null;
 let showDeleted = false;
 let allItems = [];
 let costCenters = [];
+let groups = [];
 let selectedCostCenterId = null;
 let selectedCostCenterName = "";
+let selectedGroupId = null;
+let selectedGroupName = "";
 let errorFileData = null;
 
 let currentSort = { field: "name", order: "asc" };
@@ -25,10 +30,14 @@ const sortStates = {
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
   await loadCostCenters();
+  await loadGroups();
 
   document
     .getElementById("cost-center-select")
     .addEventListener("change", onCostCenterChange);
+  document
+    .getElementById("group-select")
+    .addEventListener("change", onGroupChange);
   document
     .getElementById("unitPrice")
     .addEventListener("input", calculatePriceAfterVAT);
@@ -93,12 +102,22 @@ function onCostCenterChange() {
   const importBtn = document.getElementById("btn-import");
   const storageCC = document.getElementById("th-storage-cc");
   const noCCMsg = document.getElementById("no-cost-center-msg");
+  const groupSelect = document.getElementById("group-select");
+  const btnAddGroup = document.getElementById("btn-add-group");
+
+  // Reset group selection whenever the cost center changes
+  groupSelect.value = "";
+  selectedGroupId = null;
+  selectedGroupName = "";
+  updateGroupBadge();
 
   if (selectedCostCenterId) {
     badge.textContent = selectedCostCenterName;
     badge.style.display = "inline-block";
     hint.style.display = "inline";
     importBtn.disabled = false;
+    groupSelect.disabled = false;
+    btnAddGroup.disabled = false;
     storageCC.textContent = selectedCostCenterName;
     storageCC.style.display = "inline-block";
     noCCMsg.style.display = "none";
@@ -108,11 +127,100 @@ function onCostCenterChange() {
     badge.style.display = "none";
     hint.style.display = "none";
     importBtn.disabled = true;
+    groupSelect.disabled = true;
+    btnAddGroup.disabled = true;
     storageCC.style.display = "none";
     noCCMsg.style.display = "none";
   }
 
   fetchItems();
+}
+
+// ─── Groups ───────────────────────────────────────────────────────────────────
+async function loadGroups() {
+  try {
+    const res = await fetch("/itemManagementControl/groups", {
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Không thể tải danh sách nhóm");
+
+    groups = await res.json();
+    renderGroupOptions();
+  } catch (err) {
+    showAlert("Lỗi tải danh sách nhóm: " + err.message, "error");
+  }
+}
+
+function renderGroupOptions() {
+  const select = document.getElementById("group-select");
+  const currentValue = select.value;
+  select.innerHTML = '<option value="">-- Không nhóm --</option>';
+  groups.forEach((g) => {
+    const opt = document.createElement("option");
+    opt.value = g._id;
+    opt.textContent = g.name;
+    select.appendChild(opt);
+  });
+  select.value = currentValue;
+}
+
+function onGroupChange() {
+  const select = document.getElementById("group-select");
+  selectedGroupId = select.value || null;
+  selectedGroupName = select.options[select.selectedIndex]?.text || "";
+  if (selectedGroupName === "-- Không nhóm --") selectedGroupName = "";
+
+  updateGroupBadge();
+
+  if (selectedCostCenterId) {
+    document.getElementById("import-group-wrap").style.display = selectedGroupId
+      ? "inline"
+      : "none";
+    document.getElementById("import-group-name").textContent =
+      selectedGroupName;
+  }
+
+  fetchItems();
+}
+
+function updateGroupBadge() {
+  const badge = document.getElementById("group-badge");
+  if (selectedGroupId) {
+    badge.textContent = `Nhóm: ${selectedGroupName}`;
+    badge.style.display = "inline-block";
+  } else {
+    badge.style.display = "none";
+  }
+}
+
+async function promptAddGroup() {
+  if (!selectedCostCenterId) {
+    showAlert("Vui lòng chọn cost center trước!", "error");
+    return;
+  }
+  const name = prompt("Tên nhóm mới:");
+  if (!name || !name.trim()) return;
+  const description = prompt("Mô tả nhóm (tuỳ chọn):") || "";
+
+  try {
+    const res = await fetch("/itemManagementControl/groups", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ name: name.trim(), description }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Không thể tạo nhóm");
+    }
+    const group = await res.json();
+    showAlert(`Đã tạo nhóm "${group.name}" thành công!`);
+    await loadGroups();
+    document.getElementById("group-select").value = group._id;
+    onGroupChange();
+  } catch (err) {
+    showAlert("Lỗi khi tạo nhóm: " + err.message, "error");
+  }
 }
 
 // ─── Alert ───────────────────────────────────────────────────────────────────
@@ -148,6 +256,7 @@ async function fetchItems() {
     let url = `${base}?sortBy=${currentSort.field}&sortOrder=${currentSort.order}`;
     if (selectedCostCenterId) {
       url += `&costCenterId=${selectedCostCenterId}`;
+      url += `&groupId=${selectedGroupId || ""}`;
     }
     const res = await fetch(url, { credentials: "include" });
     if (!res.ok) throw new Error("Không thể tải danh sách mặt hàng");
@@ -178,16 +287,18 @@ function renderItems(items) {
     const row = document.createElement("tr");
     if (item.isDeleted) row.className = "deleted-item";
 
+    const groupArg = selectedGroupId ? `'${selectedGroupId}'` : "null";
+
     const storageCell = hasCostCenter
       ? `<td class="${item.inStorage > 0 ? "storage-ok" : "storage-zero"}">
            ${item.inStorage ?? 0}
            <button class="btn-storage-edit"
-             onclick="showStockEditModal('${item._id}', '${escapeAttr(item.name)}', ${item.inStorage ?? 0})"
+             onclick="showStockEditModal('${item._id}', '${escapeAttr(item.name)}', ${item.inStorage ?? 0}, '${selectedCostCenterId}', '${escapeAttr(selectedCostCenterName)}', ${groupArg}, '${escapeAttr(selectedGroupName)}')"
              title="Sửa tồn kho">
              <i class="bi bi-pencil-square"></i>
            </button>
            <button class="btn-storage-edit"
-             onclick="showStockHistoryPanel('${item._id}', '${escapeAttr(item.name)}', '${selectedCostCenterId}', '${escapeAttr(selectedCostCenterName)}')"
+             onclick="showStockHistoryPanel('${item._id}', '${escapeAttr(item.name)}', '${selectedCostCenterId}', '${escapeAttr(selectedCostCenterName)}', ${groupArg}, '${escapeAttr(selectedGroupName)}')"
              title="Lịch sử tồn kho">
              <i class="bi bi-clock-history"></i>
            </button>
@@ -289,7 +400,9 @@ function showAddModal() {
 
   const storageCCLabel = document.getElementById("storage-cc-label");
   if (selectedCostCenterId) {
-    storageCCLabel.textContent = `(${selectedCostCenterName})`;
+    storageCCLabel.textContent = selectedGroupId
+      ? `(${selectedCostCenterName}, nhóm: ${selectedGroupName})`
+      : `(${selectedCostCenterName})`;
     document.getElementById("inStorage").closest(".form-group").style.display =
       "block";
   } else {
@@ -307,7 +420,7 @@ async function showEditModal(itemId) {
   try {
     let url = `/itemManagementControl/${itemId}`;
     if (selectedCostCenterId) {
-      url += `?costCenterId=${selectedCostCenterId}`;
+      url += `?costCenterId=${selectedCostCenterId}&groupId=${selectedGroupId || ""}`;
     }
     const res = await fetch(url, { credentials: "include" });
     if (!res.ok) throw new Error("Không thể tải thông tin mặt hàng");
@@ -326,7 +439,9 @@ async function showEditModal(itemId) {
 
     const storageCCLabel = document.getElementById("storage-cc-label");
     if (selectedCostCenterId) {
-      storageCCLabel.textContent = `(${selectedCostCenterName})`;
+      storageCCLabel.textContent = selectedGroupId
+        ? `(${selectedCostCenterName}, nhóm: ${selectedGroupName})`
+        : `(${selectedCostCenterName})`;
       document
         .getElementById("inStorage")
         .closest(".form-group").style.display = "block";
@@ -379,6 +494,7 @@ async function handleSubmit(event) {
     unitPrice,
     vat,
     costCenterId: selectedCostCenterId || null,
+    groupId: selectedCostCenterId ? selectedGroupId || null : null,
   };
 
   // Only include inStorage when a cost center is selected
@@ -418,17 +534,34 @@ async function handleSubmit(event) {
 }
 
 // ─── Quick Stock Edit ─────────────────────────────────────────────────────────
-function showStockEditModal(itemId, itemName, currentStock) {
-  if (!selectedCostCenterId) {
+function showStockEditModal(
+  itemId,
+  itemName,
+  currentStock,
+  costCenterId,
+  costCenterName,
+  groupId,
+  groupName,
+) {
+  if (!selectedCostCenterId && !costCenterId) {
     showAlert("Vui lòng chọn cost center trước!", "error");
     return;
   }
+  const ccId = costCenterId || selectedCostCenterId;
+  const ccName = costCenterName || selectedCostCenterName;
+  const gId = groupId && groupId !== "null" ? groupId : "";
+  const gName = groupName || "";
+
   document.getElementById("stock-edit-item-id").value = itemId;
-  document.getElementById("stock-edit-cc-id").value = selectedCostCenterId;
+  document.getElementById("stock-edit-cc-id").value = ccId;
+  document.getElementById("stock-edit-group-id").value = gId;
   document.getElementById("stock-edit-item-label").textContent =
     `Mặt hàng: ${itemName}`;
   document.getElementById("stock-edit-cc-label").textContent =
-    `Cost Center: ${selectedCostCenterName}`;
+    `Cost Center: ${ccName}`;
+  document.getElementById("stock-edit-group-label").textContent = gId
+    ? `Nhóm: ${gName}`
+    : "Nhóm: Không nhóm";
   document.getElementById("stock-edit-value").value = currentStock;
   document.getElementById("stock-edit-modal").style.display = "block";
   setTimeout(() => document.getElementById("stock-edit-value").focus(), 100);
@@ -442,6 +575,7 @@ async function handleStockEditSubmit(event) {
   event.preventDefault();
   const itemId = document.getElementById("stock-edit-item-id").value;
   const costCenterId = document.getElementById("stock-edit-cc-id").value;
+  const groupId = document.getElementById("stock-edit-group-id").value;
   const inStorage = parseInt(document.getElementById("stock-edit-value").value);
 
   try {
@@ -449,7 +583,11 @@ async function handleStockEditSubmit(event) {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ costCenterId, inStorage }),
+      body: JSON.stringify({
+        costCenterId,
+        groupId: groupId || null,
+        inStorage,
+      }),
     });
     if (!res.ok) {
       const err = await res.json();
@@ -463,7 +601,7 @@ async function handleStockEditSubmit(event) {
   }
 }
 
-// ─── All-CC Stock Panel ───────────────────────────────────────────────────────
+// ─── All-CC/Group Stock Panel ─────────────────────────────────────────────────
 async function showAllStock(itemId, itemName) {
   try {
     const res = await fetch(`/itemManagementControl/${itemId}/stock`, {
@@ -478,27 +616,28 @@ async function showAllStock(itemId, itemName) {
     tbody.innerHTML = "";
 
     if (!stocks.length) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">Chưa có tồn kho tại cost center nào</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted py-3">Chưa có tồn kho tại cost center nào</td></tr>`;
     } else {
       stocks.forEach((s) => {
         const ccId = s.costCenterId?._id || "";
         const ccName = s.costCenterId?.name || "";
+        const gId = s.groupId?._id || "";
+        const gName = s.groupId?.name || "";
         const row = document.createElement("tr");
         row.innerHTML = `
           <td><strong>${ccName || "—"}</strong></td>
           <td><span class="badge bg-secondary">${s.costCenterId?.category || "—"}</span></td>
+          <td>${gName ? `<span class="badge bg-info text-dark">${gName}</span>` : '<span class="text-muted">Không nhóm</span>'}</td>
           <td class="${s.inStorage > 0 ? "text-success fw-bold" : "text-warning"}">${s.inStorage}</td>
           <td>${s.updatedAt ? formatDate(s.updatedAt) : "—"}</td>
           <td>${s.updatedBy?.username || "—"}</td>
           <td class="d-flex gap-1">
             <button class="btn btn-sm btn-outline-primary"
-              onclick="showStockEditModal('${itemId}', '${escapeAttr(itemName)}', ${s.inStorage});
-                       document.getElementById('stock-edit-cc-id').value='${ccId}';
-                       document.getElementById('stock-edit-cc-label').textContent='Cost Center: ${escapeAttr(ccName)}';">
+              onclick="showStockEditModal('${itemId}', '${escapeAttr(itemName)}', ${s.inStorage}, '${ccId}', '${escapeAttr(ccName)}', ${gId ? `'${gId}'` : "null"}, '${escapeAttr(gName)}')">
               Sửa
             </button>
             <button class="btn btn-sm btn-outline-secondary"
-              onclick="showStockHistoryPanel('${itemId}', '${escapeAttr(itemName)}', '${ccId}', '${escapeAttr(ccName)}')">
+              onclick="showStockHistoryPanel('${itemId}', '${escapeAttr(itemName)}', '${ccId}', '${escapeAttr(ccName)}', ${gId ? `'${gId}'` : "null"}, '${escapeAttr(gName)}')">
               <i class="bi bi-clock-history"></i> Lịch sử
             </button>
           </td>
@@ -526,17 +665,23 @@ async function showStockHistoryPanel(
   itemName,
   costCenterId,
   costCenterName,
+  groupId,
+  groupName,
 ) {
   try {
+    const gId = groupId && groupId !== "null" ? groupId : "";
     const res = await fetch(
-      `/itemManagementControl/${itemId}/stock/history?costCenterId=${costCenterId}`,
+      `/itemManagementControl/${itemId}/stock/history?costCenterId=${costCenterId}&groupId=${gId}`,
       { credentials: "include" },
     );
     if (!res.ok) throw new Error("Không thể tải lịch sử tồn kho");
     const history = await res.json();
 
+    const scopeLabel = gId
+      ? `${costCenterName} — Nhóm: ${groupName}`
+      : costCenterName;
     document.getElementById("stock-history-title").textContent =
-      `Lịch sử tồn kho: ${itemName} — ${costCenterName}`;
+      `Lịch sử tồn kho: ${itemName} — ${scopeLabel}`;
 
     const tbody = document.getElementById("stock-history-body");
     tbody.innerHTML = "";
@@ -700,6 +845,7 @@ function exportToExcel(includeDeleted = false, allCostCenters = false) {
   let url = `/itemManagementControl/export/excel?includeDeleted=${includeDeleted}`;
   if (!allCostCenters && selectedCostCenterId) {
     url += `&costCenterId=${selectedCostCenterId}`;
+    url += `&groupId=${selectedGroupId || ""}`;
   }
   window.location.href = url;
 }
@@ -711,6 +857,10 @@ function showImportModal() {
   }
   document.getElementById("import-cc-name").textContent =
     selectedCostCenterName;
+  document.getElementById("import-group-wrap").style.display = selectedGroupId
+    ? "inline"
+    : "none";
+  document.getElementById("import-group-name").textContent = selectedGroupName;
   document.getElementById("import-modal").style.display = "block";
   resetImportForm();
 }
@@ -744,9 +894,13 @@ async function handleImportSubmit(event) {
     return;
   }
 
+  const scopeLabel = selectedGroupId
+    ? `"${selectedCostCenterName}" (nhóm: "${selectedGroupName}")`
+    : `"${selectedCostCenterName}"`;
+
   if (
     !confirm(
-      `⚠️ Lưu ý: File sẽ được nhập vào cost center "${selectedCostCenterName}".\n` +
+      `⚠️ Lưu ý: File sẽ được nhập vào cost center ${scopeLabel}.\n` +
         "Nếu có mã hàng trùng, thông tin sẽ được CẬP NHẬT (ghi đè).\n\nTiếp tục?",
     )
   )
@@ -755,6 +909,7 @@ async function handleImportSubmit(event) {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("costCenterId", selectedCostCenterId);
+  formData.append("groupId", selectedGroupId || "");
 
   document.getElementById("import-progress").style.display = "block";
   document.getElementById("import-progress-bar").style.width = "30%";
