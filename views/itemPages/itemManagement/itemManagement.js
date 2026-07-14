@@ -51,6 +51,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       closeImportModal();
     if (e.target === document.getElementById("stock-edit-modal"))
       closeStockEditModal();
+    if (e.target === document.getElementById("audit-modal")) hideAuditHistory();
+    if (e.target === document.getElementById("stock-history-modal"))
+      hideStockHistoryPanel();
   };
 
   document.addEventListener("keydown", (e) => {
@@ -58,6 +61,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       closeModal();
       closeImportModal();
       closeStockEditModal();
+      hideAuditHistory();
+      hideStockHistoryPanel();
     }
   });
 
@@ -326,7 +331,6 @@ function renderItems(items) {
             !item.isDeleted
               ? `
             <button onclick="showEditModal('${item._id}')" class="action-btn btn-primary">Sửa</button>
-            <button onclick="showAllStock('${item._id}', '${escapeAttr(item.name)}')" class="action-btn btn-info">Tồn kho</button>
             <button onclick="showAuditHistory('${item._id}')" class="action-btn btn-secondary">Lịch sử</button>
             <button onclick="deleteItem('${item._id}')" class="action-btn btn-danger">Xóa</button>
           `
@@ -659,7 +663,7 @@ function hideStockPanel() {
   document.getElementById("stock-panel").style.display = "none";
 }
 
-// ─── Stock History Panel ──────────────────────────────────────────────────────
+// ─── Stock History Modal ──────────────────────────────────────────────────────
 async function showStockHistoryPanel(
   itemId,
   itemName,
@@ -717,17 +721,14 @@ async function showStockHistoryPanel(
       });
     }
 
-    document.getElementById("stock-history-panel").style.display = "block";
-    document
-      .getElementById("stock-history-panel")
-      .scrollIntoView({ behavior: "smooth" });
+    document.getElementById("stock-history-modal").style.display = "block";
   } catch (err) {
     showAlert("Lỗi khi tải lịch sử tồn kho: " + err.message, "error");
   }
 }
 
 function hideStockHistoryPanel() {
-  document.getElementById("stock-history-panel").style.display = "none";
+  document.getElementById("stock-history-modal").style.display = "none";
 }
 
 // ─── Delete / Restore ─────────────────────────────────────────────────────────
@@ -767,7 +768,7 @@ async function restoreItem(itemId) {
   }
 }
 
-// ─── Audit History ────────────────────────────────────────────────────────────
+// ─── Audit History Modal ──────────────────────────────────────────────────────
 async function showAuditHistory(itemId) {
   try {
     const res = await fetch(`/itemManagementControl/${itemId}/audit`, {
@@ -813,11 +814,7 @@ async function showAuditHistory(itemId) {
       });
     }
 
-    document.getElementById("audit-section").style.display = "block";
-    document.getElementById("items-table").style.display = "none";
-    document
-      .getElementById("audit-section")
-      .scrollIntoView({ behavior: "smooth" });
+    document.getElementById("audit-modal").style.display = "block";
   } catch (err) {
     showAlert("Lỗi khi tải lịch sử: " + err.message, "error");
   }
@@ -832,8 +829,7 @@ function diffCell(oldVal, newVal) {
 }
 
 function hideAuditHistory() {
-  document.getElementById("audit-section").style.display = "none";
-  document.getElementById("items-table").style.display = "table";
+  document.getElementById("audit-modal").style.display = "none";
 }
 
 // ─── Excel ────────────────────────────────────────────────────────────────────

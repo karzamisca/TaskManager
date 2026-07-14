@@ -15,7 +15,7 @@
     />
     <link
       rel="stylesheet"
-      href="itemPages/itemManagement/itemManagement.css?v=1.1"
+      href="itemPages/itemManagement/itemManagement.css?v=1.2"
     />
   </head>
   <body>
@@ -208,33 +208,6 @@
         </table>
       </div>
 
-      <!-- Audit History -->
-      <div id="audit-section" class="audit-history" style="display: none">
-        <h3>Lịch sử thay đổi</h3>
-        <div class="table-responsive">
-          <table class="audit-table">
-            <thead>
-              <tr>
-                <th>Ngày thay đổi</th>
-                <th>Hành động</th>
-                <th>Người thay đổi</th>
-                <th>Thay đổi tên</th>
-                <th>Thay đổi mã</th>
-                <th>Thay đổi đơn vị</th>
-                <th>Thay đổi giá</th>
-                <th>Thay đổi VAT</th>
-                <th>Thay đổi giá sau VAT</th>
-                <th>Ghi chú</th>
-              </tr>
-            </thead>
-            <tbody id="audit-body"></tbody>
-          </table>
-        </div>
-        <button onclick="hideAuditHistory()" class="btn btn-secondary mt-3">
-          Đóng lịch sử
-        </button>
-      </div>
-
       <!-- Stock by Cost Center / Group panel -->
       <div id="stock-panel" style="display: none" class="card mt-3">
         <div
@@ -259,36 +232,6 @@
               </tr>
             </thead>
             <tbody id="stock-panel-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Stock History Panel -->
-      <div id="stock-history-panel" style="display: none" class="card mt-3">
-        <div
-          class="card-header d-flex justify-content-between align-items-center"
-        >
-          <strong id="stock-history-title">Lịch sử tồn kho</strong>
-          <button
-            class="btn btn-sm btn-secondary"
-            onclick="hideStockHistoryPanel()"
-          >
-            Đóng
-          </button>
-        </div>
-        <div class="card-body p-0">
-          <table class="table table-sm mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>Thời gian</th>
-                <th>Tồn kho cũ</th>
-                <th>Tồn kho mới</th>
-                <th>Thay đổi</th>
-                <th>Người cập nhật</th>
-                <th>Ghi chú</th>
-              </tr>
-            </thead>
-            <tbody id="stock-history-body"></tbody>
           </table>
         </div>
       </div>
@@ -496,8 +439,66 @@
       </div>
     </div>
 
+    <!-- ─── Audit History Modal ─────────────────────────────────────────────── -->
+    <div id="audit-modal" class="modal">
+      <div class="modal-content modal-content-xl">
+        <div class="modal-header">
+          <h2>Lịch sử thay đổi</h2>
+          <button onclick="hideAuditHistory()" class="close-btn">
+            &times;
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="audit-table">
+            <thead>
+              <tr>
+                <th>Ngày thay đổi</th>
+                <th>Hành động</th>
+                <th>Người thay đổi</th>
+                <th>Thay đổi tên</th>
+                <th>Thay đổi mã</th>
+                <th>Thay đổi đơn vị</th>
+                <th>Thay đổi giá</th>
+                <th>Thay đổi VAT</th>
+                <th>Thay đổi giá sau VAT</th>
+                <th>Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody id="audit-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Stock History Modal ─────────────────────────────────────────────── -->
+    <div id="stock-history-modal" class="modal">
+      <div class="modal-content modal-content-lg">
+        <div class="modal-header">
+          <h2 id="stock-history-title">Lịch sử tồn kho</h2>
+          <button onclick="hideStockHistoryPanel()" class="close-btn">
+            &times;
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Thời gian</th>
+                <th>Tồn kho cũ</th>
+                <th>Tồn kho mới</th>
+                <th>Thay đổi</th>
+                <th>Người cập nhật</th>
+                <th>Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody id="stock-history-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="itemPages/itemManagement/itemManagement.js?v=1.9"></script>
+    <script src="itemPages/itemManagement/itemManagement.js?v=1.10"></script>
     <script src="/components/header/headerLoader.js?v=1.0"></script>
   </body>
 </html>
