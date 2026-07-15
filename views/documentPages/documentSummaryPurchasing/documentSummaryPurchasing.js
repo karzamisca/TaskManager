@@ -1131,17 +1131,20 @@ const renderProductsForStockSelection = (
   };
 
   const buildGroupOptions = (selectedGroupName) => {
-    let opts = `<option value="">Không có nhóm</option>`;
-    // First, add the document's group as default if it exists
+    let opts = `<option value="null">Không có nhóm</option>`;
+
+    // Add the document's group as default if it exists
     if (defaultGroupName) {
       opts += `<option value="${defaultGroupName}" selected>${defaultGroupName} (nhóm của phiếu)</option>`;
     }
-    // Then add all other groups
+
+    // Add all other groups (excluding the default if it's already added)
     allGroups.forEach((g) => {
       if (g.name !== defaultGroupName) {
         opts += `<option value="${g.name}">${g.name}</option>`;
       }
     });
+
     return opts;
   };
 
@@ -1186,7 +1189,7 @@ const renderProductsForStockSelection = (
                       ${transferredAmount > 0 ? `<span><i class="fas fa-check-circle"></i> Đã nhập: ${transferredAmount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</span>` : ""}
                       ${remainingAmount > 0 && remainingAmount < product.amount ? `<span><i class="fas fa-hourglass-half"></i> Còn lại: ${remainingAmount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</span>` : ""}
                       <span><i class="fas fa-map-marker-alt"></i> Trạm: ${product.costCenter || "Chưa có"}</span>
-                      ${defaultGroupName ? `<span><i class="fas fa-users"></i> Nhóm mặc định: ${defaultGroupName}</span>` : ""}
+                      ${defaultGroupName ? `<span><i class="fas fa-users"></i> Nhóm mặc định: ${defaultGroupName}</span>` : '<span><i class="fas fa-users"></i> Không có nhóm mặc định</span>'}
                       <span><i class="fas fa-dollar-sign"></i> Đơn giá: ${product.costPerUnit.toLocaleString("en-EN", { maximumFractionDigits: 5 })} đ</span>
                       <span><i class="fas fa-percent"></i> VAT: ${product.vat || 0}%</span>
                     </div>
@@ -1226,7 +1229,7 @@ const renderProductsForStockSelection = (
                             style="min-width: 180px; padding: 5px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
                       ${buildGroupOptions(defaultGroupName)}
                     </select>
-                    <span class="text-muted" style="font-size: 0.8rem;">(Mặc định: nhóm của phiếu)</span>
+                    <span class="text-muted" style="font-size: 0.8rem;">(Mặc định: nhóm của phiếu hoặc không có nhóm)</span>
                   </label>
                 </div>
               `
@@ -1282,11 +1285,16 @@ const confirmMoveToStock = async () => {
     const destinationCostCenter =
       destSelect && destSelect.value ? destSelect.value : originalCostCenter;
 
-    // Read the chosen group - send the group NAME instead of ID
+    // Read the chosen group - value "null" means no group
     const groupSelect = document.querySelector(
       `.product-group-select[data-product-index="${productIndex}"]`,
     );
-    const selectedGroupName = groupSelect ? groupSelect.value : null;
+    let selectedGroupName = groupSelect ? groupSelect.value : null;
+
+    // If the value is "null", it means no group
+    if (selectedGroupName === "null") {
+      selectedGroupName = null;
+    }
 
     selectedProductsArrayFinal.push({
       productName: product.productName,
@@ -1294,7 +1302,7 @@ const confirmMoveToStock = async () => {
       costPerUnit: product.costPerUnit,
       costCenter: originalCostCenter,
       destinationCostCenter: destinationCostCenter,
-      groupName: selectedGroupName, // Send group name instead of ID
+      groupName: selectedGroupName, // null means no group
       vat: product.vat || 0,
       _index: parseInt(productIndex, 10),
     });
@@ -1314,7 +1322,7 @@ const confirmMoveToStock = async () => {
     (p) => p.destinationCostCenter !== p.costCenter,
   );
 
-  // Get group names for display
+  // Get group names for display (null means "Không có nhóm")
   const uniqueGroups = [
     ...new Set(
       selectedProductsArrayFinal.map((p) => p.groupName || "Không có nhóm"),
@@ -1385,9 +1393,10 @@ const confirmMoveToStock = async () => {
             r.destinationCostCenter && r.destinationCostCenter !== r.costCenter
               ? `${r.costCenter} → ${r.destinationCostCenter}`
               : r.costCenter;
-          const groupText = r.groupName
-            ? ` (Nhóm: ${r.groupName})`
-            : " (Không có nhóm)";
+          const groupText =
+            r.groupName && r.groupName !== "Không có nhóm"
+              ? ` (Nhóm: ${r.groupName})`
+              : " (Không có nhóm)";
           message += `• ${r.productName} [${stationText}]${groupText}: ${r.oldStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} → ${r.newStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} (Nhập: ${r.amountMoved.toLocaleString("en-EN", { maximumFractionDigits: 5 })})\n`;
           if (r.remainingToMove > 0) {
             message += `  ⏳ Còn lại: ${r.remainingToMove.toLocaleString("en-EN", { maximumFractionDigits: 5 })}\n`;

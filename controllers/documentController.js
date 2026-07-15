@@ -3861,29 +3861,49 @@ exports.moveProductsToItemStock = async (req, res) => {
         selectedProduct.destinationCostCenter || product.costCenter;
       const isRedirected = destinationCostCenter !== product.costCenter;
 
-      // Get the selected group from the group NAME
-      let selectedGroupId = defaultGroupId;
-      let selectedGroupName = defaultGroupName;
+      // Get the selected group - null means "no group"
+      let selectedGroupId = null;
+      let selectedGroupName = null;
 
       if (selectedProduct.groupName) {
-        // Try to find the group by name
-        const groupId = groupNameToIdMap.get(selectedProduct.groupName);
-        if (groupId) {
-          selectedGroupId = groupId;
-          selectedGroupName = selectedProduct.groupName;
-        } else if (selectedProduct.groupName === defaultGroupName) {
-          // It's the default group, already set
+        // If groupName is "null" or empty string, treat as no group
+        if (
+          selectedProduct.groupName === "null" ||
+          selectedProduct.groupName === ""
+        ) {
+          selectedGroupId = null;
+          selectedGroupName = null;
+        } else {
+          // Try to find the group by name
+          const groupId = groupNameToIdMap.get(selectedProduct.groupName);
+          if (groupId) {
+            selectedGroupId = groupId;
+            selectedGroupName = selectedProduct.groupName;
+          } else {
+            // Group doesn't exist, use default or null
+            if (defaultGroupId) {
+              selectedGroupId = defaultGroupId;
+              selectedGroupName = defaultGroupName;
+              errors.push(
+                `Group "${selectedProduct.groupName}" not found for product ${product.productName}. Using default group: ${defaultGroupName || "Không có nhóm"}`,
+              );
+            } else {
+              selectedGroupId = null;
+              selectedGroupName = null;
+              errors.push(
+                `Group "${selectedProduct.groupName}" not found for product ${product.productName}. Using no group.`,
+              );
+            }
+          }
+        }
+      } else {
+        // No group selected, use default or null
+        if (defaultGroupId) {
+          selectedGroupId = defaultGroupId;
           selectedGroupName = defaultGroupName;
         } else {
-          // Group doesn't exist in the system, but we'll use it if it's the default
-          if (selectedProduct.groupName === defaultGroupName) {
-            selectedGroupName = defaultGroupName;
-          } else {
-            errors.push(
-              `Group "${selectedProduct.groupName}" not found for product ${product.productName}. Using default group.`,
-            );
-            // selectedGroupId remains defaultGroupId
-          }
+          selectedGroupId = null;
+          selectedGroupName = null;
         }
       }
 
@@ -3998,6 +4018,7 @@ exports.moveProductsToItemStock = async (req, res) => {
         costCenter: product.costCenter,
         destinationCostCenter: destinationCostCenter,
         groupName: selectedGroupName || "Không có nhóm",
+        groupId: selectedGroupId,
         amountMoved: selectedProduct.amount,
         remainingToMove:
           product.amount - (alreadyTransferred + selectedProduct.amount),
