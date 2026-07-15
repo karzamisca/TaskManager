@@ -876,6 +876,15 @@ const showTransferHistory = async (docId) => {
           <div class="transfer-history-header">
             <i class="fas fa-chart-line"></i> Tình trạng nhập kho
           </div>
+          ${
+            data.groupName
+              ? `
+            <div class="transfer-group-info">
+              <i class="fas fa-users"></i> <strong>Nhóm:</strong> ${data.groupName}
+            </div>
+          `
+              : ""
+          }
       `;
 
       data.transferStatus.forEach((status) => {
@@ -965,6 +974,16 @@ const showMoveToStockModal = async (docId) => {
     const transferStatusResponse = await fetch(`/getTransferStatus/${docId}`);
     const transferData = await transferStatusResponse.json();
 
+    // Fetch all groups
+    let groups = [];
+    try {
+      const groupsResponse = await fetch("/getGroupDocument");
+      groups = await groupsResponse.json();
+    } catch (e) {
+      console.error("Error fetching groups:", e);
+      groups = [];
+    }
+
     // Ensure we have the full cost center list for the destination selector
     let costCenters = state.costCenters;
     if (!costCenters || costCenters.length === 0) {
@@ -982,40 +1001,40 @@ const showMoveToStockModal = async (docId) => {
     stockMovementState.selectedProducts.clear();
 
     const modalHTML = `
-            <div id="moveToStockModal" class="modal" style="display: block;">
-                <div class="modal-content" style="max-width: 900px;">
-                    <span class="modal-close" onclick="closeMoveToStockModal()">&times;</span>
-                    <h2 class="modal-title">
-                        <i class="fas fa-boxes"></i> 
-                        Nhập kho - ${doc.name || doc.tag}
-                    </h2>
-                    <div class="modal-body">
-                        <div class="info-banner">
-                            <i class="fas fa-info-circle"></i> 
-                            <strong>Hướng dẫn:</strong> Chọn sản phẩm, nhập số lượng thực tế (có thể nhập một phần) và chọn trạm nhập kho (mặc định là trạm của sản phẩm)
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">
-                                <i class="fas fa-check-square"></i> 
-                                Chọn sản phẩm để nhập kho:
-                            </label>
-                            <div id="productsToStockList" class="products-list">
-                                ${renderProductsForStockSelection(doc.products, transferData.transferStatus, costCenters)}
-                            </div>
-                        </div>
-                        
-                        <div class="form-actions" style="margin-top: 20px;">
-                            <button onclick="confirmMoveToStock()" class="btn btn-primary">
-                                <i class="fas fa-arrow-right"></i> Nhập kho
-                            </button>
-                            <button onclick="closeMoveToStockModal()" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> Hủy
-                            </button>
-                        </div>
-                    </div>
-                </div>
+      <div id="moveToStockModal" class="modal" style="display: block;">
+        <div class="modal-content" style="max-width: 900px;">
+          <span class="modal-close" onclick="closeMoveToStockModal()">&times;</span>
+          <h2 class="modal-title">
+            <i class="fas fa-boxes"></i> 
+            Nhập kho - ${doc.name || doc.tag}
+          </h2>
+          <div class="modal-body">
+            <div class="info-banner">
+              <i class="fas fa-info-circle"></i> 
+              <strong>Hướng dẫn:</strong> Chọn sản phẩm, nhập số lượng thực tế (có thể nhập một phần), chọn trạm và nhóm nhập kho (mặc định là trạm và nhóm của phiếu)
             </div>
-        `;
+            <div class="form-group">
+              <label class="form-label">
+                <i class="fas fa-check-square"></i> 
+                Chọn sản phẩm để nhập kho:
+              </label>
+              <div id="productsToStockList" class="products-list">
+                ${renderProductsForStockSelection(doc.products, transferData.transferStatus, costCenters, doc.groupName, groups)}
+              </div>
+            </div>
+            
+            <div class="form-actions" style="margin-top: 20px;">
+              <button onclick="confirmMoveToStock()" class="btn btn-primary">
+                <i class="fas fa-arrow-right"></i> Nhập kho
+              </button>
+              <button onclick="closeMoveToStockModal()" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
 
     const existingModal = document.getElementById("moveToStockModal");
     if (existingModal) {
@@ -1024,7 +1043,7 @@ const showMoveToStockModal = async (docId) => {
 
     document.body.insertAdjacentHTML("beforeend", modalHTML);
 
-    // Per-line checkboxes keyed by index (name is not unique within a doc)
+    // Per-line checkboxes keyed by index
     document.querySelectorAll(".product-stock-checkbox").forEach((checkbox) => {
       checkbox.addEventListener("change", (e) => {
         const productItem = e.target.closest(".stock-product-item");
@@ -1046,7 +1065,7 @@ const showMoveToStockModal = async (docId) => {
       selectAllCheckbox.addEventListener("change", (e) => {
         const checkboxes = document.querySelectorAll(".product-stock-checkbox");
         checkboxes.forEach((checkbox) => {
-          if (checkbox.disabled) return; // skip fully-transferred lines
+          if (checkbox.disabled) return;
           checkbox.checked = e.target.checked;
           const productItem = checkbox.closest(".stock-product-item");
           const moveInputs = productItem.querySelector(".product-move-inputs");
@@ -1089,6 +1108,8 @@ const renderProductsForStockSelection = (
   products,
   transferStatus = null,
   costCenters = [],
+  defaultGroupName = null,
+  allGroups = [],
 ) => {
   if (!products || products.length === 0) {
     return '<p class="text-muted">Không có sản phẩm nào trong phiếu này</p>';
@@ -1097,7 +1118,6 @@ const renderProductsForStockSelection = (
   const buildCostCenterOptions = (selectedName) => {
     const names = costCenters.map((cc) => cc.name);
     let opts = "";
-    // Keep the product's own cost center selectable even if it's not in the master list
     if (selectedName && !names.includes(selectedName)) {
       opts += `<option value="${selectedName}" selected>${selectedName} (trạm của sản phẩm)</option>`;
     }
@@ -1110,89 +1130,114 @@ const renderProductsForStockSelection = (
     return opts;
   };
 
+  const buildGroupOptions = (selectedGroupName) => {
+    let opts = `<option value="">Không có nhóm</option>`;
+    // First, add the document's group as default if it exists
+    if (defaultGroupName) {
+      opts += `<option value="${defaultGroupName}" selected>${defaultGroupName} (nhóm của phiếu)</option>`;
+    }
+    // Then add all other groups
+    allGroups.forEach((g) => {
+      if (g.name !== defaultGroupName) {
+        opts += `<option value="${g.name}">${g.name}</option>`;
+      }
+    });
+    return opts;
+  };
+
   return `
-        <div class="stock-products-container">
-            <div class="stock-header">
-                <label class="select-all-stock">
-                    <input type="checkbox" id="selectAllStockProducts">
-                    <span><strong>Chọn tất cả</strong></span>
+    <div class="stock-products-container">
+      <div class="stock-header">
+        <label class="select-all-stock">
+          <input type="checkbox" id="selectAllStockProducts">
+          <span><strong>Chọn tất cả</strong></span>
+        </label>
+      </div>
+      ${products
+        .map((product, index) => {
+          let transferredAmount = 0;
+          let remainingAmount = product.amount;
+          if (transferStatus) {
+            const status = transferStatus.find(
+              (s) =>
+                s.productName === product.productName &&
+                s.costCenter === product.costCenter,
+            );
+            if (status) {
+              transferredAmount = status.transferredAmount;
+              remainingAmount = status.remainingAmount;
+            }
+          }
+
+          const isFullyTransferred = remainingAmount <= 0;
+
+          return `
+            <div class="stock-product-item ${isFullyTransferred ? "fully-transferred" : ""}" data-product-index="${index}">
+              <div class="product-stock-header">
+                <label class="product-stock-label">
+                  <input type="checkbox"
+                         class="product-stock-checkbox"
+                         data-product-index="${index}"
+                         ${isFullyTransferred ? "disabled" : ""}>
+                  <div class="product-stock-info">
+                    <strong>${product.productName}</strong>
+                    <div class="product-stock-details">
+                      <span><i class="fas fa-cubes"></i> Tổng số lượng: ${product.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</span>
+                      ${transferredAmount > 0 ? `<span><i class="fas fa-check-circle"></i> Đã nhập: ${transferredAmount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</span>` : ""}
+                      ${remainingAmount > 0 && remainingAmount < product.amount ? `<span><i class="fas fa-hourglass-half"></i> Còn lại: ${remainingAmount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</span>` : ""}
+                      <span><i class="fas fa-map-marker-alt"></i> Trạm: ${product.costCenter || "Chưa có"}</span>
+                      ${defaultGroupName ? `<span><i class="fas fa-users"></i> Nhóm mặc định: ${defaultGroupName}</span>` : ""}
+                      <span><i class="fas fa-dollar-sign"></i> Đơn giá: ${product.costPerUnit.toLocaleString("en-EN", { maximumFractionDigits: 5 })} đ</span>
+                      <span><i class="fas fa-percent"></i> VAT: ${product.vat || 0}%</span>
+                    </div>
+                    ${isFullyTransferred ? '<div class="fully-transferred-badge"><i class="fas fa-check-circle"></i> Đã nhập đủ</div>' : ""}
+                  </div>
                 </label>
-            </div>
-            ${products
-              .map((product, index) => {
-                let transferredAmount = 0;
-                let remainingAmount = product.amount;
-                if (transferStatus) {
-                  const status = transferStatus.find(
-                    (s) =>
-                      s.productName === product.productName &&
-                      s.costCenter === product.costCenter,
-                  );
-                  if (status) {
-                    transferredAmount = status.transferredAmount;
-                    remainingAmount = status.remainingAmount;
-                  }
-                }
-
-                const isFullyTransferred = remainingAmount <= 0;
-
-                return `
-                <div class="stock-product-item ${isFullyTransferred ? "fully-transferred" : ""}" data-product-index="${index}">
-                    <div class="product-stock-header">
-                        <label class="product-stock-label">
-                            <input type="checkbox"
-                                   class="product-stock-checkbox"
-                                   data-product-index="${index}"
-                                   ${isFullyTransferred ? "disabled" : ""}>
-                            <div class="product-stock-info">
-                                <strong>${product.productName}</strong>
-                                <div class="product-stock-details">
-                                    <span><i class="fas fa-cubes"></i> Tổng số lượng: ${product.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</span>
-                                    ${transferredAmount > 0 ? `<span><i class="fas fa-check-circle"></i> Đã nhập: ${transferredAmount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</span>` : ""}
-                                    ${remainingAmount > 0 && remainingAmount < product.amount ? `<span><i class="fas fa-hourglass-half"></i> Còn lại: ${remainingAmount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}</span>` : ""}
-                                    <span><i class="fas fa-map-marker-alt"></i> Trạm: ${product.costCenter || "Chưa có"}</span>
-                                    <span><i class="fas fa-dollar-sign"></i> Đơn giá: ${product.costPerUnit.toLocaleString("en-EN", { maximumFractionDigits: 5 })} đ</span>
-                                    <span><i class="fas fa-percent"></i> VAT: ${product.vat || 0}%</span>
-                                </div>
-                                ${isFullyTransferred ? '<div class="fully-transferred-badge"><i class="fas fa-check-circle"></i> Đã nhập đủ</div>' : ""}
-                            </div>
-                        </label>
-                    </div>
-                    ${
-                      !isFullyTransferred
-                        ? `
-                    <div class="product-move-inputs" style="display: none; margin-top: 10px; margin-left: 30px;">
-                        <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                            <span><i class="fas fa-box"></i> Số lượng nhập kho:</span>
-                            <input type="number"
-                                   class="quantity-input"
-                                   data-product-index="${index}"
-                                   min="1"
-                                   max="${remainingAmount}"
-                                   step="1"
-                                   value="${remainingAmount}"
-                                   style="width: 150px; padding: 5px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-                            <span class="remaining-quantity">(Tối đa: ${remainingAmount.toLocaleString("en-EN", { maximumFractionDigits: 5 })})</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 10px;">
-                            <span><i class="fas fa-map-marker-alt"></i> Nhập vào trạm:</span>
-                            <select class="destination-cost-center"
-                                    data-product-index="${index}"
-                                    style="min-width: 180px; padding: 5px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
-                                ${buildCostCenterOptions(product.costCenter)}
-                            </select>
-                            <span class="text-muted" style="font-size: 0.8rem;">(Mặc định: trạm của sản phẩm)</span>
-                        </label>
-                    </div>
-                    `
-                        : ""
-                    }
+              </div>
+              ${
+                !isFullyTransferred
+                  ? `
+                <div class="product-move-inputs" style="display: none; margin-top: 10px; margin-left: 30px;">
+                  <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <span><i class="fas fa-box"></i> Số lượng nhập kho:</span>
+                    <input type="number"
+                           class="quantity-input"
+                           data-product-index="${index}"
+                           min="1"
+                           max="${remainingAmount}"
+                           step="1"
+                           value="${remainingAmount}"
+                           style="width: 150px; padding: 5px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                    <span class="remaining-quantity">(Tối đa: ${remainingAmount.toLocaleString("en-EN", { maximumFractionDigits: 5 })})</span>
+                  </label>
+                  <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                    <span><i class="fas fa-map-marker-alt"></i> Nhập vào trạm:</span>
+                    <select class="destination-cost-center"
+                            data-product-index="${index}"
+                            style="min-width: 180px; padding: 5px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                      ${buildCostCenterOptions(product.costCenter)}
+                    </select>
+                    <span class="text-muted" style="font-size: 0.8rem;">(Mặc định: trạm của sản phẩm)</span>
+                  </label>
+                  <label style="display: flex; align-items: center; gap: 10px;">
+                    <span><i class="fas fa-users"></i> Nhập vào nhóm:</span>
+                    <select class="product-group-select"
+                            data-product-index="${index}"
+                            style="min-width: 180px; padding: 5px; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                      ${buildGroupOptions(defaultGroupName)}
+                    </select>
+                    <span class="text-muted" style="font-size: 0.8rem;">(Mặc định: nhóm của phiếu)</span>
+                  </label>
                 </div>
-            `;
-              })
-              .join("")}
-        </div>
-    `;
+              `
+                  : ""
+              }
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
 };
 
 const confirmMoveToStock = async () => {
@@ -1230,19 +1275,26 @@ const confirmMoveToStock = async () => {
     const originalCostCenter =
       product.costCenter || stockMovementState.currentDocument.costCenter;
 
-    // Read the chosen destination; fall back to the product's own cost center.
+    // Read the chosen destination cost center
     const destSelect = document.querySelector(
       `.destination-cost-center[data-product-index="${productIndex}"]`,
     );
     const destinationCostCenter =
       destSelect && destSelect.value ? destSelect.value : originalCostCenter;
 
+    // Read the chosen group - send the group NAME instead of ID
+    const groupSelect = document.querySelector(
+      `.product-group-select[data-product-index="${productIndex}"]`,
+    );
+    const selectedGroupName = groupSelect ? groupSelect.value : null;
+
     selectedProductsArrayFinal.push({
       productName: product.productName,
       amount: quantityToMove,
       costPerUnit: product.costPerUnit,
-      costCenter: originalCostCenter, // used to match the document line
-      destinationCostCenter: destinationCostCenter, // where the stock lands
+      costCenter: originalCostCenter,
+      destinationCostCenter: destinationCostCenter,
+      groupName: selectedGroupName, // Send group name instead of ID
       vat: product.vat || 0,
       _index: parseInt(productIndex, 10),
     });
@@ -1262,8 +1314,18 @@ const confirmMoveToStock = async () => {
     (p) => p.destinationCostCenter !== p.costCenter,
   );
 
+  // Get group names for display
+  const uniqueGroups = [
+    ...new Set(
+      selectedProductsArrayFinal.map((p) => p.groupName || "Không có nhóm"),
+    ),
+  ];
+
   let confirmMessage = `Xác nhận nhập kho\n\n`;
   confirmMessage += `Bạn có chắc chắn muốn nhập kho ${selectedProductsArrayFinal.length} sản phẩm?\n\n`;
+
+  confirmMessage += `Nhóm: ${uniqueGroups.join(", ")}\n\n`;
+
   confirmMessage += selectedProductsArrayFinal
     .map((p) => {
       const original = stockMovementState.currentDocument.products[p._index];
@@ -1275,7 +1337,10 @@ const confirmMoveToStock = async () => {
         p.destinationCostCenter !== p.costCenter
           ? `${p.costCenter} → ${p.destinationCostCenter}`
           : p.costCenter;
-      return `• ${p.productName} [${stationText}]: ${p.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}${partialText}`;
+
+      const groupName = p.groupName || "Không có nhóm";
+
+      return `• ${p.productName} [${stationText}] (Nhóm: ${groupName}): ${p.amount.toLocaleString("en-EN", { maximumFractionDigits: 5 })}${partialText}`;
     })
     .join("\n");
 
@@ -1320,7 +1385,10 @@ const confirmMoveToStock = async () => {
             r.destinationCostCenter && r.destinationCostCenter !== r.costCenter
               ? `${r.costCenter} → ${r.destinationCostCenter}`
               : r.costCenter;
-          message += `• ${r.productName} [${stationText}]: ${r.oldStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} → ${r.newStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} (Nhập: ${r.amountMoved.toLocaleString("en-EN", { maximumFractionDigits: 5 })})\n`;
+          const groupText = r.groupName
+            ? ` (Nhóm: ${r.groupName})`
+            : " (Không có nhóm)";
+          message += `• ${r.productName} [${stationText}]${groupText}: ${r.oldStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} → ${r.newStock.toLocaleString("en-EN", { maximumFractionDigits: 5 })} (Nhập: ${r.amountMoved.toLocaleString("en-EN", { maximumFractionDigits: 5 })})\n`;
           if (r.remainingToMove > 0) {
             message += `  ⏳ Còn lại: ${r.remainingToMove.toLocaleString("en-EN", { maximumFractionDigits: 5 })}\n`;
           }

@@ -4,6 +4,7 @@ const User = require("../models/User");
 const CostCenter = require("../models/CostCenter");
 const Item = require("../models/Item");
 const ItemStock = require("../models/ItemStock");
+const Group = require("../models/Group");
 const crypto = require("crypto");
 const mongoose = require("mongoose");
 const moment = require("moment-timezone");
@@ -1852,8 +1853,6 @@ async function moveStockForDocument(
   }
 
   // costCenterFrom / costCenterTo are stored as CostCenter *names*
-  // (e.g. "COGAS", "Phòng kỹ thuật"), not ObjectIds — resolve them to
-  // actual CostCenter documents so we can use their _id with ItemStock.
   const [fromCostCenter, toCostCenter] = await Promise.all([
     CostCenter.findOne({ name: document.costCenterFrom.trim() }),
     CostCenter.findOne({ name: document.costCenterTo.trim() }),
@@ -1864,21 +1863,18 @@ async function moveStockForDocument(
       `Phiếu ${document.tag}: không tìm thấy nơi nhận "${document.costCenterTo}" trong danh sách trạm/phòng ban`,
     );
   }
-  // fromCostCenter may legitimately be null — that's how a document is
-  // treated as stock entering/leaving the system from outside rather than
-  // an internal transfer. Only toCostCenter is required.
+
+  // Resolve group
+  let groupId = null;
+  if (document.groupName) {
+    const group = await Group.findOne({ name: document.groupName.trim() });
+    if (group) {
+      groupId = group._id;
+    }
+  }
 
   const fromCostCenterId = fromCostCenter?._id;
   const toCostCenterId = toCostCenter._id;
-
-  // No mongoose session/transaction here — transactions require a replica
-  // set or mongos, which a standalone MongoDB doesn't provide. To still
-  // get "all or nothing" behavior without transactions, this runs in two
-  // passes:
-  //   Pass 1 (read-only): match every product to an Item and validate
-  //     there's enough stock. If ANYTHING is wrong, we throw here before
-  //     writing anything (and before the caller saves the document).
-  //   Pass 2 (writes): apply all the stock changes.
 
   // ---- Pass 1: match + validate ----------------------------------------
   const plan = [];
@@ -1887,6 +1883,7 @@ async function moveStockForDocument(
     const movement = {
       productName: product.productName,
       amount: product.amount,
+      groupName: document.groupName || null,
     };
 
     const item = await Item.findOne({
@@ -1905,11 +1902,6 @@ async function moveStockForDocument(
     movement.itemId = item._id;
     movement.itemCode = item.code;
 
-    // Whether this is an internal transfer depends on whether
-    // costCenterFrom resolved to a REAL CostCenter — not on whether an
-    // ItemStock row happens to exist yet. If costCenterFrom is a known
-    // internal cost center, missing ItemStock there means it has 0 of
-    // this item, which must fail the check below (not be skipped).
     const isInternalTransfer = Boolean(fromCostCenterId);
     let availableQty = 0;
 
@@ -1917,6 +1909,7 @@ async function moveStockForDocument(
       const fromStock = await ItemStock.findOne({
         itemId: item._id,
         costCenterId: fromCostCenterId,
+        groupId: groupId,
       });
       availableQty = fromStock ? fromStock.inStorage : 0;
 
@@ -1946,6 +1939,7 @@ async function moveStockForDocument(
       report.moved.push({
         ...p.movement,
         isInternalTransfer: p.isInternalTransfer,
+        groupName: document.groupName || null,
       });
     }
     return report;
@@ -1957,11 +1951,16 @@ async function moveStockForDocument(
       const fromStock = await ItemStock.findOne({
         itemId: item._id,
         costCenterId: fromCostCenterId,
+        groupId: groupId,
       });
       const oldQty = fromStock ? fromStock.inStorage : 0;
 
       await ItemStock.findOneAndUpdate(
-        { itemId: item._id, costCenterId: fromCostCenterId },
+        {
+          itemId: item._id,
+          costCenterId: fromCostCenterId,
+          groupId: groupId,
+        },
         {
           $inc: { inStorage: -product.amount },
           updatedAt: new Date(),
@@ -1971,7 +1970,7 @@ async function moveStockForDocument(
               oldInStorage: oldQty,
               newInStorage: oldQty - product.amount,
               updatedBy: userId,
-              note: `Chuyển ra - ${documentTypeLabel} ${document.tag}`,
+              note: `Chuyển ra - ${documentTypeLabel} ${document.tag} (Nhóm: ${document.groupName || "Không có"})`,
             },
           },
         },
@@ -1982,11 +1981,16 @@ async function moveStockForDocument(
     let toStock = await ItemStock.findOne({
       itemId: item._id,
       costCenterId: toCostCenterId,
+      groupId: groupId,
     });
     const oldToQty = toStock ? toStock.inStorage : 0;
 
     await ItemStock.findOneAndUpdate(
-      { itemId: item._id, costCenterId: toCostCenterId },
+      {
+        itemId: item._id,
+        costCenterId: toCostCenterId,
+        groupId: groupId,
+      },
       {
         $inc: { inStorage: product.amount },
         updatedAt: new Date(),
@@ -1996,22 +2000,14 @@ async function moveStockForDocument(
             oldInStorage: oldToQty,
             newInStorage: oldToQty + product.amount,
             updatedBy: userId,
-            note: `Chuyển vào - ${documentTypeLabel} ${document.tag}`,
+            note: `Chuyển vào - ${documentTypeLabel} ${document.tag} (Nhóm: ${document.groupName || "Không có"})`,
           },
         },
       },
       { upsert: true, setDefaultsOnInsert: true },
     );
 
-    // Only bump the global Item.inStorage counter when stock is newly
-    // entering the system (not an internal transfer between two tracked
-    // cost centers).
-    //
-    // Uses an atomic update instead of item.save() so it only touches
-    // inStorage/auditHistory — a full-document save() would re-validate
-    // every field on the Item (including old/legacy ones like unit or
-    // createdBy that may be missing on older records) and fail with an
-    // unrelated validation error.
+    // Only bump the global Item.inStorage counter when stock is newly entering the system
     if (!isInternalTransfer) {
       const oldTotal = item.inStorage || 0;
       await Item.findByIdAndUpdate(item._id, {
@@ -2027,10 +2023,14 @@ async function moveStockForDocument(
       });
     }
 
-    report.moved.push({ ...movement, isInternalTransfer });
+    report.moved.push({
+      ...movement,
+      isInternalTransfer,
+      groupName: document.groupName || null,
+    });
   }
 
-  // Mark the in-memory document as processed. The caller must still save it.
+  // Mark the in-memory document as processed
   document.stockMovementProcessed = true;
   document.stockMovementProcessedAt = new Date();
 
@@ -3768,7 +3768,6 @@ exports.openPurchasingDocument = async (req, res) => {
     res.status(500).send("Lỗi khi mở lại phiếu.");
   }
 };
-// Add this to your purchasing document controller
 // Escape regex special characters so the name is matched literally
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -3791,6 +3790,26 @@ exports.moveProductsToItemStock = async (req, res) => {
       purchasingDoc.transferredQuantities = [];
     }
 
+    // Get all groups for validation
+    const allGroups = await Group.find({});
+    const groupNameToIdMap = new Map();
+    allGroups.forEach((g) => {
+      groupNameToIdMap.set(g.name, g._id.toString());
+    });
+
+    // Resolve document's default group
+    let defaultGroupId = null;
+    let defaultGroupName = null;
+    if (purchasingDoc.groupName) {
+      const defaultGroup = await Group.findOne({
+        name: purchasingDoc.groupName.trim(),
+      });
+      if (defaultGroup) {
+        defaultGroupId = defaultGroup._id;
+        defaultGroupName = defaultGroup.name;
+      }
+    }
+
     const costCenters = await CostCenter.find({});
     const costCenterMap = new Map();
     costCenters.forEach((cc) => {
@@ -3801,7 +3820,7 @@ exports.moveProductsToItemStock = async (req, res) => {
     const errors = [];
 
     for (const selectedProduct of selectedProducts) {
-      // Identify the document line by name + its ORIGINAL cost center.
+      // Identify the document line by name + its ORIGINAL cost center
       const product = purchasingDoc.products.find(
         (p) =>
           p.productName === selectedProduct.productName &&
@@ -3814,7 +3833,7 @@ exports.moveProductsToItemStock = async (req, res) => {
         continue;
       }
 
-      // Transfer tracking is keyed on the original line, NOT the destination.
+      // Transfer tracking is keyed on the original line
       const existingTransfer = purchasingDoc.transferredQuantities.find(
         (t) =>
           t.productName === product.productName &&
@@ -3837,11 +3856,36 @@ exports.moveProductsToItemStock = async (req, res) => {
         continue;
       }
 
-      // DESTINATION cost center: where the stock actually goes.
-      // Defaults to the product's own cost center; can be overridden by the user.
+      // DESTINATION cost center: where the stock actually goes
       const destinationCostCenter =
         selectedProduct.destinationCostCenter || product.costCenter;
       const isRedirected = destinationCostCenter !== product.costCenter;
+
+      // Get the selected group from the group NAME
+      let selectedGroupId = defaultGroupId;
+      let selectedGroupName = defaultGroupName;
+
+      if (selectedProduct.groupName) {
+        // Try to find the group by name
+        const groupId = groupNameToIdMap.get(selectedProduct.groupName);
+        if (groupId) {
+          selectedGroupId = groupId;
+          selectedGroupName = selectedProduct.groupName;
+        } else if (selectedProduct.groupName === defaultGroupName) {
+          // It's the default group, already set
+          selectedGroupName = defaultGroupName;
+        } else {
+          // Group doesn't exist in the system, but we'll use it if it's the default
+          if (selectedProduct.groupName === defaultGroupName) {
+            selectedGroupName = defaultGroupName;
+          } else {
+            errors.push(
+              `Group "${selectedProduct.groupName}" not found for product ${product.productName}. Using default group.`,
+            );
+            // selectedGroupId remains defaultGroupId
+          }
+        }
+      }
 
       const item = await Item.findOne({
         name: {
@@ -3855,7 +3899,7 @@ exports.moveProductsToItemStock = async (req, res) => {
         continue;
       }
 
-      // Resolve the DESTINATION cost center to an id.
+      // Resolve the DESTINATION cost center to an id
       const costCenterId = costCenterMap.get(destinationCostCenter);
       if (!costCenterId) {
         errors.push(
@@ -3864,23 +3908,28 @@ exports.moveProductsToItemStock = async (req, res) => {
         continue;
       }
 
-      // Item stock record is found/created at the DESTINATION cost center.
+      // Item stock record is found/created at the DESTINATION cost center with selected group
       let itemStock = await ItemStock.findOne({
         itemId: item._id,
         costCenterId: costCenterId,
+        groupId: selectedGroupId,
       });
 
       const oldInStorage = itemStock ? itemStock.inStorage : 0;
       const newInStorage = oldInStorage + selectedProduct.amount;
 
+      const groupText = selectedGroupName
+        ? ` (Nhóm: ${selectedGroupName})`
+        : " (Không có nhóm)";
       const noteText = isRedirected
-        ? `Thêm ${selectedProduct.amount} đơn vị từ phiếu mua hàng ${purchasingDoc.tag || purchasingDocId} (chuyển từ trạm ${product.costCenter})`
-        : `Thêm ${selectedProduct.amount} đơn vị từ phiếu mua hàng ${purchasingDoc.tag || purchasingDocId}`;
+        ? `Thêm ${selectedProduct.amount} đơn vị từ phiếu mua hàng ${purchasingDoc.tag || purchasingDocId} (chuyển từ trạm ${product.costCenter})${groupText}`
+        : `Thêm ${selectedProduct.amount} đơn vị từ phiếu mua hàng ${purchasingDoc.tag || purchasingDocId}${groupText}`;
 
       if (!itemStock) {
         itemStock = new ItemStock({
           itemId: item._id,
           costCenterId: costCenterId,
+          groupId: selectedGroupId,
           inStorage: newInStorage,
           updatedBy: req._id,
           stockHistory: [
@@ -3908,7 +3957,7 @@ exports.moveProductsToItemStock = async (req, res) => {
 
       await itemStock.save();
 
-      // Tracking uses the ORIGINAL line so remaining-quantity math stays correct.
+      // Tracking uses the ORIGINAL line so remaining-quantity math stays correct
       if (existingTransfer) {
         existingTransfer.transferredAmount =
           alreadyTransferred + selectedProduct.amount;
@@ -3918,7 +3967,9 @@ exports.moveProductsToItemStock = async (req, res) => {
           amount: selectedProduct.amount,
           date: new Date(),
           transferredBy: req._id,
-          note: isRedirected ? `Nhập vào trạm ${destinationCostCenter}` : "",
+          note: isRedirected
+            ? `Nhập vào trạm ${destinationCostCenter}${groupText}`
+            : groupText,
         });
       } else {
         purchasingDoc.transferredQuantities.push({
@@ -3935,8 +3986,8 @@ exports.moveProductsToItemStock = async (req, res) => {
               date: new Date(),
               transferredBy: req._id,
               note: isRedirected
-                ? `Nhập vào trạm ${destinationCostCenter}`
-                : "",
+                ? `Nhập vào trạm ${destinationCostCenter}${groupText}`
+                : groupText,
             },
           ],
         });
@@ -3946,6 +3997,7 @@ exports.moveProductsToItemStock = async (req, res) => {
         productName: product.productName,
         costCenter: product.costCenter,
         destinationCostCenter: destinationCostCenter,
+        groupName: selectedGroupName || "Không có nhóm",
         amountMoved: selectedProduct.amount,
         remainingToMove:
           product.amount - (alreadyTransferred + selectedProduct.amount),
@@ -3979,6 +4031,7 @@ exports.moveProductsToItemStock = async (req, res) => {
       results: results,
       errors: errors.length > 0 ? errors : null,
       allTransferred: allCompleted,
+      defaultGroupName: defaultGroupName,
     });
   } catch (error) {
     console.error("Error moving products to item stock:", error);
@@ -4013,7 +4066,7 @@ exports.getTransferStatus = async (req, res) => {
 
       return {
         productName: product.productName,
-        costCenter: product.costCenter, // so the UI can match the right line
+        costCenter: product.costCenter,
         totalAmount: product.amount,
         transferredAmount: transferredAmount,
         remainingAmount: product.amount - transferredAmount,
@@ -4028,6 +4081,7 @@ exports.getTransferStatus = async (req, res) => {
       success: true,
       transferStatus: transferStatus,
       allCompleted: allCompleted,
+      groupName: purchasingDoc.groupName || null,
     });
   } catch (error) {
     console.error("Error getting transfer status:", error);
