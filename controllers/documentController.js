@@ -1853,6 +1853,8 @@ async function moveStockForDocument(
   }
 
   // costCenterFrom / costCenterTo are stored as CostCenter *names*
+  // (e.g. "COGAS", "Phòng kỹ thuật"), not ObjectIds — resolve them to
+  // actual CostCenter documents so we can use their _id with ItemStock.
   const [fromCostCenter, toCostCenter] = await Promise.all([
     CostCenter.findOne({ name: document.costCenterFrom.trim() }),
     CostCenter.findOne({ name: document.costCenterTo.trim() }),
@@ -1863,18 +1865,33 @@ async function moveStockForDocument(
       `Phiếu ${document.tag}: không tìm thấy nơi nhận "${document.costCenterTo}" trong danh sách trạm/phòng ban`,
     );
   }
+  // fromCostCenter may legitimately be null — that's how a document is
+  // treated as stock entering/leaving the system from outside rather than
+  // an internal transfer. Only toCostCenter is required.
 
-  // Resolve group
+  const fromCostCenterId = fromCostCenter?._id;
+  const toCostCenterId = toCostCenter._id;
+
+  // ---- RESOLVE GROUP ----
+  // Resolve the document's group
   let groupId = null;
+  let groupName = null;
   if (document.groupName) {
     const group = await Group.findOne({ name: document.groupName.trim() });
     if (group) {
       groupId = group._id;
+      groupName = group.name;
     }
   }
 
-  const fromCostCenterId = fromCostCenter?._id;
-  const toCostCenterId = toCostCenter._id;
+  // No mongoose session/transaction here — transactions require a replica
+  // set or mongos, which a standalone MongoDB doesn't provide. To still
+  // get "all or nothing" behavior without transactions, this runs in two
+  // passes:
+  //   Pass 1 (read-only): match every product to an Item and validate
+  //     there's enough stock. If ANYTHING is wrong, we throw here before
+  //     writing anything (and before the caller saves the document).
+  //   Pass 2 (writes): apply all the stock changes.
 
   // ---- Pass 1: match + validate ----------------------------------------
   const plan = [];
@@ -1883,7 +1900,7 @@ async function moveStockForDocument(
     const movement = {
       productName: product.productName,
       amount: product.amount,
-      groupName: document.groupName || null,
+      groupName: groupName || null,
     };
 
     const item = await Item.findOne({
@@ -1902,6 +1919,11 @@ async function moveStockForDocument(
     movement.itemId = item._id;
     movement.itemCode = item.code;
 
+    // Whether this is an internal transfer depends on whether
+    // costCenterFrom resolved to a REAL CostCenter — not on whether an
+    // ItemStock row happens to exist yet. If costCenterFrom is a known
+    // internal cost center, missing ItemStock there means it has 0 of
+    // this item, which must fail the check below (not be skipped).
     const isInternalTransfer = Boolean(fromCostCenterId);
     let availableQty = 0;
 
@@ -1909,14 +1931,17 @@ async function moveStockForDocument(
       const fromStock = await ItemStock.findOne({
         itemId: item._id,
         costCenterId: fromCostCenterId,
-        groupId: groupId,
+        groupId: groupId, // Include group in the lookup
       });
       availableQty = fromStock ? fromStock.inStorage : 0;
 
       if (availableQty < product.amount) {
+        const groupText = groupName
+          ? ` (Nhóm: ${groupName})`
+          : " (Không có nhóm)";
         report.errors.push({
           ...movement,
-          reason: `Không đủ tồn kho tại nơi xuất. Tồn kho hiện có: ${availableQty}, yêu cầu: ${product.amount}`,
+          reason: `Không đủ tồn kho tại nơi xuất${groupText}. Tồn kho hiện có: ${availableQty}, yêu cầu: ${product.amount}`,
         });
         continue;
       }
@@ -1939,13 +1964,15 @@ async function moveStockForDocument(
       report.moved.push({
         ...p.movement,
         isInternalTransfer: p.isInternalTransfer,
-        groupName: document.groupName || null,
+        groupName: groupName || null,
       });
     }
     return report;
   }
 
   // ---- Pass 2: write the changes ----------------------------------------
+  const groupText = groupName ? ` (Nhóm: ${groupName})` : " (Không có nhóm)";
+
   for (const { product, item, isInternalTransfer, movement } of plan) {
     if (isInternalTransfer) {
       const fromStock = await ItemStock.findOne({
@@ -1970,7 +1997,7 @@ async function moveStockForDocument(
               oldInStorage: oldQty,
               newInStorage: oldQty - product.amount,
               updatedBy: userId,
-              note: `Chuyển ra - ${documentTypeLabel} ${document.tag} (Nhóm: ${document.groupName || "Không có"})`,
+              note: `Chuyển ra - ${documentTypeLabel} ${document.tag}${groupText}`,
             },
           },
         },
@@ -2000,14 +2027,22 @@ async function moveStockForDocument(
             oldInStorage: oldToQty,
             newInStorage: oldToQty + product.amount,
             updatedBy: userId,
-            note: `Chuyển vào - ${documentTypeLabel} ${document.tag} (Nhóm: ${document.groupName || "Không có"})`,
+            note: `Chuyển vào - ${documentTypeLabel} ${document.tag}${groupText}`,
           },
         },
       },
       { upsert: true, setDefaultsOnInsert: true },
     );
 
-    // Only bump the global Item.inStorage counter when stock is newly entering the system
+    // Only bump the global Item.inStorage counter when stock is newly
+    // entering the system (not an internal transfer between two tracked
+    // cost centers).
+    //
+    // Uses an atomic update instead of item.save() so it only touches
+    // inStorage/auditHistory — a full-document save() would re-validate
+    // every field on the Item (including old/legacy ones like unit or
+    // createdBy that may be missing on older records) and fail with an
+    // unrelated validation error.
     if (!isInternalTransfer) {
       const oldTotal = item.inStorage || 0;
       await Item.findByIdAndUpdate(item._id, {
@@ -2026,11 +2061,11 @@ async function moveStockForDocument(
     report.moved.push({
       ...movement,
       isInternalTransfer,
-      groupName: document.groupName || null,
+      groupName: groupName || null,
     });
   }
 
-  // Mark the in-memory document as processed
+  // Mark the in-memory document as processed. The caller must still save it.
   document.stockMovementProcessed = true;
   document.stockMovementProcessedAt = new Date();
 
