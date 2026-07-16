@@ -3373,7 +3373,10 @@ exports.getDocumentsContainingPurchasing = async (req, res) => {
 };
 exports.getPurchasingDocumentById = async (req, res) => {
   try {
-    const purchasingDoc = await PurchasingDocument.findById(req.params.id);
+    const purchasingDoc = await PurchasingDocument.findById(req.params.id)
+      .populate("submittedBy", "username realName") // Populate username and realName from User model
+      .lean(); // Convert to plain JavaScript object for better performance
+
     if (!purchasingDoc) return res.send("Không tìm thấy phiếu mua hàng.");
     res.json(purchasingDoc);
   } catch (err) {

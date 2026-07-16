@@ -1932,7 +1932,7 @@ async function previewProposalContent(selectElement) {
       <p><strong>Người nộp:</strong> ${
         proposal.submittedBy?.username || "Không rõ"
       }</p>
-            <p><strong>Trạng thái:</strong> ${proposal.status}</p>
+      <p><strong>Trạng thái:</strong> ${proposal.status}</p>
       ${
         proposal.declaration
           ? `<p><strong>Kê khai:</strong> ${proposal.declaration}</p>`
@@ -2087,6 +2087,10 @@ document
         <strong>Trạm:</strong> ${doc.costCenter ? doc.costCenter : ""}<br>
         <strong>Nhóm:</strong> ${doc.groupName ? doc.groupName : ""}<br>
         <strong>Chi phí:</strong> ${doc.grandTotalCost.toLocaleString()}<br>
+        <strong>Người nộp:</strong> ${
+          doc.submittedBy?.username || doc.submittedBy?.realName || "Không rõ"
+        }<br>
+        <strong>Ngày nộp:</strong> ${doc.submissionDate || "Không có"}<br>
         <h3>Sản phẩm:</h3>
         <ul>
             ${doc.products
