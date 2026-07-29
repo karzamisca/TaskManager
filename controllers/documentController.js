@@ -2372,7 +2372,6 @@ exports.suspendDocument = async (req, res) => {
   const { suspendReason } = req.body;
 
   try {
-    // Restrict access
     if (
       ![
         "superAdmin",
@@ -2384,7 +2383,6 @@ exports.suspendDocument = async (req, res) => {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
-    // Check each collection
     let document =
       (await Document.findById(id)) ||
       (await ProposalDocument.findById(id)) ||
@@ -2399,12 +2397,10 @@ exports.suspendDocument = async (req, res) => {
       return res.status(404).send("Không tìm thấy phiếu.");
     }
 
-    // Revert and lock all approval progress
-    document.approvedBy = []; // Clear all approvals
-    document.status = "Suspended"; // Add a new field for status
-    document.suspendReason = suspendReason; // Add suspend reason
+    document.approvedBy = [];
+    document.status = "Suspended";
+    document.suspendReason = suspendReason;
 
-    // Save back to correct collection
     if (document instanceof PurchasingDocument) {
       await PurchasingDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof ProposalDocument) {
@@ -2415,6 +2411,10 @@ exports.suspendDocument = async (req, res) => {
       await AdvancePaymentDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof AdvancePaymentReclaimDocument) {
       await AdvancePaymentReclaimDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof DeliveryDocument) {
+      await DeliveryDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof ReceiptDocument) {
+      await ReceiptDocument.findByIdAndUpdate(id, document);
     } else {
       await Document.findByIdAndUpdate(id, document);
     }
@@ -2429,12 +2429,10 @@ exports.openDocument = async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Restrict access
     if (!["superAdmin", "director", "deputyDirector"].includes(req.user.role)) {
       return res.send("Truy cập bị từ chối. Bạn không có quyền truy cập.");
     }
 
-    // Find the document in any of the collections
     let document =
       (await Document.findById(id)) ||
       (await ProposalDocument.findById(id)) ||
@@ -2449,11 +2447,9 @@ exports.openDocument = async (req, res) => {
       return res.status(404).send("Không tìm thấy phiếu.");
     }
 
-    // Revert the suspension
-    document.status = "Pending"; // Change status back to pending
-    document.suspendReason = ""; // Clear suspend reason
+    document.status = "Pending";
+    document.suspendReason = "";
 
-    // Save the document in the correct collection
     if (document instanceof PurchasingDocument) {
       await PurchasingDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof ProposalDocument) {
@@ -2464,6 +2460,10 @@ exports.openDocument = async (req, res) => {
       await AdvancePaymentDocument.findByIdAndUpdate(id, document);
     } else if (document instanceof AdvancePaymentReclaimDocument) {
       await AdvancePaymentReclaimDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof DeliveryDocument) {
+      await DeliveryDocument.findByIdAndUpdate(id, document);
+    } else if (document instanceof ReceiptDocument) {
+      await ReceiptDocument.findByIdAndUpdate(id, document);
     } else {
       await Document.findByIdAndUpdate(id, document);
     }

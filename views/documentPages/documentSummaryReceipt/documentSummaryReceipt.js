@@ -11,6 +11,15 @@ let choicesInstances = [];
 let selectedDocuments = new Set();
 let isExporting = false;
 
+// Filter state
+let filters = {
+  name: "",
+  costCenterFrom: "",
+  costCenterTo: "",
+  group: "",
+  minTotalCost: null,
+};
+
 async function fetchCurrentUser() {
   try {
     const response = await fetch("/getCurrentUser");
@@ -18,20 +27,6 @@ async function fetchCurrentUser() {
   } catch (error) {
     console.error("Lỗi khi lấy thông tin người dùng:", error);
   }
-}
-
-function filterDocumentsForCurrentUser(documents) {
-  if (!currentUser || !showOnlyPendingApprovals) return documents;
-
-  return documents.filter((doc) => {
-    const isRequiredApprover = doc.approvers.some(
-      (approver) => approver.username === currentUser.username,
-    );
-    const hasNotApprovedYet = !doc.approvedBy.some(
-      (approved) => approved.username === currentUser.username,
-    );
-    return isRequiredApprover && hasNotApprovedYet;
-  });
 }
 
 function showMessage(message, isError = false) {
@@ -159,6 +154,120 @@ function renderFiles(fileMetadata) {
         .join("")}
     </div>
   `;
+}
+
+// Filter functions
+function applyFilters(documents) {
+  let filtered = [...documents];
+
+  if (filters.name) {
+    const searchTerm = filters.name.toLowerCase();
+    filtered = filtered.filter((doc) =>
+      doc.name?.toLowerCase().includes(searchTerm),
+    );
+  }
+
+  if (filters.costCenterFrom) {
+    filtered = filtered.filter(
+      (doc) => doc.costCenterFrom === filters.costCenterFrom,
+    );
+  }
+
+  if (filters.costCenterTo) {
+    filtered = filtered.filter(
+      (doc) => doc.costCenterTo === filters.costCenterTo,
+    );
+  }
+
+  if (filters.group) {
+    filtered = filtered.filter((doc) => doc.groupName === filters.group);
+  }
+
+  if (filters.minTotalCost !== null && filters.minTotalCost > 0) {
+    filtered = filtered.filter(
+      (doc) => (doc.grandTotalCost || 0) >= filters.minTotalCost,
+    );
+  }
+
+  return filtered;
+}
+
+function filterDocumentsForCurrentUser(documents) {
+  let filtered = applyFilters(documents);
+
+  if (showOnlyPendingApprovals && currentUser) {
+    filtered = filtered.filter((doc) => {
+      const isRequiredApprover = doc.approvers.some(
+        (approver) => approver.username === currentUser.username,
+      );
+      const hasNotApprovedYet = !doc.approvedBy.some(
+        (approved) => approved.username === currentUser.username,
+      );
+      return isRequiredApprover && hasNotApprovedYet;
+    });
+  }
+
+  return filtered;
+}
+
+// Suspend functions using existing API
+function suspendDocument(docId) {
+  document.getElementById("suspendModal").style.display = "block";
+  document.getElementById("suspendForm").dataset.docId = docId;
+}
+
+function closeSuspendModal() {
+  document.getElementById("suspendModal").style.display = "none";
+  document.getElementById("suspendForm").reset();
+}
+
+async function handleSuspendSubmit(event) {
+  event.preventDefault();
+  const docId = event.target.dataset.docId;
+  const suspendReason = document.getElementById("suspendReason").value;
+
+  try {
+    const response = await fetch(`/suspendDocument/${docId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ suspendReason }),
+    });
+
+    const message = await response.text();
+
+    if (response.ok) {
+      showMessage(message);
+      closeSuspendModal();
+      fetchReceiptDocuments();
+    } else {
+      showMessage(message, true);
+    }
+  } catch (err) {
+    console.error("Lỗi khi tạm dừng phiếu:", err);
+    showMessage("Lỗi khi tạm dừng phiếu.", true);
+  }
+}
+
+async function openDocument(docId) {
+  try {
+    const response = await fetch(`/openDocument/${docId}`, {
+      method: "POST",
+    });
+
+    const message = await response.text();
+
+    if (response.ok) {
+      showMessage(message);
+      fetchReceiptDocuments();
+    } else {
+      showMessage(message, true);
+    }
+  } catch (err) {
+    console.error("Lỗi khi mở lại phiếu:", err);
+    showMessage("Lỗi khi mở lại phiếu.", true);
+  }
 }
 
 // Selection and Export Functions
@@ -293,6 +402,15 @@ function renderTableRows() {
   const tableBody = document.getElementById("receiptDocumentsTable");
   tableBody.innerHTML = "";
 
+  if (pageDocuments.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="12" class="loading">Không tìm thấy phiếu nào</td>
+      </tr>
+    `;
+    return;
+  }
+
   pageDocuments.forEach((doc) => {
     const isSelected = selectedDocuments.has(doc._id);
     const approvalStatus = doc.approvers
@@ -325,7 +443,14 @@ function renderTableRows() {
                ${isSelected ? "checked" : ""}
                onchange="toggleDocumentSelection('${doc._id}', this.checked)">
       </td>
-      <td>${doc.name || "-"}</td>
+      <td>
+        ${doc.name || "-"}
+        ${
+          doc.suspendReason
+            ? `<div class="suspend-reason"><strong>Lý do từ chối:</strong> ${doc.suspendReason}</div>`
+            : ""
+        }
+      </td>
       <td>${doc.costCenterFrom || "-"}</td>
       <td>${doc.costCenterTo || "-"}</td>   
       <td>${doc.groupName || "-"}</td>           
@@ -336,33 +461,64 @@ function renderTableRows() {
       <td>${renderStatus(doc.status)}</td>
       <td class="approval-status">${approvalStatus}</td>
       <td>
-        <button class="approve-btn" onclick="showFullView('${
-          doc._id
-        }')" style="margin-right: 5px;">
-          Xem đầy đủ
-        </button>
-        <form action="/exportDocumentToDocx/${
-          doc._id
-        }" method="GET" style="display:inline;">
-            <button class="approve-btn">Xuất ra DOCX</button>
-        </form>
-        ${
-          doc.approvedBy.length === 0
-            ? `
-          <button class="approve-btn" onclick="editDocument('${doc._id}')" style="margin-right: 5px;">Sửa</button>
-          <button class="approve-btn" onclick="deleteDocument('${doc._id}')">Xóa</button>
-        `
-            : ""
-        }
-        ${
-          doc.status === "Pending"
-            ? `
-          <button class="approve-btn" onclick="approveDocument('${doc._id}')" style="margin-right: 5px;">
-            Phê duyệt
+        <div class="btn-group">
+          <button class="btn btn-primary btn-sm" onclick="showFullView('${doc._id}')">
+            <i class="fas fa-eye"></i> Xem
           </button>
-        `
-            : ""
-        }  
+          <form action="/exportDocumentToDocx/${doc._id}" method="GET" style="display:inline;">
+            <button class="btn btn-primary btn-sm">
+              <i class="fas fa-file-word"></i> DOCX
+            </button>
+          </form>
+          ${
+            doc.approvedBy.length === 0
+              ? `
+            <button class="btn btn-primary btn-sm" onclick="editDocument('${doc._id}')">
+              <i class="fas fa-edit"></i> Sửa
+            </button>
+            <button class="btn btn-error btn-sm" onclick="deleteDocument('${doc._id}')">
+              <i class="fas fa-trash"></i> Xóa
+            </button>
+          `
+              : ""
+          }
+          ${
+            doc.status === "Pending"
+              ? `
+            <button class="btn btn-success btn-sm" onclick="approveDocument('${doc._id}')">
+              <i class="fas fa-check"></i> Phê duyệt
+            </button>
+          `
+              : ""
+          }
+          ${
+            doc.status === "Approved"
+              ? `
+            <button class="btn btn-primary btn-sm" onclick="editDeclaration('${doc._id}')">
+              <i class="fas fa-edit"></i> Kê khai
+            </button>
+          `
+              : ""
+          }
+          ${
+            doc.status === "Suspended"
+              ? `
+            <button class="btn btn-primary btn-sm" onclick="openDocument('${doc._id}')">
+              <i class="fas fa-lock-open"></i> Mở
+            </button>
+          `
+              : ""
+          }
+          ${
+            doc.status !== "Suspended"
+              ? `
+            <button class="btn btn-error btn-sm" onclick="suspendDocument('${doc._id}')">
+              <i class="fas fa-ban"></i> Từ chối
+            </button>
+          `
+              : ""
+          }
+        </div>
       </td>
     `;
     tableBody.appendChild(row);
@@ -412,9 +568,9 @@ async function fetchReceiptDocuments() {
     document.getElementById("unapprovedSum").textContent =
       unapprovedSum.toLocaleString();
     document.getElementById("approvedDocument").textContent =
-      data.approvedDocument.toLocaleString();
+      filteredDocuments.filter((doc) => doc.status === "Approved").length;
     document.getElementById("unapprovedDocument").textContent =
-      data.unapprovedDocument.toLocaleString();
+      filteredDocuments.filter((doc) => doc.status === "Pending").length;
   } catch (err) {
     console.error("Lỗi khi lấy danh sách phiếu nhập kho:", err);
     showMessage("Lỗi khi lấy danh sách phiếu nhập kho", true);
@@ -569,6 +725,76 @@ async function deleteDocument(documentId) {
   }
 }
 
+async function editDeclaration(docId) {
+  const doc = receiptDocuments.find((d) => d._id === docId);
+  if (!doc) return;
+
+  const existingModal = document.getElementById("declarationModal");
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  const modalHTML = `
+    <div id="declarationModal" class="modal" style="display: block;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2><i class="fas fa-edit"></i> Kê Khai - ${doc.name || doc._id}</h2>
+          <span class="close-btn" onclick="closeDeclarationModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <textarea id="declarationInput" class="form-textarea" rows="4">${doc.declaration || ""}</textarea>
+          </div>
+          <div class="form-actions">
+            <button onclick="saveDeclaration('${docId}')" class="btn btn-primary">
+              <i class="fas fa-save"></i> Lưu kê khai
+            </button>
+            <button onclick="closeDeclarationModal()" class="btn btn-secondary">
+              <i class="fas fa-times"></i> Hủy
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", modalHTML);
+}
+
+function closeDeclarationModal() {
+  const modal = document.getElementById("declarationModal");
+  if (modal) {
+    modal.remove();
+  }
+}
+
+async function saveDeclaration(docId) {
+  const declaration = document.getElementById("declarationInput").value;
+
+  try {
+    const response = await fetch(`/updateReceiptDocumentDeclaration/${docId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ declaration }),
+    });
+
+    const message = await response.text();
+
+    if (response.ok) {
+      showMessage(message);
+      closeDeclarationModal();
+      fetchReceiptDocuments();
+    } else {
+      showMessage(message, true);
+    }
+  } catch (err) {
+    console.error("Lỗi khi cập nhật kê khai:", err);
+    showMessage("Lỗi khi cập nhật kê khai", true);
+  }
+}
+
 async function fetchProducts() {
   try {
     const response = await fetch("/documentProduct");
@@ -678,9 +904,9 @@ async function addProductField(product = null) {
 
   const removeButton = document.createElement("button");
   removeButton.type = "button";
-  removeButton.className = "approve-btn";
+  removeButton.className = "btn btn-error btn-sm";
   removeButton.textContent = "Xóa";
-  removeButton.style.background = "#dc3545";
+  removeButton.style.marginTop = "5px";
   removeButton.onclick = function () {
     const selectElement = this.parentElement.querySelector(".product-select");
     if (selectElement) {
@@ -767,7 +993,7 @@ function renderCurrentApprovers() {
         <div class="approver-item" data-id="${approver.approver}">
           <span>${approver.username} (${approver.subRole})</span>
           <input type="text" value="${approver.subRole}" onchange="updateApproverSubRole('${approver.approver}', this.value)" style="width: 100px; padding: 4px;">
-          <button type="button" class="approve-btn" onclick="removeApprover('${approver.approver}')" style="background: #dc3545; padding: 4px 8px;">Xóa</button>
+          <button type="button" class="btn btn-error btn-sm" onclick="removeApprover('${approver.approver}')">Xóa</button>
         </div>
       `,
     )
@@ -933,7 +1159,7 @@ function renderCurrentFiles(fileMetadata) {
             </a>
             ${file.size ? ` <small>(${file.size})</small>` : ""}
           </div>
-          <button type="button" class="btn btn-danger btn-sm" onclick="deleteCurrentFile('${fileIdentifier}')">
+          <button type="button" class="btn btn-error btn-sm" onclick="deleteCurrentFile('${fileIdentifier}')">
             <i class="fas fa-trash"></i>
           </button>
         </div>
@@ -1147,7 +1373,7 @@ function addEditModal() {
           <div id="productsContainer" style="margin-bottom: clamp(12px, 1.5vw, 20px);">
             <label style="display: block; margin-bottom: 0.5em;">Sản phẩm:</label>
             <div id="productsList"></div>
-            <button type="button" class="approve-btn" onclick="addProductField()" style="margin-top: 10px;">
+            <button type="button" class="btn btn-primary" onclick="addProductField()" style="margin-top: 10px;">
               Thêm sản phẩm
             </button>
           </div>
@@ -1158,11 +1384,7 @@ function addEditModal() {
 
           <div style="margin-bottom: clamp(12px, 1.5vw, 20px);">
             <label for="editFile" style="display: block; margin-bottom: 0.5em;">Thêm tệp tin mới:</label>
-            <input type="file" id="editFile" multiple style="
-                width: 100%;
-                padding: clamp(6px, 1vw, 12px);
-                font-size: inherit;
-            ">
+            <input type="file" id="editFile" multiple style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit;">
             <small>Có thể chọn nhiều tệp tin cùng lúc</small>
           </div>
 
@@ -1177,31 +1399,23 @@ function addEditModal() {
               <option value="">Chọn người phê duyệt</option>
             </select>
             <input type="text" id="newApproverSubRole" placeholder="Vai trò" style="width: 100%; padding: clamp(6px, 1vw, 12px); font-size: inherit; margin-top: 10px;">
-            <button type="button" class="approve-btn" onclick="addNewApprover()" style="margin-top: 10px;">
+            <button type="button" class="btn btn-primary" onclick="addNewApprover()" style="margin-top: 10px;">
               Thêm
             </button>
           </div>
 
-          <div style="
-              display: flex;
-              gap: clamp(8px, 1vw, 16px);
-              margin-top: clamp(20px, 2.5vw, 32px);
-              ">
-              <button type="submit" class="approve-btn" style="
-                  padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
-                  font-size: inherit;
-              ">Lưu thay đổi</button>
-              
-              <button type="button" class="approve-btn" onclick="closeEditModal()" style="
-                  background: #666;
-                  padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px);
-                  font-size: inherit;
-              ">Hủy</button>
+          <div style="display: flex; gap: clamp(8px, 1vw, 16px); margin-top: clamp(20px, 2.5vw, 32px);">
+            <button type="submit" class="btn btn-primary" style="padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px); font-size: inherit;">
+              Lưu thay đổi
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="closeEditModal()" style="padding: clamp(8px, 1vw, 16px) clamp(16px, 2vw, 24px); font-size: inherit;">
+              Hủy
+            </button>
           </div>
         </form>
       </div>
     </div>
-   `;
+  `;
   document.body.insertAdjacentHTML("beforeend", modalHTML);
 }
 
@@ -1250,6 +1464,16 @@ function showFullView(docId) {
               doc.declaration || "Không xác định"
             }</span>
           </div>
+          ${
+            doc.suspendReason
+              ? `
+            <div class="detail-item">
+              <span class="detail-label">Lý do từ chối:</span>
+              <span class="detail-value" style="color: var(--error-color);">${doc.suspendReason}</span>
+            </div>
+          `
+              : ""
+          }
         </div>
       </div>
 
@@ -1317,6 +1541,56 @@ function closeFullViewModal() {
   document.getElementById("fullViewModal").style.display = "none";
 }
 
+// Populate filter dropdowns
+async function populateFilterDropdowns() {
+  try {
+    const costCenterResponse = await fetch("/costCenters");
+    const costCenters = await costCenterResponse.json();
+
+    const costCenterFromFilter = document.getElementById(
+      "costCenterFromFilter",
+    );
+    const costCenterToFilter = document.getElementById("costCenterToFilter");
+
+    if (costCenterFromFilter) {
+      costCenterFromFilter.innerHTML = '<option value="">Tất cả</option>';
+      costCenters.forEach((center) => {
+        const option = document.createElement("option");
+        option.value = center.name;
+        option.textContent = center.name;
+        costCenterFromFilter.appendChild(option);
+      });
+    }
+
+    if (costCenterToFilter) {
+      costCenterToFilter.innerHTML = '<option value="">Tất cả</option>';
+      costCenters.forEach((center) => {
+        const option = document.createElement("option");
+        option.value = center.name;
+        option.textContent = center.name;
+        costCenterToFilter.appendChild(option);
+      });
+    }
+
+    const groupResponse = await fetch("/getGroupDocument");
+    const groups = await groupResponse.json();
+
+    const groupFilter = document.getElementById("groupFilter");
+    if (groupFilter) {
+      groupFilter.innerHTML = '<option value="">Tất cả</option>';
+      groups.forEach((group) => {
+        const option = document.createElement("option");
+        option.value = group.name;
+        option.textContent = group.name;
+        groupFilter.appendChild(option);
+      });
+    }
+  } catch (error) {
+    console.error("Lỗi khi tải dữ liệu lọc:", error);
+  }
+}
+
+// Initialize
 async function initializePage() {
   await fetchCurrentUser();
 
@@ -1335,11 +1609,67 @@ async function initializePage() {
     });
   }
 
+  const nameFilter = document.getElementById("nameFilter");
+  if (nameFilter) {
+    nameFilter.addEventListener("input", (e) => {
+      filters.name = e.target.value.trim().toLowerCase();
+      currentPage = 1;
+      selectedDocuments.clear();
+      fetchReceiptDocuments();
+    });
+  }
+
+  const costCenterFromFilter = document.getElementById("costCenterFromFilter");
+  if (costCenterFromFilter) {
+    costCenterFromFilter.addEventListener("change", (e) => {
+      filters.costCenterFrom = e.target.value;
+      currentPage = 1;
+      selectedDocuments.clear();
+      fetchReceiptDocuments();
+    });
+  }
+
+  const costCenterToFilter = document.getElementById("costCenterToFilter");
+  if (costCenterToFilter) {
+    costCenterToFilter.addEventListener("change", (e) => {
+      filters.costCenterTo = e.target.value;
+      currentPage = 1;
+      selectedDocuments.clear();
+      fetchReceiptDocuments();
+    });
+  }
+
+  const groupFilter = document.getElementById("groupFilter");
+  if (groupFilter) {
+    groupFilter.addEventListener("change", (e) => {
+      filters.group = e.target.value;
+      currentPage = 1;
+      selectedDocuments.clear();
+      fetchReceiptDocuments();
+    });
+  }
+
+  const totalCostFilter = document.getElementById("totalCostFilter");
+  if (totalCostFilter) {
+    totalCostFilter.addEventListener("input", (e) => {
+      const value = parseFloat(e.target.value);
+      filters.minTotalCost = isNaN(value) ? null : value;
+      currentPage = 1;
+      selectedDocuments.clear();
+      fetchReceiptDocuments();
+    });
+  }
+
   const exportBtn = document.getElementById("exportSelectedBtn");
   if (exportBtn) {
     exportBtn.addEventListener("click", exportSelectedToExcel);
   }
 
+  document
+    .getElementById("suspendForm")
+    .addEventListener("submit", handleSuspendSubmit);
+
+  await populateFilterDropdowns();
   fetchReceiptDocuments();
 }
 
