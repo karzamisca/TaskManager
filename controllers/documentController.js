@@ -2094,6 +2094,7 @@ exports.approveDocument = async (req, res) => {
         "captainOfAccounting",
         "captainOfBusiness",
         "captainOfFinance",
+        "captainOfStorage",
         "transporterOfAccounting",
       ].includes(req.user.role)
     ) {
@@ -4832,6 +4833,7 @@ exports.approvePaymentStage = async (req, res) => {
         "captainOfAccounting",
         "captainOfBusiness",
         "captainOfFinance",
+        "captainOfStorage",
       ].includes(req.user.role)
     ) {
       return res.status(403).json({
@@ -5100,6 +5102,7 @@ exports.approvePaymentDocument = async (req, res) => {
         "captainOfAccounting",
         "captainOfBusiness",
         "captainOfFinance",
+        "captainOfStorage",
         "transporterOfAccounting",
       ].includes(req.user.role)
     ) {
@@ -8305,6 +8308,7 @@ exports.approveGenericStage = async (req, res) => {
         "captainOfAccounting",
         "captainOfBusiness",
         "captainOfFinance",
+        "captainOfStorage",
         "transporterOfAccounting",
       ].includes(req.user.role)
     ) {

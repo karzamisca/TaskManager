@@ -124,6 +124,7 @@ exports.getItemManagementViews = (req, res) => {
     "headOfNorthernRepresentativeOffice",
     "assistantOfPurchasing",
     "captainOfPurchasing",
+    "captainOfStorage",
   ];
   if (!allowed.includes(req.user.role)) {
     return res
